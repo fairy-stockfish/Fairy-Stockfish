@@ -28,6 +28,7 @@
 
 #include "bitboard.h"
 #include "types.h"
+#include "variant.h"
 
 
 /// StateInfo struct stores information needed to restore a Position object to
@@ -78,9 +79,17 @@ public:
   Position& operator=(const Position&) = delete;
 
   // FEN string input/output
-  Position& set(const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th);
+  Position& set(const Variant* v, const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th);
   Position& set(const std::string& code, Color c, StateInfo* si);
   const std::string fen() const;
+
+  // Variant rule properties
+  const Variant* variant() const;
+  const std::string piece_to_char() const;
+  Rank promotion_rank() const;
+  std::vector<PieceType> promotion_piece_types() const;
+  bool double_step_enabled() const;
+  bool castling_enabled() const;
 
   // Position representation
   Bitboard pieces() const;
@@ -95,6 +104,7 @@ public:
   template<PieceType Pt> int count(Color c) const;
   template<PieceType Pt> int count() const;
   template<PieceType Pt> const Square* squares(Color c) const;
+  const Square* squares(Color c, PieceType pt) const;
   template<PieceType Pt> Square square(Color c) const;
 
   // Castling
@@ -111,9 +121,9 @@ public:
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
   Bitboard attackers_to(Square s, Bitboard occupied) const;
-  Bitboard attacks_from(PieceType pt, Square s) const;
-  template<PieceType> Bitboard attacks_from(Square s) const;
-  template<PieceType> Bitboard attacks_from(Square s, Color c) const;
+  Bitboard attacks_from(Color c, PieceType pt, Square s) const;
+  template<PieceType> Bitboard attacks_from(Color c, Square s) const;
+  Bitboard moves_from(Color c, PieceType pt, Square s) const;
   Bitboard slider_blockers(Bitboard sliders, Square s, Bitboard& pinners) const;
 
   // Properties of moves
@@ -190,10 +200,41 @@ private:
   Color sideToMove;
   Thread* thisThread;
   StateInfo* st;
+  const Variant* var;
   bool chess960;
 };
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
+
+inline const Variant* Position::variant() const {
+  assert(var != nullptr);
+  return var;
+}
+
+inline const std::string Position::piece_to_char() const {
+  assert(var != nullptr);
+  return var->pieceToChar;
+}
+
+inline Rank Position::promotion_rank() const {
+  assert(var != nullptr);
+  return var->promotionRank;
+}
+
+inline std::vector<PieceType> Position::promotion_piece_types() const {
+  assert(var != nullptr);
+  return var->promotionPieceTypes;
+}
+
+inline bool Position::double_step_enabled() const {
+  assert(var != nullptr);
+  return var->doubleStep;
+}
+
+inline bool Position::castling_enabled() const {
+  assert(var != nullptr);
+  return var->castling;
+}
 
 inline Color Position::side_to_move() const {
   return sideToMove;
@@ -247,6 +288,10 @@ template<PieceType Pt> inline const Square* Position::squares(Color c) const {
   return pieceList[make_piece(c, Pt)];
 }
 
+inline const Square* Position::squares(Color c, PieceType pt) const {
+  return pieceList[make_piece(c, pt)];
+}
+
 template<PieceType Pt> inline Square Position::square(Color c) const {
   assert(pieceCount[make_piece(c, Pt)] == 1);
   return pieceList[make_piece(c, Pt)][0];
@@ -273,20 +318,16 @@ inline Square Position::castling_rook_square(CastlingRight cr) const {
 }
 
 template<PieceType Pt>
-inline Bitboard Position::attacks_from(Square s) const {
-  assert(Pt != PAWN);
-  return  Pt == BISHOP || Pt == ROOK ? attacks_bb<Pt>(s, byTypeBB[ALL_PIECES])
-        : Pt == QUEEN  ? attacks_from<ROOK>(s) | attacks_from<BISHOP>(s)
-        : PseudoAttacks[Pt][s];
+inline Bitboard Position::attacks_from(Color c, Square s) const {
+  return attacks_bb(c, Pt, s, byTypeBB[ALL_PIECES]);
 }
 
-template<>
-inline Bitboard Position::attacks_from<PAWN>(Square s, Color c) const {
-  return PawnAttacks[c][s];
+inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
+  return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]);
 }
 
-inline Bitboard Position::attacks_from(PieceType pt, Square s) const {
-  return attacks_bb(pt, s, byTypeBB[ALL_PIECES]);
+inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
+  return moves_bb(c, pt, s, byTypeBB[ALL_PIECES]);
 }
 
 inline Bitboard Position::attackers_to(Square s) const {
@@ -347,8 +388,8 @@ inline int Position::rule50_count() const {
 }
 
 inline bool Position::opposite_bishops() const {
-  return   pieceCount[W_BISHOP] == 1
-        && pieceCount[B_BISHOP] == 1
+  return   pieceCount[make_piece(WHITE, BISHOP)] == 1
+        && pieceCount[make_piece(BLACK, BISHOP)] == 1
         && opposite_colors(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 

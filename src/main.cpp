@@ -26,6 +26,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
+#include "variant.h"
 #include "syzygy/tbprobe.h"
 
 namespace PSQT {
@@ -36,6 +37,7 @@ int main(int argc, char* argv[]) {
 
   std::cout << engine_info() << std::endl;
 
+  variants.init();
   UCI::init(Options);
   PSQT::init();
   Bitboards::init();
@@ -50,5 +52,6 @@ int main(int argc, char* argv[]) {
   UCI::loop(argc, argv);
 
   Threads.set(0);
+  variants.clear_all();
   return 0;
 }

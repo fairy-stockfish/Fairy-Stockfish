@@ -37,8 +37,10 @@ Bitboard DistanceRingBB[SQUARE_NB][8];
 Bitboard ForwardFileBB[COLOR_NB][SQUARE_NB];
 Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
 Bitboard PawnAttackSpan[COLOR_NB][SQUARE_NB];
-Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
-Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
+Bitboard PseudoAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Bitboard PseudoMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Bitboard LeaperMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 
 Magic RookMagics[SQUARE_NB];
 Magic BishopMagics[SQUARE_NB];
@@ -57,6 +59,24 @@ namespace {
     u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
     u = ((u >> 4) + u) & 0x0F0FU;
     return (u * 0x0101U) >> 8;
+  }
+
+  Bitboard sliding_attack(Direction directions[], Square sq, Bitboard occupied, int maxDist = 7) {
+
+    Bitboard attack = 0;
+
+    for (int i = 0; directions[i]; ++i)
+        for (Square s = sq + directions[i];
+             is_ok(s) && distance(s, s - directions[i]) == 1 && distance(s, sq) <= maxDist;
+             s += directions[i])
+        {
+            attack |= s;
+
+            if (occupied & s)
+                break;
+        }
+
+    return attack;
   }
 }
 
@@ -119,68 +139,154 @@ void Bitboards::init() {
               DistanceRingBB[s1][SquareDistance[s1][s2] - 1] |= s2;
           }
 
-  int steps[][5] = { {}, { 7, 9 }, { 6, 10, 15, 17 }, {}, {}, {}, { 1, 7, 8, 9 } };
-
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt : { PAWN, KNIGHT, KING })
-          for (Square s = SQ_A1; s <= SQ_H8; ++s)
-              for (int i = 0; steps[pt][i]; ++i)
-              {
-                  Square to = s + Direction(c == WHITE ? steps[pt][i] : -steps[pt][i]);
-
-                  if (is_ok(to) && distance(s, to) < 3)
-                  {
-                      if (pt == PAWN)
-                          PawnAttacks[c][s] |= to;
-                      else
-                          PseudoAttacks[pt][s] |= to;
-                  }
-              }
-
-  Direction RookDirections[] = { NORTH,  EAST,  SOUTH,  WEST };
-  Direction BishopDirections[] = { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
+  // Piece moves
+  Direction RookDirections[5] = { NORTH,  EAST,  SOUTH,  WEST };
+  Direction BishopDirections[5] = { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
 
   init_magics(RookTable, RookMagics, RookDirections);
   init_magics(BishopTable, BishopMagics, BishopDirections);
 
+  int stepsCapture[][13] = {
+      {}, // NO_PIECE_TYPE
+      { 7, 9 }, // pawn
+      { -17, -15, -10, -6, 6, 10, 15, 17 }, // knight
+      {}, // bishop
+      {}, // rook
+      {}, // queen
+      { -9, -7, 7, 9 }, // fers/met
+      { -18, -14, 14, 18 }, // alfil
+      { -9, -7, 7, 8, 9 }, // silver/khon
+      { -17, -15, -10, -9, -7, -6, 6, 7, 9, 10, 15, 17 }, // aiwok
+      { -17, -15, -10, -6, 6, 10, 15, 17 }, // amazon
+      {}, // knibis
+      { -17, -15, -10, -6, 6, 10, 15, 17 }, // biskni
+      { -9, -8, -7, -1, 1, 7, 8, 9 } // king
+  };
+  int stepsQuiet[][13] = {
+      {}, // NO_PIECE_TYPE
+      { 8 }, // pawn
+      { -17, -15, -10, -6, 6, 10, 15, 17 }, // knight
+      {}, // bishop
+      {}, // rook
+      {}, // queen
+      { -9, -7, 7, 9 }, // fers/met
+      { -18, -14, 14, 18 }, // alfil
+      { -9, -7, 7, 8, 9 }, // silver/khon
+      { -17, -15, -10, -9, -7, -6, 6, 7, 9, 10, 15, 17 }, // aiwok
+      { -17, -15, -10, -6, 6, 10, 15, 17 }, // amazon
+      { -17, -15, -10, -6, 6, 10, 15, 17 }, // knibis
+      {}, // biskni
+      { -9, -8, -7, -1, 1, 7, 8, 9 } // king
+  };
+  Direction sliderCapture[][9] = {
+    {}, // NO_PIECE_TYPE
+    {}, // pawn
+    {}, // knight
+    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // bishop
+    { NORTH,  EAST,  SOUTH,  WEST }, // rook
+    { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // queen
+    {}, // fers/met
+    {}, // alfil
+    {}, // silver/khon
+    { NORTH,  EAST,  SOUTH,  WEST }, // aiwok
+    { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
+    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // knibis
+    {}, // biskni
+    {} // king
+  };
+  Direction sliderQuiet[][9] = {
+    {}, // NO_PIECE_TYPE
+    {}, // pawn
+    {}, // knight
+    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // bishop
+    { NORTH,  EAST,  SOUTH,  WEST }, // rook
+    { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // queen
+    {}, // fers/met
+    {}, // alfil
+    {}, // silver/khon
+    { NORTH,  EAST,  SOUTH,  WEST }, // aiwok
+    { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
+    {}, // knibis
+    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // biskni
+    {} // king
+  };
+  int sliderDistCapture[] = {
+    0, // NO_PIECE_TYPE
+    0, // pawn
+    0, // knight
+    7, // bishop
+    7, // rook
+    7, // queen
+    0, // fers/met
+    0, // alfil
+    0, // silver/khon
+    7, // aiwok
+    7, // amazon
+    7, // knibis
+    0, // biskni
+    0  // king
+  };
+  int sliderDistQuiet[] = {
+    0, // NO_PIECE_TYPE
+    0, // pawn
+    0, // knight
+    7, // bishop
+    7, // rook
+    7, // queen
+    0, // fers/met
+    0, // alfil
+    0, // silver/khon
+    7, // aiwok
+    7, // amazon
+    0, // knibis
+    7, // biskni
+    0  // king
+  };
+
+  for (Color c = WHITE; c <= BLACK; ++c)
+      for (PieceType pt = PAWN; pt <= KING; ++pt)
+          for (Square s = SQ_A1; s <= SQ_H8; ++s)
+          {
+              for (int i = 0; stepsCapture[pt][i]; ++i)
+              {
+                  Square to = s + Direction(c == WHITE ? stepsCapture[pt][i] : -stepsCapture[pt][i]);
+
+                  if (is_ok(to) && distance(s, to) < 4)
+                  {
+                      PseudoAttacks[c][pt][s] |= to;
+                      LeaperAttacks[c][pt][s] |= to;
+                  }
+              }
+              for (int i = 0; stepsQuiet[pt][i]; ++i)
+              {
+                  Square to = s + Direction(c == WHITE ? stepsQuiet[pt][i] : -stepsQuiet[pt][i]);
+
+                  if (is_ok(to) && distance(s, to) < 4)
+                  {
+                      PseudoMoves[c][pt][s] |= to;
+                      LeaperMoves[c][pt][s] |= to;
+                  }
+              }
+              PseudoAttacks[c][pt][s] |= sliding_attack(sliderCapture[pt], s, 0, sliderDistCapture[pt]);
+              PseudoMoves[c][pt][s] |= sliding_attack(sliderQuiet[pt], s, 0, sliderDistQuiet[pt]);
+          }
+
   for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
   {
-      PseudoAttacks[QUEEN][s1]  = PseudoAttacks[BISHOP][s1] = attacks_bb<BISHOP>(s1, 0);
-      PseudoAttacks[QUEEN][s1] |= PseudoAttacks[  ROOK][s1] = attacks_bb<  ROOK>(s1, 0);
-
       for (PieceType pt : { BISHOP, ROOK })
           for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
           {
-              if (!(PseudoAttacks[pt][s1] & s2))
+              if (!(PseudoAttacks[WHITE][pt][s1] & s2))
                   continue;
 
-              LineBB[s1][s2] = (attacks_bb(pt, s1, 0) & attacks_bb(pt, s2, 0)) | s1 | s2;
-              BetweenBB[s1][s2] = attacks_bb(pt, s1, SquareBB[s2]) & attacks_bb(pt, s2, SquareBB[s1]);
+              LineBB[s1][s2] = (attacks_bb(WHITE, pt, s1, 0) & attacks_bb(WHITE, pt, s2, 0)) | s1 | s2;
+              BetweenBB[s1][s2] = attacks_bb(WHITE, pt, s1, SquareBB[s2]) & attacks_bb(WHITE, pt, s2, SquareBB[s1]);
           }
   }
 }
 
 
 namespace {
-
-  Bitboard sliding_attack(Direction directions[], Square sq, Bitboard occupied) {
-
-    Bitboard attack = 0;
-
-    for (int i = 0; i < 4; ++i)
-        for (Square s = sq + directions[i];
-             is_ok(s) && distance(s, s - directions[i]) == 1;
-             s += directions[i])
-        {
-            attack |= s;
-
-            if (occupied & s)
-                break;
-        }
-
-    return attack;
-  }
-
 
   // init_magics() computes all rook and bishop attacks at startup. Magic
   // bitboards are used to look up attacks of sliding pieces. As a reference see

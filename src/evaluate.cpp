@@ -263,7 +263,7 @@ namespace {
     mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pe->pawn_attacks(Them));
 
     // Initialise attackedBy bitboards for kings and pawns
-    attackedBy[Us][KING] = pos.attacks_from<KING>(pos.square<KING>(Us));
+    attackedBy[Us][KING] = pos.attacks_from<KING>(Us, pos.square<KING>(Us));
     attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
     attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN];
     attackedBy2[Us]            = attackedBy[Us][KING] & attackedBy[Us][PAWN];
@@ -310,7 +310,8 @@ namespace {
         // Find attacked squares, including x-ray attacks for bishops and rooks
         b = Pt == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(QUEEN))
           : Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(QUEEN) ^ pos.pieces(Us, ROOK))
-                         : pos.attacks_from<Pt>(s);
+                         : (  (pos.attacks_from(Us, Pt, s) & pos.pieces())
+                            | (pos.moves_from(Us, Pt, s) & ~pos.pieces()));
 
         if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];
@@ -381,7 +382,7 @@ namespace {
         {
             // Bonus for aligning rook with enemy pawns on the same rank/file
             if (relative_rank(Us, s) >= RANK_5)
-                score += RookOnPawn * popcount(pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s]);
+                score += RookOnPawn * popcount(pos.pieces(Them, PAWN) & PseudoAttacks[Us][ROOK][s]);
 
             // Bonus for rook on an open or semi-open file
             if (pe->semiopen_file(Us, file_of(s)))
@@ -463,7 +464,7 @@ namespace {
             unsafeChecks |= b2;
 
         // Enemy knights checks
-        b = pos.attacks_from<KNIGHT>(ksq) & attackedBy[Them][KNIGHT];
+        b = pos.attacks_from<KNIGHT>(Us, ksq) & attackedBy[Them][KNIGHT];
         if (b & safe)
             kingDanger += KnightSafeCheck;
         else
@@ -603,12 +604,12 @@ namespace {
         Square s = pos.square<QUEEN>(Them);
         safeThreats = mobilityArea[Us] & ~stronglyProtected;
 
-        b = attackedBy[Us][KNIGHT] & pos.attacks_from<KNIGHT>(s);
+        b = attackedBy[Us][KNIGHT] & pos.attacks_from<KNIGHT>(Us, s);
 
         score += KnightOnQueen * popcount(b & safeThreats);
 
-        b =  (attackedBy[Us][BISHOP] & pos.attacks_from<BISHOP>(s))
-           | (attackedBy[Us][ROOK  ] & pos.attacks_from<ROOK  >(s));
+        b =  (attackedBy[Us][BISHOP] & pos.attacks_from<BISHOP>(Us, s))
+           | (attackedBy[Us][ROOK  ] & pos.attacks_from<ROOK  >(Us, s));
 
         score += SliderOnQueen * popcount(b & safeThreats & attackedBy2[Us]);
     }
@@ -675,7 +676,7 @@ namespace {
                 // in the pawn's path attacked or occupied by the enemy.
                 defendedSquares = unsafeSquares = squaresToQueen = forward_file_bb(Us, s);
 
-                bb = forward_file_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
+                bb = forward_file_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(Us, s);
 
                 if (!(pos.pieces(Us) & bb))
                     defendedSquares &= attackedBy[Us][ALL_PIECES];

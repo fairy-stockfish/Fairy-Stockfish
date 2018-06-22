@@ -23,8 +23,10 @@
 #include "types.h"
 
 Value PieceValue[PHASE_NB][PIECE_NB] = {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg }
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg,
+    FersValueMg, AlfilValueMg, SilverValueMg, AiwokValueMg, AmazonValueMg, KnibisValueMg, BiskniValueMg },
+  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg,
+    FersValueEg, AlfilValueEg, SilverValueEg, AiwokValueEg, AmazonValueEg, KnibisValueMg, BiskniValueMg }
 };
 
 namespace PSQT {
@@ -35,7 +37,7 @@ namespace PSQT {
 // type on a given square a (middlegame, endgame) score pair is assigned. Table
 // is defined for files A..D and white side: it is symmetric for black side and
 // second half of the files.
-constexpr Score Bonus[][RANK_NB][int(FILE_NB) / 2] = {
+constexpr Score Bonus[PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
   { },
   { // Pawn
    { S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0) },
@@ -107,8 +109,10 @@ Score psq[PIECE_NB][SQUARE_NB];
 // tables are initialized by flipping and changing the sign of the white scores.
 void init() {
 
-  for (Piece pc = W_PAWN; pc <= W_KING; ++pc)
+  for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
+      Piece pc = make_piece(WHITE, pt);
+
       PieceValue[MG][~pc] = PieceValue[MG][pc];
       PieceValue[EG][~pc] = PieceValue[EG][pc];
 
