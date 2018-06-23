@@ -201,7 +201,7 @@ enum Value : int {
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
 
-const int PIECE_TYPE_BITS = 6; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
+const int PIECE_TYPE_BITS = 5; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
 
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK,
