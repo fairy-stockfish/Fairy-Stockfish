@@ -830,6 +830,7 @@ namespace {
   Value Evaluation<T>::value() {
 
     assert(!pos.checkers());
+    assert(!pos.is_variant_end());
 
     // Probe the material hash table
     me = Material::probe(pos);

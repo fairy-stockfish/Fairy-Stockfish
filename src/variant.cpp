@@ -91,7 +91,9 @@ void VariantMap::init() {
         v->promotionPieceTypes = {FERS};
         v->doubleStep = false;
         v->castling = false;
-        // TODO: bare king, stalemate
+        v->bareKingValue = -VALUE_MATE;
+        v->bareKingMove = true;
+        v->stalemateValue = -VALUE_MATE;
         return v;
     } ();
     const Variant* amazon = [&]{
@@ -111,6 +113,32 @@ void VariantMap::init() {
         v->promotionPieceTypes = {QUEEN, ROOK, BISKNI, KNIBIS};
         return v;
     } ();
+    const Variant* kingofthehill = [&]{
+        Variant* v = new Variant();
+        v->whiteFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
+        v->whiteFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
+        v->flagMove = false;
+        return v;
+    } ();
+    const Variant* racingkings = [&]{
+        Variant* v = new Variant();
+        v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
+        v->whiteFlag = Rank8BB;
+        v->whiteFlag = Rank8BB;
+        v->flagMove = true;
+        v->castling = false;
+        v->checking = false;
+        return v;
+    } ();
+    const Variant* losers = [&]{
+        Variant* v = new Variant();
+        v->checkmateValue = VALUE_MATE;
+        v->stalemateValue = VALUE_MATE;
+        v->bareKingValue = VALUE_MATE;
+        v->bareKingMove = false;
+        v->mustCapture = true;
+        return v;
+    } ();
     insert(std::pair<std::string, const Variant*>(std::string("chess"), chess));
     insert(std::pair<std::string, const Variant*>(std::string("makruk"), makruk));
     insert(std::pair<std::string, const Variant*>(std::string("asean"), asean));
@@ -118,6 +146,9 @@ void VariantMap::init() {
     insert(std::pair<std::string, const Variant*>(std::string("shatranj"), shatranj));
     insert(std::pair<std::string, const Variant*>(std::string("amazon"), amazon));
     insert(std::pair<std::string, const Variant*>(std::string("hoppelpoppel"), hoppelpoppel));
+    insert(std::pair<std::string, const Variant*>(std::string("kingofthehill"), kingofthehill));
+    insert(std::pair<std::string, const Variant*>(std::string("racingkings"), racingkings));
+    insert(std::pair<std::string, const Variant*>(std::string("losers"), losers));
 }
 
 void VariantMap::clear_all() {

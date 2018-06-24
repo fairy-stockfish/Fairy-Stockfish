@@ -90,6 +90,17 @@ public:
   std::vector<PieceType> promotion_piece_types() const;
   bool double_step_enabled() const;
   bool castling_enabled() const;
+  bool checking_permitted() const;
+  bool must_capture() const;
+  // winning conditions
+  Value stalemate_value(int ply = 0) const;
+  Value checkmate_value(int ply = 0) const;
+  Value bare_king_value(int ply = 0) const;
+  bool bare_king_move() const;
+  Bitboard capture_the_flag(Color c) const;
+  bool flag_move() const;
+  bool is_variant_end() const;
+  bool is_variant_end(Value& result, int ply = 0) const;
 
   // Position representation
   Bitboard pieces() const;
@@ -234,6 +245,90 @@ inline bool Position::double_step_enabled() const {
 inline bool Position::castling_enabled() const {
   assert(var != nullptr);
   return var->castling;
+}
+
+inline bool Position::checking_permitted() const {
+  assert(var != nullptr);
+  return var->checking;
+}
+
+inline bool Position::must_capture() const {
+  assert(var != nullptr);
+  return var->mustCapture;
+}
+
+inline Value Position::stalemate_value(int ply) const {
+  assert(var != nullptr);
+  Value v = var->stalemateValue;
+  return  v ==  VALUE_MATE ? mate_in(ply)
+        : v == -VALUE_MATE ? mated_in(ply)
+        : v;
+}
+
+inline Value Position::checkmate_value(int ply) const {
+  assert(var != nullptr);
+  Value v = var->checkmateValue;
+  return  v ==  VALUE_MATE ? mate_in(ply)
+        : v == -VALUE_MATE ? mated_in(ply)
+        : v;
+}
+
+inline Value Position::bare_king_value(int ply) const {
+  assert(var != nullptr);
+  Value v = var->bareKingValue;
+  return  v ==  VALUE_MATE ? mate_in(ply)
+        : v == -VALUE_MATE ? mated_in(ply)
+        : v;
+}
+
+inline bool Position::bare_king_move() const {
+  assert(var != nullptr);
+  return var->bareKingMove;
+}
+
+inline Bitboard Position::capture_the_flag(Color c) const {
+  assert(var != nullptr);
+  return c == WHITE ? var->whiteFlag : var->blackFlag;
+}
+
+inline bool Position::flag_move() const {
+  assert(var != nullptr);
+  return var->flagMove;
+}
+
+inline bool Position::is_variant_end() const {
+  Value result;
+  return is_variant_end(result);
+}
+
+inline bool Position::is_variant_end(Value& result, int ply) const {
+  // bare king rule
+  if (    bare_king_value() != VALUE_NONE
+      && !bare_king_move()
+      && !(count<ALL_PIECES>(sideToMove) - count<KING>(sideToMove)))
+  {
+      result = bare_king_value(ply);
+      return true;
+  }
+  if (    bare_king_value() != VALUE_NONE
+      &&  bare_king_move()
+      && !(count<ALL_PIECES>(~sideToMove) - count<KING>(~sideToMove)))
+  {
+      result = -bare_king_value(ply);
+      return true;
+  }
+  // capture the flag
+  if (!flag_move() && (capture_the_flag(~sideToMove) & square<KING>(~sideToMove)))
+  {
+      result = mated_in(ply);
+      return true;
+  }
+  if (flag_move() && (capture_the_flag(sideToMove) & square<KING>(sideToMove)))
+  {
+      result = mate_in(ply);
+      return true;
+  }
+  return false;
 }
 
 inline Color Position::side_to_move() const {

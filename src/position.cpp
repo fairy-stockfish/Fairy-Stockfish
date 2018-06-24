@@ -553,6 +553,31 @@ bool Position::legal(Move m) const {
   assert(color_of(moved_piece(m)) == us);
   assert(piece_on(square<KING>(us)) == make_piece(us, KING));
 
+  // illegal checks
+  if (!checking_permitted() && gives_check(m))
+      return false;
+
+  // illegal quiet moves
+  if (must_capture() && !capture(m))
+  {
+      if (checkers())
+      {
+          for (const auto& mevasion : MoveList<EVASIONS>(*this))
+              if (capture(mevasion) && legal(mevasion))
+                  return false;
+      }
+      else
+      {
+          for (const auto& mcap : MoveList<CAPTURES>(*this))
+              if (capture(mcap) && legal(mcap))
+                  return false;
+      }
+  }
+
+  // game end
+  if (is_variant_end())
+      return false;
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.

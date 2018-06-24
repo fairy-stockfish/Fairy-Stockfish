@@ -202,8 +202,10 @@ void MainThread::search() {
   if (rootMoves.empty())
   {
       rootMoves.emplace_back(MOVE_NONE);
+      Value variantResult;
       sync_cout << "info depth 0 score "
-                << UCI::value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW)
+                << UCI::value(  rootPos.is_variant_end(variantResult) ? variantResult
+                              : rootPos.checkers() ? rootPos.checkmate_value() : rootPos.stalemate_value())
                 << sync_endl;
   }
   else
@@ -565,6 +567,10 @@ namespace {
 
     if (!rootNode)
     {
+        Value variantResult;
+        if (pos.is_variant_end(variantResult, ss->ply))
+            return variantResult;
+
         // Step 2. Check for aborted search and immediate draw
         if (   Threads.stop.load(std::memory_order_relaxed)
             || pos.is_draw(ss->ply)
@@ -1148,7 +1154,7 @@ moves_loop: // When in check, search starts from here
 
     if (!moveCount)
         bestValue = excludedMove ? alpha
-                   :     inCheck ? mated_in(ss->ply) : VALUE_DRAW;
+                   :     inCheck ? pos.checkmate_value(ss->ply) : pos.stalemate_value(ss->ply);
     else if (bestMove)
     {
         // Quiet best move: update move sorting heuristics
@@ -1216,6 +1222,10 @@ moves_loop: // When in check, search starts from here
     ss->currentMove = bestMove = MOVE_NONE;
     inCheck = pos.checkers();
     moveCount = 0;
+
+    Value variantResult;
+    if (pos.is_variant_end(variantResult, ss->ply))
+        return variantResult;
 
     // Check for an immediate draw or maximum ply reached
     if (   pos.is_draw(ss->ply)

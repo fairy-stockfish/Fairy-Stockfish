@@ -26,6 +26,7 @@
 #include <string>
 
 #include "types.h"
+#include "bitboard.h"
 
 
 /// Variant struct stores information needed to determine the rules of a variant.
@@ -38,6 +39,16 @@ struct Variant {
   std::vector<PieceType> promotionPieceTypes = {QUEEN, ROOK, BISHOP, KNIGHT};
   bool doubleStep = true;
   bool castling = true;
+  bool checking = true;
+  bool mustCapture = false;
+  // game end
+  Value stalemateValue = VALUE_DRAW;
+  Value checkmateValue = -VALUE_MATE;
+  Value bareKingValue = VALUE_NONE;
+  bool bareKingMove = false;
+  Bitboard whiteFlag = 0;
+  Bitboard blackFlag = 0;
+  bool flagMove = false;
 
   void set_piece(PieceType pt, char c) {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
