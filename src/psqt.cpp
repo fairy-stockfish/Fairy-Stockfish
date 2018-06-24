@@ -102,7 +102,7 @@ constexpr Score Bonus[PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
 
 #undef S
 
-Score psq[PIECE_NB][SQUARE_NB];
+Score psq[PIECE_NB][SQUARE_NB + 1];
 
 // init() initializes piece-square tables: the white halves of the tables are
 // copied from Bonus[] adding the piece value, then the black halves of the
@@ -124,6 +124,9 @@ void init() {
           psq[ pc][ s] = score + Bonus[pc][rank_of(s)][f];
           psq[~pc][~s] = -psq[pc][s];
       }
+      // pieces in pocket
+      psq[ pc][SQ_NONE] = score;
+      psq[~pc][SQ_NONE] = -psq[pc][SQ_NONE];
   }
 }
 

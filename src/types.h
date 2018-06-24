@@ -154,6 +154,10 @@ template<Color C, CastlingSide S> struct MakeCastling {
                      : S == QUEEN_SIDE ? BLACK_OOO : BLACK_OO;
 };
 
+enum CheckCount : int {
+  CHECKS_0 = 0, CHECKS_NB = 11
+};
+
 enum Phase {
   PHASE_ENDGAME,
   PHASE_MIDGAME = 128,
@@ -316,6 +320,7 @@ inline T& operator*=(T& d, int i) { return d = T(int(d) * i); }    \
 inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
 
 ENABLE_FULL_OPERATORS_ON(Value)
+ENABLE_FULL_OPERATORS_ON(CheckCount)
 ENABLE_FULL_OPERATORS_ON(Depth)
 ENABLE_FULL_OPERATORS_ON(Direction)
 

@@ -37,7 +37,7 @@
 using std::string;
 
 namespace PSQT {
-  extern Score psq[PIECE_NB][SQUARE_NB];
+  extern Score psq[PIECE_NB][SQUARE_NB + 1];
 }
 
 namespace Zobrist {
@@ -46,6 +46,8 @@ namespace Zobrist {
   Key enpassant[FILE_NB];
   Key castling[CASTLING_RIGHT_NB];
   Key side, noPawns;
+  Key inHand[PIECE_NB][17];
+  Key checks[COLOR_NB][CHECKS_NB];
 }
 
 namespace {
@@ -166,6 +168,15 @@ void Position::init() {
 
   Zobrist::side = rng.rand<Key>();
   Zobrist::noPawns = rng.rand<Key>();
+
+  for (Color c = WHITE; c <= BLACK; ++c)
+      for (int n = 0; n < CHECKS_NB; ++n)
+          Zobrist::checks[c][n] = rng.rand<Key>();
+
+  for (Color c = WHITE; c <= BLACK; ++c)
+      for (PieceType pt = KNIGHT; pt <= KING; ++pt)
+          for (int n = 0; n < 17; ++n)
+              Zobrist::inHand[make_piece(c, pt)][n] = rng.rand<Key>();
 
   // Prepare the cuckoo tables
   int count = 0;
@@ -313,6 +324,18 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   }
   }
 
+  // Check counter for nCheck
+  ss >> std::skipws >> token;
+
+  if (max_check_count() && ss.peek() == '+')
+  {
+      st->checksGiven[WHITE] = CheckCount(std::max(max_check_count() - std::max(token - '0', 0), 0));
+      ss >> token >> token;
+      st->checksGiven[BLACK] = CheckCount(std::max(max_check_count() - std::max(token - '0', 0), 0));
+  }
+  else
+      ss.putback(token);
+
   // 5-6. Halfmove clock and fullmove number
   ss >> std::skipws >> st->rule50 >> gamePly;
 
@@ -394,6 +417,16 @@ void Position::set_state(StateInfo* si) const {
       si->key ^= Zobrist::psq[pc][s];
       si->psq += PSQT::psq[pc][s];
   }
+  // pieces in hand
+  if (piece_drops())
+  {
+      for (Color c = WHITE; c <= BLACK; ++c)
+          for (PieceType pt = PAWN; pt <= KING; ++pt)
+          {
+              Piece pc = make_piece(c, pt);
+              si->psq += PSQT::psq[pc][SQ_NONE] * pieceCountInHand[color_of(pc)][type_of(pc)];
+          }
+  }
 
   if (si->epSquare != SQ_NONE)
       si->key ^= Zobrist::enpassant[file_of(si->epSquare)];
@@ -418,7 +451,18 @@ void Position::set_state(StateInfo* si) const {
 
           for (int cnt = 0; cnt < pieceCount[pc]; ++cnt)
               si->materialKey ^= Zobrist::psq[pc][cnt];
+
+          if (piece_drops())
+          {
+              if (type_of(pc) != PAWN && type_of(pc) != KING)
+                  si->nonPawnMaterial[color_of(pc)] += pieceCountInHand[color_of(pc)][type_of(pc)] * PieceValue[MG][pc];
+              si->key ^= Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
+          }
       }
+
+  if (max_check_count())
+      for (Color c = WHITE; c <= BLACK; ++c)
+          si->key ^= Zobrist::checks[c][si->checksGiven[c]];
 }
 
 
@@ -469,6 +513,16 @@ const string Position::fen() const {
           ss << '/';
   }
 
+  // pieces in hand
+  if (piece_drops())
+  {
+      ss << '[';
+      for (Color c = WHITE; c <= BLACK; ++c)
+          for (PieceType pt = PieceType(KING - 1); pt >= PAWN; --pt)
+              ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
+      ss << ']';
+  }
+
   ss << (sideToMove == WHITE ? " w " : " b ");
 
   if (can_castle(WHITE_OO))
@@ -485,6 +539,10 @@ const string Position::fen() const {
 
   if (!can_castle(WHITE) && !can_castle(BLACK))
       ss << '-';
+
+  // check count
+  if (max_check_count())
+      ss << " " << (max_check_count() - st->checksGiven[WHITE]) << "+" << (max_check_count() - st->checksGiven[BLACK]);
 
   ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(ep_square()) + " ")
      << st->rule50 << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
@@ -770,6 +828,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   assert(color_of(pc) == us);
   assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
   assert(type_of(captured) != KING);
+
+  if (max_check_count() && givesCheck)
+      k ^= Zobrist::checks[us][st->checksGiven[us]] ^ Zobrist::checks[us][++(st->checksGiven[us])];
 
   if (type_of(m) == CASTLING)
   {

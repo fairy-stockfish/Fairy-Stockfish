@@ -41,6 +41,7 @@ struct Variant {
   bool castling = true;
   bool checking = true;
   bool mustCapture = false;
+  bool pieceDrops = false;
   // game end
   Value stalemateValue = VALUE_DRAW;
   Value checkmateValue = -VALUE_MATE;
@@ -49,6 +50,7 @@ struct Variant {
   Bitboard whiteFlag = 0;
   Bitboard blackFlag = 0;
   bool flagMove = false;
+  CheckCount maxCheckCount = CheckCount(0);
 
   void set_piece(PieceType pt, char c) {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);

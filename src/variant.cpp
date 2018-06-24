@@ -139,6 +139,24 @@ void VariantMap::init() {
         v->mustCapture = true;
         return v;
     } ();
+    const Variant* threecheck = [&]{
+        Variant* v = new Variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
+        v->maxCheckCount = CheckCount(3);
+        return v;
+    } ();
+    const Variant* fivecheck = [&]{
+        Variant* v = new Variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 5+5 0 1";
+        v->maxCheckCount = CheckCount(5);
+        return v;
+    } ();
+    const Variant* crazyhouse = [&]{
+        Variant* v = new Variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
+        v->pieceDrops = true;
+        return v;
+    } ();
     insert(std::pair<std::string, const Variant*>(std::string("chess"), chess));
     insert(std::pair<std::string, const Variant*>(std::string("makruk"), makruk));
     insert(std::pair<std::string, const Variant*>(std::string("asean"), asean));
@@ -149,6 +167,9 @@ void VariantMap::init() {
     insert(std::pair<std::string, const Variant*>(std::string("kingofthehill"), kingofthehill));
     insert(std::pair<std::string, const Variant*>(std::string("racingkings"), racingkings));
     insert(std::pair<std::string, const Variant*>(std::string("losers"), losers));
+    insert(std::pair<std::string, const Variant*>(std::string("3check"), threecheck));
+    insert(std::pair<std::string, const Variant*>(std::string("5check"), fivecheck));
+    //insert(std::pair<std::string, const Variant*>(std::string("crazyhouse"), crazyhouse));
 }
 
 void VariantMap::clear_all() {

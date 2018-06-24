@@ -44,6 +44,7 @@ struct StateInfo {
   int    castlingRights;
   int    rule50;
   int    pliesFromNull;
+  CheckCount checksGiven[COLOR_NB];
   Score  psq;
   Square epSquare;
 
@@ -92,6 +93,7 @@ public:
   bool castling_enabled() const;
   bool checking_permitted() const;
   bool must_capture() const;
+  bool piece_drops() const;
   // winning conditions
   Value stalemate_value(int ply = 0) const;
   Value checkmate_value(int ply = 0) const;
@@ -99,6 +101,7 @@ public:
   bool bare_king_move() const;
   Bitboard capture_the_flag(Color c) const;
   bool flag_move() const;
+  CheckCount max_check_count() const;
   bool is_variant_end() const;
   bool is_variant_end(Value& result, int ply = 0) const;
 
@@ -203,6 +206,8 @@ private:
   Bitboard byColorBB[COLOR_NB];
   int pieceCount[PIECE_NB];
   Square pieceList[PIECE_NB][16];
+  int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+  Bitboard promotedPieces;
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
   Square castlingRookSquare[CASTLING_RIGHT_NB];
@@ -257,6 +262,11 @@ inline bool Position::must_capture() const {
   return var->mustCapture;
 }
 
+inline bool Position::piece_drops() const {
+  assert(var != nullptr);
+  return var->pieceDrops;
+}
+
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
   Value v = var->stalemateValue;
@@ -296,6 +306,11 @@ inline bool Position::flag_move() const {
   return var->flagMove;
 }
 
+inline CheckCount Position::max_check_count() const {
+  assert(var != nullptr);
+  return var->maxCheckCount;
+}
+
 inline bool Position::is_variant_end() const {
   Value result;
   return is_variant_end(result);
@@ -326,6 +341,12 @@ inline bool Position::is_variant_end(Value& result, int ply) const {
   if (flag_move() && (capture_the_flag(sideToMove) & square<KING>(sideToMove)))
   {
       result = mate_in(ply);
+      return true;
+  }
+  // nCheck
+  if (max_check_count() && st->checksGiven[~sideToMove] == max_check_count())
+  {
+      result = mated_in(ply);
       return true;
   }
   return false;
