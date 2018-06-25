@@ -2,12 +2,15 @@
 Fairy-Stockfish is a Stockfish fork designed for the support of (fairy) chess variants and to make the addition/configuration of new variants as simple and flexible as possible. The goal of the project is to create a chess variant engine supporting a large variety of chess variants (similar to FairyMax or Sjaak) equipped with the powerful search of Stockfish. It is complementary to Stockfish forks more specialized for certain chess variants, such as [multi-variant Stockfish](https://github.com/ddugovic/Stockfish), [Seirawan-Stockfish](https://github.com/ianfab/Seirawan-Stockfish), [Makruk-Stockfish](https://github.com/ianfab/Makruk-Stockfish), etc., supporting more variants with the tradeoff of lower performance.
 
 Currently supported variants are:
+- Chess
 - Shatranj
 - Makruk
 - ASEAN chess
 - Ai-Wok
 - Amazon chess
 - Hoppel-Poppel
+- Crazyhouse
+- Loop chess
 - Losers chess
 - King of the Hill
 - Racing Kings
