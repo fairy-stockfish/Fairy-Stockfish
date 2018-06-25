@@ -56,6 +56,7 @@ struct StateInfo {
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
+  bool       capturedpromoted;
 };
 
 /// A list to keep track of the position states along the setup moves (from the
@@ -94,6 +95,7 @@ public:
   bool checking_permitted() const;
   bool must_capture() const;
   bool piece_drops() const;
+  bool drop_loop() const;
   // winning conditions
   Value stalemate_value(int ply = 0) const;
   Value checkmate_value(int ply = 0) const;
@@ -104,6 +106,9 @@ public:
   CheckCount max_check_count() const;
   bool is_variant_end() const;
   bool is_variant_end(Value& result, int ply = 0) const;
+
+  // Variant-specific properties
+  int count_in_hand(Color c, PieceType pt) const;
 
   // Position representation
   Bitboard pieces() const;
@@ -206,8 +211,6 @@ private:
   Bitboard byColorBB[COLOR_NB];
   int pieceCount[PIECE_NB];
   Square pieceList[PIECE_NB][16];
-  int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
-  Bitboard promotedPieces;
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
   Square castlingRookSquare[CASTLING_RIGHT_NB];
@@ -216,8 +219,17 @@ private:
   Color sideToMove;
   Thread* thisThread;
   StateInfo* st;
+
+  // variant-specific
   const Variant* var;
   bool chess960;
+  int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+  Bitboard promotedPieces;
+  bool is_promoted(Square s) const;
+  void add_to_hand(Color c, PieceType pt);
+  void remove_from_hand(Color c, PieceType pt);
+  void drop_piece(Piece pc, Square s);
+  void undrop_piece(Piece pc, Square s);
 };
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
@@ -265,6 +277,11 @@ inline bool Position::must_capture() const {
 inline bool Position::piece_drops() const {
   assert(var != nullptr);
   return var->pieceDrops;
+}
+
+inline bool Position::drop_loop() const {
+  assert(var != nullptr);
+  return var->dropLoop;
 }
 
 inline Value Position::stalemate_value(int ply) const {
@@ -365,6 +382,8 @@ inline Piece Position::piece_on(Square s) const {
 }
 
 inline Piece Position::moved_piece(Move m) const {
+  if (type_of(m) == DROP)
+      return make_piece(sideToMove, dropped_piece_type(m));
   return board[from_sq(m)];
 }
 
@@ -515,7 +534,7 @@ inline bool Position::is_chess960() const {
 
 inline bool Position::capture_or_promotion(Move m) const {
   assert(is_ok(m));
-  return type_of(m) != NORMAL ? type_of(m) != CASTLING : !empty(to_sq(m));
+  return type_of(m) != NORMAL ? type_of(m) != DROP && type_of(m) != CASTLING : !empty(to_sq(m));
 }
 
 inline bool Position::capture(Move m) const {
@@ -576,6 +595,37 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
 
 inline void Position::do_move(Move m, StateInfo& newSt) {
   do_move(m, newSt, gives_check(m));
+}
+
+inline int Position::count_in_hand(Color c, PieceType pt) const {
+  return pieceCountInHand[c][pt];
+}
+
+inline void Position::add_to_hand(Color c, PieceType pt) {
+  pieceCountInHand[c][pt]++;
+  pieceCountInHand[c][ALL_PIECES]++;
+}
+
+inline void Position::remove_from_hand(Color c, PieceType pt) {
+  pieceCountInHand[c][pt]--;
+  pieceCountInHand[c][ALL_PIECES]--;
+}
+
+inline bool Position::is_promoted(Square s) const {
+  return promotedPieces & s;
+}
+
+inline void Position::drop_piece(Piece pc, Square s) {
+  assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
+  put_piece(pc, s);
+  remove_from_hand(color_of(pc), type_of(pc));
+}
+
+inline void Position::undrop_piece(Piece pc, Square s) {
+  remove_piece(pc, s);
+  board[s] = NO_PIECE;
+  add_to_hand(color_of(pc), type_of(pc));
+  assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
 }
 
 #endif // #ifndef POSITION_H_INCLUDED

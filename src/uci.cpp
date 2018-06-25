@@ -288,7 +288,8 @@ string UCI::move(const Position& pos, Move m) {
   if (type_of(m) == CASTLING && !pos.is_chess960())
       to = make_square(to > from ? FILE_G : FILE_C, rank_of(from));
 
-  string move = UCI::square(from) + UCI::square(to);
+  string move = (type_of(m) == DROP ? std::string{pos.piece_to_char()[type_of(pos.moved_piece(m))], '@'}
+                                    : UCI::square(from)) + UCI::square(to);
 
   if (type_of(m) == PROMOTION)
       move += pos.piece_to_char()[make_piece(BLACK, promotion_type(m))];

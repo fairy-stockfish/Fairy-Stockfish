@@ -123,6 +123,11 @@ inline Bitboard operator^(Bitboard b, Square s) {
   return b ^ SquareBB[s];
 }
 
+inline Bitboard operator-(Bitboard b, Square s) {
+  assert(s >= SQ_A1 && s <= SQ_H8);
+  return b & ~SquareBB[s];
+}
+
 inline Bitboard& operator|=(Bitboard& b, Square s) {
   assert(s >= SQ_A1 && s <= SQ_H8);
   return b |= SquareBB[s];
@@ -131,6 +136,11 @@ inline Bitboard& operator|=(Bitboard& b, Square s) {
 inline Bitboard& operator^=(Bitboard& b, Square s) {
   assert(s >= SQ_A1 && s <= SQ_H8);
   return b ^= SquareBB[s];
+}
+
+inline Bitboard& operator-=(Bitboard& b, Square s) {
+  assert(s >= SQ_A1 && s <= SQ_H8);
+  return b &= ~SquareBB[s];
 }
 
 constexpr bool more_than_one(Bitboard b) {
@@ -213,6 +223,15 @@ inline Bitboard between_bb(Square s1, Square s2) {
 
 inline Bitboard forward_ranks_bb(Color c, Square s) {
   return ForwardRanksBB[c][rank_of(s)];
+}
+
+
+/// promotion_zone_bb() returns a bitboard representing the squares on all the ranks
+/// in front of and on the given relative rank, from the point of view of the given color.
+/// For instance, promotion_zone_bb(BLACK, RANK_7) will return the 16 squares on ranks 1 and 2.
+
+inline Bitboard promotion_zone_bb(Color c, Rank r) {
+  return ForwardRanksBB[c][relative_rank(c, r)] | rank_bb(relative_rank(c, r));
 }
 
 

@@ -100,7 +100,7 @@ constexpr bool Is64Bit = false;
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 
-constexpr int MAX_MOVES = 256;
+constexpr int MAX_MOVES = 512;
 constexpr int MAX_PLY   = 128;
 
 /// A move needs 16 bits to be stored
@@ -128,6 +128,7 @@ enum MoveType {
   PROMOTION_STRAIGHT = PROMOTION,
   PROMOTION_LEFT     = 4 << 12,
   PROMOTION_RIGHT    = 5 << 12,
+  DROP               = 6 << 12,
 };
 
 enum Color {
@@ -464,6 +465,8 @@ constexpr Square to_sq(Move m) {
 }
 
 inline Square from_sq(Move m) {
+  if (type_of(m) == DROP)
+      return SQ_NONE;
   if (type_of(m) == PROMOTION)
   {
       Square to = to_sq(m);
@@ -498,6 +501,14 @@ inline Move make(Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
   if (T == PROMOTION_STRAIGHT || T == PROMOTION_LEFT || T == PROMOTION_RIGHT)
       return Move(T + (pt << 6) + to);
   return Move(T + (from << 6) + to);
+}
+
+constexpr Move make_drop(Square to, PieceType pt) {
+  return Move(DROP + (pt << 6) + to);
+}
+
+constexpr PieceType dropped_piece_type(Move m) {
+  return PieceType((m >> 6) & 63);
 }
 
 inline bool is_ok(Move m) {

@@ -79,6 +79,20 @@ namespace {
     return moveList;
   }
 
+  template<Color Us, bool Checks>
+  ExtMove* generate_drops(const Position& pos, ExtMove* moveList, PieceType pt, Bitboard b) {
+    if (pos.count_in_hand(Us, pt))
+    {
+        if (pt == PAWN)
+            b &= ~(promotion_zone_bb(Us, pos.promotion_rank()) | rank_bb(relative_rank(Us, RANK_1)));
+        if (Checks)
+            b &= pos.check_squares(pt);
+        while (b)
+            *moveList++ = make_drop(pop_lsb(&b), pt);
+    }
+
+    return moveList;
+  }
 
   template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
@@ -251,6 +265,10 @@ namespace {
     moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
     for (PieceType pt = PieceType(PAWN + 1); pt < KING; ++pt)
         moveList = generate_moves<Checks>(pos, moveList, Us, pt, target);
+    // generate drops
+    if (pos.piece_drops() && Type != CAPTURES && pos.count_in_hand(Us, ALL_PIECES))
+        for (PieceType pt = PAWN; pt < KING; ++pt)
+            moveList = generate_drops<Us, Checks>(pos, moveList, pt, target & ~pos.pieces(~Us));
 
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {

@@ -273,7 +273,22 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           put_piece(Piece(idx), sq);
           ++sq;
       }
+      // Set flag for promoted pieces
+      else if (piece_drops() && !drop_loop() && token == '~')
+          promotedPieces |= SquareBB[sq - 1];
+      // Stop before pieces in hand
+      else if (token == '[')
+          break;
   }
+  // Pieces in hand
+  if (!isspace(token))
+      while ((ss >> token) && !isspace(token))
+      {
+          if (token == ']')
+              continue;
+          else if ((idx = piece_to_char().find(token)) != string::npos)
+              add_to_hand(color_of(Piece(idx)), type_of(Piece(idx)));
+      }
 
   // 2. Active color
   ss >> token;
@@ -506,7 +521,13 @@ const string Position::fen() const {
               ss << emptyCnt;
 
           if (f <= FILE_H)
+          {
               ss << piece_to_char()[piece_on(make_square(f, r))];
+
+              // Set promoted pieces
+              if (piece_drops() && is_promoted(make_square(f, r)))
+                  ss << "~";
+          }
       }
 
       if (r > RANK_1)
@@ -602,6 +623,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 bool Position::legal(Move m) const {
 
   assert(is_ok(m));
+  assert(type_of(m) != DROP || piece_drops());
 
   Color us = sideToMove;
   Square from = from_sq(m);
@@ -632,6 +654,10 @@ bool Position::legal(Move m) const {
       }
   }
 
+  // illegal drops
+  if (piece_drops() && type_of(m) == DROP)
+      return pieceCountInHand[us][type_of(moved_piece(m))] && empty(to_sq(m));
+
   // game end
   if (is_variant_end())
       return false;
@@ -655,11 +681,12 @@ bool Position::legal(Move m) const {
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
-  if (type_of(piece_on(from)) == KING)
+  if (type_of(moved_piece(m)) == KING)
       return type_of(m) == CASTLING || !(attackers_to(to) & pieces(~us));
 
   // A non-king move is legal if the king is not under attack after the move.
-  return !(attackers_to(ksq, (pieces() ^ from) | to) & pieces(~us) & ~SquareBB[to]);
+  return !(  attackers_to(ksq, (type_of(m) != DROP ? pieces() ^ from : pieces()) | to)
+           & pieces(~us) & ~SquareBB[to]);
 }
 
 
@@ -748,11 +775,12 @@ bool Position::gives_check(Move m) const {
   Square to = to_sq(m);
 
   // Is there a direct check?
-  if (st->checkSquares[type_of(piece_on(from))] & to)
+  if (st->checkSquares[type_of(moved_piece(m))] & to)
       return true;
 
   // Is there a discovered check?
-  if (   (st->blockersForKing[~sideToMove] & from)
+  if (   type_of(m) != DROP
+      && (st->blockersForKing[~sideToMove] & from)
       && (  !aligned(from, to, square<KING>(~sideToMove))
           || (attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to) & pieces(sideToMove))))
       return true;
@@ -760,6 +788,7 @@ bool Position::gives_check(Move m) const {
   switch (type_of(m))
   {
   case NORMAL:
+  case DROP:
       return false;
 
   case PROMOTION:
@@ -822,7 +851,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Color them = ~us;
   Square from = from_sq(m);
   Square to = to_sq(m);
-  Piece pc = piece_on(from);
+  Piece pc = moved_piece(m);
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
 
   assert(color_of(pc) == us);
@@ -869,10 +898,24 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->pawnKey ^= Zobrist::psq[captured][capsq];
       }
       else
+      {
           st->nonPawnMaterial[them] -= PieceValue[MG][captured];
+          if (piece_drops() && !is_promoted(to))
+              st->nonPawnMaterial[us] += PieceValue[MG][captured];
+      }
 
       // Update board and piece lists
       remove_piece(captured, capsq);
+      if (piece_drops())
+      {
+          st->capturedpromoted = is_promoted(to);
+          Piece pieceToHand = is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
+          add_to_hand(color_of(pieceToHand), type_of(pieceToHand));
+          st->psq += PSQT::psq[pieceToHand][SQ_NONE];
+          k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
+              ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
+          promotedPieces -= to;
+      }
 
       // Update material hash key and prefetch access to materialTable
       k ^= Zobrist::psq[captured][capsq];
@@ -887,7 +930,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Update hash key
-  k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+  if (type_of(m) == DROP)
+      k ^=  Zobrist::psq[pc][to]
+          ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1]
+          ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
+  else
+      k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
 
   // Reset en passant square
   if (st->epSquare != SQ_NONE)
@@ -897,7 +945,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Update castling rights if needed
-  if (st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
+  if (type_of(m) != DROP && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
   {
       int cr = castlingRightsMask[from] | castlingRightsMask[to];
       k ^= Zobrist::castling[st->castlingRights & cr];
@@ -905,7 +953,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Move the piece. The tricky Chess960 castling is handled earlier
-  if (type_of(m) != CASTLING)
+  if (type_of(m) == DROP)
+  {
+      drop_piece(pc, to);
+      st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
+  }
+  else if (type_of(m) != CASTLING)
       move_piece(pc, from, to);
 
   // If the moving piece is a pawn do some special extra work
@@ -928,6 +981,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           remove_piece(pc, to);
           put_piece(promotion, to);
+          if (piece_drops() && !drop_loop())
+              promotedPieces = promotedPieces | to;
 
           // Update hash keys
           k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
@@ -943,7 +998,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       }
 
       // Update pawn hash key and prefetch access to pawnsTable
-      st->pawnKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+      if (type_of(m) == DROP)
+          st->pawnKey ^= Zobrist::psq[pc][to];
+      else
+          st->pawnKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
       prefetch2(thisThread->pawnsTable[st->pawnKey]);
 
       // Reset rule 50 draw counter
@@ -955,12 +1013,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   // Set capture piece
   st->capturedPiece = captured;
+  if (piece_drops() && !captured)
+      st->capturedpromoted = false;
 
   // Update the key with the final value
   st->key = k;
 
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
+
+  if (type_of(m) != DROP && is_promoted(from))
+      promotedPieces = (promotedPieces - from) | to;
 
   sideToMove = ~sideToMove;
 
@@ -985,7 +1048,7 @@ void Position::undo_move(Move m) {
   Square to = to_sq(m);
   Piece pc = piece_on(to);
 
-  assert(empty(from) || type_of(m) == CASTLING);
+  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING);
   assert(type_of(st->capturedPiece) != KING);
 
   if (type_of(m) == PROMOTION)
@@ -997,6 +1060,8 @@ void Position::undo_move(Move m) {
       remove_piece(pc, to);
       pc = make_piece(us, PAWN);
       put_piece(pc, to);
+      if (piece_drops() && !drop_loop())
+          promotedPieces -= to;
   }
 
   if (type_of(m) == CASTLING)
@@ -1006,7 +1071,12 @@ void Position::undo_move(Move m) {
   }
   else
   {
-      move_piece(pc, to, from); // Put the piece back at the source square
+      if (type_of(m) == DROP)
+          undrop_piece(pc, to); // Remove the dropped piece
+      else
+          move_piece(pc, to, from); // Put the piece back at the source square
+      if (piece_drops() && !drop_loop() && is_promoted(to))
+          promotedPieces = (promotedPieces - to) | from;
 
       if (st->capturedPiece)
       {
@@ -1024,6 +1094,13 @@ void Position::undo_move(Move m) {
           }
 
           put_piece(st->capturedPiece, capsq); // Restore the captured piece
+          if (piece_drops())
+          {
+              remove_from_hand(~color_of(st->capturedPiece),
+                               !drop_loop() && st->capturedpromoted ? PAWN : type_of(st->capturedPiece));
+              if (!drop_loop() && st->capturedpromoted)
+                  promotedPieces |= to;
+          }
       }
   }
 
@@ -1102,12 +1179,23 @@ Key Position::key_after(Move m) const {
 
   Square from = from_sq(m);
   Square to = to_sq(m);
-  Piece pc = piece_on(from);
+  Piece pc = moved_piece(m);
   Piece captured = piece_on(to);
   Key k = st->key ^ Zobrist::side;
 
   if (captured)
+  {
       k ^= Zobrist::psq[captured][to];
+      if (piece_drops())
+      {
+          Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
+          k ^= Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)] + 1]
+              ^ Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)]];
+      }
+  }
+  if (type_of(m) == DROP)
+      return k ^ Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]]
+            ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1];
 
   return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
 }
@@ -1205,7 +1293,7 @@ bool Position::is_draw(int ply) const {
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
-  int end = std::min(st->rule50, st->pliesFromNull);
+  int end = piece_drops() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
   if (end < 4)
     return false;
@@ -1367,15 +1455,15 @@ bool Position::pos_is_ok() const {
       || attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove))
       assert(0 && "pos_is_ok: Kings");
 
-  if (   (pieces(PAWN) & (Rank1BB | Rank8BB))
-      || pieceCount[make_piece(WHITE, PAWN)] > 8
-      || pieceCount[make_piece(BLACK, PAWN)] > 8)
+  if (   (pieces(PAWN) & Rank8BB)
+      || pieceCount[make_piece(WHITE, PAWN)] > 16
+      || pieceCount[make_piece(BLACK, PAWN)] > 16)
       assert(0 && "pos_is_ok: Pawns");
 
   if (   (pieces(WHITE) & pieces(BLACK))
       || (pieces(WHITE) | pieces(BLACK)) != pieces()
-      || popcount(pieces(WHITE)) > 16
-      || popcount(pieces(BLACK)) > 16)
+      || popcount(pieces(WHITE)) > 32
+      || popcount(pieces(BLACK)) > 32)
       assert(0 && "pos_is_ok: Bitboards");
 
   for (PieceType p1 = PAWN; p1 <= KING; ++p1)

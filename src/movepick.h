@@ -85,7 +85,7 @@ enum StatsParams { NOT_USED = 0 };
 /// unsuccessful during the current search, and is used for reduction and move
 /// ordering decisions. It uses 2 tables (one for each color) indexed by
 /// the move's from and to squares, see chessprogramming.wikispaces.com/Butterfly+Boards
-typedef Stats<int16_t, 10368, COLOR_NB, int(SQUARE_NB) * int(SQUARE_NB)> ButterflyHistory;
+typedef Stats<int16_t, 10368, COLOR_NB, int(SQUARE_NB + 1) * int(SQUARE_NB)> ButterflyHistory;
 
 /// CounterMoveHistory stores counter moves indexed by [piece][to] of the previous
 /// move, see chessprogramming.wikispaces.com/Countermove+Heuristic

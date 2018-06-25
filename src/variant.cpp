@@ -157,6 +157,13 @@ void VariantMap::init() {
         v->pieceDrops = true;
         return v;
     } ();
+    const Variant* loop = [&]{
+        Variant* v = new Variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
+        v->pieceDrops = true;
+        v->dropLoop = true;
+        return v;
+    } ();
     insert(std::pair<std::string, const Variant*>(std::string("chess"), chess));
     insert(std::pair<std::string, const Variant*>(std::string("makruk"), makruk));
     insert(std::pair<std::string, const Variant*>(std::string("asean"), asean));
@@ -169,7 +176,8 @@ void VariantMap::init() {
     insert(std::pair<std::string, const Variant*>(std::string("losers"), losers));
     insert(std::pair<std::string, const Variant*>(std::string("3check"), threecheck));
     insert(std::pair<std::string, const Variant*>(std::string("5check"), fivecheck));
-    //insert(std::pair<std::string, const Variant*>(std::string("crazyhouse"), crazyhouse));
+    insert(std::pair<std::string, const Variant*>(std::string("crazyhouse"), crazyhouse));
+    insert(std::pair<std::string, const Variant*>(std::string("loop"), loop));
 }
 
 void VariantMap::clear_all() {
