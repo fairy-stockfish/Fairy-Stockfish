@@ -91,7 +91,7 @@ public:
   File max_file() const;
   const std::string piece_to_char() const;
   Rank promotion_rank() const;
-  std::vector<PieceType> promotion_piece_types() const;
+  const std::vector<PieceType>& promotion_piece_types() const;
   bool double_step_enabled() const;
   bool castling_enabled() const;
   bool checking_permitted() const;
@@ -262,7 +262,7 @@ inline Rank Position::promotion_rank() const {
   return var->promotionRank;
 }
 
-inline std::vector<PieceType> Position::promotion_piece_types() const {
+inline const std::vector<PieceType>& Position::promotion_piece_types() const {
   assert(var != nullptr);
   return var->promotionPieceTypes;
 }

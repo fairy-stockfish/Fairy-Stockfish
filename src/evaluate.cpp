@@ -712,6 +712,16 @@ namespace {
         score += bonus + PassedFile[file_of(s)];
     }
 
+    // Scale by maximum promotion piece value
+    Value maxMg = VALUE_ZERO, maxEg = VALUE_ZERO;
+    for (PieceType pt : pos.promotion_piece_types())
+    {
+        maxMg = std::max(maxMg, PieceValue[MG][pt]);
+        maxEg = std::max(maxEg, PieceValue[EG][pt]);
+    }
+    score = make_score(mg_value(score) * int(maxMg) / QueenValueMg,
+                       eg_value(score) * int(maxEg) / QueenValueEg);
+
     if (T)
         Trace::add(PASSED, Us, score);
 
