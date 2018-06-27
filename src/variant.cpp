@@ -116,7 +116,7 @@ void VariantMap::init() {
     const Variant* kingofthehill = [&]{
         Variant* v = new Variant();
         v->whiteFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
-        v->whiteFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
+        v->blackFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->flagMove = false;
         return v;
     } ();
@@ -124,7 +124,7 @@ void VariantMap::init() {
         Variant* v = new Variant();
         v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
         v->whiteFlag = Rank8BB;
-        v->whiteFlag = Rank8BB;
+        v->blackFlag = Rank8BB;
         v->flagMove = true;
         v->castling = false;
         v->checking = false;

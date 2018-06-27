@@ -104,6 +104,7 @@ public:
   Bitboard capture_the_flag(Color c) const;
   bool flag_move() const;
   CheckCount max_check_count() const;
+  CheckCount checks_given(Color c) const;
   bool is_variant_end() const;
   bool is_variant_end(Value& result, int ply = 0) const;
 
@@ -326,6 +327,10 @@ inline bool Position::flag_move() const {
 inline CheckCount Position::max_check_count() const {
   assert(var != nullptr);
   return var->maxCheckCount;
+}
+
+inline CheckCount Position::checks_given(Color c) const {
+  return st->checksGiven[c];
 }
 
 inline bool Position::is_variant_end() const {

@@ -35,7 +35,7 @@ namespace Trace {
   enum Tracing { NO_TRACE, TRACE };
 
   enum Term { // The first 8 entries are reserved for PieceType
-    MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, INITIATIVE, TOTAL, TERM_NB
+    MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, INITIATIVE, VARIANT, TOTAL, TERM_NB
   };
 
   Score scores[TERM_NB][COLOR_NB];
@@ -201,6 +201,7 @@ namespace {
     template<Color Us> Score threats() const;
     template<Color Us> Score passed() const;
     template<Color Us> Score space() const;
+    template<Color Us> Score variant() const;
     ScaleFactor scale_factor(Value eg) const;
     Score initiative(Value eg) const;
 
@@ -758,6 +759,44 @@ namespace {
   }
 
 
+  // Evaluation::variant() computes variant-specific evaluation bonuses for a given side.
+
+  template<Tracing T> template<Color Us>
+  Score Evaluation<T>::variant() const {
+
+    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
+
+    Score score = SCORE_ZERO;
+
+    // Capture the flag
+    if (pos.capture_the_flag(Us))
+    {
+        Bitboard target_squares = pos.capture_the_flag(Us);
+        while (target_squares)
+        {
+            Square s = pop_lsb(&target_squares);
+            int dist =  distance(pos.square<KING>(Us), s)
+                      + popcount(pos.attackers_to(s) & pos.pieces(Them))
+                      + !!(pos.pieces(Us) & s);
+            score += make_score(3000, 3000) / (1 + dist * dist);
+        }
+    }
+
+    // nCheck
+    if (pos.max_check_count())
+    {
+        int remainingChecks = pos.max_check_count() - pos.checks_given(Us);
+        assert(remainingChecks > 0);
+        score += make_score(3000, 1000) / (remainingChecks * remainingChecks);
+    }
+
+    if (T)
+        Trace::add(VARIANT, Us, score);
+
+    return score;
+  }
+
+
   // Evaluation::initiative() computes the initiative correction value
   // for the position. It is a second order bonus/malus based on the
   // known attacking/defending status of the players.
@@ -870,7 +909,8 @@ namespace {
     score +=  king<   WHITE>() - king<   BLACK>()
             + threats<WHITE>() - threats<BLACK>()
             + passed< WHITE>() - passed< BLACK>()
-            + space<  WHITE>() - space<  BLACK>();
+            + space<  WHITE>() - space<  BLACK>()
+            + variant<WHITE>() - variant<BLACK>();
 
     score += initiative(eg_value(score));
 
@@ -938,6 +978,7 @@ std::string Eval::trace(const Position& pos) {
      << "     Threats | " << Term(THREAT)
      << "      Passed | " << Term(PASSED)
      << "       Space | " << Term(SPACE)
+     << "     Variant | " << Term(VARIANT)
      << " ------------+-------------+-------------+------------\n"
      << "       Total | " << Term(TOTAL);
 
