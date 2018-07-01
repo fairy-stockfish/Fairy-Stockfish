@@ -202,6 +202,11 @@ enum Value : int {
   AmazonValueMg = 3000,  AmazonValueEg = 3000,
   KnibisValueMg = 800,   KnibisValueEg = 800,
   BiskniValueMg = 800,   BiskniValueEg = 800,
+  ShogiPawnValueMg       = 100, ShogiPawnValueEg       = 100,
+  LanceValueMg           = 300, LanceValueEg           = 300,
+  ShogiKnightValueMg     = 300, ShogiKnightValueEg     = 300,
+  EuroShogiKnightValueMg = 400, EuroShogiKnightValueEg = 400,
+  GoldValueMg            = 600, GoldValueEg            = 600,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
@@ -211,7 +216,7 @@ const int PIECE_TYPE_BITS = 5; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK,
   QUEEN, FERS, MET = FERS, ALFIL, SILVER, KHON = SILVER, AIWOK,
-  AMAZON, KNIBIS, BISKNI, KING,
+  AMAZON, KNIBIS, BISKNI, SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, KING,
   ALL_PIECES = 0,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS

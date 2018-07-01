@@ -160,6 +160,11 @@ void Bitboards::init() {
       { -17, -15, -10, -6, 6, 10, 15, 17 }, // amazon
       {}, // knibis
       { -17, -15, -10, -6, 6, 10, 15, 17 }, // biskni
+      { 8 }, // shogi pawn
+      {}, // lance
+      { 15, 17 }, // shogi knight
+      { -1, 1, 15, 17 }, // euroshogi knight
+      { -8, -1, 1, 7, 8, 9 }, // gold
       { -9, -8, -7, -1, 1, 7, 8, 9 } // king
   };
   int stepsQuiet[][13] = {
@@ -176,6 +181,11 @@ void Bitboards::init() {
       { -17, -15, -10, -6, 6, 10, 15, 17 }, // amazon
       { -17, -15, -10, -6, 6, 10, 15, 17 }, // knibis
       {}, // biskni
+      { 8 }, // shogi pawn
+      {}, // lance
+      { 15, 17 }, // shogi knight
+      { -1, 1, 15, 17 }, // euroshogi knight
+      { -8, -1, 1, 7, 8, 9 }, // gold
       { -9, -8, -7, -1, 1, 7, 8, 9 } // king
   };
   Direction sliderCapture[][9] = {
@@ -192,6 +202,11 @@ void Bitboards::init() {
     { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
     { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // knibis
     {}, // biskni
+    {}, // shogi pawn
+    { NORTH }, // lance
+    {}, // shogi knight
+    {}, // euroshogi knight
+    {}, // gold
     {} // king
   };
   Direction sliderQuiet[][9] = {
@@ -208,6 +223,11 @@ void Bitboards::init() {
     { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
     {}, // knibis
     { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // biskni
+    {}, // shogi pawn
+    { NORTH }, // lance
+    {}, // shogi knight
+    {}, // euroshogi knight
+    {}, // gold
     {} // king
   };
   int sliderDistCapture[] = {
@@ -224,6 +244,11 @@ void Bitboards::init() {
     7, // amazon
     7, // knibis
     0, // biskni
+    0, // shogi pawn
+    7, // lance
+    0, // shogi knight
+    0, // euroshogi knight
+    0, // gold
     0  // king
   };
   int sliderDistQuiet[] = {
@@ -240,6 +265,11 @@ void Bitboards::init() {
     7, // amazon
     0, // knibis
     7, // biskni
+    0, // shogi pawn
+    7, // lance
+    0, // shogi knight
+    0, // euroshogi knight
+    0, // gold
     0  // king
   };
 

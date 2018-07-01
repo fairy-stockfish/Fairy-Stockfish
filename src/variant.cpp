@@ -164,6 +164,23 @@ void VariantMap::init() {
         v->dropLoop = true;
         return v;
     } ();
+    const Variant* euroshogi = [&]{
+        Variant* v = new Variant();
+        v->reset_pieces();
+        v->set_piece(SHOGI_PAWN, 'p');
+        v->set_piece(EUROSHOGI_KNIGHT, 'n');
+        v->set_piece(GOLD, 'g');
+        v->set_piece(BISHOP, 'b');
+        v->set_piece(ROOK, 'r');
+        v->set_piece(KING, 'k');
+        v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
+        v->pieceDrops = true;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        // TODO: piece promotions, illegal pawn drops
+        return v;
+    } ();
     insert(std::pair<std::string, const Variant*>(std::string("chess"), chess));
     insert(std::pair<std::string, const Variant*>(std::string("makruk"), makruk));
     insert(std::pair<std::string, const Variant*>(std::string("asean"), asean));
@@ -178,6 +195,7 @@ void VariantMap::init() {
     insert(std::pair<std::string, const Variant*>(std::string("5check"), fivecheck));
     insert(std::pair<std::string, const Variant*>(std::string("crazyhouse"), crazyhouse));
     insert(std::pair<std::string, const Variant*>(std::string("loop"), loop));
+    insert(std::pair<std::string, const Variant*>(std::string("euroshogi"), euroshogi));
 }
 
 void VariantMap::clear_all() {
