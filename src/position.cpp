@@ -248,7 +248,6 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
   unsigned char col, row, token;
   size_t idx;
-  Square sq = SQ_A8;
   std::istringstream ss(fenStr);
 
   std::memset(this, 0, sizeof(Position));
@@ -259,6 +258,8 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
   ss >> std::noskipws;
 
+  Square sq = SQ_A8 + (RANK_8 - max_rank()) * SOUTH;
+
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
   {
@@ -266,7 +267,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           sq += (token - '0') * EAST; // Advance the given number of files
 
       else if (token == '/')
-          sq += 2 * SOUTH;
+          sq += 2 * SOUTH + (FILE_H - max_file()) * EAST;
 
       else if ((idx = piece_to_char().find(token)) != string::npos)
       {
@@ -510,17 +511,17 @@ const string Position::fen() const {
   int emptyCnt;
   std::ostringstream ss;
 
-  for (Rank r = RANK_8; r >= RANK_1; --r)
+  for (Rank r = max_rank(); r >= RANK_1; --r)
   {
-      for (File f = FILE_A; f <= FILE_H; ++f)
+      for (File f = FILE_A; f <= max_file(); ++f)
       {
-          for (emptyCnt = 0; f <= FILE_H && empty(make_square(f, r)); ++f)
+          for (emptyCnt = 0; f <= max_file() && empty(make_square(f, r)); ++f)
               ++emptyCnt;
 
           if (emptyCnt)
               ss << emptyCnt;
 
-          if (f <= FILE_H)
+          if (f <= max_file())
           {
               ss << piece_to_char()[piece_on(make_square(f, r))];
 
@@ -633,6 +634,10 @@ bool Position::legal(Move m) const {
   assert(color_of(moved_piece(m)) == us);
   assert(piece_on(square<KING>(us)) == make_piece(us, KING));
 
+  // illegal moves to squares outside of board
+  if (rank_of(to) > max_rank() || file_of(to) > max_file())
+      return false;
+
   // illegal checks
   if (!checking_permitted() && gives_check(m))
       return false;
@@ -723,7 +728,7 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 8th/1st rank.
-      if (rank_of(to) == relative_rank(us, promotion_rank()))
+      if (rank_of(to) == relative_rank(us, promotion_rank(), max_rank()))
           return false;
 
       if (   !(attacks_from<PAWN>(us, from) & pieces(~us) & to) // Not a capture
@@ -976,7 +981,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           Piece promotion = make_piece(us, promotion_type(m));
 
-          assert(relative_rank(us, to) == promotion_rank());
+          assert(relative_rank(us, to, max_rank()) == promotion_rank());
           assert(type_of(promotion) >= KNIGHT && type_of(promotion) < KING);
 
           remove_piece(pc, to);
@@ -1053,7 +1058,7 @@ void Position::undo_move(Move m) {
 
   if (type_of(m) == PROMOTION)
   {
-      assert(relative_rank(us, to) == promotion_rank());
+      assert(relative_rank(us, to, max_rank()) == promotion_rank());
       assert(type_of(pc) == promotion_type(m));
       assert(type_of(pc) >= KNIGHT && type_of(pc) < KING);
 

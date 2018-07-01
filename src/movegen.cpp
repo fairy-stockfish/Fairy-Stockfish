@@ -108,7 +108,7 @@ namespace {
 
     Bitboard emptySquares;
 
-    Bitboard TRank8BB = rank_bb(Us == WHITE ? pos.promotion_rank() : ~pos.promotion_rank());
+    Bitboard TRank8BB = rank_bb(Us == WHITE ? pos.promotion_rank() : Rank(pos.max_rank() - pos.promotion_rank()));
     Bitboard TRank7BB = shift<Down>(TRank8BB);
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;

@@ -34,8 +34,8 @@ namespace Trace {
 
   enum Tracing { NO_TRACE, TRACE };
 
-  enum Term { // The first 8 entries are reserved for PieceType
-    MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, INITIATIVE, VARIANT, TOTAL, TERM_NB
+  enum Term { // The first PIECE_TYPE_NB entries are reserved for PieceType
+    MATERIAL = PIECE_TYPE_NB, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, INITIATIVE, VARIANT, TOTAL, TERM_NB
   };
 
   Score scores[TERM_NB][COLOR_NB];

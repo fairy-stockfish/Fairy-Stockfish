@@ -441,12 +441,12 @@ constexpr Square relative_square(Color c, Square s) {
   return Square(s ^ (c * 56));
 }
 
-constexpr Rank relative_rank(Color c, Rank r) {
-  return Rank(r ^ (c * 7));
+constexpr Rank relative_rank(Color c, Rank r, Rank maxRank = RANK_8) {
+  return Rank(r ^ (c * maxRank));
 }
 
-constexpr Rank relative_rank(Color c, Square s) {
-  return relative_rank(c, rank_of(s));
+constexpr Rank relative_rank(Color c, Square s, Rank maxRank = RANK_8) {
+  return relative_rank(c, rank_of(s), maxRank);
 }
 
 inline bool opposite_colors(Square s1, Square s2) {

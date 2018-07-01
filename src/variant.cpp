@@ -181,6 +181,18 @@ void VariantMap::init() {
         // TODO: piece promotions, illegal pawn drops
         return v;
     } ();
+    const Variant* losalamos = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_6;
+        v->maxFile = FILE_F;
+        v->set_piece(BISHOP, ' ');
+        v->startFen = "rnqknr/pppppp/6/6/PPPPPP/RNQKNR w - - 0 1";
+        v->promotionRank = RANK_6;
+        v->promotionPieceTypes = {QUEEN, ROOK, KNIGHT};
+        v->doubleStep = false;
+        v->castling = false;
+        return v;
+    } ();
     insert(std::pair<std::string, const Variant*>(std::string("chess"), chess));
     insert(std::pair<std::string, const Variant*>(std::string("makruk"), makruk));
     insert(std::pair<std::string, const Variant*>(std::string("asean"), asean));
@@ -196,6 +208,7 @@ void VariantMap::init() {
     insert(std::pair<std::string, const Variant*>(std::string("crazyhouse"), crazyhouse));
     insert(std::pair<std::string, const Variant*>(std::string("loop"), loop));
     insert(std::pair<std::string, const Variant*>(std::string("euroshogi"), euroshogi));
+    insert(std::pair<std::string, const Variant*>(std::string("losalamos"), losalamos));
 }
 
 void VariantMap::clear_all() {

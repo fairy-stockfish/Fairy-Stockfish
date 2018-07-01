@@ -87,6 +87,8 @@ public:
 
   // Variant rule properties
   const Variant* variant() const;
+  Rank max_rank() const;
+  File max_file() const;
   const std::string piece_to_char() const;
   Rank promotion_rank() const;
   std::vector<PieceType> promotion_piece_types() const;
@@ -238,6 +240,16 @@ extern std::ostream& operator<<(std::ostream& os, const Position& pos);
 inline const Variant* Position::variant() const {
   assert(var != nullptr);
   return var;
+}
+
+inline Rank Position::max_rank() const {
+  assert(var != nullptr);
+  return var->maxRank;
+}
+
+inline File Position::max_file() const {
+  assert(var != nullptr);
+  return var->maxFile;
 }
 
 inline const std::string Position::piece_to_char() const {
