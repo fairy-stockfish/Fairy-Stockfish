@@ -1,13 +1,11 @@
 ## Fairy-Stockfish
 
 [![Build Status](https://travis-ci.org/ianfab/Fairy-Stockfish.svg?branch=master)](https://travis-ci.org/ianfab/Fairy-Stockfish)
-
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/ianfab/Fairy-Stockfish?svg=true)](https://ci.appveyor.com/project/ianfab/Fairy-Stockfish)
 
 Fairy-Stockfish is a Stockfish fork designed for the support of (fairy) chess variants and to make the addition/configuration of new variants as simple and flexible as possible. The goal of the project is to create a chess variant engine supporting a large variety of chess variants (similar to FairyMax or Sjaak) equipped with the powerful search of Stockfish. It is complementary to Stockfish forks more specialized for certain chess variants, such as [multi-variant Stockfish](https://github.com/ddugovic/Stockfish), [Seirawan-Stockfish](https://github.com/ianfab/Seirawan-Stockfish), [Makruk-Stockfish](https://github.com/ianfab/Makruk-Stockfish), etc., supporting more variants with the tradeoff of lower performance.
 
-Currently supported variants are:
-- Chess
+Besides chess, the currently supported variants are:
 - [Shatranj](https://en.wikipedia.org/wiki/Shatranj)
 - [Makruk](https://en.wikipedia.org/wiki/Makruk)
 - [ASEAN chess](http://hgm.nubati.net/rules/ASEAN.html)
