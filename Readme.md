@@ -8,19 +8,20 @@ Fairy-Stockfish is a Stockfish fork designed for the support of (fairy) chess va
 
 Currently supported variants are:
 - Chess
-- Shatranj
-- Makruk
-- ASEAN chess
+- [Shatranj](https://en.wikipedia.org/wiki/Shatranj)
+- [Makruk](https://en.wikipedia.org/wiki/Makruk)
+- [ASEAN chess](http://hgm.nubati.net/rules/ASEAN.html)
 - Ai-Wok
-- Amazon chess
-- Hoppel-Poppel
-- Crazyhouse
-- Loop chess
-- Losers chess
-- King of the Hill
-- Racing Kings
-- Three-check chess
+- [Amazon chess](https://en.wikipedia.org/wiki/Amazon_(chess))
+- [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html)
+- [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse)
+- [Loop chess](https://en.wikipedia.org/wiki/Crazyhouse#Variations)
+- [Losers chess](https://www.chessclub.com/help/Wild17)
+- [King of the Hill](https://en.wikipedia.org/wiki/King_of_the_Hill_(chess))
+- [Racing Kings](https://en.wikipedia.org/wiki/V._R._Parton#Racing_Kings)
+- [Three-check chess](https://en.wikipedia.org/wiki/Three-check_chess)
 - Five-check chess
+- [Los Alamos chess](https://en.wikipedia.org/wiki/Los_Alamos_chess)
 
 ## Stockfish
 ### Overview
