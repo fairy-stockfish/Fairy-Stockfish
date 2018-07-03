@@ -175,6 +175,27 @@ void VariantMap::init() {
         v->set_piece(KING, 'k');
         v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
         v->pieceDrops = true;
+        v->promotionRank = RANK_6;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        // TODO: piece promotions, illegal pawn drops
+        return v;
+    } ();
+    const Variant* minishogi = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_5;
+        v->maxFile = FILE_E;
+        v->reset_pieces();
+        v->set_piece(SHOGI_PAWN, 'p');
+        v->set_piece(SILVER, 's');
+        v->set_piece(GOLD, 'g');
+        v->set_piece(BISHOP, 'b');
+        v->set_piece(ROOK, 'r');
+        v->set_piece(KING, 'k');
+        v->startFen = "rbsgk/4p/5/P4/KGSBR[-] w 0 1";
+        v->pieceDrops = true;
+        v->promotionRank = RANK_5;
         v->promotionPieceTypes = {};
         v->doubleStep = false;
         v->castling = false;
@@ -208,6 +229,7 @@ void VariantMap::init() {
     insert(std::pair<std::string, const Variant*>(std::string("crazyhouse"), crazyhouse));
     insert(std::pair<std::string, const Variant*>(std::string("loop"), loop));
     insert(std::pair<std::string, const Variant*>(std::string("euroshogi"), euroshogi));
+    insert(std::pair<std::string, const Variant*>(std::string("minishogi"), minishogi));
     insert(std::pair<std::string, const Variant*>(std::string("losalamos"), losalamos));
 }
 
