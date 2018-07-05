@@ -736,7 +736,8 @@ bool Position::pseudo_legal(const Move m) const {
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
                && (rank_of(from) == relative_rank(us, RANK_2))
                && empty(to)
-               && empty(to - pawn_push(us))))
+               && empty(to - pawn_push(us))
+               && double_step_enabled()))
           return false;
   }
   else if (!(attacks_from(us, type_of(pc), from) & to))
