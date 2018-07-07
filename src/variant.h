@@ -21,6 +21,7 @@
 #ifndef VARIANT_H_INCLUDED
 #define VARIANT_H_INCLUDED
 
+#include <set>
 #include <map>
 #include <vector>
 #include <string>
@@ -34,11 +35,12 @@
 struct Variant {
   Rank maxRank = RANK_8;
   File maxFile = FILE_H;
+  std::set<PieceType> pieceTypes = { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
   std::string pieceToChar =  " PNBRQ" + std::string(KING - QUEEN - 1, ' ') + "K" + std::string(PIECE_TYPE_NB - KING - 1, ' ')
                            + " pnbrq" + std::string(KING - QUEEN - 1, ' ') + "k" + std::string(PIECE_TYPE_NB - KING - 1, ' ');
   std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   Rank promotionRank = RANK_8;
-  std::vector<PieceType> promotionPieceTypes = {QUEEN, ROOK, BISHOP, KNIGHT};
+  std::set<PieceType, std::greater<PieceType> > promotionPieceTypes = { QUEEN, ROOK, BISHOP, KNIGHT };
   bool doubleStep = true;
   bool castling = true;
   bool checking = true;
@@ -55,18 +57,27 @@ struct Variant {
   bool flagMove = false;
   CheckCount maxCheckCount = CheckCount(0);
 
-  void set_piece(PieceType pt, char c) {
+  void add_piece(PieceType pt, char c) {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
       pieceToChar[make_piece(BLACK, pt)] = tolower(c);
+      pieceTypes.insert(pt);
+  }
+
+  void remove_piece(PieceType pt) {
+      pieceToChar[make_piece(WHITE, pt)] = ' ';
+      pieceToChar[make_piece(BLACK, pt)] = ' ';
+      pieceTypes.erase(pt);
   }
 
   void reset_pieces() {
       pieceToChar = std::string(PIECE_NB, ' ');
+      pieceTypes.clear();
   }
 };
 
 struct VariantMap : public std::map<std::string, const Variant*> {
   void init();
+  void add(std::string s, const Variant* v);
   void clear_all();
   std::vector<std::string> get_keys();
 };

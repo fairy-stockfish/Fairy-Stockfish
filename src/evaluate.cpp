@@ -159,7 +159,7 @@ namespace {
   constexpr int PassedDanger[RANK_NB] = { 0, 0, 0, 3, 6, 12, 21 };
 
   // KingProtector[PieceType-2] contains a penalty according to distance from king
-  constexpr Score KingProtector[] = { S(3, 5), S(4, 3), S(3, 0), S(1, -1) };
+  constexpr Score KingProtector[PIECE_TYPE_NB - 2] = { S(3, 5), S(4, 3), S(3, 0), S(1, -1) };
 
   // Assorted bonuses and penalties
   constexpr Score BishopPawns        = S(  3,  5);
@@ -196,7 +196,7 @@ namespace {
 
   private:
     template<Color Us> void initialize();
-    template<Color Us, PieceType Pt> Score pieces();
+    template<Color Us> Score pieces(PieceType Pt);
     template<Color Us> Score king() const;
     template<Color Us> Score threats() const;
     template<Color Us> Score passed() const;
@@ -291,14 +291,14 @@ namespace {
 
 
   // Evaluation::pieces() scores pieces of a given color and type
-  template<Tracing T> template<Color Us, PieceType Pt>
-  Score Evaluation<T>::pieces() {
+  template<Tracing T> template<Color Us>
+  Score Evaluation<T>::pieces(PieceType Pt) {
 
     constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
     constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
     constexpr Bitboard OutpostRanks = (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
                                                    : Rank5BB | Rank4BB | Rank3BB);
-    const Square* pl = pos.squares<Pt>(Us);
+    const Square* pl = pos.squares(Us, Pt);
 
     Bitboard b, bb;
     Square s;
@@ -330,7 +330,10 @@ namespace {
 
         int mob = popcount(b & mobilityArea[Us]);
 
-        mobility[Us] += MobilityBonus[Pt - 2][mob];
+        if (Pt <= QUEEN)
+            mobility[Us] += MobilityBonus[Pt - 2][mob];
+        else
+            mobility[Us] += make_score(300, 300) * (mob - 2) / (10 + mob);
 
         // Penalty if the piece is far from the king
         score -= KingProtector[Pt - 2] * distance(s, pos.square<KING>(Us));
@@ -909,10 +912,9 @@ namespace {
     initialize<BLACK>();
 
     // Pieces should be evaluated first (populate attack tables)
-    score +=  pieces<WHITE, KNIGHT>() - pieces<BLACK, KNIGHT>()
-            + pieces<WHITE, BISHOP>() - pieces<BLACK, BISHOP>()
-            + pieces<WHITE, ROOK  >() - pieces<BLACK, ROOK  >()
-            + pieces<WHITE, QUEEN >() - pieces<BLACK, QUEEN >();
+    for (PieceType pt : pos.piece_types())
+        if (pt != PAWN && pt != KING)
+            score += pieces<WHITE>(pt) - pieces<BLACK>(pt);
 
     score += mobility[WHITE] - mobility[BLACK];
 

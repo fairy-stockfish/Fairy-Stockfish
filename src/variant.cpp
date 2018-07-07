@@ -27,19 +27,17 @@ using std::string;
 VariantMap variants; // Global object
 
 void VariantMap::init() {
+    // Define variant rules
     const Variant* chess = [&]{
         Variant* v = new Variant();
         return v;
     } ();
     const Variant* makruk = [&]{
         Variant* v = new Variant();
-        v->reset_pieces();
-        v->set_piece(PAWN, 'p');
-        v->set_piece(KNIGHT, 'n');
-        v->set_piece(KHON, 's');
-        v->set_piece(ROOK, 'r');
-        v->set_piece(MET, 'm');
-        v->set_piece(KING, 'k');
+        v->remove_piece(BISHOP);
+        v->remove_piece(QUEEN);
+        v->add_piece(KHON, 's');
+        v->add_piece(MET, 'm');
         v->startFen = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1";
         v->promotionRank = RANK_6;
         v->promotionPieceTypes = {MET};
@@ -49,13 +47,10 @@ void VariantMap::init() {
     } ();
     const Variant* asean = [&]{
         Variant* v = new Variant();
-        v->reset_pieces();
-        v->set_piece(PAWN, 'p');
-        v->set_piece(KNIGHT, 'n');
-        v->set_piece(KHON, 'b');
-        v->set_piece(ROOK, 'r');
-        v->set_piece(MET, 'q');
-        v->set_piece(KING, 'k');
+        v->remove_piece(BISHOP);
+        v->remove_piece(QUEEN);
+        v->add_piece(KHON, 'b');
+        v->add_piece(MET, 'q');
         v->startFen = "rnbqkbnr/8/pppppppp/8/8/PPPPPPPP/8/RNBQKBNR w - - 0 1";
         v->promotionPieceTypes = {ROOK, KNIGHT, KHON, MET};
         v->doubleStep = false;
@@ -64,13 +59,10 @@ void VariantMap::init() {
     } ();
     const Variant* aiwok = [&]{
         Variant* v = new Variant();
-        v->reset_pieces();
-        v->set_piece(PAWN, 'p');
-        v->set_piece(KNIGHT, 'n');
-        v->set_piece(KHON, 's');
-        v->set_piece(ROOK, 'r');
-        v->set_piece(AIWOK, 'a');
-        v->set_piece(KING, 'k');
+        v->remove_piece(BISHOP);
+        v->remove_piece(QUEEN);
+        v->add_piece(KHON, 's');
+        v->add_piece(AIWOK, 'a');
         v->startFen = "rnsaksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKASNR w - - 0 1";
         v->promotionRank = RANK_6;
         v->promotionPieceTypes = {AIWOK};
@@ -80,13 +72,10 @@ void VariantMap::init() {
     } ();
     const Variant* shatranj = [&]{
         Variant* v = new Variant();
-        v->reset_pieces();
-        v->set_piece(PAWN, 'p');
-        v->set_piece(KNIGHT, 'n');
-        v->set_piece(ALFIL, 'b');
-        v->set_piece(ROOK, 'r');
-        v->set_piece(FERS, 'q');
-        v->set_piece(KING, 'k');
+        v->remove_piece(BISHOP);
+        v->remove_piece(QUEEN);
+        v->add_piece(ALFIL, 'b');
+        v->add_piece(FERS, 'q');
         v->startFen = "rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR w - - 0 1";
         v->promotionPieceTypes = {FERS};
         v->doubleStep = false;
@@ -98,18 +87,18 @@ void VariantMap::init() {
     } ();
     const Variant* amazon = [&]{
         Variant* v = new Variant();
-        v->set_piece(QUEEN, ' ');
-        v->set_piece(AMAZON, 'a');
+        v->remove_piece(QUEEN);
+        v->add_piece(AMAZON, 'a');
         v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {AMAZON, ROOK, BISHOP, KNIGHT};
         return v;
     } ();
     const Variant* hoppelpoppel = [&]{
         Variant* v = new Variant();
-        v->set_piece(KNIGHT, ' ');
-        v->set_piece(BISHOP, ' ');
-        v->set_piece(KNIBIS, 'n');
-        v->set_piece(BISKNI, 'b');
+        v->remove_piece(KNIGHT);
+        v->remove_piece(BISHOP);
+        v->add_piece(KNIBIS, 'n');
+        v->add_piece(BISKNI, 'b');
         v->promotionPieceTypes = {QUEEN, ROOK, BISKNI, KNIBIS};
         return v;
     } ();
@@ -167,12 +156,12 @@ void VariantMap::init() {
     const Variant* euroshogi = [&]{
         Variant* v = new Variant();
         v->reset_pieces();
-        v->set_piece(SHOGI_PAWN, 'p');
-        v->set_piece(EUROSHOGI_KNIGHT, 'n');
-        v->set_piece(GOLD, 'g');
-        v->set_piece(BISHOP, 'b');
-        v->set_piece(ROOK, 'r');
-        v->set_piece(KING, 'k');
+        v->add_piece(SHOGI_PAWN, 'p');
+        v->add_piece(EUROSHOGI_KNIGHT, 'n');
+        v->add_piece(GOLD, 'g');
+        v->add_piece(BISHOP, 'b');
+        v->add_piece(ROOK, 'r');
+        v->add_piece(KING, 'k');
         v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
         v->pieceDrops = true;
         v->promotionRank = RANK_6;
@@ -187,12 +176,12 @@ void VariantMap::init() {
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
         v->reset_pieces();
-        v->set_piece(SHOGI_PAWN, 'p');
-        v->set_piece(SILVER, 's');
-        v->set_piece(GOLD, 'g');
-        v->set_piece(BISHOP, 'b');
-        v->set_piece(ROOK, 'r');
-        v->set_piece(KING, 'k');
+        v->add_piece(SHOGI_PAWN, 'p');
+        v->add_piece(SILVER, 's');
+        v->add_piece(GOLD, 'g');
+        v->add_piece(BISHOP, 'b');
+        v->add_piece(ROOK, 'r');
+        v->add_piece(KING, 'k');
         v->startFen = "rbsgk/4p/5/P4/KGSBR[-] w 0 1";
         v->pieceDrops = true;
         v->promotionRank = RANK_5;
@@ -206,7 +195,7 @@ void VariantMap::init() {
         Variant* v = new Variant();
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
-        v->set_piece(BISHOP, ' ');
+        v->remove_piece(BISHOP);
         v->startFen = "rnqknr/pppppp/6/6/PPPPPP/RNQKNR w - - 0 1";
         v->promotionRank = RANK_6;
         v->promotionPieceTypes = {QUEEN, ROOK, KNIGHT};
@@ -214,28 +203,41 @@ void VariantMap::init() {
         v->castling = false;
         return v;
     } ();
-    insert(std::pair<std::string, const Variant*>(std::string("chess"), chess));
-    insert(std::pair<std::string, const Variant*>(std::string("makruk"), makruk));
-    insert(std::pair<std::string, const Variant*>(std::string("asean"), asean));
-    insert(std::pair<std::string, const Variant*>(std::string("ai-wok"), aiwok));
-    insert(std::pair<std::string, const Variant*>(std::string("shatranj"), shatranj));
-    insert(std::pair<std::string, const Variant*>(std::string("amazon"), amazon));
-    insert(std::pair<std::string, const Variant*>(std::string("hoppelpoppel"), hoppelpoppel));
-    insert(std::pair<std::string, const Variant*>(std::string("kingofthehill"), kingofthehill));
-    insert(std::pair<std::string, const Variant*>(std::string("racingkings"), racingkings));
-    insert(std::pair<std::string, const Variant*>(std::string("losers"), losers));
-    insert(std::pair<std::string, const Variant*>(std::string("3check"), threecheck));
-    insert(std::pair<std::string, const Variant*>(std::string("5check"), fivecheck));
-    insert(std::pair<std::string, const Variant*>(std::string("crazyhouse"), crazyhouse));
-    insert(std::pair<std::string, const Variant*>(std::string("loop"), loop));
-    insert(std::pair<std::string, const Variant*>(std::string("euroshogi"), euroshogi));
-    insert(std::pair<std::string, const Variant*>(std::string("minishogi"), minishogi));
-    insert(std::pair<std::string, const Variant*>(std::string("losalamos"), losalamos));
+
+    // Add to UCI_Variant option
+    add("chess", chess);
+    add("standard", chess);
+    add("makruk", makruk);
+    add("asean", asean);
+    add("ai-wok", aiwok);
+    add("shatranj", shatranj);
+    add("amazon", amazon);
+    add("hoppelpoppel", hoppelpoppel);
+    add("kingofthehill", kingofthehill);
+    add("racingkings", racingkings);
+    add("losers", losers);
+    add("3check", threecheck);
+    add("5check", fivecheck);
+    add("crazyhouse", crazyhouse);
+    add("loop", loop);
+    add("euroshogi", euroshogi);
+    add("minishogi", minishogi);
+    add("losalamos", losalamos);
+}
+
+void VariantMap::add(std::string s, const Variant* v) {
+  insert(std::pair<std::string, const Variant*>(s, v));
 }
 
 void VariantMap::clear_all() {
+  std::set<const Variant*> deleted_vars;
   for (auto const& element : *this) {
-      delete element.second;
+      // Delete duplicated variants (synonyms) only once
+      if (deleted_vars.find(element.second) == deleted_vars.end())
+      {
+          delete element.second;
+          deleted_vars.insert(element.second);
+      }
   }
   clear();
 }

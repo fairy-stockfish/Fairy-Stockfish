@@ -89,9 +89,10 @@ public:
   const Variant* variant() const;
   Rank max_rank() const;
   File max_file() const;
+  const std::set<PieceType>& piece_types() const;
   const std::string piece_to_char() const;
   Rank promotion_rank() const;
-  const std::vector<PieceType>& promotion_piece_types() const;
+  const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
   bool double_step_enabled() const;
   bool castling_enabled() const;
   bool checking_permitted() const;
@@ -252,6 +253,11 @@ inline File Position::max_file() const {
   return var->maxFile;
 }
 
+inline const std::set<PieceType>& Position::piece_types() const {
+  assert(var != nullptr);
+  return var->pieceTypes;
+}
+
 inline const std::string Position::piece_to_char() const {
   assert(var != nullptr);
   return var->pieceToChar;
@@ -262,7 +268,7 @@ inline Rank Position::promotion_rank() const {
   return var->promotionRank;
 }
 
-inline const std::vector<PieceType>& Position::promotion_piece_types() const {
+inline const std::set<PieceType, std::greater<PieceType> >& Position::promotion_piece_types() const {
   assert(var != nullptr);
   return var->promotionPieceTypes;
 }
