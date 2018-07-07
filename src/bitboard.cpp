@@ -157,6 +157,8 @@ void Bitboards::init() {
       { -18, -14, 14, 18 }, // alfil
       { -9, -7, 7, 8, 9 }, // silver/khon
       { -17, -15, -10, -9, -7, -6, 6, 7, 9, 10, 15, 17 }, // aiwok
+      { -9, -7, 7, 9 }, // bers/dragon
+      { -17, -15, -10, -6, 6, 10, 15, 17 }, // chancellor
       { -17, -15, -10, -6, 6, 10, 15, 17 }, // amazon
       {}, // knibis
       { -17, -15, -10, -6, 6, 10, 15, 17 }, // biskni
@@ -178,6 +180,8 @@ void Bitboards::init() {
       { -18, -14, 14, 18 }, // alfil
       { -9, -7, 7, 8, 9 }, // silver/khon
       { -17, -15, -10, -9, -7, -6, 6, 7, 9, 10, 15, 17 }, // aiwok
+      { -9, -7, 7, 9 }, // bers/dragon
+      { -17, -15, -10, -6, 6, 10, 15, 17 }, // chancellor
       { -17, -15, -10, -6, 6, 10, 15, 17 }, // amazon
       { -17, -15, -10, -6, 6, 10, 15, 17 }, // knibis
       {}, // biskni
@@ -199,6 +203,8 @@ void Bitboards::init() {
     {}, // alfil
     {}, // silver/khon
     { NORTH,  EAST,  SOUTH,  WEST }, // aiwok
+    { NORTH,  EAST,  SOUTH,  WEST }, // bers/dragon
+    { NORTH,  EAST,  SOUTH,  WEST }, // chancellor
     { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
     { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // knibis
     {}, // biskni
@@ -220,6 +226,8 @@ void Bitboards::init() {
     {}, // alfil
     {}, // silver/khon
     { NORTH,  EAST,  SOUTH,  WEST }, // aiwok
+    { NORTH,  EAST,  SOUTH,  WEST }, // bers/dragon
+    { NORTH,  EAST,  SOUTH,  WEST }, // chancellor
     { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
     {}, // knibis
     { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // biskni
@@ -241,6 +249,8 @@ void Bitboards::init() {
     0, // alfil
     0, // silver/khon
     7, // aiwok
+    7, // bers/dragon
+    7, // chancellor
     7, // amazon
     7, // knibis
     0, // biskni
@@ -262,6 +272,8 @@ void Bitboards::init() {
     0, // alfil
     0, // silver/khon
     7, // aiwok
+    7, // bers/dragon
+    7, // chancellor
     7, // amazon
     0, // knibis
     7, // biskni

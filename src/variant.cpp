@@ -203,6 +203,33 @@ void VariantMap::init() {
         v->castling = false;
         return v;
     } ();
+    const Variant* almost = [&]{
+        Variant* v = new Variant();
+        v->remove_piece(QUEEN);
+        v->add_piece(CHANCELLOR, 'c');
+        v->startFen = "rnbckbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBCKBNR w KQkq - 0 1";
+        v->promotionPieceTypes = {CHANCELLOR, ROOK, BISHOP, KNIGHT};
+        return v;
+    } ();
+    const Variant* chigorin = [&]{
+        Variant* v = new Variant();
+        v->add_piece(CHANCELLOR, 'c');
+        v->startFen = "rbbqkbbr/pppppppp/8/8/8/8/PPPPPPPP/RNNCKNNR w KQkq - 0 1";
+        v->promotionPieceTypes = {QUEEN, CHANCELLOR, ROOK, BISHOP, KNIGHT};
+        return v;
+    } ();
+    const Variant* shatar = [&]{
+        Variant* v = new Variant();
+        v->remove_piece(QUEEN);
+        v->add_piece(BERS, 'j');
+        v->startFen = "rnbjkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBJKBNR w - - 0 1";
+        v->promotionPieceTypes = {BERS};
+        v->doubleStep = false;
+        v->castling = false;
+        v->bareKingValue = VALUE_DRAW;
+        // TODO: illegal checkmates
+        return v;
+    } ();
 
     // Add to UCI_Variant option
     add("chess", chess);
@@ -223,6 +250,9 @@ void VariantMap::init() {
     add("euroshogi", euroshogi);
     add("minishogi", minishogi);
     add("losalamos", losalamos);
+    add("almost", almost);
+    add("chigorin", chigorin);
+    add("shatar", shatar);
 }
 
 void VariantMap::add(std::string s, const Variant* v) {
