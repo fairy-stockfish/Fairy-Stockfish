@@ -100,6 +100,8 @@ public:
   bool must_capture() const;
   bool piece_drops() const;
   bool drop_loop() const;
+  bool captures_to_hand() const;
+  bool first_rank_drops() const;
   // winning conditions
   Value stalemate_value(int ply = 0) const;
   Value checkmate_value(int ply = 0) const;
@@ -302,6 +304,16 @@ inline bool Position::piece_drops() const {
 inline bool Position::drop_loop() const {
   assert(var != nullptr);
   return var->dropLoop;
+}
+
+inline bool Position::captures_to_hand() const {
+  assert(var != nullptr);
+  return var->capturesToHand;
+}
+
+inline bool Position::first_rank_drops() const {
+  assert(var != nullptr);
+  return var->firstRankDrops;
 }
 
 inline Value Position::stalemate_value(int ply) const {

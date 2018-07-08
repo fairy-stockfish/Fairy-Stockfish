@@ -144,13 +144,31 @@ void VariantMap::init() {
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
+        v->capturesToHand = true;
         return v;
     } ();
     const Variant* loop = [&]{
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
+        v->capturesToHand = true;
         v->dropLoop = true;
+        return v;
+    } ();
+    const Variant* chessgi = [&]{
+        Variant* v = new Variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
+        v->pieceDrops = true;
+        v->dropLoop = true;
+        v->capturesToHand = true;
+        v->firstRankDrops = true;
+        return v;
+    } ();
+    const Variant* pocketknight = [&]{
+        Variant* v = new Variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
+        v->pieceDrops = true;
+        v->capturesToHand = false;
         return v;
     } ();
     const Variant* euroshogi = [&]{
@@ -164,6 +182,7 @@ void VariantMap::init() {
         v->add_piece(KING, 'k');
         v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
         v->pieceDrops = true;
+        v->capturesToHand = true;
         v->promotionRank = RANK_6;
         v->promotionPieceTypes = {};
         v->doubleStep = false;
@@ -184,6 +203,7 @@ void VariantMap::init() {
         v->add_piece(KING, 'k');
         v->startFen = "rbsgk/4p/5/P4/KGSBR[-] w 0 1";
         v->pieceDrops = true;
+        v->capturesToHand = true;
         v->promotionRank = RANK_5;
         v->promotionPieceTypes = {};
         v->doubleStep = false;
@@ -247,6 +267,8 @@ void VariantMap::init() {
     add("5check", fivecheck);
     add("crazyhouse", crazyhouse);
     add("loop", loop);
+    add("chessgi", chessgi);
+    add("pocketknight", pocketknight);
     add("euroshogi", euroshogi);
     add("minishogi", minishogi);
     add("losalamos", losalamos);

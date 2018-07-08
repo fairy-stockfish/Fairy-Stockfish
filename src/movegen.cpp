@@ -84,7 +84,11 @@ namespace {
     if (pos.count_in_hand(Us, pt))
     {
         if (pt == PAWN)
-            b &= ~(promotion_zone_bb(Us, pos.promotion_rank()) | rank_bb(relative_rank(Us, RANK_1)));
+        {
+            b &= ~promotion_zone_bb(Us, pos.promotion_rank());
+            if (!pos.first_rank_drops())
+                b &= ~rank_bb(relative_rank(Us, RANK_1, pos.max_rank()));
+        }
         if (Checks)
             b &= pos.check_squares(pt);
         while (b)

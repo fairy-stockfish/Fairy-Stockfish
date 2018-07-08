@@ -275,7 +275,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           ++sq;
       }
       // Set flag for promoted pieces
-      else if (piece_drops() && !drop_loop() && token == '~')
+      else if (captures_to_hand() && !drop_loop() && token == '~')
           promotedPieces |= SquareBB[sq - 1];
       // Stop before pieces in hand
       else if (token == '[')
@@ -526,7 +526,7 @@ const string Position::fen() const {
               ss << piece_to_char()[piece_on(make_square(f, r))];
 
               // Set promoted pieces
-              if (piece_drops() && is_promoted(make_square(f, r)))
+              if (captures_to_hand() && is_promoted(make_square(f, r)))
                   ss << "~";
           }
       }
@@ -906,13 +906,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       else
       {
           st->nonPawnMaterial[them] -= PieceValue[MG][captured];
-          if (piece_drops() && !is_promoted(to))
+          if (captures_to_hand() && !is_promoted(to))
               st->nonPawnMaterial[us] += PieceValue[MG][captured];
       }
 
       // Update board and piece lists
       remove_piece(captured, capsq);
-      if (piece_drops())
+      if (captures_to_hand())
       {
           st->capturedpromoted = is_promoted(to);
           Piece pieceToHand = is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
@@ -987,7 +987,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           remove_piece(pc, to);
           put_piece(promotion, to);
-          if (piece_drops() && !drop_loop())
+          if (captures_to_hand() && !drop_loop())
               promotedPieces = promotedPieces | to;
 
           // Update hash keys
@@ -1019,7 +1019,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   // Set capture piece
   st->capturedPiece = captured;
-  if (piece_drops() && !captured)
+  if (captures_to_hand() && !captured)
       st->capturedpromoted = false;
 
   // Update the key with the final value
@@ -1066,7 +1066,7 @@ void Position::undo_move(Move m) {
       remove_piece(pc, to);
       pc = make_piece(us, PAWN);
       put_piece(pc, to);
-      if (piece_drops() && !drop_loop())
+      if (captures_to_hand() && !drop_loop())
           promotedPieces -= to;
   }
 
@@ -1081,7 +1081,7 @@ void Position::undo_move(Move m) {
           undrop_piece(pc, to); // Remove the dropped piece
       else
           move_piece(pc, to, from); // Put the piece back at the source square
-      if (piece_drops() && !drop_loop() && is_promoted(to))
+      if (captures_to_hand() && !drop_loop() && is_promoted(to))
           promotedPieces = (promotedPieces - to) | from;
 
       if (st->capturedPiece)
@@ -1100,7 +1100,7 @@ void Position::undo_move(Move m) {
           }
 
           put_piece(st->capturedPiece, capsq); // Restore the captured piece
-          if (piece_drops())
+          if (captures_to_hand())
           {
               remove_from_hand(~color_of(st->capturedPiece),
                                !drop_loop() && st->capturedpromoted ? PAWN : type_of(st->capturedPiece));
@@ -1192,7 +1192,7 @@ Key Position::key_after(Move m) const {
   if (captured)
   {
       k ^= Zobrist::psq[captured][to];
-      if (piece_drops())
+      if (captures_to_hand())
       {
           Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
           k ^= Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)] + 1]
@@ -1299,7 +1299,7 @@ bool Position::is_draw(int ply) const {
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
-  int end = piece_drops() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
+  int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
   if (end < 4)
     return false;

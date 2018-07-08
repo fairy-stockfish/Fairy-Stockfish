@@ -48,6 +48,8 @@ struct Variant {
   bool mustCapture = false;
   bool pieceDrops = false;
   bool dropLoop = false;
+  bool capturesToHand = false;
+  bool firstRankDrops = false;
   // game end
   Value stalemateValue = VALUE_DRAW;
   Value checkmateValue = -VALUE_MATE;
