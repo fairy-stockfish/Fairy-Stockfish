@@ -25,6 +25,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <functional>
 
 #include "types.h"
 #include "bitboard.h"
