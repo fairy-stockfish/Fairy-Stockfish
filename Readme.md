@@ -7,18 +7,14 @@ Fairy-Stockfish is a Stockfish fork designed for the support of (fairy) chess va
 
 Besides chess, the currently supported variants are:
 - [Shatranj](https://en.wikipedia.org/wiki/Shatranj)
-- [Makruk](https://en.wikipedia.org/wiki/Makruk)
-- [ASEAN chess](http://hgm.nubati.net/rules/ASEAN.html)
-- Ai-Wok
-- [Amazon chess](https://en.wikipedia.org/wiki/Amazon_(chess))
+- [Makruk](https://en.wikipedia.org/wiki/Makruk), [ASEAN chess](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok
+- [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse), [Loop chess](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Chessgi](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Pocketknight](http://www.chessvariants.com/other.dir/pocket.html)
+- [Amazon chess](https://en.wikipedia.org/wiki/Amazon_(chess)), [Chigorin chess](https://en.wikipedia.org/wiki/Chigorin_Chess), [Almost chess](https://en.wikipedia.org/wiki/Almost_Chess)
 - [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html)
-- [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse)
-- [Loop chess](https://en.wikipedia.org/wiki/Crazyhouse#Variations)
 - [Losers chess](https://www.chessclub.com/help/Wild17)
 - [King of the Hill](https://en.wikipedia.org/wiki/King_of_the_Hill_(chess))
 - [Racing Kings](https://en.wikipedia.org/wiki/V._R._Parton#Racing_Kings)
-- [Three-check chess](https://en.wikipedia.org/wiki/Three-check_chess)
-- Five-check chess
+- [Three-check chess](https://en.wikipedia.org/wiki/Three-check_chess), Five-check chess
 - [Los Alamos chess](https://en.wikipedia.org/wiki/Los_Alamos_chess)
 
 ## Stockfish
