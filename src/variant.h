@@ -54,7 +54,9 @@ struct Variant {
   Value stalemateValue = VALUE_DRAW;
   Value checkmateValue = -VALUE_MATE;
   Value bareKingValue = VALUE_NONE;
+  Value extinctionValue = VALUE_NONE;
   bool bareKingMove = false;
+  std::set<PieceType> extinctionPieceTypes = {};
   Bitboard whiteFlag = 0;
   Bitboard blackFlag = 0;
   bool flagMove = false;

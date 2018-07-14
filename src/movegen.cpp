@@ -35,7 +35,7 @@ namespace {
 
     // After castling, the rook and king final positions are the same in Chess960
     // as they would be in standard chess.
-    Square kfrom = pos.square<KING>(us);
+    Square kfrom = pos.count<KING>(us) ? pos.square<KING>(us) : make_square(FILE_E, us == WHITE ? RANK_1 : RANK_8);
     Square rfrom = pos.castling_rook_square(Cr);
     Square kto = relative_square(us, KingSide ? SQ_G1 : SQ_C1);
     Bitboard enemies = pos.pieces(~us);
@@ -45,15 +45,18 @@ namespace {
     const Direction step = Chess960 ? kto > kfrom ? WEST : EAST
                                     : KingSide    ? WEST : EAST;
 
-    for (Square s = kto; s != kfrom; s += step)
-        if (pos.attackers_to(s) & enemies)
-            return moveList;
+    if (type_of(pos.piece_on(kfrom)) == KING)
+    {
+        for (Square s = kto; s != kfrom; s += step)
+            if (pos.attackers_to(s) & enemies)
+                return moveList;
 
-    // Because we generate only legal castling moves we need to verify that
-    // when moving the castling rook we do not discover some hidden checker.
-    // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-    if (Chess960 && (pos.attackers_to(kto, pos.pieces() ^ rfrom) & pos.pieces(~us)))
-        return moveList;
+        // Because we generate only legal castling moves we need to verify that
+        // when moving the castling rook we do not discover some hidden checker.
+        // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+        if (Chess960 && (pos.attackers_to(kto, pos.pieces() ^ rfrom) & pos.pieces(~us)))
+            return moveList;
+    }
 
     Move m = make<CASTLING>(kfrom, rfrom);
 
@@ -134,7 +137,7 @@ namespace {
             b2 &= target;
         }
 
-        if (Type == QUIET_CHECKS)
+        if (Type == QUIET_CHECKS && pos.count<KING>(Them))
         {
             Square ksq = pos.square<KING>(Them);
 
@@ -274,7 +277,7 @@ namespace {
         for (PieceType pt = PAWN; pt < KING; ++pt)
             moveList = generate_drops<Us, Checks>(pos, moveList, pt, target & ~pos.pieces(~Us));
 
-    if (Type != QUIET_CHECKS && Type != EVASIONS)
+    if (Type != QUIET_CHECKS && Type != EVASIONS && pos.count<KING>(Us))
     {
         Square ksq = pos.square<KING>(Us);
         Bitboard b = pos.attacks_from<KING>(Us, ksq) & target;

@@ -26,11 +26,13 @@ Value PieceValue[PHASE_NB][PIECE_NB] = {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg,
     FersValueMg, AlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg, ChancellorValueMg,
     AmazonValueMg, KnibisValueMg, BiskniValueMg,
-    ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg },
+    ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg,
+    CommonerValueMg },
   { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg,
     FersValueEg, AlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg, ChancellorValueEg,
     AmazonValueEg, KnibisValueMg, BiskniValueMg,
-    ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg }
+    ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg,
+    CommonerValueEg }
 };
 
 namespace PSQT {

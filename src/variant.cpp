@@ -128,6 +128,51 @@ void VariantMap::init() {
         v->mustCapture = true;
         return v;
     } ();
+    const Variant* giveaway = [&]{
+        Variant* v = new Variant();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->stalemateValue = VALUE_MATE;
+        v->extinctionValue = VALUE_MATE;
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->mustCapture = true;
+        return v;
+    } ();
+    const Variant* antichess = [&]{
+        Variant* v = new Variant();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->stalemateValue = VALUE_MATE;
+        v->extinctionValue = VALUE_MATE;
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->castling = false;
+        v->mustCapture = true;
+        return v;
+    } ();
+    const Variant* extinction = [&]{
+        Variant* v = new Variant();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
+        return v;
+    } ();
+    const Variant* kinglet = [&]{
+        Variant* v = new Variant();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        v->promotionPieceTypes = {COMMONER};
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {PAWN};
+        return v;
+    } ();
     const Variant* threecheck = [&]{
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
@@ -263,6 +308,10 @@ void VariantMap::init() {
     add("kingofthehill", kingofthehill);
     add("racingkings", racingkings);
     add("losers", losers);
+    add("giveaway", giveaway);
+    add("antichess", antichess);
+    add("extinction", extinction);
+    add("kinglet", kinglet);
     add("3check", threecheck);
     add("5check", fivecheck);
     add("crazyhouse", crazyhouse);

@@ -374,7 +374,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
 void Position::set_castling_right(Color c, Square rfrom) {
 
-  Square kfrom = square<KING>(c);
+  Square kfrom = count<KING>(c) ? square<KING>(c) : make_square(FILE_E, c == WHITE ? RANK_1 : RANK_8);
   CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
   CastlingRight cr = (c | cs);
 
@@ -400,13 +400,13 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 void Position::set_check_info(StateInfo* si) const {
 
-  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
-  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
+  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), count<KING>(WHITE) ? square<KING>(WHITE) : SQ_NONE, si->pinners[BLACK]);
+  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), count<KING>(BLACK) ? square<KING>(BLACK) : SQ_NONE, si->pinners[WHITE]);
 
-  Square ksq = square<KING>(~sideToMove);
+  Square ksq = count<KING>(~sideToMove) ? square<KING>(~sideToMove) : SQ_NONE;
 
   for (PieceType pt = PAWN; pt < KING; ++pt)
-      si->checkSquares[pt] = attacks_from(~sideToMove, pt, ksq);
+      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_from(~sideToMove, pt, ksq) : 0;
   si->checkSquares[KING]   = 0;
 }
 
@@ -422,7 +422,7 @@ void Position::set_state(StateInfo* si) const {
   si->pawnKey = Zobrist::noPawns;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
-  si->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
+  si->checkersBB = count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove) : 0;
 
   set_check_info(si);
 
@@ -585,6 +585,9 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   Bitboard blockers = 0;
   pinners = 0;
 
+  if (s == SQ_NONE)
+      return blockers;
+
   // Snipers are sliders that attack 's' when a piece is removed
   Bitboard snipers =   sliders
                     &  attackers_to(s, 0)
@@ -629,10 +632,10 @@ bool Position::legal(Move m) const {
   Color us = sideToMove;
   Square from = from_sq(m);
   Square to = to_sq(m);
-  Square ksq = square<KING>(us);
+  Square ksq = count<KING>(us) ? square<KING>(us) : SQ_NONE;
 
   assert(color_of(moved_piece(m)) == us);
-  assert(piece_on(square<KING>(us)) == make_piece(us, KING));
+  assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
 
   // illegal moves to squares outside of board
   if (rank_of(to) > max_rank() || file_of(to) > max_file())
@@ -680,7 +683,7 @@ bool Position::legal(Move m) const {
       assert(piece_on(capsq) == make_piece(~us, PAWN));
       assert(piece_on(to) == NO_PIECE);
 
-      return !(attackers_to(ksq, occupied) & pieces(~us) & occupied);
+      return !count<KING>(us) || !(attackers_to(ksq, occupied) & pieces(~us) & occupied);
   }
 
   // If the moving piece is a king, check whether the destination
@@ -690,7 +693,7 @@ bool Position::legal(Move m) const {
       return type_of(m) == CASTLING || !(attackers_to(to) & pieces(~us));
 
   // A non-king move is legal if the king is not under attack after the move.
-  return !(  attackers_to(ksq, (type_of(m) != DROP ? pieces() ^ from : pieces()) | to)
+  return !count<KING>(us) || !(  attackers_to(ksq, (type_of(m) != DROP ? pieces() ^ from : pieces()) | to)
            & pieces(~us) & ~SquareBB[to]);
 }
 
@@ -779,6 +782,10 @@ bool Position::gives_check(Move m) const {
 
   Square from = from_sq(m);
   Square to = to_sq(m);
+
+  // No check possible without king
+  if (!count<KING>(~sideToMove))
+      return false;
 
   // Is there a direct check?
   if (st->checkSquares[type_of(moved_piece(m))] & to)
@@ -869,7 +876,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   if (type_of(m) == CASTLING)
   {
-      assert(pc == make_piece(us, KING));
+      assert(type_of(pc) != NO_PIECE_TYPE);
       assert(captured == make_piece(us, ROOK));
 
       Square rfrom, rto;
@@ -1129,10 +1136,11 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   to = relative_square(us, kingSide ? SQ_G1 : SQ_C1);
 
   // Remove both pieces first since squares could overlap in Chess960
-  remove_piece(make_piece(us, KING), Do ? from : to);
+  Piece castling_piece = piece_on(Do ? from : to);
+  remove_piece(castling_piece, Do ? from : to);
   remove_piece(make_piece(us, ROOK), Do ? rfrom : rto);
   board[Do ? from : to] = board[Do ? rfrom : rto] = NO_PIECE; // Since remove_piece doesn't do it for us
-  put_piece(make_piece(us, KING), Do ? to : from);
+  put_piece(castling_piece, Do ? to : from);
   put_piece(make_piece(us, ROOK), Do ? rto : rfrom);
 }
 
@@ -1447,8 +1455,8 @@ bool Position::pos_is_ok() const {
   constexpr bool Fast = true; // Quick (default) or full check?
 
   if (   (sideToMove != WHITE && sideToMove != BLACK)
-      || piece_on(square<KING>(WHITE)) != make_piece(WHITE, KING)
-      || piece_on(square<KING>(BLACK)) != make_piece(BLACK, KING)
+      || (count<KING>(WHITE) && piece_on(square<KING>(WHITE)) != make_piece(WHITE, KING))
+      || (count<KING>(BLACK) && piece_on(square<KING>(BLACK)) != make_piece(BLACK, KING))
       || (   ep_square() != SQ_NONE
           && relative_rank(sideToMove, ep_square()) != RANK_6))
       assert(0 && "pos_is_ok: Default");
@@ -1456,9 +1464,8 @@ bool Position::pos_is_ok() const {
   if (Fast)
       return true;
 
-  if (   pieceCount[make_piece(WHITE, KING)] != 1
-      || pieceCount[make_piece(BLACK, KING)] != 1
-      || attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove))
+  if (   pieceCount[make_piece(~sideToMove, KING)]
+      && (attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove)))
       assert(0 && "pos_is_ok: Kings");
 
   if (   (pieces(PAWN) & Rank8BB)

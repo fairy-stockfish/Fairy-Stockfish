@@ -106,7 +106,9 @@ public:
   Value stalemate_value(int ply = 0) const;
   Value checkmate_value(int ply = 0) const;
   Value bare_king_value(int ply = 0) const;
+  Value extinction_value(int ply = 0) const;
   bool bare_king_move() const;
+  const std::set<PieceType>& extinction_piece_types() const;
   Bitboard capture_the_flag(Color c) const;
   bool flag_move() const;
   CheckCount max_check_count() const;
@@ -127,6 +129,7 @@ public:
   Piece piece_on(Square s) const;
   Square ep_square() const;
   bool empty(Square s) const;
+  int count(Color c, PieceType pt) const;
   template<PieceType Pt> int count(Color c) const;
   template<PieceType Pt> int count() const;
   template<PieceType Pt> const Square* squares(Color c) const;
@@ -340,9 +343,22 @@ inline Value Position::bare_king_value(int ply) const {
         : v;
 }
 
+inline Value Position::extinction_value(int ply) const {
+  assert(var != nullptr);
+  Value v = var->extinctionValue;
+  return  v ==  VALUE_MATE ? mate_in(ply)
+        : v == -VALUE_MATE ? mated_in(ply)
+        : v;
+}
+
 inline bool Position::bare_king_move() const {
   assert(var != nullptr);
   return var->bareKingMove;
+}
+
+inline const std::set<PieceType>& Position::extinction_piece_types() const {
+  assert(var != nullptr);
+  return var->extinctionPieceTypes;
 }
 
 inline Bitboard Position::capture_the_flag(Color c) const {
@@ -385,13 +401,23 @@ inline bool Position::is_variant_end(Value& result, int ply) const {
       result = -bare_king_value(ply);
       return true;
   }
+  // extinction
+  if (extinction_value() != VALUE_NONE)
+  {
+      for (PieceType pt : extinction_piece_types())
+          if (!count(WHITE, pt) || !count(BLACK, pt))
+          {
+              result = !count(sideToMove, pt) ? extinction_value(ply) : -extinction_value(ply);
+              return true;
+          }
+  }
   // capture the flag
-  if (!flag_move() && (capture_the_flag(~sideToMove) & square<KING>(~sideToMove)))
+  if (count<KING>(~sideToMove) && !flag_move() && (capture_the_flag(~sideToMove) & square<KING>(~sideToMove)))
   {
       result = mated_in(ply);
       return true;
   }
-  if (flag_move() && (capture_the_flag(sideToMove) & square<KING>(sideToMove)))
+  if (count<KING>( sideToMove) &&  flag_move() && (capture_the_flag( sideToMove) & square<KING>( sideToMove)))
   {
       result = mate_in(ply);
       return true;
@@ -445,6 +471,10 @@ inline Bitboard Position::pieces(Color c, PieceType pt) const {
 
 inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
   return byColorBB[c] & (byTypeBB[pt1] | byTypeBB[pt2]);
+}
+
+inline int Position::count(Color c, PieceType pt) const {
+  return pieceCount[make_piece(c, pt)];
 }
 
 template<PieceType Pt> inline int Position::count(Color c) const {

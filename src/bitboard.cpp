@@ -167,6 +167,7 @@ void Bitboards::init() {
       { 15, 17 }, // shogi knight
       { -1, 1, 15, 17 }, // euroshogi knight
       { -8, -1, 1, 7, 8, 9 }, // gold
+      { -9, -8, -7, -1, 1, 7, 8, 9 }, // commoner
       { -9, -8, -7, -1, 1, 7, 8, 9 } // king
   };
   int stepsQuiet[][13] = {
@@ -190,6 +191,7 @@ void Bitboards::init() {
       { 15, 17 }, // shogi knight
       { -1, 1, 15, 17 }, // euroshogi knight
       { -8, -1, 1, 7, 8, 9 }, // gold
+      { -9, -8, -7, -1, 1, 7, 8, 9 }, // commoner
       { -9, -8, -7, -1, 1, 7, 8, 9 } // king
   };
   Direction sliderCapture[][9] = {
@@ -213,6 +215,7 @@ void Bitboards::init() {
     {}, // shogi knight
     {}, // euroshogi knight
     {}, // gold
+    {}, // commoner
     {} // king
   };
   Direction sliderQuiet[][9] = {
@@ -236,6 +239,7 @@ void Bitboards::init() {
     {}, // shogi knight
     {}, // euroshogi knight
     {}, // gold
+    {}, // commoner
     {} // king
   };
   int sliderDistCapture[] = {
@@ -259,6 +263,7 @@ void Bitboards::init() {
     0, // shogi knight
     0, // euroshogi knight
     0, // gold
+    0, // commoner
     0  // king
   };
   int sliderDistQuiet[] = {
@@ -282,6 +287,7 @@ void Bitboards::init() {
     0, // shogi knight
     0, // euroshogi knight
     0, // gold
+    0, // commoner
     0  // king
   };
 
