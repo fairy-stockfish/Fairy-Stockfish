@@ -94,6 +94,7 @@ public:
   const std::string piece_to_char() const;
   Rank promotion_rank() const;
   const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
+  bool endgame_eval() const;
   bool double_step_enabled() const;
   bool castling_enabled() const;
   bool checking_permitted() const;
@@ -277,6 +278,11 @@ inline Rank Position::promotion_rank() const {
 inline const std::set<PieceType, std::greater<PieceType> >& Position::promotion_piece_types() const {
   assert(var != nullptr);
   return var->promotionPieceTypes;
+}
+
+inline bool Position::endgame_eval() const {
+  assert(var != nullptr);
+  return var->endgameEval;
 }
 
 inline bool Position::double_step_enabled() const {

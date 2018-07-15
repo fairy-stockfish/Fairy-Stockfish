@@ -30,6 +30,7 @@ void VariantMap::init() {
     // Define variant rules
     const Variant* chess = [&]{
         Variant* v = new Variant();
+        v->endgameEval = true;
         return v;
     } ();
     const Variant* makruk = [&]{
@@ -41,6 +42,7 @@ void VariantMap::init() {
         v->startFen = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1";
         v->promotionRank = RANK_6;
         v->promotionPieceTypes = {MET};
+        v->endgameEval = true;
         v->doubleStep = false;
         v->castling = false;
         return v;
@@ -53,6 +55,7 @@ void VariantMap::init() {
         v->add_piece(MET, 'q');
         v->startFen = "rnbqkbnr/8/pppppppp/8/8/PPPPPPPP/8/RNBQKBNR w - - 0 1";
         v->promotionPieceTypes = {ROOK, KNIGHT, KHON, MET};
+        v->endgameEval = true;
         v->doubleStep = false;
         v->castling = false;
         return v;
@@ -66,6 +69,7 @@ void VariantMap::init() {
         v->startFen = "rnsaksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKASNR w - - 0 1";
         v->promotionRank = RANK_6;
         v->promotionPieceTypes = {AIWOK};
+        v->endgameEval = true;
         v->doubleStep = false;
         v->castling = false;
         return v;
@@ -78,6 +82,7 @@ void VariantMap::init() {
         v->add_piece(FERS, 'q');
         v->startFen = "rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR w - - 0 1";
         v->promotionPieceTypes = {FERS};
+        v->endgameEval = true;
         v->doubleStep = false;
         v->castling = false;
         v->bareKingValue = -VALUE_MATE;
@@ -91,6 +96,7 @@ void VariantMap::init() {
         v->add_piece(AMAZON, 'a');
         v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {AMAZON, ROOK, BISHOP, KNIGHT};
+        v->endgameEval = true;
         return v;
     } ();
     const Variant* hoppelpoppel = [&]{
@@ -100,6 +106,7 @@ void VariantMap::init() {
         v->add_piece(KNIBIS, 'n');
         v->add_piece(BISKNI, 'b');
         v->promotionPieceTypes = {QUEEN, ROOK, BISKNI, KNIBIS};
+        v->endgameEval = true;
         return v;
     } ();
     const Variant* kingofthehill = [&]{
@@ -274,6 +281,7 @@ void VariantMap::init() {
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rnbckbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBCKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {CHANCELLOR, ROOK, BISHOP, KNIGHT};
+        v->endgameEval = true;
         return v;
     } ();
     const Variant* chigorin = [&]{
@@ -281,6 +289,7 @@ void VariantMap::init() {
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rbbqkbbr/pppppppp/8/8/8/8/PPPPPPPP/RNNCKNNR w KQkq - 0 1";
         v->promotionPieceTypes = {QUEEN, CHANCELLOR, ROOK, BISHOP, KNIGHT};
+        v->endgameEval = true;
         return v;
     } ();
     const Variant* shatar = [&]{
@@ -289,6 +298,7 @@ void VariantMap::init() {
         v->add_piece(BERS, 'j');
         v->startFen = "rnbjkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBJKBNR w - - 0 1";
         v->promotionPieceTypes = {BERS};
+        v->endgameEval = true;
         v->doubleStep = false;
         v->castling = false;
         v->bareKingValue = VALUE_DRAW;
