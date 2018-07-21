@@ -129,6 +129,7 @@ enum MoveType {
   PROMOTION_LEFT     = 4 << 12,
   PROMOTION_RIGHT    = 5 << 12,
   DROP               = 6 << 12,
+  PIECE_PROMOTION    = 7 << 12,
 };
 
 enum Color {
@@ -199,7 +200,7 @@ enum Value : int {
   AlfilValueMg           = 300,   AlfilValueEg           = 300,
   SilverValueMg          = 600,   SilverValueEg          = 600,
   AiwokValueMg           = 2500,  AiwokValueEg           = 2500,
-  BersValueMg            = 2500,  BersValueEg            = 2500,
+  BersValueMg            = 2000,  BersValueEg            = 2000,
   ChancellorValueMg      = 2500,  ChancellorValueEg      = 2500,
   AmazonValueMg          = 3000,  AmazonValueEg          = 3000,
   KnibisValueMg          = 800,   KnibisValueEg          = 800,
@@ -209,6 +210,7 @@ enum Value : int {
   ShogiKnightValueMg     = 300,   ShogiKnightValueEg     = 300,
   EuroShogiKnightValueMg = 400,   EuroShogiKnightValueEg = 400,
   GoldValueMg            = 600,   GoldValueEg            = 600,
+  HorseValueMg           = 1500,  HorseValueEg           = 1500,
   CommonerValueMg        = 600,   CommonerValueEg        = 600,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
@@ -219,7 +221,7 @@ const int PIECE_TYPE_BITS = 5; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK,
   QUEEN, FERS, MET = FERS, ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS, CHANCELLOR,
-  AMAZON, KNIBIS, BISKNI, SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, COMMONER, KING,
+  AMAZON, KNIBIS, BISKNI, SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, HORSE, COMMONER, KING,
   ALL_PIECES = 0,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS

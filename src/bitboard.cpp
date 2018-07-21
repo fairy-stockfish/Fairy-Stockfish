@@ -167,6 +167,7 @@ void Bitboards::init() {
       { 15, 17 }, // shogi knight
       { -1, 1, 15, 17 }, // euroshogi knight
       { -8, -1, 1, 7, 8, 9 }, // gold
+      { -8, -1, 1, 8 }, // horse
       { -9, -8, -7, -1, 1, 7, 8, 9 }, // commoner
       { -9, -8, -7, -1, 1, 7, 8, 9 } // king
   };
@@ -191,6 +192,7 @@ void Bitboards::init() {
       { 15, 17 }, // shogi knight
       { -1, 1, 15, 17 }, // euroshogi knight
       { -8, -1, 1, 7, 8, 9 }, // gold
+      { -8, -1, 1, 8 }, // horse
       { -9, -8, -7, -1, 1, 7, 8, 9 }, // commoner
       { -9, -8, -7, -1, 1, 7, 8, 9 } // king
   };
@@ -215,6 +217,7 @@ void Bitboards::init() {
     {}, // shogi knight
     {}, // euroshogi knight
     {}, // gold
+    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // horse
     {}, // commoner
     {} // king
   };
@@ -239,6 +242,7 @@ void Bitboards::init() {
     {}, // shogi knight
     {}, // euroshogi knight
     {}, // gold
+    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // horse
     {}, // commoner
     {} // king
   };
@@ -263,6 +267,7 @@ void Bitboards::init() {
     0, // shogi knight
     0, // euroshogi knight
     0, // gold
+    7, // horse
     0, // commoner
     0  // king
   };
@@ -287,6 +292,7 @@ void Bitboards::init() {
     0, // shogi knight
     0, // euroshogi knight
     0, // gold
+    7, // horse
     0, // commoner
     0  // king
   };

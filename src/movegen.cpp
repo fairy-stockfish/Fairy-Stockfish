@@ -88,10 +88,14 @@ namespace {
     {
         if (pt == PAWN)
         {
-            b &= ~promotion_zone_bb(Us, pos.promotion_rank());
+            b &= ~promotion_zone_bb(Us, pos.promotion_rank(), pos.max_rank());
             if (!pos.first_rank_drops())
                 b &= ~rank_bb(relative_rank(Us, RANK_1, pos.max_rank()));
         }
+        if (pt == SHOGI_PAWN)
+            for (File f = FILE_A; f <= pos.max_file(); ++f)
+                if (file_bb(f) & pos.pieces(Us, pt))
+                    b &= ~file_bb(f);
         if (Checks)
             b &= pos.check_squares(pt);
         while (b)
@@ -257,7 +261,16 @@ namespace {
             b &= pos.check_squares(pt);
 
         while (b)
-            *moveList++ = make_move(from, pop_lsb(&b));
+        {
+            Square s = pop_lsb(&b);
+            bool piece_promotion =   pos.promoted_piece_type(pt) != NO_PIECE_TYPE
+                                  && (promotion_zone_bb(us, pos.promotion_rank(), pos.max_rank()) & (SquareBB[from] | s));
+            if (!piece_promotion || !pos.mandatory_piece_promotion())
+                *moveList++ = make_move(from, s);
+            // Shogi-style piece promotions
+            if (piece_promotion)
+                *moveList++ = make<PIECE_PROMOTION>(from, s);
+        }
     }
 
     return moveList;

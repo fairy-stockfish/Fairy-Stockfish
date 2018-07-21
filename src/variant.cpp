@@ -230,8 +230,10 @@ void VariantMap::init() {
         v->add_piece(EUROSHOGI_KNIGHT, 'n');
         v->add_piece(GOLD, 'g');
         v->add_piece(BISHOP, 'b');
+        v->add_piece(HORSE, 'h');
         v->add_piece(ROOK, 'r');
         v->add_piece(KING, 'k');
+        v->add_piece(DRAGON, 'd');
         v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
@@ -239,7 +241,12 @@ void VariantMap::init() {
         v->promotionPieceTypes = {};
         v->doubleStep = false;
         v->castling = false;
-        // TODO: piece promotions, illegal pawn drops
+        v->promotedPieceType[SHOGI_PAWN]       = GOLD;
+        v->promotedPieceType[EUROSHOGI_KNIGHT] = GOLD;
+        v->promotedPieceType[SILVER]           = GOLD;
+        v->promotedPieceType[BISHOP]           = HORSE;
+        v->promotedPieceType[ROOK]             = DRAGON;
+        v->mandatoryPiecePromotion = true;
         return v;
     } ();
     const Variant* minishogi = [&]{
@@ -251,7 +258,9 @@ void VariantMap::init() {
         v->add_piece(SILVER, 's');
         v->add_piece(GOLD, 'g');
         v->add_piece(BISHOP, 'b');
+        v->add_piece(HORSE, 'h');
         v->add_piece(ROOK, 'r');
+        v->add_piece(DRAGON, 'd');
         v->add_piece(KING, 'k');
         v->startFen = "rbsgk/4p/5/P4/KGSBR[-] w 0 1";
         v->pieceDrops = true;
@@ -260,7 +269,10 @@ void VariantMap::init() {
         v->promotionPieceTypes = {};
         v->doubleStep = false;
         v->castling = false;
-        // TODO: piece promotions, illegal pawn drops
+        v->promotedPieceType[SHOGI_PAWN] = GOLD;
+        v->promotedPieceType[SILVER]     = GOLD;
+        v->promotedPieceType[BISHOP]     = HORSE;
+        v->promotedPieceType[ROOK]       = DRAGON;
         return v;
     } ();
     const Variant* losalamos = [&]{

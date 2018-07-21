@@ -53,6 +53,7 @@ struct StateInfo {
   Key        key;
   Bitboard   checkersBB;
   Piece      capturedPiece;
+  Piece      unpromotedCapturedPiece;
   StateInfo* previous;
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinners[COLOR_NB];
@@ -94,6 +95,8 @@ public:
   const std::string piece_to_char() const;
   Rank promotion_rank() const;
   const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
+  PieceType promoted_piece_type(PieceType pt) const;
+  bool mandatory_piece_promotion() const;
   bool endgame_eval() const;
   bool double_step_enabled() const;
   bool castling_enabled() const;
@@ -128,6 +131,7 @@ public:
   Bitboard pieces(Color c, PieceType pt) const;
   Bitboard pieces(Color c, PieceType pt1, PieceType pt2) const;
   Piece piece_on(Square s) const;
+  Piece unpromoted_piece_on(Square s) const;
   Square ep_square() const;
   bool empty(Square s) const;
   int count(Color c, PieceType pt) const;
@@ -218,6 +222,7 @@ private:
 
   // Data members
   Piece board[SQUARE_NB];
+  Piece unpromotedBoard[SQUARE_NB];
   Bitboard byTypeBB[PIECE_TYPE_NB];
   Bitboard byColorBB[COLOR_NB];
   int pieceCount[PIECE_NB];
@@ -278,6 +283,16 @@ inline Rank Position::promotion_rank() const {
 inline const std::set<PieceType, std::greater<PieceType> >& Position::promotion_piece_types() const {
   assert(var != nullptr);
   return var->promotionPieceTypes;
+}
+
+inline PieceType Position::promoted_piece_type(PieceType pt) const {
+  assert(var != nullptr);
+  return var->promotedPieceType[pt];
+}
+
+inline bool Position::mandatory_piece_promotion() const {
+  assert(var != nullptr);
+  return var->mandatoryPiecePromotion;
 }
 
 inline bool Position::endgame_eval() const {
@@ -447,6 +462,10 @@ inline bool Position::empty(Square s) const {
 
 inline Piece Position::piece_on(Square s) const {
   return board[s];
+}
+
+inline Piece Position::unpromoted_piece_on(Square s) const {
+  return unpromotedBoard[s];
 }
 
 inline Piece Position::moved_piece(Move m) const {

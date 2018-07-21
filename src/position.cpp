@@ -664,7 +664,7 @@ bool Position::legal(Move m) const {
 
   // illegal drops
   if (piece_drops() && type_of(m) == DROP)
-      return pieceCountInHand[us][type_of(moved_piece(m))] && empty(to_sq(m));
+      return pieceCountInHand[us][type_of(moved_piece(m))] && empty(to_sq(m)) && moves_bb(us, type_of(moved_piece(m)), to, 0);
 
   // game end
   if (is_variant_end())
@@ -788,7 +788,7 @@ bool Position::gives_check(Move m) const {
       return false;
 
   // Is there a direct check?
-  if (st->checkSquares[type_of(moved_piece(m))] & to)
+  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && (st->checkSquares[type_of(moved_piece(m))] & to))
       return true;
 
   // Is there a discovered check?
@@ -806,6 +806,9 @@ bool Position::gives_check(Move m) const {
 
   case PROMOTION:
       return attacks_bb(sideToMove, promotion_type(m), to, pieces() ^ from) & square<KING>(~sideToMove);
+
+  case PIECE_PROMOTION:
+      return attacks_bb(sideToMove, promoted_piece_type(type_of(moved_piece(m))), to, pieces() ^ from) & square<KING>(~sideToMove);
 
   // En passant capture with check? We have already handled the case
   // of direct checks and ordinary discovered check, so the only case we
@@ -866,6 +869,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
+  Piece unpromotedCaptured = unpromoted_piece_on(to);
 
   assert(color_of(pc) == us);
   assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
@@ -922,13 +926,16 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (captures_to_hand())
       {
           st->capturedpromoted = is_promoted(to);
-          Piece pieceToHand = is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
+          Piece pieceToHand =  !is_promoted(to)   ? ~captured
+                             : unpromotedCaptured ? ~unpromotedCaptured
+                                                  : make_piece(~color_of(captured), PAWN);
           add_to_hand(color_of(pieceToHand), type_of(pieceToHand));
           st->psq += PSQT::psq[pieceToHand][SQ_NONE];
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
           promotedPieces -= to;
       }
+      unpromotedBoard[to] = NO_PIECE;
 
       // Update material hash key and prefetch access to materialTable
       k ^= Zobrist::psq[captured][capsq];
@@ -1020,12 +1027,33 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Reset rule 50 draw counter
       st->rule50 = 0;
   }
+  else if (type_of(m) == PIECE_PROMOTION)
+  {
+      Piece promotion = make_piece(us, promoted_piece_type(type_of(pc)));
+
+      remove_piece(pc, to);
+      put_piece(promotion, to);
+      promotedPieces |= to;
+      unpromotedBoard[to] = pc;
+
+      // Update hash keys
+      k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
+      st->materialKey ^=  Zobrist::psq[promotion][pieceCount[promotion]-1]
+                        ^ Zobrist::psq[pc][pieceCount[pc]];
+
+      // Update incremental score
+      st->psq += PSQT::psq[promotion][to] - PSQT::psq[pc][to];
+
+      // Update material
+      st->nonPawnMaterial[us] += PieceValue[MG][promotion] - PieceValue[MG][pc];
+  }
 
   // Update incremental scores
   st->psq += PSQT::psq[pc][to] - PSQT::psq[pc][from];
 
   // Set capture piece
   st->capturedPiece = captured;
+  st->unpromotedCapturedPiece = captured ? unpromotedCaptured : NO_PIECE;
   if (captures_to_hand() && !captured)
       st->capturedpromoted = false;
 
@@ -1035,8 +1063,15 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
 
+  // Update information about promoted pieces
   if (type_of(m) != DROP && is_promoted(from))
       promotedPieces = (promotedPieces - from) | to;
+
+  if (type_of(m) != DROP && unpromoted_piece_on(from))
+  {
+      unpromotedBoard[to] = unpromotedBoard[from];
+      unpromotedBoard[from] = NO_PIECE;
+  }
 
   sideToMove = ~sideToMove;
 
@@ -1076,6 +1111,14 @@ void Position::undo_move(Move m) {
       if (captures_to_hand() && !drop_loop())
           promotedPieces -= to;
   }
+  else if (type_of(m) == PIECE_PROMOTION)
+  {
+      remove_piece(pc, to);
+      pc = unpromoted_piece_on(to);
+      put_piece(pc, to);
+      unpromotedBoard[to] = NO_PIECE;
+      promotedPieces -= to;
+  }
 
   if (type_of(m) == CASTLING)
   {
@@ -1090,6 +1133,11 @@ void Position::undo_move(Move m) {
           move_piece(pc, to, from); // Put the piece back at the source square
       if (captures_to_hand() && !drop_loop() && is_promoted(to))
           promotedPieces = (promotedPieces - to) | from;
+      if (unpromoted_piece_on(to))
+      {
+          unpromotedBoard[from] = unpromotedBoard[to];
+          unpromotedBoard[to] = NO_PIECE;
+      }
 
       if (st->capturedPiece)
       {
@@ -1110,10 +1158,14 @@ void Position::undo_move(Move m) {
           if (captures_to_hand())
           {
               remove_from_hand(~color_of(st->capturedPiece),
-                               !drop_loop() && st->capturedpromoted ? PAWN : type_of(st->capturedPiece));
+                               !drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? type_of(st->unpromotedCapturedPiece)
+                                                                                                   : PAWN)
+                                                                    : type_of(st->capturedPiece));
               if (!drop_loop() && st->capturedpromoted)
                   promotedPieces |= to;
           }
+          if (st->unpromotedCapturedPiece)
+              unpromotedBoard[to] = st->unpromotedCapturedPiece;
       }
   }
 

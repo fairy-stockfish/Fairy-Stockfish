@@ -230,8 +230,8 @@ inline Bitboard forward_ranks_bb(Color c, Square s) {
 /// in front of and on the given relative rank, from the point of view of the given color.
 /// For instance, promotion_zone_bb(BLACK, RANK_7) will return the 16 squares on ranks 1 and 2.
 
-inline Bitboard promotion_zone_bb(Color c, Rank r) {
-  return ForwardRanksBB[c][relative_rank(c, r)] | rank_bb(relative_rank(c, r));
+inline Bitboard promotion_zone_bb(Color c, Rank r, Rank maxRank) {
+  return ForwardRanksBB[c][relative_rank(c, r, maxRank)] | rank_bb(relative_rank(c, r, maxRank));
 }
 
 

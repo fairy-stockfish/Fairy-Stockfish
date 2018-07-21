@@ -294,6 +294,9 @@ string UCI::move(const Position& pos, Move m) {
   if (type_of(m) == PROMOTION)
       move += pos.piece_to_char()[make_piece(BLACK, promotion_type(m))];
 
+  if (type_of(m) == PIECE_PROMOTION)
+      move += '+';
+
   return move;
 }
 

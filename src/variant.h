@@ -42,6 +42,8 @@ struct Variant {
   std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   Rank promotionRank = RANK_8;
   std::set<PieceType, std::greater<PieceType> > promotionPieceTypes = { QUEEN, ROOK, BISHOP, KNIGHT };
+  PieceType promotedPieceType[PIECE_TYPE_NB] = {};
+  bool mandatoryPiecePromotion = false;
   bool endgameEval = false;
   bool doubleStep = true;
   bool castling = true;
