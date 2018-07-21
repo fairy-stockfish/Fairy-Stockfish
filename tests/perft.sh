@@ -36,6 +36,14 @@ expect perft.exp pocketknight startpos 4 3071267 > /dev/null
 expect perft.exp amazon startpos 5 9319911 > /dev/null
 expect perft.exp makruk startpos 5 6223994 > /dev/null
 expect perft.exp shatranj startpos 5 1164248 > /dev/null
+expect perft.exp loop startpos 5 4888832 > /dev/null
+expect perft.exp chessgi startpos 5 4889167 > /dev/null
+expect perft.exp racingkings startpos 5 9472927 > /dev/null
+expect perft.exp losers startpos 5 2723795 > /dev/null
+expect perft.exp antichess startpos 5 2732672 > /dev/null
+expect perft.exp giveaway startpos 5 2732672 > /dev/null
+expect perft.exp asean startpos 5 6223994 > /dev/null
+expect perft.exp ai-wok startpos 5 13275068 > /dev/null
 
 rm perft.exp
 
