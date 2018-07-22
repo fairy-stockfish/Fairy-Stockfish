@@ -44,6 +44,8 @@ expect perft.exp antichess startpos 5 2732672 > /dev/null
 expect perft.exp giveaway startpos 5 2732672 > /dev/null
 expect perft.exp asean startpos 5 6223994 > /dev/null
 expect perft.exp ai-wok startpos 5 13275068 > /dev/null
+expect perft.exp euroshogi startpos 5 9451149 > /dev/null
+expect perft.exp minishogi startpos 5 533203 > /dev/null
 
 rm perft.exp
 

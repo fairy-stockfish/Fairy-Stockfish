@@ -314,6 +314,9 @@ namespace {
                          : (  (pos.attacks_from(Us, Pt, s) & pos.pieces())
                             | (pos.moves_from(Us, Pt, s) & ~pos.pieces()));
 
+        // Restrict mobility to actual squares of board
+        b &= pos.board_bb();
+
         if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];
 

@@ -91,6 +91,7 @@ public:
   const Variant* variant() const;
   Rank max_rank() const;
   File max_file() const;
+  Bitboard board_bb() const;
   const std::set<PieceType>& piece_types() const;
   const std::string piece_to_char() const;
   Rank promotion_rank() const;
@@ -263,6 +264,11 @@ inline Rank Position::max_rank() const {
 inline File Position::max_file() const {
   assert(var != nullptr);
   return var->maxFile;
+}
+
+inline Bitboard Position::board_bb() const {
+  assert(var != nullptr);
+  return board_size_bb(var->maxFile, var->maxRank);
 }
 
 inline const std::set<PieceType>& Position::piece_types() const {

@@ -638,7 +638,7 @@ bool Position::legal(Move m) const {
   assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
 
   // illegal moves to squares outside of board
-  if (rank_of(to) > max_rank() || file_of(to) > max_file())
+  if (!(board_bb() & to))
       return false;
 
   // illegal checks
@@ -662,9 +662,13 @@ bool Position::legal(Move m) const {
       }
   }
 
+  // no legal moves from target square
+  if ((type_of(m) == DROP || type_of(m) == NORMAL) && !(moves_bb(us, type_of(moved_piece(m)), to, 0) & board_bb()))
+      return false;
+
   // illegal drops
   if (piece_drops() && type_of(m) == DROP)
-      return pieceCountInHand[us][type_of(moved_piece(m))] && empty(to_sq(m)) && moves_bb(us, type_of(moved_piece(m)), to, 0);
+      return pieceCountInHand[us][type_of(moved_piece(m))] && empty(to_sq(m));
 
   // game end
   if (is_variant_end())

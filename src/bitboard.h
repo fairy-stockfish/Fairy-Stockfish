@@ -62,6 +62,7 @@ constexpr Bitboard Rank8BB = Rank1BB << (8 * 7);
 
 extern int SquareDistance[SQUARE_NB][SQUARE_NB];
 
+extern Bitboard BoardSizeBB[FILE_NB][RANK_NB];
 extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard FileBB[FILE_NB];
 extern Bitboard RankBB[RANK_NB];
@@ -146,6 +147,15 @@ inline Bitboard& operator-=(Bitboard& b, Square s) {
 constexpr bool more_than_one(Bitboard b) {
   return b & (b - 1);
 }
+
+
+/// board_size_bb() returns a bitboard representing all the squares
+/// on a board with given size.
+
+inline Bitboard board_size_bb(File f, Rank r) {
+  return BoardSizeBB[f][r];
+}
+
 
 /// rank_bb() and file_bb() return a bitboard representing all the squares on
 /// the given file or rank.
