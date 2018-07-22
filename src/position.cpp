@@ -274,6 +274,16 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           put_piece(Piece(idx), sq);
           ++sq;
       }
+      // Promoted shogi pieces
+      else if (token == '+')
+      {
+          ss >> token;
+          idx = piece_to_char().find(token);
+          unpromotedBoard[sq] = Piece(idx);
+          promotedPieces |= SquareBB[sq];
+          put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq);
+          ++sq;
+      }
       // Set flag for promoted pieces
       else if (captures_to_hand() && !drop_loop() && token == '~')
           promotedPieces |= SquareBB[sq - 1];
@@ -523,11 +533,17 @@ const string Position::fen() const {
 
           if (f <= max_file())
           {
-              ss << piece_to_char()[piece_on(make_square(f, r))];
+              if (unpromoted_piece_on(make_square(f, r)))
+                  // Promoted shogi pieces, e.g., +r for dragon
+                  ss << "+" << piece_to_char()[unpromoted_piece_on(make_square(f, r))];
+              else
+              {
+                  ss << piece_to_char()[piece_on(make_square(f, r))];
 
-              // Set promoted pieces
-              if (captures_to_hand() && is_promoted(make_square(f, r)))
-                  ss << "~";
+                  // Set promoted pieces
+                  if (captures_to_hand() && is_promoted(make_square(f, r)))
+                      ss << "~";
+              }
           }
       }
 
