@@ -338,6 +338,7 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
   Bitboard target =  Type == CAPTURES     ?  pos.pieces(~us)
                    : Type == QUIETS       ? ~pos.pieces()
                    : Type == NON_EVASIONS ? ~pos.pieces(us) : 0;
+  target &= pos.board_bb();
 
   return us == WHITE ? generate_all<WHITE, Type>(pos, moveList, target)
                      : generate_all<BLACK, Type>(pos, moveList, target);
