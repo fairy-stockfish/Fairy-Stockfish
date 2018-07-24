@@ -447,7 +447,7 @@ constexpr Square relative_square(Color c, Square s) {
 }
 
 constexpr Rank relative_rank(Color c, Rank r, Rank maxRank = RANK_8) {
-  return Rank(r ^ (c * maxRank));
+  return Rank(c == WHITE ? r : maxRank - r);
 }
 
 constexpr Rank relative_rank(Color c, Square s, Rank maxRank = RANK_8) {
