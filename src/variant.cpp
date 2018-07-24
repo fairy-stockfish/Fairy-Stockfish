@@ -249,6 +249,34 @@ void VariantMap::init() {
         v->mandatoryPiecePromotion = true;
         return v;
     } ();
+    const Variant* judkinsshogi = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_6;
+        v->maxFile = FILE_F;
+        v->reset_pieces();
+        v->add_piece(SHOGI_PAWN, 'p');
+        v->add_piece(SHOGI_KNIGHT, 'n');
+        v->add_piece(SILVER, 's');
+        v->add_piece(GOLD, 'g');
+        v->add_piece(BISHOP, 'b');
+        v->add_piece(HORSE, 'h');
+        v->add_piece(ROOK, 'r');
+        v->add_piece(DRAGON, 'd');
+        v->add_piece(KING, 'k');
+        v->startFen = "rbnsgk/5p/6/6/P5/KGSNBR[-] w 0 1";
+        v->pieceDrops = true;
+        v->capturesToHand = true;
+        v->promotionRank = RANK_5;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->promotedPieceType[SHOGI_PAWN]   = GOLD;
+        v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
+        v->promotedPieceType[SILVER]       = GOLD;
+        v->promotedPieceType[BISHOP]       = HORSE;
+        v->promotedPieceType[ROOK]         = DRAGON;
+        return v;
+    } ();
     const Variant* minishogi = [&]{
         Variant* v = new Variant();
         v->maxRank = RANK_5;
@@ -341,6 +369,7 @@ void VariantMap::init() {
     add("chessgi", chessgi);
     add("pocketknight", pocketknight);
     add("euroshogi", euroshogi);
+    add("judkinshogi", judkinsshogi);
     add("minishogi", minishogi);
     add("losalamos", losalamos);
     add("almost", almost);
