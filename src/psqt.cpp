@@ -93,8 +93,10 @@ constexpr Score Bonus[PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
    { S(-2,-40), S( 6,-16), S( 8,-10), S(10,  3) },
    { S(-2,-55), S( 7,-30), S( 7,-21), S( 6, -6) },
    { S(-1,-74), S(-4,-55), S(-1,-43), S( 0,-30) }
-  },
-  { // King
+  }
+};
+
+constexpr Score KingBonus[RANK_NB][int(FILE_NB) / 2] = {
    { S(267,  0), S(320, 48), S(270, 75), S(195, 84) },
    { S(264, 43), S(304, 92), S(238,143), S(180,132) },
    { S(200, 83), S(245,138), S(176,167), S(110,165) },
@@ -103,7 +105,6 @@ constexpr Score Bonus[PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
    { S(118, 95), S(159,155), S( 84,176), S( 41,174) },
    { S( 87, 50), S(128, 99), S( 63,122), S( 20,139) },
    { S( 63,  9), S( 88, 55), S( 47, 80), S(  0, 90) }
-  }
 };
 
 #undef S
@@ -127,7 +128,7 @@ void init() {
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
           File f = std::min(file_of(s), ~file_of(s));
-          psq[ pc][ s] = score + Bonus[pc][rank_of(s)][f];
+          psq[ pc][ s] = score + (pt == KING ? KingBonus[rank_of(s)][f] : Bonus[pc][rank_of(s)][f]);
           psq[~pc][~s] = -psq[pc][s];
       }
       // pieces in pocket
