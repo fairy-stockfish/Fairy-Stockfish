@@ -1306,6 +1306,20 @@ bool Position::see_ge(Move m, Value threshold) const {
   Color stm = ~us; // First consider opponent's move
   Value balance;   // Values of the pieces taken by us minus opponent's ones
 
+
+  // nCheck
+  if (max_check_count() && color_of(moved_piece(m)) == sideToMove && gives_check(m))
+      return true;
+
+  // Extinction
+  if (   extinction_value() != VALUE_NONE
+      && piece_on(to)
+      && (   (   extinction_piece_types().find(type_of(piece_on(to))) != extinction_piece_types().end()
+              && pieceCount[piece_on(to)] == 1)
+          || (   extinction_piece_types().find(ALL_PIECES) != extinction_piece_types().end()
+              && count<ALL_PIECES>(~sideToMove) == 1)))
+      return extinction_value() < VALUE_ZERO;
+
   // The opponent may be able to recapture so this is the best result
   // we can hope for.
   balance = PieceValue[MG][piece_on(to)] - threshold;
