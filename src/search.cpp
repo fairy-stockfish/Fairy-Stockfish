@@ -734,6 +734,10 @@ namespace {
     improving =   ss->staticEval >= (ss-2)->staticEval
                || (ss-2)->staticEval == VALUE_NONE;
 
+    // Skip early pruning in case of mandatory capture
+    if (pos.must_capture() && MoveList<CAPTURES>(pos).size())
+        goto moves_loop;
+
     // Step 8. Futility pruning: child node (~30 Elo)
     if (   !rootNode
         &&  depth < 7 * ONE_PLY
