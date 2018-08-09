@@ -535,6 +535,23 @@ namespace {
     Bitboard b, weak, defended, nonPawnEnemies, stronglyProtected, safeThreats;
     Score score = SCORE_ZERO;
 
+    // Bonuses for variants with mandatory captures
+    if (pos.must_capture())
+    {
+        // Penalties for possible captures
+        score -= make_score(100, 100) * popcount(attackedBy[Us][ALL_PIECES] & pos.pieces(Them));
+
+        // Bonus if we threaten to force captures
+        Bitboard moves = 0, piecebb = pos.pieces(Us);
+        while (piecebb)
+        {
+            Square s = pop_lsb(&piecebb);
+            if (type_of(pos.piece_on(s)) != KING)
+                moves |= pos.moves_from(Us, type_of(pos.piece_on(s)), s);
+        }
+        score += make_score(200, 200) * popcount(attackedBy[Them][ALL_PIECES] & moves & ~pos.pieces());
+    }
+
     // Non-pawn enemies
     nonPawnEnemies = pos.pieces(Them) ^ pos.pieces(Them, PAWN);
 
