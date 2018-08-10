@@ -921,6 +921,13 @@ namespace {
     // the position object (material + piece square tables) and the material
     // imbalance. Score is computed internally from the white point of view.
     Score score = pos.captures_to_hand() ? pos.psq_score() / 2 : pos.psq_score();
+    // For antichess-like variants, use negative piece values
+    if (  (   pos.extinction_value() == VALUE_MATE
+           && pos.extinction_piece_types().find(ALL_PIECES) != pos.extinction_piece_types().end())
+        || pos.bare_king_value() == VALUE_MATE)
+        score = -score / 4;
+    if (T)
+        Trace::add(MATERIAL, score);
     score += me->imbalance() + pos.this_thread()->contempt;
 
     // Probe the pawn hash table
@@ -962,7 +969,6 @@ namespace {
     // In case of tracing add all remaining individual evaluation terms
     if (T)
     {
-        Trace::add(MATERIAL, pos.psq_score());
         Trace::add(IMBALANCE, me->imbalance());
         Trace::add(PAWN, pe->pawn_score(WHITE), pe->pawn_score(BLACK));
         Trace::add(MOBILITY, mobility[WHITE], mobility[BLACK]);
