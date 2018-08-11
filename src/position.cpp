@@ -114,7 +114,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
      << std::setfill(' ') << std::dec << "\nCheckers: ";
 
   for (Bitboard b = pos.checkers(); b; )
-      os << UCI::square(pop_lsb(&b)) << " ";
+      os << UCI::square(pos, pop_lsb(&b)) << " ";
 
   if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
       && !pos.can_castle(ANY_CASTLING))
@@ -216,7 +216,7 @@ void Position::init() {
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
 
-Position& Position::set(const Variant* v, const string& fenStr, bool isChess960, StateInfo* si, Thread* th) {
+Position& Position::set(const Variant* v, const string& fenStr, bool isChess960, StateInfo* si, Thread* th, bool sfen) {
 /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -310,54 +310,57 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   // 2. Active color
   ss >> token;
   sideToMove = (token == 'w' ? WHITE : BLACK);
+  // Invert side to move for SFEN
+  if (sfen)
+      sideToMove = ~sideToMove;
   ss >> token;
 
   // 3-4. Skip parsing castling and en passant flags if not present
   st->epSquare = SQ_NONE;
-  if (!isdigit(ss.peek()))
+  if (!isdigit(ss.peek()) && !sfen)
   {
-  // 3. Castling availability. Compatible with 3 standards: Normal FEN standard,
-  // Shredder-FEN that uses the letters of the columns on which the rooks began
-  // the game instead of KQkq and also X-FEN standard that, in case of Chess960,
-  // if an inner rook is associated with the castling right, the castling tag is
-  // replaced by the file letter of the involved rook, as for the Shredder-FEN.
-  while ((ss >> token) && !isspace(token))
-  {
-      Square rsq;
-      Color c = islower(token) ? BLACK : WHITE;
-      Piece rook = make_piece(c, ROOK);
+      // 3. Castling availability. Compatible with 3 standards: Normal FEN standard,
+      // Shredder-FEN that uses the letters of the columns on which the rooks began
+      // the game instead of KQkq and also X-FEN standard that, in case of Chess960,
+      // if an inner rook is associated with the castling right, the castling tag is
+      // replaced by the file letter of the involved rook, as for the Shredder-FEN.
+      while ((ss >> token) && !isspace(token))
+      {
+          Square rsq;
+          Color c = islower(token) ? BLACK : WHITE;
+          Piece rook = make_piece(c, ROOK);
 
-      token = char(toupper(token));
+          token = char(toupper(token));
 
-      if (token == 'K')
-          for (rsq = relative_square(c, SQ_H1); piece_on(rsq) != rook; --rsq) {}
+          if (token == 'K')
+              for (rsq = relative_square(c, SQ_H1); piece_on(rsq) != rook; --rsq) {}
 
-      else if (token == 'Q')
-          for (rsq = relative_square(c, SQ_A1); piece_on(rsq) != rook; ++rsq) {}
+          else if (token == 'Q')
+              for (rsq = relative_square(c, SQ_A1); piece_on(rsq) != rook; ++rsq) {}
 
-      else if (token >= 'A' && token <= 'H')
-          rsq = make_square(File(token - 'A'), relative_rank(c, RANK_1));
+          else if (token >= 'A' && token <= 'H')
+              rsq = make_square(File(token - 'A'), relative_rank(c, RANK_1));
 
-      else
-          continue;
+          else
+              continue;
 
-      set_castling_right(c, rsq);
-  }
+          set_castling_right(c, rsq);
+      }
 
-  // 4. En passant square. Ignore if no pawn capture is possible
-  if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
-      && ((ss >> row) && (row == '3' || row == '6')))
-  {
-      st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
+      // 4. En passant square. Ignore if no pawn capture is possible
+      if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
+          && ((ss >> row) && (row == '3' || row == '6')))
+      {
+          st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
-      if (   !(attackers_to(st->epSquare) & pieces(sideToMove, PAWN))
-          || !(pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove))))
-          st->epSquare = SQ_NONE;
-  }
+          if (   !(attackers_to(st->epSquare) & pieces(sideToMove, PAWN))
+              || !(pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove))))
+              st->epSquare = SQ_NONE;
+      }
   }
 
   // Check counter for nCheck
-  ss >> std::skipws >> token;
+  ss >> std::skipws >> token >> std::noskipws;
 
   if (max_check_count() && ss.peek() == '+')
   {
@@ -369,11 +372,28 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       ss.putback(token);
 
   // 5-6. Halfmove clock and fullmove number
-  ss >> std::skipws >> st->rule50 >> gamePly;
+  if (sfen)
+  {
+      // Pieces in hand for SFEN
+      while ((ss >> token) && !isspace(token))
+      {
+          if (token == '-')
+              continue;
+          else if ((idx = piece_to_char().find(token)) != string::npos)
+              add_to_hand(color_of(Piece(idx)), type_of(Piece(idx)));
+      }
+      // Move count is in ply for SFEN
+      ss >> std::skipws >> gamePly;
+      gamePly = std::max(gamePly - 1, 0);
+  }
+  else
+  {
+      ss >> std::skipws >> st->rule50 >> gamePly;
 
-  // Convert from fullmove starting from 1 to gamePly starting from 0,
-  // handle also common incorrect FEN with fullmove = 0.
-  gamePly = std::max(2 * (gamePly - 1), 0) + (sideToMove == BLACK);
+      // Convert from fullmove starting from 1 to gamePly starting from 0,
+      // handle also common incorrect FEN with fullmove = 0.
+      gamePly = std::max(2 * (gamePly - 1), 0) + (sideToMove == BLACK);
+  }
 
   chess960 = isChess960;
   thisThread = th;
@@ -588,7 +608,7 @@ const string Position::fen() const {
   if (max_check_count())
       ss << " " << (max_check_count() - st->checksGiven[WHITE]) << "+" << (max_check_count() - st->checksGiven[BLACK]);
 
-  ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(ep_square()) + " ")
+  ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ")
      << st->rule50 << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
 
   return ss.str();

@@ -50,20 +50,22 @@ namespace {
     string token, fen;
 
     is >> token;
+    // Parse as SFEN if specified
+    bool sfen = token == "sfen";
 
     if (token == "startpos")
     {
         fen = variants.find(Options["UCI_Variant"])->second->startFen;
         is >> token; // Consume "moves" token if any
     }
-    else if (token == "fen")
+    else if (token == "fen" || token == "sfen")
         while (is >> token && token != "moves")
             fen += token + " ";
     else
         return;
 
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
-    pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), Threads.main());
+    pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
     // Parse move list (if any)
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
@@ -217,15 +219,18 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "ponderhit")
           Threads.ponder = false; // Switch to normal search
 
-      else if (token == "uci")
+      else if (token == "uci" || token == "usi")
+      {
+          Options["Protocol"] = token;
           sync_cout << "id name " << engine_info(true)
                     << "\n"       << Options
-                    << "\nuciok"  << sync_endl;
+                    << "\n" << token << "ok"  << sync_endl;
+      }
 
       else if (token == "setoption")  setoption(is);
       else if (token == "go")         go(pos, is, states);
       else if (token == "position")   position(pos, is, states);
-      else if (token == "ucinewgame") Search::clear();
+      else if (token == "ucinewgame" || token == "usinewgame") Search::clear();
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
 
       // Additional custom non-UCI commands, mainly for debugging
@@ -255,6 +260,9 @@ string UCI::value(Value v) {
 
   if (abs(v) < VALUE_MATE - MAX_PLY)
       ss << "cp " << v * 100 / PawnValueEg;
+  else if (Options["Protocol"] == "usi")
+      // In USI, mate distance is given in ply
+      ss << "mate " << (v > 0 ? VALUE_MATE - v : -VALUE_MATE - v);
   else
       ss << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v - 1) / 2;
 
@@ -264,8 +272,9 @@ string UCI::value(Value v) {
 
 /// UCI::square() converts a Square to a string in algebraic notation (g1, a7, etc.)
 
-std::string UCI::square(Square s) {
-  return std::string{ char('a' + file_of(s)), char('1' + rank_of(s)) };
+std::string UCI::square(const Position& pos, Square s) {
+  return Options["Protocol"] == "usi" ? std::string{ char('1' + pos.max_file() - file_of(s)), char('a' + pos.max_rank() - rank_of(s)) }
+                                      : std::string{ char('a' + file_of(s)), char('1' + rank_of(s)) };
 }
 
 
@@ -288,8 +297,9 @@ string UCI::move(const Position& pos, Move m) {
   if (type_of(m) == CASTLING && !pos.is_chess960())
       to = make_square(to > from ? FILE_G : FILE_C, rank_of(from));
 
-  string move = (type_of(m) == DROP ? std::string{pos.piece_to_char()[type_of(pos.moved_piece(m))], '@'}
-                                    : UCI::square(from)) + UCI::square(to);
+  string move = (type_of(m) == DROP ? std::string{pos.piece_to_char()[type_of(pos.moved_piece(m))],
+                                                  Options["Protocol"] == "usi" ? '*' : '@'}
+                                    : UCI::square(pos, from)) + UCI::square(pos, to);
 
   if (type_of(m) == PROMOTION)
       move += pos.piece_to_char()[make_piece(BLACK, promotion_type(m))];
