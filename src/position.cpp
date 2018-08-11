@@ -93,14 +93,20 @@ PieceType min_attacker<KING>(const Bitboard*, Square, Bitboard, Bitboard&, Bitbo
 
 std::ostream& operator<<(std::ostream& os, const Position& pos) {
 
-  os << "\n +---+---+---+---+---+---+---+---+\n";
+  os << "\n ";
+  for (File f = FILE_A; f <= pos.max_file(); ++f)
+      os << "+---";
+  os << "+\n";
 
-  for (Rank r = RANK_8; r >= RANK_1; --r)
+  for (Rank r = pos.max_rank(); r >= RANK_1; --r)
   {
-      for (File f = FILE_A; f <= FILE_H; ++f)
+      for (File f = FILE_A; f <= pos.max_file(); ++f)
           os << " | " << pos.piece_to_char()[pos.piece_on(make_square(f, r))];
 
-      os << " |\n +---+---+---+---+---+---+---+---+\n";
+      os << " |\n ";
+      for (File f = FILE_A; f <= pos.max_file(); ++f)
+          os << "+---";
+      os << "+\n";
   }
 
   os << "\nFen: " << pos.fen() << "\nKey: " << std::hex << std::uppercase
