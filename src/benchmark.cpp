@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "position.h"
+#include "uci.h"
 
 using namespace std;
 
@@ -104,7 +105,21 @@ const vector<string> Defaults = {
 vector<string> setup_bench(const Position& current, istream& is) {
 
   vector<string> fens, list;
-  string go, token;
+  string go, token, varname;
+
+  streampos args = is.tellg();
+  // Check whether the next token is a variant name
+  if ((is >> token) && variants.find(token) != variants.end())
+  {
+      args = is.tellg();
+      varname = token;
+  }
+  else
+  {
+      is.seekg(args);
+      varname = string(Options["UCI_Variant"]);
+  }
+  const Variant* variant = variants.find(varname)->second;
 
   // Assign default values to missing arguments
   string ttSize    = (is >> token) ? token : "16";
@@ -116,7 +131,12 @@ vector<string> setup_bench(const Position& current, istream& is) {
   go = "go " + limitType + " " + limit;
 
   if (fenFile == "default")
-      fens = Defaults;
+  {
+      if (varname != "chess")
+          fens.push_back(variant->startFen);
+      else
+          fens = Defaults;
+  }
 
   else if (fenFile == "current")
       fens.push_back(current.fen());
@@ -142,6 +162,7 @@ vector<string> setup_bench(const Position& current, istream& is) {
   list.emplace_back("ucinewgame");
   list.emplace_back("setoption name Threads value " + threads);
   list.emplace_back("setoption name Hash value " + ttSize);
+  list.emplace_back("setoption name UCI_Variant value " + varname);
 
   for (const string& fen : fens)
       if (fen.find("setoption") != string::npos)
