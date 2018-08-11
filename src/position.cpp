@@ -180,7 +180,7 @@ void Position::init() {
           Zobrist::checks[c][n] = rng.rand<Key>();
 
   for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt = KNIGHT; pt <= KING; ++pt)
+      for (PieceType pt = PAWN; pt <= KING; ++pt)
           for (int n = 0; n < 17; ++n)
               Zobrist::inHand[make_piece(c, pt)][n] = rng.rand<Key>();
 
