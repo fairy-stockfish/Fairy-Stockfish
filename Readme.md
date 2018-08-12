@@ -17,6 +17,8 @@ Besides chess, the currently supported variants are:
 - [Three-check chess](https://en.wikipedia.org/wiki/Three-check_chess), Five-check chess
 - [Los Alamos chess](https://en.wikipedia.org/wiki/Los_Alamos_chess)
 
+See the [Fairy-Stockfish Wiki](https://github.com/ianfab/Fairy-Stockfish/wiki) for more info.
+
 ## Stockfish
 ### Overview
 
