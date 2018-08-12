@@ -944,10 +944,10 @@ namespace {
     initialize<WHITE>();
     initialize<BLACK>();
 
-    // Pieces should be evaluated first (populate attack tables)
-    for (PieceType pt : pos.piece_types())
-        if (pt != PAWN && pt != KING)
-            score += pieces<WHITE>(pt) - pieces<BLACK>(pt);
+    // Pieces should be evaluated first (populate attack tables).
+    // For unused piece types, we still need to set attack bitboard to zero.
+    for (PieceType pt = KNIGHT; pt < KING; ++pt)
+        score += pieces<WHITE>(pt) - pieces<BLACK>(pt);
 
     score += mobility[WHITE] - mobility[BLACK];
 
