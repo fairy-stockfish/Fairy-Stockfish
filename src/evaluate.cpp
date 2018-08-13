@@ -815,7 +815,7 @@ namespace {
             int dist =  distance(pos.square<KING>(Us), s)
                       + popcount(pos.attackers_to(s) & pos.pieces(Them))
                       + !!(pos.pieces(Us) & s);
-            score += make_score(3000, 3000) / (1 + dist * dist);
+            score += make_score(3000, 3000) / (1 + dist * (pos.checking_permitted() ? dist : 1));
         }
     }
 
