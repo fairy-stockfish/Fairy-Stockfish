@@ -44,6 +44,7 @@ struct Variant {
   bool mandatoryPiecePromotion = false;
   bool endgameEval = false;
   bool doubleStep = true;
+  bool firstRankDoubleSteps = false;
   bool castling = true;
   bool checking = true;
   bool mustCapture = false;

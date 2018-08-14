@@ -100,6 +100,7 @@ public:
   bool mandatory_piece_promotion() const;
   bool endgame_eval() const;
   bool double_step_enabled() const;
+  bool first_rank_double_steps() const;
   bool castling_enabled() const;
   bool checking_permitted() const;
   bool must_capture() const;
@@ -227,7 +228,7 @@ private:
   Bitboard byTypeBB[PIECE_TYPE_NB];
   Bitboard byColorBB[COLOR_NB];
   int pieceCount[PIECE_NB];
-  Square pieceList[PIECE_NB][16];
+  Square pieceList[PIECE_NB][64];
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
   Square castlingRookSquare[CASTLING_RIGHT_NB];
@@ -309,6 +310,11 @@ inline bool Position::endgame_eval() const {
 inline bool Position::double_step_enabled() const {
   assert(var != nullptr);
   return var->doubleStep;
+}
+
+inline bool Position::first_rank_double_steps() const {
+  assert(var != nullptr);
+  return var->firstRankDoubleSteps;
 }
 
 inline bool Position::castling_enabled() const {

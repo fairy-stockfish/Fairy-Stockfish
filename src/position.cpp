@@ -1032,6 +1032,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       // Set en-passant square if the moved pawn can be captured
       if (   (int(to) ^ int(from)) == 16
+          && relative_rank(us, rank_of(from), max_rank()) == RANK_2
           && (attacks_from<PAWN>(us, to - pawn_push(us)) & pieces(them, PAWN)))
       {
           st->epSquare = to - pawn_push(us);

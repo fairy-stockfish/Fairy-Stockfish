@@ -111,11 +111,15 @@ namespace {
     // Compute our parametrized parameters at compile time, named according to
     // the point of view of white side.
     constexpr Color     Them     = (Us == WHITE ? BLACK      : WHITE);
-    constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB    : Rank6BB);
     constexpr Direction Up       = (Us == WHITE ? NORTH      : SOUTH);
     constexpr Direction Down     = (Us == WHITE ? SOUTH      : NORTH);
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
+
+    // Define squares a pawn can pass during a double step
+    Bitboard  TRank3BB = rank_bb(relative_rank(Us, RANK_3, pos.max_rank()));
+    if (pos.first_rank_double_steps())
+        TRank3BB |= rank_bb(relative_rank(Us, RANK_2, pos.max_rank()));
 
     Bitboard emptySquares;
 

@@ -178,6 +178,14 @@ void VariantMap::init() {
         v->extinctionPieceTypes = {PAWN};
         return v;
     } ();
+    const Variant* horde = [&]{
+        Variant* v = new Variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
+        v->firstRankDoubleSteps = true;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {ALL_PIECES};
+        return v;
+    } ();
     const Variant* threecheck = [&]{
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
@@ -360,6 +368,7 @@ void VariantMap::init() {
     add("antichess", antichess);
     add("extinction", extinction);
     add("kinglet", kinglet);
+    add("horde", horde);
     add("3check", threecheck);
     add("5check", fivecheck);
     add("crazyhouse", crazyhouse);
