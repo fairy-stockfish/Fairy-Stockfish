@@ -108,6 +108,7 @@ public:
   bool drop_loop() const;
   bool captures_to_hand() const;
   bool first_rank_drops() const;
+  bool immobility_illegal() const;
   // winning conditions
   Value stalemate_value(int ply = 0) const;
   Value checkmate_value(int ply = 0) const;
@@ -350,6 +351,11 @@ inline bool Position::captures_to_hand() const {
 inline bool Position::first_rank_drops() const {
   assert(var != nullptr);
   return var->firstRankDrops;
+}
+
+inline bool Position::immobility_illegal() const {
+  assert(var != nullptr);
+  return var->immobilityIllegal;
 }
 
 inline Value Position::stalemate_value(int ply) const {

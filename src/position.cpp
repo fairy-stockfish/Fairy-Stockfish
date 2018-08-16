@@ -705,7 +705,7 @@ bool Position::legal(Move m) const {
   }
 
   // no legal moves from target square
-  if ((type_of(m) == DROP || type_of(m) == NORMAL) && !(moves_bb(us, type_of(moved_piece(m)), to, 0) & board_bb()))
+  if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(moves_bb(us, type_of(moved_piece(m)), to, 0) & board_bb()))
       return false;
 
   // illegal drops

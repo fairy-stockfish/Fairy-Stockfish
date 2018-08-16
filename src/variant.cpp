@@ -253,6 +253,7 @@ void VariantMap::init() {
         v->promotedPieceType[BISHOP]           = HORSE;
         v->promotedPieceType[ROOK]             = DRAGON;
         v->mandatoryPiecePromotion = true;
+        v->immobilityIllegal = true;
         return v;
     } ();
     const Variant* judkinsshogi = [&]{
@@ -281,6 +282,7 @@ void VariantMap::init() {
         v->promotedPieceType[SILVER]       = GOLD;
         v->promotedPieceType[BISHOP]       = HORSE;
         v->promotedPieceType[ROOK]         = DRAGON;
+        v->immobilityIllegal = true;
         return v;
     } ();
     const Variant* minishogi = [&]{
@@ -307,6 +309,7 @@ void VariantMap::init() {
         v->promotedPieceType[SILVER]     = GOLD;
         v->promotedPieceType[BISHOP]     = HORSE;
         v->promotedPieceType[ROOK]       = DRAGON;
+        v->immobilityIllegal = true;
         return v;
     } ();
     const Variant* losalamos = [&]{
@@ -351,6 +354,20 @@ void VariantMap::init() {
         // TODO: illegal checkmates
         return v;
     } ();
+    const Variant* clobber = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_6;
+        v->maxFile = FILE_E;
+        v->reset_pieces();
+        v->add_piece(CLOBBER_PIECE, 'p');
+        v->startFen = "PpPpP/pPpPp/PpPpP/pPpPp/PpPpP/pPpPp w 0 1";
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->stalemateValue = -VALUE_MATE;
+        v->immobilityIllegal = false;
+        return v;
+    } ();
 
     // Add to UCI_Variant option
     add("chess", chess);
@@ -382,6 +399,7 @@ void VariantMap::init() {
     add("almost", almost);
     add("chigorin", chigorin);
     add("shatar", shatar);
+    add("clobber", clobber);
 }
 
 void VariantMap::add(std::string s, const Variant* v) {
