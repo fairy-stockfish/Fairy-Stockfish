@@ -109,6 +109,7 @@ void VariantMap::init() {
     } ();
     const Variant* kingofthehill = [&]{
         Variant* v = new Variant();
+        v->flagPiece = KING;
         v->whiteFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->blackFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->flagMove = false;
@@ -117,6 +118,7 @@ void VariantMap::init() {
     const Variant* racingkings = [&]{
         Variant* v = new Variant();
         v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
+        v->flagPiece = KING;
         v->whiteFlag = Rank8BB;
         v->blackFlag = Rank8BB;
         v->flagMove = true;
@@ -368,6 +370,20 @@ void VariantMap::init() {
         v->immobilityIllegal = false;
         return v;
     } ();
+    const Variant* breakthrough = [&]{
+        Variant* v = new Variant();
+        v->reset_pieces();
+        v->add_piece(BREAKTHROUGH_PIECE, 'p');
+        v->startFen = "pppppppp/pppppppp/8/8/8/8/PPPPPPPP/PPPPPPPP w 0 1";
+        v->promotionPieceTypes = {};
+        v->firstRankDoubleSteps = false;
+        v->castling = false;
+        v->stalemateValue = -VALUE_MATE;
+        v->flagPiece = BREAKTHROUGH_PIECE;
+        v->whiteFlag = Rank8BB;
+        v->blackFlag = Rank1BB;
+        return v;
+    } ();
 
     // Add to UCI_Variant option
     add("chess", chess);
@@ -400,6 +416,7 @@ void VariantMap::init() {
     add("chigorin", chigorin);
     add("shatar", shatar);
     add("clobber", clobber);
+    add("breakthrough", breakthrough);
 }
 
 void VariantMap::add(std::string s, const Variant* v) {

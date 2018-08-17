@@ -116,6 +116,7 @@ public:
   Value extinction_value(int ply = 0) const;
   bool bare_king_move() const;
   const std::set<PieceType>& extinction_piece_types() const;
+  PieceType capture_the_flag_piece() const;
   Bitboard capture_the_flag(Color c) const;
   bool flag_move() const;
   CheckCount max_check_count() const;
@@ -400,6 +401,11 @@ inline const std::set<PieceType>& Position::extinction_piece_types() const {
   return var->extinctionPieceTypes;
 }
 
+inline PieceType Position::capture_the_flag_piece() const {
+  assert(var != nullptr);
+  return var->flagPiece;
+}
+
 inline Bitboard Position::capture_the_flag(Color c) const {
   assert(var != nullptr);
   return c == WHITE ? var->whiteFlag : var->blackFlag;
@@ -451,12 +457,16 @@ inline bool Position::is_variant_end(Value& result, int ply) const {
           }
   }
   // capture the flag
-  if (count<KING>(~sideToMove) && !flag_move() && (capture_the_flag(~sideToMove) & square<KING>(~sideToMove)))
+  if (   capture_the_flag_piece()
+      && !flag_move()
+      && (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())))
   {
       result = mated_in(ply);
       return true;
   }
-  if (count<KING>( sideToMove) &&  flag_move() && (capture_the_flag( sideToMove) & square<KING>( sideToMove)))
+  if (   capture_the_flag_piece()
+      && flag_move()
+      && (capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece())))
   {
       result = mate_in(ply);
       return true;

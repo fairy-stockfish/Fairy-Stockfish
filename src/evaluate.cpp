@@ -808,14 +808,20 @@ namespace {
     // Capture the flag
     if (pos.capture_the_flag(Us))
     {
-        Bitboard target_squares = pos.capture_the_flag(Us);
-        while (target_squares)
+        bool can_block = pos.capture_the_flag_piece() == KING;
+        Bitboard ctfPieces = pos.pieces(Us, pos.capture_the_flag_piece());
+        while (ctfPieces)
         {
-            Square s = pop_lsb(&target_squares);
-            int dist =  distance(pos.square<KING>(Us), s)
-                      + popcount(pos.attackers_to(s) & pos.pieces(Them))
-                      + !!(pos.pieces(Us) & s);
-            score += make_score(3000, 3000) / (1 + dist * (pos.checking_permitted() ? dist : 1));
+            Square s1 = pop_lsb(&ctfPieces);
+            Bitboard target_squares = pos.capture_the_flag(Us);
+            while (target_squares)
+            {
+                Square s2 = pop_lsb(&target_squares);
+                int dist =  distance(s1, s2)
+                          + (can_block ? popcount(pos.attackers_to(s2) & pos.pieces(Them)) : 0)
+                          + !!(pos.pieces(Us) & s2);
+                score += make_score(3000, 3000) / (1 + dist * (can_block && pos.checking_permitted() ? dist : 1));
+            }
         }
     }
 

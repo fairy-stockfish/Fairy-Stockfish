@@ -60,6 +60,7 @@ struct Variant {
   Value extinctionValue = VALUE_NONE;
   bool bareKingMove = false;
   std::set<PieceType> extinctionPieceTypes = {};
+  PieceType flagPiece = NO_PIECE_TYPE;
   Bitboard whiteFlag = 0;
   Bitboard blackFlag = 0;
   bool flagMove = false;

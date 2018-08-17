@@ -174,6 +174,7 @@ void Bitboards::init() {
       { -8, -1, 1, 7, 8, 9 }, // gold
       { -8, -1, 1, 8 }, // horse
       { -8, -1, 1, 8 }, // clobber
+      { 7, 9 }, // breakthrough
       { -9, -8, -7, -1, 1, 7, 8, 9 }, // commoner
       { -9, -8, -7, -1, 1, 7, 8, 9 } // king
   };
@@ -200,6 +201,7 @@ void Bitboards::init() {
       { -8, -1, 1, 7, 8, 9 }, // gold
       { -8, -1, 1, 8 }, // horse
       {}, // clobber
+      { 7, 8, 9 }, // breakthrough
       { -9, -8, -7, -1, 1, 7, 8, 9 }, // commoner
       { -9, -8, -7, -1, 1, 7, 8, 9 } // king
   };
@@ -226,6 +228,7 @@ void Bitboards::init() {
     {}, // gold
     { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // horse
     {}, // clobber
+    {}, // breakthrough
     {}, // commoner
     {} // king
   };
@@ -252,6 +255,7 @@ void Bitboards::init() {
     {}, // gold
     { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // horse
     {}, // clobber
+    {}, // breakthrough
     {}, // commoner
     {} // king
   };
@@ -278,6 +282,7 @@ void Bitboards::init() {
     0, // gold
     7, // horse
     0, // clobber
+    0, // breakthrough
     0, // commoner
     0  // king
   };
@@ -304,6 +309,7 @@ void Bitboards::init() {
     0, // gold
     7, // horse
     0, // clobber
+    0, // breakthrough
     0, // commoner
     0  // king
   };
