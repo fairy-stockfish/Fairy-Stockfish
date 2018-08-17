@@ -160,6 +160,17 @@ void VariantMap::init() {
         v->mustCapture = true;
         return v;
     } ();
+    const Variant* codrus = [&]{
+        Variant* v = new Variant();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, KNIGHT};
+        v->extinctionValue = VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->mustCapture = true;
+        return v;
+    } ();
     const Variant* extinction = [&]{
         Variant* v = new Variant();
         v->remove_piece(KING);
@@ -399,6 +410,7 @@ void VariantMap::init() {
     add("losers", losers);
     add("giveaway", giveaway);
     add("antichess", antichess);
+    add("codrus", codrus);
     add("extinction", extinction);
     add("kinglet", kinglet);
     add("horde", horde);
