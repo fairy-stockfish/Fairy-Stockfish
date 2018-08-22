@@ -316,8 +316,15 @@ string UCI::move(const Position& pos, Move m) {
 
 Move UCI::to_move(const Position& pos, string& str) {
 
-  if (str.length() == 5) // Junior could send promotion piece in uppercase
-      str[4] = char(tolower(str[4]));
+  if (str.length() == 5)
+  {
+      if (str[4] == '=')
+          // shogi moves refraining from promotion might use equals sign
+          str.pop_back();
+      else
+          // Junior could send promotion piece in uppercase
+          str[4] = char(tolower(str[4]));
+  }
 
   for (const auto& m : MoveList<LEGAL>(pos))
       if (str == UCI::move(pos, m))
