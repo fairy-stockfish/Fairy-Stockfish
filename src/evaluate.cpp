@@ -950,7 +950,7 @@ namespace {
     for (PieceType pt = KNIGHT; pt < KING; ++pt)
         score += pieces<WHITE>(pt) - pieces<BLACK>(pt);
 
-    score += mobility[WHITE] - mobility[BLACK];
+    score += (mobility[WHITE] - mobility[BLACK]) * (1 + pos.captures_to_hand() + pos.must_capture());
 
     score +=  king<   WHITE>() - king<   BLACK>()
             + threats<WHITE>() - threats<BLACK>()
