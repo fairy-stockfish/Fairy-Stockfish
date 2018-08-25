@@ -490,6 +490,7 @@ namespace {
                      + 143 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
                      - 848 * !pos.count<QUEEN>(Them)
                      -   9 * mg_value(score) / 8
+                     + 100 * (pos.piece_drops() ? pos.count_in_hand(Them, ALL_PIECES) : 0)
                      +  40;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
