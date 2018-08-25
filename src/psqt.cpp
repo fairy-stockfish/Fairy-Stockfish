@@ -132,7 +132,7 @@ void init() {
           psq[~pc][~s] = -psq[pc][s];
       }
       // pieces in pocket
-      psq[ pc][SQ_NONE] = score;
+      psq[ pc][SQ_NONE] = score + make_score(20, 20);
       psq[~pc][SQ_NONE] = -psq[pc][SQ_NONE];
   }
 }
