@@ -514,7 +514,7 @@ namespace {
     b2 = b1 & attackedBy2[Them] & ~attackedBy[Us][PAWN];
 
     // King tropism, to anticipate slow motion attacks on our king
-    score -= CloseEnemies * (popcount(b1) + popcount(b2));
+    score -= CloseEnemies * (popcount(b1) + popcount(b2)) * (1 + pos.captures_to_hand() + !!pos.max_check_count());
 
     if (T)
         Trace::add(KING, Us, score);
