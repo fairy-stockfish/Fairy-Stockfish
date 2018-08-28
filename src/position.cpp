@@ -658,7 +658,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 
   Bitboard b = 0;
   for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt = PAWN; pt <= KING; ++pt)
+      for (PieceType pt : piece_types())
           b |= attacks_bb(~c, pt, s, occupied) & pieces(c, pt);
   return b;
 }
