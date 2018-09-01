@@ -997,7 +997,7 @@ moves_loop: // When in check, search starts from here
       {
           Depth r = reduction<PvNode>(improving, depth, moveCount);
 
-          if (captureOrPromotion) // (~5 Elo)
+          if (captureOrPromotion || (pos.must_capture() && MoveList<CAPTURES>(pos).size())) // (~5 Elo)
           {
               // Increase reduction by comparing opponent's stat score
               if ((ss-1)->statScore >= 0)
