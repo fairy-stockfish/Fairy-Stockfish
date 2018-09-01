@@ -926,7 +926,7 @@ namespace {
     // Initialize score by reading the incrementally updated scores included in
     // the position object (material + piece square tables) and the material
     // imbalance. Score is computed internally from the white point of view.
-    Score score = pos.captures_to_hand() ? pos.psq_score() / 2 : pos.psq_score();
+    Score score = pos.captures_to_hand() || !pos.checking_permitted() ? pos.psq_score() / 2 : pos.psq_score();
     // For antichess-like variants, use negative piece values
     if (  (   pos.extinction_value() == VALUE_MATE
            && pos.extinction_piece_types().find(ALL_PIECES) != pos.extinction_piece_types().end())
