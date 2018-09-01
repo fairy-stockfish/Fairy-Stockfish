@@ -227,7 +227,8 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
       int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : 0;
 
       int d = std::min(f, ~f);
-      safety += ShelterStrength[d][ourRank];
+      // higher weight for pawns on second rank and missing shelter in drop variants
+      safety += ShelterStrength[d][ourRank] * (1 + (pos.captures_to_hand() && ourRank <= RANK_2));
       safety -= (ourRank && (ourRank == theirRank - 1)) ? BlockedStorm[theirRank]
                                                         : UnblockedStorm[d][theirRank];
   }
