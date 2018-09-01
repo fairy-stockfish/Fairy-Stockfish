@@ -977,10 +977,17 @@ namespace {
     }
 
     return  (pos.side_to_move() == WHITE ? v : -v) // Side to move point of view
-           + Eval::Tempo;
+           + Eval::tempo_value(pos);
   }
 
 } // namespace
+
+
+/// tempo_value() returns the evaluation offset for the side to move
+
+Value Eval::tempo_value(const Position& pos) {
+  return Tempo * (1 + 4 * pos.captures_to_hand());
+}
 
 
 /// evaluate() is the evaluator for the outer world. It returns a static
