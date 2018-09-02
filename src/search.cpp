@@ -723,6 +723,7 @@ namespace {
     // Step 7. Razoring (~2 Elo)
     if (  !PvNode
         && depth < 3 * ONE_PLY
+        && !pos.max_check_count()
         && eval <= alpha - RazorMargin[depth / ONE_PLY])
     {
         Value ralpha = alpha - (depth >= 2 * ONE_PLY) * RazorMargin[depth / ONE_PLY];
@@ -741,7 +742,7 @@ namespace {
     // Step 8. Futility pruning: child node (~30 Elo)
     if (   !rootNode
         &&  depth < 7 * ONE_PLY
-        &&  eval - futility_margin(depth, improving) >= beta
+        &&  eval - futility_margin(depth, improving) * (1 + !!pos.max_check_count()) >= beta
         &&  eval < VALUE_KNOWN_WIN) // Do not return unproven wins
         return eval;
 
