@@ -427,7 +427,7 @@ namespace {
     constexpr Bitboard Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
                                            : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
-    if (!pos.count<KING>(Us))
+    if (!pos.count<KING>(Us) || !pos.checking_permitted())
         return SCORE_ZERO;
 
     const Square ksq = pos.square<KING>(Us);
