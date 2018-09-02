@@ -124,7 +124,7 @@ namespace {
             e->passedPawns[Us] |= s;
 
         else if (   stoppers == SquareBB[s + Up]
-                 && relative_rank(Us, s) >= RANK_5)
+                 && relative_rank(Us, s, pos.max_rank()) >= RANK_5)
         {
             b = shift<Up>(supported) & ~theirPawns;
             while (b)
@@ -134,7 +134,7 @@ namespace {
 
         // Score this pawn
         if (supported | phalanx)
-            score += Connected[opposed][bool(phalanx)][popcount(supported)][relative_rank(Us, s)];
+            score += Connected[opposed][bool(phalanx)][popcount(supported)][relative_rank(Us, s, pos.max_rank())];
 
         else if (!neighbours)
             score -= Isolated, e->weakUnopposed[Us] += !opposed;
@@ -206,7 +206,7 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
 
   constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
   constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
-  constexpr Bitboard  BlockRanks = (Us == WHITE ? Rank1BB | Rank2BB : Rank8BB | Rank7BB);
+  Bitboard  BlockRanks = rank_bb(relative_rank(Us, RANK_1, pos.max_rank())) | rank_bb(relative_rank(Us, RANK_2, pos.max_rank()));
 
   Bitboard b = pos.pieces(PAWN) & (forward_ranks_bb(Us, ksq) | rank_bb(ksq));
   Bitboard ourPawns = b & pos.pieces(Us);
@@ -221,10 +221,10 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
   for (File f = File(center - 1); f <= File(center + 1); ++f)
   {
       b = ourPawns & file_bb(f);
-      int ourRank = b ? relative_rank(Us, backmost_sq(Us, b)) : 0;
+      int ourRank = b ? relative_rank(Us, backmost_sq(Us, b), pos.max_rank()) : 0;
 
       b = theirPawns & file_bb(f);
-      int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b)) : 0;
+      int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : 0;
 
       int d = std::min(f, ~f);
       safety += ShelterStrength[d][ourRank];
