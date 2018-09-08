@@ -847,6 +847,10 @@ namespace {
   template<Tracing T>
   Score Evaluation<T>::initiative(Value eg) const {
 
+    // No initiative bonus for extinction variants
+    if (pos.extinction_value() != VALUE_NONE)
+      return SCORE_ZERO;
+
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
                      :  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
                       - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
