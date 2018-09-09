@@ -32,6 +32,7 @@
 /// Variant struct stores information needed to determine the rules of a variant.
 
 struct Variant {
+  std::string variantTemplate = "fairy";
   Rank maxRank = RANK_8;
   File maxFile = FILE_H;
   std::set<PieceType> pieceTypes = { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };

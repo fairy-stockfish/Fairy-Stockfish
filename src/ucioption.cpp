@@ -43,7 +43,14 @@ void on_logger(const Option& o) { start_logger(o); }
 void on_threads(const Option& o) { Threads.set(o); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
 void on_variant_change(const Option &o) {
-    sync_cout << "info string variant " << (std::string)o << " startpos " << variants.find(o)->second->startFen << sync_endl;
+    const Variant * v = variants.find(o)->second;
+    sync_cout << "info string variant " << (std::string)o
+              << " files " << v->maxFile + 1
+              << " ranks " << v->maxRank + 1
+              << " pocket " << (v->pieceDrops ? v->pieceTypes.size() : 0)
+              << " template " << v->variantTemplate
+              << " startpos " << v->startFen
+              << sync_endl;
 }
 
 

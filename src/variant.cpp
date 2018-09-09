@@ -240,6 +240,7 @@ VariantMap variants; // Global object
     }
     Variant* minishogi_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "shogi";
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
         v->reset_pieces();
