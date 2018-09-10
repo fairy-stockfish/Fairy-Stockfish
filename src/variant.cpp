@@ -395,6 +395,23 @@ void VariantMap::init() {
         v->blackFlag = Rank1BB;
         return v;
     } ();
+    const Variant* connect4 = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_6;
+        v->maxFile = FILE_G;
+        v->reset_pieces();
+        v->add_piece(IMMOBILE_PIECE, 'p');
+        v->startFen = "7/7/7/7/7/7[PPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppp] w 0 1";
+        v->pieceDrops = true;
+        v->dropOnTop = true;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->stalemateValue = -VALUE_MATE;
+        v->immobilityIllegal = false;
+        v->connectN = 4;
+        return v;
+    } ();
 
     // Add to UCI_Variant option
     add("chess", chess);
@@ -429,6 +446,7 @@ void VariantMap::init() {
     add("shatar", shatar);
     add("clobber", clobber);
     add("breakthrough", breakthrough);
+    add("connect4", connect4);
 }
 
 void VariantMap::add(std::string s, const Variant* v) {

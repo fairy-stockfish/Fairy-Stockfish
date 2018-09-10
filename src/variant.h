@@ -52,6 +52,7 @@ struct Variant {
   bool dropLoop = false;
   bool capturesToHand = false;
   bool firstRankDrops = false;
+  bool dropOnTop = false;
   bool immobilityIllegal = false;
   // game end
   Value stalemateValue = VALUE_DRAW;
@@ -65,6 +66,7 @@ struct Variant {
   Bitboard blackFlag = 0;
   bool flagMove = false;
   CheckCount maxCheckCount = CheckCount(0);
+  int connectN = 0;
 
   void add_piece(PieceType pt, char c) {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);

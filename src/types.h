@@ -213,6 +213,7 @@ enum Value : int {
   HorseValueMg             = 1500,  HorseValueEg             = 1500,
   ClobberPieceValueMg      = 300,   ClobberPieceValueEg      = 300,
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
+  ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
   CommonerValueMg          = 600,   CommonerValueEg          = 600,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
@@ -224,7 +225,7 @@ enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK,
   QUEEN, FERS, MET = FERS, ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS, CHANCELLOR,
   AMAZON, KNIBIS, BISKNI, SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, HORSE,
-  CLOBBER_PIECE, BREAKTHROUGH_PIECE, COMMONER, KING,
+  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, COMMONER, KING,
   ALL_PIECES = 0,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS

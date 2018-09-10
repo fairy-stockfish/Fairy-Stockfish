@@ -108,6 +108,7 @@ public:
   bool drop_loop() const;
   bool captures_to_hand() const;
   bool first_rank_drops() const;
+  bool drop_on_top() const;
   bool immobility_illegal() const;
   // winning conditions
   Value stalemate_value(int ply = 0) const;
@@ -120,6 +121,7 @@ public:
   Bitboard capture_the_flag(Color c) const;
   bool flag_move() const;
   CheckCount max_check_count() const;
+  int connect_n() const;
   CheckCount checks_given(Color c) const;
   bool is_variant_end() const;
   bool is_variant_end(Value& result, int ply = 0) const;
@@ -354,6 +356,11 @@ inline bool Position::first_rank_drops() const {
   return var->firstRankDrops;
 }
 
+inline bool Position::drop_on_top() const {
+  assert(var != nullptr);
+  return var->dropOnTop;
+}
+
 inline bool Position::immobility_illegal() const {
   assert(var != nullptr);
   return var->immobilityIllegal;
@@ -421,6 +428,11 @@ inline CheckCount Position::max_check_count() const {
   return var->maxCheckCount;
 }
 
+inline int Position::connect_n() const {
+  assert(var != nullptr);
+  return var->connectN;
+}
+
 inline CheckCount Position::checks_given(Color c) const {
   return st->checksGiven[c];
 }
@@ -476,6 +488,22 @@ inline bool Position::is_variant_end(Value& result, int ply) const {
   {
       result = mated_in(ply);
       return true;
+  }
+  // Connect-n
+  if (connect_n() > 0)
+  {
+      Bitboard b;
+      for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST})
+      {
+          b = pieces(~sideToMove);
+          for (int i = 1; i < connect_n() && b; i++)
+              b &= shift(d, b);
+          if (b)
+          {
+              result = mated_in(ply);
+              return true;
+          }
+      }
   }
   return false;
 }

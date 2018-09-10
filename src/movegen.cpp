@@ -86,6 +86,9 @@ namespace {
   ExtMove* generate_drops(const Position& pos, ExtMove* moveList, PieceType pt, Bitboard b) {
     if (pos.count_in_hand(Us, pt))
     {
+        // Consider only drops on top of already placed pieces
+        if (pos.drop_on_top())
+            b &= shift<NORTH>(pos.pieces()) | Rank1BB;
         if (pt == PAWN)
         {
             b &= ~promotion_zone_bb(Us, pos.promotion_rank(), pos.max_rank());
