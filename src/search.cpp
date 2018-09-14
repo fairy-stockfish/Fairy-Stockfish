@@ -742,6 +742,8 @@ namespace {
     // Step 8. Futility pruning: child node (~30 Elo)
     if (   !rootNode
         &&  depth < 7 * ONE_PLY
+        && !(   pos.extinction_value() == -VALUE_MATE
+             && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
         &&  eval - futility_margin(depth, improving) * (1 + !!pos.max_check_count()) >= beta
         &&  eval < VALUE_KNOWN_WIN) // Do not return unproven wins
         return eval;
@@ -958,6 +960,8 @@ moves_loop: // When in check, search starts from here
               // Futility pruning: parent node (~2 Elo)
               if (   lmrDepth < 7
                   && !inCheck
+                  && !(   pos.extinction_value() == -VALUE_MATE
+                       && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
                   && ss->staticEval + 256 + 200 * lmrDepth <= alpha)
                   continue;
 
@@ -1322,6 +1326,8 @@ moves_loop: // When in check, search starts from here
       // Futility pruning
       if (   !inCheck
           && !givesCheck
+          && !(   pos.extinction_value() == -VALUE_MATE
+               && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
           &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.advanced_pawn_push(move))
       {
