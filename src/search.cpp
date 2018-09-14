@@ -723,6 +723,7 @@ namespace {
     // Step 7. Razoring (~2 Elo)
     if (  !PvNode
         && depth < 3 * ONE_PLY
+        && !pos.capture_the_flag_piece()
         && !pos.max_check_count()
         && eval <= alpha - RazorMargin[depth / ONE_PLY])
     {
