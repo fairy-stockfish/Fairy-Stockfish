@@ -407,9 +407,25 @@ void VariantMap::init() {
         v->promotionPieceTypes = {};
         v->doubleStep = false;
         v->castling = false;
-        v->stalemateValue = -VALUE_MATE;
+        v->stalemateValue = VALUE_DRAW;
         v->immobilityIllegal = false;
         v->connectN = 4;
+        return v;
+    } ();
+    const Variant* tictactoe = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_3;
+        v->maxFile = FILE_C;
+        v->reset_pieces();
+        v->add_piece(IMMOBILE_PIECE, 'p');
+        v->startFen = "3/3/3[PPPPPpppp] w 0 1";
+        v->pieceDrops = true;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->stalemateValue = VALUE_DRAW;
+        v->immobilityIllegal = false;
+        v->connectN = 3;
         return v;
     } ();
 
@@ -447,6 +463,7 @@ void VariantMap::init() {
     add("clobber", clobber);
     add("breakthrough", breakthrough);
     add("connect4", connect4);
+    add("tictactoe", tictactoe);
 }
 
 void VariantMap::add(std::string s, const Variant* v) {
