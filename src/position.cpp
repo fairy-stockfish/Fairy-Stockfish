@@ -444,6 +444,7 @@ void Position::set_check_info(StateInfo* si) const {
   for (PieceType pt = PAWN; pt < KING; ++pt)
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_from(~sideToMove, pt, ksq) : 0;
   si->checkSquares[KING]   = 0;
+  si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
 }
 
 

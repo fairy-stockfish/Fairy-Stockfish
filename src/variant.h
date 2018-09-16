@@ -57,6 +57,8 @@ struct Variant {
   // game end
   Value stalemateValue = VALUE_DRAW;
   Value checkmateValue = -VALUE_MATE;
+  bool shogiPawnDropMateIllegal = false;
+  bool shatarMateRule = false;
   Value bareKingValue = VALUE_NONE;
   Value extinctionValue = VALUE_NONE;
   bool bareKingMove = false;

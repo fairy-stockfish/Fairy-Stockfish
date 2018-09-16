@@ -267,6 +267,7 @@ void VariantMap::init() {
         v->promotedPieceType[ROOK]             = DRAGON;
         v->mandatoryPiecePromotion = true;
         v->immobilityIllegal = true;
+        v->shogiPawnDropMateIllegal = true;
         return v;
     } ();
     const Variant* judkinsshogi = [&]{
@@ -296,6 +297,7 @@ void VariantMap::init() {
         v->promotedPieceType[BISHOP]       = HORSE;
         v->promotedPieceType[ROOK]         = DRAGON;
         v->immobilityIllegal = true;
+        v->shogiPawnDropMateIllegal = true;
         return v;
     } ();
     const Variant* minishogi = [&]{
@@ -323,6 +325,7 @@ void VariantMap::init() {
         v->promotedPieceType[BISHOP]     = HORSE;
         v->promotedPieceType[ROOK]       = DRAGON;
         v->immobilityIllegal = true;
+        v->shogiPawnDropMateIllegal = true;
         return v;
     } ();
     const Variant* losalamos = [&]{
@@ -363,8 +366,8 @@ void VariantMap::init() {
         v->endgameEval = true;
         v->doubleStep = false;
         v->castling = false;
-        v->bareKingValue = VALUE_DRAW;
-        // TODO: illegal checkmates
+        v->bareKingValue = VALUE_DRAW; // Robado
+        v->shatarMateRule = true;
         return v;
     } ();
     const Variant* clobber = [&]{

@@ -59,6 +59,7 @@ struct StateInfo {
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
   bool       capturedpromoted;
+  bool       shak;
 };
 
 /// A list to keep track of the position states along the setup moves (from the
@@ -368,34 +369,54 @@ inline bool Position::immobility_illegal() const {
 
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
-  Value v = var->stalemateValue;
-  return  v ==  VALUE_MATE ? mate_in(ply)
-        : v == -VALUE_MATE ? mated_in(ply)
-        : v;
+  return convert_mate_value(var->stalemateValue, ply);
 }
 
 inline Value Position::checkmate_value(int ply) const {
   assert(var != nullptr);
-  Value v = var->checkmateValue;
-  return  v ==  VALUE_MATE ? mate_in(ply)
-        : v == -VALUE_MATE ? mated_in(ply)
-        : v;
+  // Check for illegal mate by shogi pawn drop
+  if (    var->shogiPawnDropMateIllegal
+      && !(checkers() & ~pieces(SHOGI_PAWN))
+      && !st->capturedPiece
+      &&  st->pliesFromNull > 0
+      && (st->materialKey != st->previous->materialKey))
+  {
+      return mate_in(ply);
+  }
+  // Check for shatar mate rule
+  if (var->shatarMateRule)
+  {
+      // Mate by knight is illegal
+      if (!(checkers() & ~pieces(KNIGHT)))
+          return mate_in(ply);
+
+      StateInfo* stp = st;
+      while (stp->checkersBB)
+      {
+          // Return mate score if there is at least one shak in series of checks
+          if (stp->shak)
+              return convert_mate_value(var->checkmateValue, ply);
+
+          if (stp->pliesFromNull < 2)
+              break;
+
+          stp = stp->previous->previous;
+      }
+      // Niol
+      return VALUE_DRAW;
+  }
+  // Return mate value
+  return convert_mate_value(var->checkmateValue, ply);
 }
 
 inline Value Position::bare_king_value(int ply) const {
   assert(var != nullptr);
-  Value v = var->bareKingValue;
-  return  v ==  VALUE_MATE ? mate_in(ply)
-        : v == -VALUE_MATE ? mated_in(ply)
-        : v;
+  return convert_mate_value(var->bareKingValue, ply);
 }
 
 inline Value Position::extinction_value(int ply) const {
   assert(var != nullptr);
-  Value v = var->extinctionValue;
-  return  v ==  VALUE_MATE ? mate_in(ply)
-        : v == -VALUE_MATE ? mated_in(ply)
-        : v;
+  return convert_mate_value(var->extinctionValue, ply);
 }
 
 inline bool Position::bare_king_move() const {
