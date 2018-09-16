@@ -230,6 +230,7 @@ enum PieceType {
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS
 };
+static_assert(KING < PIECE_TYPE_NB, "KING exceeds PIECE_TYPE_NB.");
 static_assert(PIECE_TYPE_BITS <= 6, "PIECE_TYPE uses more than 6 bit");
 static_assert(!(PIECE_TYPE_NB & (PIECE_TYPE_NB - 1)), "PIECE_TYPE_NB is not a power of 2");
 
