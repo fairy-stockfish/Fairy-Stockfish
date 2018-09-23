@@ -80,7 +80,7 @@ void VariantMap::init() {
         v->add_piece(FERS, 'q');
         v->startFen = "rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR w - - 0 1";
         v->promotionPieceTypes = {FERS};
-        v->endgameEval = true;
+        v->endgameEval = false;
         v->doubleStep = false;
         v->castling = false;
         v->bareKingValue = -VALUE_MATE;
