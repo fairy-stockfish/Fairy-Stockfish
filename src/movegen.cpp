@@ -222,7 +222,7 @@ namespace {
 
         if (pos.ep_square() != SQ_NONE)
         {
-            assert(rank_of(pos.ep_square()) == relative_rank(Us, RANK_6));
+            assert(rank_of(pos.ep_square()) == relative_rank(Them, RANK_3));
 
             // An en passant capture can be an evasion only if the checking piece
             // is the double pushed pawn and so is in the target. Otherwise this

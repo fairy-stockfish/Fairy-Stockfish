@@ -164,7 +164,7 @@ void init() {
   for (int opposed = 0; opposed <= 1; ++opposed)
       for (int phalanx = 0; phalanx <= 1; ++phalanx)
           for (int support = 0; support <= 2; ++support)
-              for (Rank r = RANK_1; r < RANK_8; ++r)
+              for (Rank r = RANK_1; r < RANK_MAX; ++r)
   {
       int v = 17 * support;
       v += (Seed[r] + (phalanx ? (Seed[r + 1] - Seed[r]) / 2 : 0)) >> opposed;

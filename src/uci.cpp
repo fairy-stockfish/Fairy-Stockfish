@@ -273,8 +273,20 @@ string UCI::value(Value v) {
 /// UCI::square() converts a Square to a string in algebraic notation (g1, a7, etc.)
 
 std::string UCI::square(const Position& pos, Square s) {
+#ifdef LARGEBOARDS
+  if (Options["Protocol"] == "usi")
+      return rank_of(s) < RANK_10 ? std::string{ char('1' + pos.max_file() - file_of(s)), char('a' + pos.max_rank() - rank_of(s)) }
+                                  : std::string{ char('0' + (pos.max_file() - file_of(s) + 1) / 10),
+                                                 char('0' + (pos.max_file() - file_of(s) + 1) % 10),
+                                                 char('a' + pos.max_rank() - rank_of(s)) };
+  else
+      return rank_of(s) < RANK_10 ? std::string{ char('a' + file_of(s)), char('1' + (rank_of(s) % 10)) }
+                                  : std::string{ char('a' + file_of(s)), char('0' + ((rank_of(s) + 1) / 10)),
+                                                 char('0' + ((rank_of(s) + 1) % 10)) };
+#else
   return Options["Protocol"] == "usi" ? std::string{ char('1' + pos.max_file() - file_of(s)), char('a' + pos.max_rank() - rank_of(s)) }
                                       : std::string{ char('a' + file_of(s)), char('1' + rank_of(s)) };
+#endif
 }
 
 

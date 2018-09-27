@@ -125,7 +125,7 @@ void init() {
 
       Score score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
 
-      for (Square s = SQ_A1; s <= SQ_H8; ++s)
+      for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
           File f = std::min(file_of(s), ~file_of(s));
           psq[ pc][ s] = score + (pt == KING ? KingBonus[rank_of(s)][f] : Bonus[pc][rank_of(s)][f]);

@@ -431,6 +431,41 @@ void VariantMap::init() {
         v->connectN = 3;
         return v;
     } ();
+#ifdef LARGEBOARDS
+    const Variant* shogi = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_9;
+        v->maxFile = FILE_I;
+        v->reset_pieces();
+        v->add_piece(SHOGI_PAWN, 'p');
+        v->add_piece(LANCE, 'l');
+        v->add_piece(SHOGI_KNIGHT, 'n');
+        v->add_piece(SILVER, 's');
+        v->add_piece(GOLD, 'g');
+        v->add_piece(BISHOP, 'b');
+        v->add_piece(HORSE, 'h');
+        v->add_piece(ROOK, 'r');
+        v->add_piece(KING, 'k');
+        v->add_piece(DRAGON, 'd');
+        v->startFen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w 0 1";
+        v->pieceDrops = true;
+        v->capturesToHand = true;
+        v->promotionRank = RANK_7;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->promotedPieceType[SHOGI_PAWN]   = GOLD;
+        v->promotedPieceType[LANCE]        = GOLD;
+        v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
+        v->promotedPieceType[SILVER]       = GOLD;
+        v->promotedPieceType[BISHOP]       = HORSE;
+        v->promotedPieceType[ROOK]         = DRAGON;
+        v->mandatoryPiecePromotion = false;
+        v->immobilityIllegal = true;
+        v->shogiPawnDropMateIllegal = true;
+        return v;
+    } ();
+#endif
 
     // Add to UCI_Variant option
     add("chess", chess);
@@ -467,6 +502,9 @@ void VariantMap::init() {
     add("breakthrough", breakthrough);
     add("connect4", connect4);
     add("tictactoe", tictactoe);
+#ifdef LARGEBOARDS
+    add("shogi", shogi);
+#endif
 }
 
 void VariantMap::add(std::string s, const Variant* v) {

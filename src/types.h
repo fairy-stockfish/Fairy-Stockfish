@@ -74,7 +74,11 @@
 
 #if defined(USE_PEXT)
 #  include <immintrin.h> // Header for _pext_u64() intrinsic
-#  define pext(b, m) _pext_u64(b, m)
+#  ifdef LARGEBOARDS
+#    define pext(b, m) (_pext_u64(b, m) ^ (_pext_u64(b >> 64, m >> 64) << popcount((m << 64) >> 64)))
+#  else
+#    define pext(b, m) _pext_u64(b, m)
+#  endif
 #else
 #  define pext(b, m) 0
 #endif
@@ -98,7 +102,13 @@ constexpr bool Is64Bit = false;
 #endif
 
 typedef uint64_t Key;
+#ifdef LARGEBOARDS
+typedef unsigned __int128 Bitboard;
+constexpr int SQUARE_BITS = 7;
+#else
 typedef uint64_t Bitboard;
+constexpr int SQUARE_BITS = 6;
+#endif
 
 constexpr int MAX_MOVES = 512;
 constexpr int MAX_PLY   = 128;
@@ -117,16 +127,16 @@ constexpr int MAX_PLY   = 128;
 
 enum Move : int {
   MOVE_NONE,
-  MOVE_NULL = 65
+  MOVE_NULL = 1 + (1 << SQUARE_BITS)
 };
 
-enum MoveType {
+enum MoveType : int {
   NORMAL,
-  ENPASSANT          = 1 << 12,
-  CASTLING           = 2 << 12,
-  PROMOTION          = 3 << 12,
-  DROP               = 4 << 12,
-  PIECE_PROMOTION    = 5 << 12,
+  ENPASSANT          = 1 << (2 * SQUARE_BITS),
+  CASTLING           = 2 << (2 * SQUARE_BITS),
+  PROMOTION          = 3 << (2 * SQUARE_BITS),
+  DROP               = 4 << (2 * SQUARE_BITS),
+  PIECE_PROMOTION    = 5 << (2 * SQUARE_BITS),
 };
 
 enum Color {
@@ -254,6 +264,18 @@ enum Depth : int {
 static_assert(!(ONE_PLY & (ONE_PLY - 1)), "ONE_PLY is not a power of 2");
 
 enum Square : int {
+#ifdef LARGEBOARDS
+  SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1, SQ_I1, SQ_J1, SQ_K1, SQ_L1,
+  SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2, SQ_I2, SQ_J2, SQ_K2, SQ_L2,
+  SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3, SQ_I3, SQ_J3, SQ_K3, SQ_L3,
+  SQ_A4, SQ_B4, SQ_C4, SQ_D4, SQ_E4, SQ_F4, SQ_G4, SQ_H4, SQ_I4, SQ_J4, SQ_K4, SQ_L4,
+  SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_F5, SQ_G5, SQ_H5, SQ_I5, SQ_J5, SQ_K5, SQ_L5,
+  SQ_A6, SQ_B6, SQ_C6, SQ_D6, SQ_E6, SQ_F6, SQ_G6, SQ_H6, SQ_I6, SQ_J6, SQ_K6, SQ_L6,
+  SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7, SQ_I7, SQ_J7, SQ_K7, SQ_L7,
+  SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8, SQ_I8, SQ_J8, SQ_K8, SQ_L8,
+  SQ_A9, SQ_B9, SQ_C9, SQ_D9, SQ_E9, SQ_F9, SQ_G9, SQ_H9, SQ_I9, SQ_J9, SQ_K9, SQ_L9,
+  SQ_A10, SQ_B10, SQ_C10, SQ_D10, SQ_E10, SQ_F10, SQ_G10, SQ_H10, SQ_I10, SQ_J10, SQ_K10, SQ_L10,
+#else
   SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
   SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
   SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3,
@@ -262,13 +284,25 @@ enum Square : int {
   SQ_A6, SQ_B6, SQ_C6, SQ_D6, SQ_E6, SQ_F6, SQ_G6, SQ_H6,
   SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
   SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
+#endif
   SQ_NONE,
 
-  SQUARE_NB = 64
+#ifdef LARGEBOARDS
+  SQUARE_NB = 120,
+  SQUARE_BIT_MASK = 127,
+#else
+  SQUARE_NB = 64,
+  SQUARE_BIT_MASK = 63,
+#endif
+  SQ_MAX = SQUARE_NB - 1
 };
 
 enum Direction : int {
+#ifdef LARGEBOARDS
+  NORTH =  12,
+#else
   NORTH =  8,
+#endif
   EAST  =  1,
   SOUTH = -NORTH,
   WEST  = -EAST,
@@ -280,11 +314,23 @@ enum Direction : int {
 };
 
 enum File : int {
-  FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NB
+#ifdef LARGEBOARDS
+  FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_I, FILE_J, FILE_K, FILE_L,
+#else
+  FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+#endif
+  FILE_NB,
+  FILE_MAX = FILE_NB - 1
 };
 
 enum Rank : int {
-  RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB
+#ifdef LARGEBOARDS
+  RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_9, RANK_10,
+#else
+  RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8,
+#endif
+  RANK_NB,
+  RANK_MAX = RANK_NB - 1
 };
 
 
@@ -388,15 +434,19 @@ constexpr Color operator~(Color c) {
 }
 
 constexpr Square operator~(Square s) {
+#ifdef LARGEBOARDS
+  return Square(s - FILE_NB * (s / FILE_NB * 2 - RANK_MAX)); // Vertical flip SQ_A1 -> SQ_A10
+#else
   return Square(s ^ SQ_A8); // Vertical flip SQ_A1 -> SQ_A8
+#endif
 }
 
 constexpr File operator~(File f) {
-  return File(f ^ FILE_H); // Horizontal flip FILE_A -> FILE_H
+  return File(FILE_MAX - f); // Horizontal flip FILE_A -> FILE_H
 }
 
 constexpr Rank operator~(Rank r) {
-  return Rank(r ^ RANK_8); // Vertical flip Rank_1 -> Rank_8
+  return Rank(RANK_MAX - r); // Vertical flip Rank_1 -> Rank_8
 }
 
 constexpr Piece operator~(Piece pc) {
@@ -422,7 +472,7 @@ constexpr Value convert_mate_value(Value v, int ply) {
 }
 
 constexpr Square make_square(File f, Rank r) {
-  return Square((r << 3) + f);
+  return Square(r * FILE_NB + f);
 }
 
 constexpr Piece make_piece(Color c, PieceType pt) {
@@ -439,19 +489,15 @@ inline Color color_of(Piece pc) {
 }
 
 constexpr bool is_ok(Square s) {
-  return s >= SQ_A1 && s <= SQ_H8;
+  return s >= SQ_A1 && s <= SQ_MAX;
 }
 
 constexpr File file_of(Square s) {
-  return File(s & 7);
+  return File(s % FILE_NB);
 }
 
 constexpr Rank rank_of(Square s) {
-  return Rank(s >> 3);
-}
-
-constexpr Square relative_square(Color c, Square s) {
-  return Square(s ^ (c * 56));
+  return Rank(s / FILE_NB);
 }
 
 constexpr Rank relative_rank(Color c, Rank r, Rank maxRank = RANK_8) {
@@ -462,9 +508,21 @@ constexpr Rank relative_rank(Color c, Square s, Rank maxRank = RANK_8) {
   return relative_rank(c, rank_of(s), maxRank);
 }
 
+constexpr Square relative_square(Color c, Square s) {
+#ifdef LARGEBOARDS
+  return make_square(file_of(s), relative_rank(c, s));
+#else
+  return Square(s ^ (c * 56));
+#endif
+}
+
 inline bool opposite_colors(Square s1, Square s2) {
+#ifdef LARGEBOARDS
+  return int(s1 - (s1 % FILE_NB)) ^ int(s2 - (s2 % FILE_NB));
+#else
   int s = int(s1) ^ int(s2);
   return ((s >> 3) ^ s) & 1;
+#endif
 }
 
 constexpr Direction pawn_push(Color c) {
@@ -472,42 +530,42 @@ constexpr Direction pawn_push(Color c) {
 }
 
 inline MoveType type_of(Move m) {
-  return MoveType(m & (15 << 12));
+  return MoveType(m & (15 << (2 * SQUARE_BITS)));
 }
 
 constexpr Square to_sq(Move m) {
-  return Square(m & 0x3F);
+  return Square(m & SQUARE_BIT_MASK);
 }
 
 inline Square from_sq(Move m) {
   if (type_of(m) == DROP)
       return SQ_NONE;
-  return Square((m >> 6) & 0x3F);
+  return Square((m >> SQUARE_BITS) & SQUARE_BIT_MASK);
 }
 
 inline int from_to(Move m) {
- return to_sq(m) + (from_sq(m) << 6);
+ return to_sq(m) + (from_sq(m) << SQUARE_BITS);
 }
 
 inline PieceType promotion_type(Move m) {
-  return type_of(m) == PROMOTION ? PieceType((m >> 16) & 63) : NO_PIECE_TYPE;
+  return type_of(m) == PROMOTION ? PieceType((m >> (2 * SQUARE_BITS + 4)) & (PIECE_TYPE_NB - 1)) : NO_PIECE_TYPE;
 }
 
 inline Move make_move(Square from, Square to) {
-  return Move((from << 6) + to);
+  return Move((from << SQUARE_BITS) + to);
 }
 
 template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
-  return Move((pt << 16) + T + (from << 6) + to);
+  return Move((pt << (2 * SQUARE_BITS + 4)) + T + (from << SQUARE_BITS) + to);
 }
 
 constexpr Move make_drop(Square to, PieceType pt) {
-  return Move(DROP + (pt << 16) + to);
+  return Move((pt << (2 * SQUARE_BITS + 4)) + DROP + to);
 }
 
 constexpr PieceType dropped_piece_type(Move m) {
-  return PieceType((m >> 16) & 63);
+  return PieceType((m >> (2 * SQUARE_BITS + 4)) & (PIECE_TYPE_NB - 1));
 }
 
 inline bool is_ok(Move m) {

@@ -46,7 +46,7 @@ namespace Zobrist {
   Key enpassant[FILE_NB];
   Key castling[CASTLING_RIGHT_NB];
   Key side, noPawns;
-  Key inHand[PIECE_NB][17];
+  Key inHand[PIECE_NB][SQUARE_NB];
   Key checks[COLOR_NB][CHECKS_NB];
 }
 
@@ -138,12 +138,22 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
 // https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 
 // First and second hash functions for indexing the cuckoo tables
+#ifdef LARGEBOARDS
+inline int H1(Key h) { return h & 0x7fff; }
+inline int H2(Key h) { return (h >> 16) & 0x7fff; }
+#else
 inline int H1(Key h) { return h & 0x1fff; }
 inline int H2(Key h) { return (h >> 16) & 0x1fff; }
+#endif
 
 // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
+#ifdef LARGEBOARDS
+Key cuckoo[65536];
+Move cuckooMove[65536];
+#else
 Key cuckoo[8192];
 Move cuckooMove[8192];
+#endif
 
 
 /// Position::init() initializes at startup the various arrays used to compute
@@ -155,10 +165,10 @@ void Position::init() {
 
   for (Color c = WHITE; c <= BLACK; ++c)
       for (PieceType pt = PAWN; pt <= KING; ++pt)
-          for (Square s = SQ_A1; s <= SQ_H8; ++s)
+          for (Square s = SQ_A1; s <= SQ_MAX; ++s)
               Zobrist::psq[make_piece(c, pt)][s] = rng.rand<Key>();
 
-  for (File f = FILE_A; f <= FILE_H; ++f)
+  for (File f = FILE_A; f <= FILE_MAX; ++f)
       Zobrist::enpassant[f] = rng.rand<Key>();
 
   for (int cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
@@ -181,7 +191,7 @@ void Position::init() {
 
   for (Color c = WHITE; c <= BLACK; ++c)
       for (PieceType pt = PAWN; pt <= KING; ++pt)
-          for (int n = 0; n < 17; ++n)
+          for (int n = 0; n < SQUARE_NB; ++n)
               Zobrist::inHand[make_piece(c, pt)][n] = rng.rand<Key>();
 
   // Prepare the cuckoo tables
@@ -190,8 +200,8 @@ void Position::init() {
       for (PieceType pt = KNIGHT; pt <= QUEEN || pt == KING; pt != QUEEN ? ++pt : pt = KING)
       {
       Piece pc = make_piece(c, pt);
-      for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-          for (Square s2 = Square(s1 + 1); s2 <= SQ_H8; ++s2)
+      for (Square s1 = SQ_A1; s1 <= SQ_MAX; ++s1)
+          for (Square s2 = Square(s1 + 1); s2 <= SQ_MAX; ++s2)
               if (PseudoAttacks[WHITE][type_of(pc)][s1] & s2)
               {
                   Move move = make_move(s1, s2);
@@ -208,7 +218,11 @@ void Position::init() {
                   count++;
              }
       }
+#ifdef LARGEBOARDS
+  assert(count == 9344);
+#else
   assert(count == 3668);
+#endif
 }
 
 
@@ -264,16 +278,27 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
   ss >> std::noskipws;
 
-  Square sq = SQ_A8 + (RANK_8 - max_rank()) * SOUTH;
+  Square sq = SQ_A1 + max_rank() * NORTH;
 
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
   {
       if (isdigit(token))
+      {
+#ifdef LARGEBOARDS
+          if (isdigit(ss.peek()))
+          {
+              sq += 10 * (token - '0') * EAST;
+              ss >> token;
+              sq += (token - '0') * EAST;
+          }
+          else
+#endif
           sq += (token - '0') * EAST; // Advance the given number of files
+      }
 
       else if (token == '/')
-          sq += 2 * SOUTH + (FILE_H - max_file()) * EAST;
+          sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
 
       else if ((idx = piece_to_char().find(token)) != string::npos)
       {
@@ -348,8 +373,8 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       }
 
       // 4. En passant square. Ignore if no pawn capture is possible
-      if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
-          && ((ss >> row) && (row == '3' || row == '6')))
+      if (   ((ss >> col) && (col >= 'a' && col <= 'a' + max_file()))
+          && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
       {
           st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
@@ -533,8 +558,9 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
 
   std::transform(sides[c].begin(), sides[c].end(), sides[c].begin(), tolower);
 
-  string fenStr = "8/" + sides[0] + char(8 - sides[0].length() + '0') + "/8/8/8/8/"
-                       + sides[1] + char(8 - sides[1].length() + '0') + "/8 w - - 0 10";
+  string n = std::to_string(FILE_NB);
+  string fenStr =  n + "/" + sides[0] + char(FILE_NB - sides[0].length() + '0') + "/" + n + "/" + n + "/" + n + "/"
+                 + n + "/" + sides[1] + char(FILE_NB - sides[1].length() + '0') + "/" + n + " w - - 0 10";
 
   return set(variants.find("chess")->second, fenStr, false, si, nullptr);
 }
@@ -952,7 +978,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
               assert(pc == make_piece(us, PAWN));
               assert(to == st->epSquare);
-              assert(relative_rank(us, to) == RANK_6);
+              assert(relative_rank(~us, to, max_rank()) == RANK_3);
               assert(piece_on(to) == NO_PIECE);
               assert(piece_on(capsq) == make_piece(them, PAWN));
 
@@ -1032,7 +1058,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (type_of(pc) == PAWN)
   {
       // Set en-passant square if the moved pawn can be captured
-      if (   (int(to) ^ int(from)) == 16
+      if (   std::abs(int(to) - int(from)) == 2 * NORTH
           && relative_rank(us, rank_of(from), max_rank()) == RANK_2
           && (attacks_from<PAWN>(us, to - pawn_push(us)) & pieces(them, PAWN)))
       {
@@ -1197,7 +1223,7 @@ void Position::undo_move(Move m) {
 
               assert(type_of(pc) == PAWN);
               assert(to == st->previous->epSquare);
-              assert(relative_rank(us, to) == RANK_6);
+              assert(relative_rank(~us, to, max_rank()) == RANK_3);
               assert(piece_on(capsq) == NO_PIECE);
               assert(st->capturedPiece == make_piece(~us, PAWN));
           }
@@ -1533,7 +1559,7 @@ void Position::flip() {
   string f, token;
   std::stringstream ss(fen());
 
-  for (Rank r = RANK_8; r >= RANK_1; --r) // Piece placement
+  for (Rank r = RANK_MAX; r >= RANK_1; --r) // Piece placement
   {
       std::getline(ss, token, r > RANK_1 ? '/' : ' ');
       f.insert(0, token + (f.empty() ? " " : "/"));
@@ -1572,7 +1598,7 @@ bool Position::pos_is_ok() const {
       || (count<KING>(WHITE) && piece_on(square<KING>(WHITE)) != make_piece(WHITE, KING))
       || (count<KING>(BLACK) && piece_on(square<KING>(BLACK)) != make_piece(BLACK, KING))
       || (   ep_square() != SQ_NONE
-          && relative_rank(sideToMove, ep_square()) != RANK_6))
+          && relative_rank(~sideToMove, ep_square()) != RANK_3))
       assert(0 && "pos_is_ok: Default");
 
   if (Fast)
