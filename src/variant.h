@@ -46,6 +46,8 @@ struct Variant {
   bool doubleStep = true;
   bool firstRankDoubleSteps = false;
   bool castling = true;
+  File castlingKingsideFile = FILE_G;
+  File castlingQueensideFile = FILE_C;
   bool checking = true;
   bool mustCapture = false;
   bool pieceDrops = false;

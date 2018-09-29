@@ -465,6 +465,18 @@ void VariantMap::init() {
         v->shogiPawnDropMateIllegal = true;
         return v;
     } ();
+    const Variant* capablanca = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_J;
+        v->castlingKingsideFile = FILE_I;
+        v->castlingQueensideFile = FILE_C;
+        v->add_piece(ARCHBISHOP, 'a');
+        v->add_piece(CHANCELLOR, 'c');
+        v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1";
+        v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
+        return v;
+    } ();
 #endif
 
     // Add to UCI_Variant option
@@ -504,6 +516,7 @@ void VariantMap::init() {
     add("tictactoe", tictactoe);
 #ifdef LARGEBOARDS
     add("shogi", shogi);
+    add("capablanca", capablanca);
 #endif
 }
 

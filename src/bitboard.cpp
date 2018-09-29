@@ -431,6 +431,8 @@ void Bitboards::init() {
         NORTH + 2 * WEST, NORTH_WEST, NORTH_EAST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // aiwok
       { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST }, // bers/dragon
       { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
+        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // archbishop
+      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
         NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // chancellor
       { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
         NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // amazon
@@ -464,6 +466,8 @@ void Bitboards::init() {
         NORTH + 2 * WEST, NORTH_WEST, NORTH_EAST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // aiwok
       { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST }, // bers/dragon
       { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
+        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // archbishop
+      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
         NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // chancellor
       { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
         NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // amazon
@@ -494,6 +498,7 @@ void Bitboards::init() {
     {}, // silver/khon
     { NORTH,  EAST,  SOUTH,  WEST }, // aiwok
     { NORTH,  EAST,  SOUTH,  WEST }, // bers/dragon
+    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // archbishop
     { NORTH,  EAST,  SOUTH,  WEST }, // chancellor
     { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
     { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // knibis
@@ -522,6 +527,7 @@ void Bitboards::init() {
     {}, // silver/khon
     { NORTH,  EAST,  SOUTH,  WEST }, // aiwok
     { NORTH,  EAST,  SOUTH,  WEST }, // bers/dragon
+    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // archbishop
     { NORTH,  EAST,  SOUTH,  WEST }, // chancellor
     { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
     {}, // knibis
@@ -550,6 +556,7 @@ void Bitboards::init() {
     0, // silver/khon
     FILE_MAX, // aiwok
     FILE_MAX, // bers/dragon
+    FILE_MAX, // archbishop
     FILE_MAX, // chancellor
     FILE_MAX, // amazon
     FILE_MAX, // knibis
@@ -578,6 +585,7 @@ void Bitboards::init() {
     0, // silver/khon
     FILE_MAX, // aiwok
     FILE_MAX, // bers/dragon
+    FILE_MAX, // archbishop
     FILE_MAX, // chancellor
     FILE_MAX, // amazon
     0, // knibis

@@ -307,7 +307,7 @@ string UCI::move(const Position& pos, Move m) {
       return "0000";
 
   if (type_of(m) == CASTLING && !pos.is_chess960())
-      to = make_square(to > from ? FILE_G : FILE_C, rank_of(from));
+      to = make_square(to > from ? pos.castling_kingside_file() : pos.castling_queenside_file(), rank_of(from));
 
   string move = (type_of(m) == DROP ? std::string{pos.piece_to_char()[type_of(pos.moved_piece(m))],
                                                   Options["Protocol"] == "usi" ? '*' : '@'}

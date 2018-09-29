@@ -35,9 +35,10 @@ namespace {
 
     // After castling, the rook and king final positions are the same in Chess960
     // as they would be in standard chess.
-    Square kfrom = pos.count<KING>(us) ? pos.square<KING>(us) : make_square(FILE_E, us == WHITE ? RANK_1 : RANK_8);
+    Square kfrom = pos.count<KING>(us) ? pos.square<KING>(us) : make_square(FILE_E, relative_rank(us, RANK_1, pos.max_rank()));
     Square rfrom = pos.castling_rook_square(Cr);
-    Square kto = relative_square(us, KingSide ? SQ_G1 : SQ_C1);
+    Square kto = make_square(KingSide ? pos.castling_kingside_file() : pos.castling_queenside_file(),
+                             relative_rank(us, RANK_1, pos.max_rank()));
     Bitboard enemies = pos.pieces(~us);
 
     assert(!pos.checkers());

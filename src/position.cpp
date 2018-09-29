@@ -358,13 +358,13 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           token = char(toupper(token));
 
           if (token == 'K')
-              for (rsq = relative_square(c, SQ_H1); piece_on(rsq) != rook; --rsq) {}
+              for (rsq = make_square(FILE_MAX, relative_rank(c, RANK_1, max_rank())); piece_on(rsq) != rook; --rsq) {}
 
           else if (token == 'Q')
-              for (rsq = relative_square(c, SQ_A1); piece_on(rsq) != rook; ++rsq) {}
+              for (rsq = make_square(FILE_A, relative_rank(c, RANK_1, max_rank())); piece_on(rsq) != rook; ++rsq) {}
 
-          else if (token >= 'A' && token <= 'H')
-              rsq = make_square(File(token - 'A'), relative_rank(c, RANK_1));
+          else if (token >= 'A' && token <= 'A' + max_file())
+              rsq = make_square(File(token - 'A'), relative_rank(c, RANK_1, max_rank()));
 
           else
               continue;
@@ -1258,8 +1258,9 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
 
   bool kingSide = to > from;
   rfrom = to; // Castling is encoded as "king captures friendly rook"
-  rto = relative_square(us, kingSide ? SQ_F1 : SQ_D1);
-  to = relative_square(us, kingSide ? SQ_G1 : SQ_C1);
+  to = make_square(kingSide ? castling_kingside_file() : castling_queenside_file(),
+                   us == WHITE ? RANK_1 : max_rank());
+  rto = to + (kingSide ? WEST : EAST);
 
   // Remove both pieces first since squares could overlap in Chess960
   Piece castling_piece = piece_on(Do ? from : to);

@@ -103,6 +103,8 @@ public:
   bool double_step_enabled() const;
   bool first_rank_double_steps() const;
   bool castling_enabled() const;
+  File castling_kingside_file() const;
+  File castling_queenside_file() const;
   bool checking_permitted() const;
   bool must_capture() const;
   bool piece_drops() const;
@@ -325,6 +327,16 @@ inline bool Position::first_rank_double_steps() const {
 inline bool Position::castling_enabled() const {
   assert(var != nullptr);
   return var->castling;
+}
+
+inline File Position::castling_kingside_file() const {
+  assert(var != nullptr);
+  return var->castlingKingsideFile;
+}
+
+inline File Position::castling_queenside_file() const {
+  assert(var != nullptr);
+  return var->castlingQueensideFile;
 }
 
 inline bool Position::checking_permitted() const {

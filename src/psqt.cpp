@@ -24,13 +24,13 @@
 
 Value PieceValue[PHASE_NB][PIECE_NB] = {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg,
-    FersValueMg, AlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg, ChancellorValueMg,
-    AmazonValueMg, KnibisValueMg, BiskniValueMg,
+    FersValueMg, AlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg,
+    ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg, BiskniValueMg,
     ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, HorseValueMg,
     ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, CommonerValueMg },
   { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg,
-    FersValueEg, AlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg, ChancellorValueEg,
-    AmazonValueEg, KnibisValueMg, BiskniValueMg,
+    FersValueEg, AlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg,
+    ArchbishopValueMg, ChancellorValueEg, AmazonValueEg, KnibisValueMg, BiskniValueMg,
     ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, HorseValueEg,
     ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, CommonerValueEg }
 };

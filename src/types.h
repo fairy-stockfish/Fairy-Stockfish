@@ -208,7 +208,8 @@ enum Value : int {
   SilverValueMg            = 600,   SilverValueEg            = 600,
   AiwokValueMg             = 2500,  AiwokValueEg             = 2500,
   BersValueMg              = 2000,  BersValueEg              = 2000,
-  ChancellorValueMg        = 2500,  ChancellorValueEg        = 2500,
+  ArchbishopValueMg        = 2000,  ArchbishopValueEg        = 2000,
+  ChancellorValueMg        = 2300,  ChancellorValueEg        = 2300,
   AmazonValueMg            = 3000,  AmazonValueEg            = 3000,
   KnibisValueMg            = 800,   KnibisValueEg            = 800,
   BiskniValueMg            = 800,   BiskniValueEg            = 800,
@@ -229,9 +230,10 @@ enum Value : int {
 const int PIECE_TYPE_BITS = 5; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
 
 enum PieceType {
-  NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK,
-  QUEEN, FERS, MET = FERS, ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS, CHANCELLOR,
-  AMAZON, KNIBIS, BISKNI, SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, HORSE,
+  NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN,
+  FERS, MET = FERS, ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
+  ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI,
+  SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, HORSE,
   CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, COMMONER, KING,
   ALL_PIECES = 0,
 
