@@ -125,11 +125,8 @@ enum MoveType {
   ENPASSANT          = 1 << 12,
   CASTLING           = 2 << 12,
   PROMOTION          = 3 << 12,
-  PROMOTION_STRAIGHT = PROMOTION,
-  PROMOTION_LEFT     = 4 << 12,
-  PROMOTION_RIGHT    = 5 << 12,
-  DROP               = 6 << 12,
-  PIECE_PROMOTION    = 7 << 12,
+  DROP               = 4 << 12,
+  PIECE_PROMOTION    = 5 << 12,
 };
 
 enum Color {
@@ -475,10 +472,7 @@ constexpr Direction pawn_push(Color c) {
 }
 
 inline MoveType type_of(Move m) {
-  MoveType t = MoveType(m & (15 << 12));
-  if (t == PROMOTION_STRAIGHT || t == PROMOTION_LEFT || t == PROMOTION_RIGHT)
-      return PROMOTION;
-  return t;
+  return MoveType(m & (15 << 12));
 }
 
 constexpr Square to_sq(Move m) {
@@ -488,20 +482,6 @@ constexpr Square to_sq(Move m) {
 inline Square from_sq(Move m) {
   if (type_of(m) == DROP)
       return SQ_NONE;
-  if (type_of(m) == PROMOTION)
-  {
-      Square to = to_sq(m);
-      MoveType t = MoveType(m & (15 << 12));
-      // Assume here that promotion occur only for relative ranks >= RANK_5.
-      Direction up = (to & 32) ? NORTH : SOUTH;
-      if (t == PROMOTION_STRAIGHT)
-          return to - up;
-      if (t == PROMOTION_LEFT)
-          return to - up - WEST;
-      if (t == PROMOTION_RIGHT)
-          return to - up - EAST;
-      assert(false);
-  }
   return Square((m >> 6) & 0x3F);
 }
 
@@ -510,7 +490,7 @@ inline int from_to(Move m) {
 }
 
 inline PieceType promotion_type(Move m) {
-  return type_of(m) == PROMOTION ? PieceType((m >> 6) & 63) : NO_PIECE_TYPE;
+  return type_of(m) == PROMOTION ? PieceType((m >> 16) & 63) : NO_PIECE_TYPE;
 }
 
 inline Move make_move(Square from, Square to) {
@@ -519,17 +499,15 @@ inline Move make_move(Square from, Square to) {
 
 template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
-  if (T == PROMOTION_STRAIGHT || T == PROMOTION_LEFT || T == PROMOTION_RIGHT)
-      return Move(T + (pt << 6) + to);
-  return Move(T + (from << 6) + to);
+  return Move((pt << 16) + T + (from << 6) + to);
 }
 
 constexpr Move make_drop(Square to, PieceType pt) {
-  return Move(DROP + (pt << 6) + to);
+  return Move(DROP + (pt << 16) + to);
 }
 
 constexpr PieceType dropped_piece_type(Move m) {
-  return PieceType((m >> 6) & 63);
+  return PieceType((m >> 16) & 63);
 }
 
 inline bool is_ok(Move m) {

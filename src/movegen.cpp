@@ -71,13 +71,9 @@ namespace {
   template<Color c, GenType Type, Direction D>
   ExtMove* make_promotions(const Position& pos, ExtMove* moveList, Square to) {
 
-    const MoveType T =  (D == NORTH_WEST || D == SOUTH_WEST) ? PROMOTION_LEFT
-                      : (D == NORTH_EAST || D == SOUTH_EAST) ? PROMOTION_RIGHT
-                                                             : PROMOTION_STRAIGHT;
-
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
         for (PieceType pt : pos.promotion_piece_types())
-            *moveList++ = make<T>(to - D, to, pt);
+            *moveList++ = make<PROMOTION>(to - D, to, pt);
 
     return moveList;
   }
