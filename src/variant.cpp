@@ -517,6 +517,24 @@ void VariantMap::init() {
         v->flagMove = true;
         return v;
     } ();
+    const Variant* courier = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_L;
+        v->remove_piece(QUEEN);
+        v->add_piece(ALFIL, 'e');
+        v->add_piece(FERS, 'f');
+        v->add_piece(COMMONER, 'm');
+        v->add_piece(WAZIR, 'w');
+        v->startFen = "rnebmk1wbenr/1ppppp1pppp1/6f5/p5p4p/P5P4P/6F5/1PPPPP1PPPP1/RNEBMK1WBENR w - - 0 1";
+        v->promotionPieceTypes = {FERS};
+        v->doubleStep = false;
+        v->castling = false;
+        v->bareKingValue = -VALUE_MATE;
+        v->bareKingMove = true;
+        v->stalemateValue = -VALUE_MATE;
+        return v;
+    } ();
 #endif
 
     // Add to UCI_Variant option
@@ -560,6 +578,7 @@ void VariantMap::init() {
     add("janus", janus);
     add("embassy", embassy);
     add("jesonmor", jesonmor);
+    add("courier", courier);
 #endif
 }
 

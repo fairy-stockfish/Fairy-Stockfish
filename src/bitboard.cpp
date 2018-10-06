@@ -448,6 +448,7 @@ void Bitboards::init() {
       { SOUTH, WEST, EAST, NORTH }, // clobber
       { NORTH_WEST, NORTH_EAST }, // breakthrough
       {}, // immobile
+      { SOUTH, WEST, EAST, NORTH }, // wazir
       { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST }, // commoner
       { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST } // king
   };
@@ -483,6 +484,7 @@ void Bitboards::init() {
       {}, // clobber
       { NORTH_WEST, NORTH, NORTH_EAST }, // breakthrough
       {}, // immobile
+      { SOUTH, WEST, EAST, NORTH }, // wazir
       { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST }, // commoner
       { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST } // king
   };
@@ -512,6 +514,7 @@ void Bitboards::init() {
     {}, // clobber
     {}, // breakthrough
     {}, // immobile
+    {}, // wazir
     {}, // commoner
     {} // king
   };
@@ -541,6 +544,7 @@ void Bitboards::init() {
     {}, // clobber
     {}, // breakthrough
     {}, // immobile
+    {}, // wazir
     {}, // commoner
     {} // king
   };
@@ -570,6 +574,7 @@ void Bitboards::init() {
     0, // clobber
     0, // breakthrough
     0, // immobile
+    0, // wazir
     0, // commoner
     0  // king
   };
@@ -599,6 +604,7 @@ void Bitboards::init() {
     0, // clobber
     0, // breakthrough
     0, // immobile
+    0, // wazir
     0, // commoner
     0  // king
   };
