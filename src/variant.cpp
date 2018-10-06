@@ -500,6 +500,23 @@ void VariantMap::init() {
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     } ();
+    const Variant* jesonmor = [&]{
+        Variant* v = new Variant();
+        v->maxRank = RANK_9;
+        v->maxFile = FILE_I;
+        v->reset_pieces();
+        v->add_piece(KNIGHT, 'n');
+        v->startFen = "nnnnnnnnn/9/9/9/9/9/9/9/NNNNNNNNN w - - 0 1";
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->stalemateValue = -VALUE_MATE;
+        v->flagPiece = KNIGHT;
+        v->whiteFlag = make_bitboard(SQ_E5);
+        v->blackFlag = make_bitboard(SQ_E5);
+        v->flagMove = true;
+        return v;
+    } ();
 #endif
 
     // Add to UCI_Variant option
@@ -542,6 +559,7 @@ void VariantMap::init() {
     add("capablanca", capablanca);
     add("janus", janus);
     add("embassy", embassy);
+    add("jesonmor", jesonmor);
 #endif
 }
 
