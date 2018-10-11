@@ -557,7 +557,8 @@ inline bool Position::is_variant_end(Value& result, int ply) const {
       && flag_move()
       && (capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece())))
   {
-      result = mate_in(ply);
+      result =  (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))
+              && sideToMove == WHITE ? VALUE_DRAW : mate_in(ply);
       return true;
   }
   // nCheck
