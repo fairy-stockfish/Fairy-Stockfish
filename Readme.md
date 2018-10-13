@@ -13,18 +13,24 @@ Besides chess, the currently supported variants are:
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi)
 
 **Modern variants**
-- [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse), [Loop chess](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Chessgi](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Pocket Knight](http://www.chessvariants.com/other.dir/pocket.html)
-- [Amazon chess](https://en.wikipedia.org/wiki/Amazon_(chess)), [Chigorin chess](https://en.wikipedia.org/wiki/Chigorin_Chess), [Almost chess](https://en.wikipedia.org/wiki/Almost_Chess), [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html)
-- [Antichess](https://lichess.org/variant/antichess), [Giveaway](http://www.chessvariants.com/diffobjective.dir/giveaway.old.html), [Losers](https://www.chessclub.com/help/Wild17), [Codrus chess](http://www.binnewirtz.com/Schlagschach1.htm)
+- [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse), [Loop](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Chessgi](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Pocket Knight](http://www.chessvariants.com/other.dir/pocket.html)
+- [Amazon](https://en.wikipedia.org/wiki/Amazon_(chess)), [Chigorin](https://en.wikipedia.org/wiki/Chigorin_Chess), [Almost chess](https://en.wikipedia.org/wiki/Almost_Chess), [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html)
+- [Antichess](https://lichess.org/variant/antichess), [Giveaway](http://www.chessvariants.com/diffobjective.dir/giveaway.old.html), [Losers](https://www.chessclub.com/help/Wild17), [Codrus](http://www.binnewirtz.com/Schlagschach1.htm)
 - [Extinction](https://en.wikipedia.org/wiki/Extinction_chess), [Kinglet](https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_Chess)
 - [King of the Hill](https://en.wikipedia.org/wiki/King_of_the_Hill_(chess)), [Racing Kings](https://en.wikipedia.org/wiki/V._R._Parton#Racing_Kings)
-- [Three-check chess](https://en.wikipedia.org/wiki/Three-check_chess), Five-check chess
-- [Los Alamos chess](https://en.wikipedia.org/wiki/Los_Alamos_chess)
-- [Horde chess](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess)
+- [Three-check](https://en.wikipedia.org/wiki/Three-check_chess), Five-check
+- [Los Alamos](https://en.wikipedia.org/wiki/Los_Alamos_chess)
+- [Horde](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess)
 
 **Related games**
 - [Breakthrough](https://en.wikipedia.org/wiki/Breakthrough_(board_game))
 - [Clobber](https://en.wikipedia.org/wiki/Clobber)
+
+**Variants with large boards**
+- [Shogi](https://en.wikipedia.org/wiki/Shogi)
+- [Capablanca](https://en.wikipedia.org/wiki/Capablanca_Chess), [Janus](https://en.wikipedia.org/wiki/Janus_Chess), [Embassy](https://en.wikipedia.org/wiki/Embassy_Chess)
+- [Jeson Mor](https://en.wikipedia.org/wiki/Jeson_Mor)
+- [Courier](https://en.wikipedia.org/wiki/Courier_chess)
 
 See the [Fairy-Stockfish Wiki](https://github.com/ianfab/Fairy-Stockfish/wiki) for more info.
 
