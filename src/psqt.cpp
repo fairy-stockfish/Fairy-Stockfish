@@ -128,7 +128,7 @@ void init() {
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
           File f = std::min(file_of(s), ~file_of(s));
-          psq[ pc][ s] = score + (pt == KING ? KingBonus[rank_of(s)][f] : Bonus[pc][rank_of(s)][f]);
+          psq[ pc][ s] = score + (pt == KING ? KingBonus[std::min(rank_of(s), RANK_8)][std::min(f, FILE_D)] : Bonus[pc][std::min(rank_of(s), RANK_8)][std::min(f, FILE_D)]);
           psq[~pc][~s] = -psq[pc][s];
       }
       // pieces in pocket
