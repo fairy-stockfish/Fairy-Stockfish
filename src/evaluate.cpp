@@ -824,7 +824,7 @@ namespace {
                 int dist =  distance(s1, s2)
                           + (can_block ? popcount(pos.attackers_to(s2) & pos.pieces(Them)) : 0)
                           + !!(pos.pieces(Us) & s2);
-                score += make_score(3000, 3000) / (1 + dist * (can_block && pos.checking_permitted() ? dist : 1));
+                score += make_score(2500, 2500) / (1 + dist * (can_block && pos.checking_permitted() ? dist : 1));
             }
         }
     }
