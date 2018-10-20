@@ -184,7 +184,7 @@ Entry* probe(const Position& pos) {
   Key key = pos.pawn_key();
   Entry* e = pos.this_thread()->pawnsTable[key];
 
-  if (e->key == key)
+  if (e->key == key && !pos.pieces(SHOGI_PAWN))
       return e;
 
   e->key = key;
