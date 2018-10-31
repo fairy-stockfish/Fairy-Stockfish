@@ -341,6 +341,14 @@ namespace {
         else
             mobility[Us] += make_score(300, 300) * (mob - 2) / (10 + mob);
 
+        // Piece promotion bonus
+        if (pos.promoted_piece_type(Pt) != NO_PIECE_TYPE)
+        {
+            if (promotion_zone_bb(Us, pos.promotion_rank(), pos.max_rank()) & (b | s))
+                score += make_score(PieceValue[MG][pos.promoted_piece_type(Pt)] - PieceValue[MG][Pt],
+                                    PieceValue[EG][pos.promoted_piece_type(Pt)] - PieceValue[EG][Pt]) / 5;
+        }
+
         // Penalty if the piece is far from the king
         if (pos.count<KING>(Us))
             score -= KingProtector[Pt - 2] * distance(s, pos.square<KING>(Us));
