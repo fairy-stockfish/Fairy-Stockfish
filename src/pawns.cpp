@@ -146,6 +146,18 @@ namespace {
             score -= Doubled;
     }
 
+    const Square* pl_shogi   = pos.squares<SHOGI_PAWN>(Us);
+
+    // Loop through all shogi pawns of the current color and score each one
+    while ((s = *pl_shogi++) != SQ_NONE)
+    {
+        assert(pos.piece_on(s) == make_piece(Us, SHOGI_PAWN));
+
+        File f = file_of(s);
+
+        e->semiopenFiles[Us] &= ~(1 << f);
+    }
+
     return score;
   }
 
