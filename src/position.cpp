@@ -500,10 +500,7 @@ void Position::set_state(StateInfo* si) const {
   {
       for (Color c = WHITE; c <= BLACK; ++c)
           for (PieceType pt = PAWN; pt <= KING; ++pt)
-          {
-              Piece pc = make_piece(c, pt);
-              si->psq += PSQT::psq[pc][SQ_NONE] * pieceCountInHand[color_of(pc)][type_of(pc)];
-          }
+              si->psq += PSQT::psq[make_piece(c, pt)][SQ_NONE] * pieceCountInHand[c][pt];
   }
 
   if (si->epSquare != SQ_NONE)
@@ -531,11 +528,7 @@ void Position::set_state(StateInfo* si) const {
               si->materialKey ^= Zobrist::psq[pc][cnt];
 
           if (piece_drops())
-          {
-              if (type_of(pc) != PAWN && type_of(pc) != KING)
-                  si->nonPawnMaterial[color_of(pc)] += pieceCountInHand[color_of(pc)][type_of(pc)] * PieceValue[MG][pc];
-              si->key ^= Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
-          }
+              si->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
       }
 
   if (max_check_count())
@@ -988,11 +981,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->pawnKey ^= Zobrist::psq[captured][capsq];
       }
       else
-      {
           st->nonPawnMaterial[them] -= PieceValue[MG][captured];
-          if (captures_to_hand() && !is_promoted(to))
-              st->nonPawnMaterial[us] += PieceValue[MG][captured];
-      }
 
       // Update board and piece lists
       remove_piece(captured, capsq);
@@ -1050,6 +1039,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       drop_piece(pc, to);
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
+      if (type_of(pc) != PAWN)
+          st->nonPawnMaterial[us] += PieceValue[MG][pc];
   }
   else if (type_of(m) != CASTLING)
       move_piece(pc, from, to);
@@ -1609,15 +1600,14 @@ bool Position::pos_is_ok() const {
       && (attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove)))
       assert(0 && "pos_is_ok: Kings");
 
-  if (   (pieces(PAWN) & Rank8BB)
-      || pieceCount[make_piece(WHITE, PAWN)] > 16
-      || pieceCount[make_piece(BLACK, PAWN)] > 16)
+  if (   pieceCount[make_piece(WHITE, PAWN)] > 64
+      || pieceCount[make_piece(BLACK, PAWN)] > 64)
       assert(0 && "pos_is_ok: Pawns");
 
   if (   (pieces(WHITE) & pieces(BLACK))
       || (pieces(WHITE) | pieces(BLACK)) != pieces()
-      || popcount(pieces(WHITE)) > 32
-      || popcount(pieces(BLACK)) > 32)
+      || popcount(pieces(WHITE)) > 64
+      || popcount(pieces(BLACK)) > 64)
       assert(0 && "pos_is_ok: Bitboards");
 
   for (PieceType p1 = PAWN; p1 <= KING; ++p1)
