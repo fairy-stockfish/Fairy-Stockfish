@@ -861,7 +861,7 @@ namespace {
   Score Evaluation<T>::initiative(Value eg) const {
 
     // No initiative bonus for extinction variants
-    if (pos.extinction_value() != VALUE_NONE)
+    if (pos.extinction_value() != VALUE_NONE || pos.captures_to_hand())
       return SCORE_ZERO;
 
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
