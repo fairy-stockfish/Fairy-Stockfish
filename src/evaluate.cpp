@@ -902,7 +902,7 @@ namespace {
     int sf = me->scale_factor(pos, strongSide);
 
     // If scale is not already specific, scale down the endgame via general heuristics
-    if (sf == SCALE_FACTOR_NORMAL)
+    if (sf == SCALE_FACTOR_NORMAL && !pos.captures_to_hand())
     {
         if (pos.opposite_bishops())
         {
