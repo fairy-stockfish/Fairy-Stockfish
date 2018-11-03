@@ -346,7 +346,7 @@ namespace {
         {
             if (promotion_zone_bb(Us, pos.promotion_rank(), pos.max_rank()) & (b | s))
                 score += make_score(PieceValue[MG][pos.promoted_piece_type(Pt)] - PieceValue[MG][Pt],
-                                    PieceValue[EG][pos.promoted_piece_type(Pt)] - PieceValue[EG][Pt]) / 5;
+                                    PieceValue[EG][pos.promoted_piece_type(Pt)] - PieceValue[EG][Pt]) / 10;
         }
 
         // Penalty if the piece is far from the king
