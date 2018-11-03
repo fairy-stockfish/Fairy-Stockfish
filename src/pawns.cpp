@@ -166,6 +166,9 @@ namespace {
 
         if (phalanx)
             score += Connected[opposed][bool(phalanx)][0][relative_rank(Us, s, pos.max_rank())] / 2;
+
+        else if (!neighbours)
+            score -= Isolated / 2;
     }
 
     return score;
