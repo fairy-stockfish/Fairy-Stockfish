@@ -25,13 +25,18 @@ using std::string;
 VariantMap variants; // Global object
 
     // Define variant rules
-    const Variant* chess_variant() {
+    Variant* fairy_variant_base() {
         Variant* v = new Variant();
+        v->endgameEval = false;
+        return v;
+    }
+    Variant* chess_variant() {
+        Variant* v = fairy_variant_base();
         v->endgameEval = true;
         return v;
     }
-    const Variant* makruk_variant() {
-        Variant* v = new Variant();
+    Variant* makruk_variant() {
+        Variant* v = chess_variant();
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(KHON, 's');
@@ -39,47 +44,38 @@ VariantMap variants; // Global object
         v->startFen = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1";
         v->promotionRank = RANK_6;
         v->promotionPieceTypes = {MET};
-        v->endgameEval = true;
         v->doubleStep = false;
         v->castling = false;
         return v;
     }
-    const Variant* asean_variant() {
-        Variant* v = new Variant();
+    Variant* asean_variant() {
+        Variant* v = chess_variant();
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(KHON, 'b');
         v->add_piece(MET, 'q');
         v->startFen = "rnbqkbnr/8/pppppppp/8/8/PPPPPPPP/8/RNBQKBNR w - - 0 1";
         v->promotionPieceTypes = {ROOK, KNIGHT, KHON, MET};
-        v->endgameEval = true;
         v->doubleStep = false;
         v->castling = false;
         return v;
     }
-    const Variant* aiwok_variant() {
-        Variant* v = new Variant();
-        v->remove_piece(BISHOP);
-        v->remove_piece(QUEEN);
-        v->add_piece(KHON, 's');
+    Variant* aiwok_variant() {
+        Variant* v = makruk_variant();
+        v->remove_piece(MET);
         v->add_piece(AIWOK, 'a');
         v->startFen = "rnsaksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKASNR w - - 0 1";
-        v->promotionRank = RANK_6;
         v->promotionPieceTypes = {AIWOK};
-        v->endgameEval = true;
-        v->doubleStep = false;
-        v->castling = false;
         return v;
     }
-    const Variant* shatranj_variant() {
-        Variant* v = new Variant();
+    Variant* shatranj_variant() {
+        Variant* v = fairy_variant_base();
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(ALFIL, 'b');
         v->add_piece(FERS, 'q');
         v->startFen = "rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR w - - 0 1";
         v->promotionPieceTypes = {FERS};
-        v->endgameEval = false;
         v->doubleStep = false;
         v->castling = false;
         v->bareKingValue = -VALUE_MATE;
@@ -87,35 +83,33 @@ VariantMap variants; // Global object
         v->stalemateValue = -VALUE_MATE;
         return v;
     }
-    const Variant* amazon_variant() {
-        Variant* v = new Variant();
+    Variant* amazon_variant() {
+        Variant* v = chess_variant();
         v->remove_piece(QUEEN);
         v->add_piece(AMAZON, 'a');
         v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {AMAZON, ROOK, BISHOP, KNIGHT};
-        v->endgameEval = true;
         return v;
     }
-    const Variant* hoppelpoppel_variant() {
-        Variant* v = new Variant();
+    Variant* hoppelpoppel_variant() {
+        Variant* v = chess_variant();
         v->remove_piece(KNIGHT);
         v->remove_piece(BISHOP);
         v->add_piece(KNIBIS, 'n');
         v->add_piece(BISKNI, 'b');
         v->promotionPieceTypes = {QUEEN, ROOK, BISKNI, KNIBIS};
-        v->endgameEval = true;
         return v;
     }
-    const Variant* kingofthehill_variant() {
-        Variant* v = new Variant();
+    Variant* kingofthehill_variant() {
+        Variant* v = fairy_variant_base();
         v->flagPiece = KING;
         v->whiteFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->blackFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->flagMove = false;
         return v;
     }
-    const Variant* racingkings_variant() {
-        Variant* v = new Variant();
+    Variant* racingkings_variant() {
+        Variant* v = fairy_variant_base();
         v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
         v->flagPiece = KING;
         v->whiteFlag = Rank8BB;
@@ -125,8 +119,8 @@ VariantMap variants; // Global object
         v->checking = false;
         return v;
     }
-    const Variant* losers_variant() {
-        Variant* v = new Variant();
+    Variant* losers_variant() {
+        Variant* v = fairy_variant_base();
         v->checkmateValue = VALUE_MATE;
         v->stalemateValue = VALUE_MATE;
         v->bareKingValue = VALUE_MATE;
@@ -134,11 +128,10 @@ VariantMap variants; // Global object
         v->mustCapture = true;
         return v;
     }
-    const Variant* giveaway_variant() {
-        Variant* v = new Variant();
+    Variant* giveaway_variant() {
+        Variant* v = fairy_variant_base();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
-        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
         v->stalemateValue = VALUE_MATE;
         v->extinctionValue = VALUE_MATE;
@@ -146,103 +139,79 @@ VariantMap variants; // Global object
         v->mustCapture = true;
         return v;
     }
-    const Variant* antichess_variant() {
-        Variant* v = new Variant();
-        v->remove_piece(KING);
-        v->add_piece(COMMONER, 'k');
+    Variant* antichess_variant() {
+        Variant* v = giveaway_variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
-        v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->stalemateValue = VALUE_MATE;
-        v->extinctionValue = VALUE_MATE;
-        v->extinctionPieceTypes = {ALL_PIECES};
         v->castling = false;
-        v->mustCapture = true;
         return v;
     }
-    const Variant* codrus_variant() {
-        Variant* v = new Variant();
-        v->remove_piece(KING);
-        v->add_piece(COMMONER, 'k');
-        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    Variant* codrus_variant() {
+        Variant* v = giveaway_variant();
         v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, KNIGHT};
-        v->extinctionValue = VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER};
-        v->mustCapture = true;
         return v;
     }
-    const Variant* extinction_variant() {
-        Variant* v = new Variant();
+    Variant* extinction_variant() {
+        Variant* v = fairy_variant_base();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
-        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
         return v;
     }
-    const Variant* kinglet_variant() {
-        Variant* v = new Variant();
-        v->remove_piece(KING);
-        v->add_piece(COMMONER, 'k');
-        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    Variant* kinglet_variant() {
+        Variant* v = extinction_variant();
         v->promotionPieceTypes = {COMMONER};
-        v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {PAWN};
         return v;
     }
-    const Variant* horde_variant() {
-        Variant* v = new Variant();
+    Variant* horde_variant() {
+        Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
         v->firstRankDoubleSteps = true;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {ALL_PIECES};
         return v;
     }
-    const Variant* threecheck_variant() {
-        Variant* v = new Variant();
+    Variant* threecheck_variant() {
+        Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
         v->maxCheckCount = CheckCount(3);
         return v;
     }
-    const Variant* fivecheck_variant() {
-        Variant* v = new Variant();
+    Variant* fivecheck_variant() {
+        Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 5+5 0 1";
         v->maxCheckCount = CheckCount(5);
         return v;
     }
-    const Variant* crazyhouse_variant() {
-        Variant* v = new Variant();
+    Variant* crazyhouse_variant() {
+        Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
         return v;
     }
-    const Variant* loop_variant() {
-        Variant* v = new Variant();
-        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
-        v->pieceDrops = true;
-        v->capturesToHand = true;
+    Variant* loop_variant() {
+        Variant* v = crazyhouse_variant();
         v->dropLoop = true;
         return v;
     }
-    const Variant* chessgi_variant() {
-        Variant* v = new Variant();
-        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
-        v->pieceDrops = true;
-        v->dropLoop = true;
-        v->capturesToHand = true;
+    Variant* chessgi_variant() {
+        Variant* v = loop_variant();
         v->firstRankDrops = true;
         return v;
     }
-    const Variant* pocketknight_variant() {
-        Variant* v = new Variant();
+    Variant* pocketknight_variant() {
+        Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = false;
         return v;
     }
-    const Variant* euroshogi_variant() {
-        Variant* v = new Variant();
+    Variant* euroshogi_variant() {
+        Variant* v = fairy_variant_base();
         v->reset_pieces();
         v->add_piece(SHOGI_PAWN, 'p');
         v->add_piece(EUROSHOGI_KNIGHT, 'n');
@@ -269,8 +238,8 @@ VariantMap variants; // Global object
         v->shogiPawnDropMateIllegal = true;
         return v;
     }
-    const Variant* judkinsshogi_variant() {
-        Variant* v = new Variant();
+    Variant* judkinsshogi_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
         v->reset_pieces();
@@ -299,8 +268,8 @@ VariantMap variants; // Global object
         v->shogiPawnDropMateIllegal = true;
         return v;
     }
-    const Variant* minishogi_variant() {
-        Variant* v = new Variant();
+    Variant* minishogi_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
         v->reset_pieces();
@@ -327,8 +296,8 @@ VariantMap variants; // Global object
         v->shogiPawnDropMateIllegal = true;
         return v;
     }
-    const Variant* losalamos_variant() {
-        Variant* v = new Variant();
+    Variant* losalamos_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
         v->remove_piece(BISHOP);
@@ -339,38 +308,35 @@ VariantMap variants; // Global object
         v->castling = false;
         return v;
     }
-    const Variant* almost_variant() {
-        Variant* v = new Variant();
+    Variant* almost_variant() {
+        Variant* v = chess_variant();
         v->remove_piece(QUEEN);
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rnbckbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBCKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {CHANCELLOR, ROOK, BISHOP, KNIGHT};
-        v->endgameEval = true;
         return v;
     }
-    const Variant* chigorin_variant() {
-        Variant* v = new Variant();
+    Variant* chigorin_variant() {
+        Variant* v = chess_variant();
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rbbqkbbr/pppppppp/8/8/8/8/PPPPPPPP/RNNCKNNR w KQkq - 0 1";
         v->promotionPieceTypes = {QUEEN, CHANCELLOR, ROOK, BISHOP, KNIGHT};
-        v->endgameEval = true;
         return v;
     }
-    const Variant* shatar_variant() {
-        Variant* v = new Variant();
+    Variant* shatar_variant() {
+        Variant* v = chess_variant();
         v->remove_piece(QUEEN);
         v->add_piece(BERS, 'j');
         v->startFen = "rnbjkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBJKBNR w - - 0 1";
         v->promotionPieceTypes = {BERS};
-        v->endgameEval = true;
         v->doubleStep = false;
         v->castling = false;
         v->bareKingValue = VALUE_DRAW; // Robado
         v->shatarMateRule = true;
         return v;
     }
-    const Variant* clobber_variant() {
-        Variant* v = new Variant();
+    Variant* clobber_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
         v->reset_pieces();
@@ -383,8 +349,8 @@ VariantMap variants; // Global object
         v->immobilityIllegal = false;
         return v;
     }
-    const Variant* breakthrough_variant() {
-        Variant* v = new Variant();
+    Variant* breakthrough_variant() {
+        Variant* v = fairy_variant_base();
         v->reset_pieces();
         v->add_piece(BREAKTHROUGH_PIECE, 'p');
         v->startFen = "pppppppp/pppppppp/8/8/8/8/PPPPPPPP/PPPPPPPP w 0 1";
@@ -397,8 +363,8 @@ VariantMap variants; // Global object
         v->blackFlag = Rank1BB;
         return v;
     }
-    const Variant* connect4_variant() {
-        Variant* v = new Variant();
+    Variant* connect4_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_6;
         v->maxFile = FILE_G;
         v->reset_pieces();
@@ -414,8 +380,8 @@ VariantMap variants; // Global object
         v->connectN = 4;
         return v;
     }
-    const Variant* tictactoe_variant() {
-        Variant* v = new Variant();
+    Variant* tictactoe_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_3;
         v->maxFile = FILE_C;
         v->reset_pieces();
@@ -431,8 +397,8 @@ VariantMap variants; // Global object
         return v;
     }
 #ifdef LARGEBOARDS
-    const Variant* shogi_variant() {
-        Variant* v = new Variant();
+    Variant* shogi_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
         v->reset_pieces();
@@ -464,8 +430,8 @@ VariantMap variants; // Global object
         v->shogiPawnDropMateIllegal = true;
         return v;
     }
-    const Variant* capablanca_variant() {
-        Variant* v = new Variant();
+    Variant* capablanca_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
         v->castlingKingsideFile = FILE_I;
@@ -476,8 +442,8 @@ VariantMap variants; // Global object
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
-    const Variant* janus_variant() {
-        Variant* v = new Variant();
+    Variant* janus_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
         v->castlingKingsideFile = FILE_I;
@@ -487,8 +453,8 @@ VariantMap variants; // Global object
         v->promotionPieceTypes = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
-    const Variant* embassy_variant() {
-        Variant* v = new Variant();
+    Variant* embassy_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
         v->castlingKingsideFile = FILE_H;
@@ -499,8 +465,8 @@ VariantMap variants; // Global object
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
-    const Variant* jesonmor_variant() {
-        Variant* v = new Variant();
+    Variant* jesonmor_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
         v->reset_pieces();
@@ -516,8 +482,8 @@ VariantMap variants; // Global object
         v->flagMove = true;
         return v;
     }
-    const Variant* courier_variant() {
-        Variant* v = new Variant();
+    Variant* courier_variant() {
+        Variant* v = fairy_variant_base();
         v->maxRank = RANK_8;
         v->maxFile = FILE_L;
         v->remove_piece(QUEEN);
