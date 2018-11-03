@@ -339,7 +339,7 @@ namespace {
         if (Pt <= QUEEN)
             mobility[Us] += MobilityBonus[Pt - 2][mob];
         else
-            mobility[Us] += make_score(300, 300) * (mob - 2) / (10 + mob);
+            mobility[Us] += make_score(300, 300) * (mob - 1) / (10 + mob);
 
         // Piece promotion bonus
         if (pos.promoted_piece_type(Pt) != NO_PIECE_TYPE)
