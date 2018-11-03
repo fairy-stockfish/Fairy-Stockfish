@@ -264,7 +264,7 @@ namespace {
 
     // Squares occupied by those pawns, by our king or queen, or controlled by enemy pawns
     // are excluded from the mobility area.
-    mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pe->pawn_attacks(Them));
+    mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pe->pawn_attacks(Them) | shift<Down>(pos.pieces(Them, SHOGI_PAWN)));
 
     // Initialise attackedBy bitboards for kings and pawns
     attackedBy[Us][KING] = pos.count<KING>(Us) ? pos.attacks_from<KING>(Us, pos.square<KING>(Us)) : 0;
@@ -565,7 +565,7 @@ namespace {
     }
 
     // Non-pawn enemies
-    nonPawnEnemies = pos.pieces(Them) ^ pos.pieces(Them, PAWN);
+    nonPawnEnemies = pos.pieces(Them) ^ pos.pieces(Them, PAWN, SHOGI_PAWN);
 
     // Squares strongly protected by the enemy, either because they defend the
     // square with a pawn, or because they defend the square twice and we don't.
@@ -586,7 +586,7 @@ namespace {
         {
             Square s = pop_lsb(&b);
             score += ThreatByMinor[type_of(pos.piece_on(s))];
-            if (type_of(pos.piece_on(s)) != PAWN)
+            if (type_of(pos.piece_on(s)) != PAWN && type_of(pos.piece_on(s)) != SHOGI_PAWN)
                 score += ThreatByRank * (int)relative_rank(Them, s, pos.max_rank());
         }
 
@@ -595,7 +595,7 @@ namespace {
         {
             Square s = pop_lsb(&b);
             score += ThreatByRook[type_of(pos.piece_on(s))];
-            if (type_of(pos.piece_on(s)) != PAWN)
+            if (type_of(pos.piece_on(s)) != PAWN && type_of(pos.piece_on(s)) != SHOGI_PAWN)
                 score += ThreatByRank * (int)relative_rank(Them, s, pos.max_rank());
         }
 
@@ -788,8 +788,9 @@ namespace {
 
     // Find the available squares for our pieces inside the area defined by SpaceMask
     Bitboard safe =   SpaceMask
-                   & ~pos.pieces(Us, PAWN)
-                   & ~attackedBy[Them][PAWN];
+                   & ~pos.pieces(Us, PAWN, SHOGI_PAWN)
+                   & ~attackedBy[Them][PAWN]
+                   & ~attackedBy[Them][SHOGI_PAWN];
 
     // Find all squares which are at most three squares behind some friendly pawn
     Bitboard behind = pos.pieces(Us, PAWN, SHOGI_PAWN);
