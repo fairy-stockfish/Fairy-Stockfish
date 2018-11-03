@@ -146,7 +146,10 @@ namespace {
             score -= Doubled;
     }
 
-    const Square* pl_shogi   = pos.squares<SHOGI_PAWN>(Us);
+    const Square* pl_shogi = pos.squares<SHOGI_PAWN>(Us);
+
+    ourPawns   = pos.pieces(Us,   SHOGI_PAWN);
+    theirPawns = pos.pieces(Them, SHOGI_PAWN);
 
     // Loop through all shogi pawns of the current color and score each one
     while ((s = *pl_shogi++) != SQ_NONE)
@@ -156,6 +159,13 @@ namespace {
         File f = file_of(s);
 
         e->semiopenFiles[Us] &= ~(1 << f);
+
+        opposed    = theirPawns & forward_file_bb(Us, s);
+        neighbours = ourPawns   & adjacent_files_bb(f);
+        phalanx    = neighbours & rank_bb(s);
+
+        if (phalanx)
+            score += Connected[opposed][bool(phalanx)][0][relative_rank(Us, s, pos.max_rank())] / 2;
     }
 
     return score;
