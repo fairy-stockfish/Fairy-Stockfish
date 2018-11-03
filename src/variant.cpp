@@ -24,14 +24,13 @@ using std::string;
 
 VariantMap variants; // Global object
 
-void VariantMap::init() {
     // Define variant rules
-    const Variant* chess = [&]{
+    const Variant* chess_variant() {
         Variant* v = new Variant();
         v->endgameEval = true;
         return v;
-    } ();
-    const Variant* makruk = [&]{
+    }
+    const Variant* makruk_variant() {
         Variant* v = new Variant();
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
@@ -44,8 +43,8 @@ void VariantMap::init() {
         v->doubleStep = false;
         v->castling = false;
         return v;
-    } ();
-    const Variant* asean = [&]{
+    }
+    const Variant* asean_variant() {
         Variant* v = new Variant();
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
@@ -57,8 +56,8 @@ void VariantMap::init() {
         v->doubleStep = false;
         v->castling = false;
         return v;
-    } ();
-    const Variant* aiwok = [&]{
+    }
+    const Variant* aiwok_variant() {
         Variant* v = new Variant();
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
@@ -71,8 +70,8 @@ void VariantMap::init() {
         v->doubleStep = false;
         v->castling = false;
         return v;
-    } ();
-    const Variant* shatranj = [&]{
+    }
+    const Variant* shatranj_variant() {
         Variant* v = new Variant();
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
@@ -87,8 +86,8 @@ void VariantMap::init() {
         v->bareKingMove = true;
         v->stalemateValue = -VALUE_MATE;
         return v;
-    } ();
-    const Variant* amazon = [&]{
+    }
+    const Variant* amazon_variant() {
         Variant* v = new Variant();
         v->remove_piece(QUEEN);
         v->add_piece(AMAZON, 'a');
@@ -96,8 +95,8 @@ void VariantMap::init() {
         v->promotionPieceTypes = {AMAZON, ROOK, BISHOP, KNIGHT};
         v->endgameEval = true;
         return v;
-    } ();
-    const Variant* hoppelpoppel = [&]{
+    }
+    const Variant* hoppelpoppel_variant() {
         Variant* v = new Variant();
         v->remove_piece(KNIGHT);
         v->remove_piece(BISHOP);
@@ -106,16 +105,16 @@ void VariantMap::init() {
         v->promotionPieceTypes = {QUEEN, ROOK, BISKNI, KNIBIS};
         v->endgameEval = true;
         return v;
-    } ();
-    const Variant* kingofthehill = [&]{
+    }
+    const Variant* kingofthehill_variant() {
         Variant* v = new Variant();
         v->flagPiece = KING;
         v->whiteFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->blackFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->flagMove = false;
         return v;
-    } ();
-    const Variant* racingkings = [&]{
+    }
+    const Variant* racingkings_variant() {
         Variant* v = new Variant();
         v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
         v->flagPiece = KING;
@@ -125,8 +124,8 @@ void VariantMap::init() {
         v->castling = false;
         v->checking = false;
         return v;
-    } ();
-    const Variant* losers = [&]{
+    }
+    const Variant* losers_variant() {
         Variant* v = new Variant();
         v->checkmateValue = VALUE_MATE;
         v->stalemateValue = VALUE_MATE;
@@ -134,8 +133,8 @@ void VariantMap::init() {
         v->bareKingMove = false;
         v->mustCapture = true;
         return v;
-    } ();
-    const Variant* giveaway = [&]{
+    }
+    const Variant* giveaway_variant() {
         Variant* v = new Variant();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -146,8 +145,8 @@ void VariantMap::init() {
         v->extinctionPieceTypes = {ALL_PIECES};
         v->mustCapture = true;
         return v;
-    } ();
-    const Variant* antichess = [&]{
+    }
+    const Variant* antichess_variant() {
         Variant* v = new Variant();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -159,8 +158,8 @@ void VariantMap::init() {
         v->castling = false;
         v->mustCapture = true;
         return v;
-    } ();
-    const Variant* codrus = [&]{
+    }
+    const Variant* codrus_variant() {
         Variant* v = new Variant();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -170,8 +169,8 @@ void VariantMap::init() {
         v->extinctionPieceTypes = {COMMONER};
         v->mustCapture = true;
         return v;
-    } ();
-    const Variant* extinction = [&]{
+    }
+    const Variant* extinction_variant() {
         Variant* v = new Variant();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -180,8 +179,8 @@ void VariantMap::init() {
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
         return v;
-    } ();
-    const Variant* kinglet = [&]{
+    }
+    const Variant* kinglet_variant() {
         Variant* v = new Variant();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -190,43 +189,43 @@ void VariantMap::init() {
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {PAWN};
         return v;
-    } ();
-    const Variant* horde = [&]{
+    }
+    const Variant* horde_variant() {
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
         v->firstRankDoubleSteps = true;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {ALL_PIECES};
         return v;
-    } ();
-    const Variant* threecheck = [&]{
+    }
+    const Variant* threecheck_variant() {
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
         v->maxCheckCount = CheckCount(3);
         return v;
-    } ();
-    const Variant* fivecheck = [&]{
+    }
+    const Variant* fivecheck_variant() {
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 5+5 0 1";
         v->maxCheckCount = CheckCount(5);
         return v;
-    } ();
-    const Variant* crazyhouse = [&]{
+    }
+    const Variant* crazyhouse_variant() {
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
         return v;
-    } ();
-    const Variant* loop = [&]{
+    }
+    const Variant* loop_variant() {
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
         v->dropLoop = true;
         return v;
-    } ();
-    const Variant* chessgi = [&]{
+    }
+    const Variant* chessgi_variant() {
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
@@ -234,15 +233,15 @@ void VariantMap::init() {
         v->capturesToHand = true;
         v->firstRankDrops = true;
         return v;
-    } ();
-    const Variant* pocketknight = [&]{
+    }
+    const Variant* pocketknight_variant() {
         Variant* v = new Variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = false;
         return v;
-    } ();
-    const Variant* euroshogi = [&]{
+    }
+    const Variant* euroshogi_variant() {
         Variant* v = new Variant();
         v->reset_pieces();
         v->add_piece(SHOGI_PAWN, 'p');
@@ -269,8 +268,8 @@ void VariantMap::init() {
         v->immobilityIllegal = true;
         v->shogiPawnDropMateIllegal = true;
         return v;
-    } ();
-    const Variant* judkinsshogi = [&]{
+    }
+    const Variant* judkinsshogi_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
@@ -299,8 +298,8 @@ void VariantMap::init() {
         v->immobilityIllegal = true;
         v->shogiPawnDropMateIllegal = true;
         return v;
-    } ();
-    const Variant* minishogi = [&]{
+    }
+    const Variant* minishogi_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
@@ -327,8 +326,8 @@ void VariantMap::init() {
         v->immobilityIllegal = true;
         v->shogiPawnDropMateIllegal = true;
         return v;
-    } ();
-    const Variant* losalamos = [&]{
+    }
+    const Variant* losalamos_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
@@ -339,8 +338,8 @@ void VariantMap::init() {
         v->doubleStep = false;
         v->castling = false;
         return v;
-    } ();
-    const Variant* almost = [&]{
+    }
+    const Variant* almost_variant() {
         Variant* v = new Variant();
         v->remove_piece(QUEEN);
         v->add_piece(CHANCELLOR, 'c');
@@ -348,16 +347,16 @@ void VariantMap::init() {
         v->promotionPieceTypes = {CHANCELLOR, ROOK, BISHOP, KNIGHT};
         v->endgameEval = true;
         return v;
-    } ();
-    const Variant* chigorin = [&]{
+    }
+    const Variant* chigorin_variant() {
         Variant* v = new Variant();
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rbbqkbbr/pppppppp/8/8/8/8/PPPPPPPP/RNNCKNNR w KQkq - 0 1";
         v->promotionPieceTypes = {QUEEN, CHANCELLOR, ROOK, BISHOP, KNIGHT};
         v->endgameEval = true;
         return v;
-    } ();
-    const Variant* shatar = [&]{
+    }
+    const Variant* shatar_variant() {
         Variant* v = new Variant();
         v->remove_piece(QUEEN);
         v->add_piece(BERS, 'j');
@@ -369,8 +368,8 @@ void VariantMap::init() {
         v->bareKingValue = VALUE_DRAW; // Robado
         v->shatarMateRule = true;
         return v;
-    } ();
-    const Variant* clobber = [&]{
+    }
+    const Variant* clobber_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
@@ -383,8 +382,8 @@ void VariantMap::init() {
         v->stalemateValue = -VALUE_MATE;
         v->immobilityIllegal = false;
         return v;
-    } ();
-    const Variant* breakthrough = [&]{
+    }
+    const Variant* breakthrough_variant() {
         Variant* v = new Variant();
         v->reset_pieces();
         v->add_piece(BREAKTHROUGH_PIECE, 'p');
@@ -397,8 +396,8 @@ void VariantMap::init() {
         v->whiteFlag = Rank8BB;
         v->blackFlag = Rank1BB;
         return v;
-    } ();
-    const Variant* connect4 = [&]{
+    }
+    const Variant* connect4_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_6;
         v->maxFile = FILE_G;
@@ -414,8 +413,8 @@ void VariantMap::init() {
         v->immobilityIllegal = false;
         v->connectN = 4;
         return v;
-    } ();
-    const Variant* tictactoe = [&]{
+    }
+    const Variant* tictactoe_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_3;
         v->maxFile = FILE_C;
@@ -430,9 +429,9 @@ void VariantMap::init() {
         v->immobilityIllegal = false;
         v->connectN = 3;
         return v;
-    } ();
+    }
 #ifdef LARGEBOARDS
-    const Variant* shogi = [&]{
+    const Variant* shogi_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -464,8 +463,8 @@ void VariantMap::init() {
         v->immobilityIllegal = true;
         v->shogiPawnDropMateIllegal = true;
         return v;
-    } ();
-    const Variant* capablanca = [&]{
+    }
+    const Variant* capablanca_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -476,8 +475,8 @@ void VariantMap::init() {
         v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1";
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
-    } ();
-    const Variant* janus = [&]{
+    }
+    const Variant* janus_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -487,8 +486,8 @@ void VariantMap::init() {
         v->startFen = "rjnbkqbnjr/pppppppppp/10/10/10/10/PPPPPPPPPP/RJNBKQBNJR w KQkq - 0 1";
         v->promotionPieceTypes = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
-    } ();
-    const Variant* embassy = [&]{
+    }
+    const Variant* embassy_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -499,8 +498,8 @@ void VariantMap::init() {
         v->startFen = "rnbqkcabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQKCABNR w KQkq - 0 1";
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
-    } ();
-    const Variant* jesonmor = [&]{
+    }
+    const Variant* jesonmor_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -516,8 +515,8 @@ void VariantMap::init() {
         v->blackFlag = make_bitboard(SQ_E5);
         v->flagMove = true;
         return v;
-    } ();
-    const Variant* courier = [&]{
+    }
+    const Variant* courier_variant() {
         Variant* v = new Variant();
         v->maxRank = RANK_8;
         v->maxFile = FILE_L;
@@ -534,51 +533,53 @@ void VariantMap::init() {
         v->bareKingMove = true;
         v->stalemateValue = -VALUE_MATE;
         return v;
-    } ();
+    }
 #endif
 
+
+void VariantMap::init() {
     // Add to UCI_Variant option
-    add("chess", chess);
-    add("standard", chess);
-    add("makruk", makruk);
-    add("asean", asean);
-    add("ai-wok", aiwok);
-    add("shatranj", shatranj);
-    add("amazon", amazon);
-    add("hoppelpoppel", hoppelpoppel);
-    add("kingofthehill", kingofthehill);
-    add("racingkings", racingkings);
-    add("losers", losers);
-    add("giveaway", giveaway);
-    add("antichess", antichess);
-    add("codrus", codrus);
-    add("extinction", extinction);
-    add("kinglet", kinglet);
-    add("horde", horde);
-    add("3check", threecheck);
-    add("5check", fivecheck);
-    add("crazyhouse", crazyhouse);
-    add("loop", loop);
-    add("chessgi", chessgi);
-    add("pocketknight", pocketknight);
-    add("euroshogi", euroshogi);
-    add("judkinshogi", judkinsshogi);
-    add("minishogi", minishogi);
-    add("losalamos", losalamos);
-    add("almost", almost);
-    add("chigorin", chigorin);
-    add("shatar", shatar);
-    add("clobber", clobber);
-    add("breakthrough", breakthrough);
-    add("connect4", connect4);
-    add("tictactoe", tictactoe);
+    add("chess", chess_variant());
+    add("standard", chess_variant());
+    add("makruk", makruk_variant());
+    add("asean", asean_variant());
+    add("ai-wok", aiwok_variant());
+    add("shatranj", shatranj_variant());
+    add("amazon", amazon_variant());
+    add("hoppelpoppel", hoppelpoppel_variant());
+    add("kingofthehill", kingofthehill_variant());
+    add("racingkings", racingkings_variant());
+    add("losers", losers_variant());
+    add("giveaway", giveaway_variant());
+    add("antichess", antichess_variant());
+    add("codrus", codrus_variant());
+    add("extinction", extinction_variant());
+    add("kinglet", kinglet_variant());
+    add("horde", horde_variant());
+    add("3check", threecheck_variant());
+    add("5check", fivecheck_variant());
+    add("crazyhouse", crazyhouse_variant());
+    add("loop", loop_variant());
+    add("chessgi", chessgi_variant());
+    add("pocketknight", pocketknight_variant());
+    add("euroshogi", euroshogi_variant());
+    add("judkinshogi", judkinsshogi_variant());
+    add("minishogi", minishogi_variant());
+    add("losalamos", losalamos_variant());
+    add("almost", almost_variant());
+    add("chigorin", chigorin_variant());
+    add("shatar", shatar_variant());
+    add("clobber", clobber_variant());
+    add("breakthrough", breakthrough_variant());
+    add("connect4", connect4_variant());
+    add("tictactoe", tictactoe_variant());
 #ifdef LARGEBOARDS
-    add("shogi", shogi);
-    add("capablanca", capablanca);
-    add("janus", janus);
-    add("embassy", embassy);
-    add("jesonmor", jesonmor);
-    add("courier", courier);
+    add("shogi", shogi_variant());
+    add("capablanca", capablanca_variant());
+    add("janus", janus_variant());
+    add("embassy", embassy_variant());
+    add("jesonmor", jesonmor_variant());
+    add("courier", courier_variant());
 #endif
 }
 
@@ -587,22 +588,14 @@ void VariantMap::add(std::string s, const Variant* v) {
 }
 
 void VariantMap::clear_all() {
-  std::set<const Variant*> deleted_vars;
-  for (auto const& element : *this) {
-      // Delete duplicated variants (synonyms) only once
-      if (deleted_vars.find(element.second) == deleted_vars.end())
-      {
-          delete element.second;
-          deleted_vars.insert(element.second);
-      }
-  }
+  for (auto const& element : *this)
+      delete element.second;
   clear();
 }
 
 std::vector<std::string> VariantMap::get_keys() {
   std::vector<std::string> keys;
-  for (auto const& element : *this) {
+  for (auto const& element : *this)
       keys.push_back(element.first);
-  }
   return keys;
 }
