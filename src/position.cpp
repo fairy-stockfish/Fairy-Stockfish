@@ -1342,13 +1342,13 @@ bool Position::see_ge(Move m, Value threshold) const {
   assert(is_ok(m));
 
   // Only deal with normal moves, assume others pass a simple see
-  if (type_of(m) != NORMAL)
+  if (type_of(m) != NORMAL && type_of(m) != DROP)
       return VALUE_ZERO >= threshold;
 
   Bitboard stmAttackers;
   Square from = from_sq(m), to = to_sq(m);
-  PieceType nextVictim = type_of(piece_on(from));
-  Color us = color_of(piece_on(from));
+  PieceType nextVictim = type_of(m) == DROP ? dropped_piece_type(m) : type_of(piece_on(from));
+  Color us = type_of(m) == DROP ? sideToMove : color_of(piece_on(from));
   Color stm = ~us; // First consider opponent's move
   Value balance;   // Values of the pieces taken by us minus opponent's ones
 
@@ -1385,7 +1385,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
   // Find all attackers to the destination square, with the moving piece
   // removed, but possibly an X-ray attacker added behind it.
-  Bitboard occupied = pieces() ^ from ^ to;
+  Bitboard occupied = type_of(m) == DROP ? pieces() ^ to : pieces() ^ from ^ to;
   Bitboard attackers = attackers_to(to, occupied) & occupied;
 
   while (true)
