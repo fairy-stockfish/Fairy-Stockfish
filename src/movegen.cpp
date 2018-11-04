@@ -291,8 +291,8 @@ namespace {
         moveList = generate_moves<Checks>(pos, moveList, Us, pt, target);
     // generate drops
     if (pos.piece_drops() && Type != CAPTURES && pos.count_in_hand(Us, ALL_PIECES))
-        for (PieceType pt = PAWN; pt < KING; ++pt)
-            moveList = generate_drops<Us, Checks>(pos, moveList, pt, target & ~pos.pieces(~Us));
+        for (PieceType pt = PAWN; pt <= KING; ++pt)
+            moveList = generate_drops<Us, Checks>(pos, moveList, pt, target & ~pos.pieces(~Us) & pos.drop_region(Us));
 
     if (Type != QUIET_CHECKS && Type != EVASIONS && pos.count<KING>(Us))
     {

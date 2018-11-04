@@ -298,7 +298,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       }
 
       else if (token == '/')
+      {
           sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
+          if (!is_ok(sq))
+              break;
+      }
 
       else if ((idx = piece_to_char().find(token)) != string::npos)
       {
@@ -602,7 +606,7 @@ const string Position::fen() const {
   {
       ss << '[';
       for (Color c = WHITE; c <= BLACK; ++c)
-          for (PieceType pt = PieceType(KING - 1); pt >= PAWN; --pt)
+          for (PieceType pt = KING; pt >= PAWN; --pt)
               ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
       ss << ']';
   }
@@ -724,13 +728,43 @@ bool Position::legal(Move m) const {
       }
   }
 
+  // illegal non-drop moves
+  if (must_drop() && type_of(m) != DROP && count_in_hand(us, ALL_PIECES))
+  {
+      if (checkers())
+      {
+          for (const auto& mevasion : MoveList<EVASIONS>(*this))
+              if (type_of(mevasion) == DROP && legal(mevasion))
+                  return false;
+      }
+      else
+      {
+          for (const auto& mquiet : MoveList<QUIETS>(*this))
+              if (type_of(mquiet) == DROP && legal(mquiet))
+                  return false;
+      }
+  }
+
+  // illegal drop move
+  if (drop_opposite_colored_bishop() && type_of(m) == DROP)
+  {
+      if (type_of(moved_piece(m)) != BISHOP)
+      {
+          Bitboard remaining = drop_region(us) & ~pieces() & ~SquareBB[to];
+          // Are enough squares available to drop bishops on opposite colors?
+          if (  (!( DarkSquares & pieces(us, BISHOP)) && ( DarkSquares & remaining))
+              + (!(~DarkSquares & pieces(us, BISHOP)) && (~DarkSquares & remaining)) < count_in_hand(us, BISHOP))
+              return false;
+      }
+      else
+          // Drop resulting in same-colored bishops
+          if ((DarkSquares & to ? DarkSquares : ~DarkSquares) & pieces(us, BISHOP))
+              return false;
+  }
+
   // no legal moves from target square
   if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(moves_bb(us, type_of(moved_piece(m)), to, 0) & board_bb()))
       return false;
-
-  // illegal drops
-  if (piece_drops() && type_of(m) == DROP)
-      return pieceCountInHand[us][type_of(moved_piece(m))] && empty(to_sq(m));
 
   // game end
   if (is_variant_end())
@@ -1041,6 +1075,24 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
       if (type_of(pc) != PAWN)
           st->nonPawnMaterial[us] += PieceValue[MG][pc];
+      // Set castling rights for dropped king or rook
+      if (castling_dropped_piece() && relative_rank(us, to, max_rank()) == RANK_1)
+      {
+          if (type_of(pc) == KING && file_of(to) == FILE_E)
+          {
+              Bitboard castling_rooks =  pieces(us, ROOK)
+                                       & rank_bb(relative_rank(us, RANK_1, max_rank()))
+                                       & (file_bb(FILE_A) | file_bb(max_file()));
+              while (castling_rooks)
+                  set_castling_right(us, pop_lsb(&castling_rooks));
+          }
+          else if (type_of(pc) == ROOK)
+          {
+              if (   (file_of(to) == FILE_A || file_of(to) == max_file())
+                  && piece_on(make_square(FILE_E, relative_rank(us, RANK_1, max_rank()))) == make_piece(us, KING))
+                  set_castling_right(us, to);
+          }
+      }
   }
   else if (type_of(m) != CASTLING)
       move_piece(pc, from, to);

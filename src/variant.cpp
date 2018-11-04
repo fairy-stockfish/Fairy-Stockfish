@@ -210,6 +210,18 @@ VariantMap variants; // Global object
         v->capturesToHand = false;
         return v;
     }
+    Variant* placement_variant() {
+        Variant* v = chess_variant();
+        v->startFen = "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - - 0 1";
+        v->mustDrop = true;
+        v->pieceDrops = true;
+        v->capturesToHand = false;
+        v->whiteDropRegion = Rank1BB;
+        v->blackDropRegion = Rank8BB;
+        v->dropOppositeColoredBishop = true;
+        v->castlingDroppedPiece = true;
+        return v;
+    }
     Variant* euroshogi_variant() {
         Variant* v = fairy_variant_base();
         v->reset_pieces();
@@ -528,6 +540,7 @@ void VariantMap::init() {
     add("loop", loop_variant());
     add("chessgi", chessgi_variant());
     add("pocketknight", pocketknight_variant());
+    add("placement", placement_variant());
     add("euroshogi", euroshogi_variant());
     add("judkinshogi", judkinsshogi_variant());
     add("minishogi", minishogi_variant());

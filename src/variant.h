@@ -46,15 +46,20 @@ struct Variant {
   bool doubleStep = true;
   bool firstRankDoubleSteps = false;
   bool castling = true;
+  bool castlingDroppedPiece = false;
   File castlingKingsideFile = FILE_G;
   File castlingQueensideFile = FILE_C;
   bool checking = true;
   bool mustCapture = false;
+  bool mustDrop = false;
   bool pieceDrops = false;
   bool dropLoop = false;
   bool capturesToHand = false;
   bool firstRankDrops = false;
   bool dropOnTop = false;
+  Bitboard whiteDropRegion = AllSquares;
+  Bitboard blackDropRegion = AllSquares;
+  bool dropOppositeColoredBishop = false;
   bool immobilityIllegal = false;
   // game end
   Value stalemateValue = VALUE_DRAW;

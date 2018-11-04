@@ -103,15 +103,19 @@ public:
   bool double_step_enabled() const;
   bool first_rank_double_steps() const;
   bool castling_enabled() const;
+  bool castling_dropped_piece() const;
   File castling_kingside_file() const;
   File castling_queenside_file() const;
   bool checking_permitted() const;
   bool must_capture() const;
+  bool must_drop() const;
   bool piece_drops() const;
   bool drop_loop() const;
   bool captures_to_hand() const;
   bool first_rank_drops() const;
   bool drop_on_top() const;
+  Bitboard drop_region(Color c) const;
+  bool drop_opposite_colored_bishop() const;
   bool immobility_illegal() const;
   // winning conditions
   Value stalemate_value(int ply = 0) const;
@@ -329,6 +333,11 @@ inline bool Position::castling_enabled() const {
   return var->castling;
 }
 
+inline bool Position::castling_dropped_piece() const {
+  assert(var != nullptr);
+  return var->castlingDroppedPiece;
+}
+
 inline File Position::castling_kingside_file() const {
   assert(var != nullptr);
   return var->castlingKingsideFile;
@@ -347,6 +356,11 @@ inline bool Position::checking_permitted() const {
 inline bool Position::must_capture() const {
   assert(var != nullptr);
   return var->mustCapture;
+}
+
+inline bool Position::must_drop() const {
+  assert(var != nullptr);
+  return var->mustDrop;
 }
 
 inline bool Position::piece_drops() const {
@@ -372,6 +386,16 @@ inline bool Position::first_rank_drops() const {
 inline bool Position::drop_on_top() const {
   assert(var != nullptr);
   return var->dropOnTop;
+}
+
+inline Bitboard Position::drop_region(Color c) const {
+  assert(var != nullptr);
+  return c == WHITE ? var->whiteDropRegion : var->blackDropRegion;
+}
+
+inline bool Position::drop_opposite_colored_bishop() const {
+  assert(var != nullptr);
+  return var->dropOppositeColoredBishop;
 }
 
 inline bool Position::immobility_illegal() const {
