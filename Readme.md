@@ -9,10 +9,11 @@ Besides chess, the currently supported variants are:
 
 **Regional and historical variants**
 - [Shatranj](https://en.wikipedia.org/wiki/Shatranj)
-- [Makruk](https://en.wikipedia.org/wiki/Makruk), [ASEAN chess](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok
+- [Makruk](https://en.wikipedia.org/wiki/Makruk), [ASEAN](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok, [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi)
 
 **Modern variants**
+- [Chess960](https://en.wikipedia.org/wiki/Chess960), [Placement/Pre-Chess](https://www.chessvariants.com/link/placement-chess)
 - [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse), [Loop](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Chessgi](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Pocket Knight](http://www.chessvariants.com/other.dir/pocket.html)
 - [Amazon](https://en.wikipedia.org/wiki/Amazon_(chess)), [Chigorin](https://en.wikipedia.org/wiki/Chigorin_Chess), [Almost chess](https://en.wikipedia.org/wiki/Almost_Chess), [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html)
 - [Antichess](https://lichess.org/variant/antichess), [Giveaway](http://www.chessvariants.com/diffobjective.dir/giveaway.old.html), [Losers](https://www.chessclub.com/help/Wild17), [Codrus](http://www.binnewirtz.com/Schlagschach1.htm)
