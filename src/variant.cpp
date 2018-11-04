@@ -222,6 +222,22 @@ VariantMap variants; // Global object
         v->castlingDroppedPiece = true;
         return v;
     }
+    Variant* sittuyin_variant() {
+        Variant* v = makruk_variant();
+        v->startFen = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1";
+        v->remove_piece(MET);
+        v->add_piece(MET, 'f');
+        v->mustDrop = true;
+        v->pieceDrops = true;
+        v->capturesToHand = false;
+        v->whiteDropRegion = Rank1BB | Rank2BB | Rank3BB;
+        v->blackDropRegion = Rank8BB | Rank7BB | Rank6BB;
+        v->sittuyinRookDrop = true;
+        v->promotionRank = RANK_1; // no regular promotions
+        v->sittuyinPromotion = true;
+        v->immobilityIllegal = false;
+        return v;
+    }
     Variant* euroshogi_variant() {
         Variant* v = fairy_variant_base();
         v->reset_pieces();
@@ -541,6 +557,7 @@ void VariantMap::init() {
     add("chessgi", chessgi_variant());
     add("pocketknight", pocketknight_variant());
     add("placement", placement_variant());
+    add("sittuyin", sittuyin_variant());
     add("euroshogi", euroshogi_variant());
     add("judkinshogi", judkinsshogi_variant());
     add("minishogi", minishogi_variant());

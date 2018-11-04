@@ -703,15 +703,15 @@ bool Position::legal(Move m) const {
   assert(color_of(moved_piece(m)) == us);
   assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
 
-  // illegal moves to squares outside of board
+  // Illegal moves to squares outside of board
   if (!(board_bb() & to))
       return false;
 
-  // illegal checks
-  if (!checking_permitted() && gives_check(m))
+  // Illegal checks
+  if ((!checking_permitted() || (sittuyin_promotion() && type_of(m) == PROMOTION)) && gives_check(m))
       return false;
 
-  // illegal quiet moves
+  // Illegal quiet moves
   if (must_capture() && !capture(m))
   {
       if (checkers())
@@ -728,7 +728,7 @@ bool Position::legal(Move m) const {
       }
   }
 
-  // illegal non-drop moves
+  // Illegal non-drop moves
   if (must_drop() && type_of(m) != DROP && count_in_hand(us, ALL_PIECES))
   {
       if (checkers())
@@ -745,7 +745,7 @@ bool Position::legal(Move m) const {
       }
   }
 
-  // illegal drop move
+  // Illegal drop move
   if (drop_opposite_colored_bishop() && type_of(m) == DROP)
   {
       if (type_of(moved_piece(m)) != BISHOP)
@@ -762,11 +762,11 @@ bool Position::legal(Move m) const {
               return false;
   }
 
-  // no legal moves from target square
+  // No legal moves from target square
   if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(moves_bb(us, type_of(moved_piece(m)), to, 0) & board_bb()))
       return false;
 
-  // game end
+  // Game end
   if (is_variant_end())
       return false;
 
@@ -969,6 +969,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
+  if (to == from)
+  {
+      assert(type_of(m) == PROMOTION && sittuyin_promotion());
+      captured = NO_PIECE;
+  }
   Piece unpromotedCaptured = unpromoted_piece_on(to);
 
   assert(color_of(pc) == us);
@@ -1113,7 +1118,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           Piece promotion = make_piece(us, promotion_type(m));
 
-          assert(relative_rank(us, to, max_rank()) == promotion_rank());
+          assert(relative_rank(us, to, max_rank()) == promotion_rank() || sittuyin_promotion());
           assert(type_of(promotion) >= KNIGHT && type_of(promotion) < KING);
 
           remove_piece(pc, to);
@@ -1213,12 +1218,12 @@ void Position::undo_move(Move m) {
   Square to = to_sq(m);
   Piece pc = piece_on(to);
 
-  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING);
+  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || (type_of(m) == PROMOTION && sittuyin_promotion()));
   assert(type_of(st->capturedPiece) != KING);
 
   if (type_of(m) == PROMOTION)
   {
-      assert(relative_rank(us, to, max_rank()) == promotion_rank());
+      assert(relative_rank(us, to, max_rank()) == promotion_rank() || sittuyin_promotion());
       assert(type_of(pc) == promotion_type(m));
       assert(type_of(pc) >= KNIGHT && type_of(pc) < KING);
 

@@ -97,6 +97,7 @@ public:
   const std::string piece_to_char() const;
   Rank promotion_rank() const;
   const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
+  bool sittuyin_promotion() const;
   PieceType promoted_piece_type(PieceType pt) const;
   bool mandatory_piece_promotion() const;
   bool endgame_eval() const;
@@ -115,6 +116,7 @@ public:
   bool first_rank_drops() const;
   bool drop_on_top() const;
   Bitboard drop_region(Color c) const;
+  bool sittuyin_rook_drop() const;
   bool drop_opposite_colored_bishop() const;
   bool immobility_illegal() const;
   // winning conditions
@@ -303,6 +305,11 @@ inline const std::set<PieceType, std::greater<PieceType> >& Position::promotion_
   return var->promotionPieceTypes;
 }
 
+inline bool Position::sittuyin_promotion() const {
+  assert(var != nullptr);
+  return var->sittuyinPromotion;
+}
+
 inline PieceType Position::promoted_piece_type(PieceType pt) const {
   assert(var != nullptr);
   return var->promotedPieceType[pt];
@@ -391,6 +398,11 @@ inline bool Position::drop_on_top() const {
 inline Bitboard Position::drop_region(Color c) const {
   assert(var != nullptr);
   return c == WHITE ? var->whiteDropRegion : var->blackDropRegion;
+}
+
+inline bool Position::sittuyin_rook_drop() const {
+  assert(var != nullptr);
+  return var->sittuyinRookDrop;
 }
 
 inline bool Position::drop_opposite_colored_bishop() const {

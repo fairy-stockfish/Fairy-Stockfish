@@ -186,10 +186,20 @@ Value Endgame<KPK>::operator()(const Position& pos) const {
 
   Color us = strongSide == pos.side_to_move() ? WHITE : BLACK;
 
-  if (!Bitbases::probe(wksq, psq, bksq, us))
-      return VALUE_DRAW;
+  Value result;
+  if (   pos.promotion_rank() == RANK_8
+      && pos.promotion_piece_types().find(QUEEN) != pos.promotion_piece_types().end())
+  {
+      if (!Bitbases::probe(wksq, psq, bksq, us))
+          return VALUE_DRAW;
 
-  Value result = VALUE_KNOWN_WIN + PawnValueEg + Value(rank_of(psq));
+      result = VALUE_KNOWN_WIN + PawnValueEg + Value(rank_of(psq));
+  }
+  else
+  {
+      // Non-standard promotion, evaluation unclear
+      result = PawnValueEg + Value(rank_of(psq));
+  }
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -791,5 +801,9 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
 
   // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
   // it's probably at least a draw even with the pawn.
-  return Bitbases::probe(wksq, psq, bksq, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
+  if (   pos.promotion_rank() == RANK_8
+      && pos.promotion_piece_types().find(QUEEN) != pos.promotion_piece_types().end())
+      return Bitbases::probe(wksq, psq, bksq, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
+  else
+      return SCALE_FACTOR_NONE;
 }

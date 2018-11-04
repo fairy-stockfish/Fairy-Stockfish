@@ -96,6 +96,8 @@ namespace {
             for (File f = FILE_A; f <= pos.max_file(); ++f)
                 if (file_bb(f) & pos.pieces(Us, pt))
                     b &= ~file_bb(f);
+        if (pt == ROOK && pos.sittuyin_rook_drop())
+            b &= rank_bb(relative_rank(Us, RANK_1, pos.max_rank()));
         if (Checks)
             b &= pos.check_squares(pt);
         while (b)
@@ -201,6 +203,32 @@ namespace {
 
         while (b3)
             moveList = make_promotions<Us, Type, Up     >(pos, moveList, pop_lsb(&b3));
+    }
+
+    // Sittuyin promotions
+    if (pos.sittuyin_promotion() && (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS))
+    {
+        Bitboard pawns = pos.pieces(Us, PAWN);
+        // Pawns need to be on diagonals on opponent's half if there is more than one pawn
+        if (pos.count<PAWN>(Us) > 1)
+            pawns &=  (  PseudoAttacks[Us][BISHOP][make_square(FILE_A, relative_rank(Us, RANK_1, pos.max_rank()))]
+                       | PseudoAttacks[Us][BISHOP][make_square(pos.max_file(), relative_rank(Us, RANK_1, pos.max_rank()))])
+                    & forward_ranks_bb(Us, relative_rank(Us, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
+        while (pawns)
+        {
+            Square from = pop_lsb(&pawns);
+            for (PieceType pt : pos.promotion_piece_types())
+            {
+                if (pos.count(Us, pt))
+                    continue;
+                Bitboard b = (pos.attacks_from(Us, pt, from) & ~pos.pieces()) | from;
+                if (Type == EVASIONS)
+                    b &= target;
+
+                while (b)
+                    *moveList++ = make<PROMOTION>(from, pop_lsb(&b), pt);
+            }
+        }
     }
 
     // Standard and en-passant captures

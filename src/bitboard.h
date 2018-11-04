@@ -272,6 +272,10 @@ inline Bitboard between_bb(Square s1, Square s2) {
 /// in front of the given one, from the point of view of the given color. For instance,
 /// forward_ranks_bb(BLACK, SQ_D3) will return the 16 squares on ranks 1 and 2.
 
+inline Bitboard forward_ranks_bb(Color c, Rank r) {
+  return ForwardRanksBB[c][r];
+}
+
 inline Bitboard forward_ranks_bb(Color c, Square s) {
   return ForwardRanksBB[c][rank_of(s)];
 }

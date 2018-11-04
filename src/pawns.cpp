@@ -102,7 +102,7 @@ namespace {
         opposed    = theirPawns & forward_file_bb(Us, s);
         stoppers   = theirPawns & passed_pawn_mask(Us, s);
         lever      = theirPawns & PseudoAttacks[Us][PAWN][s];
-        leverPush  = theirPawns & PseudoAttacks[Us][PAWN][s + Up];
+        leverPush  = relative_rank(Them, s, pos.max_rank()) > RANK_1 ? theirPawns & PseudoAttacks[Us][PAWN][s + Up] : 0;
         doubled    = relative_rank(Us, s, pos.max_rank()) > RANK_1 ? ourPawns & (s - Up) : 0;
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
@@ -110,7 +110,8 @@ namespace {
 
         // A pawn is backward when it is behind all pawns of the same color
         // on the adjacent files and cannot be safely advanced.
-        backward =  !(ourPawns & pawn_attack_span(Them, s + Up))
+        backward =   relative_rank(Them, s, pos.max_rank()) > RANK_1
+                  && !(ourPawns & pawn_attack_span(Them, s + Up))
                   && (stoppers & (leverPush | (s + Up)));
 
         // Passed pawns will be properly scored in evaluation because we need
@@ -123,7 +124,8 @@ namespace {
             && popcount(phalanx)   >= popcount(leverPush))
             e->passedPawns[Us] |= s;
 
-        else if (   stoppers == SquareBB[s + Up]
+        else if (   relative_rank(Them, s, pos.max_rank()) > RANK_1
+                 && stoppers == SquareBB[s + Up]
                  && relative_rank(Us, s, pos.max_rank()) >= RANK_5)
         {
             b = shift<Up>(supported) & ~theirPawns;

@@ -572,7 +572,7 @@ constexpr PieceType dropped_piece_type(Move m) {
 }
 
 inline bool is_ok(Move m) {
-  return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
+  return from_sq(m) != to_sq(m) || type_of(m) == PROMOTION; // Catch MOVE_NULL and MOVE_NONE
 }
 
 #endif // #ifndef TYPES_H_INCLUDED
