@@ -238,64 +238,6 @@ VariantMap variants; // Global object
         v->immobilityIllegal = false;
         return v;
     }
-    Variant* euroshogi_variant() {
-        Variant* v = fairy_variant_base();
-        v->reset_pieces();
-        v->add_piece(SHOGI_PAWN, 'p');
-        v->add_piece(EUROSHOGI_KNIGHT, 'n');
-        v->add_piece(GOLD, 'g');
-        v->add_piece(BISHOP, 'b');
-        v->add_piece(HORSE, 'h');
-        v->add_piece(ROOK, 'r');
-        v->add_piece(KING, 'k');
-        v->add_piece(DRAGON, 'd');
-        v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
-        v->pieceDrops = true;
-        v->capturesToHand = true;
-        v->promotionRank = RANK_6;
-        v->promotionPieceTypes = {};
-        v->doubleStep = false;
-        v->castling = false;
-        v->promotedPieceType[SHOGI_PAWN]       = GOLD;
-        v->promotedPieceType[EUROSHOGI_KNIGHT] = GOLD;
-        v->promotedPieceType[SILVER]           = GOLD;
-        v->promotedPieceType[BISHOP]           = HORSE;
-        v->promotedPieceType[ROOK]             = DRAGON;
-        v->mandatoryPiecePromotion = true;
-        v->immobilityIllegal = true;
-        v->shogiPawnDropMateIllegal = true;
-        return v;
-    }
-    Variant* judkinsshogi_variant() {
-        Variant* v = fairy_variant_base();
-        v->maxRank = RANK_6;
-        v->maxFile = FILE_F;
-        v->reset_pieces();
-        v->add_piece(SHOGI_PAWN, 'p');
-        v->add_piece(SHOGI_KNIGHT, 'n');
-        v->add_piece(SILVER, 's');
-        v->add_piece(GOLD, 'g');
-        v->add_piece(BISHOP, 'b');
-        v->add_piece(HORSE, 'h');
-        v->add_piece(ROOK, 'r');
-        v->add_piece(DRAGON, 'd');
-        v->add_piece(KING, 'k');
-        v->startFen = "rbnsgk/5p/6/6/P5/KGSNBR[-] w 0 1";
-        v->pieceDrops = true;
-        v->capturesToHand = true;
-        v->promotionRank = RANK_5;
-        v->promotionPieceTypes = {};
-        v->doubleStep = false;
-        v->castling = false;
-        v->promotedPieceType[SHOGI_PAWN]   = GOLD;
-        v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
-        v->promotedPieceType[SILVER]       = GOLD;
-        v->promotedPieceType[BISHOP]       = HORSE;
-        v->promotedPieceType[ROOK]         = DRAGON;
-        v->immobilityIllegal = true;
-        v->shogiPawnDropMateIllegal = true;
-        return v;
-    }
     Variant* minishogi_variant() {
         Variant* v = fairy_variant_base();
         v->maxRank = RANK_5;
@@ -322,6 +264,27 @@ VariantMap variants; // Global object
         v->promotedPieceType[ROOK]       = DRAGON;
         v->immobilityIllegal = true;
         v->shogiPawnDropMateIllegal = true;
+        return v;
+    }
+    Variant* judkinsshogi_variant() {
+        Variant* v = minishogi_variant();
+        v->maxRank = RANK_6;
+        v->maxFile = FILE_F;
+        v->add_piece(SHOGI_KNIGHT, 'n');
+        v->startFen = "rbnsgk/5p/6/6/P5/KGSNBR[-] w 0 1";
+        v->promotionRank = RANK_5;
+        v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
+        return v;
+    }
+    Variant* euroshogi_variant() {
+        Variant* v = minishogi_variant();
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_H;
+        v->add_piece(EUROSHOGI_KNIGHT, 'n');
+        v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
+        v->promotionRank = RANK_6;
+        v->promotedPieceType[EUROSHOGI_KNIGHT] = GOLD;
+        v->mandatoryPiecePromotion = true;
         return v;
     }
     Variant* losalamos_variant() {
@@ -426,36 +389,15 @@ VariantMap variants; // Global object
     }
 #ifdef LARGEBOARDS
     Variant* shogi_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = minishogi_variant();
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
-        v->reset_pieces();
-        v->add_piece(SHOGI_PAWN, 'p');
         v->add_piece(LANCE, 'l');
         v->add_piece(SHOGI_KNIGHT, 'n');
-        v->add_piece(SILVER, 's');
-        v->add_piece(GOLD, 'g');
-        v->add_piece(BISHOP, 'b');
-        v->add_piece(HORSE, 'h');
-        v->add_piece(ROOK, 'r');
-        v->add_piece(KING, 'k');
-        v->add_piece(DRAGON, 'd');
         v->startFen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w 0 1";
-        v->pieceDrops = true;
-        v->capturesToHand = true;
         v->promotionRank = RANK_7;
-        v->promotionPieceTypes = {};
-        v->doubleStep = false;
-        v->castling = false;
-        v->promotedPieceType[SHOGI_PAWN]   = GOLD;
         v->promotedPieceType[LANCE]        = GOLD;
         v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
-        v->promotedPieceType[SILVER]       = GOLD;
-        v->promotedPieceType[BISHOP]       = HORSE;
-        v->promotedPieceType[ROOK]         = DRAGON;
-        v->mandatoryPiecePromotion = false;
-        v->immobilityIllegal = true;
-        v->shogiPawnDropMateIllegal = true;
         return v;
     }
     Variant* capablanca_variant() {
@@ -482,15 +424,10 @@ VariantMap variants; // Global object
         return v;
     }
     Variant* embassy_variant() {
-        Variant* v = fairy_variant_base();
-        v->maxRank = RANK_8;
-        v->maxFile = FILE_J;
+        Variant* v = capablanca_variant();
         v->castlingKingsideFile = FILE_H;
         v->castlingQueensideFile = FILE_B;
-        v->add_piece(ARCHBISHOP, 'a');
-        v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rnbqkcabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQKCABNR w KQkq - 0 1";
-        v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
     Variant* jesonmor_variant() {
