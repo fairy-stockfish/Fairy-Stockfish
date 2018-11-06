@@ -822,7 +822,7 @@ namespace {
     // Capture the flag
     if (pos.capture_the_flag(Us))
     {
-        bool can_block = pos.capture_the_flag_piece() == KING;
+        bool isKingCTF = pos.capture_the_flag_piece() == KING;
         Bitboard ctfPieces = pos.pieces(Us, pos.capture_the_flag_piece());
         while (ctfPieces)
         {
@@ -832,9 +832,9 @@ namespace {
             {
                 Square s2 = pop_lsb(&target_squares);
                 int dist =  distance(s1, s2)
-                          + (can_block ? popcount(pos.attackers_to(s2) & pos.pieces(Them)) : 0)
+                          + (isKingCTF ? popcount(pos.attackers_to(s2) & pos.pieces(Them)) : 0)
                           + !!(pos.pieces(Us) & s2);
-                score += make_score(2500, 2500) / (1 + dist * (can_block && pos.checking_permitted() ? dist : 1));
+                score += make_score(2500, 2500) / (1 + dist * (!isKingCTF || pos.checking_permitted() ? dist : 1));
             }
         }
     }
