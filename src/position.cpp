@@ -894,8 +894,7 @@ bool Position::gives_check(Move m) const {
   // Is there a discovered check?
   if (   type_of(m) != DROP
       && (st->blockersForKing[~sideToMove] & from)
-      && (  !aligned(from, to, square<KING>(~sideToMove))
-          || (attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to) & pieces(sideToMove))))
+      && (attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to) & pieces(sideToMove)))
       return true;
 
   switch (type_of(m))
