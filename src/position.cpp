@@ -843,7 +843,7 @@ bool Position::pseudo_legal(const Move m) const {
                && double_step_enabled()))
           return false;
   }
-  else if (!(attacks_from(us, type_of(pc), from) & to))
+  else if (!((capture(m) ? attacks_from(us, type_of(pc), from) : moves_from(us, type_of(pc), from)) & to))
       return false;
 
   // Evasions generator already takes care to avoid some kind of illegal moves
