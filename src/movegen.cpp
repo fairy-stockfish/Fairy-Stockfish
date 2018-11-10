@@ -92,7 +92,7 @@ namespace {
             if (!pos.first_rank_drops())
                 b &= ~rank_bb(relative_rank(Us, RANK_1, pos.max_rank()));
         }
-        if (pt == SHOGI_PAWN)
+        if (pt == SHOGI_PAWN && !pos.shogi_doubled_pawn())
             for (File f = FILE_A; f <= pos.max_file(); ++f)
                 if (file_bb(f) & pos.pieces(Us, pt))
                     b &= ~file_bb(f);

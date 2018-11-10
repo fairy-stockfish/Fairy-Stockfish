@@ -63,6 +63,7 @@ struct Variant {
   Bitboard blackDropRegion = AllSquares;
   bool sittuyinRookDrop = false;
   bool dropOppositeColoredBishop = false;
+  bool shogiDoubledPawn = false;
   bool immobilityIllegal = false;
   // game end
   Value stalemateValue = VALUE_DRAW;

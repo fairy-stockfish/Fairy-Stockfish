@@ -118,6 +118,7 @@ public:
   Bitboard drop_region(Color c) const;
   bool sittuyin_rook_drop() const;
   bool drop_opposite_colored_bishop() const;
+  bool shogi_doubled_pawn() const;
   bool immobility_illegal() const;
   // winning conditions
   Value stalemate_value(int ply = 0) const;
@@ -408,6 +409,11 @@ inline bool Position::sittuyin_rook_drop() const {
 inline bool Position::drop_opposite_colored_bishop() const {
   assert(var != nullptr);
   return var->dropOppositeColoredBishop;
+}
+
+inline bool Position::shogi_doubled_pawn() const {
+  assert(var != nullptr);
+  return var->shogiDoubledPawn;
 }
 
 inline bool Position::immobility_illegal() const {
