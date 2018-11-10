@@ -824,6 +824,7 @@ namespace {
     {
         bool isKingCTF = pos.capture_the_flag_piece() == KING;
         Bitboard ctfPieces = pos.pieces(Us, pos.capture_the_flag_piece());
+        int scale = pos.count(Us, pos.capture_the_flag_piece());
         while (ctfPieces)
         {
             Square s1 = pop_lsb(&ctfPieces);
@@ -834,7 +835,7 @@ namespace {
                 int dist =  distance(s1, s2)
                           + (isKingCTF ? popcount(pos.attackers_to(s2) & pos.pieces(Them)) : 0)
                           + !!(pos.pieces(Us) & s2);
-                score += make_score(2500, 2500) / (1 + dist * (!isKingCTF || pos.checking_permitted() ? dist : 1));
+                score += make_score(2500, 2500) / (1 + scale * dist * (!isKingCTF || pos.checking_permitted() ? dist : 1));
             }
         }
     }
