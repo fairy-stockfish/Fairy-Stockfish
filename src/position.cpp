@@ -489,7 +489,7 @@ void Position::set_state(StateInfo* si) const {
   si->pawnKey = Zobrist::noPawns;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
-  si->checkersBB = count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove) : 0;
+  si->checkersBB = count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove), ~sideToMove) : 0;
 
   set_check_info(si);
 
@@ -679,13 +679,17 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 /// Position::attackers_to() computes a bitboard of all pieces which attack a
 /// given square. Slider attacks use the occupied bitboard to indicate occupancy.
 
-Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
+Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
 
   Bitboard b = 0;
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt : piece_types())
-          b |= attacks_bb(~c, pt, s, occupied) & pieces(c, pt);
+  for (PieceType pt : piece_types())
+      b |= attacks_bb(~c, pt, s, occupied) & pieces(c, pt);
   return b;
+}
+
+
+Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
+  return attackers_to(s, occupied, WHITE) | attackers_to(s, occupied, BLACK);
 }
 
 
@@ -784,18 +788,17 @@ bool Position::legal(Move m) const {
       assert(piece_on(capsq) == make_piece(~us, PAWN));
       assert(piece_on(to) == NO_PIECE);
 
-      return !count<KING>(us) || !(attackers_to(ksq, occupied) & pieces(~us) & occupied);
+      return !count<KING>(us) || !(attackers_to(ksq, occupied, ~us) & occupied);
   }
 
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
   if (type_of(moved_piece(m)) == KING)
-      return type_of(m) == CASTLING || !(attackers_to(to) & pieces(~us));
+      return type_of(m) == CASTLING || !attackers_to(to, ~us);
 
   // A non-king move is legal if the king is not under attack after the move.
-  return !count<KING>(us) || !(  attackers_to(ksq, (type_of(m) != DROP ? pieces() ^ from : pieces()) | to)
-           & pieces(~us) & ~SquareBB[to]);
+  return !count<KING>(us) || !(attackers_to(ksq, (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us) & ~SquareBB[to]);
 }
 
 
@@ -866,7 +869,7 @@ bool Position::pseudo_legal(const Move m) const {
       }
       // In case of king moves under check we have to remove king so as to catch
       // invalid moves like b1a1 when opposite queen is on c1.
-      else if (attackers_to(to, pieces() ^ from) & pieces(~us))
+      else if (attackers_to(to, pieces() ^ from, ~us))
           return false;
   }
 
@@ -895,7 +898,7 @@ bool Position::gives_check(Move m) const {
   // Is there a discovered check?
   if (   type_of(m) != DROP
       && (st->blockersForKing[~sideToMove] & from)
-      && (attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to) & pieces(sideToMove)))
+      && attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to, sideToMove))
       return true;
 
   switch (type_of(m))

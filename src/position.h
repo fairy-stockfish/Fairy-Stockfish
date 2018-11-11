@@ -170,7 +170,9 @@ public:
 
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
+  Bitboard attackers_to(Square s, Color c) const;
   Bitboard attackers_to(Square s, Bitboard occupied) const;
+  Bitboard attackers_to(Square s, Bitboard occupied, Color c) const;
   Bitboard attacks_from(Color c, PieceType pt, Square s) const;
   template<PieceType> Bitboard attacks_from(Color c, Square s) const;
   Bitboard moves_from(Color c, PieceType pt, Square s) const;
@@ -689,6 +691,10 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
 
 inline Bitboard Position::attackers_to(Square s) const {
   return attackers_to(s, byTypeBB[ALL_PIECES]);
+}
+
+inline Bitboard Position::attackers_to(Square s, Color c) const {
+  return attackers_to(s, byTypeBB[ALL_PIECES], c);
 }
 
 inline Bitboard Position::checkers() const {

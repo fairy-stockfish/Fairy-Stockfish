@@ -39,7 +39,6 @@ namespace {
     Square rfrom = pos.castling_rook_square(Cr);
     Square kto = make_square(KingSide ? pos.castling_kingside_file() : pos.castling_queenside_file(),
                              relative_rank(us, RANK_1, pos.max_rank()));
-    Bitboard enemies = pos.pieces(~us);
 
     assert(!pos.checkers());
 
@@ -49,13 +48,13 @@ namespace {
     if (type_of(pos.piece_on(kfrom)) == KING)
     {
         for (Square s = kto; s != kfrom; s += step)
-            if (pos.attackers_to(s) & enemies)
+            if (pos.attackers_to(s, ~us))
                 return moveList;
 
         // Because we generate only legal castling moves we need to verify that
         // when moving the castling rook we do not discover some hidden checker.
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        if (Chess960 && (pos.attackers_to(kto, pos.pieces() ^ rfrom) & pos.pieces(~us)))
+        if (Chess960 && pos.attackers_to(kto, pos.pieces() ^ rfrom, ~us))
             return moveList;
     }
 
