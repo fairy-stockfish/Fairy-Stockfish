@@ -470,7 +470,8 @@ void Position::set_check_info(StateInfo* si) const {
 
   Square ksq = count<KING>(~sideToMove) ? square<KING>(~sideToMove) : SQ_NONE;
 
-  for (PieceType pt = PAWN; pt < KING; ++pt)
+  // For unused piece types, the check squares are left uninitialized
+  for (PieceType pt : piece_types())
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_from(~sideToMove, pt, ksq) : 0;
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
@@ -651,7 +652,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   Bitboard blockers = 0;
   pinners = 0;
 
-  if (s == SQ_NONE)
+  if (s == SQ_NONE || !sliders)
       return blockers;
 
   // Snipers are sliders that attack 's' when a piece is removed
