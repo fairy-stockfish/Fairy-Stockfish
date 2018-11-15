@@ -1327,6 +1327,10 @@ moves_loop: // When in check, search starts from here
 
       moveCount++;
 
+      // Avoid qsearch explosion for clobber
+      if (type_of(pos.moved_piece(move)) == CLOBBER_PIECE && bestValue > VALUE_MATED_IN_MAX_PLY)
+          continue;
+
       // Futility pruning
       if (   !inCheck
           && !givesCheck
