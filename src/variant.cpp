@@ -487,6 +487,14 @@ VariantMap variants; // Global object
         v->stalemateValue = -VALUE_MATE;
         return v;
     }
+    Variant* clobber10_variant() {
+        Variant* v = clobber_variant();
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_J;
+        v->startFen = "PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/"
+                      "pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP w 0 1";
+        return v;
+    }
 #endif
 
 
@@ -536,6 +544,7 @@ void VariantMap::init() {
     add("embassy", embassy_variant());
     add("jesonmor", jesonmor_variant());
     add("courier", courier_variant());
+    add("clobber10", clobber10_variant());
 #endif
 }
 
