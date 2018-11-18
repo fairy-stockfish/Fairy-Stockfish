@@ -285,23 +285,34 @@ namespace {
         if (Checks && (pos.blockers_for_king(~us) & from))
             continue;
 
-        Bitboard b = (  (pos.attacks_from(us, pt, from) & pos.pieces())
-                      | (pos.moves_from(us, pt, from) & ~pos.pieces())) & target;
+        Bitboard b1 = (  (pos.attacks_from(us, pt, from) & pos.pieces())
+                       | (pos.moves_from(us, pt, from) & ~pos.pieces())) & target;
+        PieceType pt_promotion = pos.promoted_piece_type(pt);
+        Bitboard b2 = pt_promotion ? b1 : 0;
 
         if (Checks)
-            b &= pos.check_squares(pt);
-
-        while (b)
         {
-            Square s = pop_lsb(&b);
-            bool piece_promotion =   pos.promoted_piece_type(pt) != NO_PIECE_TYPE
-                                  && (promotion_zone_bb(us, pos.promotion_rank(), pos.max_rank()) & (SquareBB[from] | s));
-            if (!piece_promotion || !pos.mandatory_piece_promotion())
-                *moveList++ = make_move(from, s);
-            // Shogi-style piece promotions
-            if (piece_promotion)
-                *moveList++ = make<PIECE_PROMOTION>(from, s);
+            b1 &= pos.check_squares(pt);
+            if (pt_promotion)
+                b2 &= pos.check_squares(pt_promotion);
         }
+
+        // Restrict target squares considering promotion zone
+        if (pt_promotion)
+        {
+            Bitboard promotion_zone = promotion_zone_bb(us, pos.promotion_rank(), pos.max_rank());
+            if (pos.mandatory_piece_promotion())
+                b1 &= promotion_zone & from ? 0 : ~promotion_zone;
+            if (!(promotion_zone & from))
+                b2 &= promotion_zone;
+        }
+
+        while (b1)
+            *moveList++ = make_move(from, pop_lsb(&b1));
+
+        // Shogi-style piece promotions
+        while (b2)
+            *moveList++ = make<PIECE_PROMOTION>(from, pop_lsb(&b2));
     }
 
     return moveList;

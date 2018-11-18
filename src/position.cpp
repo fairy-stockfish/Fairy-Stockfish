@@ -1402,7 +1402,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   assert(is_ok(m));
 
   // Only deal with normal moves, assume others pass a simple see
-  if (type_of(m) != NORMAL && type_of(m) != DROP)
+  if (type_of(m) != NORMAL && type_of(m) != DROP && type_of(m) != PIECE_PROMOTION)
       return VALUE_ZERO >= threshold;
 
   Bitboard stmAttackers;
