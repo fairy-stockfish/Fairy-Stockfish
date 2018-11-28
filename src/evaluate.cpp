@@ -620,7 +620,7 @@ namespace {
     b =   pos.pieces(Us, PAWN)
        & (~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES]);
 
-    safeThreats = pawn_attacks_bb<Us>(b) & nonPawnEnemies;
+    safeThreats = (pawn_attacks_bb<Us>(b) | shift<Up>(pos.pieces(Us, SHOGI_PAWN))) & nonPawnEnemies;
     score += ThreatBySafePawn * popcount(safeThreats);
 
     // Find squares where our pawns can push on the next move
