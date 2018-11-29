@@ -162,7 +162,7 @@ namespace {
   constexpr int PassedDanger[RANK_NB] = { 0, 0, 0, 3, 6, 12, 21 };
 
   // KingProtector[PieceType-2] contains a penalty according to distance from king
-  constexpr Score KingProtector[PIECE_TYPE_NB - 2] = { S(3, 5), S(4, 3), S(3, 0), S(1, -1) };
+  constexpr Score KingProtector[PIECE_TYPE_NB - 2] = { S(3, 5), S(4, 3), S(3, 0), S(1, -1), S(2, 2) };
 
   // Assorted bonuses and penalties
   constexpr Score BishopPawns        = S(  3,  5);
@@ -351,7 +351,12 @@ namespace {
 
         // Penalty if the piece is far from the king
         if (pos.count<KING>(Us))
-            score -= KingProtector[Pt - 2] * distance(s, pos.square<KING>(Us));
+        {
+            int dist = distance(s, pos.square<KING>(Us));
+            if (pos.captures_to_hand() && pos.count<KING>(Them))
+                dist *= distance(s, pos.square<KING>(Them));
+            score -= KingProtector[std::min(Pt - 2, QUEEN - 1)] * dist;
+        }
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {
