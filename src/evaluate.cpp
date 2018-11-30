@@ -273,7 +273,7 @@ namespace {
     attackedBy2[Us]            = attackedBy[Us][KING] & attackedBy[Us][PAWN];
 
     // Init our king safety tables only if we are going to use them
-    if (pos.count<KING>(Us) && pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg)
+    if ((pos.count<KING>(Us) && pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg) || pos.captures_to_hand())
     {
         kingRing[Us] = attackedBy[Us][KING];
         if (relative_rank(Us, pos.square<KING>(Us), pos.max_rank()) == RANK_1)
@@ -454,7 +454,7 @@ namespace {
     Score score = pe->king_safety<Us>(pos, ksq);
 
     // Main king safety evaluation
-    if (kingAttackersCount[Them] > 1 - pos.count<QUEEN>(Them))
+    if ((kingAttackersCount[Them] > 1 - pos.count<QUEEN>(Them)) || pos.captures_to_hand())
     {
         int kingDanger = 0;
         unsafeChecks = 0;
