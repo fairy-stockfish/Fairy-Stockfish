@@ -853,6 +853,28 @@ namespace {
         score += make_score(3000, 1000) / (remainingChecks * remainingChecks);
     }
 
+    // Connect-n
+    if (pos.connect_n() > 0)
+    {
+        for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST, NORTH_WEST})
+        {
+            // Bonus for uninterrupted rows
+            Bitboard b = pos.pieces(Us);
+            for (int i = 1; i < pos.connect_n() && b; i++)
+            {
+                score += make_score(100, 100) * popcount(b) * i * i / (pos.connect_n() - i);
+                b &= shift(-d, shift(d, shift(d, b)) & ~pos.pieces(Them) & pos.board_bb());
+            }
+            // Bonus for rows containing holes
+            b = pos.pieces(Us);
+            for (int i = 1; i < pos.connect_n() && b; i++)
+            {
+                score += make_score(50, 50) * popcount(b) * i * i / (pos.connect_n() - i);
+                b &= shift(-d, shift(d, shift(d, b)) & ~pos.pieces(Them) & pos.board_bb()) | shift(d, shift(d, b) & ~pos.pieces());
+            }
+        }
+    }
+
     if (T)
         Trace::add(VARIANT, Us, score);
 
@@ -868,7 +890,7 @@ namespace {
   Score Evaluation<T>::initiative(Value eg) const {
 
     // No initiative bonus for extinction variants
-    if (pos.extinction_value() != VALUE_NONE || pos.captures_to_hand())
+    if (pos.extinction_value() != VALUE_NONE || pos.captures_to_hand() || pos.connect_n())
       return SCORE_ZERO;
 
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
