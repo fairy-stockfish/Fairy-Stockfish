@@ -3,13 +3,15 @@
 [![Build Status](https://travis-ci.org/ianfab/Fairy-Stockfish.svg?branch=master)](https://travis-ci.org/ianfab/Fairy-Stockfish)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/ianfab/Fairy-Stockfish?svg=true)](https://ci.appveyor.com/project/ianfab/Fairy-Stockfish)
 
-Fairy-Stockfish is a Stockfish fork designed for the support of (fairy) chess variants and to make the addition/configuration of new variants as simple and flexible as possible. The goal of the project is to create a chess variant engine supporting a large variety of chess variants (similar to FairyMax or Sjaak) equipped with the powerful search of Stockfish. It is complementary to Stockfish forks more specialized for certain chess variants, such as [multi-variant Stockfish](https://github.com/ddugovic/Stockfish), [Seirawan-Stockfish](https://github.com/ianfab/Seirawan-Stockfish), [Makruk-Stockfish](https://github.com/ianfab/Makruk-Stockfish), etc., supporting more variants with the tradeoff of lower performance.
+Fairy-Stockfish is a Stockfish fork designed for the support of (fairy) chess variants and to make the addition/configuration of new variants as simple and flexible as possible. The goal of the project is to create a chess variant engine supporting a large variety of chess variants, equipped with the powerful search of Stockfish. It is complementary to Stockfish forks more specialized for certain chess variants, such as [multi-variant Stockfish](https://github.com/ddugovic/Stockfish), [Seirawan-Stockfish](https://github.com/ianfab/Seirawan-Stockfish), [Makruk-Stockfish](https://github.com/ianfab/Makruk-Stockfish), etc., supporting more variants with the tradeoff of lower performance.
 
 Besides chess, the currently supported variants are:
 
 **Regional and historical variants**
 - [Shatranj](https://en.wikipedia.org/wiki/Shatranj)
-- [Makruk](https://en.wikipedia.org/wiki/Makruk), [ASEAN](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok, [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)
+- [Makruk](https://en.wikipedia.org/wiki/Makruk), [ASEAN](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok
+- [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)
+- [Shatar](https://en.wikipedia.org/wiki/Shatar)
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi), [Dobutsu shogi](https://en.wikipedia.org/wiki/Dōbutsu_shōgi)
 
 **Modern variants**
@@ -26,8 +28,9 @@ Besides chess, the currently supported variants are:
 **Related games**
 - [Breakthrough](https://en.wikipedia.org/wiki/Breakthrough_(board_game))
 - [Clobber](https://en.wikipedia.org/wiki/Clobber)
+- [Connect4](https://en.wikipedia.org/wiki/Connect_Four), [Tic-Tac-Toe](https://en.wikipedia.org/wiki/Tic-tac-toe)
 
-**Variants with large boards**
+**Large-board variants**
 - [Shogi](https://en.wikipedia.org/wiki/Shogi)
 - [Capablanca](https://en.wikipedia.org/wiki/Capablanca_Chess), [Janus](https://en.wikipedia.org/wiki/Janus_Chess), [Embassy](https://en.wikipedia.org/wiki/Embassy_Chess)
 - [Jeson Mor](https://en.wikipedia.org/wiki/Jeson_Mor)
