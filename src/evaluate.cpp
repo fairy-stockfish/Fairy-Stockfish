@@ -496,6 +496,15 @@ namespace {
                     unsafeChecks |= b;
                 break;
             case PAWN:
+                if (pos.captures_to_hand() && pos.count_in_hand(Them, pt))
+                {
+                    b = attacks_bb(Us, pt, ksq, pos.pieces()) & ~pos.pieces() & pos.board_bb();
+                    if (b & safe)
+                        kingDanger += OtherSafeCheck;
+                    else
+                        unsafeChecks |= b;
+                }
+                break;
             case SHOGI_PAWN:
             case KING:
                 break;
