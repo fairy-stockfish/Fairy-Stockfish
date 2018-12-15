@@ -469,22 +469,22 @@ namespace {
         safe  = ~pos.pieces(Them);
         safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
 
-        std::function <Bitboard (PieceType)> get_attacks = [this, Them](PieceType pt) {
-            return attackedBy[Them][pt] | (pos.captures_to_hand() && pos.count_in_hand(Them, pt) ? ~pos.pieces() : 0);
+        std::function <Bitboard (Color, PieceType)> get_attacks = [this](Color c, PieceType pt) {
+            return attackedBy[c][pt] | (pos.captures_to_hand() && pos.count_in_hand(c, pt) ? ~pos.pieces() : 0);
         };
         for (PieceType pt : pos.piece_types())
         {
             switch (pt)
             {
             case QUEEN:
-                b = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(pt) & safe & ~attackedBy[Us][QUEEN] & pos.board_bb();
+                b = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(Them, pt) & safe & ~attackedBy[Us][QUEEN] & pos.board_bb();
                 if (b)
                     kingDanger += QueenSafeCheck;
                 break;
             case ROOK:
             case BISHOP:
             case KNIGHT:
-                b = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(pt) & pos.board_bb();
+                b = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(Them, pt) & pos.board_bb();
                 if (b & safe)
                     kingDanger +=  pt == ROOK   ? RookSafeCheck
                                  : pt == BISHOP ? BishopSafeCheck
@@ -497,7 +497,7 @@ namespace {
             case KING:
                 break;
             default:
-                b = attacks_bb(Us, pt, ksq, pos.pieces()) & get_attacks(pt) & pos.board_bb();
+                b = attacks_bb(Us, pt, ksq, pos.pieces()) & get_attacks(Them, pt) & pos.board_bb();
                 if (b & safe)
                     kingDanger += OtherSafeCheck;
                 else
