@@ -469,7 +469,7 @@ namespace {
         safe  = ~pos.pieces(Them);
         safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
 
-        std::function <Bitboard (PieceType)> get_attacks = [this](PieceType pt) {
+        std::function <Bitboard (PieceType)> get_attacks = [this, Them](PieceType pt) {
             return attackedBy[Them][pt] | (pos.captures_to_hand() && pos.count_in_hand(Them, pt) ? ~pos.pieces() : 0);
         };
         for (PieceType pt : pos.piece_types())
