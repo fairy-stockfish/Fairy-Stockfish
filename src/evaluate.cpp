@@ -95,6 +95,7 @@ namespace {
   constexpr int RookSafeCheck   = 880;
   constexpr int BishopSafeCheck = 435;
   constexpr int KnightSafeCheck = 790;
+  constexpr int OtherSafeCheck  = 600;
 
 #define S(mg, eg) make_score(mg, eg)
 
@@ -468,34 +469,41 @@ namespace {
         safe  = ~pos.pieces(Them);
         safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
 
-        b1 = attacks_bb<ROOK  >(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
-        b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
-
-        // Enemy queen safe checks
-        if ((b1 | b2) & attackedBy[Them][QUEEN] & safe & ~attackedBy[Us][QUEEN])
-            kingDanger += QueenSafeCheck;
-
-        b1 &= attackedBy[Them][ROOK];
-        b2 &= attackedBy[Them][BISHOP];
-
-        // Enemy rooks checks
-        if (b1 & safe)
-            kingDanger += RookSafeCheck;
-        else
-            unsafeChecks |= b1;
-
-        // Enemy bishops checks
-        if (b2 & safe)
-            kingDanger += BishopSafeCheck;
-        else
-            unsafeChecks |= b2;
-
-        // Enemy knights checks
-        b = pos.attacks_from<KNIGHT>(Us, ksq) & attackedBy[Them][KNIGHT];
-        if (b & safe)
-            kingDanger += KnightSafeCheck;
-        else
-            unsafeChecks |= b;
+        std::function <Bitboard (PieceType)> get_attacks = [this](PieceType pt) {
+            return attackedBy[Them][pt] | (pos.captures_to_hand() && pos.count_in_hand(Them, pt) ? ~pos.pieces() : 0);
+        };
+        for (PieceType pt : pos.piece_types())
+        {
+            switch (pt)
+            {
+            case QUEEN:
+                b = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(pt) & safe & ~attackedBy[Us][QUEEN] & pos.board_bb();
+                if (b)
+                    kingDanger += QueenSafeCheck;
+                break;
+            case ROOK:
+            case BISHOP:
+            case KNIGHT:
+                b = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(pt) & pos.board_bb();
+                if (b & safe)
+                    kingDanger +=  pt == ROOK   ? RookSafeCheck
+                                 : pt == BISHOP ? BishopSafeCheck
+                                                : KnightSafeCheck;
+                else
+                    unsafeChecks |= b;
+                break;
+            case PAWN:
+            case SHOGI_PAWN:
+            case KING:
+                break;
+            default:
+                b = attacks_bb(Us, pt, ksq, pos.pieces()) & get_attacks(pt) & pos.board_bb();
+                if (b & safe)
+                    kingDanger += OtherSafeCheck;
+                else
+                    unsafeChecks |= b;
+            }
+        }
 
         // Unsafe or occupied checking squares will also be considered, as long as
         // the square is in the attacker's mobility area.
@@ -504,7 +512,7 @@ namespace {
         kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
                      + 102 * kingAttacksCount[Them] * (1 + pos.captures_to_hand() + !!pos.max_check_count())
                      + 191 * popcount(kingRing[Us] & weak) * (1 + pos.captures_to_hand() + !!pos.max_check_count())
-                     + 143 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
+                     + 143 * popcount(pos.blockers_for_king(Us) | unsafeChecks) * 64 / popcount(pos.board_bb())
                      - 848 * !(pos.count<QUEEN>(Them) || pos.captures_to_hand())
                      -   9 * mg_value(score) / 8
                      + 100 * (pos.piece_drops() ? pos.count_in_hand(Them, ALL_PIECES) : 0)
