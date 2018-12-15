@@ -135,7 +135,15 @@ Entry* probe(const Position& pos) {
   Value npm = std::max(EndgameLimit, std::min(npm_w + npm_b, MidgameLimit));
 
   // Map total non-pawn material into [PHASE_ENDGAME, PHASE_MIDGAME]
-  e->gamePhase = Phase(((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
+  if (pos.captures_to_hand())
+  {
+      npm = VALUE_ZERO;
+      for (PieceType pt : pos.piece_types())
+          npm += (pos.count_in_hand(WHITE, pt) + pos.count_in_hand(BLACK, pt)) * PieceValue[MG][make_piece(WHITE, pt)];
+      e->gamePhase = Phase(PHASE_MIDGAME * (MidgameLimit - std::min(npm, MidgameLimit)) / MidgameLimit);
+  }
+  else
+      e->gamePhase = Phase(((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
 
 #ifdef LARGEBOARDS
   // Disable endgame evaluation until it works independent of board size

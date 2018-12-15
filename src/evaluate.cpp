@@ -533,6 +533,10 @@ namespace {
     // King tropism, to anticipate slow motion attacks on our king
     score -= CloseEnemies * (popcount(b1) + popcount(b2)) * (1 + pos.captures_to_hand() + !!pos.max_check_count());
 
+    // For drop games, king danger is independent of game phase
+    if (pos.captures_to_hand())
+        score = make_score(mg_value(score), mg_value(score)) / (1 + 3 * !pos.shogi_doubled_pawn());
+
     if (T)
         Trace::add(KING, Us, score);
 
