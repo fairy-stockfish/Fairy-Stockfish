@@ -992,9 +992,10 @@ namespace {
     Score score = pos.captures_to_hand() || !pos.checking_permitted() ? pos.psq_score() / 2 : pos.psq_score();
     // For antichess-like variants, use negative piece values
     if (  (   pos.extinction_value() == VALUE_MATE
-           && pos.extinction_piece_types().find(ALL_PIECES) != pos.extinction_piece_types().end())
-        || pos.bare_king_value() == VALUE_MATE)
+           && pos.extinction_piece_types().find(ALL_PIECES) != pos.extinction_piece_types().end()))
         score = -score / 4;
+    else if (pos.bare_king_value() == VALUE_MATE)
+        score = make_score(-mg_value(score) / 4, -eg_value(score) / 8);
     if (T)
         Trace::add(MATERIAL, score);
     score += me->imbalance() + pos.this_thread()->contempt;
