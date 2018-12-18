@@ -578,7 +578,8 @@ namespace {
             if (type_of(pos.piece_on(s)) != KING)
                 moves |= pos.moves_from(Us, type_of(pos.piece_on(s)), s);
         }
-        score += make_score(300, 300) * popcount(attackedBy[Them][ALL_PIECES] & moves & ~pos.pieces());
+        score += make_score(200, 200) * popcount(attackedBy[Them][ALL_PIECES] & moves & ~pos.pieces());
+        score += make_score(200, 200) * popcount(attackedBy[Them][ALL_PIECES] & moves & ~pos.pieces() & ~attackedBy2[Us]);
     }
 
     // Non-pawn enemies
