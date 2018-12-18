@@ -265,7 +265,10 @@ namespace {
 
     // Squares occupied by those pawns, by our king or queen, or controlled by enemy pawns
     // are excluded from the mobility area.
-    mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pe->pawn_attacks(Them) | shift<Down>(pos.pieces(Them, SHOGI_PAWN)));
+    if (pos.must_capture())
+        mobilityArea[Us] = AllSquares;
+    else
+        mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pe->pawn_attacks(Them) | shift<Down>(pos.pieces(Them, SHOGI_PAWN)));
 
     // Initialise attackedBy bitboards for kings and pawns
     attackedBy[Us][KING] = pos.count<KING>(Us) ? pos.attacks_from<KING>(Us, pos.square<KING>(Us)) : 0;
