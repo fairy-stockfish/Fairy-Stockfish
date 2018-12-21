@@ -278,7 +278,7 @@ VariantMap variants; // Global object
         v->add_piece(FERS, 'e');
         v->add_piece(WAZIR, 'g');
         v->add_piece(KING, 'l');
-        v->startFen = "gle/1c1/1C1/GLE[-] w 0 1";
+        v->startFen = "gle/1c1/1C1/ELG[-] w 0 1";
         v->promotionRank = RANK_4;
         v->immobilityIllegal = false;
         v->shogiPawnDropMateIllegal = false;
