@@ -288,6 +288,14 @@ VariantMap variants; // Global object
         v->shogiDoubledPawn = true;
         return v;
     }
+    Variant* gorogoroshogi_variant() {
+        Variant* v = minishogi_variant();
+        v->maxRank = RANK_6;
+        v->maxFile = FILE_E;
+        v->startFen = "sgkgs/5/1ppp1/1PPP1/5/SGKGS[-] w 0 1";
+        v->promotionRank = RANK_5;
+        return v;
+    }
     Variant* judkinsshogi_variant() {
         Variant* v = minishogi_variant();
         v->maxRank = RANK_6;
@@ -525,10 +533,11 @@ void VariantMap::init() {
     add("pocketknight", pocketknight_variant());
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
-    add("euroshogi", euroshogi_variant());
-    add("judkinshogi", judkinsshogi_variant());
     add("minishogi", minishogi_variant());
     add("dobutsu", dobutsu_variant());
+    add("gorogoro", gorogoroshogi_variant());
+    add("judkinshogi", judkinsshogi_variant());
+    add("euroshogi", euroshogi_variant());
     add("losalamos", losalamos_variant());
     add("almost", almost_variant());
     add("chigorin", chigorin_variant());
