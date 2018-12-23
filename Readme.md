@@ -12,7 +12,7 @@ Besides chess, the currently supported variants are:
 - [Makruk](https://en.wikipedia.org/wiki/Makruk), [ASEAN](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok
 - [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)
 - [Shatar](https://en.wikipedia.org/wiki/Shatar)
-- [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi), [Dobutsu shogi](https://en.wikipedia.org/wiki/Dōbutsu_shōgi)
+- [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [Kyoto shogi](https://en.wikipedia.org/wiki/Kyoto_shogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi), [Dobutsu shogi](https://en.wikipedia.org/wiki/Dōbutsu_shōgi), [Goro goro shogi](https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi#Variation)
 
 **Modern variants**
 - [Chess960](https://en.wikipedia.org/wiki/Chess960), [Placement/Pre-Chess](https://www.chessvariants.com/link/placement-chess)
