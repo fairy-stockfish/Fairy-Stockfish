@@ -813,6 +813,12 @@ bool Position::pseudo_legal(const Move m) const {
   if (type_of(m) != NORMAL)
       return MoveList<LEGAL>(*this).contains(m);
 
+  // Handle the case where a mandatory piece promotion/demotion is not taken
+  if (    mandatory_piece_promotion()
+      && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)
+      && (promotion_zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to)))
+      return false;
+
   // Is not a promotion, so promotion piece must be empty
   if (promotion_type(m) != NO_PIECE_TYPE)
       return false;
@@ -888,7 +894,7 @@ bool Position::gives_check(Move m) const {
       return false;
 
   // Is there a direct check?
-  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && (st->checkSquares[type_of(moved_piece(m))] & to))
+  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && (st->checkSquares[type_of(moved_piece(m))] & to))
       return true;
 
   // Is there a discovered check?
@@ -908,6 +914,9 @@ bool Position::gives_check(Move m) const {
 
   case PIECE_PROMOTION:
       return attacks_bb(sideToMove, promoted_piece_type(type_of(moved_piece(m))), to, pieces() ^ from) & square<KING>(~sideToMove);
+
+  case PIECE_DEMOTION:
+      return attacks_bb(sideToMove, type_of(unpromoted_piece_on(from)), to, pieces() ^ from) & square<KING>(~sideToMove);
 
   // En passant capture with check? We have already handled the case
   // of direct checks and ordinary discovered check, so the only case we
@@ -1051,9 +1060,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   // Update hash key
   if (type_of(m) == DROP)
+  {
+      Piece pc_hand = make_piece(us, in_hand_piece_type(m));
       k ^=  Zobrist::psq[pc][to]
-          ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1]
-          ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
+          ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
+          ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
+  }
   else
       k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
 
@@ -1075,7 +1087,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Move the piece. The tricky Chess960 castling is handled earlier
   if (type_of(m) == DROP)
   {
-      drop_piece(pc, to);
+      drop_piece(make_piece(us, in_hand_piece_type(m)), pc, to);
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
       if (type_of(pc) != PAWN)
           st->nonPawnMaterial[us] += PieceValue[MG][pc];
@@ -1168,6 +1180,26 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Update material
       st->nonPawnMaterial[us] += PieceValue[MG][promotion] - PieceValue[MG][pc];
   }
+  else if (type_of(m) == PIECE_DEMOTION)
+  {
+      Piece demotion = unpromoted_piece_on(from);
+
+      remove_piece(pc, to);
+      put_piece(demotion, to);
+      promotedPieces ^= from;
+      unpromotedBoard[from] = NO_PIECE;
+
+      // Update hash keys
+      k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[demotion][to];
+      st->materialKey ^=  Zobrist::psq[demotion][pieceCount[demotion]-1]
+                        ^ Zobrist::psq[pc][pieceCount[pc]];
+
+      // Update incremental score
+      st->psq += PSQT::psq[demotion][to] - PSQT::psq[pc][to];
+
+      // Update material
+      st->nonPawnMaterial[us] += PieceValue[MG][demotion] - PieceValue[MG][pc];
+  }
 
   // Update incremental scores
   st->psq += PSQT::psq[pc][to] - PSQT::psq[pc][from];
@@ -1187,12 +1219,16 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Update information about promoted pieces
   if (type_of(m) != DROP && is_promoted(from))
       promotedPieces = (promotedPieces - from) | to;
+  else if (type_of(m) == DROP && in_hand_piece_type(m) != dropped_piece_type(m))
+      promotedPieces = promotedPieces | to;
 
   if (type_of(m) != DROP && unpromoted_piece_on(from))
   {
       unpromotedBoard[to] = unpromotedBoard[from];
       unpromotedBoard[from] = NO_PIECE;
   }
+  else if (type_of(m) == DROP && in_hand_piece_type(m) != dropped_piece_type(m))
+      unpromotedBoard[to] = make_piece(us, in_hand_piece_type(m));
 
   sideToMove = ~sideToMove;
 
@@ -1240,6 +1276,14 @@ void Position::undo_move(Move m) {
       unpromotedBoard[to] = NO_PIECE;
       promotedPieces -= to;
   }
+  else if (type_of(m) == PIECE_DEMOTION)
+  {
+      remove_piece(pc, to);
+      unpromotedBoard[from] = pc;
+      pc = make_piece(us, promoted_piece_type(type_of(pc)));
+      put_piece(pc, to);
+      promotedPieces |= from;
+  }
 
   if (type_of(m) == CASTLING)
   {
@@ -1249,14 +1293,19 @@ void Position::undo_move(Move m) {
   else
   {
       if (type_of(m) == DROP)
-          undrop_piece(pc, to); // Remove the dropped piece
+          undrop_piece(make_piece(us, in_hand_piece_type(m)), pc, to); // Remove the dropped piece
       else
           move_piece(pc, to, from); // Put the piece back at the source square
       if (captures_to_hand() && !drop_loop() && is_promoted(to))
-          promotedPieces = (promotedPieces - to) | from;
+      {
+          promotedPieces = (promotedPieces - to);
+          if (type_of(m) != DROP)
+              promotedPieces |= from;
+      }
       if (unpromoted_piece_on(to))
       {
-          unpromotedBoard[from] = unpromotedBoard[to];
+          if (type_of(m) != DROP)
+              unpromotedBoard[from] = unpromotedBoard[to];
           unpromotedBoard[to] = NO_PIECE;
       }
 
@@ -1382,8 +1431,11 @@ Key Position::key_after(Move m) const {
       }
   }
   if (type_of(m) == DROP)
-      return k ^ Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]]
-            ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1];
+  {
+      Piece pc_hand = make_piece(sideToMove, in_hand_piece_type(m));
+      return k ^ Zobrist::psq[pc][to] ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]]
+            ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1];
+  }
 
   return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
 }

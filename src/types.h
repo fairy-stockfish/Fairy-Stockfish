@@ -137,7 +137,10 @@ enum MoveType : int {
   PROMOTION          = 3 << (2 * SQUARE_BITS),
   DROP               = 4 << (2 * SQUARE_BITS),
   PIECE_PROMOTION    = 5 << (2 * SQUARE_BITS),
+  PIECE_DEMOTION     = 6 << (2 * SQUARE_BITS),
 };
+
+constexpr int MOVE_TYPE_BITS = 4;
 
 enum Color {
   WHITE, BLACK, COLOR_NB = 2
@@ -228,7 +231,7 @@ enum Value : int {
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
 
-const int PIECE_TYPE_BITS = 5; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
+constexpr int PIECE_TYPE_BITS = 5; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
 
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN,
@@ -243,6 +246,8 @@ enum PieceType {
 static_assert(KING < PIECE_TYPE_NB, "KING exceeds PIECE_TYPE_NB.");
 static_assert(PIECE_TYPE_BITS <= 6, "PIECE_TYPE uses more than 6 bit");
 static_assert(!(PIECE_TYPE_NB & (PIECE_TYPE_NB - 1)), "PIECE_TYPE_NB is not a power of 2");
+
+static_assert(2 * SQUARE_BITS + MOVE_TYPE_BITS + 2 * PIECE_TYPE_BITS <= 32, "Move encoding uses more than 32 bits");
 
 enum Piece {
   NO_PIECE,
@@ -551,7 +556,7 @@ inline int from_to(Move m) {
 }
 
 inline PieceType promotion_type(Move m) {
-  return type_of(m) == PROMOTION ? PieceType((m >> (2 * SQUARE_BITS + 4)) & (PIECE_TYPE_NB - 1)) : NO_PIECE_TYPE;
+  return type_of(m) == PROMOTION ? PieceType((m >> (2 * SQUARE_BITS + MOVE_TYPE_BITS)) & (PIECE_TYPE_NB - 1)) : NO_PIECE_TYPE;
 }
 
 inline Move make_move(Square from, Square to) {
@@ -560,15 +565,19 @@ inline Move make_move(Square from, Square to) {
 
 template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
-  return Move((pt << (2 * SQUARE_BITS + 4)) + T + (from << SQUARE_BITS) + to);
+  return Move((pt << (2 * SQUARE_BITS + MOVE_TYPE_BITS)) + T + (from << SQUARE_BITS) + to);
 }
 
-constexpr Move make_drop(Square to, PieceType pt) {
-  return Move((pt << (2 * SQUARE_BITS + 4)) + DROP + to);
+constexpr Move make_drop(Square to, PieceType pt_in_hand, PieceType pt_dropped) {
+  return Move((pt_in_hand << (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) + (pt_dropped << (2 * SQUARE_BITS + MOVE_TYPE_BITS)) + DROP + to);
 }
 
 constexpr PieceType dropped_piece_type(Move m) {
-  return PieceType((m >> (2 * SQUARE_BITS + 4)) & (PIECE_TYPE_NB - 1));
+  return PieceType((m >> (2 * SQUARE_BITS + MOVE_TYPE_BITS)) & (PIECE_TYPE_NB - 1));
+}
+
+constexpr PieceType in_hand_piece_type(Move m) {
+  return PieceType((m >> (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) & (PIECE_TYPE_NB - 1));
 }
 
 inline bool is_ok(Move m) {

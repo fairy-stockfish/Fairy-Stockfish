@@ -268,6 +268,27 @@ VariantMap variants; // Global object
         v->shogiPawnDropMateIllegal = true;
         return v;
     }
+    Variant* kyotoshogi_variant() {
+        Variant* v = minishogi_variant();
+        v->add_piece(LANCE, 'l');
+        v->add_piece(SHOGI_KNIGHT, 'n');
+        v->startFen = "p+nks+l/5/5/5/+LSK+NP[-] w 0 1";
+        v->promotionRank = RANK_1;
+        v->mandatoryPiecePromotion = true;
+        v->pieceDemotion = true;
+        v->dropPromoted = true;
+        v->promotedPieceType[LANCE]        = GOLD;
+        v->promotedPieceType[SILVER]       = BISHOP;
+        v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
+        v->promotedPieceType[SHOGI_PAWN]   = ROOK;
+        v->promotedPieceType[GOLD]         = NO_PIECE_TYPE;
+        v->promotedPieceType[BISHOP]       = NO_PIECE_TYPE;
+        v->promotedPieceType[ROOK]         = NO_PIECE_TYPE;
+        v->immobilityIllegal = false;
+        v->shogiPawnDropMateIllegal = false;
+        v->shogiDoubledPawn = true;
+        return v;
+    }
     Variant* dobutsu_variant() {
         Variant* v = minishogi_variant();
         v->maxRank = RANK_4;
@@ -534,6 +555,7 @@ void VariantMap::init() {
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
     add("minishogi", minishogi_variant());
+    add("kyotoshogi", kyotoshogi_variant());
     add("dobutsu", dobutsu_variant());
     add("gorogoro", gorogoroshogi_variant());
     add("judkinshogi", judkinsshogi_variant());

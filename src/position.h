@@ -100,6 +100,7 @@ public:
   bool sittuyin_promotion() const;
   PieceType promoted_piece_type(PieceType pt) const;
   bool mandatory_piece_promotion() const;
+  bool piece_demotion() const;
   bool endgame_eval() const;
   bool double_step_enabled() const;
   bool first_rank_double_steps() const;
@@ -118,6 +119,7 @@ public:
   Bitboard drop_region(Color c) const;
   bool sittuyin_rook_drop() const;
   bool drop_opposite_colored_bishop() const;
+  bool drop_promoted() const;
   bool shogi_doubled_pawn() const;
   bool immobility_illegal() const;
   // winning conditions
@@ -191,6 +193,7 @@ public:
   // Piece specific
   bool pawn_passed(Color c, Square s) const;
   bool opposite_bishops() const;
+  bool is_promoted(Square s) const;
 
   // Doing and undoing moves
   void do_move(Move m, StateInfo& newSt);
@@ -259,11 +262,10 @@ private:
   bool chess960;
   int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
   Bitboard promotedPieces;
-  bool is_promoted(Square s) const;
   void add_to_hand(Color c, PieceType pt);
   void remove_from_hand(Color c, PieceType pt);
-  void drop_piece(Piece pc, Square s);
-  void undrop_piece(Piece pc, Square s);
+  void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
+  void undrop_piece(Piece pc_hand, Piece pc_drop, Square s);
 };
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
@@ -321,6 +323,11 @@ inline PieceType Position::promoted_piece_type(PieceType pt) const {
 inline bool Position::mandatory_piece_promotion() const {
   assert(var != nullptr);
   return var->mandatoryPiecePromotion;
+}
+
+inline bool Position::piece_demotion() const {
+  assert(var != nullptr);
+  return var->pieceDemotion;
 }
 
 inline bool Position::endgame_eval() const {
@@ -411,6 +418,11 @@ inline bool Position::sittuyin_rook_drop() const {
 inline bool Position::drop_opposite_colored_bishop() const {
   assert(var != nullptr);
   return var->dropOppositeColoredBishop;
+}
+
+inline bool Position::drop_promoted() const {
+  assert(var != nullptr);
+  return var->dropPromoted;
 }
 
 inline bool Position::shogi_doubled_pawn() const {
@@ -757,6 +769,10 @@ inline bool Position::opposite_bishops() const {
         && opposite_colors(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
+inline bool Position::is_promoted(Square s) const {
+  return promotedPieces & s;
+}
+
 inline bool Position::is_chess960() const {
   return chess960;
 }
@@ -840,21 +856,17 @@ inline void Position::remove_from_hand(Color c, PieceType pt) {
   pieceCountInHand[c][ALL_PIECES]--;
 }
 
-inline bool Position::is_promoted(Square s) const {
-  return promotedPieces & s;
+inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s) {
+  assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]);
+  put_piece(pc_drop, s);
+  remove_from_hand(color_of(pc_hand), type_of(pc_hand));
 }
 
-inline void Position::drop_piece(Piece pc, Square s) {
-  assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
-  put_piece(pc, s);
-  remove_from_hand(color_of(pc), type_of(pc));
-}
-
-inline void Position::undrop_piece(Piece pc, Square s) {
-  remove_piece(pc, s);
+inline void Position::undrop_piece(Piece pc_hand, Piece pc_drop, Square s) {
+  remove_piece(pc_drop, s);
   board[s] = NO_PIECE;
-  add_to_hand(color_of(pc), type_of(pc));
-  assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
+  add_to_hand(color_of(pc_hand), type_of(pc_hand));
+  assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]);
 }
 
 #endif // #ifndef POSITION_H_INCLUDED

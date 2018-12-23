@@ -289,6 +289,17 @@ std::string UCI::square(const Position& pos, Square s) {
 #endif
 }
 
+/// UCI::dropped_piece() generates a piece label string from a Move.
+
+string UCI::dropped_piece(const Position& pos, Move m) {
+  assert(type_of(m) == DROP);
+  if (dropped_piece_type(m) == pos.promoted_piece_type(in_hand_piece_type(m)))
+      // Dropping as promoted piece
+      return std::string{'+', pos.piece_to_char()[in_hand_piece_type(m)]};
+  else
+      return std::string{pos.piece_to_char()[dropped_piece_type(m)]};
+}
+
 
 /// UCI::move() converts a Move to a string in coordinate notation (g1f3, a7a8q).
 /// The only special case is castling, where we print in the e1g1 notation in
@@ -309,15 +320,15 @@ string UCI::move(const Position& pos, Move m) {
   if (type_of(m) == CASTLING && !pos.is_chess960())
       to = make_square(to > from ? pos.castling_kingside_file() : pos.castling_queenside_file(), rank_of(from));
 
-  string move = (type_of(m) == DROP ? std::string{pos.piece_to_char()[type_of(pos.moved_piece(m))],
-                                                  Options["Protocol"] == "usi" ? '*' : '@'}
+  string move = (type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@')
                                     : UCI::square(pos, from)) + UCI::square(pos, to);
 
   if (type_of(m) == PROMOTION)
       move += pos.piece_to_char()[make_piece(BLACK, promotion_type(m))];
-
-  if (type_of(m) == PIECE_PROMOTION)
+  else if (type_of(m) == PIECE_PROMOTION)
       move += '+';
+  else if (type_of(m) == PIECE_DEMOTION)
+      move += '-';
 
   return move;
 }

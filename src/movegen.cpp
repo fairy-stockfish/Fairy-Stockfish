@@ -97,10 +97,20 @@ namespace {
                     b &= ~file_bb(f);
         if (pt == ROOK && pos.sittuyin_rook_drop())
             b &= rank_bb(relative_rank(Us, RANK_1, pos.max_rank()));
+
+        // Add to move list
+        if (pos.drop_promoted() && pos.promoted_piece_type(pt))
+        {
+            Bitboard b2 = b;
+            if (Checks)
+                b2 &= pos.check_squares(pos.promoted_piece_type(pt));
+            while (b2)
+                *moveList++ = make_drop(pop_lsb(&b2), pt, pos.promoted_piece_type(pt));
+        }
         if (Checks)
             b &= pos.check_squares(pt);
         while (b)
-            *moveList++ = make_drop(pop_lsb(&b), pt);
+            *moveList++ = make_drop(pop_lsb(&b), pt, pt);
     }
 
     return moveList;
@@ -287,24 +297,29 @@ namespace {
 
         Bitboard b1 = (  (pos.attacks_from(us, pt, from) & pos.pieces())
                        | (pos.moves_from(us, pt, from) & ~pos.pieces())) & target;
-        PieceType pt_promotion = pos.promoted_piece_type(pt);
-        Bitboard b2 = pt_promotion ? b1 : 0;
+        Bitboard b2 = pos.promoted_piece_type(pt) ? b1 : 0;
+        Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : 0;
 
         if (Checks)
         {
             b1 &= pos.check_squares(pt);
-            if (pt_promotion)
-                b2 &= pos.check_squares(pt_promotion);
+            if (b2)
+                b2 &= pos.check_squares(pos.promoted_piece_type(pt));
+            if (b3)
+                b3 &= pos.check_squares(type_of(pos.unpromoted_piece_on(from)));
         }
 
         // Restrict target squares considering promotion zone
-        if (pt_promotion)
+        if (b2 | b3)
         {
             Bitboard promotion_zone = promotion_zone_bb(us, pos.promotion_rank(), pos.max_rank());
             if (pos.mandatory_piece_promotion())
                 b1 &= promotion_zone & from ? 0 : ~promotion_zone;
             if (!(promotion_zone & from))
+            {
                 b2 &= promotion_zone;
+                b3 &= promotion_zone;
+            }
         }
 
         while (b1)
@@ -313,6 +328,10 @@ namespace {
         // Shogi-style piece promotions
         while (b2)
             *moveList++ = make<PIECE_PROMOTION>(from, pop_lsb(&b2));
+
+        // Piece demotions
+        while (b3)
+            *moveList++ = make<PIECE_DEMOTION>(from, pop_lsb(&b3));
     }
 
     return moveList;

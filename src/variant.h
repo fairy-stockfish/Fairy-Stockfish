@@ -44,6 +44,7 @@ struct Variant {
   bool sittuyinPromotion = false;
   PieceType promotedPieceType[PIECE_TYPE_NB] = {};
   bool mandatoryPiecePromotion = false;
+  bool pieceDemotion = false;
   bool endgameEval = false;
   bool doubleStep = true;
   bool firstRankDoubleSteps = false;
@@ -63,6 +64,7 @@ struct Variant {
   Bitboard blackDropRegion = AllSquares;
   bool sittuyinRookDrop = false;
   bool dropOppositeColoredBishop = false;
+  bool dropPromoted = false;
   bool shogiDoubledPawn = true;
   bool immobilityIllegal = false;
   // game end
