@@ -843,7 +843,7 @@ namespace {
     if (    depth >= (8 - 2 * pos.captures_to_hand()) * ONE_PLY
         && !ttMove)
     {
-        search<NT>(pos, ss, alpha, beta, depth - 7 * ONE_PLY, cutNode);
+        search<NT>(pos, ss, alpha, beta, depth - (7 - 2 * pos.captures_to_hand()) * ONE_PLY, cutNode);
 
         tte = TT.probe(posKey, ttHit);
         ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
