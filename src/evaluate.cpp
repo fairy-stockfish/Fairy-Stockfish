@@ -452,8 +452,15 @@ namespace {
 
     if (pos.piece_drops() && pos.count_in_hand(Us, pt))
     {
+        Bitboard b = pos.drop_region(Us, pt) & ~pos.pieces() & (~attackedBy2[Them] | attackedBy[Us][ALL_PIECES]);
+        if (b & kingRing[Them])
+        {
+            kingAttackersCount[Us] += pos.count_in_hand(Us, pt);
+            kingAttackersWeight[Us] += KingAttackWeights[std::min(pt, QUEEN)] * pos.count_in_hand(Us, pt);
+            kingAttacksCount[Us] += popcount(b & attackedBy[Them][KING]);
+        }
         Bitboard theirHalf = pos.board_bb() & ~forward_ranks_bb(Them, relative_rank(Them, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
-        mobility[Us] += DropMobility * popcount(theirHalf & ~(pos.pieces() | attackedBy[Them][ALL_PIECES]) & pos.drop_region(Us, pt));
+        mobility[Us] += DropMobility * popcount(b & theirHalf & ~attackedBy[Them][ALL_PIECES]);
     }
 
     return score;
@@ -546,7 +553,6 @@ namespace {
                      + 143 * popcount(pos.blockers_for_king(Us) | unsafeChecks) * 64 / popcount(pos.board_bb())
                      - 848 * !(pos.count<QUEEN>(Them) || pos.captures_to_hand())
                      -   9 * mg_value(score) / 8
-                     + 100 * (pos.piece_drops() ? pos.count_in_hand(Them, ALL_PIECES) : 0)
                      +  40;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
@@ -1047,7 +1053,7 @@ namespace {
 
     // Evaluate pieces in hand once attack tables are complete
     if (pos.piece_drops())
-        for (PieceType pt = KNIGHT; pt < KING; ++pt)
+        for (PieceType pt = PAWN; pt < KING; ++pt)
             score += hand<WHITE>(pt) - hand<BLACK>(pt);
 
     score += (mobility[WHITE] - mobility[BLACK]) * (1 + pos.captures_to_hand() + pos.must_capture());
