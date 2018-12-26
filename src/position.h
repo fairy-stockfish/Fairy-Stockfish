@@ -117,6 +117,7 @@ public:
   bool first_rank_drops() const;
   bool drop_on_top() const;
   Bitboard drop_region(Color c) const;
+  Bitboard drop_region(Color c, PieceType pt) const;
   bool sittuyin_rook_drop() const;
   bool drop_opposite_colored_bishop() const;
   bool drop_promoted() const;
@@ -408,6 +409,31 @@ inline bool Position::drop_on_top() const {
 inline Bitboard Position::drop_region(Color c) const {
   assert(var != nullptr);
   return c == WHITE ? var->whiteDropRegion : var->blackDropRegion;
+}
+
+inline Bitboard Position::drop_region(Color c, PieceType pt) const {
+  Bitboard b = drop_region(c) & board_bb();
+
+  // Connect4-style drops
+  if (drop_on_top())
+      b &= shift<NORTH>(pieces()) | Rank1BB;
+  // Pawns on back ranks
+  if (pt == PAWN)
+  {
+      b &= ~promotion_zone_bb(c, promotion_rank(), max_rank());
+      if (!first_rank_drops())
+          b &= ~rank_bb(relative_rank(c, RANK_1, max_rank()));
+  }
+  // Doubled shogi pawns
+  if (pt == SHOGI_PAWN && !shogi_doubled_pawn())
+      for (File f = FILE_A; f <= max_file(); ++f)
+          if (file_bb(f) & pieces(c, pt))
+              b &= ~file_bb(f);
+  // Sittuyin rook drops
+  if (pt == ROOK && sittuyin_rook_drop())
+      b &= rank_bb(relative_rank(c, RANK_1, max_rank()));
+
+  return b;
 }
 
 inline bool Position::sittuyin_rook_drop() const {

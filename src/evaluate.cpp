@@ -120,6 +120,8 @@ namespace {
       S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
       S(106,184), S(109,191), S(113,206), S(116,212) }
   };
+  constexpr Score MaxMobility  = S(300, 300);
+  constexpr Score DropMobility = S(10, 10);
 
   // Outpost[knight/bishop][supported by pawn] contains bonuses for minor
   // pieces if they occupy or can reach an outpost square, bigger if that
@@ -201,6 +203,7 @@ namespace {
   private:
     template<Color Us> void initialize();
     template<Color Us> Score pieces(PieceType Pt);
+    template<Color Us> Score hand(PieceType pt);
     template<Color Us> Score king() const;
     template<Color Us> Score threats() const;
     template<Color Us> Score passed() const;
@@ -343,7 +346,7 @@ namespace {
         if (Pt <= QUEEN)
             mobility[Us] += MobilityBonus[Pt - 2][mob];
         else
-            mobility[Us] += make_score(300, 300) * (mob - 1) / (10 + mob);
+            mobility[Us] += MaxMobility * (mob - 1) / (10 + mob);
 
         // Piece promotion bonus
         if (pos.promoted_piece_type(Pt) != NO_PIECE_TYPE)
@@ -439,6 +442,22 @@ namespace {
     return score;
   }
 
+  // Evaluation::hand() scores pieces of a given color and type in hand
+  template<Tracing T> template<Color Us>
+  Score Evaluation<T>::hand(PieceType pt) {
+
+    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
+
+    Score score = SCORE_ZERO;
+
+    if (pos.piece_drops() && pos.count_in_hand(Us, pt))
+    {
+        Bitboard theirHalf = pos.board_bb() & ~forward_ranks_bb(Them, relative_rank(Them, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
+        mobility[Us] += DropMobility * popcount(theirHalf & ~(pos.pieces() | attackedBy[Them][ALL_PIECES]) & pos.drop_region(Us, pt));
+    }
+
+    return score;
+  }
 
   // Evaluation::king() assigns bonuses and penalties to a king of a given color
   template<Tracing T> template<Color Us>
@@ -1025,6 +1044,11 @@ namespace {
     // For unused piece types, we still need to set attack bitboard to zero.
     for (PieceType pt = KNIGHT; pt < KING; ++pt)
         score += pieces<WHITE>(pt) - pieces<BLACK>(pt);
+
+    // Evaluate pieces in hand once attack tables are complete
+    if (pos.piece_drops())
+        for (PieceType pt = KNIGHT; pt < KING; ++pt)
+            score += hand<WHITE>(pt) - hand<BLACK>(pt);
 
     score += (mobility[WHITE] - mobility[BLACK]) * (1 + pos.captures_to_hand() + pos.must_capture());
 

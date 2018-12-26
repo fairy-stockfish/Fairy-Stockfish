@@ -82,21 +82,8 @@ namespace {
   ExtMove* generate_drops(const Position& pos, ExtMove* moveList, PieceType pt, Bitboard b) {
     if (pos.count_in_hand(Us, pt))
     {
-        // Consider only drops on top of already placed pieces
-        if (pos.drop_on_top())
-            b &= shift<NORTH>(pos.pieces()) | Rank1BB;
-        if (pt == PAWN)
-        {
-            b &= ~promotion_zone_bb(Us, pos.promotion_rank(), pos.max_rank());
-            if (!pos.first_rank_drops())
-                b &= ~rank_bb(relative_rank(Us, RANK_1, pos.max_rank()));
-        }
-        if (pt == SHOGI_PAWN && !pos.shogi_doubled_pawn())
-            for (File f = FILE_A; f <= pos.max_file(); ++f)
-                if (file_bb(f) & pos.pieces(Us, pt))
-                    b &= ~file_bb(f);
-        if (pt == ROOK && pos.sittuyin_rook_drop())
-            b &= rank_bb(relative_rank(Us, RANK_1, pos.max_rank()));
+        // Restrict to valid target
+        b &= pos.drop_region(Us, pt);
 
         // Add to move list
         if (pos.drop_promoted() && pos.promoted_piece_type(pt))
@@ -349,7 +336,7 @@ namespace {
     // generate drops
     if (pos.piece_drops() && Type != CAPTURES && pos.count_in_hand(Us, ALL_PIECES))
         for (PieceType pt = PAWN; pt <= KING; ++pt)
-            moveList = generate_drops<Us, Checks>(pos, moveList, pt, target & ~pos.pieces(~Us) & pos.drop_region(Us));
+            moveList = generate_drops<Us, Checks>(pos, moveList, pt, target & ~pos.pieces(~Us));
 
     if (Type != QUIET_CHECKS && Type != EVASIONS && pos.count<KING>(Us))
     {
