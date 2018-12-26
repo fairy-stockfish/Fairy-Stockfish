@@ -450,7 +450,7 @@ namespace {
 
     Score score = SCORE_ZERO;
 
-    if (pos.piece_drops() && pos.count_in_hand(Us, pt))
+    if (pos.count_in_hand(Us, pt))
     {
         Bitboard b = pos.drop_region(Us, pt) & ~pos.pieces() & (~attackedBy2[Them] | attackedBy[Us][ALL_PIECES]);
         if (b & kingRing[Them])
