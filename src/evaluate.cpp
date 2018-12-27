@@ -842,7 +842,9 @@ namespace {
       Us == WHITE ? CenterFiles & (Rank2BB | Rank3BB | Rank4BB)
                   : CenterFiles & (Rank7BB | Rank6BB | Rank5BB);
 
-    if (pos.non_pawn_material() < SpaceThreshold && !pos.captures_to_hand())
+    bool pawnsOnly = !(pos.pieces(Us) ^ pos.pieces(Us, PAWN));
+
+    if (pos.non_pawn_material() < SpaceThreshold && !pos.captures_to_hand() && !pawnsOnly)
         return SCORE_ZERO;
 
     // Find the available squares for our pieces inside the area defined by SpaceMask
@@ -850,6 +852,9 @@ namespace {
                    & ~pos.pieces(Us, PAWN, SHOGI_PAWN)
                    & ~attackedBy[Them][PAWN]
                    & ~attackedBy[Them][SHOGI_PAWN];
+
+    if (pawnsOnly)
+        safe = pos.pieces(Us, PAWN) & ~attackedBy[Them][ALL_PIECES];
 
     // Find all squares which are at most three squares behind some friendly pawn
     Bitboard behind = pos.pieces(Us, PAWN, SHOGI_PAWN);
