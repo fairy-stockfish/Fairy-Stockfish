@@ -558,7 +558,7 @@ void VariantMap::init() {
     add("kyotoshogi", kyotoshogi_variant());
     add("dobutsu", dobutsu_variant());
     add("gorogoro", gorogoroshogi_variant());
-    add("judkinshogi", judkinsshogi_variant());
+    add("judkins", judkinsshogi_variant());
     add("euroshogi", euroshogi_variant());
     add("losalamos", losalamos_variant());
     add("almost", almost_variant());
