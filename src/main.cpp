@@ -30,7 +30,7 @@
 #include "syzygy/tbprobe.h"
 
 namespace PSQT {
-  void init();
+  void init(const Variant* v);
 }
 
 int main(int argc, char* argv[]) {
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 
   variants.init();
   UCI::init(Options);
-  PSQT::init();
+  PSQT::init(variants.find("chess")->second);
   Bitboards::init();
   Position::init();
   Bitbases::init();

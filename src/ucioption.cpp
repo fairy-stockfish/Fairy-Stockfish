@@ -34,6 +34,10 @@ using std::string;
 
 UCI::OptionsMap Options; // Global object
 
+namespace PSQT {
+  void init(const Variant* v);
+}
+
 namespace UCI {
 
 /// 'On change' actions, triggered by an option's value change
@@ -43,7 +47,8 @@ void on_logger(const Option& o) { start_logger(o); }
 void on_threads(const Option& o) { Threads.set(o); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
 void on_variant_change(const Option &o) {
-    const Variant * v = variants.find(o)->second;
+    const Variant* v = variants.find(o)->second;
+    PSQT::init(v);
     sync_cout << "info string variant " << (std::string)o
               << " files " << v->maxFile + 1
               << " ranks " << v->maxRank + 1

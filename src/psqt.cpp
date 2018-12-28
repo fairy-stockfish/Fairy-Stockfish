@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include "types.h"
+#include "variant.h"
 
 Value PieceValue[PHASE_NB][PIECE_NB] = {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg,
@@ -114,7 +115,7 @@ Score psq[PIECE_NB][SQUARE_NB + 1];
 // init() initializes piece-square tables: the white halves of the tables are
 // copied from Bonus[] adding the piece value, then the black halves of the
 // tables are initialized by flipping and changing the sign of the white scores.
-void init() {
+void init(const Variant* v) {
 
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
@@ -127,7 +128,7 @@ void init() {
 
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
-          File f = std::min(file_of(s), ~file_of(s));
+          File f = std::max(std::min(file_of(s), File(v->maxFile - file_of(s))), FILE_A);
           psq[ pc][ s] = score + (pt == KING ? KingBonus[std::min(rank_of(s), RANK_8)][std::min(f, FILE_D)] : Bonus[pc][std::min(rank_of(s), RANK_8)][std::min(f, FILE_D)]);
           psq[~pc][~s] = -psq[pc][s];
       }
