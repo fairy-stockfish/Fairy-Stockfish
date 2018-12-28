@@ -126,6 +126,17 @@ void init(const Variant* v) {
 
       Score score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
 
+      // For drop variants, halve the piece values
+      if (v->capturesToHand || !v->checking)
+          score = score / 2;
+
+      // For antichess variants, use negative piece values
+      if (   v->extinctionValue == VALUE_MATE
+          && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
+          score = -score / 8;
+      else if (v->bareKingValue == VALUE_MATE)
+          score = -score / 8;
+
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
           File f = std::max(std::min(file_of(s), File(v->maxFile - file_of(s))), FILE_A);
