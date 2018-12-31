@@ -580,7 +580,7 @@ namespace {
 
     // For drop games, king danger is independent of game phase
     if (pos.captures_to_hand())
-        score = make_score(mg_value(score), mg_value(score)) / (1 + 3 * !pos.shogi_doubled_pawn());
+        score = make_score(mg_value(score), mg_value(score)) / (1 + 2 * !pos.shogi_doubled_pawn());
 
     if (T)
         Trace::add(KING, Us, score);
