@@ -140,7 +140,10 @@ void init(const Variant* v) {
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
           File f = std::max(std::min(file_of(s), File(v->maxFile - file_of(s))), FILE_A);
-          psq[ pc][ s] = score + (pt == KING ? KingBonus[std::min(rank_of(s), RANK_8)][std::min(f, FILE_D)] : Bonus[pc][std::min(rank_of(s), RANK_8)][std::min(f, FILE_D)]);
+          Rank r = rank_of(s);
+          psq[ pc][ s] = score + (  pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                  : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                                : make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - 8));
           psq[~pc][~s] = -psq[pc][s];
       }
       // pieces in pocket
