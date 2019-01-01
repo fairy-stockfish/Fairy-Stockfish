@@ -453,7 +453,7 @@ namespace {
     if (pos.count_in_hand(Us, pt))
     {
         Bitboard b = pos.drop_region(Us, pt) & ~pos.pieces() & (~attackedBy2[Them] | attackedBy[Us][ALL_PIECES]);
-        if (b & kingRing[Them])
+        if ((b & kingRing[Them]) && pt != SHOGI_PAWN)
         {
             kingAttackersCount[Us] += pos.count_in_hand(Us, pt);
             kingAttackersWeight[Us] += KingAttackWeights[std::min(pt, QUEEN)] * pos.count_in_hand(Us, pt);
@@ -580,7 +580,7 @@ namespace {
 
     // For drop games, king danger is independent of game phase
     if (pos.captures_to_hand())
-        score = make_score(mg_value(score), mg_value(score)) / (1 + 2 * !pos.shogi_doubled_pawn());
+        score = make_score(mg_value(score), mg_value(score)) / (1 + !pos.shogi_doubled_pawn());
 
     if (T)
         Trace::add(KING, Us, score);
