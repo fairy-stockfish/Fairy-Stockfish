@@ -266,6 +266,7 @@ VariantMap variants; // Global object
         v->shogiDoubledPawn = false;
         v->immobilityIllegal = true;
         v->shogiPawnDropMateIllegal = true;
+        v->stalemateValue = -VALUE_MATE;
         return v;
     }
     Variant* kyotoshogi_variant() {
