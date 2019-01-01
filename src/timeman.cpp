@@ -42,26 +42,26 @@ namespace {
   // is considered "undecided" as long as neither side has >275cp advantage.
   // Data was extracted from the CCRL game database with some simple filtering criteria.
 
-  double move_importance(int ply) {
+  double move_importance(const Position& pos, int ply) {
 
     constexpr double XScale = 6.85;
-    constexpr double XShift = 64.5;
+    double XShift = (pos.max_rank() + 1) * (pos.max_file() + 1) / (1 + pos.must_capture()) + 0.5;
     constexpr double Skew   = 0.171;
 
     return pow((1 + exp((ply - XShift) / XScale)), -Skew) + DBL_MIN; // Ensure non-zero
   }
 
   template<TimeType T>
-  TimePoint remaining(TimePoint myTime, int movesToGo, int ply, TimePoint slowMover) {
+  TimePoint remaining(const Position& pos, TimePoint myTime, int movesToGo, int ply, TimePoint slowMover) {
 
     constexpr double TMaxRatio   = (T == OptimumTime ? 1.0 : MaxRatio);
     constexpr double TStealRatio = (T == OptimumTime ? 0.0 : StealRatio);
 
-    double moveImportance = (move_importance(ply) * slowMover) / 100.0;
+    double moveImportance = (move_importance(pos, ply) * slowMover) / 100.0;
     double otherMovesImportance = 0.0;
 
     for (int i = 1; i < movesToGo; ++i)
-        otherMovesImportance += move_importance(ply + 2 * i);
+        otherMovesImportance += move_importance(pos, ply + 2 * i);
 
     double ratio1 = (TMaxRatio * moveImportance) / (TMaxRatio * moveImportance + otherMovesImportance);
     double ratio2 = (moveImportance + TStealRatio * otherMovesImportance) / (moveImportance + otherMovesImportance);
@@ -81,7 +81,7 @@ namespace {
 ///  inc >  0 && movestogo == 0 means: x basetime + z increment
 ///  inc >  0 && movestogo != 0 means: x moves in y minutes + z increment
 
-void TimeManagement::init(Search::LimitsType& limits, Color us, int ply) {
+void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color us, int ply) {
 
   TimePoint minThinkingTime = Options["Minimum Thinking Time"];
   TimePoint moveOverhead    = Options["Move Overhead"];
@@ -121,8 +121,8 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply) {
 
       hypMyTime = std::max(hypMyTime, TimePoint(0));
 
-      TimePoint t1 = minThinkingTime + remaining<OptimumTime>(hypMyTime, hypMTG, ply, slowMover);
-      TimePoint t2 = minThinkingTime + remaining<MaxTime    >(hypMyTime, hypMTG, ply, slowMover);
+      TimePoint t1 = minThinkingTime + remaining<OptimumTime>(pos, hypMyTime, hypMTG, ply, slowMover);
+      TimePoint t2 = minThinkingTime + remaining<MaxTime    >(pos, hypMyTime, hypMTG, ply, slowMover);
 
       optimumTime = std::min(t1, optimumTime);
       maximumTime = std::min(t2, maximumTime);
