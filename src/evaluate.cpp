@@ -286,11 +286,13 @@ namespace {
         if (relative_rank(Us, pos.square<KING>(Us), pos.max_rank()) == RANK_1)
             kingRing[Us] |= shift<Up>(kingRing[Us]);
 
-        if (file_of(pos.square<KING>(Us)) == FILE_H)
+        if (file_of(pos.square<KING>(Us)) == pos.max_file())
             kingRing[Us] |= shift<WEST>(kingRing[Us]);
 
         else if (file_of(pos.square<KING>(Us)) == FILE_A)
             kingRing[Us] |= shift<EAST>(kingRing[Us]);
+
+        kingRing[Us] &= pos.board_bb();
 
         kingAttackersCount[Them] = popcount(kingRing[Us] & pe->pawn_attacks(Them));
         kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
@@ -474,8 +476,8 @@ namespace {
   Score Evaluation<T>::king() const {
 
     constexpr Color    Them = (Us == WHITE ? BLACK : WHITE);
-    constexpr Bitboard Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
-                                           : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
+    Rank r = relative_rank(Us, std::min(Rank((pos.max_rank() - 1) / 2 + 1), pos.max_rank()), pos.max_rank());
+    Bitboard Camp = AllSquares ^ forward_ranks_bb(Us, r);
 
     if (!pos.count<KING>(Us) || !pos.checking_permitted())
         return SCORE_ZERO;
@@ -567,7 +569,8 @@ namespace {
         }
     }
 
-    Bitboard kf = KingFlank[file_of(ksq)];
+    File f = std::max(std::min(file_of(ksq), File(pos.max_file() - 1)), FILE_B);
+    Bitboard kf = pos.max_file() == FILE_H ? KingFlank[f] : file_bb(f) | adjacent_files_bb(f);
 
     // Penalty when our king is on a pawnless flank
     if (!(pos.pieces(PAWN) & kf))
@@ -576,7 +579,7 @@ namespace {
     // Find the squares that opponent attacks in our king flank, and the squares
     // which are attacked twice in that flank but not defended by our pawns.
     b1 = attackedBy[Them][ALL_PIECES] & kf & Camp;
-    b2 = b1 & attackedBy2[Them] & ~attackedBy[Us][PAWN];
+    b2 = b1 & attackedBy2[Them] & ~(attackedBy[Us][PAWN] | attackedBy[Us][SHOGI_PAWN]);
 
     // King tropism, to anticipate slow motion attacks on our king
     score -= CloseEnemies * (popcount(b1) + popcount(b2)) * (1 + pos.captures_to_hand() + !!pos.max_check_count());

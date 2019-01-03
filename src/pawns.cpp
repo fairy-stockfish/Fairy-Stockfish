@@ -244,7 +244,7 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
   if (shift<Down>(theirPawns) & (FileABB | FileHBB) & BlockRanks & ksq)
       safety += Value(374);
 
-  File center = std::max(FILE_B, std::min(FILE_G, file_of(ksq)));
+  File center = std::max(FILE_B, std::min(File(pos.max_file() - 1), file_of(ksq)));
   for (File f = File(center - 1); f <= File(center + 1); ++f)
   {
       b = ourPawns & file_bb(f);
@@ -253,7 +253,7 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
       b = theirPawns & file_bb(f);
       int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : 0;
 
-      int d = std::min(f, ~f);
+      int d = std::min(std::min(f, File(pos.max_file() - f)), FILE_D);
       // higher weight for pawns on second rank and missing shelter in drop variants
       safety += ShelterStrength[d][ourRank] * (1 + (pos.captures_to_hand() && ourRank <= RANK_2));
       safety -= (ourRank && (ourRank == theirRank - 1)) ? BlockedStorm[theirRank]
@@ -282,10 +282,16 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
 
   // If we can castle use the bonus after the castling if it is bigger
   if (pos.can_castle(MakeCastling<Us, KING_SIDE>::right))
-      bonus = std::max(bonus, evaluate_shelter<Us>(pos, relative_square(Us, SQ_G1)));
+  {
+      Square s = make_square(pos.castling_kingside_file(), Us == WHITE ? RANK_1 : pos.max_rank());
+      bonus = std::max(bonus, evaluate_shelter<Us>(pos, s));
+  }
 
   if (pos.can_castle(MakeCastling<Us, QUEEN_SIDE>::right))
-      bonus = std::max(bonus, evaluate_shelter<Us>(pos, relative_square(Us, SQ_C1)));
+  {
+      Square s = make_square(pos.castling_queenside_file(), Us == WHITE ? RANK_1 : pos.max_rank());
+      bonus = std::max(bonus, evaluate_shelter<Us>(pos, s));
+  }
 
   return make_score(bonus, -16 * minKingPawnDistance);
 }
