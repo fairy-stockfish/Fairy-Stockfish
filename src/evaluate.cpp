@@ -355,6 +355,9 @@ namespace {
                 score += make_score(PieceValue[MG][pos.promoted_piece_type(Pt)] - PieceValue[MG][Pt],
                                     PieceValue[EG][pos.promoted_piece_type(Pt)] - PieceValue[EG][Pt]) / 10;
         }
+        else if (pos.captures_to_hand() && pos.unpromoted_piece_on(s))
+            score += make_score(PieceValue[MG][Pt] - PieceValue[MG][pos.unpromoted_piece_on(s)],
+                                PieceValue[EG][Pt] - PieceValue[EG][pos.unpromoted_piece_on(s)]) / 8;
 
         // Penalty if the piece is far from the king
         if (pos.count<KING>(Us))
