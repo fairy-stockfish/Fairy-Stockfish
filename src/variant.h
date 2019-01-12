@@ -33,6 +33,7 @@
 
 struct Variant {
   std::string variantTemplate = "fairy";
+  int pocketSize = 0;
   Rank maxRank = RANK_8;
   File maxFile = FILE_H;
   std::set<PieceType> pieceTypes = { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };

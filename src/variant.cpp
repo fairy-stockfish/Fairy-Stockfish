@@ -241,6 +241,7 @@ VariantMap variants; // Global object
     Variant* minishogi_variant() {
         Variant* v = fairy_variant_base();
         v->variantTemplate = "shogi";
+        v->pocketSize = 5;
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
         v->reset_pieces();
@@ -269,8 +270,13 @@ VariantMap variants; // Global object
         v->stalemateValue = -VALUE_MATE;
         return v;
     }
-    Variant* kyotoshogi_variant() {
+    Variant* minishogi_variant_base() {
         Variant* v = minishogi_variant();
+        v->pocketSize = 0;
+        return v;
+    }
+    Variant* kyotoshogi_variant() {
+        Variant* v = minishogi_variant_base();
         v->add_piece(LANCE, 'l');
         v->add_piece(SHOGI_KNIGHT, 'n');
         v->startFen = "p+nks+l/5/5/5/+LSK+NP[-] w 0 1";
@@ -291,7 +297,7 @@ VariantMap variants; // Global object
         return v;
     }
     Variant* dobutsu_variant() {
-        Variant* v = minishogi_variant();
+        Variant* v = minishogi_variant_base();
         v->maxRank = RANK_4;
         v->maxFile = FILE_C;
         v->reset_pieces();
@@ -311,7 +317,7 @@ VariantMap variants; // Global object
         return v;
     }
     Variant* gorogoroshogi_variant() {
-        Variant* v = minishogi_variant();
+        Variant* v = minishogi_variant_base();
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
         v->startFen = "sgkgs/5/1ppp1/1PPP1/5/SGKGS[-] w 0 1";
@@ -319,7 +325,7 @@ VariantMap variants; // Global object
         return v;
     }
     Variant* judkinsshogi_variant() {
-        Variant* v = minishogi_variant();
+        Variant* v = minishogi_variant_base();
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
         v->add_piece(SHOGI_KNIGHT, 'n');
@@ -329,7 +335,7 @@ VariantMap variants; // Global object
         return v;
     }
     Variant* euroshogi_variant() {
-        Variant* v = minishogi_variant();
+        Variant* v = minishogi_variant_base();
         v->maxRank = RANK_8;
         v->maxFile = FILE_H;
         v->add_piece(EUROSHOGI_KNIGHT, 'n');
@@ -441,7 +447,7 @@ VariantMap variants; // Global object
     }
 #ifdef LARGEBOARDS
     Variant* shogi_variant() {
-        Variant* v = minishogi_variant();
+        Variant* v = minishogi_variant_base();
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
         v->add_piece(LANCE, 'l');

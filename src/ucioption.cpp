@@ -52,7 +52,7 @@ void on_variant_change(const Option &o) {
     sync_cout << "info string variant " << (std::string)o
               << " files " << v->maxFile + 1
               << " ranks " << v->maxRank + 1
-              << " pocket " << (v->pieceDrops ? v->pieceTypes.size() : 0)
+              << " pocket " << (v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0)
               << " template " << v->variantTemplate
               << " startpos " << v->startFen
               << sync_endl;
