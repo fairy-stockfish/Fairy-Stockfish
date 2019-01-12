@@ -568,6 +568,7 @@ void VariantMap::init() {
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
     add("minishogi", minishogi_variant());
+    add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());
     add("dobutsu", dobutsu_variant());
     add("gorogoro", gorogoroshogi_variant());
