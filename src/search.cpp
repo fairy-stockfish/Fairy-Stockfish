@@ -204,7 +204,7 @@ void MainThread::search() {
       rootMoves.emplace_back(MOVE_NONE);
       Value variantResult;
       sync_cout << "info depth 0 score "
-                << UCI::value(  rootPos.is_variant_end(variantResult) ? variantResult
+                << UCI::value(  rootPos.is_game_end(variantResult) ? variantResult
                               : rootPos.checkers() ? rootPos.checkmate_value() : rootPos.stalemate_value())
                 << sync_endl;
   }
@@ -568,12 +568,11 @@ namespace {
     if (!rootNode)
     {
         Value variantResult;
-        if (pos.is_variant_end(variantResult, ss->ply))
+        if (pos.is_game_end(variantResult, ss->ply))
             return variantResult;
 
         // Step 2. Check for aborted search and immediate draw
         if (   Threads.stop.load(std::memory_order_relaxed)
-            || pos.is_draw(ss->ply)
             || ss->ply >= MAX_PLY)
             return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : VALUE_DRAW;
 
@@ -1243,14 +1242,13 @@ moves_loop: // When in check, search starts from here
     inCheck = pos.checkers();
     moveCount = 0;
 
-    Value variantResult;
-    if (pos.is_variant_end(variantResult, ss->ply))
-        return variantResult;
+    Value gameResult;
+    if (pos.is_game_end(gameResult, ss->ply))
+        return gameResult;
 
-    // Check for an immediate draw or maximum ply reached
-    if (   pos.is_draw(ss->ply)
-        || ss->ply >= MAX_PLY)
-        return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : VALUE_DRAW;
+    // Check for maximum ply reached
+    if (ss->ply >= MAX_PLY)
+        return !inCheck ? evaluate(pos) : VALUE_DRAW;
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 

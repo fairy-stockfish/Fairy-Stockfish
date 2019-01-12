@@ -1024,7 +1024,7 @@ namespace {
   Value Evaluation<T>::value() {
 
     assert(!pos.checkers());
-    assert(!pos.is_variant_end());
+    assert(!pos.is_immediate_game_end());
 
     // Probe the material hash table
     me = Material::probe(pos);

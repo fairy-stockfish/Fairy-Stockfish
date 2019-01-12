@@ -124,6 +124,8 @@ public:
   bool shogi_doubled_pawn() const;
   bool immobility_illegal() const;
   // winning conditions
+  int n_move_rule() const;
+  int n_fold_rule() const;
   Value stalemate_value(int ply = 0) const;
   Value checkmate_value(int ply = 0) const;
   Value bare_king_value(int ply = 0) const;
@@ -136,8 +138,6 @@ public:
   CheckCount max_check_count() const;
   int connect_n() const;
   CheckCount checks_given(Color c) const;
-  bool is_variant_end() const;
-  bool is_variant_end(Value& result, int ply = 0) const;
 
   // Variant-specific properties
   int count_in_hand(Color c, PieceType pt) const;
@@ -217,7 +217,10 @@ public:
   int game_ply() const;
   bool is_chess960() const;
   Thread* this_thread() const;
-  bool is_draw(int ply) const;
+  bool is_immediate_game_end() const;
+  bool is_game_end(Value& result, int ply = 0) const;
+  bool is_optional_game_end(Value& result, int ply = 0) const;
+  bool is_immediate_game_end(Value& result, int ply = 0) const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
   int rule50_count() const;
@@ -461,6 +464,16 @@ inline bool Position::immobility_illegal() const {
   return var->immobilityIllegal;
 }
 
+inline int Position::n_move_rule() const {
+  assert(var != nullptr);
+  return var->nMoveRule;
+}
+
+inline int Position::n_fold_rule() const {
+  assert(var != nullptr);
+  return var->nFoldRule;
+}
+
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
   return convert_mate_value(var->stalemateValue, ply);
@@ -552,76 +565,13 @@ inline CheckCount Position::checks_given(Color c) const {
   return st->checksGiven[c];
 }
 
-inline bool Position::is_variant_end() const {
+inline bool Position::is_immediate_game_end() const {
   Value result;
-  return is_variant_end(result);
+  return is_immediate_game_end(result);
 }
 
-inline bool Position::is_variant_end(Value& result, int ply) const {
-  // bare king rule
-  if (    bare_king_value() != VALUE_NONE
-      && !bare_king_move()
-      && !(count<ALL_PIECES>(sideToMove) - count<KING>(sideToMove)))
-  {
-      result = bare_king_value(ply);
-      return true;
-  }
-  if (    bare_king_value() != VALUE_NONE
-      &&  bare_king_move()
-      && !(count<ALL_PIECES>(~sideToMove) - count<KING>(~sideToMove)))
-  {
-      result = -bare_king_value(ply);
-      return true;
-  }
-  // extinction
-  if (extinction_value() != VALUE_NONE)
-  {
-      for (PieceType pt : extinction_piece_types())
-          if (!count(WHITE, pt) || !count(BLACK, pt))
-          {
-              result = !count(sideToMove, pt) ? extinction_value(ply) : -extinction_value(ply);
-              return true;
-          }
-  }
-  // capture the flag
-  if (   capture_the_flag_piece()
-      && !flag_move()
-      && (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())))
-  {
-      result = mated_in(ply);
-      return true;
-  }
-  if (   capture_the_flag_piece()
-      && flag_move()
-      && (capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece())))
-  {
-      result =  (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))
-              && sideToMove == WHITE ? VALUE_DRAW : mate_in(ply);
-      return true;
-  }
-  // nCheck
-  if (max_check_count() && st->checksGiven[~sideToMove] == max_check_count())
-  {
-      result = mated_in(ply);
-      return true;
-  }
-  // Connect-n
-  if (connect_n() > 0)
-  {
-      Bitboard b;
-      for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST})
-      {
-          b = pieces(~sideToMove);
-          for (int i = 1; i < connect_n() && b; i++)
-              b &= shift(d, b);
-          if (b)
-          {
-              result = mated_in(ply);
-              return true;
-          }
-      }
-  }
-  return false;
+inline bool Position::is_game_end(Value& result, int ply) const {
+  return is_immediate_game_end(result, ply) || is_optional_game_end(result, ply);
 }
 
 inline Color Position::side_to_move() const {

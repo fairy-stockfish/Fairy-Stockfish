@@ -1539,31 +1539,115 @@ bool Position::see_ge(Move m, Value threshold) const {
 }
 
 
-/// Position::is_draw() tests whether the position is drawn by 50-move rule
-/// or by repetition. It does not detect stalemates.
+/// Position::is_optinal_game_end() tests whether the position may end the game by
+/// 50-move rule, by repetition, or a variant rule that allows a player to claim a game result.
 
-bool Position::is_draw(int ply) const {
+bool Position::is_optional_game_end(Value& result, int ply) const {
 
-  if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
-      return true;
-
-  int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
-
-  if (end < 4)
-    return false;
-
-  StateInfo* stp = st->previous->previous;
-  int cnt = 0;
-
-  for (int i = 4; i <= end; i += 2)
+  // n-move rule
+  if (n_move_rule() && st->rule50 > (2 * n_move_rule() - 1) && (!checkers() || MoveList<LEGAL>(*this).size()))
   {
-      stp = stp->previous->previous;
+      result = VALUE_DRAW;
+      return true;
+  }
 
-      // Return a draw score if a position repeats once earlier but strictly
-      // after the root, or repeats twice before or at the root.
-      if (   stp->key == st->key
-          && ++cnt + (ply > i) == 2)
-          return true;
+  // n-fold repetition
+  if (n_fold_rule())
+  {
+      int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
+
+      if (end < 4)
+          return false;
+
+      StateInfo* stp = st->previous->previous;
+      int cnt = 0;
+
+      for (int i = 4; i <= end; i += 2)
+      {
+          stp = stp->previous->previous;
+
+          // Return a draw score if a position repeats once earlier but strictly
+          // after the root, or repeats twice before or at the root.
+          if (   stp->key == st->key
+              && ++cnt + 1 == (ply > i ? 2 : n_fold_rule()))
+          {
+              result = convert_mate_value(var->nFoldValueAbsolute && sideToMove == BLACK ? -var->nFoldValue : var->nFoldValue, ply);
+              return true;
+          }
+      }
+  }
+
+  return false;
+}
+
+/// Position::is_immediate_game_end() tests whether the position ends the game
+/// immediately by a variant rule, i.e., there are no more legal moves.
+/// It does not not detect stalemates.
+
+bool Position::is_immediate_game_end(Value& result, int ply) const {
+
+  // bare king rule
+  if (    bare_king_value() != VALUE_NONE
+      && !bare_king_move()
+      && !(count<ALL_PIECES>(sideToMove) - count<KING>(sideToMove)))
+  {
+      result = bare_king_value(ply);
+      return true;
+  }
+  if (    bare_king_value() != VALUE_NONE
+      &&  bare_king_move()
+      && !(count<ALL_PIECES>(~sideToMove) - count<KING>(~sideToMove)))
+  {
+      result = -bare_king_value(ply);
+      return true;
+  }
+  // extinction
+  if (extinction_value() != VALUE_NONE)
+  {
+      for (PieceType pt : extinction_piece_types())
+          if (!count(WHITE, pt) || !count(BLACK, pt))
+          {
+              result = !count(sideToMove, pt) ? extinction_value(ply) : -extinction_value(ply);
+              return true;
+          }
+  }
+  // capture the flag
+  if (   capture_the_flag_piece()
+      && !flag_move()
+      && (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())))
+  {
+      result = mated_in(ply);
+      return true;
+  }
+  if (   capture_the_flag_piece()
+      && flag_move()
+      && (capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece())))
+  {
+      result =  (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))
+              && sideToMove == WHITE ? VALUE_DRAW : mate_in(ply);
+      return true;
+  }
+  // nCheck
+  if (max_check_count() && st->checksGiven[~sideToMove] == max_check_count())
+  {
+      result = mated_in(ply);
+      return true;
+  }
+  // Connect-n
+  if (connect_n() > 0)
+  {
+      Bitboard b;
+      for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST})
+      {
+          b = pieces(~sideToMove);
+          for (int i = 1; i < connect_n() && b; i++)
+              b &= shift(d, b);
+          if (b)
+          {
+              result = mated_in(ply);
+              return true;
+          }
+      }
   }
 
   return false;
@@ -1608,7 +1692,7 @@ bool Position::has_game_cycle(int ply) const {
 
   int end = std::min(st->rule50, st->pliesFromNull);
 
-  if (end < 3)
+  if (end < 3 || var->nFoldValue != VALUE_DRAW)
     return false;
 
   Key originalKey = st->key;

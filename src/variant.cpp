@@ -46,6 +46,7 @@ VariantMap variants; // Global object
         v->promotionPieceTypes = {MET};
         v->doubleStep = false;
         v->castling = false;
+        v->nMoveRule = 0;
         return v;
     }
     Variant* asean_variant() {
@@ -81,6 +82,7 @@ VariantMap variants; // Global object
         v->bareKingValue = -VALUE_MATE;
         v->bareKingMove = true;
         v->stalemateValue = -VALUE_MATE;
+        v->nMoveRule = 70;
         return v;
     }
     Variant* amazon_variant() {
@@ -238,10 +240,9 @@ VariantMap variants; // Global object
         v->immobilityIllegal = false;
         return v;
     }
-    Variant* minishogi_variant() {
+    Variant* minishogi_variant_base() {
         Variant* v = fairy_variant_base();
         v->variantTemplate = "shogi";
-        v->pocketSize = 5;
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
         v->reset_pieces();
@@ -268,11 +269,15 @@ VariantMap variants; // Global object
         v->immobilityIllegal = true;
         v->shogiPawnDropMateIllegal = true;
         v->stalemateValue = -VALUE_MATE;
+        v->nFoldRule = 4;
+        v->nMoveRule = 0;
         return v;
     }
-    Variant* minishogi_variant_base() {
-        Variant* v = minishogi_variant();
-        v->pocketSize = 0;
+    Variant* minishogi_variant() {
+        Variant* v = minishogi_variant_base();
+        v->pocketSize = 5;
+        v->nFoldValue = -VALUE_MATE;
+        v->nFoldValueAbsolute = true;
         return v;
     }
     Variant* kyotoshogi_variant() {

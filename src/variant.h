@@ -69,6 +69,10 @@ struct Variant {
   bool shogiDoubledPawn = true;
   bool immobilityIllegal = false;
   // game end
+  int nMoveRule = 50;
+  int nFoldRule = 3;
+  Value nFoldValue = VALUE_DRAW;
+  bool nFoldValueAbsolute = false;
   Value stalemateValue = VALUE_DRAW;
   Value checkmateValue = -VALUE_MATE;
   bool shogiPawnDropMateIllegal = false;

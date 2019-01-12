@@ -476,7 +476,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 template<>
 ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 
-  if (pos.is_variant_end())
+  if (pos.is_immediate_game_end())
       return moveList;
 
   ExtMove* cur = moveList;
