@@ -1561,17 +1561,21 @@ bool Position::is_optional_game_end(Value& result, int ply) const {
 
       StateInfo* stp = st->previous->previous;
       int cnt = 0;
+      bool perpetual = true;
 
       for (int i = 4; i <= end; i += 2)
       {
           stp = stp->previous->previous;
+          perpetual &= bool(stp->checkersBB);
 
           // Return a draw score if a position repeats once earlier but strictly
           // after the root, or repeats twice before or at the root.
           if (   stp->key == st->key
               && ++cnt + 1 == (ply > i ? 2 : n_fold_rule()))
           {
-              result = convert_mate_value(var->nFoldValueAbsolute && sideToMove == BLACK ? -var->nFoldValue : var->nFoldValue, ply);
+              result = convert_mate_value(  var->perpetualCheckIllegal && perpetual ? VALUE_MATE
+                                          : var->nFoldValueAbsolute && sideToMove == BLACK ? -var->nFoldValue
+                                          : var->nFoldValue, ply);
               return true;
           }
       }

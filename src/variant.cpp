@@ -271,6 +271,7 @@ VariantMap variants; // Global object
         v->stalemateValue = -VALUE_MATE;
         v->nFoldRule = 4;
         v->nMoveRule = 0;
+        v->perpetualCheckIllegal = true;
         return v;
     }
     Variant* minishogi_variant() {

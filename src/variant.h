@@ -73,6 +73,7 @@ struct Variant {
   int nFoldRule = 3;
   Value nFoldValue = VALUE_DRAW;
   bool nFoldValueAbsolute = false;
+  bool perpetualCheckIllegal = false;
   Value stalemateValue = VALUE_DRAW;
   Value checkmateValue = -VALUE_MATE;
   bool shogiPawnDropMateIllegal = false;
