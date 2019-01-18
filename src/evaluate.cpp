@@ -548,6 +548,9 @@ namespace {
             }
         }
 
+        if (pos.max_check_count())
+            kingDanger *= 2;
+
         // Unsafe or occupied checking squares will also be considered, as long as
         // the square is in the attacker's mobility area.
         unsafeChecks &= mobilityArea[Them];
