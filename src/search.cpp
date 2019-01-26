@@ -745,6 +745,7 @@ namespace {
         &&  depth < 7 * ONE_PLY
         && !(   pos.extinction_value() == -VALUE_MATE
              && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
+        && (pos.checking_permitted() || !pos.capture_the_flag_piece())
         &&  eval - futility_margin(depth, improving) * (1 + !!pos.max_check_count()) >= beta
         &&  eval < VALUE_KNOWN_WIN) // Do not return unproven wins
         return eval;
