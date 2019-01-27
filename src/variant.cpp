@@ -47,6 +47,7 @@ VariantMap variants; // Global object
         v->doubleStep = false;
         v->castling = false;
         v->nMoveRule = 0;
+        v->countingRule = MAKRUK_COUNTING;
         return v;
     }
     Variant* asean_variant() {
@@ -59,6 +60,7 @@ VariantMap variants; // Global object
         v->promotionPieceTypes = {ROOK, KNIGHT, KHON, MET};
         v->doubleStep = false;
         v->castling = false;
+        v->countingRule = ASEAN_COUNTING;
         return v;
     }
     Variant* aiwok_variant() {
@@ -238,6 +240,7 @@ VariantMap variants; // Global object
         v->promotionRank = RANK_1; // no regular promotions
         v->sittuyinPromotion = true;
         v->immobilityIllegal = false;
+        v->countingRule = ASEAN_COUNTING;
         return v;
     }
     Variant* minishogi_variant_base() {

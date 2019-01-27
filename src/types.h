@@ -170,6 +170,10 @@ enum CheckCount : int {
   CHECKS_0 = 0, CHECKS_NB = 11
 };
 
+enum CountingRule {
+  NO_COUNTING, MAKRUK_COUNTING, ASEAN_COUNTING
+};
+
 enum Phase {
   PHASE_ENDGAME,
   PHASE_MIDGAME = 128,

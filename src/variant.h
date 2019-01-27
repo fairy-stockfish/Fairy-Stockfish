@@ -88,6 +88,7 @@ struct Variant {
   bool flagMove = false;
   CheckCount maxCheckCount = CheckCount(0);
   int connectN = 0;
+  CountingRule countingRule = NO_COUNTING;
 
   void add_piece(PieceType pt, char c) {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);

@@ -45,6 +45,8 @@ struct StateInfo {
   int    castlingRights;
   int    rule50;
   int    pliesFromNull;
+  int    countingPly;
+  int    countingLimit;
   CheckCount checksGiven[COLOR_NB];
   Score  psq;
   Square epSquare;
@@ -138,6 +140,7 @@ public:
   CheckCount max_check_count() const;
   int connect_n() const;
   CheckCount checks_given(Color c) const;
+  CountingRule counting_rule() const;
 
   // Variant-specific properties
   int count_in_hand(Color c, PieceType pt) const;
@@ -223,6 +226,7 @@ public:
   bool is_immediate_game_end(Value& result, int ply = 0) const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
+  int counting_limit() const;
   int rule50_count() const;
   Score psq_score() const;
   Value non_pawn_material(Color c) const;
@@ -563,6 +567,11 @@ inline int Position::connect_n() const {
 
 inline CheckCount Position::checks_given(Color c) const {
   return st->checksGiven[c];
+}
+
+inline CountingRule Position::counting_rule() const {
+  assert(var != nullptr);
+  return var->countingRule;
 }
 
 inline bool Position::is_immediate_game_end() const {

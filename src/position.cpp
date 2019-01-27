@@ -376,9 +376,13 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           set_castling_right(c, rsq);
       }
 
+      // counting limit
+      if (counting_rule() && isdigit(ss.peek()))
+          ss >> st->countingLimit;
+
       // 4. En passant square. Ignore if no pawn capture is possible
-      if (   ((ss >> col) && (col >= 'a' && col <= 'a' + max_file()))
-          && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
+      else if (   ((ss >> col) && (col >= 'a' && col <= 'a' + max_file()))
+               && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
       {
           st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
@@ -422,6 +426,13 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       // Convert from fullmove starting from 1 to gamePly starting from 0,
       // handle also common incorrect FEN with fullmove = 0.
       gamePly = std::max(2 * (gamePly - 1), 0) + (sideToMove == BLACK);
+  }
+
+  // counting rules
+  if (st->countingLimit && st->rule50)
+  {
+      st->countingPly = st->rule50;
+      st->rule50 = 0;
   }
 
   chess960 = isChess960;
@@ -633,8 +644,14 @@ const string Position::fen() const {
   if (max_check_count())
       ss << " " << (max_check_count() - st->checksGiven[WHITE]) << "+" << (max_check_count() - st->checksGiven[BLACK]);
 
-  ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ")
-     << st->rule50 << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
+  // Counting limit and counting ply, or ep-square and 50-move rule counter
+  if (st->countingLimit)
+      ss << " " << st->countingLimit << " " << st->countingPly;
+  else
+      ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ")
+         << st->rule50;
+
+  ss << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
 
   return ss.str();
 }
@@ -970,6 +987,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   ++gamePly;
   ++st->rule50;
   ++st->pliesFromNull;
+  if (st->countingLimit)
+      ++st->countingPly;
 
   Color us = sideToMove;
   Color them = ~us;
@@ -1231,6 +1250,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       unpromotedBoard[to] = make_piece(us, in_hand_piece_type(m));
 
   sideToMove = ~sideToMove;
+
+  if (   counting_rule()
+      && (  ((!st->countingLimit || captured) && count<ALL_PIECES>(sideToMove) == 1)
+          || (!st->countingLimit && !count<PAWN>())))
+  {
+      st->countingLimit = 2 * counting_limit();
+      st->countingPly = st->countingLimit && count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
+  }
 
   // Update king attacks used for fast check detection
   set_check_info(st);
@@ -1581,6 +1608,16 @@ bool Position::is_optional_game_end(Value& result, int ply) const {
       }
   }
 
+  // counting rules
+  if (   counting_rule()
+      && st->countingLimit
+      && st->countingPly >= st->countingLimit
+      && (!checkers() || MoveList<LEGAL>(*this).size()))
+  {
+      result = VALUE_DRAW;
+      return true;
+  }
+
   return false;
 }
 
@@ -1736,6 +1773,57 @@ bool Position::has_game_cycle(int ply) const {
       }
   }
   return false;
+}
+
+
+/// Position::counting_limit() returns the counting limit in full moves.
+
+int Position::counting_limit() const {
+
+  assert(counting_rule());
+
+  // No counting yet
+  if (count<PAWN>() && count<ALL_PIECES>(sideToMove) > 1)
+      return 0;
+
+  switch (counting_rule())
+  {
+  case MAKRUK_COUNTING:
+      // Board's honor rule
+      if (count<ALL_PIECES>(sideToMove) > 1)
+          return 64;
+
+      // Pieces' honor rule
+      if (count<ROOK>(~sideToMove) > 1)
+          return 8;
+      if (count<ROOK>(~sideToMove) == 1)
+          return 16;
+      if (count<KHON>(~sideToMove) > 1)
+          return 22;
+      if (count<KNIGHT>(~sideToMove) > 1)
+          return 32;
+      if (count<KHON>(~sideToMove) == 1)
+          return 44;
+
+      return 64;
+
+  case ASEAN_COUNTING:
+      if (count<ALL_PIECES>(sideToMove) > 1)
+          return 0;
+      if (count<ROOK>(~sideToMove))
+          return 16;
+      if (count<KHON>(~sideToMove) && count<MET>(~sideToMove))
+          return 44;
+      if (count<KNIGHT>(~sideToMove) && count<MET>(~sideToMove))
+          return 64;
+
+      return 0;
+
+  default:
+      assert(false);
+      return 0;
+  }
+
 }
 
 
