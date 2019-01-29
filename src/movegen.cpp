@@ -91,7 +91,7 @@ namespace {
         emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
 
         Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
-        Bitboard b2 = pos.double_step_enabled() ? shift<Up>(b1 & TRank3BB) & emptySquares : 0;
+        Bitboard b2 = pos.double_step_enabled() ? shift<Up>(b1 & TRank3BB) & emptySquares : Bitboard(0);
 
         if (Type == EVASIONS) // Consider only blocking squares
         {
@@ -240,8 +240,8 @@ namespace {
 
         Bitboard b1 = (  (pos.attacks_from(us, pt, from) & pos.pieces())
                        | (pos.moves_from(us, pt, from) & ~pos.pieces())) & target;
-        Bitboard b2 = pos.promoted_piece_type(pt) ? b1 : 0;
-        Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : 0;
+        Bitboard b2 = pos.promoted_piece_type(pt) ? b1 : Bitboard(0);
+        Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
 
         if (Checks)
         {
@@ -257,7 +257,7 @@ namespace {
         {
             Bitboard promotion_zone = promotion_zone_bb(us, pos.promotion_rank(), pos.max_rank());
             if (pos.mandatory_piece_promotion())
-                b1 &= (promotion_zone & from ? 0 : ~promotion_zone) | (pos.piece_promotion_on_capture() ? ~pos.pieces() : 0);
+                b1 &= (promotion_zone & from ? Bitboard(0) : ~promotion_zone) | (pos.piece_promotion_on_capture() ? ~pos.pieces() : Bitboard(0));
             // Exclude quiet promotions/demotions
             if (pos.piece_promotion_on_capture())
             {
@@ -353,7 +353,7 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
 
   Bitboard target =  Type == CAPTURES     ?  pos.pieces(~us)
                    : Type == QUIETS       ? ~pos.pieces()
-                   : Type == NON_EVASIONS ? ~pos.pieces(us) : 0;
+                   : Type == NON_EVASIONS ? ~pos.pieces(us) : Bitboard(0);
   target &= pos.board_bb();
 
   return us == WHITE ? generate_all<WHITE, Type>(pos, moveList, target)
