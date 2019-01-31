@@ -1233,7 +1233,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->key = k;
 
   // Calculate checkers bitboard (if move gives check)
-  st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
+  st->checkersBB = givesCheck ? attackers_to(square<KING>(them), us) & pieces(us) : 0;
 
   // Update information about promoted pieces
   if (type_of(m) != DROP && is_promoted(from))
