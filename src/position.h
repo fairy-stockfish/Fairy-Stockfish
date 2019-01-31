@@ -182,7 +182,7 @@ public:
   Bitboard attacks_from(Color c, PieceType pt, Square s) const;
   template<PieceType> Bitboard attacks_from(Color c, Square s) const;
   Bitboard moves_from(Color c, PieceType pt, Square s) const;
-  Bitboard slider_blockers(Bitboard sliders, Square s, Bitboard& pinners) const;
+  Bitboard slider_blockers(Bitboard sliders, Square s, Bitboard& pinners, Color c) const;
 
   // Properties of moves
   bool legal(Move m) const;
