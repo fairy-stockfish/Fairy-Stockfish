@@ -831,6 +831,14 @@ bool Position::pseudo_legal(const Move m) const {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
 
+  // Use a fast check for piece drops
+  if (type_of(m) == DROP)
+      return   piece_drops()
+            && count_in_hand(us, type_of(pc))
+            && (drop_region(us, type_of(pc)) & ~pieces() & to)
+            && (   type_of(pc) == in_hand_piece_type(m)
+                || (drop_promoted() && promoted_piece_type(type_of(pc)) == in_hand_piece_type(m)));
+
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL)
       return MoveList<LEGAL>(*this).contains(m);
