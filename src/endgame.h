@@ -46,6 +46,13 @@ enum EndgameCode {
   KQKP,  // KQ vs KP
   KQKR,  // KQ vs KR
 
+  // Fairy piece endgames
+  KFsPsK, // KFsPsK vs K
+  KNSK,  // KNS vs K
+  KNFK,  // KNF vs K
+  KNSFKR,  // KNSFKR vs K
+  KSFK,  // KSF vs K
+
   SCALING_FUNCTIONS,
   KBPsK,   // KB and pawns vs K
   KQKRPs,  // KQ vs KR and pawns

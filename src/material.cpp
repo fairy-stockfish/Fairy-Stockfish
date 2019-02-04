@@ -55,6 +55,7 @@ namespace {
 
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
+  Endgame<KFsPsK> EvaluateKFsPsK[] = { Endgame<KFsPsK>(WHITE), Endgame<KFsPsK>(BLACK) };
   Endgame<KXK>    EvaluateKXK[] = { Endgame<KXK>(WHITE),    Endgame<KXK>(BLACK) };
 
   Endgame<KBPsK>  ScaleKBPsK[]  = { Endgame<KBPsK>(WHITE),  Endgame<KBPsK>(BLACK) };
@@ -63,6 +64,14 @@ namespace {
   Endgame<KPKP>   ScaleKPKP[]   = { Endgame<KPKP>(WHITE),   Endgame<KPKP>(BLACK) };
 
   // Helper used to detect a given material distribution
+  bool is_KFsPsK(const Position& pos, Color us) {
+    return    pos.promotion_piece_types().size() == 1
+          &&  pos.promotion_piece_types().find(FERS) != pos.promotion_piece_types().end()
+          && !more_than_one(pos.pieces(~us))
+          && (pos.count<FERS>(us) || pos.count<PAWN>(us))
+          && !(pos.count<ALL_PIECES>(us) - pos.count<FERS>(us) - pos.count<PAWN>(us) - pos.count<KING>(us));
+  }
+
   bool is_KXK(const Position& pos, Color us) {
     return  !more_than_one(pos.pieces(~us))
           && pos.non_pawn_material(us) >= RookValueMg;
@@ -157,6 +166,13 @@ Entry* probe(const Position& pos) {
       // for a generic one if the previous search failed.
       if ((e->evaluationFunction = pos.this_thread()->endgames.probe<Value>(key)) != nullptr)
           return e;
+
+      for (Color c = WHITE; c <= BLACK; ++c)
+          if (is_KFsPsK(pos, c))
+          {
+              e->evaluationFunction = &EvaluateKFsPsK[c];
+              return e;
+          }
 
       for (Color c = WHITE; c <= BLACK; ++c)
           if (is_KXK(pos, c))

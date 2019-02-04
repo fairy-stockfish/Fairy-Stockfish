@@ -571,7 +571,7 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
   string fenStr =  n + "/" + sides[0] + char(FILE_NB - sides[0].length() + '0') + "/" + n + "/" + n + "/" + n + "/"
                  + n + "/" + sides[1] + char(FILE_NB - sides[1].length() + '0') + "/" + n + " w - - 0 10";
 
-  return set(variants.find("chess")->second, fenStr, false, si, nullptr);
+  return set(variants.find("fairy")->second, fenStr, false, si, nullptr);
 }
 
 

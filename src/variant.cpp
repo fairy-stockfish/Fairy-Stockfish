@@ -35,6 +35,12 @@ VariantMap variants; // Global object
         v->endgameEval = true;
         return v;
     }
+    Variant* fairy_variant() {
+        Variant* v = chess_variant();
+        v->add_piece(SILVER, 's');
+        v->add_piece(FERS, 'f');
+        return v;
+    }
     Variant* makruk_variant() {
         Variant* v = chess_variant();
         v->remove_piece(BISHOP);
@@ -547,6 +553,7 @@ void VariantMap::init() {
     // Add to UCI_Variant option
     add("chess", chess_variant());
     add("standard", chess_variant());
+    add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("asean", asean_variant());
     add("ai-wok", aiwok_variant());
