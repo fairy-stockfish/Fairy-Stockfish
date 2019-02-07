@@ -277,10 +277,13 @@ namespace {
         mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pe->pawn_attacks(Them) | shift<Down>(pos.pieces(Them, SHOGI_PAWN)));
 
     // Initialise attackedBy bitboards for kings and pawns
-    attackedBy[Us][KING] = pos.count<KING>(Us) ? pos.attacks_from<KING>(Us, pos.square<KING>(Us)) : 0;
-    attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
-    attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN];
-    attackedBy2[Us]            = attackedBy[Us][KING] & attackedBy[Us][PAWN];
+    attackedBy[Us][KING]       = pos.count<KING>(Us) ? pos.attacks_from<KING>(Us, pos.square<KING>(Us)) : 0;
+    attackedBy[Us][PAWN]       = pe->pawn_attacks(Us);
+    attackedBy[Us][SHOGI_PAWN] = shift<Up>(pos.pieces(Us, SHOGI_PAWN));
+    attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN] | attackedBy[Us][SHOGI_PAWN];
+    attackedBy2[Us]            =  (attackedBy[Us][KING] & attackedBy[Us][PAWN])
+                                | (attackedBy[Us][KING] & attackedBy[Us][SHOGI_PAWN])
+                                | (attackedBy[Us][PAWN] & attackedBy[Us][SHOGI_PAWN]);
 
     // Init our king safety tables only if we are going to use them
     if ((pos.count<KING>(Us) && pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg) || pos.captures_to_hand())
@@ -297,7 +300,7 @@ namespace {
 
         kingRing[Us] &= pos.board_bb();
 
-        kingAttackersCount[Them] = popcount(kingRing[Us] & pe->pawn_attacks(Them));
+        kingAttackersCount[Them] = popcount(kingRing[Us] & (pe->pawn_attacks(Them) | shift<Down>(pos.pieces(Them, SHOGI_PAWN))));
         kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
     }
     else
@@ -830,6 +833,25 @@ namespace {
     score = make_score(mg_value(score) * int(maxMg) / QueenValueMg,
                        eg_value(score) * int(maxEg) / QueenValueEg);
 
+    // Score passed shogi pawns
+    const Square* pl = pos.squares(Us, SHOGI_PAWN);
+    Square s;
+
+    PieceType pt = pos.promoted_piece_type(SHOGI_PAWN);
+    if (pt != NO_PIECE_TYPE)
+    {
+        while ((s = *pl++) != SQ_NONE)
+        {
+            if ((pos.pieces(Them, SHOGI_PAWN) & forward_file_bb(Us, s)) || relative_rank(Us, s, pos.max_rank()) == pos.max_rank())
+                continue;
+
+            Square blockSq = s + Up;
+            int d = std::max(pos.promotion_rank() - relative_rank(Us, s, pos.max_rank()), 1);
+            d += !!(pos.pieces(Us) & blockSq) + !!(attackedBy[Them][ALL_PIECES] & ~attackedBy2[Us] & blockSq);
+            score += make_score(PieceValue[MG][pt], PieceValue[EG][pt]) / (4 * d * d);
+        }
+    }
+
     if (T)
         Trace::add(PASSED, Us, score);
 
@@ -1050,7 +1072,8 @@ namespace {
     // Pieces should be evaluated first (populate attack tables).
     // For unused piece types, we still need to set attack bitboard to zero.
     for (PieceType pt = KNIGHT; pt < KING; ++pt)
-        score += pieces<WHITE>(pt) - pieces<BLACK>(pt);
+        if (pt != SHOGI_PAWN)
+            score += pieces<WHITE>(pt) - pieces<BLACK>(pt);
 
     // Evaluate pieces in hand once attack tables are complete
     if (pos.piece_drops())
