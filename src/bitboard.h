@@ -406,9 +406,11 @@ inline Square msb(Bitboard b) {
   assert(b);
 #ifdef LARGEBOARDS
   if (b >> 64)
-      return Square(SQUARE_BIT_MASK ^ (__builtin_clzll(b >> 64) + 64));
-#endif
+      return Square(SQUARE_BIT_MASK ^ __builtin_clzll(b >> 64));
+  return Square(SQUARE_BIT_MASK ^ (__builtin_clzll(b) + 64));
+#else
   return Square(SQUARE_BIT_MASK ^ __builtin_clzll(b));
+#endif
 }
 
 #elif defined(_MSC_VER)  // MSVC
