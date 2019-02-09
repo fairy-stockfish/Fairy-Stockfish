@@ -57,7 +57,7 @@ public:
   void operator<<(const Option&);
   operator double() const;
   operator std::string() const;
-  bool operator==(const char*);
+  bool operator==(const char*) const;
 
 private:
   friend std::ostream& operator<<(std::ostream&, const OptionsMap&);
