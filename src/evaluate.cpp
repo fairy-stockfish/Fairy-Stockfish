@@ -163,20 +163,17 @@ namespace {
   // KingProximity contains a penalty according to distance from king
   constexpr Score KingProximity = S(2, 2);
 
-  // KingProtector[knight/bishop] contains a penalty according to distance from king
-  constexpr Score KingProtector[] = { S(5, 6), S(6, 5) };
-
   // Assorted bonuses and penalties
   constexpr Score BishopPawns        = S(  3,  7);
   constexpr Score CloseEnemies       = S(  6,  0);
-  constexpr Score Connectivity       = S(  3,  1);
   constexpr Score CorneredBishop     = S( 50, 50);
   constexpr Score Hanging            = S( 52, 30);
   constexpr Score HinderPassedPawn   = S(  4,  0);
+  constexpr Score KingProtector      = S(  6,  6);
   constexpr Score KnightOnQueen      = S( 21, 11);
   constexpr Score LongDiagonalBishop = S( 22,  0);
   constexpr Score MinorBehindPawn    = S( 16,  0);
-  constexpr Score Overload           = S( 10,  5);
+  constexpr Score Overload           = S( 16,  7);
   constexpr Score PawnlessFlank      = S( 20, 80);
   constexpr Score RookOnPawn         = S(  8, 24);
   constexpr Score SliderOnQueen      = S( 42, 21);
@@ -384,7 +381,7 @@ namespace {
 
             // Penalty if the piece is far from the king
             if (pos.count<KING>(Us))
-            score -= KingProtector[Pt == BISHOP] * distance(s, pos.square<KING>(Us));
+            score -= KingProtector * distance(s, pos.square<KING>(Us));
 
             if (Pt == BISHOP)
             {
@@ -670,10 +667,7 @@ namespace {
 
         score += Hanging * popcount(weak & ~attackedBy[Them][ALL_PIECES]);
 
-        // Bonus for overload (non-pawn enemies attacked and defended exactly once)
-        b =  nonPawnEnemies
-           & attackedBy[Us][ALL_PIECES]   & ~attackedBy2[Us]
-           & attackedBy[Them][ALL_PIECES] & ~attackedBy2[Them];
+        b =  weak & nonPawnEnemies & attackedBy[Them][ALL_PIECES];
         score += Overload * popcount(b);
     }
 
@@ -718,10 +712,6 @@ namespace {
 
         score += SliderOnQueen * popcount(b & safeThreats & attackedBy2[Us]);
     }
-
-    // Connectivity: ensure that knights, bishops, rooks, and queens are protected
-    b = (pos.pieces(Us) ^ pos.pieces(Us, PAWN, KING) ^ pos.pieces(Us, SHOGI_PAWN)) & attackedBy[Us][ALL_PIECES];
-    score += Connectivity * popcount(b) * (1 + 2 * pos.captures_to_hand());
 
     if (T)
         Trace::add(THREAT, Us, score);
