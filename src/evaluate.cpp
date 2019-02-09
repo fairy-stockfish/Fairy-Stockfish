@@ -173,7 +173,7 @@ namespace {
   constexpr Score KnightOnQueen      = S( 21, 11);
   constexpr Score LongDiagonalBishop = S( 22,  0);
   constexpr Score MinorBehindPawn    = S( 16,  0);
-  constexpr Score Overload           = S( 16,  7);
+  constexpr Score Overload           = S( 13,  6);
   constexpr Score PawnlessFlank      = S( 20, 80);
   constexpr Score RookOnPawn         = S(  8, 24);
   constexpr Score SliderOnQueen      = S( 42, 21);
@@ -648,26 +648,32 @@ namespace {
         {
             Square s = pop_lsb(&b);
             score += ThreatByMinor[type_of(pos.piece_on(s))];
+
             if (type_of(pos.piece_on(s)) != PAWN && type_of(pos.piece_on(s)) != SHOGI_PAWN)
                 score += ThreatByRank * (int)relative_rank(Them, s, pos.max_rank());
+
+            else if (pos.blockers_for_king(Them) & s)
+                score += ThreatByRank * (int)relative_rank(Them, s, pos.max_rank()) / 2;
         }
 
-        b = (pos.pieces(Them, QUEEN) | weak) & attackedBy[Us][ROOK];
+        b = weak & attackedBy[Us][ROOK];
         while (b)
         {
             Square s = pop_lsb(&b);
             score += ThreatByRook[type_of(pos.piece_on(s))];
             if (type_of(pos.piece_on(s)) != PAWN && type_of(pos.piece_on(s)) != SHOGI_PAWN)
                 score += ThreatByRank * (int)relative_rank(Them, s, pos.max_rank());
+
+            else if (pos.blockers_for_king(Them) & s)
+                score += ThreatByRank * (int)relative_rank(Them, s, pos.max_rank()) / 2;
         }
 
-        // Bonus for king attacks on pawns or pieces which are not pawn-defended
         if (weak & attackedBy[Us][KING])
             score += ThreatByKing;
 
         score += Hanging * popcount(weak & ~attackedBy[Them][ALL_PIECES]);
 
-        b =  weak & nonPawnEnemies & attackedBy[Them][ALL_PIECES];
+        b = weak & nonPawnEnemies & attackedBy[Them][ALL_PIECES];
         score += Overload * popcount(b);
     }
 
@@ -686,15 +692,12 @@ namespace {
     b  = shift<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
     b |= shift<Up>(b & TRank3BB) & ~pos.pieces();
 
-    // Keep only the squares which are not completely unsafe
+    // Keep only the squares which are relatively safe
     b &= ~attackedBy[Them][PAWN]
         & (attackedBy[Us][ALL_PIECES] | ~attackedBy[Them][ALL_PIECES]);
 
     // Bonus for safe pawn threats on the next move
-    b =   pawn_attacks_bb<Us>(b)
-       &  pos.pieces(Them)
-       & ~attackedBy[Us][PAWN];
-
+    b = pawn_attacks_bb<Us>(b) & pos.pieces(Them);
     score += ThreatByPawnPush * popcount(b);
 
     // Bonus for threats on the next moves against enemy queen

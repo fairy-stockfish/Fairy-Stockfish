@@ -235,7 +235,7 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
   constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
   Bitboard  BlockRanks = rank_bb(relative_rank(Us, RANK_1, pos.max_rank())) | rank_bb(relative_rank(Us, RANK_2, pos.max_rank()));
 
-  Bitboard b = pos.pieces(PAWN, SHOGI_PAWN) & (forward_ranks_bb(Us, ksq) | rank_bb(ksq));
+  Bitboard b = pos.pieces(PAWN, SHOGI_PAWN) & ~forward_ranks_bb(Them, ksq);
   Bitboard ourPawns = b & pos.pieces(Us);
   Bitboard theirPawns = b & pos.pieces(Them);
 
