@@ -48,7 +48,6 @@ struct StateInfo {
   int    countingPly;
   int    countingLimit;
   CheckCount checksGiven[COLOR_NB];
-  Score  psq;
   Square epSquare;
 
   // Not copied when making a move (will be recomputed anyhow)
@@ -262,6 +261,7 @@ private:
   Bitboard castlingPath[CASTLING_RIGHT_NB];
   int gamePly;
   Color sideToMove;
+  Score psq;
   Thread* thisThread;
   StateInfo* st;
 
@@ -270,11 +270,15 @@ private:
   bool chess960;
   int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
   Bitboard promotedPieces;
-  void add_to_hand(Color c, PieceType pt);
-  void remove_from_hand(Color c, PieceType pt);
+  void add_to_hand(Piece pc);
+  void remove_from_hand(Piece pc);
   void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
   void undrop_piece(Piece pc_hand, Piece pc_drop, Square s);
 };
+
+namespace PSQT {
+  extern Score psq[PIECE_NB][SQUARE_NB + 1];
+}
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
 
@@ -729,7 +733,7 @@ inline Key Position::material_key() const {
 }
 
 inline Score Position::psq_score() const {
-  return st->psq;
+  return psq;
 }
 
 inline Value Position::non_pawn_material(Color c) const {
@@ -790,6 +794,7 @@ inline void Position::put_piece(Piece pc, Square s) {
   index[s] = pieceCount[pc]++;
   pieceList[pc][index[s]] = s;
   pieceCount[make_piece(color_of(pc), ALL_PIECES)]++;
+  psq += PSQT::psq[pc][s];
 }
 
 inline void Position::remove_piece(Piece pc, Square s) {
@@ -807,6 +812,7 @@ inline void Position::remove_piece(Piece pc, Square s) {
   pieceList[pc][index[lastSquare]] = lastSquare;
   pieceList[pc][pieceCount[pc]] = SQ_NONE;
   pieceCount[make_piece(color_of(pc), ALL_PIECES)]--;
+  psq -= PSQT::psq[pc][s];
 }
 
 inline void Position::move_piece(Piece pc, Square from, Square to) {
@@ -821,6 +827,7 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
   board[to] = pc;
   index[to] = index[from];
   pieceList[pc][index[to]] = to;
+  psq += PSQT::psq[pc][to] - PSQT::psq[pc][from];
 }
 
 inline void Position::do_move(Move m, StateInfo& newSt) {
@@ -831,26 +838,28 @@ inline int Position::count_in_hand(Color c, PieceType pt) const {
   return pieceCountInHand[c][pt];
 }
 
-inline void Position::add_to_hand(Color c, PieceType pt) {
-  pieceCountInHand[c][pt]++;
-  pieceCountInHand[c][ALL_PIECES]++;
+inline void Position::add_to_hand(Piece pc) {
+  pieceCountInHand[color_of(pc)][type_of(pc)]++;
+  pieceCountInHand[color_of(pc)][ALL_PIECES]++;
+  psq += PSQT::psq[pc][SQ_NONE];
 }
 
-inline void Position::remove_from_hand(Color c, PieceType pt) {
-  pieceCountInHand[c][pt]--;
-  pieceCountInHand[c][ALL_PIECES]--;
+inline void Position::remove_from_hand(Piece pc) {
+  pieceCountInHand[color_of(pc)][type_of(pc)]--;
+  pieceCountInHand[color_of(pc)][ALL_PIECES]--;
+  psq -= PSQT::psq[pc][SQ_NONE];
 }
 
 inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s) {
   assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]);
   put_piece(pc_drop, s);
-  remove_from_hand(color_of(pc_hand), type_of(pc_hand));
+  remove_from_hand(pc_hand);
 }
 
 inline void Position::undrop_piece(Piece pc_hand, Piece pc_drop, Square s) {
   remove_piece(pc_drop, s);
   board[s] = NO_PIECE;
-  add_to_hand(color_of(pc_hand), type_of(pc_hand));
+  add_to_hand(pc_hand);
   assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]);
 }
 

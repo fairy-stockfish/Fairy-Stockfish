@@ -36,10 +36,6 @@
 
 using std::string;
 
-namespace PSQT {
-  extern Score psq[PIECE_NB][SQUARE_NB + 1];
-}
-
 namespace Zobrist {
 
   Key psq[PIECE_NB][SQUARE_NB];
@@ -333,7 +329,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           if (token == ']')
               continue;
           else if ((idx = piece_to_char().find(token)) != string::npos)
-              add_to_hand(color_of(Piece(idx)), type_of(Piece(idx)));
+              add_to_hand(Piece(idx));
       }
 
   // 2. Active color
@@ -413,7 +409,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           if (token == '-')
               continue;
           else if ((idx = piece_to_char().find(token)) != string::npos)
-              add_to_hand(color_of(Piece(idx)), type_of(Piece(idx)));
+              add_to_hand(Piece(idx));
       }
       // Move count is in ply for SFEN
       ss >> std::skipws >> gamePly;
@@ -499,7 +495,6 @@ void Position::set_state(StateInfo* si) const {
   si->key = si->materialKey = 0;
   si->pawnKey = Zobrist::noPawns;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
-  si->psq = SCORE_ZERO;
   si->checkersBB = count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove), ~sideToMove) : 0;
 
   set_check_info(si);
@@ -509,14 +504,6 @@ void Position::set_state(StateInfo* si) const {
       Square s = pop_lsb(&b);
       Piece pc = piece_on(s);
       si->key ^= Zobrist::psq[pc][s];
-      si->psq += PSQT::psq[pc][s];
-  }
-  // pieces in hand
-  if (piece_drops())
-  {
-      for (Color c = WHITE; c <= BLACK; ++c)
-          for (PieceType pt = PAWN; pt <= KING; ++pt)
-              si->psq += PSQT::psq[make_piece(c, pt)][SQ_NONE] * pieceCountInHand[c][pt];
   }
 
   if (si->epSquare != SQ_NONE)
@@ -1031,7 +1018,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       Square rfrom, rto;
       do_castling<true>(us, from, to, rfrom, rto);
 
-      st->psq += PSQT::psq[captured][rto] - PSQT::psq[captured][rfrom];
       k ^= Zobrist::psq[captured][rfrom] ^ Zobrist::psq[captured][rto];
       captured = NO_PIECE;
   }
@@ -1070,8 +1056,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           Piece pieceToHand =  !is_promoted(to)   ? ~captured
                              : unpromotedCaptured ? ~unpromotedCaptured
                                                   : make_piece(~color_of(captured), PAWN);
-          add_to_hand(color_of(pieceToHand), type_of(pieceToHand));
-          st->psq += PSQT::psq[pieceToHand][SQ_NONE];
+          add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
           promotedPieces -= to;
@@ -1082,9 +1067,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^= Zobrist::psq[captured][capsq];
       st->materialKey ^= Zobrist::psq[captured][pieceCount[captured]];
       prefetch(thisThread->materialTable[st->materialKey]);
-
-      // Update incremental scores
-      st->psq -= PSQT::psq[captured][capsq];
 
       // Reset rule 50 counter
       st->rule50 = 0;
@@ -1175,9 +1157,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->materialKey ^=  Zobrist::psq[promotion][pieceCount[promotion]-1]
                             ^ Zobrist::psq[pc][pieceCount[pc]];
 
-          // Update incremental score
-          st->psq += PSQT::psq[promotion][to] - PSQT::psq[pc][to];
-
           // Update material
           st->nonPawnMaterial[us] += PieceValue[MG][promotion];
       }
@@ -1206,9 +1185,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->materialKey ^=  Zobrist::psq[promotion][pieceCount[promotion]-1]
                         ^ Zobrist::psq[pc][pieceCount[pc]];
 
-      // Update incremental score
-      st->psq += PSQT::psq[promotion][to] - PSQT::psq[pc][to];
-
       // Update material
       st->nonPawnMaterial[us] += PieceValue[MG][promotion] - PieceValue[MG][pc];
   }
@@ -1226,15 +1202,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->materialKey ^=  Zobrist::psq[demotion][pieceCount[demotion]-1]
                         ^ Zobrist::psq[pc][pieceCount[pc]];
 
-      // Update incremental score
-      st->psq += PSQT::psq[demotion][to] - PSQT::psq[pc][to];
-
       // Update material
       st->nonPawnMaterial[us] += PieceValue[MG][demotion] - PieceValue[MG][pc];
   }
-
-  // Update incremental scores
-  st->psq += PSQT::psq[pc][to] - PSQT::psq[pc][from];
 
   // Set capture piece
   st->capturedPiece = captured;
@@ -1367,10 +1337,9 @@ void Position::undo_move(Move m) {
           put_piece(st->capturedPiece, capsq); // Restore the captured piece
           if (captures_to_hand())
           {
-              remove_from_hand(~color_of(st->capturedPiece),
-                               !drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? type_of(st->unpromotedCapturedPiece)
-                                                                                                   : PAWN)
-                                                                    : type_of(st->capturedPiece));
+              remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
+                                                                                                   : make_piece(~color_of(st->capturedPiece), PAWN))
+                                                                    : ~st->capturedPiece);
               if (!drop_loop() && st->capturedpromoted)
                   promotedPieces |= to;
           }
