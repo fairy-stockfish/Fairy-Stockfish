@@ -448,7 +448,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
 void Position::set_castling_right(Color c, Square rfrom) {
 
-  Square kfrom = count<KING>(c) ? square<KING>(c) : make_square(FILE_E, c == WHITE ? RANK_1 : RANK_8);
+  Square kfrom = count<KING>(c) ? square<KING>(c) : make_square(FILE_E, c == WHITE ? RANK_1 : max_rank());
   CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
   CastlingRight cr = (c | cs);
 
@@ -457,8 +457,9 @@ void Position::set_castling_right(Color c, Square rfrom) {
   castlingRightsMask[rfrom] |= cr;
   castlingRookSquare[cr] = rfrom;
 
-  Square kto = relative_square(c, cs == KING_SIDE ? SQ_G1 : SQ_C1);
-  Square rto = relative_square(c, cs == KING_SIDE ? SQ_F1 : SQ_D1);
+  Square kto = make_square(cs == KING_SIDE ? castling_kingside_file() : castling_queenside_file(),
+                           relative_rank(c, RANK_1, max_rank()));
+  Square rto = kto + (cs == KING_SIDE ? WEST : EAST);
 
   for (Square s = std::min(rfrom, rto); s <= std::max(rfrom, rto); ++s)
       if (s != kfrom && s != rfrom)
@@ -952,8 +953,9 @@ bool Position::gives_check(Move m) const {
   {
       Square kfrom = from;
       Square rfrom = to; // Castling is encoded as 'King captures the rook'
-      Square kto = relative_square(sideToMove, rfrom > kfrom ? SQ_G1 : SQ_C1);
-      Square rto = relative_square(sideToMove, rfrom > kfrom ? SQ_F1 : SQ_D1);
+      Square kto = make_square(rfrom > kfrom ? castling_kingside_file() : castling_queenside_file(),
+                              relative_rank(sideToMove, RANK_1, max_rank()));
+      Square rto = kto + (rfrom > kfrom ? WEST : EAST);
 
       return   (PseudoAttacks[sideToMove][ROOK][rto] & square<KING>(~sideToMove))
             && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
