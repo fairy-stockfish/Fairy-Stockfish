@@ -191,6 +191,8 @@ void Position::init() {
               Zobrist::inHand[make_piece(c, pt)][n] = rng.rand<Key>();
 
   // Prepare the cuckoo tables
+  std::memset(cuckoo, 0, sizeof(cuckoo));
+  std::memset(cuckooMove, 0, sizeof(cuckooMove));
   int count = 0;
   for (Color c = WHITE; c <= BLACK; ++c)
       for (PieceType pt = KNIGHT; pt <= QUEEN || pt == KING; pt != QUEEN ? ++pt : pt = KING)
