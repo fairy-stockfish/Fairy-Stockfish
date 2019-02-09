@@ -948,21 +948,21 @@ namespace {
     // Connect-n
     if (pos.connect_n() > 0)
     {
-        for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST, NORTH_WEST})
+        for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST})
         {
-            // Bonus for uninterrupted rows
-            Bitboard b = pos.pieces(Us);
-            for (int i = 1; i < pos.connect_n() && b; i++)
+            // Find sufficiently large gaps
+            Bitboard b = pos.board_bb() & ~pos.pieces(Them);
+            for (int i = 1; i < pos.connect_n(); i++)
+                b &= shift(d, b);
+            // Count number of pieces per gap
+            while (b)
             {
-                score += make_score(100, 100) * popcount(b) * i * i / (pos.connect_n() - i);
-                b &= shift(-d, shift(d, shift(d, b)) & ~pos.pieces(Them) & pos.board_bb());
-            }
-            // Bonus for rows containing holes
-            b = pos.pieces(Us);
-            for (int i = 1; i < pos.connect_n() && b; i++)
-            {
-                score += make_score(50, 50) * popcount(b) * i * i / (pos.connect_n() - i);
-                b &= shift(-d, shift(d, shift(d, b)) & ~pos.pieces(Them) & pos.board_bb()) | shift(d, shift(d, b) & ~pos.pieces());
+                Square s = pop_lsb(&b);
+                int c = 0;
+                for (int j = 0; j < pos.connect_n(); j++)
+                    if (pos.pieces(Us) & (s - j * d))
+                        c++;
+                score += make_score(200, 200)  * c / (pos.connect_n() - c) / (pos.connect_n() - c);
             }
         }
     }
