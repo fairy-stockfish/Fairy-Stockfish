@@ -692,11 +692,11 @@ namespace {
     b &= ~attackedBy[Them][PAWN] & safe;
 
     // Bonus for safe pawn threats on the next move
-    b = pawn_attacks_bb<Us>(b) & pos.pieces(Them);
+    b = (pawn_attacks_bb<Us>(b) | shift<Up>(shift<Up>(pos.pieces(Us, SHOGI_PAWN)))) & pos.pieces(Them);
     score += ThreatByPawnPush * popcount(b);
 
     // Our safe or protected pawns
-    b = pos.pieces(Us, PAWN, SHOGI_PAWN) & safe;
+    b = pos.pieces(Us, PAWN) & safe;
 
     b = (pawn_attacks_bb<Us>(b) | shift<Up>(pos.pieces(Us, SHOGI_PAWN))) & nonPawnEnemies;
     score += ThreatBySafePawn * popcount(b);
