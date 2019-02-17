@@ -128,7 +128,8 @@ void init(const Variant* v) {
 
       // For drop variants, halve the piece values
       if (v->capturesToHand || !v->checking)
-          score = score / 2;
+          score = make_score(mg_value(score) * int(MidgameLimit / 2) / (MidgameLimit + mg_value(score)),
+                             eg_value(score) * int(MidgameLimit / 2) / (MidgameLimit + eg_value(score)));
 
       // For antichess variants, use negative piece values
       if (   v->extinctionValue == VALUE_MATE
