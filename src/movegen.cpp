@@ -301,7 +301,14 @@ namespace {
         {
             Bitboard promotion_zone = promotion_zone_bb(us, pos.promotion_rank(), pos.max_rank());
             if (pos.mandatory_piece_promotion())
-                b1 &= promotion_zone & from ? 0 : ~promotion_zone;
+                b1 &= (promotion_zone & from ? 0 : ~promotion_zone) | (pos.piece_promotion_on_capture() ? ~pos.pieces() : 0);
+            // Exclude quiet promotions/demotions
+            if (pos.piece_promotion_on_capture())
+            {
+                b2 &= pos.pieces();
+                b3 &= pos.pieces();
+            }
+            // Consider promotions/demotions into promotion zone
             if (!(promotion_zone & from))
             {
                 b2 &= promotion_zone;

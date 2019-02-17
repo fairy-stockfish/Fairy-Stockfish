@@ -44,6 +44,7 @@ struct Variant {
   std::set<PieceType, std::greater<PieceType> > promotionPieceTypes = { QUEEN, ROOK, BISHOP, KNIGHT };
   bool sittuyinPromotion = false;
   PieceType promotedPieceType[PIECE_TYPE_NB] = {};
+  bool piecePromotionOnCapture = false;
   bool mandatoryPiecePromotion = false;
   bool pieceDemotion = false;
   bool endgameEval = false;

@@ -100,6 +100,7 @@ public:
   const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
   bool sittuyin_promotion() const;
   PieceType promoted_piece_type(PieceType pt) const;
+  bool piece_promotion_on_capture() const;
   bool mandatory_piece_promotion() const;
   bool piece_demotion() const;
   bool endgame_eval() const;
@@ -330,6 +331,11 @@ inline bool Position::sittuyin_promotion() const {
 inline PieceType Position::promoted_piece_type(PieceType pt) const {
   assert(var != nullptr);
   return var->promotedPieceType[pt];
+}
+
+inline bool Position::piece_promotion_on_capture() const {
+  assert(var != nullptr);
+  return var->piecePromotionOnCapture;
 }
 
 inline bool Position::mandatory_piece_promotion() const {

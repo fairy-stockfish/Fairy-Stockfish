@@ -836,7 +836,8 @@ bool Position::pseudo_legal(const Move m) const {
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
       && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)
-      && (promotion_zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to)))
+      && (   (promotion_zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to))
+          || (piece_promotion_on_capture() && !capture(m))))
       return false;
 
   // Is not a promotion, so promotion piece must be empty

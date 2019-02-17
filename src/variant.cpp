@@ -311,6 +311,21 @@ VariantMap variants; // Global object
         v->shogiDoubledPawn = true;
         return v;
     }
+    Variant* microshogi_variant() {
+        Variant* v = kyotoshogi_variant();
+        v->maxFile = FILE_D;
+        v->startFen = "kb+r+l/p3/4/3P/+L+RBK[-] w 0 1";
+        v->promotionRank = RANK_1;
+        v->piecePromotionOnCapture = true;
+        v->promotedPieceType[LANCE]        = SILVER;
+        v->promotedPieceType[BISHOP]       = GOLD;
+        v->promotedPieceType[ROOK]         = GOLD;
+        v->promotedPieceType[SHOGI_PAWN]   = SHOGI_KNIGHT;
+        v->promotedPieceType[SILVER]       = NO_PIECE_TYPE;
+        v->promotedPieceType[GOLD]         = NO_PIECE_TYPE;
+        v->promotedPieceType[SHOGI_KNIGHT] = NO_PIECE_TYPE;
+        return v;
+    }
     Variant* dobutsu_variant() {
         Variant* v = minishogi_variant_base();
         v->maxRank = RANK_4;
@@ -580,6 +595,7 @@ void VariantMap::init() {
     add("minishogi", minishogi_variant());
     add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());
+    add("micro", microshogi_variant());
     add("dobutsu", dobutsu_variant());
     add("gorogoro", gorogoroshogi_variant());
     add("judkins", judkinsshogi_variant());
