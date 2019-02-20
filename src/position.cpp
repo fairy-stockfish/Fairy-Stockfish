@@ -767,7 +767,7 @@ bool Position::legal(Move m) const {
   {
       if (type_of(moved_piece(m)) != BISHOP)
       {
-          Bitboard remaining = drop_region(us) & ~pieces() & ~SquareBB[to];
+          Bitboard remaining = drop_region(us) & ~pieces() & ~SquareBB[to] & board_bb();
           // Are enough squares available to drop bishops on opposite colors?
           if (  (!( DarkSquares & pieces(us, BISHOP)) && ( DarkSquares & remaining))
               + (!(~DarkSquares & pieces(us, BISHOP)) && (~DarkSquares & remaining)) < count_in_hand(us, BISHOP))
