@@ -145,7 +145,7 @@ void init(const Variant* v) {
           psq[ pc][ s] = score + (  pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)]
                                   : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)]
                                                 : make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - 8));
-          psq[~pc][~s] = -psq[pc][s];
+          psq[~pc][rank_of(s) <= v->maxRank ? relative_square(BLACK, s, v->maxRank) : s] = -psq[pc][s];
       }
       // pieces in pocket
       psq[ pc][SQ_NONE] = score + make_score(20, 20);
