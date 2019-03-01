@@ -741,7 +741,7 @@ namespace {
 
         assert(!(pos.pieces(Them, PAWN) & forward_file_bb(Us, s + Up)));
 
-        int r = relative_rank(Us, s, pos.max_rank());
+        int r = std::max(RANK_8 - std::max(pos.promotion_rank() - relative_rank(Us, s, pos.max_rank()), 0), 0);
         int w = PassedDanger[r];
 
         Score bonus = PassedRank[r];
@@ -758,7 +758,7 @@ namespace {
                                         - king_proximity(Us,   blockSq) * 2) * w);
 
                 // If blockSq is not the queening square then consider also a second push
-                if (r != RANK_7)
+                if (r != pos.promotion_rank() - 1)
                     bonus -= make_score(0, king_proximity(Us, blockSq + Up) * w);
             }
 
