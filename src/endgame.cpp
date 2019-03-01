@@ -125,7 +125,14 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
       || pos.count<ROOK>(strongSide)
       ||(pos.count<BISHOP>(strongSide) && pos.count<KNIGHT>(strongSide))
       || (   (pos.pieces(strongSide, BISHOP) & ~DarkSquares)
-          && (pos.pieces(strongSide, BISHOP) &  DarkSquares)))
+          && (pos.pieces(strongSide, BISHOP) &  DarkSquares))
+      || pos.count<SILVER>(strongSide) >= 2
+      ||(pos.count<SILVER>(strongSide) && pos.count<KNIGHT>(strongSide))
+      ||(pos.count<SILVER>(strongSide) && pos.count<FERS>(strongSide))
+      ||(pos.count<KNIGHT>(strongSide) && pos.count<FERS>(strongSide) >= 2)
+      ||(pos.count<FERS>(strongSide) >= 3
+          && ( DarkSquares & pos.pieces(strongSide, FERS))
+          && (~DarkSquares & pos.pieces(strongSide, FERS))))
       result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
 
   return strongSide == pos.side_to_move() ? result : -result;
