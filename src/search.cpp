@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2018 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -85,10 +85,10 @@ namespace {
     return d > 17 ? 0 : 29 * d * d + 138 * d - 134;
   }
 
-  // Add a small random component to draw evaluations to keep search dynamic 
+  // Add a small random component to draw evaluations to keep search dynamic
   // and to avoid 3fold-blindness.
   Value value_draw(Depth depth, Thread* thisThread) {
-    return depth < 4 ? VALUE_DRAW 
+    return depth < 4 ? VALUE_DRAW
                      : VALUE_DRAW + Value(2 * (thisThread->nodes.load(std::memory_order_relaxed) % 2) - 1);
   }
 
@@ -187,6 +187,7 @@ void Search::clear() {
   Time.availableNodes = 0;
   TT.clear();
   Threads.clear();
+  Tablebases::init(Options["SyzygyPath"]); // Free up mapped files
 }
 
 
@@ -389,7 +390,7 @@ void Thread::search() {
           if (rootDepth >= 5 * ONE_PLY)
           {
               Value previousScore = rootMoves[pvIdx].previousScore;
-              delta = Value(18);
+              delta = Value(20);
               alpha = std::max(previousScore - delta,-VALUE_INFINITE);
               beta  = std::min(previousScore + delta, VALUE_INFINITE);
 
@@ -403,9 +404,11 @@ void Thread::search() {
           // Start with a small aspiration window and, in the case of a fail
           // high/low, re-search with a bigger window until we don't fail
           // high/low anymore.
+          int failedHighCnt = 0;
           while (true)
           {
-              bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false);
+              Depth adjustedDepth = std::max(ONE_PLY, rootDepth - failedHighCnt * ONE_PLY);
+              bestValue = ::search<PV>(rootPos, ss, alpha, beta, adjustedDepth, false);
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -438,12 +441,17 @@ void Thread::search() {
 
                   if (mainThread)
                   {
+                      failedHighCnt = 0;
                       failedLow = true;
                       Threads.stopOnPonderhit = false;
                   }
               }
               else if (bestValue >= beta)
+              {
                   beta = std::min(bestValue + delta, VALUE_INFINITE);
+                  if (mainThread)
+                	  ++failedHighCnt;
+              }
               else
                   break;
 
@@ -596,7 +604,7 @@ namespace {
         // Step 2. Check for aborted search and immediate draw
         if (   Threads.stop.load(std::memory_order_relaxed)
             || ss->ply >= MAX_PLY)
-            return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) 
+            return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos)
                                                     : value_draw(depth, pos.this_thread());
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
@@ -679,6 +687,10 @@ namespace {
         {
             TB::ProbeState err;
             TB::WDLScore wdl = Tablebases::probe_wdl(pos, &err);
+
+            // Force check of time on the next occasion
+            if (thisThread == Threads.main())
+                static_cast<MainThread*>(thisThread)->callsCnt = 0;
 
             if (err != TB::ProbeState::FAIL)
             {
@@ -958,6 +970,10 @@ moves_loop: // When in check, search starts from here
                &&  MoveList<CAPTURES>(pos).size() == 1)
           extension = ONE_PLY;
 
+      // Extension if castling
+      else if (type_of(move) == CASTLING)
+          extension = ONE_PLY;
+
       // Calculate new depth for this move
       newDepth = depth - ONE_PLY + extension;
 
@@ -1158,8 +1174,6 @@ moves_loop: // When in check, search starts from here
                   break;
               }
           }
-          else if (PvNode && !rootNode && value == alpha)
-              update_pv(ss->pv, move, (ss+1)->pv);
       }
 
       if (move != bestMove)
@@ -1416,21 +1430,15 @@ moves_loop: // When in check, search starts from here
 
           if (value > alpha)
           {
+              bestMove = move;
+
               if (PvNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
 
               if (PvNode && value < beta) // Update alpha here!
-              {
                   alpha = value;
-                  bestMove = move;
-              }
-              else // Fail high
-              {
-                  tte->save(posKey, value_to_tt(value, ss->ply), BOUND_LOWER,
-                            ttDepth, move, ss->staticEval);
-
-                  return value;
-              }
+              else
+                  break; // Fail high
           }
        }
     }
@@ -1441,7 +1449,8 @@ moves_loop: // When in check, search starts from here
         return pos.checkmate_value(ss->ply); // Plies to mate from the root
 
     tte->save(posKey, value_to_tt(bestValue, ss->ply),
-              PvNode && bestValue > oldAlpha ? BOUND_EXACT : BOUND_UPPER,
+              bestValue >= beta ? BOUND_LOWER :
+              PvNode && bestValue > oldAlpha  ? BOUND_EXACT : BOUND_UPPER,
               ttDepth, bestMove, ss->staticEval);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);

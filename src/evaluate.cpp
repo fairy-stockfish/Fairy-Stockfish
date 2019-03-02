@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2018 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -106,8 +106,8 @@ namespace {
 #else
   constexpr Score MobilityBonus[][32] = {
 #endif
-    { S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12), // Knights
-      S( 22, 26), S( 29, 29), S( 36, 29) },
+    { S(-62,-81), S(-53,-56), S(-12,-30), S( -4,-14), S(  3,  8), S( 13, 15), // Knights
+      S( 22, 23), S( 28, 27), S( 33, 33) },
     { S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42), // Bishops
       S( 55, 54), S( 63, 57), S( 63, 65), S( 68, 73), S( 81, 78), S( 81, 86),
       S( 91, 88), S( 98, 97) },
@@ -133,7 +133,7 @@ namespace {
 
   // RookOnFile[semiopen/open] contains bonuses for each rook when there is
   // no (friendly) pawn on the rook file.
-  constexpr Score RookOnFile[] = { S(20, 7), S(45, 20) };
+  constexpr Score RookOnFile[] = { S(18, 7), S(44, 20) };
 
   // ThreatByMinor/ByRook[attacked PieceType] contains bonuses according to
   // which piece type attacks which one. Attacks on lesser pieces which are
@@ -157,32 +157,30 @@ namespace {
     S(-30,-14), S(-9, -8), S( 0,  9), S( -1,  7)
   };
 
-  // PassedDanger[Rank] contains a term to weight the passed score
-  constexpr int PassedDanger[RANK_NB] = { 0, 0, 0, 3, 7, 11, 20 };
-
   // KingProximity contains a penalty according to distance from king
   constexpr Score KingProximity = S(2, 2);
 
   // Assorted bonuses and penalties
-  constexpr Score BishopPawns        = S(  3,  7);
-  constexpr Score CloseEnemies       = S(  6,  0);
+  constexpr Score BishopPawns        = S(  3,  8);
+  constexpr Score CloseEnemies       = S(  7,  0);
   constexpr Score CorneredBishop     = S( 50, 50);
-  constexpr Score Hanging            = S( 57, 32);
-  constexpr Score KingProtector      = S(  6,  6);
-  constexpr Score KnightOnQueen      = S( 21, 11);
-  constexpr Score LongDiagonalBishop = S( 46,  0);
+  constexpr Score Hanging            = S( 62, 34);
+  constexpr Score KingProtector      = S(  6,  7);
+  constexpr Score KnightOnQueen      = S( 20, 12);
+  constexpr Score LongDiagonalBishop = S( 44,  0);
   constexpr Score MinorBehindPawn    = S( 16,  0);
-  constexpr Score Overload           = S( 13,  6);
-  constexpr Score PawnlessFlank      = S( 19, 84);
-  constexpr Score RookOnPawn         = S( 10, 30);
-  constexpr Score SliderOnQueen      = S( 42, 21);
-  constexpr Score ThreatByKing       = S( 23, 76);
-  constexpr Score ThreatByPawnPush   = S( 45, 40);
-  constexpr Score ThreatByRank       = S( 16,  3);
-  constexpr Score ThreatBySafePawn   = S(173,102);
-  constexpr Score TrappedRook        = S( 92,  0);
-  constexpr Score WeakQueen          = S( 50, 10);
-  constexpr Score WeakUnopposedPawn  = S(  5, 29);
+  constexpr Score Overload           = S( 12,  6);
+  constexpr Score PawnlessFlank      = S( 18, 94);
+  constexpr Score RestrictedPiece    = S(  7,  6);
+  constexpr Score RookOnPawn         = S( 10, 28);
+  constexpr Score SliderOnQueen      = S( 49, 21);
+  constexpr Score ThreatByKing       = S( 21, 84);
+  constexpr Score ThreatByPawnPush   = S( 48, 42);
+  constexpr Score ThreatByRank       = S( 14,  3);
+  constexpr Score ThreatBySafePawn   = S(169, 99);
+  constexpr Score TrappedRook        = S( 98,  5);
+  constexpr Score WeakQueen          = S( 51, 10);
+  constexpr Score WeakUnopposedPawn  = S( 14, 20);
 
 #undef S
 
@@ -278,6 +276,8 @@ namespace {
                                 | (attackedBy[Us][KING] & attackedBy[Us][SHOGI_PAWN])
                                 | (attackedBy[Us][PAWN] & attackedBy[Us][SHOGI_PAWN]);
 
+    kingRing[Us] = kingAttackersCount[Them] = 0;
+
     // Init our king safety tables only if we are going to use them
     if ((pos.count<KING>(Us) && pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg) || pos.captures_to_hand())
     {
@@ -296,8 +296,6 @@ namespace {
         kingAttackersCount[Them] = popcount(kingRing[Us] & (pe->pawn_attacks(Them) | shift<Down>(pos.pieces(Them, SHOGI_PAWN))));
         kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
     }
-    else
-        kingRing[Us] = kingAttackersCount[Them] = 0;
   }
 
 
@@ -483,14 +481,14 @@ namespace {
     Bitboard kingFlank, weak, b, b1, b2, safe, unsafeChecks;
 
     // King shelter and enemy pawns storm
-    Score score = pe->king_safety<Us>(pos, ksq);
+    Score score = pe->king_safety<Us>(pos);
 
     // Find the squares that opponent attacks in our king flank, and the squares
     // which are attacked twice in that flank but not defended by our pawns.
     File f = std::max(std::min(file_of(ksq), File(pos.max_file() - 1)), FILE_B);
     kingFlank = pos.max_file() == FILE_H ? KingFlank[file_of(ksq)] : file_bb(f) | adjacent_files_bb(f);
     b1 = attackedBy[Them][ALL_PIECES] & kingFlank & Camp;
-    b2 = b1 & attackedBy2[Them] & ~attackedBy[Us][PAWN] & ~attackedBy[Us][SHOGI_PAWN];
+    b2 = b1 & attackedBy2[Them];
 
     int tropism = popcount(b1) + popcount(b2);
 
@@ -565,18 +563,15 @@ namespace {
                      + 69  * kingAttacksCount[Them] * (1 + 2 * !!pos.max_check_count())
                      + 185 * popcount(kingRing[Us] & weak) * (1 + pos.captures_to_hand() + !!pos.max_check_count())
                      + 150 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
-                     +   4 * tropism
+                     +       tropism * tropism / 4
                      - 873 * !(pos.count<QUEEN>(Them) || pos.captures_to_hand()) / (1 + !!pos.max_check_count())
                      -   6 * mg_value(score) / 8
+                     +       mg_value(mobility[Them] - mobility[Us])
                      -   30;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
         if (kingDanger > 0)
-        {
-            int mobilityDanger = mg_value(mobility[Them] - mobility[Us]);
-            kingDanger = std::max(0, kingDanger + mobilityDanger);
             score -= make_score(std::min(kingDanger * kingDanger / 4096, 3000), kingDanger / 16);
-        }
     }
 
     // Penalty when our king is on a pawnless flank
@@ -606,7 +601,7 @@ namespace {
     constexpr Direction Up       = (Us == WHITE ? NORTH   : SOUTH);
     constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
 
-    Bitboard b, weak, defended, nonPawnEnemies, stronglyProtected, safe;
+    Bitboard b, weak, defended, nonPawnEnemies, stronglyProtected, safe, restricted;
     Score score = SCORE_ZERO;
 
     // Bonuses for variants with mandatory captures
@@ -673,6 +668,13 @@ namespace {
         b = weak & nonPawnEnemies & attackedBy[Them][ALL_PIECES];
         score += Overload * popcount(b);
     }
+
+    // Bonus for restricting their piece moves
+    restricted =   attackedBy[Them][ALL_PIECES]
+                & ~(attackedBy[Them][PAWN] | attackedBy[Them][SHOGI_PAWN])
+                & ~attackedBy2[Them]
+                &  attackedBy[Us][ALL_PIECES];
+    score += RestrictedPiece * popcount(restricted);
 
     // Bonus for enemy unopposed weak pawns
     if (pos.pieces(Us, ROOK, QUEEN))
@@ -742,12 +744,12 @@ namespace {
         assert(!(pos.pieces(Them, PAWN) & forward_file_bb(Us, s + Up)));
 
         int r = std::max(RANK_8 - std::max(pos.promotion_rank() - relative_rank(Us, s, pos.max_rank()), 0), 0);
-        int w = PassedDanger[r];
 
         Score bonus = PassedRank[r];
 
-        if (w)
+        if (r > RANK_3)
         {
+            int w = (r-2) * (r-2) + 2;
             Square blockSq = s + Up;
 
             // Skip bonus for antichess variants
@@ -792,7 +794,7 @@ namespace {
 
                 bonus += make_score(k * w, k * w);
             }
-        } // w != 0
+        } // rank > RANK_3
 
         // Scale down bonus for candidate passers which need more than one
         // pawn push to become passed, or have a pawn in front of them.

@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2018 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,9 +25,10 @@
 
 namespace {
 
-  template<CastlingRight Cr, bool Checks, bool Chess960>
-  ExtMove* generate_castling(const Position& pos, ExtMove* moveList, Color us) {
+  template<Color Us, CastlingSide Cs, bool Checks, bool Chess960>
+  ExtMove* generate_castling(const Position& pos, ExtMove* moveList) {
 
+    constexpr CastlingRight Cr = Us | Cs;
     constexpr bool KingSide = (Cr == WHITE_OO || Cr == BLACK_OO);
 
     if (pos.castling_impeded(Cr) || !pos.can_castle(Cr))
@@ -35,10 +36,11 @@ namespace {
 
     // After castling, the rook and king final positions are the same in Chess960
     // as they would be in standard chess.
-    Square kfrom = pos.count<KING>(us) ? pos.square<KING>(us) : make_square(FILE_E, relative_rank(us, RANK_1, pos.max_rank()));
+    Square kfrom = pos.count<KING>(Us) ? pos.square<KING>(Us) : make_square(FILE_E, relative_rank(Us, RANK_1, pos.max_rank()));
     Square rfrom = pos.castling_rook_square(Cr);
     Square kto = make_square(KingSide ? pos.castling_kingside_file() : pos.castling_queenside_file(),
-                             relative_rank(us, RANK_1, pos.max_rank()));
+                             relative_rank(Us, RANK_1, pos.max_rank()));
+    Bitboard enemies = pos.pieces(~Us);
 
     assert(!pos.checkers());
 
@@ -48,13 +50,13 @@ namespace {
     if (type_of(pos.piece_on(kfrom)) == KING)
     {
         for (Square s = kto; s != kfrom; s += step)
-            if (pos.attackers_to(s, ~us))
+            if (pos.attackers_to(s, ~Us) & enemies)
                 return moveList;
 
         // Because we generate only legal castling moves we need to verify that
         // when moving the castling rook we do not discover some hidden checker.
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        if (Chess960 && pos.attackers_to(kto, pos.pieces() ^ rfrom, ~us))
+        if (Chess960 && pos.attackers_to(kto, pos.pieces() ^ rfrom, ~Us))
             return moveList;
     }
 
@@ -357,13 +359,13 @@ namespace {
     {
         if (pos.is_chess960())
         {
-            moveList = generate_castling<MakeCastling<Us,  KING_SIDE>::right, Checks, true>(pos, moveList, Us);
-            moveList = generate_castling<MakeCastling<Us, QUEEN_SIDE>::right, Checks, true>(pos, moveList, Us);
+            moveList = generate_castling<Us, KING_SIDE, Checks, true>(pos, moveList);
+            moveList = generate_castling<Us, QUEEN_SIDE, Checks, true>(pos, moveList);
         }
         else
         {
-            moveList = generate_castling<MakeCastling<Us,  KING_SIDE>::right, Checks, false>(pos, moveList, Us);
-            moveList = generate_castling<MakeCastling<Us, QUEEN_SIDE>::right, Checks, false>(pos, moveList, Us);
+            moveList = generate_castling<Us, KING_SIDE, Checks, false>(pos, moveList);
+            moveList = generate_castling<Us, QUEEN_SIDE, Checks, false>(pos, moveList);
         }
     }
 
