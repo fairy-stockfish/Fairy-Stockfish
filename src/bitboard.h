@@ -178,7 +178,6 @@ constexpr bool more_than_one(Bitboard b) {
   return b & (b - 1);
 }
 
-
 /// board_size_bb() returns a bitboard representing all the squares
 /// on a board with given size.
 
@@ -186,6 +185,10 @@ inline Bitboard board_size_bb(File f, Rank r) {
   return BoardSizeBB[f][r];
 }
 
+inline bool opposite_colors(Square s1, Square s2) {
+
+  return bool(DarkSquares & s1) != bool(DarkSquares & s2);
+}
 
 /// rank_bb() and file_bb() return a bitboard representing all the squares on
 /// the given file or rank.
@@ -247,6 +250,16 @@ template<Color C>
 constexpr Bitboard pawn_attacks_bb(Bitboard b) {
   return C == WHITE ? shift<NORTH_WEST>(b) | shift<NORTH_EAST>(b)
                     : shift<SOUTH_WEST>(b) | shift<SOUTH_EAST>(b);
+}
+
+
+/// double_pawn_attacks_bb() returns the pawn attacks for the given color
+/// from the squares in the given bitboard.
+
+template<Color C>
+constexpr Bitboard double_pawn_attacks_bb(Bitboard b) {
+  return C == WHITE ? shift<NORTH_WEST>(b) & shift<NORTH_EAST>(b)
+                    : shift<SOUTH_WEST>(b) & shift<SOUTH_EAST>(b);
 }
 
 

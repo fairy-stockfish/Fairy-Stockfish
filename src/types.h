@@ -518,15 +518,6 @@ constexpr Square relative_square(Color c, Square s, Rank maxRank = RANK_8) {
   return make_square(file_of(s), relative_rank(c, s, maxRank));
 }
 
-inline bool opposite_colors(Square s1, Square s2) {
-#ifdef LARGEBOARDS
-  return int(s1 - (s1 % FILE_NB)) ^ int(s2 - (s2 % FILE_NB));
-#else
-  int s = int(s1) ^ int(s2);
-  return ((s >> 3) ^ s) & 1;
-#endif
-}
-
 constexpr Direction pawn_push(Color c) {
   return c == WHITE ? NORTH : SOUTH;
 }
