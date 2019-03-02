@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2018 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -57,10 +57,6 @@ namespace {
     { V(  4), V( 52), V(162), V(37), V( 7), V(-14), V( -2) },
     { V(-10), V(-14), V( 90), V(15), V( 2), V( -7), V(-16) }
   };
-
-  // Danger of blocked enemy pawns storming our king, by rank
-  constexpr Value BlockedStorm[RANK_NB] =
-    { V(0), V(0), V(66), V(6), V(5), V(1), V(15) };
 
   #undef S
   #undef V
@@ -253,7 +249,7 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
       int d = std::min(std::min(f, File(pos.max_file() - f)), FILE_D);
       // higher weight for pawns on second rank and missing shelter in drop variants
       safety += ShelterStrength[d][ourRank] * (1 + (pos.captures_to_hand() && ourRank <= RANK_2));
-      safety -= (ourRank && (ourRank == theirRank - 1)) ? BlockedStorm[theirRank]
+      safety -= (ourRank && (ourRank == theirRank - 1)) ? 66 * (theirRank == RANK_3)
                                                         : UnblockedStorm[d][theirRank];
   }
 
@@ -265,8 +261,9 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
 /// when king square changes, which is about 20% of total king_safety() calls.
 
 template<Color Us>
-Score Entry::do_king_safety(const Position& pos, Square ksq) {
+Score Entry::do_king_safety(const Position& pos) {
 
+  Square ksq = pos.square<KING>(Us);
   kingSquares[Us] = ksq;
   castlingRights[Us] = pos.can_castle(Us);
   int minKingPawnDistance = 0;
@@ -278,13 +275,13 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
   Value bonus = evaluate_shelter<Us>(pos, ksq);
 
   // If we can castle use the bonus after the castling if it is bigger
-  if (pos.can_castle(MakeCastling<Us, KING_SIDE>::right))
+  if (pos.can_castle(Us | KING_SIDE))
   {
       Square s = make_square(pos.castling_kingside_file(), Us == WHITE ? RANK_1 : pos.max_rank());
       bonus = std::max(bonus, evaluate_shelter<Us>(pos, s));
   }
 
-  if (pos.can_castle(MakeCastling<Us, QUEEN_SIDE>::right))
+  if (pos.can_castle(Us | QUEEN_SIDE))
   {
       Square s = make_square(pos.castling_queenside_file(), Us == WHITE ? RANK_1 : pos.max_rank());
       bonus = std::max(bonus, evaluate_shelter<Us>(pos, s));
@@ -294,7 +291,7 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
 }
 
 // Explicit template instantiation
-template Score Entry::do_king_safety<WHITE>(const Position& pos, Square ksq);
-template Score Entry::do_king_safety<BLACK>(const Position& pos, Square ksq);
+template Score Entry::do_king_safety<WHITE>(const Position& pos);
+template Score Entry::do_king_safety<BLACK>(const Position& pos);
 
 } // namespace Pawns
