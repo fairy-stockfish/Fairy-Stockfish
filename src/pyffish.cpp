@@ -54,9 +54,8 @@ extern "C" PyObject* pyffish_startFen(PyObject* self, PyObject *args) {
     }
     bool sfen = strcmp(variant,"shogi")==0;
     Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    Options["UCI_Variant"] = string(variant);
 
-    return Py_BuildValue("s", variants.find(Options["UCI_Variant"])->second->startFen.c_str());
+    return Py_BuildValue("s", variants.find(string(variant))->second->startFen.c_str());
 }
 
 // INPUT variant, fen, move list
@@ -69,11 +68,10 @@ extern "C" PyObject* pyffish_legalMoves(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen,  &PyList_Type, &moveList)) {
         return NULL;
     }
-    if(strcmp(fen,"startpos")==0) fen=variants.find(Options["UCI_Variant"])->second->startFen.c_str();
+    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
     bool sfen = strcmp(variant,"shogi")==0;
     Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    Options["UCI_Variant"] = string(variant);
-    pos.set(variants.find(Options["UCI_Variant"])->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
+    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
     // parse move list
     int numMoves = PyList_Size(moveList);
@@ -114,11 +112,10 @@ extern "C" PyObject* pyffish_getFEN(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen,  &PyList_Type, &moveList)) {
         return NULL;
     }
-    if(strcmp(fen,"startpos")==0) fen=variants.find(Options["UCI_Variant"])->second->startFen.c_str();
+    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
     bool sfen = strcmp(variant,"shogi")==0;
     Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    Options["UCI_Variant"] = string(variant);
-    pos.set(variants.find(Options["UCI_Variant"])->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
+    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
     // parse move list
     int numMoves = PyList_Size(moveList);
@@ -151,11 +148,10 @@ extern "C" PyObject* pyffish_givesCheck(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen,  &PyList_Type, &moveList)) {
         return NULL;
     }
-    if(strcmp(fen,"startpos")==0) fen=variants.find(Options["UCI_Variant"])->second->startFen.c_str();
+    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
     bool sfen = strcmp(variant,"shogi")==0;
     Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    Options["UCI_Variant"] = string(variant);
-    pos.set(variants.find(Options["UCI_Variant"])->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
+    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
     // parse move list
     int numMoves = PyList_Size(moveList);
