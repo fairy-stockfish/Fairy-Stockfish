@@ -1605,6 +1605,26 @@ bool Position::is_optional_game_end(Value& result, int ply) const {
       return true;
   }
 
+  // sittuyin stalemate due to optional promotion (3.9 c.7)
+  if (   sittuyin_promotion()
+      && count<ALL_PIECES>(sideToMove) == 2
+      && count<PAWN>(sideToMove) == 1
+      && !checkers())
+  {
+      bool promotionsOnly = true;
+      for (const auto& m : MoveList<LEGAL>(*this))
+          if (type_of(m) != PROMOTION)
+          {
+              promotionsOnly = false;
+              break;
+          }
+      if (promotionsOnly)
+      {
+          result = VALUE_DRAW;
+          return true;
+      }
+  }
+
   return false;
 }
 
