@@ -67,7 +67,7 @@ namespace {
     constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
     constexpr Direction Up   = (Us == WHITE ? NORTH : SOUTH);
 
-    Bitboard b, neighbours, stoppers, doubled, supported, phalanx;
+    Bitboard b, neighbours, stoppers, doubled, support, phalanx;
     Bitboard lever, leverPush;
     Square s;
     bool opposed, backward;
@@ -102,7 +102,7 @@ namespace {
         doubled    = relative_rank(Us, s, pos.max_rank()) > RANK_1 ? ourPawns & (s - Up) : 0;
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
-        supported  = relative_rank(Us, s, pos.max_rank()) > RANK_1 ? neighbours & rank_bb(s - Up) : 0;
+        support    = relative_rank(Us, s, pos.max_rank()) > RANK_1 ? neighbours & rank_bb(s - Up) : 0;
 
         // A pawn is backward when it is behind all pawns of the same color
         // on the adjacent files and cannot be safely advanced.
@@ -115,7 +115,7 @@ namespace {
         // which could become passed after one or two pawn pushes when are
         // not attacked more times than defended.
         if (   !(stoppers ^ lever ^ leverPush)
-            && popcount(supported) >= popcount(lever) - 1
+            && popcount(support) >= popcount(lever) - 1
             && popcount(phalanx)   >= popcount(leverPush))
             e->passedPawns[Us] |= s;
 
@@ -123,15 +123,15 @@ namespace {
                  && stoppers == SquareBB[s + Up]
                  && relative_rank(Us, s, pos.max_rank()) >= RANK_5)
         {
-            b = shift<Up>(supported) & ~theirPawns;
+            b = shift<Up>(support) & ~theirPawns;
             while (b)
                 if (!more_than_one(theirPawns & PseudoAttacks[Us][PAWN][pop_lsb(&b)]))
                     e->passedPawns[Us] |= s;
         }
 
         // Score this pawn
-        if (supported | phalanx)
-            score += Connected[opposed][bool(phalanx)][popcount(supported)][relative_rank(Us, s, pos.max_rank())];
+        if (support | phalanx)
+            score += Connected[opposed][bool(phalanx)][popcount(support)][relative_rank(Us, s, pos.max_rank())];
 
         else if (!neighbours)
             score -= Isolated * (1 + 2 * pos.must_capture()), e->weakUnopposed[Us] += !opposed;
@@ -139,7 +139,7 @@ namespace {
         else if (backward)
             score -= Backward, e->weakUnopposed[Us] += !opposed;
 
-        if (doubled && !supported)
+        if (doubled && !support)
             score -= Doubled;
     }
 
@@ -241,10 +241,10 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
   for (File f = File(center - 1); f <= File(center + 1); ++f)
   {
       b = ourPawns & file_bb(f);
-      int ourRank = b ? relative_rank(Us, backmost_sq(Us, b), pos.max_rank()) : 0;
+      Rank ourRank = b ? relative_rank(Us, backmost_sq(Us, b), pos.max_rank()) : RANK_1;
 
       b = theirPawns & file_bb(f);
-      int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : 0;
+      Rank theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : RANK_1;
 
       int d = std::min(std::min(f, File(pos.max_file() - f)), FILE_D);
       // higher weight for pawns on second rank and missing shelter in drop variants
@@ -265,7 +265,7 @@ Score Entry::do_king_safety(const Position& pos) {
 
   Square ksq = pos.square<KING>(Us);
   kingSquares[Us] = ksq;
-  castlingRights[Us] = pos.can_castle(Us);
+  castlingRights[Us] = pos.castling_rights(Us);
   int minKingPawnDistance = 0;
 
   Bitboard pawns = pos.pieces(Us, PAWN);
