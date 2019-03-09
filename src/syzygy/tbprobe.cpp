@@ -663,7 +663,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
     // flip the squares before to lookup.
     bool blackStronger = (pos.material_key() != entry->key);
 
-    int flipColor   = (symmetricBlackToMove || blackStronger) * 8;
+    int flipColor   = (symmetricBlackToMove || blackStronger) * PIECE_TYPE_NB;
     int flipSquares = (symmetricBlackToMove || blackStronger) * 070;
     int stm         = (symmetricBlackToMove || blackStronger) ^ pos.side_to_move();
 
@@ -1066,7 +1066,10 @@ void set(T& e, uint8_t* data) {
 
         for (int k = 0; k < e.pieceCount; ++k, ++data)
             for (int i = 0; i < sides; i++)
-                e.get(i, f)->pieces[k] = Piece(i ? *data >>  4 : *data & 0xF);
+            {
+                int p = i ? *data >>  4 : *data & 0xF;
+                e.get(i, f)->pieces[k] = make_piece(Color(p >> 3), PieceType(p & 7));
+            }
 
         for (int i = 0; i < sides; ++i)
             set_groups(e, e.get(i, f), order[i], f);
