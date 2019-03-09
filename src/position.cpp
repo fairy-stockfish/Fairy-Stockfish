@@ -630,16 +630,21 @@ const string Position::fen() const {
   if (!can_castle(ANY_CASTLING))
       ss << '-';
 
-  // check count
-  if (max_check_count())
-      ss << " " << (max_check_count() - st->checksGiven[WHITE]) << "+" << (max_check_count() - st->checksGiven[BLACK]);
-
-  // Counting limit and counting ply, or ep-square and 50-move rule counter
+  // Counting limit or ep-square
   if (st->countingLimit)
-      ss << " " << st->countingLimit << " " << st->countingPly;
+      ss << " " << st->countingLimit << " ";
   else
-      ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ")
-         << st->rule50;
+      ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ");
+
+  // Check count
+  if (max_check_count())
+      ss << (max_check_count() - st->checksGiven[WHITE]) << "+" << (max_check_count() - st->checksGiven[BLACK]) << " ";
+
+  // Counting ply or 50-move rule counter
+  if (st->countingLimit)
+      ss << st->countingPly;
+  else
+      ss << st->rule50;
 
   ss << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
 
