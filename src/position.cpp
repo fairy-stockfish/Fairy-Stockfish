@@ -627,19 +627,24 @@ const string Position::fen() const {
   if (can_castle(BLACK_OOO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK | QUEEN_SIDE))) : 'q');
 
-  if (!can_castle(WHITE) && !can_castle(BLACK))
+  if (!can_castle(ANY_CASTLING))
       ss << '-';
 
-  // check count
-  if (max_check_count())
-      ss << " " << (max_check_count() - st->checksGiven[WHITE]) << "+" << (max_check_count() - st->checksGiven[BLACK]);
-
-  // Counting limit and counting ply, or ep-square and 50-move rule counter
+  // Counting limit or ep-square
   if (st->countingLimit)
-      ss << " " << st->countingLimit << " " << st->countingPly;
+      ss << " " << st->countingLimit << " ";
   else
-      ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ")
-         << st->rule50;
+      ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ");
+
+  // Check count
+  if (max_check_count())
+      ss << (max_check_count() - st->checksGiven[WHITE]) << "+" << (max_check_count() - st->checksGiven[BLACK]) << " ";
+
+  // Counting ply or 50-move rule counter
+  if (st->countingLimit)
+      ss << st->countingPly;
+  else
+      ss << st->rule50;
 
   ss << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
 
@@ -1570,27 +1575,27 @@ bool Position::is_optional_game_end(Value& result, int ply) const {
   {
       int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
-      if (end < 4)
-          return false;
-
-      StateInfo* stp = st->previous->previous;
-      int cnt = 0;
-      bool perpetual = true;
-
-      for (int i = 4; i <= end; i += 2)
+      if (end >= 4)
       {
-          stp = stp->previous->previous;
-          perpetual &= bool(stp->checkersBB);
+          StateInfo* stp = st->previous->previous;
+          int cnt = 0;
+          bool perpetual = true;
 
-          // Return a draw score if a position repeats once earlier but strictly
-          // after the root, or repeats twice before or at the root.
-          if (   stp->key == st->key
-              && ++cnt + 1 == (ply > i ? 2 : n_fold_rule()))
+          for (int i = 4; i <= end; i += 2)
           {
-              result = convert_mate_value(  var->perpetualCheckIllegal && perpetual ? VALUE_MATE
-                                          : var->nFoldValueAbsolute && sideToMove == BLACK ? -var->nFoldValue
-                                          : var->nFoldValue, ply);
-              return true;
+              stp = stp->previous->previous;
+              perpetual &= bool(stp->checkersBB);
+
+              // Return a draw score if a position repeats once earlier but strictly
+              // after the root, or repeats twice before or at the root.
+              if (   stp->key == st->key
+                  && ++cnt + 1 == (ply > i ? 2 : n_fold_rule()))
+              {
+                  result = convert_mate_value(  var->perpetualCheckIllegal && perpetual ? VALUE_MATE
+                                              : var->nFoldValueAbsolute && sideToMove == BLACK ? -var->nFoldValue
+                                              : var->nFoldValue, ply);
+                  return true;
+              }
           }
       }
   }
@@ -1603,6 +1608,26 @@ bool Position::is_optional_game_end(Value& result, int ply) const {
   {
       result = VALUE_DRAW;
       return true;
+  }
+
+  // sittuyin stalemate due to optional promotion (3.9 c.7)
+  if (   sittuyin_promotion()
+      && count<ALL_PIECES>(sideToMove) == 2
+      && count<PAWN>(sideToMove) == 1
+      && !checkers())
+  {
+      bool promotionsOnly = true;
+      for (const auto& m : MoveList<LEGAL>(*this))
+          if (type_of(m) != PROMOTION)
+          {
+              promotionsOnly = false;
+              break;
+          }
+      if (promotionsOnly)
+      {
+          result = VALUE_DRAW;
+          return true;
+      }
   }
 
   return false;

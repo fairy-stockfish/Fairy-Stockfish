@@ -225,8 +225,9 @@ public:
             exit(1);
         }
 #else
+        // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
         HANDLE fd = CreateFile(fname.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+                               OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
         if (fd == INVALID_HANDLE_VALUE)
             return *baseAddress = nullptr, nullptr;
@@ -662,7 +663,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
     // flip the squares before to lookup.
     bool blackStronger = (pos.material_key() != entry->key);
 
-    int flipColor   = (symmetricBlackToMove || blackStronger) * 8;
+    int flipColor   = (symmetricBlackToMove || blackStronger) * PIECE_TYPE_NB;
     int flipSquares = (symmetricBlackToMove || blackStronger) * 070;
     int stm         = (symmetricBlackToMove || blackStronger) ^ pos.side_to_move();
 
@@ -1065,7 +1066,10 @@ void set(T& e, uint8_t* data) {
 
         for (int k = 0; k < e.pieceCount; ++k, ++data)
             for (int i = 0; i < sides; i++)
-                e.get(i, f)->pieces[k] = Piece(i ? *data >>  4 : *data & 0xF);
+            {
+                int p = i ? *data >>  4 : *data & 0xF;
+                e.get(i, f)->pieces[k] = make_piece(Color(p >> 3), PieceType(p & 7));
+            }
 
         for (int i = 0; i < sides; ++i)
             set_groups(e, e.get(i, f), order[i], f);
@@ -1108,10 +1112,10 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
 
     static Mutex mutex;
 
-    // Use 'aquire' to avoid a thread reads 'ready' == true while another is
-    // still working, this could happen due to compiler reordering.
+    // Use 'acquire' to avoid a thread reading 'ready' == true while
+    // another is still working. (compiler reordering may cause this).
     if (e.ready.load(std::memory_order_acquire))
-        return e.baseAddress; // Could be nullptr if file does not exsist
+        return e.baseAddress; // Could be nullptr if file does not exist
 
     std::unique_lock<Mutex> lk(mutex);
 

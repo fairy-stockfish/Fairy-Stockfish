@@ -186,7 +186,6 @@ inline Bitboard board_size_bb(File f, Rank r) {
 }
 
 inline bool opposite_colors(Square s1, Square s2) {
-
   return bool(DarkSquares & s1) != bool(DarkSquares & s2);
 }
 

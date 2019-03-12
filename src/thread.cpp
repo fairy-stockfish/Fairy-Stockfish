@@ -118,7 +118,7 @@ void Thread::idle_loop() {
 }
 
 /// ThreadPool::set() creates/destroys threads to match the requested number.
-/// Created and launched threads will go immediately to sleep in idle_loop.
+/// Created and launched threads will immediately go to sleep in idle_loop.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
 
 void ThreadPool::set(size_t requested) {
@@ -136,10 +136,10 @@ void ThreadPool::set(size_t requested) {
       while (size() < requested)
           push_back(new Thread(size()));
       clear();
-  }
 
-  // Reallocate the hash with the new threadpool size
-  TT.resize(Options["Hash"]);
+      // Reallocate the hash with the new threadpool size
+      TT.resize(Options["Hash"]);
+  }
 }
 
 /// ThreadPool::clear() sets threadPool data to initial values.

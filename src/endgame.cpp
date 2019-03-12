@@ -45,14 +45,14 @@ namespace {
   // Table used to drive the king towards a corner square of the
   // right color in KBN vs K endgames.
   constexpr int PushToCorners[SQUARE_NB] = {
-    200, 190, 180, 170, 160, 150, 140, 130,
-    190, 180, 170, 160, 150, 140, 130, 140,
-    180, 170, 155, 140, 140, 125, 140, 150,
-    170, 160, 140, 120, 110, 140, 150, 160,
-    160, 150, 140, 110, 120, 140, 160, 170,
-    150, 140, 125, 140, 140, 155, 170, 180,
-    140, 130, 140, 150, 160, 170, 180, 190,
-    130, 140, 150, 160, 170, 180, 190, 200
+     6400, 6080, 5760, 5440, 5120, 4800, 4480, 4160,
+     6080, 5760, 5440, 5120, 4800, 4480, 4160, 4480,
+     5760, 5440, 4960, 4480, 4480, 4000, 4480, 4800,
+     5440, 5120, 4480, 3840, 3520, 4480, 4800, 5120,
+     5120, 4800, 4480, 3520, 3840, 4480, 5120, 5440,
+     4800, 4480, 4000, 4480, 4480, 4960, 5440, 5760,
+     4480, 4160, 4480, 4800, 5120, 5440, 5760, 6080,
+     4160, 4480, 4800, 5120, 5440, 5760, 6080, 6400
   };
 
   // Table used to drive the king towards the edge of the board
@@ -140,7 +140,7 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
 
 
 /// Mate with KBN vs K. This is similar to KX vs K, but we have to drive the
-/// defending king towards a corner square of the right color.
+/// defending king towards a corner square that our bishop attacks.
 template<>
 Value Endgame<KBNK>::operator()(const Position& pos) const {
 
@@ -151,19 +151,14 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
   Square loserKSq = pos.square<KING>(weakSide);
   Square bishopSq = pos.square<BISHOP>(strongSide);
 
-  // kbnk_mate_table() tries to drive toward corners A1 or H8. If we have a
-  // bishop that cannot reach the above squares, we flip the kings in order
-  // to drive the enemy toward corners A8 or H1.
-  if (opposite_colors(bishopSq, SQ_A1))
-  {
-      winnerKSq = ~winnerKSq;
-      loserKSq  = ~loserKSq;
-  }
+  // If our Bishop does not attack A1/H8, we flip the enemy king square 
+  // to drive to opposite corners (A8/H1).
 
   Value result =  VALUE_KNOWN_WIN
                 + PushClose[distance(winnerKSq, loserKSq)]
-                + PushToCorners[loserKSq];
+                + PushToCorners[opposite_colors(bishopSq, SQ_A1) ? ~loserKSq : loserKSq];
 
+  assert(abs(result) < VALUE_MATE_IN_MAX_PLY);
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
