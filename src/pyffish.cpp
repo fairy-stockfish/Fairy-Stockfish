@@ -212,8 +212,6 @@ PyMODINIT_FUNC PyInit_pyffish() {
     Bitbases::init();
     Search::init();
     Pawns::init();
-    Tablebases::init(Options["SyzygyPath"]);
-    TT.resize(Options["Hash"]);
     Threads.set(Options["Threads"]);
     Search::clear(); // After threads are up
 
