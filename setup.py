@@ -14,13 +14,18 @@ CLASSIFIERS = [
     "Operating System :: OS Independent",
 ]
 
+with open("Readme.md", "r") as fh:
+    long_description = fh.read()
+
 pyffish_module = Extension(
     "pyffish",
     sources=glob("src/*.cpp") + glob("src/syzygy/*.cpp"),
     extra_compile_args=args)
 
-setup(name="pyffish", version="0.1",
+setup(name="pyffish", version="0.0.1",
       description="Fairy-Stockfish Python wrapper",
+      long_description=long_description,
+      long_description_content_type="text/markdown",
       author="Bajusz Tamás",
       author_email="gbtami@gmail.com",
       license="GPL3",
