@@ -28,6 +28,7 @@ namespace {
   template<Color Us, CastlingSide Cs, bool Checks, bool Chess960>
   ExtMove* generate_castling(const Position& pos, ExtMove* moveList) {
 
+    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
     constexpr CastlingRight Cr = Us | Cs;
     constexpr bool KingSide = (Cs == KING_SIDE);
 
@@ -40,7 +41,7 @@ namespace {
     Square rfrom = pos.castling_rook_square(Cr);
     Square kto = make_square(KingSide ? pos.castling_kingside_file() : pos.castling_queenside_file(),
                              relative_rank(Us, RANK_1, pos.max_rank()));
-    Bitboard enemies = pos.pieces(~Us);
+    Bitboard enemies = pos.pieces(Them);
 
     assert(!pos.checkers());
 
@@ -108,8 +109,7 @@ namespace {
   template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
-    // Compute our parametrized parameters at compile time, named according to
-    // the point of view of white side.
+    // Compute some compile time parameters relative to the white side
     constexpr Color     Them     = (Us == WHITE ? BLACK      : WHITE);
     constexpr Direction Up       = (Us == WHITE ? NORTH      : SOUTH);
     constexpr Direction Down     = (Us == WHITE ? SOUTH      : NORTH);
