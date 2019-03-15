@@ -720,7 +720,6 @@ bool Position::legal(Move m) const {
   Color us = sideToMove;
   Square from = from_sq(m);
   Square to = to_sq(m);
-  Square ksq = count<KING>(us) ? square<KING>(us) : SQ_NONE;
 
   assert(color_of(moved_piece(m)) == us);
   assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
@@ -793,6 +792,7 @@ bool Position::legal(Move m) const {
   // the move is made.
   if (type_of(m) == ENPASSANT)
   {
+      Square ksq = count<KING>(us) ? square<KING>(us) : SQ_NONE;
       Square capsq = to - pawn_push(us);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
@@ -804,6 +804,30 @@ bool Position::legal(Move m) const {
       return !count<KING>(us) || !(attackers_to(ksq, occupied, ~us) & occupied);
   }
 
+  // Castling moves generation does not check if the castling path is clear of
+  // enemy attacks, it is delayed at a later time: now!
+  if (type_of(m) == CASTLING)
+  {
+      // Non-royal pieces can not be impeded from castling
+      if (type_of(piece_on(from)) != KING)
+          return true;
+
+      // After castling, the rook and king final positions are the same in
+      // Chess960 as they would be in standard chess.
+      to = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), relative_rank(us, RANK_1, max_rank()));
+      Direction step = to > from ? WEST : EAST;
+
+      for (Square s = to; s != from; s += step)
+          if (attackers_to(s, ~us))
+              return false;
+
+      // In case of Chess960, verify that when moving the castling rook we do
+      // not discover some hidden checker.
+      // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+      return   !chess960
+            || !(attackers_to(to, pieces() ^ to_sq(m), ~us));
+  }
+
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
@@ -811,7 +835,7 @@ bool Position::legal(Move m) const {
       return type_of(m) == CASTLING || !attackers_to(to, ~us);
 
   // A non-king move is legal if the king is not under attack after the move.
-  return !count<KING>(us) || !(attackers_to(ksq, (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us) & ~SquareBB[to]);
+  return !count<KING>(us) || !(attackers_to(square<KING>(us), (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us) & ~SquareBB[to]);
 }
 
 
