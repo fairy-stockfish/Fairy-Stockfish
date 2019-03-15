@@ -921,7 +921,7 @@ namespace {
     {
         for (PieceType pt : pos.extinction_piece_types())
             if (pt != ALL_PIECES)
-                score += make_score(1000, 1000) / pos.count(Us, pt) * (pos.extinction_value() / VALUE_MATE);
+                score += make_score(1100, 1100) / pos.count(Us, pt) * (pos.extinction_value() / VALUE_MATE);
             else if (pos.extinction_value() == VALUE_MATE && !pos.count<KING>(Us))
                 score += make_score(5000, pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
     }
