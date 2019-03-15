@@ -177,7 +177,7 @@ namespace {
   constexpr Score ThreatByPawnPush   = S( 48, 39);
   constexpr Score ThreatByRank       = S( 13,  0);
   constexpr Score ThreatBySafePawn   = S(173, 94);
-  constexpr Score TrappedRook        = S( 96,  4);
+  constexpr Score TrappedRook        = S( 47,  4);
   constexpr Score WeakQueen          = S( 49, 15);
   constexpr Score WeakUnopposedPawn  = S( 12, 23);
 
@@ -418,7 +418,7 @@ namespace {
             {
                 File kf = file_of(pos.square<KING>(Us));
                 if ((kf < FILE_E) == (file_of(s) < kf))
-                    score -= (TrappedRook - make_score(mob * 22, 0)) * (1 + !pos.castling_rights(Us));
+                    score -= TrappedRook * (1 + !pos.castling_rights(Us));
             }
         }
 
@@ -845,7 +845,8 @@ namespace {
     if (pos.non_pawn_material() < SpaceThreshold && !pos.captures_to_hand() && !pawnsOnly)
         return SCORE_ZERO;
 
-    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
+    constexpr Color Them     = (Us == WHITE ? BLACK : WHITE);
+    constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
     constexpr Bitboard SpaceMask =
       Us == WHITE ? CenterFiles & (Rank2BB | Rank3BB | Rank4BB)
                   : CenterFiles & (Rank7BB | Rank6BB | Rank5BB);
@@ -861,9 +862,8 @@ namespace {
 
     // Find all squares which are at most three squares behind some friendly pawn
     Bitboard behind = pos.pieces(Us, PAWN, SHOGI_PAWN);
-    behind |= (Us == WHITE ? behind >> NORTH : behind << NORTH);
-    behind |= (Us == WHITE ? behind >> (2 * NORTH) : behind << (2 * NORTH));
-
+    behind |= shift<Down>(behind);
+    behind |= shift<Down>(shift<Down>(behind));
 
     int bonus = popcount(safe) + popcount(behind & safe);
     int weight =  pos.count<ALL_PIECES>(Us)
@@ -974,12 +974,12 @@ namespace {
                             && (pos.pieces(PAWN) & KingSide);
 
     // Compute the initiative bonus for the attacking side
-    int complexity =   8 * pe->pawn_asymmetry()
-                    + 12 * pos.count<PAWN>()
-                    + 12 * outflanking
-                    + 16 * pawnsOnBothFlanks
-                    + 48 * !pos.non_pawn_material()
-                    -118 ;
+    int complexity =   9 * pe->pawn_asymmetry()
+                    + 11 * pos.count<PAWN>()
+                    +  9 * outflanking
+                    + 18 * pawnsOnBothFlanks
+                    + 49 * !pos.non_pawn_material()
+                    -121 ;
 
     // Now apply the bonus: note that we find the attacking side by extracting
     // the sign of the endgame value, and that we carefully cap the bonus so
