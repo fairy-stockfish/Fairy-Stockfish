@@ -25,6 +25,21 @@ namespace PSQT {
 
 using namespace std;
 
+namespace
+{
+bool hasInsufficientMaterial(Color c, Position *p) {
+    if (p->count(c, PAWN) > 0 || p->count(c, ROOK) > 0 || p->count(c, QUEEN) > 0 || p->count(c, ARCHBISHOP) > 0 || p->count(c, CHANCELLOR) > 0)
+        return false;
+
+    if (p->count(c, KNIGHT) < 2 && p->count(c, BISHOP) == 0)
+        return true;
+
+    if (p->count(c, BISHOP) < 2 && p->count(c, KNIGHT) == 0)
+        return true;
+    return false;
+}
+}
+
 extern "C" PyObject* pyffish_info(PyObject* self) {
     return Py_BuildValue("s", engine_info().c_str());
 }
@@ -252,6 +267,45 @@ extern "C" PyObject* pyffish_isOptionalGameEnd(PyObject* self, PyObject *args) {
     return Py_BuildValue("(Oi)", gameEnd ? Py_True : Py_False, result);
 }
 
+// INPUT variant, fen, move list
+extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *args) {
+    PyObject *moveList;
+    StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
+    Position pos;
+    const char *fen, *variant;
+    bool wInsufficient, bInsufficient;
+
+    if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen, &PyList_Type, &moveList)) {
+        return NULL;
+    }
+    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
+    bool sfen = strcmp(variant,"shogi")==0;
+    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
+    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
+
+    // parse move list
+    int numMoves = PyList_Size(moveList);
+    for (int i=0; i<numMoves ; i++) {
+        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
+        Move m;
+        if((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
+        {
+            // do the move
+            states->emplace_back();
+            pos.do_move(m, states->back());
+        }
+        else
+        {
+            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
+            return NULL;
+        }
+    }
+
+    wInsufficient = hasInsufficientMaterial(WHITE, &pos);
+    bInsufficient = hasInsufficientMaterial(BLACK, &pos);
+    return Py_BuildValue("(OO)", wInsufficient ? Py_True : Py_False, bInsufficient ? Py_True : Py_False);
+}
+
 static PyMethodDef PyFFishMethods[] = {
     {"info", (PyCFunction)pyffish_info, METH_NOARGS, "Get Stockfish version info."},
     {"set_option", (PyCFunction)pyffish_setOption, METH_VARARGS, "Set UCI option."},
@@ -261,6 +315,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"gives_check", (PyCFunction)pyffish_givesCheck, METH_VARARGS, "Get check status from given FEN and movelist."},
     {"is_immediate_game_end", (PyCFunction)pyffish_isImmediateGameEnd, METH_VARARGS, "Get result from given FEN if variant rules ends the game."},
     {"is_optional_game_end", (PyCFunction)pyffish_isOptionalGameEnd, METH_VARARGS, "Get result from given FEN it rules enable game end by player."},
+    {"has_insufficient_material", (PyCFunction)pyffish_hasInsufficientMaterial, METH_VARARGS, "Set UCI option."},
     {NULL, NULL, 0, NULL},  // sentinel
 };
 
