@@ -28,15 +28,10 @@ int8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
 Bitboard BoardSizeBB[FILE_NB][RANK_NB];
 Bitboard SquareBB[SQUARE_NB];
-Bitboard FileBB[FILE_NB];
-Bitboard RankBB[RANK_NB];
 Bitboard ForwardRanksBB[COLOR_NB][RANK_NB];
 Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 Bitboard DistanceRingBB[SQUARE_NB][FILE_NB];
-Bitboard ForwardFileBB[COLOR_NB][SQUARE_NB];
-Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
-Bitboard PawnAttackSpan[COLOR_NB][SQUARE_NB];
 Bitboard PseudoAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard PseudoMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
@@ -371,26 +366,12 @@ void Bitboards::init() {
   for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       SquareBB[s] = make_bitboard(s);
 
-  for (File f = FILE_A; f <= FILE_MAX; ++f)
-      FileBB[f] = f > FILE_A ? FileBB[f - 1] << 1 : FileABB;
-
-  for (Rank r = RANK_1; r <= RANK_MAX; ++r)
-      RankBB[r] = r > RANK_1 ? RankBB[r - 1] << FILE_NB : Rank1BB;
-
   for (Rank r = RANK_1; r < RANK_MAX; ++r)
-      ForwardRanksBB[WHITE][r] = ~(ForwardRanksBB[BLACK][r + 1] = ForwardRanksBB[BLACK][r] | RankBB[r]);
-
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (Square s = SQ_A1; s <= SQ_MAX; ++s)
-      {
-          ForwardFileBB [c][s] = ForwardRanksBB[c][rank_of(s)] & FileBB[file_of(s)];
-          PawnAttackSpan[c][s] = ForwardRanksBB[c][rank_of(s)] & adjacent_files_bb(file_of(s));
-          PassedPawnMask[c][s] = ForwardFileBB [c][s] | PawnAttackSpan[c][s];
-      }
+      ForwardRanksBB[WHITE][r] = ~(ForwardRanksBB[BLACK][r + 1] = ForwardRanksBB[BLACK][r] | rank_bb(r));
 
   for (File f = FILE_A; f <= FILE_MAX; ++f)
       for (Rank r = RANK_1; r <= RANK_MAX; ++r)
-          BoardSizeBB[f][r] = ForwardFileBB[BLACK][make_square(f, r)] | SquareBB[make_square(f, r)] | (f > FILE_A ? BoardSizeBB[f - 1][r] : 0);
+          BoardSizeBB[f][r] = forward_file_bb(BLACK, make_square(f, r)) | SquareBB[make_square(f, r)] | (f > FILE_A ? BoardSizeBB[f - 1][r] : 0);
 
   for (Square s1 = SQ_A1; s1 <= SQ_MAX; ++s1)
       for (Square s2 = SQ_A1; s2 <= SQ_MAX; ++s2)

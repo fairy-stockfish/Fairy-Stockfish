@@ -562,14 +562,15 @@ namespace {
     unsafeChecks &= mobilityArea[Them];
 
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
-                    + 69  * kingAttacksCount[Them] * (1 + 2 * !!pos.max_check_count())
-                    + 185 * popcount(kingRing[Us] & weak) * (1 + pos.captures_to_hand() + !!pos.max_check_count())
-                    + 150 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
-                    +       tropism * tropism / 4
-                    - 873 * !(pos.count<QUEEN>(Them) || pos.captures_to_hand()) / (1 + !!pos.max_check_count())
-                    -   6 * mg_value(score) / 8
-                    +       mg_value(mobility[Them] - mobility[Us])
-                    -   30;
+                 + 69  * kingAttacksCount[Them] * (1 + 2 * !!pos.max_check_count())
+                 + 185 * popcount(kingRing[Us] & weak) * (1 + pos.captures_to_hand() + !!pos.max_check_count())
+                 - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
+                 + 150 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
+                 +   5 * tropism * tropism / 16
+                 - 873 * !(pos.count<QUEEN>(Them) || pos.captures_to_hand()) / (1 + !!pos.max_check_count())
+                 -   6 * mg_value(score) / 8
+                 +       mg_value(mobility[Them] - mobility[Us])
+                 -   25;
 
     // Transform the kingDanger units into a Score, and subtract it from the evaluation
     if (kingDanger > 0)
