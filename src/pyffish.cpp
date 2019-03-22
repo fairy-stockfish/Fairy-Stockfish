@@ -27,6 +27,7 @@ using namespace std;
 
 namespace
 {
+
 bool hasInsufficientMaterial(Color c, Position *p) {
     if (p->count(c, PAWN) > 0 || p->count(c, ROOK) > 0 || p->count(c, QUEEN) > 0 || p->count(c, ARCHBISHOP) > 0 || p->count(c, CHANCELLOR) > 0)
         return false;
@@ -34,13 +35,44 @@ bool hasInsufficientMaterial(Color c, Position *p) {
     if (p->count(c, KNIGHT) + p->count(c, BISHOP) < 2)
         return true;
 
-    if (p->count(c, BISHOP) > 1 && p->count(c, KNIGHT) == 0) {
+    if (p->count(c, BISHOP) > 1 && p->count(c, KNIGHT) == 0)
+    {
         bool sameColor;
         sameColor = ((DarkSquares & (p->pieces(c, BISHOP))) == 0) || ((~DarkSquares & (p->pieces(c, BISHOP))) == 0);
         return sameColor;
     }
     return false;
 }
+
+bool buildPosition(Position *pos, const char *variant, const char *fen, PyObject *moveList, bool detectCheck) {
+    bool givesCheck = false;
+    StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
+
+    if (strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
+    bool sfen = strcmp(variant,"shogi")==0;
+    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
+    pos->set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
+
+    // parse move list
+    int numMoves = PyList_Size(moveList);
+    for (int i=0; i<numMoves ; i++) {
+        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
+        Move m;
+        if ((m = UCI::to_move(*pos, moveStr)) != MOVE_NONE)
+        {
+            if (detectCheck && i==numMoves-1) givesCheck = pos->gives_check(m);
+            // do the move
+            states->emplace_back();
+            pos->do_move(m, states->back());
+        }
+        else
+        {
+            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
+        }
+    }
+    return givesCheck;
+}
+
 }
 
 extern "C" PyObject* pyffish_info(PyObject* self) {
@@ -79,36 +111,14 @@ extern "C" PyObject* pyffish_startFen(PyObject* self, PyObject *args) {
 // INPUT variant, fen, move list
 extern "C" PyObject* pyffish_legalMoves(PyObject* self, PyObject *args) {
     PyObject* legalMoves = PyList_New(0), *moveList;
-    StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
     Position pos;
     const char *fen, *variant;
 
     if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen,  &PyList_Type, &moveList)) {
         return NULL;
     }
-    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
-    bool sfen = strcmp(variant,"shogi")==0;
-    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
-    // parse move list
-    int numMoves = PyList_Size(moveList);
-    for (int i=0; i<numMoves ; i++) {
-        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
-        Move m;
-        if((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
-        {
-            // do the move
-            states->emplace_back();
-            pos.do_move(m, states->back());
-        }
-        else
-        {
-            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
-            return NULL;
-        }
-    }
-
+    buildPosition(&pos, variant, fen, moveList, false);
     for (const auto& m : MoveList<LEGAL>(pos))
     {
         PyObject *moveStr;
@@ -116,49 +126,25 @@ extern "C" PyObject* pyffish_legalMoves(PyObject* self, PyObject *args) {
         PyList_Append(legalMoves, moveStr);
         Py_XDECREF(moveStr);
     }
-
     return legalMoves;
 }
 
 // INPUT variant, fen, move list
 extern "C" PyObject* pyffish_getFEN(PyObject* self, PyObject *args) {
     PyObject *moveList;
-    StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
     Position pos;
     const char *fen, *variant;
 
     if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen,  &PyList_Type, &moveList)) {
         return NULL;
     }
-    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
-    bool sfen = strcmp(variant,"shogi")==0;
-    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
-
-    // parse move list
-    int numMoves = PyList_Size(moveList);
-    for (int i=0; i<numMoves ; i++) {
-        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
-        Move m;
-        if((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
-        {
-            // do the move
-            states->emplace_back();
-            pos.do_move(m, states->back());
-        }
-        else
-        {
-            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
-            return NULL;
-        }
-    }
+    buildPosition(&pos, variant, fen, moveList, false);
     return Py_BuildValue("s", pos.fen().c_str());
 }
 
 // INPUT variant, fen, move list
 extern "C" PyObject* pyffish_givesCheck(PyObject* self, PyObject *args) {
     PyObject *moveList;
-    StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
     Position pos;
     const char *fen, *variant;
     bool givesCheck;
@@ -166,36 +152,17 @@ extern "C" PyObject* pyffish_givesCheck(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen,  &PyList_Type, &moveList)) {
         return NULL;
     }
-    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
-    bool sfen = strcmp(variant,"shogi")==0;
-    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
-
-    // parse move list
-    int numMoves = PyList_Size(moveList);
-    for (int i=0; i<numMoves ; i++) {
-        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
-        Move m;
-        if((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
-        {
-            // do the move
-            givesCheck = pos.gives_check(m);
-            states->emplace_back();
-            pos.do_move(m, states->back());
-        }
-        else
-        {
-            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
-            return NULL;
-        }
+    if (PyList_Size(moveList) < 1) {
+        PyErr_SetString(PyExc_ValueError, (string("Move list can't be empty.")).c_str());
+        return NULL;
     }
+    givesCheck = buildPosition(&pos, variant, fen, moveList, true);
     return Py_BuildValue("O", givesCheck ? Py_True : Py_False);
 }
 
 // INPUT variant, fen, move list
 extern "C" PyObject* pyffish_isImmediateGameEnd(PyObject* self, PyObject *args) {
     PyObject *moveList;
-    StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
     Position pos;
     const char *fen, *variant;
     bool gameEnd;
@@ -204,29 +171,8 @@ extern "C" PyObject* pyffish_isImmediateGameEnd(PyObject* self, PyObject *args) 
     if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen, &PyList_Type, &moveList)) {
         return NULL;
     }
-    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
-    bool sfen = strcmp(variant,"shogi")==0;
-    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
-    // parse move list
-    int numMoves = PyList_Size(moveList);
-    for (int i=0; i<numMoves ; i++) {
-        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
-        Move m;
-        if((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
-        {
-            // do the move
-            states->emplace_back();
-            pos.do_move(m, states->back());
-        }
-        else
-        {
-            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
-            return NULL;
-        }
-    }
-
+    buildPosition(&pos, variant, fen, moveList, false);
     gameEnd = pos.is_immediate_game_end(result);
     return Py_BuildValue("(Oi)", gameEnd ? Py_True : Py_False, result);
 }
@@ -234,7 +180,6 @@ extern "C" PyObject* pyffish_isImmediateGameEnd(PyObject* self, PyObject *args) 
 // INPUT variant, fen, move list
 extern "C" PyObject* pyffish_isOptionalGameEnd(PyObject* self, PyObject *args) {
     PyObject *moveList;
-    StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
     Position pos;
     const char *fen, *variant;
     bool gameEnd;
@@ -243,29 +188,8 @@ extern "C" PyObject* pyffish_isOptionalGameEnd(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen, &PyList_Type, &moveList)) {
         return NULL;
     }
-    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
-    bool sfen = strcmp(variant,"shogi")==0;
-    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
-    // parse move list
-    int numMoves = PyList_Size(moveList);
-    for (int i=0; i<numMoves ; i++) {
-        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
-        Move m;
-        if((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
-        {
-            // do the move
-            states->emplace_back();
-            pos.do_move(m, states->back());
-        }
-        else
-        {
-            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
-            return NULL;
-        }
-    }
-
+    buildPosition(&pos, variant, fen, moveList, false);
     gameEnd = pos.is_optional_game_end(result);
     return Py_BuildValue("(Oi)", gameEnd ? Py_True : Py_False, result);
 }
@@ -273,7 +197,6 @@ extern "C" PyObject* pyffish_isOptionalGameEnd(PyObject* self, PyObject *args) {
 // INPUT variant, fen, move list
 extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *args) {
     PyObject *moveList;
-    StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
     Position pos;
     const char *fen, *variant;
     bool wInsufficient, bInsufficient;
@@ -281,29 +204,8 @@ extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *a
     if (!PyArg_ParseTuple(args, "ssO!", &variant, &fen, &PyList_Type, &moveList)) {
         return NULL;
     }
-    if(strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
-    bool sfen = strcmp(variant,"shogi")==0;
-    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
-    // parse move list
-    int numMoves = PyList_Size(moveList);
-    for (int i=0; i<numMoves ; i++) {
-        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
-        Move m;
-        if((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
-        {
-            // do the move
-            states->emplace_back();
-            pos.do_move(m, states->back());
-        }
-        else
-        {
-            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
-            return NULL;
-        }
-    }
-
+    buildPosition(&pos, variant, fen, moveList, false);
     if (strcmp(variant,"crazyhouse")==0 || strcmp(variant,"shogi")==0) {
         wInsufficient = false;
         bInsufficient = false;
