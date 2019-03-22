@@ -31,11 +31,14 @@ bool hasInsufficientMaterial(Color c, Position *p) {
     if (p->count(c, PAWN) > 0 || p->count(c, ROOK) > 0 || p->count(c, QUEEN) > 0 || p->count(c, ARCHBISHOP) > 0 || p->count(c, CHANCELLOR) > 0)
         return false;
 
-    if (p->count(c, KNIGHT) < 2 && p->count(c, BISHOP) == 0)
+    if (p->count(c, KNIGHT) + p->count(c, BISHOP) < 2)
         return true;
 
-    if (p->count(c, BISHOP) < 2 && p->count(c, KNIGHT) == 0)
-        return true;
+    if (p->count(c, BISHOP) > 1 && p->count(c, KNIGHT) == 0) {
+        bool sameColor;
+        sameColor = ((DarkSquares & (p->pieces(c, BISHOP))) == 0) || ((~DarkSquares & (p->pieces(c, BISHOP))) == 0);
+        return sameColor;
+    }
     return false;
 }
 }
@@ -301,8 +304,13 @@ extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *a
         }
     }
 
-    wInsufficient = hasInsufficientMaterial(WHITE, &pos);
-    bInsufficient = hasInsufficientMaterial(BLACK, &pos);
+    if (strcmp(variant,"crazyhouse")==0 || strcmp(variant,"shogi")==0) {
+        wInsufficient = false;
+        bInsufficient = false;
+    } else {
+        wInsufficient = hasInsufficientMaterial(WHITE, &pos);
+        bInsufficient = hasInsufficientMaterial(BLACK, &pos);
+    }
     return Py_BuildValue("(OO)", wInsufficient ? Py_True : Py_False, bInsufficient ? Py_True : Py_False);
 }
 
