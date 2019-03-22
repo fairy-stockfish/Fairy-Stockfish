@@ -92,8 +92,8 @@ namespace {
 
   // Penalties for enemy's safe checks
   constexpr int QueenSafeCheck  = 780;
-  constexpr int RookSafeCheck   = 880;
-  constexpr int BishopSafeCheck = 435;
+  constexpr int RookSafeCheck   = 1080;
+  constexpr int BishopSafeCheck = 635;
   constexpr int KnightSafeCheck = 790;
   constexpr int OtherSafeCheck  = 600;
 
@@ -472,7 +472,7 @@ namespace {
         return SCORE_ZERO;
 
     const Square ksq = pos.square<KING>(Us);
-    Bitboard kingFlank, weak, b, b1, b2, safe, unsafeChecks;
+    Bitboard kingFlank, weak, b, b1, b2, safe, unsafeChecks, QueenCheck;
 
     // King shelter and enemy pawns storm
     Score score = pe->king_safety<Us>(pos);
@@ -499,6 +499,9 @@ namespace {
     safe  = ~pos.pieces(Them);
     safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
 
+    b1 = attacks_bb<ROOK  >(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
+    b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
+
     std::function <Bitboard (Color, PieceType)> get_attacks = [this](Color c, PieceType pt) {
         return attackedBy[c][pt] | (pos.captures_to_hand() && pos.count_in_hand(c, pt) ? ~pos.pieces() : 0);
     };
@@ -507,8 +510,15 @@ namespace {
         switch (pt)
         {
         case QUEEN:
-            b = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(Them, pt) & safe & ~attackedBy[Us][QUEEN] & pos.board_bb();
-            if (b)
+            // Enemy queen safe checks: we count them only if they are from squares from
+            // which we can't give a rook check, because rook checks are more valuable.
+            QueenCheck = (b1 | b2)
+                        & get_attacks(Them, QUEEN)
+                        & safe
+                        & ~attackedBy[Us][QUEEN]
+                        & ~(b1 & attackedBy[Them][ROOK]);
+
+            if (QueenCheck)
                 kingDanger += QueenSafeCheck;
             break;
         case ROOK:
@@ -517,7 +527,7 @@ namespace {
             b = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(Them, pt) & pos.board_bb();
             if (b & safe)
                 kingDanger +=  pt == ROOK   ? RookSafeCheck
-                                : pt == BISHOP ? BishopSafeCheck
+                             : pt == BISHOP ? BishopSafeCheck
                                             : KnightSafeCheck;
             else
                 unsafeChecks |= b;
