@@ -187,7 +187,7 @@ inline bool opposite_colors(Square s1, Square s2) {
 /// the given file or rank.
 
 inline Bitboard rank_bb(Rank r) {
-  return Rank1BB << (8 * r);
+  return Rank1BB << (FILE_NB * r);
 }
 
 inline Bitboard rank_bb(Square s) {
