@@ -41,6 +41,9 @@ before_script:
   - cd src
 
 script:
+  # Check perft of large-board version
+  - make clean && make -j2 ARCH=x86-64 largeboards=yes build && ../tests/perft.sh largeboard
+  #
   # Obtain bench reference from git log
   - git log HEAD | grep "\b[Bb]ench[ :]\+[0-9]\{7\}" | head -n 1 | sed "s/[^0-9]*\([0-9]*\).*/\1/g" > git_sig
   - export benchref=$(cat git_sig)
