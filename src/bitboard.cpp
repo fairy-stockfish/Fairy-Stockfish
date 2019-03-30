@@ -19,6 +19,7 @@
 */
 
 #include <algorithm>
+#include <bitset>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -313,14 +314,6 @@ namespace {
   void init_magics(Bitboard table[], Magic magics[], Direction directions[]);
 #endif
 
-  // popcount16() counts the non-zero bits using SWAR-Popcount algorithm
-  unsigned popcount16(unsigned u) {
-    u -= (u >> 1) & 0x5555U;
-    u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
-    u = ((u >> 4) + u) & 0x0F0FU;
-    return (u * 0x0101U) >> 8;
-  }
-
   Bitboard sliding_attack(Direction directions[], Square sq, Bitboard occupied, int maxDist = FILE_MAX, Color c = WHITE) {
 
     Bitboard attack = 0;
@@ -366,7 +359,7 @@ const std::string Bitboards::pretty(Bitboard b) {
 void Bitboards::init() {
 
   for (unsigned i = 0; i < (1 << 16); ++i)
-      PopCnt16[i] = (uint8_t)popcount16(i);
+      PopCnt16[i] = std::bitset<16>(i).count();
 
   for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       SquareBB[s] = make_bitboard(s);
