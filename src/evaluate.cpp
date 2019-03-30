@@ -73,17 +73,6 @@ using namespace Trace;
 
 namespace {
 
-  constexpr Bitboard QueenSide   = FileABB | FileBBB | FileCBB | FileDBB;
-  constexpr Bitboard CenterFiles = FileCBB | FileDBB | FileEBB | FileFBB;
-  constexpr Bitboard KingSide    = FileEBB | FileFBB | FileGBB | FileHBB;
-  constexpr Bitboard Center      = (FileDBB | FileEBB) & (Rank4BB | Rank5BB);
-
-  constexpr Bitboard KingFlank[FILE_NB] = {
-    QueenSide ^ FileDBB, QueenSide, QueenSide,
-    CenterFiles, CenterFiles,
-    KingSide, KingSide, KingSide ^ FileEBB
-  };
-
   // Threshold for space evaluation
   constexpr Value SpaceThreshold = Value(12222);
 
@@ -161,6 +150,7 @@ namespace {
   constexpr Score KnightOnQueen      = S( 16, 12);
   constexpr Score LongDiagonalBishop = S( 45,  0);
   constexpr Score MinorBehindPawn    = S( 18,  3);
+  constexpr Score Outpost            = S(  9,  3);
   constexpr Score PawnlessFlank      = S( 17, 95);
   constexpr Score RestrictedPiece    = S(  7,  7);
   constexpr Score RookOnPawn         = S( 10, 32);
@@ -172,7 +162,6 @@ namespace {
   constexpr Score TrappedRook        = S( 47,  4);
   constexpr Score WeakQueen          = S( 49, 15);
   constexpr Score WeakUnopposedPawn  = S( 12, 23);
-  constexpr Score Outpost            = S(  9,  3);
 
 #undef S
 
@@ -470,7 +459,8 @@ namespace {
     if (!pos.count<KING>(Us) || !pos.checking_permitted())
         return SCORE_ZERO;
 
-    Bitboard weak, b, b1, b2, safe, QueenCheck, unsafeChecks = 0;
+    Bitboard weak, b1, b2, safe, unsafeChecks = 0;
+    Bitboard queenChecks, knightChecks, pawnChecks, otherChecks;
     int kingDanger = 0;
     const Square ksq = pos.square<KING>(Us);
 
@@ -499,45 +489,45 @@ namespace {
         case QUEEN:
             // Enemy queen safe checks: we count them only if they are from squares from
             // which we can't give a rook check, because rook checks are more valuable.
-            QueenCheck = (b1 | b2)
+            queenChecks = (b1 | b2)
                         & get_attacks(Them, QUEEN)
                         & safe
                         & ~attackedBy[Us][QUEEN]
                         & ~(b1 & attackedBy[Them][ROOK]);
 
-            if (QueenCheck)
+            if (queenChecks)
                 kingDanger += QueenSafeCheck;
             break;
         case ROOK:
         case BISHOP:
         case KNIGHT:
-            b = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(Them, pt) & pos.board_bb();
-            if (b & safe)
+            knightChecks = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(Them, pt) & pos.board_bb();
+            if (knightChecks & safe)
                 kingDanger +=  pt == ROOK   ? RookSafeCheck
                              : pt == BISHOP ? BishopSafeCheck
                                             : KnightSafeCheck;
             else
-                unsafeChecks |= b;
+                unsafeChecks |= knightChecks;
             break;
         case PAWN:
             if (pos.captures_to_hand() && pos.count_in_hand(Them, pt))
             {
-                b = attacks_bb(Us, pt, ksq, pos.pieces()) & ~pos.pieces() & pos.board_bb();
-                if (b & safe)
+                pawnChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & ~pos.pieces() & pos.board_bb();
+                if (pawnChecks & safe)
                     kingDanger += OtherSafeCheck;
                 else
-                    unsafeChecks |= b;
+                    unsafeChecks |= pawnChecks;
             }
             break;
         case SHOGI_PAWN:
         case KING:
             break;
         default:
-            b = attacks_bb(Us, pt, ksq, pos.pieces()) & get_attacks(Them, pt) & pos.board_bb();
-            if (b & safe)
+            otherChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & get_attacks(Them, pt) & pos.board_bb();
+            if (otherChecks & safe)
                 kingDanger += OtherSafeCheck;
             else
-                unsafeChecks |= b;
+                unsafeChecks |= otherChecks;
         }
     }
 
@@ -600,7 +590,7 @@ namespace {
     constexpr Direction Up       = (Us == WHITE ? NORTH   : SOUTH);
     constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
 
-    Bitboard b, weak, defended, nonPawnEnemies, stronglyProtected, safe, restricted;
+    Bitboard b, weak, defended, nonPawnEnemies, stronglyProtected, safe;
     Score score = SCORE_ZERO;
 
     // Bonuses for variants with mandatory captures
@@ -668,10 +658,11 @@ namespace {
     }
 
     // Bonus for restricting their piece moves
-    restricted =   attackedBy[Them][ALL_PIECES]
-                & ~stronglyProtected
-                &  attackedBy[Us][ALL_PIECES];
-    score += RestrictedPiece * popcount(restricted);
+    b =   attackedBy[Them][ALL_PIECES]
+       & ~stronglyProtected
+       &  attackedBy[Us][ALL_PIECES];
+
+    score += RestrictedPiece * popcount(b);
 
     // Bonus for enemy unopposed weak pawns
     if (pos.pieces(Us, ROOK, QUEEN))
@@ -1140,7 +1131,6 @@ std::string Eval::trace(const Position& pos) {
      << " ------------+-------------+-------------+------------\n"
      << "    Material | " << Term(MATERIAL)
      << "   Imbalance | " << Term(IMBALANCE)
-     << "  Initiative | " << Term(INITIATIVE)
      << "       Pawns | " << Term(PAWN)
      << "     Knights | " << Term(KNIGHT)
      << "     Bishops | " << Term(BISHOP)
@@ -1151,6 +1141,7 @@ std::string Eval::trace(const Position& pos) {
      << "     Threats | " << Term(THREAT)
      << "      Passed | " << Term(PASSED)
      << "       Space | " << Term(SPACE)
+     << "  Initiative | " << Term(INITIATIVE)
      << "     Variant | " << Term(VARIANT)
      << " ------------+-------------+-------------+------------\n"
      << "       Total | " << Term(TOTAL);
