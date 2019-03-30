@@ -94,7 +94,7 @@ namespace {
   /// imbalance() calculates the imbalance by comparing the piece count of each
   /// piece type for both colors.
   template<Color Us>
-  int imbalance(const int pieceCount[][PIECE_TYPE_NB]) {
+  int imbalance(const Position& pos, const int pieceCount[][PIECE_TYPE_NB]) {
 
     constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -103,7 +103,7 @@ namespace {
     // Second-degree polynomial material imbalance, by Tord Romstad
     for (int pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
     {
-        if (!pieceCount[Us][pt1])
+        if (!pieceCount[Us][pt1] || (pos.extinction_value() == VALUE_MATE && pt1 != KNIGHT))
             continue;
 
         int v = 0;
@@ -247,7 +247,7 @@ Entry* probe(const Position& pos) {
   { pos.count<BISHOP>(BLACK) > 1, pos.count<PAWN>(BLACK), pos.count<KNIGHT>(BLACK),
     pos.count<BISHOP>(BLACK)    , pos.count<ROOK>(BLACK), pos.count<QUEEN >(BLACK) } };
 
-  e->value = int16_t((imbalance<WHITE>(pieceCount) - imbalance<BLACK>(pieceCount)) / 16);
+  e->value = int16_t((imbalance<WHITE>(pos, pieceCount) - imbalance<BLACK>(pos, pieceCount)) / 16);
   return e;
 }
 
