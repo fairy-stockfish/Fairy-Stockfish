@@ -18,8 +18,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include <bitset>
+#include <algorithm>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -615,7 +615,7 @@ void Bitboards::init() {
               if (PseudoAttacks[WHITE][pt][s1] & s2)
               {
                   LineBB[s1][s2] = (attacks_bb(WHITE, pt, s1, 0) & attacks_bb(WHITE, pt, s2, 0)) | s1 | s2;
-                  BetweenBB[s1][s2] = attacks_bb(WHITE, pt, s1, SquareBB[s2]) & attacks_bb(WHITE, pt, s2, SquareBB[s1]);
+                  BetweenBB[s1][s2] = attacks_bb(WHITE, pt, s1, square_bb(s2)) & attacks_bb(WHITE, pt, s2, square_bb(s1));
               }
   }
 }

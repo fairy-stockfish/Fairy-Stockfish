@@ -18,7 +18,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm> // For std::min
 #include <cassert>
 #include <cstring>   // For std::memset
 
@@ -139,7 +138,7 @@ Entry* probe(const Position& pos) {
 
   Value npm_w = pos.non_pawn_material(WHITE);
   Value npm_b = pos.non_pawn_material(BLACK);
-  Value npm = std::max(EndgameLimit, std::min(npm_w + npm_b, MidgameLimit));
+  Value npm   = clamp(npm_w + npm_b, EndgameLimit, MidgameLimit);
 
   // Map total non-pawn material into [PHASE_ENDGAME, PHASE_MIDGAME]
   if (pos.captures_to_hand())

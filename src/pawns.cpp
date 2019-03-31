@@ -18,7 +18,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include <cassert>
 
 #include "bitboard.h"
@@ -120,7 +119,7 @@ namespace {
             e->passedPawns[Us] |= s;
 
         else if (   relative_rank(Them, s, pos.max_rank()) > RANK_1
-                 && stoppers == SquareBB[s + Up]
+                 && stoppers == square_bb(s + Up)
                  && relative_rank(Us, s, pos.max_rank()) >= RANK_5)
         {
             b = shift<Up>(support) & ~theirPawns;
@@ -235,7 +234,7 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
   Value safety = (shift<Down>(theirPawns) & (FileABB | FileHBB) & BlockRanks & ksq) ?
                  Value(374) : Value(5);
 
-  File center = std::max(FILE_B, std::min(File(pos.max_file() - 1), file_of(ksq)));
+  File center = clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1));
   for (File f = File(center - 1); f <= File(center + 1); ++f)
   {
       b = ourPawns & file_bb(f);
