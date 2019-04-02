@@ -23,6 +23,7 @@
 
 #include "bitboard.h"
 #include "misc.h"
+#include "piece.h"
 
 uint8_t PopCnt16[1 << 16];
 uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
@@ -307,19 +308,19 @@ namespace {
 #endif
 
 #ifdef PRECOMPUTED_MAGICS
-  void init_magics(Bitboard table[], Magic magics[], Direction directions[], Bitboard magicsInit[]);
+  void init_magics(Bitboard table[], Magic magics[], std::vector<Direction> directions, Bitboard magicsInit[]);
 #else
-  void init_magics(Bitboard table[], Magic magics[], Direction directions[]);
+  void init_magics(Bitboard table[], Magic magics[], std::vector<Direction> directions);
 #endif
 
-  Bitboard sliding_attack(Direction directions[], Square sq, Bitboard occupied, int maxDist = FILE_MAX, Color c = WHITE) {
+  Bitboard sliding_attack(std::vector<Direction> directions, Square sq, Bitboard occupied, Color c = WHITE) {
 
     Bitboard attack = 0;
 
-    for (int i = 0; directions[i]; ++i)
-        for (Square s = sq + (c == WHITE ? directions[i] : -directions[i]);
-             is_ok(s) && distance(s, s - (c == WHITE ? directions[i] : -directions[i])) == 1 && distance(s, sq) <= maxDist;
-             s += (c == WHITE ? directions[i] : -directions[i]))
+    for (Direction d : directions)
+        for (Square s = sq + (c == WHITE ? d : -d);
+             is_ok(s) && distance(s, s - (c == WHITE ? d : -d)) == 1;
+             s += (c == WHITE ? d : -d))
         {
             attack |= s;
 
@@ -374,8 +375,8 @@ void Bitboards::init() {
           }
 
   // Piece moves
-  Direction RookDirections[5] = { NORTH,  EAST,  SOUTH,  WEST };
-  Direction BishopDirections[5] = { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
+  std::vector<Direction> RookDirections = { NORTH,  EAST,  SOUTH,  WEST };
+  std::vector<Direction> BishopDirections = { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
 
 #ifdef PRECOMPUTED_MAGICS
   init_magics(RookTable, RookMagics, RookDirections, RookMagicInit);
@@ -385,206 +386,16 @@ void Bitboards::init() {
   init_magics(BishopTable, BishopMagics, BishopDirections);
 #endif
 
-  int stepsCapture[][13] = {
-      {}, // NO_PIECE_TYPE
-      { NORTH_WEST, NORTH_EAST }, // pawn
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // knight
-      {}, // bishop
-      {}, // rook
-      {}, // queen
-      { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST }, // fers/met
-      { 2 * SOUTH_WEST, 2 * SOUTH_EAST, 2 * NORTH_WEST, 2 * NORTH_EAST }, // alfil
-      { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH, NORTH_EAST }, // silver/khon
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH_WEST, SOUTH_EAST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH_WEST, NORTH_EAST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // aiwok
-      { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST }, // bers/dragon
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // archbishop
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // chancellor
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // amazon
-      {}, // knibis
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // biskni
-      { NORTH }, // shogi pawn
-      {}, // lance
-      {  2 * NORTH + WEST, 2 * NORTH + EAST }, // shogi knight
-      { WEST, EAST,  2 * NORTH + WEST, 2 * NORTH + EAST }, // euroshogi knight
-      { SOUTH, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST }, // gold
-      { SOUTH, WEST, EAST, NORTH }, // horse
-      { SOUTH, WEST, EAST, NORTH }, // clobber
-      { NORTH_WEST, NORTH_EAST }, // breakthrough
-      {}, // immobile
-      { SOUTH, WEST, EAST, NORTH }, // wazir
-      { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST }, // commoner
-      { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST } // king
-  };
-  int stepsQuiet[][13] = {
-      {}, // NO_PIECE_TYPE
-      { NORTH }, // pawn
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // knight
-      {}, // bishop
-      {}, // rook
-      {}, // queen
-      { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST }, // fers/met
-      { 2 * SOUTH_WEST, 2 * SOUTH_EAST, 2 * NORTH_WEST, 2 * NORTH_EAST }, // alfil
-      { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH, NORTH_EAST }, // silver/khon
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH_WEST, SOUTH_EAST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH_WEST, NORTH_EAST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // aiwok
-      { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST }, // bers/dragon
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // archbishop
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // chancellor
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // amazon
-      { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST }, // knibis
-      {}, // biskni
-      { NORTH }, // shogi pawn
-      {}, // lance
-      {  2 * NORTH + WEST, 2 * NORTH + EAST }, // shogi knight
-      { WEST, EAST,  2 * NORTH + WEST, 2 * NORTH + EAST }, // euroshogi knight
-      { SOUTH, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST }, // gold
-      { SOUTH, WEST, EAST, NORTH }, // horse
-      {}, // clobber
-      { NORTH_WEST, NORTH, NORTH_EAST }, // breakthrough
-      {}, // immobile
-      { SOUTH, WEST, EAST, NORTH }, // wazir
-      { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST }, // commoner
-      { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST } // king
-  };
-  Direction sliderCapture[][9] = {
-    {}, // NO_PIECE_TYPE
-    {}, // pawn
-    {}, // knight
-    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // bishop
-    { NORTH,  EAST,  SOUTH,  WEST }, // rook
-    { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // queen
-    {}, // fers/met
-    {}, // alfil
-    {}, // silver/khon
-    { NORTH,  EAST,  SOUTH,  WEST }, // aiwok
-    { NORTH,  EAST,  SOUTH,  WEST }, // bers/dragon
-    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // archbishop
-    { NORTH,  EAST,  SOUTH,  WEST }, // chancellor
-    { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
-    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // knibis
-    {}, // biskni
-    {}, // shogi pawn
-    { NORTH }, // lance
-    {}, // shogi knight
-    {}, // euroshogi knight
-    {}, // gold
-    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // horse
-    {}, // clobber
-    {}, // breakthrough
-    {}, // immobile
-    {}, // wazir
-    {}, // commoner
-    {} // king
-  };
-  Direction sliderQuiet[][9] = {
-    {}, // NO_PIECE_TYPE
-    {}, // pawn
-    {}, // knight
-    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // bishop
-    { NORTH,  EAST,  SOUTH,  WEST }, // rook
-    { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // queen
-    {}, // fers/met
-    {}, // alfil
-    {}, // silver/khon
-    { NORTH,  EAST,  SOUTH,  WEST }, // aiwok
-    { NORTH,  EAST,  SOUTH,  WEST }, // bers/dragon
-    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // archbishop
-    { NORTH,  EAST,  SOUTH,  WEST }, // chancellor
-    { NORTH,  EAST,  SOUTH,  WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // amazon
-    {}, // knibis
-    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // biskni
-    {}, // shogi pawn
-    { NORTH }, // lance
-    {}, // shogi knight
-    {}, // euroshogi knight
-    {}, // gold
-    { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST }, // horse
-    {}, // clobber
-    {}, // breakthrough
-    {}, // immobile
-    {}, // wazir
-    {}, // commoner
-    {} // king
-  };
-  int sliderDistCapture[] = {
-    0, // NO_PIECE_TYPE
-    0, // pawn
-    0, // knight
-    FILE_MAX, // bishop
-    FILE_MAX, // rook
-    FILE_MAX, // queen
-    0, // fers/met
-    0, // alfil
-    0, // silver/khon
-    FILE_MAX, // aiwok
-    FILE_MAX, // bers/dragon
-    FILE_MAX, // archbishop
-    FILE_MAX, // chancellor
-    FILE_MAX, // amazon
-    FILE_MAX, // knibis
-    0, // biskni
-    0, // shogi pawn
-    FILE_MAX, // lance
-    0, // shogi knight
-    0, // euroshogi knight
-    0, // gold
-    FILE_MAX, // horse
-    0, // clobber
-    0, // breakthrough
-    0, // immobile
-    0, // wazir
-    0, // commoner
-    0  // king
-  };
-  int sliderDistQuiet[] = {
-    0, // NO_PIECE_TYPE
-    0, // pawn
-    0, // knight
-    FILE_MAX, // bishop
-    FILE_MAX, // rook
-    FILE_MAX, // queen
-    0, // fers/met
-    0, // alfil
-    0, // silver/khon
-    FILE_MAX, // aiwok
-    FILE_MAX, // bers/dragon
-    FILE_MAX, // archbishop
-    FILE_MAX, // chancellor
-    FILE_MAX, // amazon
-    0, // knibis
-    FILE_MAX, // biskni
-    0, // shogi pawn
-    FILE_MAX, // lance
-    0, // shogi knight
-    0, // euroshogi knight
-    0, // gold
-    FILE_MAX, // horse
-    0, // clobber
-    0, // breakthrough
-    0, // immobile
-    0, // wazir
-    0, // commoner
-    0  // king
-  };
-
   for (Color c = WHITE; c <= BLACK; ++c)
       for (PieceType pt = PAWN; pt <= KING; ++pt)
+      {
+          const PieceInfo* pi = pieceMap.find(pt)->second;
+
           for (Square s = SQ_A1; s <= SQ_MAX; ++s)
           {
-              for (int i = 0; stepsCapture[pt][i]; ++i)
+              for (Direction d : pi->stepsCapture)
               {
-                  Square to = s + Direction(c == WHITE ? stepsCapture[pt][i] : -stepsCapture[pt][i]);
+                  Square to = s + Direction(c == WHITE ? d : -d);
 
                   if (is_ok(to) && distance(s, to) < 4)
                   {
@@ -592,9 +403,9 @@ void Bitboards::init() {
                       LeaperAttacks[c][pt][s] |= to;
                   }
               }
-              for (int i = 0; stepsQuiet[pt][i]; ++i)
+              for (Direction d : pi->stepsQuiet)
               {
-                  Square to = s + Direction(c == WHITE ? stepsQuiet[pt][i] : -stepsQuiet[pt][i]);
+                  Square to = s + Direction(c == WHITE ? d : -d);
 
                   if (is_ok(to) && distance(s, to) < 4)
                   {
@@ -602,9 +413,10 @@ void Bitboards::init() {
                       LeaperMoves[c][pt][s] |= to;
                   }
               }
-              PseudoAttacks[c][pt][s] |= sliding_attack(sliderCapture[pt], s, 0, sliderDistCapture[pt], c);
-              PseudoMoves[c][pt][s] |= sliding_attack(sliderQuiet[pt], s, 0, sliderDistQuiet[pt], c);
+              PseudoAttacks[c][pt][s] |= sliding_attack(pi->sliderCapture, s, 0, c);
+              PseudoMoves[c][pt][s] |= sliding_attack(pi->sliderQuiet, s, 0, c);
           }
+      }
 
   for (Square s1 = SQ_A1; s1 <= SQ_MAX; ++s1)
   {
@@ -624,9 +436,9 @@ namespace {
   // called "fancy" approach.
 
 #ifdef PRECOMPUTED_MAGICS
-  void init_magics(Bitboard table[], Magic magics[], Direction directions[], Bitboard magicsInit[]) {
+  void init_magics(Bitboard table[], Magic magics[], std::vector<Direction> directions, Bitboard magicsInit[]) {
 #else
-  void init_magics(Bitboard table[], Magic magics[], Direction directions[]) {
+  void init_magics(Bitboard table[], Magic magics[], std::vector<Direction> directions) {
 #endif
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time

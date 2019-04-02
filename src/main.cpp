@@ -26,6 +26,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
+#include "piece.h"
 #include "variant.h"
 #include "syzygy/tbprobe.h"
 
@@ -37,6 +38,7 @@ int main(int argc, char* argv[]) {
 
   std::cout << engine_info() << std::endl;
 
+  pieceMap.init();
   variants.init();
   UCI::init(Options);
   PSQT::init(variants.find("chess")->second);
@@ -51,5 +53,6 @@ int main(int argc, char* argv[]) {
 
   Threads.set(0);
   variants.clear_all();
+  pieceMap.clear_all();
   return 0;
 }
