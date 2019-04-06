@@ -239,6 +239,8 @@ namespace {
 
     const Square ksq = pos.count<KING>(Us) ? pos.square<KING>(Us) : SQ_NONE;
 
+    Bitboard dblAttackByPawn = pawn_double_attacks_bb<Us>(pos.pieces(Us, PAWN));
+
     // Find our pawns that are blocked or on the first two ranks
     Bitboard b = pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | LowRanks);
 
@@ -256,7 +258,8 @@ namespace {
     attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN] | attackedBy[Us][SHOGI_PAWN];
     attackedBy2[Us]            =  (attackedBy[Us][KING] & attackedBy[Us][PAWN])
                                 | (attackedBy[Us][KING] & attackedBy[Us][SHOGI_PAWN])
-                                | (attackedBy[Us][PAWN] & attackedBy[Us][SHOGI_PAWN]);
+                                | (attackedBy[Us][PAWN] & attackedBy[Us][SHOGI_PAWN])
+                                | dblAttackByPawn;
 
     // Init our king safety tables
     kingRing[Us] = attackedBy[Us][KING];
@@ -273,7 +276,7 @@ namespace {
     kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
 
     // Remove from kingRing[] the squares defended by two pawns
-    kingRing[Us] &= ~pawn_double_attacks_bb<Us>(pos.pieces(Us, PAWN));
+    kingRing[Us] &= ~dblAttackByPawn;
 
     kingRing[Us] &= pos.board_bb();
   }

@@ -95,8 +95,6 @@ constexpr Bitboard Center      = (FileDBB | FileEBB) & (Rank4BB | Rank5BB);
 extern uint8_t PopCnt16[1 << 16];
 extern uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
-extern Bitboard BoardSizeBB[FILE_NB][RANK_NB];
-extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard DistanceRingBB[SQUARE_NB][FILE_NB];
@@ -105,6 +103,8 @@ extern Bitboard PseudoMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard LeaperMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard KingFlank[FILE_NB];
+extern Bitboard SquareBB[SQUARE_NB];
+extern Bitboard BoardSizeBB[FILE_NB][RANK_NB];
 
 #ifdef LARGEBOARDS
 int popcount(Bitboard b); // required for 128 bit pext
@@ -135,15 +135,14 @@ struct Magic {
 extern Magic RookMagics[SQUARE_NB];
 extern Magic BishopMagics[SQUARE_NB];
 
-
-/// Overloads of bitwise operators between a Bitboard and a Square for testing
-/// whether a given bit is set in a bitboard, and for setting and clearing bits.
-
 inline Bitboard square_bb(Square s) {
   assert(s >= SQ_A1 && s <= SQ_MAX);
   return SquareBB[s];
 }
-  
+
+/// Overloads of bitwise operators between a Bitboard and a Square for testing
+/// whether a given bit is set in a bitboard, and for setting and clearing bits.
+
 inline Bitboard  operator&( Bitboard  b, Square s) { return b &  square_bb(s); }
 inline Bitboard  operator|( Bitboard  b, Square s) { return b |  square_bb(s); }
 inline Bitboard  operator^( Bitboard  b, Square s) { return b ^  square_bb(s); }
