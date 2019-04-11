@@ -802,8 +802,8 @@ namespace {
         maxMg = std::max(maxMg, PieceValue[MG][pt]);
         maxEg = std::max(maxEg, PieceValue[EG][pt]);
     }
-    score = make_score(mg_value(score) * int(maxMg) / QueenValueMg,
-                       eg_value(score) * int(maxEg) / QueenValueEg);
+    score = make_score(mg_value(score) * int(maxMg - PawnValueMg) / (QueenValueMg - PawnValueMg),
+                       eg_value(score) * int(maxEg - PawnValueEg) / (QueenValueEg - PawnValueEg));
 
     // Score passed shogi pawns
     const Square* pl = pos.squares(Us, SHOGI_PAWN);
