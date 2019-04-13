@@ -15,6 +15,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
+#include "piece.h"
 #include "variant.h"
 
 static PyObject* PyFFishError;
@@ -249,6 +250,7 @@ PyMODINIT_FUNC PyInit_pyffish() {
     PyModule_AddObject(module, "error", PyFFishError);
 
     // initialize stockfish
+    pieceMap.init();
     variants.init();
     UCI::init(Options);
     PSQT::init(variants.find("chess")->second);
@@ -256,7 +258,6 @@ PyMODINIT_FUNC PyInit_pyffish() {
     Position::init();
     Bitbases::init();
     Search::init();
-    Pawns::init();
     Threads.set(Options["Threads"]);
     Search::clear(); // After threads are up
 
