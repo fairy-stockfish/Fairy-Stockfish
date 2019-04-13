@@ -35,6 +35,8 @@ Bitboard PseudoMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard BoardSizeBB[FILE_NB][RANK_NB];
+RiderType AttackRiderTypes[PIECE_TYPE_NB];
+RiderType MoveRiderTypes[PIECE_TYPE_NB];
 
 Magic RookMagics[SQUARE_NB];
 Magic BishopMagics[SQUARE_NB];
@@ -349,6 +351,27 @@ const std::string Bitboards::pretty(Bitboard b) {
 /// startup and relies on global objects to be already zero-initialized.
 
 void Bitboards::init() {
+
+  // Initialize rider types
+  for (PieceType pt = PAWN; pt <= KING; ++pt)
+  {
+      const PieceInfo* pi = pieceMap.find(pt)->second;
+
+      for (Direction d : pi->sliderCapture)
+      {
+          if (d == NORTH_EAST || d == SOUTH_WEST || d == NORTH_WEST || d == SOUTH_EAST)
+              AttackRiderTypes[pt] |= RIDER_BISHOP;
+          if (d == NORTH || d == SOUTH || d == EAST || d == WEST)
+              AttackRiderTypes[pt] |= RIDER_ROOK;
+      }
+      for (Direction d : pi->sliderQuiet)
+      {
+          if (d == NORTH_EAST || d == SOUTH_WEST || d == NORTH_WEST || d == SOUTH_EAST)
+              MoveRiderTypes[pt] |= RIDER_BISHOP;
+          if (d == NORTH || d == SOUTH || d == EAST || d == WEST)
+              MoveRiderTypes[pt] |= RIDER_ROOK;
+      }
+  }
 
   for (unsigned i = 0; i < (1 << 16); ++i)
       PopCnt16[i] = std::bitset<16>(i).count();

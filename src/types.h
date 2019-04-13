@@ -362,6 +362,12 @@ enum Piece {
   PIECE_NB = 2 * PIECE_TYPE_NB
 };
 
+enum RiderType {
+  NO_RIDER = 0,
+  RIDER_BISHOP = 1 << 0,
+  RIDER_ROOK = 1 << 1,
+};
+
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 
 enum Depth : int {
@@ -474,6 +480,15 @@ inline Value mg_value(Score s) {
   return Value(mg.s);
 }
 
+#define ENABLE_BIT_OPERATORS_ON(T)                                    \
+inline T operator~ (T d) { return (T)~(int)d; }                       \
+inline T operator| (T d1, T d2) { return (T)((int)d1 | (int)d2); }        \
+inline T operator& (T d1, T d2) { return (T)((int)d1 & (int)d2); }        \
+inline T operator^ (T d1, T d2) { return (T)((int)d1 ^ (int)d2); }        \
+inline T& operator|= (T& d1, T d2) { return (T&)((int&)d1 |= (int)d2); }  \
+inline T& operator&= (T& d1, T d2) { return (T&)((int&)d1 &= (int)d2); }  \
+inline T& operator^= (T& d1, T d2) { return (T&)((int&)d1 ^= (int)d2); }
+
 #define ENABLE_BASE_OPERATORS_ON(T)                                \
 constexpr T operator+(T d1, T d2) { return T(int(d1) + int(d2)); } \
 constexpr T operator-(T d1, T d2) { return T(int(d1) - int(d2)); } \
@@ -508,9 +523,12 @@ ENABLE_INCR_OPERATORS_ON(CheckCount)
 
 ENABLE_BASE_OPERATORS_ON(Score)
 
+ENABLE_BIT_OPERATORS_ON(RiderType)
+
 #undef ENABLE_FULL_OPERATORS_ON
 #undef ENABLE_INCR_OPERATORS_ON
 #undef ENABLE_BASE_OPERATORS_ON
+#undef ENABLE_BIT_OPERATORS_ON
 
 /// Additional operators to add integers to a Value
 constexpr Value operator+(Value v, int i) { return Value(int(v) + i); }
