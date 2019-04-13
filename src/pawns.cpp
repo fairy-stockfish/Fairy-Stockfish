@@ -36,7 +36,7 @@ namespace {
   constexpr Score Isolated = S( 5, 15);
 
   // Connected pawn bonus
-  constexpr int Connected[RANK_NB] = { 0, 13, 24, 18, 65, 100, 175, 330 };
+  constexpr int Connected[RANK_NB] = { 0, 13, 17, 24, 59, 96, 171 };
 
   // Strength of pawn shelter for our king by [distance from edge][rank].
   // RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
@@ -89,6 +89,7 @@ namespace {
         assert(pos.piece_on(s) == make_piece(Us, PAWN));
 
         File f = file_of(s);
+        Rank r = relative_rank(Us, s, pos.max_rank());
 
         e->semiopenFiles[Us]   &= ~(1 << f);
         e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
@@ -98,10 +99,10 @@ namespace {
         stoppers   = theirPawns & passed_pawn_span(Us, s);
         lever      = theirPawns & PseudoAttacks[Us][PAWN][s];
         leverPush  = relative_rank(Them, s, pos.max_rank()) > RANK_1 ? theirPawns & PseudoAttacks[Us][PAWN][s + Up] : 0;
-        doubled    = relative_rank(Us, s, pos.max_rank()) > RANK_1 ? ourPawns & (s - Up) : 0;
+        doubled    = r > RANK_1 ? ourPawns & (s - Up) : 0;
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
-        support    = relative_rank(Us, s, pos.max_rank()) > RANK_1 ? neighbours & rank_bb(s - Up) : 0;
+        support    = r > RANK_1 ? neighbours & rank_bb(s - Up) : 0;
 
         // A pawn is backward when it is behind all pawns of the same color
         // on the adjacent files and cannot be safely advanced.
@@ -120,7 +121,7 @@ namespace {
 
         else if (   relative_rank(Them, s, pos.max_rank()) > RANK_1
                  && stoppers == square_bb(s + Up)
-                 && relative_rank(Us, s, pos.max_rank()) >= RANK_5)
+                 && r >= RANK_5)
         {
             b = shift<Up>(support) & ~theirPawns;
             while (b)
@@ -131,8 +132,7 @@ namespace {
         // Score this pawn
         if (support | phalanx)
         {
-            int r = relative_rank(Us, s, pos.max_rank());
-            int v = phalanx ? Connected[r] + Connected[r + 1] : 2 * Connected[r];
+            int v = (phalanx ? 3 : 2) * Connected[r];
             v = 17 * popcount(support) + (v >> (opposed + 1));
             score += make_score(v, v * (r - 2) / 4);
         }
