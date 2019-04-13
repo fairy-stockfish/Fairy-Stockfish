@@ -18,8 +18,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include <cassert>
+#include <ostream>
+#include <sstream>
 #include <iostream>
 
 #include "misc.h"
@@ -158,8 +159,8 @@ Option::operator std::string() const {
 
 bool Option::operator==(const char* s) const {
   assert(type == "combo");
-  return    !CaseInsensitiveLess()(currentValue, s)
-         && !CaseInsensitiveLess()(s, currentValue);
+  return   !CaseInsensitiveLess()(currentValue, s)
+        && !CaseInsensitiveLess()(s, currentValue);
 }
 
 
@@ -175,8 +176,8 @@ void Option::operator<<(const Option& o) {
 
 
 /// operator=() updates currentValue and triggers on_change() action. It's up to
-/// the GUI to check for option's limits, but we could receive the new value from
-/// the user by console window, so let's check the bounds anyway.
+/// the GUI to check for option's limits, but we could receive the new value
+/// from the user by console window, so let's check the bounds anyway.
 
 Option& Option::operator=(const string& v) {
 
@@ -187,6 +188,15 @@ Option& Option::operator=(const string& v) {
       || (type == "combo" && (std::find(comboValues.begin(), comboValues.end(), v) == comboValues.end()))
       || (type == "spin" && (stof(v) < min || stof(v) > max)))
       return *this;
+
+  if (type == "combo")
+  {
+      OptionsMap comboMap; // To have case insensitive compare
+      for (string token : comboValues)
+          comboMap[token] << Option();
+      if (!comboMap.count(v) || v == "var")
+          return *this;
+  }
 
   if (type != "button")
       currentValue = v;

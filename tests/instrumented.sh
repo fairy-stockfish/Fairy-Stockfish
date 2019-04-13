@@ -28,14 +28,14 @@ case $1 in
     echo "sanitizer-undefined testing started"
     prefix='!'
     exeprefix=''
-    postfix='2>&1 | grep "runtime error:"'
+    postfix='2>&1 | grep -A50 "runtime error:"'
     threads="1"
   ;;
   --sanitizer-thread)
     echo "sanitizer-thread testing started"
     prefix='!'
     exeprefix=''
-    postfix='2>&1 | grep "WARNING: ThreadSanitizer:"'
+    postfix='2>&1 | grep -A50 "WARNING: ThreadSanitizer:"'
     threads="2"
 
 cat << EOF > tsan.supp
@@ -45,6 +45,7 @@ race:TTEntry::bound
 race:TTEntry::save
 race:TTEntry::value
 race:TTEntry::eval
+race:TTEntry::is_pv
 
 race:TranspositionTable::probe
 race:TranspositionTable::hashfull
@@ -69,7 +70,7 @@ for args in "eval" \
             "go depth 10" \
             "go movetime 1000" \
             "go wtime 8000 btime 8000 winc 500 binc 500" \
-            "bench 128 $threads 10 default depth"
+            "bench 128 $threads 8 default depth"
 do
 
    echo "$prefix $exeprefix ./stockfish $args $postfix"
@@ -79,7 +80,7 @@ done
 
 # more general testing, following an uci protocol exchange
 cat << EOF > game.exp
- set timeout 10
+ set timeout 60
  spawn $exeprefix ./stockfish
 
  send "uci\n"
@@ -97,7 +98,7 @@ cat << EOF > game.exp
  expect "bestmove"
 
  send "position fen 5rk1/1K4p1/8/8/3B4/8/8/8 b - - 0 1\n"
- send "go depth 30\n"
+ send "go depth 20\n"
  expect "bestmove"
 
  send "quit\n"
@@ -115,12 +116,12 @@ if [ ! -d ../tests/syzygy ]; then
 fi
 
 cat << EOF > syzygy.exp
- set timeout 240
+ set timeout 600
  spawn $exeprefix ./stockfish
  send "uci\n"
  send "setoption name SyzygyPath value ../tests/syzygy/\n"
  expect "info string Found 35 tablebases" {} timeout {exit 1}
- send "bench 128 1 10 default depth\n"
+ send "bench 128 1 8 default depth\n"
  send "quit\n"
  expect eof
 

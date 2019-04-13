@@ -18,7 +18,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm> // For std::min
 #include <cassert>
 #include <cstring>   // For std::memset
 
@@ -79,14 +78,12 @@ namespace {
 
   bool is_KBPsK(const Position& pos, Color us) {
     return   pos.non_pawn_material(us) == BishopValueMg
-          && pos.count<BISHOP>(us) == 1
           && pos.count<PAWN  >(us) >= 1;
   }
 
   bool is_KQKRPs(const Position& pos, Color us) {
     return  !pos.count<PAWN>(us)
           && pos.non_pawn_material(us) == QueenValueMg
-          && pos.count<QUEEN>(us) == 1
           && pos.count<ROOK>(~us) == 1
           && pos.count<PAWN>(~us) >= 1;
   }
@@ -94,7 +91,7 @@ namespace {
   /// imbalance() calculates the imbalance by comparing the piece count of each
   /// piece type for both colors.
   template<Color Us>
-  int imbalance(const int pieceCount[][PIECE_TYPE_NB]) {
+  int imbalance(const Position& pos, const int pieceCount[][PIECE_TYPE_NB]) {
 
     constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -103,7 +100,7 @@ namespace {
     // Second-degree polynomial material imbalance, by Tord Romstad
     for (int pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
     {
-        if (!pieceCount[Us][pt1])
+        if (!pieceCount[Us][pt1] || (pos.extinction_value() == VALUE_MATE && pt1 != KNIGHT))
             continue;
 
         int v = 0;
@@ -141,7 +138,7 @@ Entry* probe(const Position& pos) {
 
   Value npm_w = pos.non_pawn_material(WHITE);
   Value npm_b = pos.non_pawn_material(BLACK);
-  Value npm = std::max(EndgameLimit, std::min(npm_w + npm_b, MidgameLimit));
+  Value npm   = clamp(npm_w + npm_b, EndgameLimit, MidgameLimit);
 
   // Map total non-pawn material into [PHASE_ENDGAME, PHASE_MIDGAME]
   if (pos.captures_to_hand())
@@ -161,81 +158,81 @@ Entry* probe(const Position& pos) {
   if (pos.endgame_eval())
 #endif
   {
-      // Let's look if we have a specialized evaluation function for this particular
-      // material configuration. Firstly we look for a fixed configuration one, then
-      // for a generic one if the previous search failed.
-      if ((e->evaluationFunction = pos.this_thread()->endgames.probe<Value>(key)) != nullptr)
-          return e;
+  // Let's look if we have a specialized evaluation function for this particular
+  // material configuration. Firstly we look for a fixed configuration one, then
+  // for a generic one if the previous search failed.
+  if ((e->evaluationFunction = pos.this_thread()->endgames.probe<Value>(key)) != nullptr)
+      return e;
 
-      for (Color c = WHITE; c <= BLACK; ++c)
-          if (is_KFsPsK(pos, c))
-          {
-              e->evaluationFunction = &EvaluateKFsPsK[c];
-              return e;
-          }
-
-      for (Color c = WHITE; c <= BLACK; ++c)
-          if (is_KXK(pos, c))
-          {
-              e->evaluationFunction = &EvaluateKXK[c];
-              return e;
-          }
-
-      // OK, we didn't find any special evaluation function for the current material
-      // configuration. Is there a suitable specialized scaling function?
-      const EndgameBase<ScaleFactor>* sf;
-
-      if ((sf = pos.this_thread()->endgames.probe<ScaleFactor>(key)) != nullptr)
+  for (Color c = WHITE; c <= BLACK; ++c)
+      if (is_KFsPsK(pos, c))
       {
-          e->scalingFunction[sf->strongSide] = sf; // Only strong color assigned
+          e->evaluationFunction = &EvaluateKFsPsK[c];
           return e;
       }
 
-      // We didn't find any specialized scaling function, so fall back on generic
-      // ones that refer to more than one material distribution. Note that in this
-      // case we don't return after setting the function.
-      for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c = WHITE; c <= BLACK; ++c)
+      if (is_KXK(pos, c))
       {
-        if (is_KBPsK(pos, c))
-            e->scalingFunction[c] = &ScaleKBPsK[c];
-
-        else if (is_KQKRPs(pos, c))
-            e->scalingFunction[c] = &ScaleKQKRPs[c];
+          e->evaluationFunction = &EvaluateKXK[c];
+          return e;
       }
 
-      if (npm_w + npm_b == VALUE_ZERO && pos.pieces(PAWN)) // Only pawns on the board
+  // OK, we didn't find any special evaluation function for the current material
+  // configuration. Is there a suitable specialized scaling function?
+  const auto* sf = pos.this_thread()->endgames.probe<ScaleFactor>(key);
+
+  if (sf)
+  {
+      e->scalingFunction[sf->strongSide] = sf; // Only strong color assigned
+      return e;
+  }
+
+  // We didn't find any specialized scaling function, so fall back on generic
+  // ones that refer to more than one material distribution. Note that in this
+  // case we don't return after setting the function.
+  for (Color c = WHITE; c <= BLACK; ++c)
+  {
+    if (is_KBPsK(pos, c))
+        e->scalingFunction[c] = &ScaleKBPsK[c];
+
+    else if (is_KQKRPs(pos, c))
+        e->scalingFunction[c] = &ScaleKQKRPs[c];
+  }
+
+  if (npm_w + npm_b == VALUE_ZERO && pos.pieces(PAWN)) // Only pawns on the board
+  {
+      if (!pos.count<PAWN>(BLACK))
       {
-          if (!pos.count<PAWN>(BLACK))
-          {
-              assert(pos.count<PAWN>(WHITE) >= 2);
+          assert(pos.count<PAWN>(WHITE) >= 2);
 
-              e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
-          }
-          else if (!pos.count<PAWN>(WHITE))
-          {
-              assert(pos.count<PAWN>(BLACK) >= 2);
-
-              e->scalingFunction[BLACK] = &ScaleKPsK[BLACK];
-          }
-          else if (pos.count<PAWN>(WHITE) == 1 && pos.count<PAWN>(BLACK) == 1)
-          {
-              // This is a special case because we set scaling functions
-              // for both colors instead of only one.
-              e->scalingFunction[WHITE] = &ScaleKPKP[WHITE];
-              e->scalingFunction[BLACK] = &ScaleKPKP[BLACK];
-          }
+          e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
       }
+      else if (!pos.count<PAWN>(WHITE))
+      {
+          assert(pos.count<PAWN>(BLACK) >= 2);
 
-      // Zero or just one pawn makes it difficult to win, even with a small material
-      // advantage. This catches some trivial draws like KK, KBK and KNK and gives a
-      // drawish scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
-      if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
-          e->factor[WHITE] = uint8_t(npm_w <  RookValueMg   ? SCALE_FACTOR_DRAW :
-                                    npm_b <= BishopValueMg ? 4 : 14);
+          e->scalingFunction[BLACK] = &ScaleKPsK[BLACK];
+      }
+      else if (pos.count<PAWN>(WHITE) == 1 && pos.count<PAWN>(BLACK) == 1)
+      {
+          // This is a special case because we set scaling functions
+          // for both colors instead of only one.
+          e->scalingFunction[WHITE] = &ScaleKPKP[WHITE];
+          e->scalingFunction[BLACK] = &ScaleKPKP[BLACK];
+      }
+  }
 
-      if (!pos.count<PAWN>(BLACK) && npm_b - npm_w <= BishopValueMg)
-          e->factor[BLACK] = uint8_t(npm_b <  RookValueMg   ? SCALE_FACTOR_DRAW :
-                                    npm_w <= BishopValueMg ? 4 : 14);
+  // Zero or just one pawn makes it difficult to win, even with a small material
+  // advantage. This catches some trivial draws like KK, KBK and KNK and gives a
+  // drawish scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
+  if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
+      e->factor[WHITE] = uint8_t(npm_w <  RookValueMg   ? SCALE_FACTOR_DRAW :
+                                 npm_b <= BishopValueMg ? 4 : 14);
+
+  if (!pos.count<PAWN>(BLACK) && npm_b - npm_w <= BishopValueMg)
+      e->factor[BLACK] = uint8_t(npm_b <  RookValueMg   ? SCALE_FACTOR_DRAW :
+                                 npm_w <= BishopValueMg ? 4 : 14);
   }
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
@@ -247,7 +244,7 @@ Entry* probe(const Position& pos) {
   { pos.count<BISHOP>(BLACK) > 1, pos.count<PAWN>(BLACK), pos.count<KNIGHT>(BLACK),
     pos.count<BISHOP>(BLACK)    , pos.count<ROOK>(BLACK), pos.count<QUEEN >(BLACK) } };
 
-  e->value = int16_t((imbalance<WHITE>(pieceCount) - imbalance<BLACK>(pieceCount)) / 16);
+  e->value = int16_t((imbalance<WHITE>(pos, pieceCount) - imbalance<BLACK>(pos, pieceCount)) / 16);
   return e;
 }
 

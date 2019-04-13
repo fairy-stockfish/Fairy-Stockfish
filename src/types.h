@@ -49,6 +49,7 @@
 #pragma warning(disable: 4127) // Conditional expression is constant
 #pragma warning(disable: 4146) // Unary minus operator applied to unsigned type
 #pragma warning(disable: 4800) // Forcing value to bool 'true' or 'false'
+#pragma comment(linker, "/STACK:4000000") // Use 4 MB stack size for MSVC
 #endif
 
 /// Predefined macros hell:
@@ -156,7 +157,11 @@ enum CastlingRight {
   WHITE_OOO = WHITE_OO << 1,
   BLACK_OO  = WHITE_OO << 2,
   BLACK_OOO = WHITE_OO << 3,
-  ANY_CASTLING = WHITE_OO | WHITE_OOO | BLACK_OO | BLACK_OOO,
+
+  WHITE_CASTLING = WHITE_OO | WHITE_OOO,
+  BLACK_CASTLING = BLACK_OO | BLACK_OOO,
+  ANY_CASTLING   = WHITE_CASTLING | BLACK_CASTLING,
+
   CASTLING_RIGHT_NB = 16
 };
 
@@ -199,11 +204,11 @@ enum Value : int {
   VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - 2 * MAX_PLY,
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
 
-  PawnValueMg              = 136,   PawnValueEg              = 208,
-  KnightValueMg            = 782,   KnightValueEg            = 865,
-  BishopValueMg            = 830,   BishopValueEg            = 918,
-  RookValueMg              = 1289,  RookValueEg              = 1378,
-  QueenValueMg             = 2529,  QueenValueEg             = 2687,
+  PawnValueMg   = 128,   PawnValueEg   = 213,
+  KnightValueMg = 782,   KnightValueEg = 865,
+  BishopValueMg = 830,   BishopValueEg = 918,
+  RookValueMg   = 1289,  RookValueEg   = 1378,
+  QueenValueMg  = 2529,  QueenValueEg  = 2687,
   FersValueMg              = 420,   FersValueEg              = 450,
   AlfilValueMg             = 350,   AlfilValueEg             = 330,
   SilverValueMg            = 600,   SilverValueEg            = 600,

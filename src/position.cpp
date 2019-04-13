@@ -18,7 +18,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include <cassert>
 #include <cstddef> // For offsetof()
 #include <cstring> // For std::memset, std::memcmp
@@ -209,7 +208,7 @@ void Position::init() {
                   {
                       std::swap(cuckoo[i], key);
                       std::swap(cuckooMove[i], move);
-                      if (move == 0)   // Arrived at empty slot ?
+                      if (move == MOVE_NONE) // Arrived at empty slot?
                           break;
                       i = (i == H1(key)) ? H2(key) : H1(key); // Push victim to alternative slot
                   }
@@ -461,13 +460,8 @@ void Position::set_castling_right(Color c, Square rfrom) {
                            relative_rank(c, RANK_1, max_rank()));
   Square rto = kto + (cs == KING_SIDE ? WEST : EAST);
 
-  for (Square s = std::min(rfrom, rto); s <= std::max(rfrom, rto); ++s)
-      if (s != kfrom && s != rfrom)
-          castlingPath[cr] |= s;
-
-  for (Square s = std::min(kfrom, kto); s <= std::max(kfrom, kto); ++s)
-      if (s != kfrom && s != rfrom)
-          castlingPath[cr] |= s;
+  castlingPath[cr] = (between_bb(rfrom, rto) | between_bb(kfrom, kto) | rto | kto)
+                   & ~(square_bb(kfrom) | rfrom);
 }
 
 
@@ -616,16 +610,16 @@ const string Position::fen() const {
   ss << (sideToMove == WHITE ? " w " : " b ");
 
   if (can_castle(WHITE_OO))
-      ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE |  KING_SIDE))) : 'K');
+      ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OO ))) : 'K');
 
   if (can_castle(WHITE_OOO))
-      ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE | QUEEN_SIDE))) : 'Q');
+      ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OOO))) : 'Q');
 
   if (can_castle(BLACK_OO))
-      ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK |  KING_SIDE))) : 'k');
+      ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OO ))) : 'k');
 
   if (can_castle(BLACK_OOO))
-      ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK | QUEEN_SIDE))) : 'q');
+      ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OOO))) : 'q');
 
   if (!can_castle(ANY_CASTLING))
       ss << '-';
@@ -667,7 +661,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   if (s == SQ_NONE || !sliders)
       return blockers;
 
-  // Snipers are sliders that attack 's' when a piece is removed
+  // Snipers are sliders that attack 's' when a piece and other snipers are removed
   Bitboard snipers = 0;
 
   for (PieceType pt : piece_types())
@@ -676,11 +670,12 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
       if (b)
           snipers |= b & ~attacks_from(~c, pt, s);
   }
+  Bitboard occupancy = pieces() & ~snipers;
 
   while (snipers)
   {
     Square sniperSq = pop_lsb(&snipers);
-    Bitboard b = between_bb(s, sniperSq) & pieces();
+    Bitboard b = between_bb(s, sniperSq) & occupancy;
 
     if (b && !more_than_one(b))
     {
@@ -720,7 +715,6 @@ bool Position::legal(Move m) const {
   Color us = sideToMove;
   Square from = from_sq(m);
   Square to = to_sq(m);
-  Square ksq = count<KING>(us) ? square<KING>(us) : SQ_NONE;
 
   assert(color_of(moved_piece(m)) == us);
   assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
@@ -793,6 +787,7 @@ bool Position::legal(Move m) const {
   // the move is made.
   if (type_of(m) == ENPASSANT)
   {
+      Square ksq = count<KING>(us) ? square<KING>(us) : SQ_NONE;
       Square capsq = to - pawn_push(us);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
@@ -804,6 +799,30 @@ bool Position::legal(Move m) const {
       return !count<KING>(us) || !(attackers_to(ksq, occupied, ~us) & occupied);
   }
 
+  // Castling moves generation does not check if the castling path is clear of
+  // enemy attacks, it is delayed at a later time: now!
+  if (type_of(m) == CASTLING)
+  {
+      // Non-royal pieces can not be impeded from castling
+      if (type_of(piece_on(from)) != KING)
+          return true;
+
+      // After castling, the rook and king final positions are the same in
+      // Chess960 as they would be in standard chess.
+      to = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), relative_rank(us, RANK_1, max_rank()));
+      Direction step = to > from ? WEST : EAST;
+
+      for (Square s = to; s != from; s += step)
+          if (attackers_to(s, ~us))
+              return false;
+
+      // In case of Chess960, verify that when moving the castling rook we do
+      // not discover some hidden checker.
+      // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+      return   !chess960
+            || !(attackers_to(to, pieces() ^ to_sq(m), ~us));
+  }
+
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
@@ -811,7 +830,7 @@ bool Position::legal(Move m) const {
       return type_of(m) == CASTLING || !attackers_to(to, ~us);
 
   // A non-king move is legal if the king is not under attack after the move.
-  return !count<KING>(us) || !(attackers_to(ksq, (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us) & ~SquareBB[to]);
+  return !count<KING>(us) || !(attackers_to(square<KING>(us), (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us) & ~SquareBB[to]);
 }
 
 
@@ -1520,8 +1539,8 @@ bool Position::see_ge(Move m, Value threshold) const {
       stmAttackers = attackers & pieces(stm);
 
       // Don't allow pinned pieces to attack (except the king) as long as
-      // all pinners are on their original square.
-      if (!(st->pinners[~stm] & ~occupied))
+      // any pinners are on their original square.
+      if (st->pinners[~stm] & occupied)
           stmAttackers &= ~st->blockersForKing[stm];
 
       // If stm has no more attackers then give up: stm loses

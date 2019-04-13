@@ -18,7 +18,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include <cassert>
 
 #include "bitboard.h"
@@ -36,8 +35,8 @@ namespace {
   constexpr Score Doubled  = S(11, 56);
   constexpr Score Isolated = S( 5, 15);
 
-  // Connected pawn bonus by opposed, phalanx, #support and rank
-  Score Connected[2][2][3][RANK_NB];
+  // Connected pawn bonus
+  constexpr int Connected[RANK_NB] = { 0, 13, 17, 24, 59, 96, 171 };
 
   // Strength of pawn shelter for our king by [distance from edge][rank].
   // RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
@@ -90,19 +89,20 @@ namespace {
         assert(pos.piece_on(s) == make_piece(Us, PAWN));
 
         File f = file_of(s);
+        Rank r = relative_rank(Us, s, pos.max_rank());
 
         e->semiopenFiles[Us]   &= ~(1 << f);
         e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
 
         // Flag the pawn
         opposed    = theirPawns & forward_file_bb(Us, s);
-        stoppers   = theirPawns & passed_pawn_mask(Us, s);
+        stoppers   = theirPawns & passed_pawn_span(Us, s);
         lever      = theirPawns & PseudoAttacks[Us][PAWN][s];
         leverPush  = relative_rank(Them, s, pos.max_rank()) > RANK_1 ? theirPawns & PseudoAttacks[Us][PAWN][s + Up] : 0;
-        doubled    = relative_rank(Us, s, pos.max_rank()) > RANK_1 ? ourPawns & (s - Up) : 0;
+        doubled    = r > RANK_1 ? ourPawns & (s - Up) : 0;
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
-        support    = relative_rank(Us, s, pos.max_rank()) > RANK_1 ? neighbours & rank_bb(s - Up) : 0;
+        support    = r > RANK_1 ? neighbours & rank_bb(s - Up) : 0;
 
         // A pawn is backward when it is behind all pawns of the same color
         // on the adjacent files and cannot be safely advanced.
@@ -115,13 +115,13 @@ namespace {
         // which could become passed after one or two pawn pushes when are
         // not attacked more times than defended.
         if (   !(stoppers ^ lever ^ leverPush)
-            && popcount(support) >= popcount(lever) - 1
-            && popcount(phalanx)   >= popcount(leverPush))
+            && (support || !more_than_one(lever))
+            && popcount(phalanx) >= popcount(leverPush))
             e->passedPawns[Us] |= s;
 
         else if (   relative_rank(Them, s, pos.max_rank()) > RANK_1
-                 && stoppers == SquareBB[s + Up]
-                 && relative_rank(Us, s, pos.max_rank()) >= RANK_5)
+                 && stoppers == square_bb(s + Up)
+                 && r >= RANK_5)
         {
             b = shift<Up>(support) & ~theirPawns;
             while (b)
@@ -131,8 +131,11 @@ namespace {
 
         // Score this pawn
         if (support | phalanx)
-            score += Connected[opposed][bool(phalanx)][popcount(support)][relative_rank(Us, s, pos.max_rank())];
-
+        {
+            int v = (phalanx ? 3 : 2) * Connected[r];
+            v = 17 * popcount(support) + (v >> (opposed + 1));
+            score += make_score(v, v * (r - 2) / 4);
+        }
         else if (!neighbours)
             score -= Isolated * (1 + 2 * pos.must_capture()), e->weakUnopposed[Us] += !opposed;
 
@@ -157,14 +160,9 @@ namespace {
 
         e->semiopenFiles[Us] &= ~(1 << f);
 
-        opposed    = theirPawns & forward_file_bb(Us, s);
         neighbours = ourPawns   & adjacent_files_bb(f);
-        phalanx    = neighbours & rank_bb(s);
 
-        if (phalanx)
-            score += Connected[opposed][bool(phalanx)][0][relative_rank(Us, s, pos.max_rank())] / 2;
-
-        else if (!neighbours)
+        if (!neighbours)
             score -= Isolated / 2;
     }
 
@@ -174,27 +172,6 @@ namespace {
 } // namespace
 
 namespace Pawns {
-
-/// Pawns::init() initializes some tables needed by evaluation. Instead of using
-/// hard-coded tables, when makes sense, we prefer to calculate them with a formula
-/// to reduce independent parameters and to allow easier tuning and better insight.
-
-void init() {
-
-  static constexpr int Seed[RANK_NB] = { 0, 13, 24, 18, 65, 100, 175, 330 };
-
-  for (int opposed = 0; opposed <= 1; ++opposed)
-      for (int phalanx = 0; phalanx <= 1; ++phalanx)
-          for (int support = 0; support <= 2; ++support)
-              for (Rank r = RANK_1; r < RANK_MAX; ++r)
-  {
-      int v = 17 * support;
-      v += (Seed[r] + (phalanx ? (Seed[r + 1] - Seed[r]) / 2 : 0)) >> opposed;
-
-      Connected[opposed][phalanx][support][r] = make_score(v, v * (r - 2) / 4);
-  }
-}
-
 
 /// Pawns::probe() looks up the current position's pawns configuration in
 /// the pawns hash table. It returns a pointer to the Entry if the position
@@ -212,9 +189,7 @@ Entry* probe(const Position& pos) {
   e->key = key;
   e->scores[WHITE] = evaluate<WHITE>(pos, e);
   e->scores[BLACK] = evaluate<BLACK>(pos, e);
-  e->openFiles = popcount(e->semiopenFiles[WHITE] & e->semiopenFiles[BLACK]);
-  e->asymmetry = popcount(  (e->passedPawns[WHITE]   | e->passedPawns[BLACK])
-                          | (e->semiopenFiles[WHITE] ^ e->semiopenFiles[BLACK]));
+  e->passedCount= popcount(e->passedPawns[WHITE] | e->passedPawns[BLACK]);
 
   return e;
 }
@@ -237,7 +212,7 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
   Value safety = (shift<Down>(theirPawns) & (FileABB | FileHBB) & BlockRanks & ksq) ?
                  Value(374) : Value(5);
 
-  File center = std::max(FILE_B, std::min(File(pos.max_file() - 1), file_of(ksq)));
+  File center = clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1));
   for (File f = File(center - 1); f <= File(center + 1); ++f)
   {
       b = ourPawns & file_bb(f);
