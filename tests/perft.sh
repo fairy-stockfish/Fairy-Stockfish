@@ -62,6 +62,7 @@ if [[ $1 == "largeboard" ]]; then
   expect perft.exp capablanca startpos 4 805128 > /dev/null
   expect perft.exp embassy startpos 4 809539 > /dev/null
   expect perft.exp janus startpos 4 772074 > /dev/null
+  expect perft.exp modern startpos 4 433729 > /dev/null
   expect perft.exp courier startpos 4 500337 > /dev/null
 fi
 
