@@ -146,6 +146,10 @@ namespace {
             score -= Doubled;
     }
 
+    // Double pawn evaluation if there are no non-pawn pieces
+    if (pos.count<ALL_PIECES>(Us) == pos.count<PAWN>(Us))
+        score = score * 2;
+
     const Square* pl_shogi = pos.squares<SHOGI_PAWN>(Us);
 
     ourPawns   = pos.pieces(Us,   SHOGI_PAWN);
