@@ -162,6 +162,7 @@ public:
   template<PieceType Pt> const Square* squares(Color c) const;
   const Square* squares(Color c, PieceType pt) const;
   template<PieceType Pt> Square square(Color c) const;
+  int semiopen_file(Color c, File f) const;
 
   // Castling
   int castling_rights(Color c) const;
@@ -666,6 +667,10 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
 
 inline Square Position::ep_square() const {
   return st->epSquare;
+}
+
+inline int Position::semiopen_file(Color c, File f) const {
+  return !(pieces(c, PAWN, SHOGI_PAWN) & file_bb(f));
 }
 
 inline bool Position::can_castle(CastlingRight cr) const {

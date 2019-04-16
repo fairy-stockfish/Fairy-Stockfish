@@ -77,7 +77,6 @@ namespace {
     Bitboard theirPawns = pos.pieces(Them, PAWN);
 
     e->passedPawns[Us] = e->pawnAttacksSpan[Us] = e->weakUnopposed[Us] = 0;
-    e->semiopenFiles[Us] = 0xFF;
     e->kingSquares[Us]   = SQ_NONE;
     e->pawnAttacks[Us]   = pawn_attacks_bb<Us>(ourPawns);
     e->pawnsOnSquares[Us][BLACK] = popcount(ourPawns & DarkSquares);
@@ -91,7 +90,6 @@ namespace {
         File f = file_of(s);
         Rank r = relative_rank(Us, s, pos.max_rank());
 
-        e->semiopenFiles[Us]   &= ~(1 << f);
         e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
 
         // Flag the pawn
@@ -162,8 +160,6 @@ namespace {
 
         File f = file_of(s);
 
-        e->semiopenFiles[Us] &= ~(1 << f);
-
         neighbours = ourPawns   & adjacent_files_bb(f);
 
         if (!neighbours)
@@ -193,7 +189,6 @@ Entry* probe(const Position& pos) {
   e->key = key;
   e->scores[WHITE] = evaluate<WHITE>(pos, e);
   e->scores[BLACK] = evaluate<BLACK>(pos, e);
-  e->passedCount= popcount(e->passedPawns[WHITE] | e->passedPawns[BLACK]);
 
   return e;
 }
