@@ -199,6 +199,7 @@ public:
   bool pawn_passed(Color c, Square s) const;
   bool opposite_bishops() const;
   bool is_promoted(Square s) const;
+  int  pawns_on_same_color_squares(Color c, Square s) const;
 
   // Doing and undoing moves
   void do_move(Move m, StateInfo& newSt);
@@ -729,6 +730,10 @@ inline bool Position::pawn_passed(Color c, Square s) const {
 inline bool Position::advanced_pawn_push(Move m) const {
   return   type_of(moved_piece(m)) == PAWN
         && relative_rank(sideToMove, from_sq(m), max_rank()) > (max_rank() + 1) / 2 - 1;
+}
+
+inline int Position::pawns_on_same_color_squares(Color c, Square s) const {
+  return popcount(pieces(c, PAWN) & ((DarkSquares & s) ? DarkSquares : ~DarkSquares));
 }
 
 inline Key Position::key() const {
