@@ -969,8 +969,8 @@ moves_loop: // When in check, search starts from here
 
           if (   !captureOrPromotion
               && !givesCheck
-              && (!pos.must_capture() || !pos.attackers_to(to_sq(move), ~pos.side_to_move()))
-              && !pos.advanced_pawn_push(move))
+              && (!pos.must_capture() || !pos.attackers_to(to_sq(move), ~us))
+              && (!pos.advanced_pawn_push(move) || pos.count<ALL_PIECES>(us) == pos.count<PAWN>(us)))
           {
               // Move count based pruning (~30 Elo)
               if (moveCountPruning)
