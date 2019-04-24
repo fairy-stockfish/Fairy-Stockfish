@@ -999,7 +999,7 @@ moves_loop: // When in check, search starts from here
                   continue;
           }
           else if (   !pos.must_capture()
-                   && !pos.see_ge(move, -PawnValueEg * (depth / ONE_PLY))) // (~20 Elo)
+                   && !pos.see_ge(move, -(PawnValueEg + 120 * pos.captures_to_hand()) * (depth / ONE_PLY))) // (~20 Elo)
                   continue;
       }
 
