@@ -238,11 +238,15 @@ Score Entry::do_king_safety(const Position& pos) {
   Square ksq = pos.square<KING>(Us);
   kingSquares[Us] = ksq;
   castlingRights[Us] = pos.castling_rights(Us);
-  int minKingPawnDistance = 0;
 
   Bitboard pawns = pos.pieces(Us, PAWN);
-  if (pawns)
-      while (!(DistanceRingBB[ksq][++minKingPawnDistance] & pawns)) {}
+  int minPawnDist = pawns ? 8 : 0;
+
+  if (pawns & PseudoAttacks[Us][KING][ksq])
+      minPawnDist = 1;
+
+  else while (pawns)
+      minPawnDist = std::min(minPawnDist, distance(ksq, pop_lsb(&pawns)));
 
   Value bonus = evaluate_shelter<Us>(pos, ksq);
 
@@ -259,7 +263,7 @@ Score Entry::do_king_safety(const Position& pos) {
       bonus = std::max(bonus, evaluate_shelter<Us>(pos, s));
   }
 
-  return make_score(bonus, -16 * minKingPawnDistance);
+  return make_score(bonus, -16 * minPawnDist);
 }
 
 // Explicit template instantiation
