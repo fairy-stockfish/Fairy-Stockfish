@@ -77,11 +77,8 @@ namespace {
     Bitboard theirPawns = pos.pieces(Them, PAWN);
 
     e->passedPawns[Us] = e->pawnAttacksSpan[Us] = e->weakUnopposed[Us] = 0;
-    e->semiopenFiles[Us] = 0xFF;
     e->kingSquares[Us]   = SQ_NONE;
     e->pawnAttacks[Us]   = pawn_attacks_bb<Us>(ourPawns);
-    e->pawnsOnSquares[Us][BLACK] = popcount(ourPawns & DarkSquares);
-    e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
 
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
@@ -91,7 +88,6 @@ namespace {
         File f = file_of(s);
         Rank r = relative_rank(Us, s, pos.max_rank());
 
-        e->semiopenFiles[Us]   &= ~(1 << f);
         e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
 
         // Flag the pawn
@@ -146,6 +142,10 @@ namespace {
             score -= Doubled;
     }
 
+    // Double pawn evaluation if there are no non-pawn pieces
+    if (pos.count<ALL_PIECES>(Us) == pos.count<PAWN>(Us))
+        score = score * 2;
+
     const Square* pl_shogi = pos.squares<SHOGI_PAWN>(Us);
 
     ourPawns   = pos.pieces(Us,   SHOGI_PAWN);
@@ -157,8 +157,6 @@ namespace {
         assert(pos.piece_on(s) == make_piece(Us, SHOGI_PAWN));
 
         File f = file_of(s);
-
-        e->semiopenFiles[Us] &= ~(1 << f);
 
         neighbours = ourPawns   & adjacent_files_bb(f);
 
@@ -189,7 +187,6 @@ Entry* probe(const Position& pos) {
   e->key = key;
   e->scores[WHITE] = evaluate<WHITE>(pos, e);
   e->scores[BLACK] = evaluate<BLACK>(pos, e);
-  e->passedCount= popcount(e->passedPawns[WHITE] | e->passedPawns[BLACK]);
 
   return e;
 }
@@ -241,11 +238,15 @@ Score Entry::do_king_safety(const Position& pos) {
   Square ksq = pos.square<KING>(Us);
   kingSquares[Us] = ksq;
   castlingRights[Us] = pos.castling_rights(Us);
-  int minKingPawnDistance = 0;
 
   Bitboard pawns = pos.pieces(Us, PAWN);
-  if (pawns)
-      while (!(DistanceRingBB[ksq][++minKingPawnDistance] & pawns)) {}
+  int minPawnDist = pawns ? 8 : 0;
+
+  if (pawns & PseudoAttacks[Us][KING][ksq])
+      minPawnDist = 1;
+
+  else while (pawns)
+      minPawnDist = std::min(minPawnDist, distance(ksq, pop_lsb(&pawns)));
 
   Value bonus = evaluate_shelter<Us>(pos, ksq);
 
@@ -262,7 +263,7 @@ Score Entry::do_king_safety(const Position& pos) {
       bonus = std::max(bonus, evaluate_shelter<Us>(pos, s));
   }
 
-  return make_score(bonus, -16 * minKingPawnDistance);
+  return make_score(bonus, -16 * minPawnDist);
 }
 
 // Explicit template instantiation

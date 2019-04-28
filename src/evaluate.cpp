@@ -370,7 +370,7 @@ namespace {
                 // bishop, bigger when the center files are blocked with pawns.
                 Bitboard blocked = pos.pieces(Us, PAWN) & shift<Down>(pos.pieces());
 
-                score -= BishopPawns * pe->pawns_on_same_color_squares(Us, s)
+                score -= BishopPawns * pos.pawns_on_same_color_squares(Us, s)
                                      * (1 + popcount(blocked & CenterFiles));
 
                 // Bonus for bishop on a long diagonal which can "see" both center squares
@@ -400,8 +400,8 @@ namespace {
                 score += RookOnPawn * popcount(pos.pieces(Them, PAWN) & PseudoAttacks[Us][ROOK][s]);
 
             // Bonus for rook on an open or semi-open file
-            if (pe->semiopen_file(Us, file_of(s)))
-                score += RookOnFile[bool(pe->semiopen_file(Them, file_of(s)))];
+            if (pos.semiopen_file(Us, file_of(s)))
+                score += RookOnFile[bool(pos.semiopen_file(Them, file_of(s)))];
 
             // Penalty when trapped by the king, even more if the king cannot castle
             else if (mob <= 3 && pos.count<KING>(Us))
@@ -610,7 +610,7 @@ namespace {
                 moves |= pos.moves_from(Us, type_of(pos.piece_on(s)), s);
         }
         score += make_score(200, 200) * popcount(attackedBy[Them][ALL_PIECES] & moves & ~pos.pieces());
-        score += make_score(200, 200) * popcount(attackedBy[Them][ALL_PIECES] & moves & ~pos.pieces() & ~attackedBy2[Us]);
+        score += make_score(200, 220) * popcount(attackedBy[Them][ALL_PIECES] & moves & ~pos.pieces() & ~attackedBy2[Us]);
     }
 
     // Non-pawn enemies
@@ -858,17 +858,20 @@ namespace {
                    & ~attackedBy[Them][PAWN]
                    & ~attackedBy[Them][SHOGI_PAWN];
 
-    if (pawnsOnly)
-        safe = pos.pieces(Us, PAWN) & ~attackedBy[Them][ALL_PIECES];
-
     // Find all squares which are at most three squares behind some friendly pawn
     Bitboard behind = pos.pieces(Us, PAWN, SHOGI_PAWN);
     behind |= shift<Down>(behind);
     behind |= shift<Down>(shift<Down>(behind));
 
+    if (pawnsOnly)
+    {
+        safe = behind & ~attackedBy[Them][ALL_PIECES];
+        behind = 0;
+    }
+
     int bonus = popcount(safe) + popcount(behind & safe);
     int weight =  pos.count<ALL_PIECES>(Us)
-                - 2 * popcount(pe->semiopenFiles[WHITE] & pe->semiopenFiles[BLACK]);
+               - (16 - pos.count<PAWN>()) / 4;
 
     Score score = make_score(bonus * weight * weight / 16, 0);
 

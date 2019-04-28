@@ -67,10 +67,10 @@ namespace {
   }
 
   // Reductions lookup table, initialized at startup
-  int Reductions[64]; // [depth or moveNumber]
+  int Reductions[MAX_MOVES]; // [depth or moveNumber]
 
   template <bool PvNode> Depth reduction(bool i, Depth d, int mn) {
-    int r = Reductions[std::min(d / ONE_PLY, 63)] * Reductions[std::min(mn, 63)] / 1024;
+    int r = Reductions[d / ONE_PLY] * Reductions[mn] / 1024;
     return ((r + 512) / 1024 + (!i && r > 1024) - PvNode) * ONE_PLY;
   }
 
@@ -147,7 +147,7 @@ namespace {
 
 void Search::init() {
 
-  for (int i = 1; i < 64; ++i)
+  for (int i = 1; i < MAX_MOVES; ++i)
       Reductions[i] = int(1024 * std::log(i) / std::sqrt(1.95));
 }
 
@@ -589,8 +589,7 @@ namespace {
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     (ss+1)->ply = ss->ply + 1;
-    ss->currentMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
-    ss->continuationHistory = &thisThread->continuationHistory[NO_PIECE][0];
+    (ss+1)->excludedMove = bestMove = MOVE_NONE;
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
     Square prevSq = to_sq((ss-1)->currentMove);
 
@@ -969,8 +968,8 @@ moves_loop: // When in check, search starts from here
 
           if (   !captureOrPromotion
               && !givesCheck
-              && (!pos.must_capture() || !pos.attackers_to(to_sq(move), ~pos.side_to_move()))
-              && !pos.advanced_pawn_push(move))
+              && (!pos.must_capture() || !pos.attackers_to(to_sq(move), ~us))
+              && (!pos.advanced_pawn_push(move) || pos.count<ALL_PIECES>(us) == pos.count<PAWN>(us)))
           {
               // Move count based pruning (~30 Elo)
               if (moveCountPruning)
@@ -999,7 +998,7 @@ moves_loop: // When in check, search starts from here
                   continue;
           }
           else if (   !pos.must_capture()
-                   && !pos.see_ge(move, -PawnValueEg * (depth / ONE_PLY))) // (~20 Elo)
+                   && !pos.see_ge(move, -(PawnValueEg + 120 * pos.captures_to_hand()) * (depth / ONE_PLY))) // (~20 Elo)
                   continue;
       }
 
@@ -1024,7 +1023,7 @@ moves_loop: // When in check, search starts from here
       // re-searched at full depth.
       if (    depth >= 3 * ONE_PLY
           &&  moveCount > 1
-          && (!captureOrPromotion || moveCountPruning))
+          && (!(captureOrPromotion || (pos.must_capture() && MoveList<CAPTURES>(pos).size())) || moveCountPruning))
       {
           Depth r = reduction<PvNode>(improving, depth, moveCount);
 
