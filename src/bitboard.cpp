@@ -337,14 +337,14 @@ namespace {
 
 const std::string Bitboards::pretty(Bitboard b) {
 
-  std::string s = "+---+---+---+---+---+---+---+---+\n";
+  std::string s = "+---+---+---+---+---+---+---+---+---+---+---+---+\n";
 
   for (Rank r = RANK_MAX; r >= RANK_1; --r)
   {
       for (File f = FILE_A; f <= FILE_MAX; ++f)
           s += b & make_square(f, r) ? "| X " : "|   ";
 
-      s += "|\n+---+---+---+---+---+---+---+---+\n";
+      s += "|\n+---+---+---+---+---+---+---+---+---+---+---+---+\n";
   }
 
   return s;
