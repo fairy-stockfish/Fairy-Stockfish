@@ -947,7 +947,7 @@ moves_loop: // When in check, search starts from here
 
       // Check extension (~2 Elo)
       else if (    givesCheck
-               && (pos.blockers_for_king(~us) & from_sq(move) || pos.see_ge(move)))
+               && ((type_of(move) != DROP && (pos.blockers_for_king(~us) & from_sq(move))) || pos.see_ge(move)))
           extension = ONE_PLY;
       else if (    pos.must_capture() // Capture extension (all moves are captures)
                &&  pos.capture(move)
