@@ -121,7 +121,9 @@ struct Magic {
     if (HasPext)
         return unsigned(pext(occupied, mask));
 
+#ifndef LARGEBOARDS
     if (Is64Bit)
+#endif
         return unsigned(((occupied & mask) * magic) >> shift);
 
     unsigned lo = unsigned(occupied) & unsigned(mask);
@@ -204,7 +206,7 @@ constexpr Bitboard shift(Bitboard b) {
         : D == EAST       ? (b & ~file_bb(FILE_MAX)) << EAST       : D == WEST       ? (b & ~FileABB) >> EAST
         : D == NORTH_EAST ? (b & ~file_bb(FILE_MAX)) << NORTH_EAST : D == NORTH_WEST ? (b & ~FileABB) << NORTH_WEST
         : D == SOUTH_EAST ? (b & ~file_bb(FILE_MAX)) >> NORTH_WEST : D == SOUTH_WEST ? (b & ~FileABB) >> NORTH_EAST
-        : 0;
+        : Bitboard(0);
 }
 
 
@@ -215,7 +217,7 @@ constexpr Bitboard shift(Direction D, Bitboard b) {
         : D == EAST       ? (b & ~file_bb(FILE_MAX)) << EAST       : D == WEST       ? (b & ~FileABB) >> EAST
         : D == NORTH_EAST ? (b & ~file_bb(FILE_MAX)) << NORTH_EAST : D == NORTH_WEST ? (b & ~FileABB) << NORTH_WEST
         : D == SOUTH_EAST ? (b & ~file_bb(FILE_MAX)) >> NORTH_WEST : D == SOUTH_WEST ? (b & ~FileABB) >> NORTH_EAST
-        : 0;
+        : Bitboard(0);
 }
 
 
