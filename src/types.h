@@ -365,7 +365,8 @@ enum Piece {
 enum RiderType {
   NO_RIDER = 0,
   RIDER_BISHOP = 1 << 0,
-  RIDER_ROOK = 1 << 1,
+  RIDER_ROOK_H = 1 << 1,
+  RIDER_ROOK_V = 1 << 2,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];

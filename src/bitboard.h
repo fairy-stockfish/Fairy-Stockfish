@@ -140,7 +140,8 @@ struct Magic {
   }
 };
 
-extern Magic RookMagics[SQUARE_NB];
+extern Magic RookMagicsH[SQUARE_NB];
+extern Magic RookMagicsV[SQUARE_NB];
 extern Magic BishopMagics[SQUARE_NB];
 
 inline Bitboard square_bb(Square s) {
@@ -337,6 +338,17 @@ template<class T> constexpr const T& clamp(const T& v, const T& lo, const T&  hi
   return v < lo ? lo : v > hi ? hi : v;
 }
 
+
+template<RiderType R>
+inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
+
+  assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V);
+  const Magic& m =  R == RIDER_ROOK_H ? RookMagicsH[s]
+                  : R == RIDER_ROOK_V ? RookMagicsV[s]
+                  : BishopMagics[s];
+  return m.attacks[m.index(occupied)];
+}
+
 /// attacks_bb() returns a bitboard representing all the squares attacked by a
 /// piece of type Pt (bishop or rook) placed on 's'.
 
@@ -344,25 +356,29 @@ template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
   assert(Pt == BISHOP || Pt == ROOK);
-  const Magic& m = Pt == ROOK ? RookMagics[s] : BishopMagics[s];
-  return m.attacks[m.index(occupied)];
+  return Pt == BISHOP ? rider_attacks_bb<RIDER_BISHOP>(s, occupied)
+                      : rider_attacks_bb<RIDER_ROOK_H>(s, occupied) | rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
 }
 
 inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperAttacks[c][pt][s];
   if (AttackRiderTypes[pt] & RIDER_BISHOP)
-      b |= attacks_bb<BISHOP>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_ROOK)
-      b |= attacks_bb<ROOK>(s, occupied);
+      b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
+  if (AttackRiderTypes[pt] & RIDER_ROOK_H)
+      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
+  if (AttackRiderTypes[pt] & RIDER_ROOK_V)
+      b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
   return b & PseudoAttacks[c][pt][s];
 }
 
 inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperMoves[c][pt][s];
   if (MoveRiderTypes[pt] & RIDER_BISHOP)
-      b |= attacks_bb<BISHOP>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_ROOK)
-      b |= attacks_bb<ROOK>(s, occupied);
+      b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
+  if (MoveRiderTypes[pt] & RIDER_ROOK_H)
+      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
+  if (MoveRiderTypes[pt] & RIDER_ROOK_V)
+      b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
   return b & PseudoMoves[c][pt][s];
 }
 
