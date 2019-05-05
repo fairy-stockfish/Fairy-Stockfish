@@ -826,7 +826,7 @@ namespace {
                 probCutCount++;
 
                 ss->currentMove = move;
-                ss->continuationHistory = &thisThread->continuationHistory[pos.moved_piece(move)][to_sq(move)];
+                ss->continuationHistory = &thisThread->continuationHistory[history_slot(pos.moved_piece(move))][to_sq(move)];
 
                 assert(depth >= 5 * ONE_PLY);
 
@@ -998,8 +998,8 @@ moves_loop: // When in check, search starts from here
 
               // Countermoves based pruning (~20 Elo)
               if (   lmrDepth < 3 + ((ss-1)->statScore > 0 || (ss-1)->moveCount == 1)
-                  && (*contHist[0])[movedPiece][to_sq(move)] < CounterMovePruneThreshold
-                  && (*contHist[1])[movedPiece][to_sq(move)] < CounterMovePruneThreshold)
+                  && (*contHist[0])[history_slot(movedPiece)][to_sq(move)] < CounterMovePruneThreshold
+                  && (*contHist[1])[history_slot(movedPiece)][to_sq(move)] < CounterMovePruneThreshold)
                   continue;
 
               // Futility pruning: parent node (~2 Elo)
@@ -1031,7 +1031,7 @@ moves_loop: // When in check, search starts from here
 
       // Update the current move (this must be done after singular extension search)
       ss->currentMove = move;
-      ss->continuationHistory = &thisThread->continuationHistory[movedPiece][to_sq(move)];
+      ss->continuationHistory = &thisThread->continuationHistory[history_slot(movedPiece)][to_sq(move)];
 
       // Step 15. Make the move
       pos.do_move(move, st, givesCheck);
@@ -1075,9 +1075,9 @@ moves_loop: // When in check, search starts from here
                   r -= 2 * ONE_PLY;
 
               ss->statScore =  thisThread->mainHistory[us][from_to(move)]
-                             + (*contHist[0])[movedPiece][to_sq(move)]
-                             + (*contHist[1])[movedPiece][to_sq(move)]
-                             + (*contHist[3])[movedPiece][to_sq(move)]
+                             + (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
+                             + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
+                             + (*contHist[3])[history_slot(movedPiece)][to_sq(move)]
                              - 4000;
 
               // Decrease/increase reduction by comparing opponent's stat score (~10 Elo)
@@ -1420,7 +1420,7 @@ moves_loop: // When in check, search starts from here
       }
 
       ss->currentMove = move;
-      ss->continuationHistory = &thisThread->continuationHistory[pos.moved_piece(move)][to_sq(move)];
+      ss->continuationHistory = &thisThread->continuationHistory[history_slot(pos.moved_piece(move))][to_sq(move)];
 
       // Make and search the move
       pos.do_move(move, st, givesCheck);
@@ -1507,7 +1507,7 @@ moves_loop: // When in check, search starts from here
 
     for (int i : {1, 2, 4, 6})
         if (is_ok((ss-i)->currentMove))
-            (*(ss-i)->continuationHistory)[pc][to] << bonus;
+            (*(ss-i)->continuationHistory)[history_slot(pc)][to] << bonus;
   }
 
 

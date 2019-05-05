@@ -79,7 +79,7 @@ template <typename T, int D, int Size>
 struct Stats<T, D, Size> : public std::array<StatsEntry<T, D>, Size> {};
 
 /// In stats table, D=0 means that the template parameter is not used
-enum StatsParams { NOT_USED = 0 };
+enum StatsParams { NOT_USED = 0, PIECE_SLOTS = 8 };
 
 
 /// ButterflyHistory records how often quiet moves have been successful or
@@ -101,8 +101,9 @@ typedef Stats<int16_t, 29952, PIECE_NB, SQUARE_NB> PieceToHistory;
 /// ContinuationHistory is the combined history of a given pair of moves, usually
 /// the current one given a previous one. The nested history table is based on
 /// PieceToHistory instead of ButterflyBoards.
-typedef Stats<PieceToHistory, NOT_USED, PIECE_NB, SQUARE_NB> ContinuationHistory;
+typedef Stats<PieceToHistory, NOT_USED, 2 * PIECE_SLOTS, SQUARE_NB> ContinuationHistory;
 
+int history_slot(Piece pc);
 
 /// MovePicker class is used to pick one pseudo legal move at a time from the
 /// current position. The most important method is next_move(), which returns a
