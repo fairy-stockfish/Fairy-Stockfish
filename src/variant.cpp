@@ -500,6 +500,11 @@ VariantMap variants; // Global object
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    Variant* caparandom_variant() {
+        Variant* v = capablanca_variant();
+        v->chess960 = true;
+        return v;
+    }
     Variant* janus_variant() {
         Variant* v = fairy_variant_base();
         v->maxRank = RANK_8;
@@ -635,6 +640,7 @@ void VariantMap::init() {
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("capablanca", capablanca_variant());
+    add("caparandom", caparandom_variant());
     add("janus", janus_variant());
     add("modern", modern_variant());
     add("chancellor", chancellor_variant());

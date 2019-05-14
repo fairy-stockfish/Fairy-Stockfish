@@ -433,7 +433,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       st->rule50 = 0;
   }
 
-  chess960 = isChess960;
+  chess960 = isChess960 || v->chess960;
   thisThread = th;
   set_state(st);
 
