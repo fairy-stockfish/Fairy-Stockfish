@@ -901,7 +901,7 @@ namespace {
         while (ctfPieces)
         {
             Square s1 = pop_lsb(&ctfPieces);
-            Bitboard target_squares = pos.capture_the_flag(Us);
+            Bitboard target_squares = pos.capture_the_flag(Us) & pos.board_bb();
             while (target_squares)
             {
                 Square s2 = pop_lsb(&target_squares);
