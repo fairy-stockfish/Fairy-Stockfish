@@ -197,7 +197,7 @@ Entry* probe(const Position& pos) {
 /// penalty for a king, looking at the king file and the two closest files.
 
 template<Color Us>
-Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
+void Entry::evaluate_shelter(const Position& pos, Square ksq, Score& shelter) {
 
   constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
   constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
@@ -208,7 +208,8 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
   Bitboard ourPawns = b & pos.pieces(Us);
   Bitboard theirPawns = b & pos.pieces(Them);
 
-  Value safety = (shift<Down>(theirPawns) & BlockSquares & ksq) ? Value(374) : Value(5);
+  Value bonus[] = { (shift<Down>(theirPawns) & BlockSquares & ksq) ? Value(374) : Value(5),
+                    VALUE_ZERO };
 
   File center = clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1));
   for (File f = File(center - 1); f <= File(center + 1); ++f)
@@ -220,13 +221,16 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
       Rank theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : RANK_1;
 
       int d = std::min(std::min(f, File(pos.max_file() - f)), FILE_D);
-      // higher weight for pawns on second rank and missing shelter in drop variants
-      safety += ShelterStrength[d][ourRank] * (1 + (pos.captures_to_hand() && ourRank <= RANK_2));
-      safety -= (ourRank && (ourRank == theirRank - 1)) ? 66 * (theirRank == RANK_3)
-                                                        : UnblockedStorm[d][theirRank];
+      bonus[MG] += ShelterStrength[d][ourRank] * (1 + (pos.captures_to_hand() && ourRank <= RANK_2));
+
+      if (ourRank && (ourRank == theirRank - 1))
+          bonus[MG] -= 82 * (theirRank == RANK_3), bonus[EG] -= 82 * (theirRank == RANK_3);
+      else
+          bonus[MG] -= UnblockedStorm[d][theirRank];
   }
 
-  return safety;
+  if (bonus[MG] > mg_value(shelter))
+      shelter = make_score(bonus[MG], bonus[EG]);
 }
 
 
@@ -249,22 +253,23 @@ Score Entry::do_king_safety(const Position& pos) {
   else while (pawns)
       minPawnDist = std::min(minPawnDist, distance(ksq, pop_lsb(&pawns)));
 
-  Value bonus = evaluate_shelter<Us>(pos, ksq);
+  Score shelter = make_score(-VALUE_INFINITE, VALUE_ZERO);
+  evaluate_shelter<Us>(pos, ksq, shelter);
 
   // If we can castle use the bonus after the castling if it is bigger
   if (pos.can_castle(Us | KING_SIDE))
   {
       Square s = make_square(pos.castling_kingside_file(), Us == WHITE ? RANK_1 : pos.max_rank());
-      bonus = std::max(bonus, evaluate_shelter<Us>(pos, s));
+      evaluate_shelter<Us>(pos, s, shelter);
   }
 
   if (pos.can_castle(Us | QUEEN_SIDE))
   {
       Square s = make_square(pos.castling_queenside_file(), Us == WHITE ? RANK_1 : pos.max_rank());
-      bonus = std::max(bonus, evaluate_shelter<Us>(pos, s));
+      evaluate_shelter<Us>(pos, s, shelter);
   }
 
-  return make_score(bonus, -16 * minPawnDist);
+  return shelter - make_score(VALUE_ZERO, 16 * minPawnDist);
 }
 
 // Explicit template instantiation

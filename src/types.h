@@ -217,7 +217,7 @@ constexpr int SQUARE_BITS = 6;
 #endif
 
 constexpr int MAX_MOVES = 512;
-constexpr int MAX_PLY   = 128;
+constexpr int MAX_PLY   = 246;
 
 /// A move needs 16 bits to be stored
 ///

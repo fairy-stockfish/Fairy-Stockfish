@@ -70,9 +70,9 @@ namespace {
   // Reductions lookup table, initialized at startup
   int Reductions[MAX_MOVES]; // [depth or moveNumber]
 
-  template <bool PvNode> Depth reduction(bool i, Depth d, int mn) {
+  Depth reduction(bool i, Depth d, int mn) {
     int r = Reductions[d / ONE_PLY] * Reductions[mn] / 1024;
-    return ((r + 512) / 1024 + (!i && r > 1024) - PvNode) * ONE_PLY;
+    return ((r + 512) / 1024 + (!i && r > 1024)) * ONE_PLY;
   }
 
   constexpr int futility_move_count(bool improving, int depth) {
@@ -873,6 +873,7 @@ moves_loop: // When in check, search starts from here
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     moveCountPruning = false;
     ttCapture = ttMove && pos.capture_or_promotion(ttMove);
+    int singularExtensionLMRmultiplier = 0;
 
     // Step 12. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -929,7 +930,12 @@ moves_loop: // When in check, search starts from here
           ss->excludedMove = MOVE_NONE;
 
           if (value < singularBeta)
+              {
               extension = ONE_PLY;
+              singularExtensionLMRmultiplier++;
+              if (value < singularBeta - std::min(3 * depth / ONE_PLY, 39))
+              	  singularExtensionLMRmultiplier++;
+              }
 
           // Multi-cut pruning
           // Our ttMove is assumed to fail high, and now we failed high also on a reduced
@@ -987,7 +993,7 @@ moves_loop: // When in check, search starts from here
                   continue;
 
               // Reduced depth of the next LMR search
-              int lmrDepth = std::max(newDepth - reduction<PvNode>(improving, depth, moveCount), DEPTH_ZERO);
+              int lmrDepth = std::max(newDepth - reduction(improving, depth, moveCount), DEPTH_ZERO);
               lmrDepth /= ONE_PLY;
 
               // Countermoves based pruning (~20 Elo)
@@ -1033,18 +1039,22 @@ moves_loop: // When in check, search starts from here
       // Step 16. Reduced depth search (LMR). If the move fails high it will be
       // re-searched at full depth.
       if (    depth >= 3 * ONE_PLY
-          &&  moveCount > 1
-          && (!(captureOrPromotion || (pos.must_capture() && MoveList<CAPTURES>(pos).size())) || moveCountPruning))
+          &&  moveCount > 1 + 3 * rootNode
+          && (  !(captureOrPromotion || (pos.must_capture() && MoveList<CAPTURES>(pos).size()))
+              || moveCountPruning
+              || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha))
       {
-          Depth r = reduction<PvNode>(improving, depth, moveCount);
+          Depth r = reduction(improving, depth, moveCount);
 
           // Decrease reduction if position is or has been on the PV
           if (ttPv)
-              r -= ONE_PLY;
+              r -= 2 * ONE_PLY;
 
           // Decrease reduction if opponent's move count is high (~10 Elo)
           if ((ss-1)->moveCount > 15)
               r -= ONE_PLY;
+          // Decrease reduction if move has been singularly extended
+          r -= singularExtensionLMRmultiplier * ONE_PLY;
 
           if (!captureOrPromotion && !(pos.must_capture() && MoveList<CAPTURES>(pos).size()))
           {
