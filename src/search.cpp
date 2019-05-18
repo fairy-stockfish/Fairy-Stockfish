@@ -1040,9 +1040,10 @@ moves_loop: // When in check, search starts from here
       // re-searched at full depth.
       if (    depth >= 3 * ONE_PLY
           &&  moveCount > 1 + 3 * rootNode
-          && (  !(captureOrPromotion || (pos.must_capture() && MoveList<CAPTURES>(pos).size()))
+          && (  !captureOrPromotion
               || moveCountPruning
-              || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha))
+              || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha)
+          && !(pos.must_capture() && MoveList<CAPTURES>(pos).size()))
       {
           Depth r = reduction(improving, depth, moveCount);
 
