@@ -500,6 +500,11 @@ VariantMap variants; // Global object
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    Variant* caparandom_variant() {
+        Variant* v = capablanca_variant();
+        v->chess960 = true;
+        return v;
+    }
     Variant* janus_variant() {
         Variant* v = fairy_variant_base();
         v->maxRank = RANK_8;
@@ -521,6 +526,18 @@ VariantMap variants; // Global object
         v->add_piece(ARCHBISHOP, 'm');
         v->startFen = "rnbqkmbnr/ppppppppp/9/9/9/9/9/PPPPPPPPP/RNBMKQBNR w KQkq - 0 1";
         v->promotionPieceTypes = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
+        return v;
+    }
+    Variant* chancellor_variant() {
+        Variant* v = fairy_variant_base();
+        v->maxRank = RANK_9;
+        v->maxFile = FILE_I;
+        v->promotionRank = RANK_9;
+        v->castlingKingsideFile = FILE_G;
+        v->castlingQueensideFile = FILE_C;
+        v->add_piece(CHANCELLOR, 'c');
+        v->startFen = "rnbqkcnbr/ppppppppp/9/9/9/9/9/PPPPPPPPP/RNBQKCNBR w KQkq - 0 1";
+        v->promotionPieceTypes = {CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
     Variant* embassy_variant() {
@@ -623,8 +640,10 @@ void VariantMap::init() {
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("capablanca", capablanca_variant());
+    add("caparandom", caparandom_variant());
     add("janus", janus_variant());
     add("modern", modern_variant());
+    add("chancellor", chancellor_variant());
     add("embassy", embassy_variant());
     add("jesonmor", jesonmor_variant());
     add("courier", courier_variant());

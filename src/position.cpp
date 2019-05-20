@@ -18,6 +18,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef> // For offsetof()
 #include <cstring> // For std::memset, std::memcmp
@@ -432,7 +433,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       st->rule50 = 0;
   }
 
-  chess960 = isChess960;
+  chess960 = isChess960 || v->chess960;
   thisThread = th;
   set_state(st);
 
@@ -460,8 +461,8 @@ void Position::set_castling_right(Color c, Square rfrom) {
                            relative_rank(c, RANK_1, max_rank()));
   Square rto = kto + (cs == KING_SIDE ? WEST : EAST);
 
-  castlingPath[cr] = (between_bb(rfrom, rto) | between_bb(kfrom, kto) | rto | kto)
-                   & ~(square_bb(kfrom) | rfrom);
+  castlingPath[cr] =   (between_bb(rfrom, rto) | between_bb(kfrom, kto) | rto | kto)
+                    & ~(square_bb(kfrom) | rfrom);
 }
 
 
@@ -1195,7 +1196,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->pawnKey ^= Zobrist::psq[pc][to];
       else
           st->pawnKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
-      prefetch2(thisThread->pawnsTable[st->pawnKey]);
 
       // Reset rule 50 draw counter
       st->rule50 = 0;
@@ -1791,6 +1791,11 @@ bool Position::has_game_cycle(int ply) const {
 
               if (ply > i)
                   return true;
+
+              // For nodes before or at the root, check that the move is a repetition one
+              // rather than a move to the current position
+              if (color_of(piece_on(empty(s1) ? s2 : s1)) != side_to_move())
+                  continue;
 
               // For repetitions before or at the root, require one more
               StateInfo* next_stp = stp;

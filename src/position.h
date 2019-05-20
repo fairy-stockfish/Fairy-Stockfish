@@ -162,7 +162,7 @@ public:
   template<PieceType Pt> const Square* squares(Color c) const;
   const Square* squares(Color c, PieceType pt) const;
   template<PieceType Pt> Square square(Color c) const;
-  int semiopen_file(Color c, File f) const;
+  bool is_semiopen_file(Color c, File f) const;
 
   // Castling
   int castling_rights(Color c) const;
@@ -670,7 +670,7 @@ inline Square Position::ep_square() const {
   return st->epSquare;
 }
 
-inline int Position::semiopen_file(Color c, File f) const {
+inline bool Position::is_semiopen_file(Color c, File f) const {
   return !(pieces(c, PAWN, SHOGI_PAWN) & file_bb(f));
 }
 
@@ -729,7 +729,7 @@ inline bool Position::pawn_passed(Color c, Square s) const {
 
 inline bool Position::advanced_pawn_push(Move m) const {
   return   type_of(moved_piece(m)) == PAWN
-        && relative_rank(sideToMove, from_sq(m), max_rank()) > (max_rank() + 1) / 2 - 1;
+        && relative_rank(sideToMove, to_sq(m), max_rank()) > (max_rank() + 1) / 2;
 }
 
 inline int Position::pawns_on_same_color_squares(Color c, Square s) const {

@@ -217,7 +217,7 @@ constexpr int SQUARE_BITS = 6;
 #endif
 
 constexpr int MAX_MOVES = 512;
-constexpr int MAX_PLY   = 128;
+constexpr int MAX_PLY   = 246;
 
 /// A move needs 16 bits to be stored
 ///
@@ -315,12 +315,12 @@ enum Value : int {
   RookValueMg   = 1289,  RookValueEg   = 1378,
   QueenValueMg  = 2529,  QueenValueEg  = 2687,
   FersValueMg              = 420,   FersValueEg              = 450,
-  AlfilValueMg             = 350,   AlfilValueEg             = 330,
+  AlfilValueMg             = 330,   AlfilValueEg             = 300,
   SilverValueMg            = 600,   SilverValueEg            = 600,
   AiwokValueMg             = 2500,  AiwokValueEg             = 2500,
   BersValueMg              = 2000,  BersValueEg              = 2000,
-  ArchbishopValueMg        = 2000,  ArchbishopValueEg        = 2000,
-  ChancellorValueMg        = 2300,  ChancellorValueEg        = 2300,
+  ArchbishopValueMg        = 2200,  ArchbishopValueEg        = 2100,
+  ChancellorValueMg        = 2300,  ChancellorValueEg        = 2500,
   AmazonValueMg            = 3000,  AmazonValueEg            = 3000,
   KnibisValueMg            = 800,   KnibisValueEg            = 800,
   BiskniValueMg            = 800,   BiskniValueEg            = 800,
@@ -334,7 +334,7 @@ enum Value : int {
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
   ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
   WazirValueMg             = 400,   WazirValueEg             = 400,
-  CommonerValueMg          = 600,   CommonerValueEg          = 600,
+  CommonerValueMg          = 700,   CommonerValueEg          = 900,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };

@@ -18,6 +18,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>   // For std::memset
 #include <iomanip>
@@ -197,9 +198,8 @@ namespace {
     // is also calculated is ALL_PIECES.
     Bitboard attackedBy[COLOR_NB][PIECE_TYPE_NB];
 
-    // attackedBy2[color] are the squares attacked by 2 pieces of a given color,
-    // possibly via x-ray or by one pawn and one piece. Diagonal x-ray through
-    // pawn or squares attacked by 2 pawns are not explicitly added.
+    // attackedBy2[color] are the squares attacked by at least 2 units of a given
+    // color, including x-rays. But diagonal x-rays through pawns are not computed.
     Bitboard attackedBy2[COLOR_NB];
 
     // kingRing[color] are the squares adjacent to the king, plus (only for a
@@ -350,11 +350,11 @@ namespace {
             bb = OutpostRanks & ~pe->pawn_attacks_span(Them);
             if (bb & s)
                 score += Outpost * (Pt == KNIGHT ? 4 : 2)
-                                 * (1 + bool(attackedBy[Us][PAWN] & s));
+                                 * ((attackedBy[Us][PAWN] & s) ? 2 : 1);
 
             else if (bb &= b & ~pos.pieces(Us))
                 score += Outpost * (Pt == KNIGHT ? 2 : 1)
-                                 * (1 + bool(attackedBy[Us][PAWN] & bb));
+                                 * ((attackedBy[Us][PAWN] & bb) ? 2 : 1);
 
             // Knight and Bishop bonus for being right behind a pawn
             if (shift<Down>(pos.pieces(PAWN)) & s)
@@ -400,8 +400,8 @@ namespace {
                 score += RookOnPawn * popcount(pos.pieces(Them, PAWN) & PseudoAttacks[Us][ROOK][s]);
 
             // Bonus for rook on an open or semi-open file
-            if (pos.semiopen_file(Us, file_of(s)))
-                score += RookOnFile[bool(pos.semiopen_file(Them, file_of(s)))];
+            if (pos.is_semiopen_file(Us, file_of(s)))
+                score += RookOnFile[bool(pos.is_semiopen_file(Them, file_of(s)))];
 
             // Penalty when trapped by the king, even more if the king cannot castle
             else if (mob <= 3 && pos.count<KING>(Us))
@@ -751,7 +751,7 @@ namespace {
                                         - king_proximity(Us,   blockSq) * 2) * w);
 
                 // If blockSq is not the queening square then consider also a second push
-                if (r != pos.promotion_rank() - 1)
+                if (r != RANK_7)
                     bonus -= make_score(0, king_proximity(Us, blockSq + Up) * w);
             }
 
@@ -785,7 +785,7 @@ namespace {
 
                 bonus += make_score(k * w, k * w);
             }
-        } // rank > RANK_3
+        } // r > RANK_3
 
         // Scale down bonus for candidate passers which need more than one
         // pawn push to become passed, or have a pawn in front of them.
@@ -862,7 +862,7 @@ namespace {
     // Find all squares which are at most three squares behind some friendly pawn
     Bitboard behind = pos.pieces(Us, PAWN, SHOGI_PAWN);
     behind |= shift<Down>(behind);
-    behind |= shift<Down>(shift<Down>(behind));
+    behind |= shift<Down+Down>(behind);
 
     if (pawnsOnly)
     {
@@ -871,9 +871,7 @@ namespace {
     }
 
     int bonus = popcount(safe) + popcount(behind & safe);
-    int weight =  pos.count<ALL_PIECES>(Us)
-               - (16 - pos.count<PAWN>()) / 4;
-
+    int weight = pos.count<ALL_PIECES>(Us) - 1;
     Score score = make_score(bonus * weight * weight / 16, 0);
 
     if (T)
@@ -901,7 +899,7 @@ namespace {
         while (ctfPieces)
         {
             Square s1 = pop_lsb(&ctfPieces);
-            Bitboard target_squares = pos.capture_the_flag(Us);
+            Bitboard target_squares = pos.capture_the_flag(Us) & pos.board_bb();
             while (target_squares)
             {
                 Square s2 = pop_lsb(&target_squares);
@@ -1010,8 +1008,7 @@ namespace {
     if (sf == SCALE_FACTOR_NORMAL && !pos.captures_to_hand())
     {
         if (   pos.opposite_bishops()
-            && pos.non_pawn_material(WHITE) == BishopValueMg
-            && pos.non_pawn_material(BLACK) == BishopValueMg)
+            && pos.non_pawn_material() == 2 * BishopValueMg)
             sf = 16 + 4 * pe->passed_count();
         else
             sf = std::min(40 + (pos.opposite_bishops() ? 2 : 7) * pos.count<PAWN>(strongSide), sf);
