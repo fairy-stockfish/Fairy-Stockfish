@@ -43,6 +43,13 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("capablanca", CAPA, [])
         self.assertEqual(result, CAPA)
 
+    def test_get_san(self):
+        result = sf.get_san("capablanca", CAPA, "e2e4")
+        self.assertEqual(result, "e4")
+
+        result = sf.get_san("capablanca", CAPA, "h1i3")
+        self.assertEqual(result, "Ci3")
+
     def test_gives_check(self):
         self.assertRaises(ValueError, sf.gives_check, "capablanca", CAPA, [])
 

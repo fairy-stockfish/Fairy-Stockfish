@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 from glob import glob
 import platform
 
@@ -17,14 +17,14 @@ CLASSIFIERS = [
 ]
 
 with open("Readme.md", "r") as fh:
-    long_description = fh.read()
+    long_description = fh.read().strip()
 
 pyffish_module = Extension(
     "pyffish",
     sources=glob("src/*.cpp") + glob("src/syzygy/*.cpp"),
     extra_compile_args=args)
 
-setup(name="pyffish", version="0.0.2",
+setup(name="pyffish", version="0.0.3",
       description="Fairy-Stockfish Python wrapper",
       long_description=long_description,
       long_description_content_type="text/markdown",

@@ -1,5 +1,5 @@
 /*
-  Based on Jean-Francois Romang work from
+  Based on Jean-Francois Romang work
   https://github.com/jromang/Stockfish/blob/pyfish/src/pyfish.cpp
 */
 
@@ -28,6 +28,65 @@ using namespace std;
 
 namespace
 {
+
+const string move_to_san(Position& pos, Move m) {
+  Bitboard others, b;
+  string san;
+  Color us = pos.side_to_move();
+  Square from = from_sq(m);
+  Square to = to_sq(m);
+  Piece pc = pos.piece_on(from);
+  PieceType pt = type_of(pc);
+
+  if (type_of(m) == CASTLING)
+      san = to > from ? "O-O" : "O-O-O";
+  else
+  {
+      if (pt != PAWN)
+      {
+          san = pos.piece_to_char()[make_piece(WHITE, pt)];
+
+          // A disambiguation occurs if we have more then one piece of type 'pt'
+          // that can reach 'to' with a legal move.
+          others = b = (pos.attacks_from(us, pt, to) & pos.pieces(us, pt)) ^ from;
+
+          while (b)
+          {
+              Square s = pop_lsb(&b);
+              if (!pos.legal(make_move(s, to)))
+                  others ^= s;
+          }
+
+          if (!others)
+              { /* disambiguation is not needed */ }
+          else if (!(others & file_bb(from)))
+              san += UCI::square(pos, from)[0];
+          else if (!(others & rank_bb(from)))
+              san += UCI::square(pos, from)[1];
+          else
+              san += UCI::square(pos, from);
+      }
+      else if (pos.capture(m))
+          san = UCI::square(pos, from)[0];
+
+      if (pos.capture(m))
+          san += 'x';
+
+      san += UCI::square(pos, to);
+
+      if (type_of(m) == PROMOTION)
+          san += string("=") + pos.piece_to_char()[make_piece(WHITE, promotion_type(m))];
+  }
+
+  if (pos.gives_check(m))
+  {
+      StateInfo st;
+      pos.do_move(m, st);
+      san += MoveList<LEGAL>(pos).size() ? "+" : "#";
+      pos.undo_move(m);
+  }
+  return san;
+}
 
 bool hasInsufficientMaterial(Color c, Position *p) {
     if (p->count(c, PAWN) > 0 || p->count(c, ROOK) > 0 || p->count(c, QUEEN) > 0 || p->count(c, ARCHBISHOP) > 0 || p->count(c, CHANCELLOR) > 0)
@@ -107,6 +166,20 @@ extern "C" PyObject* pyffish_startFen(PyObject* self, PyObject *args) {
     Options["Protocol"] = (sfen) ? string("usi") : string("uci");
 
     return Py_BuildValue("s", variants.find(string(variant))->second->startFen.c_str());
+}
+
+// INPUT variant, fen, move
+extern "C" PyObject* pyffish_getSAN(PyObject* self, PyObject *args) {
+    PyObject* moveList = PyList_New(0);
+    Position pos;
+    const char *fen, *variant, *move;
+
+    if (!PyArg_ParseTuple(args, "sss", &variant, &fen,  &move)) {
+        return NULL;
+    }
+    buildPosition(&pos, variant, fen, moveList, false);
+    string moveStr = move;
+    return Py_BuildValue("s", move_to_san(pos, UCI::to_move(pos, moveStr)).c_str());
 }
 
 // INPUT variant, fen, move list
@@ -221,6 +294,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"info", (PyCFunction)pyffish_info, METH_NOARGS, "Get Stockfish version info."},
     {"set_option", (PyCFunction)pyffish_setOption, METH_VARARGS, "Set UCI option."},
     {"start_fen", (PyCFunction)pyffish_startFen, METH_VARARGS, "Get starting position FEN."},
+    {"get_san", (PyCFunction)pyffish_getSAN, METH_VARARGS, "Get SAN move from given FEN and UCI move."},
     {"legal_moves", (PyCFunction)pyffish_legalMoves, METH_VARARGS, "Get legal moves from given FEN and movelist."},
     {"get_fen", (PyCFunction)pyffish_getFEN, METH_VARARGS, "Get resulting FEN from given FEN and movelist."},
     {"gives_check", (PyCFunction)pyffish_givesCheck, METH_VARARGS, "Get check status from given FEN and movelist."},
