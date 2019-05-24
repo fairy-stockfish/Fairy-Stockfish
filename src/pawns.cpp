@@ -130,6 +130,8 @@ namespace {
         if (support | phalanx)
         {
             int v = (phalanx ? 3 : 2) * Connected[r];
+            if (r >= RANK_4 && pos.count<PAWN>(Us) > popcount(pos.board_bb()) / 4)
+                v = std::max(v, popcount(support | phalanx) * 100);
             v = 17 * popcount(support) + (v >> (opposed + 1));
             score += make_score(v, v * (r - 2) / 4);
         }
