@@ -129,7 +129,7 @@ namespace {
         // Score this pawn
         if (support | phalanx)
         {
-            int v = (phalanx ? 3 : 2) * Connected[r];
+            int v = (phalanx ? 3 : 2) * Connected[r] * (r == RANK_2 && pos.captures_to_hand() ? 3 : 1);
             if (r >= RANK_4 && pos.count<PAWN>(Us) > popcount(pos.board_bb()) / 4)
                 v = std::max(v, popcount(support | phalanx) * 100);
             v = 17 * popcount(support) + (v >> (opposed + 1));
