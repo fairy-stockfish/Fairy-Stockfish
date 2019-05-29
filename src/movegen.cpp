@@ -71,7 +71,7 @@ namespace {
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
     // Define squares a pawn can pass during a double step
-    Bitboard  TRank3BB = rank_bb(relative_rank(Us, RANK_3, pos.max_rank()));
+    Bitboard  TRank3BB = rank_bb(relative_rank(Us, Rank(pos.double_step_rank() + 1), pos.max_rank()));
     if (pos.first_rank_double_steps())
         TRank3BB |= rank_bb(relative_rank(Us, RANK_2, pos.max_rank()));
 
@@ -203,7 +203,7 @@ namespace {
 
         if (pos.ep_square() != SQ_NONE)
         {
-            assert(rank_of(pos.ep_square()) == relative_rank(Them, RANK_3));
+            assert(rank_of(pos.ep_square()) == relative_rank(Them, Rank(pos.double_step_rank() + 1), pos.max_rank()));
 
             // An en passant capture can be an evasion only if the checking piece
             // is the double pushed pawn and so is in the target. Otherwise this
@@ -323,7 +323,7 @@ namespace {
     // Castling with non-king piece
     if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(CastlingRight(OO | OOO)))
     {
-        Square from = make_square(FILE_E, relative_rank(Us, RANK_1, pos.max_rank()));
+        Square from = make_square(FILE_E, relative_rank(Us, pos.castling_rank(), pos.max_rank()));
         if (!pos.castling_impeded(OO) && pos.can_castle(OO))
             *moveList++ = make<CASTLING>(from, pos.castling_rook_square(OO));
 

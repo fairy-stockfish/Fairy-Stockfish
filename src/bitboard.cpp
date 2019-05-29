@@ -42,39 +42,58 @@ RiderType MoveRiderTypes[PIECE_TYPE_NB];
 Magic RookMagicsH[SQUARE_NB];
 Magic RookMagicsV[SQUARE_NB];
 Magic BishopMagics[SQUARE_NB];
+Magic CannonMagicsH[SQUARE_NB];
+Magic CannonMagicsV[SQUARE_NB];
 
 namespace {
 
 #ifdef LARGEBOARDS
-  Bitboard RookTableH[0x11800];  // To store rook attacks
-  Bitboard RookTableV[0x4800];  // To store rook attacks
+  Bitboard RookTableH[0x11800];  // To store horizontalrook attacks
+  Bitboard RookTableV[0x4800];  // To store vertical rook attacks
   Bitboard BishopTable[0x33C00]; // To store bishop attacks
+  Bitboard CannonTableH[0x33C00];  // To store horizontal cannon attacks
+  Bitboard CannonTableV[0x33C00];  // To store vertical cannon attacks
 #else
-  Bitboard RookTableH[0xA00];  // To store rook attacks
-  Bitboard RookTableV[0xA00];  // To store rook attacks
+  Bitboard RookTableH[0xA00];  // To store horizontal rook attacks
+  Bitboard RookTableV[0xA00];  // To store vertical rook attacks
   Bitboard BishopTable[0x1480]; // To store bishop attacks
+  Bitboard CannonTableH[0x11800];  // To store horizontal cannon attacks
+  Bitboard CannonTableV[0x4800];  // To store vertical cannon attacks
 #endif
 
+  enum MovementType { RIDER, HOPPER, LAZY_LEAPER };
+
+  template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
   void init_magics(Bitboard table[], Magic magics[], std::vector<Direction> directions, Bitboard magicsInit[]);
 #else
   void init_magics(Bitboard table[], Magic magics[], std::vector<Direction> directions);
 #endif
 
+  template <MovementType MT>
   Bitboard sliding_attack(std::vector<Direction> directions, Square sq, Bitboard occupied, Color c = WHITE) {
 
     Bitboard attack = 0;
 
     for (Direction d : directions)
+    {
+        bool hurdle = false;
         for (Square s = sq + (c == WHITE ? d : -d);
              is_ok(s) && distance(s, s - (c == WHITE ? d : -d)) == 1;
              s += (c == WHITE ? d : -d))
         {
-            attack |= s;
+            if (MT != HOPPER || hurdle)
+                attack |= s;
 
             if (occupied & s)
-                break;
+            {
+                if (MT == HOPPER && !hurdle)
+                    hurdle = true;
+                else
+                    break;
+            }
         }
+    }
 
     return attack;
   }
@@ -128,6 +147,20 @@ void Bitboards::init() {
           if (d == NORTH || d == SOUTH)
               MoveRiderTypes[pt] |= RIDER_ROOK_V;
       }
+      for (Direction d : pi->hopperCapture)
+      {
+          if (d == EAST || d == WEST)
+              AttackRiderTypes[pt] |= RIDER_CANNON_H;
+          if (d == NORTH || d == SOUTH)
+              AttackRiderTypes[pt] |= RIDER_CANNON_V;
+      }
+      for (Direction d : pi->hopperQuiet)
+      {
+          if (d == EAST || d == WEST)
+              MoveRiderTypes[pt] |= RIDER_CANNON_H;
+          if (d == NORTH || d == SOUTH)
+              MoveRiderTypes[pt] |= RIDER_CANNON_V;
+      }
   }
 
   for (unsigned i = 0; i < (1 << 16); ++i)
@@ -150,13 +183,17 @@ void Bitboards::init() {
   std::vector<Direction> BishopDirections = { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
 
 #ifdef PRECOMPUTED_MAGICS
-  init_magics(RookTableH, RookMagicsH, RookDirectionsH, RookMagicHInit);
-  init_magics(RookTableV, RookMagicsV, RookDirectionsV, RookMagicVInit);
-  init_magics(BishopTable, BishopMagics, BishopDirections, BishopMagicInit);
+  init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH, RookMagicHInit);
+  init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV, RookMagicVInit);
+  init_magics<RIDER>(BishopTable, BishopMagics, BishopDirections, BishopMagicInit);
+  init_magics<HOPPER>(CannonTableH, CannonMagicsH, RookDirectionsH, CannonMagicHInit);
+  init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV, CannonMagicVInit);
 #else
-  init_magics(RookTableH, RookMagicsH, RookDirectionsH);
-  init_magics(RookTableV, RookMagicsV, RookDirectionsV);
-  init_magics(BishopTable, BishopMagics, BishopDirections);
+  init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH);
+  init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV);
+  init_magics<RIDER>(BishopTable, BishopMagics, BishopDirections);
+  init_magics<HOPPER>(CannonTableH, CannonMagicsH, RookDirectionsH);
+  init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV);
 #endif
 
   for (Color c : { WHITE, BLACK })
@@ -186,8 +223,10 @@ void Bitboards::init() {
                       LeaperMoves[c][pt][s] |= to;
                   }
               }
-              PseudoAttacks[c][pt][s] |= sliding_attack(pi->sliderCapture, s, 0, c);
-              PseudoMoves[c][pt][s] |= sliding_attack(pi->sliderQuiet, s, 0, c);
+              PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->sliderCapture, s, 0, c);
+              PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->hopperCapture, s, 0, c);
+              PseudoMoves[c][pt][s] |= sliding_attack<RIDER>(pi->sliderQuiet, s, 0, c);
+              PseudoMoves[c][pt][s] |= sliding_attack<RIDER>(pi->hopperQuiet, s, 0, c);
           }
       }
 
@@ -208,6 +247,7 @@ namespace {
   // www.chessprogramming.org/Magic_Bitboards. In particular, here we use the so
   // called "fancy" approach.
 
+  template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
   void init_magics(Bitboard table[], Magic magics[], std::vector<Direction> directions, Bitboard magicsInit[]) {
 #else
@@ -243,7 +283,7 @@ namespace {
         // the number of 1s of the mask. Hence we deduce the size of the shift to
         // apply to the 64 or 32 bits word to get the index.
         Magic& m = magics[s];
-        m.mask  = sliding_attack(directions, s, 0) & ~edges;
+        m.mask  = sliding_attack<MT == HOPPER ? RIDER : MT>(directions, s, 0) & ~edges;
 #ifdef LARGEBOARDS
         m.shift = 128 - popcount(m.mask);
 #else
@@ -259,7 +299,7 @@ namespace {
         b = size = 0;
         do {
             occupancy[size] = b;
-            reference[size] = sliding_attack(directions, s, b);
+            reference[size] = sliding_attack<MT>(directions, s, b);
 
             if (HasPext)
                 m.attacks[pext(b, m.mask)] = reference[size];

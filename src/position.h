@@ -106,11 +106,13 @@ public:
   bool piece_demotion() const;
   bool endgame_eval() const;
   bool double_step_enabled() const;
+  Rank double_step_rank() const;
   bool first_rank_double_steps() const;
   bool castling_enabled() const;
   bool castling_dropped_piece() const;
   File castling_kingside_file() const;
   File castling_queenside_file() const;
+  Rank castling_rank() const;
   bool checking_permitted() const;
   bool must_capture() const;
   bool must_drop() const;
@@ -362,6 +364,11 @@ inline bool Position::double_step_enabled() const {
   return var->doubleStep;
 }
 
+inline Rank Position::double_step_rank() const {
+  assert(var != nullptr);
+  return var->doubleStepRank;
+}
+
 inline bool Position::first_rank_double_steps() const {
   assert(var != nullptr);
   return var->firstRankDoubleSteps;
@@ -385,6 +392,11 @@ inline File Position::castling_kingside_file() const {
 inline File Position::castling_queenside_file() const {
   assert(var != nullptr);
   return var->castlingQueensideFile;
+}
+
+inline Rank Position::castling_rank() const {
+  assert(var != nullptr);
+  return var->castlingRank;
 }
 
 inline bool Position::checking_permitted() const {

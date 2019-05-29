@@ -587,6 +587,21 @@ VariantMap variants; // Global object
         v->stalemateValue = -VALUE_MATE;
         return v;
     }
+    Variant* shako_variant() {
+        Variant* v = fairy_variant_base();
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_J;
+        v->add_piece(FERS_ALFIL, 'e');
+        v->add_piece(CANNON, 'c');
+        v->startFen = "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/ERNBQKBNRE/C8C w KQkq - 0 1";
+        v->promotionPieceTypes = { QUEEN, ROOK, BISHOP, KNIGHT, CANNON, FERS_ALFIL };
+        v->promotionRank = RANK_10;
+        v->castlingKingsideFile = FILE_H;
+        v->castlingQueensideFile = FILE_D;
+        v->castlingRank = RANK_2;
+        v->doubleStepRank = RANK_3;
+        return v;
+    }
     Variant* clobber10_variant() {
         Variant* v = clobber_variant();
         v->maxRank = RANK_10;
@@ -653,6 +668,7 @@ void VariantMap::init() {
     add("embassy", embassy_variant());
     add("jesonmor", jesonmor_variant());
     add("courier", courier_variant());
+    add("shako", shako_variant());
     add("clobber10", clobber10_variant());
 #endif
 }

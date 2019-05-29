@@ -143,6 +143,8 @@ struct Magic {
 extern Magic RookMagicsH[SQUARE_NB];
 extern Magic RookMagicsV[SQUARE_NB];
 extern Magic BishopMagics[SQUARE_NB];
+extern Magic CannonMagicsH[SQUARE_NB];
+extern Magic CannonMagicsV[SQUARE_NB];
 
 inline Bitboard square_bb(Square s) {
   assert(s >= SQ_A1 && s <= SQ_MAX);
@@ -342,9 +344,11 @@ template<class T> constexpr const T& clamp(const T& v, const T& lo, const T&  hi
 template<RiderType R>
 inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
 
-  assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V);
+  assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V || R == RIDER_CANNON_H || R == RIDER_CANNON_V);
   const Magic& m =  R == RIDER_ROOK_H ? RookMagicsH[s]
                   : R == RIDER_ROOK_V ? RookMagicsV[s]
+                  : R == RIDER_CANNON_H ? CannonMagicsH[s]
+                  : R == RIDER_CANNON_V ? CannonMagicsV[s]
                   : BishopMagics[s];
   return m.attacks[m.index(occupied)];
 }
@@ -368,6 +372,10 @@ inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
       b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
   if (AttackRiderTypes[pt] & RIDER_ROOK_V)
       b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
+  if (AttackRiderTypes[pt] & RIDER_ROOK_H)
+      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
+  if (AttackRiderTypes[pt] & RIDER_CANNON_V)
+      b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
   return b & PseudoAttacks[c][pt][s];
 }
 
@@ -379,6 +387,10 @@ inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
       b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
   if (MoveRiderTypes[pt] & RIDER_ROOK_V)
       b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
+  if (MoveRiderTypes[pt] & RIDER_CANNON_H)
+      b |= rider_attacks_bb<RIDER_CANNON_H>(s, occupied);
+  if (MoveRiderTypes[pt] & RIDER_CANNON_V)
+      b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
   return b & PseudoMoves[c][pt][s];
 }
 

@@ -87,6 +87,13 @@ namespace {
       p->stepsCapture = {2 * SOUTH_WEST, 2 * SOUTH_EAST, 2 * NORTH_WEST, 2 * NORTH_EAST};
       return p;
   }
+  PieceInfo* fers_alfil_piece() {
+      PieceInfo* p = fers_piece();
+      PieceInfo* p2 = alfil_piece();
+      p->merge(p2);
+      delete p2;
+      return p;
+  }
   PieceInfo* silver_piece() {
       PieceInfo* p = new PieceInfo();
       p->stepsQuiet = {SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH, NORTH_EAST};
@@ -203,6 +210,12 @@ namespace {
       PieceInfo* p = new PieceInfo();
       return p;
   }
+  PieceInfo* cannon_piece() {
+      PieceInfo* p = new PieceInfo();
+      p->sliderQuiet = {NORTH, EAST, SOUTH, WEST};
+      p->hopperCapture = {NORTH, EAST, SOUTH, WEST};
+      return p;
+  }
 }
 
 void PieceMap::init() {
@@ -213,6 +226,7 @@ void PieceMap::init() {
   add(QUEEN, queen_piece());
   add(FERS, fers_piece());
   add(ALFIL, alfil_piece());
+  add(FERS_ALFIL, fers_alfil_piece());
   add(SILVER, silver_piece());
   add(AIWOK, aiwok_piece());
   add(BERS, bers_piece());
@@ -230,6 +244,7 @@ void PieceMap::init() {
   add(CLOBBER_PIECE, clobber_piece());
   add(BREAKTHROUGH_PIECE, breakthrough_piece());
   add(IMMOBILE_PIECE, immobile_piece());
+  add(CANNON, cannon_piece());
   add(WAZIR, wazir_piece());
   add(COMMONER, king_piece());
   add(KING, king_piece());

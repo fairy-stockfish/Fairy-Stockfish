@@ -316,6 +316,7 @@ enum Value : int {
   QueenValueMg  = 2529,  QueenValueEg  = 2687,
   FersValueMg              = 420,   FersValueEg              = 450,
   AlfilValueMg             = 330,   AlfilValueEg             = 300,
+  FersAlfilValueMg         = 600,   FersAlfilValueEg         = 600,
   SilverValueMg            = 600,   SilverValueEg            = 600,
   AiwokValueMg             = 2500,  AiwokValueEg             = 2500,
   BersValueMg              = 2000,  BersValueEg              = 2000,
@@ -333,6 +334,7 @@ enum Value : int {
   ClobberPieceValueMg      = 300,   ClobberPieceValueEg      = 300,
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
   ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
+  CannonPieceValueMg       = 900,   CannonPieceValueEg       = 900,
   WazirValueMg             = 400,   WazirValueEg             = 400,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
 
@@ -343,10 +345,10 @@ constexpr int PIECE_TYPE_BITS = 5; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
 
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN,
-  FERS, MET = FERS, ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
+  FERS, MET = FERS, ALFIL, FERS_ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
   ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI,
   SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, HORSE,
-  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, WAZIR, COMMONER, KING,
+  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, WAZIR, COMMONER, KING,
   ALL_PIECES = 0,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS
@@ -367,6 +369,8 @@ enum RiderType {
   RIDER_BISHOP = 1 << 0,
   RIDER_ROOK_H = 1 << 1,
   RIDER_ROOK_V = 1 << 2,
+  RIDER_CANNON_H = 1 << 3,
+  RIDER_CANNON_V = 1 << 4,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
