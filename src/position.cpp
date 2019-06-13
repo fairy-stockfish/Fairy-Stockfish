@@ -1274,6 +1274,25 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Update king attacks used for fast check detection
   set_check_info(st);
 
+  // Calculate the repetition info. It is the ply distance from the previous
+  // occurrence of the same position, negative in the 3-fold case, or zero
+  // if the position was not repeated.
+  st->repetition = 0;
+  int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
+  if (end >= 4)
+  {
+      StateInfo* stp = st->previous->previous;
+      for (int i=4; i <= end; i += 2)
+      {
+          stp = stp->previous->previous;
+          if (stp->key == st->key)
+          {
+              st->repetition = stp->repetition ? -i : i;
+              break;
+          }
+      }
+  }
+
   assert(pos_is_ok());
 }
 
@@ -1433,6 +1452,8 @@ void Position::do_null_move(StateInfo& newSt) {
   sideToMove = ~sideToMove;
 
   set_check_info(st);
+
+  st->repetition = 0;
 
   assert(pos_is_ok());
 }
@@ -1732,26 +1753,15 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
 bool Position::has_repeated() const {
 
     StateInfo* stc = st;
-    while (true)
+    int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
+    while (end-- >= 4)
     {
-        int i = 4, end = std::min(stc->rule50, stc->pliesFromNull);
-
-        if (end < i)
-            return false;
-
-        StateInfo* stp = stc->previous->previous;
-
-        do {
-            stp = stp->previous->previous;
-
-            if (stp->key == stc->key)
-                return true;
-
-            i += 2;
-        } while (i <= end);
+        if (stc->repetition)
+            return true;
 
         stc = stc->previous;
     }
+    return false;
 }
 
 
@@ -1762,7 +1772,7 @@ bool Position::has_game_cycle(int ply) const {
 
   int j;
 
-  int end = std::min(st->rule50, st->pliesFromNull);
+  int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
   if (end < 3 || var->nFoldValue != VALUE_DRAW)
     return false;
@@ -1798,13 +1808,8 @@ bool Position::has_game_cycle(int ply) const {
                   continue;
 
               // For repetitions before or at the root, require one more
-              StateInfo* next_stp = stp;
-              for (int k = i + 2; k <= end; k += 2)
-              {
-                  next_stp = next_stp->previous->previous;
-                  if (next_stp->key == stp->key)
-                     return true;
-              }
+              if (stp->repetition)
+                  return true;
           }
       }
   }
