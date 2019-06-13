@@ -26,6 +26,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
+#include "endgame.h"
 #include "piece.h"
 #include "variant.h"
 #include "syzygy/tbprobe.h"
@@ -46,6 +47,7 @@ int main(int argc, char* argv[]) {
   Position::init();
   Bitbases::init();
   Search::init();
+  Endgames::init();
   Threads.set(Options["Threads"]);
   Search::clear(); // After threads are up
 
