@@ -71,7 +71,7 @@ namespace {
   int Reductions[MAX_MOVES]; // [depth or moveNumber]
 
   Depth reduction(bool i, Depth d, int mn) {
-    int r = Reductions[d / ONE_PLY] * Reductions[mn] / 1024;
+    int r = Reductions[d / ONE_PLY] * Reductions[mn];
     return ((r + 512) / 1024 + (!i && r > 1024)) * ONE_PLY;
   }
 
@@ -149,7 +149,7 @@ namespace {
 void Search::init() {
 
   for (int i = 1; i < MAX_MOVES; ++i)
-     Reductions[i] = int(733.3 * std::log(i));
+     Reductions[i] = int(22.9 * std::log(i));
 }
 
 
@@ -241,19 +241,19 @@ void MainThread::search() {
       for (Thread* th: Threads)
           minScore = std::min(minScore, th->rootMoves[0].score);
 
-      // Vote according to score and depth
+      // Vote according to score and depth, and select the best thread
+      int64_t bestVote = 0;
       for (Thread* th : Threads)
+      {
           votes[th->rootMoves[0].pv[0]] +=
                (th->rootMoves[0].score - minScore + 14) * int(th->completedDepth);
 
-      // Select best thread
-      auto bestVote = votes[this->rootMoves[0].pv[0]];
-      for (Thread* th : Threads)
           if (votes[th->rootMoves[0].pv[0]] > bestVote)
           {
               bestVote = votes[th->rootMoves[0].pv[0]];
               bestThread = th;
           }
+      }
   }
 
   previousScore = bestThread->rootMoves[0].score;
