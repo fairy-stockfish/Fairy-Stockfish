@@ -132,7 +132,7 @@ namespace {
             int v =  Connected[r] * (phalanx ? 3 : 2)  * (r == RANK_2 && pos.captures_to_hand() ? 3 : 1) / (opposed ? 2 : 1)
                    + 17 * popcount(support);
             if (r >= RANK_4 && pos.count<PAWN>(Us) > popcount(pos.board_bb()) / 4)
-                v = std::max(v, popcount(support | phalanx) * 100) / (opposed ? 2 : 1);
+                v = std::max(v, popcount(support | phalanx) * 50) / (opposed ? 2 : 1);
             score += make_score(v, v * (r - 2) / 4);
         }
         else if (!neighbours)
