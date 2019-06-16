@@ -35,6 +35,7 @@ namespace {
   constexpr Score Backward = S( 9, 24);
   constexpr Score Doubled  = S(11, 56);
   constexpr Score Isolated = S( 5, 15);
+  constexpr Score WeakUnopposed = S( 13, 27);
 
   // Connected pawn bonus
   constexpr int Connected[RANK_NB] = { 0, 7, 8, 12, 29, 48, 86 };
@@ -77,7 +78,7 @@ namespace {
     Bitboard ourPawns   = pos.pieces(  Us, PAWN);
     Bitboard theirPawns = pos.pieces(Them, PAWN);
 
-    e->passedPawns[Us] = e->pawnAttacksSpan[Us] = e->weakUnopposed[Us] = 0;
+    e->passedPawns[Us] = e->pawnAttacksSpan[Us] = 0;
     e->kingSquares[Us]   = SQ_NONE;
     e->pawnAttacks[Us]   = pawn_attacks_bb<Us>(ourPawns);
 
@@ -86,7 +87,6 @@ namespace {
     {
         assert(pos.piece_on(s) == make_piece(Us, PAWN));
 
-        File f = file_of(s);
         Rank r = relative_rank(Us, s, pos.max_rank());
 
         e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
@@ -97,7 +97,7 @@ namespace {
         lever      = theirPawns & PseudoAttacks[Us][PAWN][s];
         leverPush  = relative_rank(Them, s, pos.max_rank()) > RANK_1 ? theirPawns & PseudoAttacks[Us][PAWN][s + Up] : Bitboard(0);
         doubled    = r > RANK_1 ? ourPawns & (s - Up) : Bitboard(0);
-        neighbours = ourPawns   & adjacent_files_bb(f);
+        neighbours = ourPawns   & adjacent_files_bb(s);
         phalanx    = neighbours & rank_bb(s);
         support    = r > RANK_1 ? neighbours & rank_bb(s - Up) : Bitboard(0);
 
@@ -111,9 +111,8 @@ namespace {
         // full attack info to evaluate them. Include also not passed pawns
         // which could become passed after one or two pawn pushes when are
         // not attacked more times than defended.
-        if (   !(stoppers ^ lever ^ leverPush)
-            && (support || !more_than_one(lever))
-            && popcount(phalanx) >= popcount(leverPush))
+        if (   !(stoppers ^ lever) ||
+              (!(stoppers ^ leverPush) && popcount(phalanx) >= popcount(leverPush)))
             e->passedPawns[Us] |= s;
 
         else if (   relative_rank(Them, s, pos.max_rank()) > RANK_1
@@ -136,10 +135,10 @@ namespace {
             score += make_score(v, v * (r - 2) / 4);
         }
         else if (!neighbours)
-            score -= Isolated * (1 + 2 * pos.must_capture()), e->weakUnopposed[Us] += !opposed;
+            score -= Isolated * (1 + 2 * pos.must_capture()) + WeakUnopposed * int(!opposed);
 
         else if (backward)
-            score -= Backward, e->weakUnopposed[Us] += !opposed;
+            score -= Backward + WeakUnopposed * int(!opposed);
 
         if (doubled && !support)
             score -= Doubled;
@@ -159,9 +158,7 @@ namespace {
     {
         assert(pos.piece_on(s) == make_piece(Us, SHOGI_PAWN));
 
-        File f = file_of(s);
-
-        neighbours = ourPawns   & adjacent_files_bb(f);
+        neighbours = ourPawns & adjacent_files_bb(s);
 
         if (!neighbours)
             score -= Isolated / 2;

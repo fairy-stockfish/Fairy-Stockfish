@@ -608,7 +608,7 @@ namespace {
     ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
     ttMove =  rootNode ? thisThread->rootMoves[thisThread->pvIdx].pv[0]
             : ttHit    ? tte->move() : MOVE_NONE;
-    ttPv = (ttHit && tte->is_pv()) || (PvNode && depth > 4 * ONE_PLY);
+    ttPv = PvNode || (ttHit && tte->is_pv());
 
     // At non-PV nodes we check for an early TT cutoff
     if (  !PvNode
@@ -981,7 +981,7 @@ moves_loop: // When in check, search starts from here
           if (   !captureOrPromotion
               && !givesCheck
               && (!pos.must_capture() || !pos.attackers_to(to_sq(move), ~us))
-              && (!pos.advanced_pawn_push(move) || pos.count<ALL_PIECES>(us) == pos.count<PAWN>(us)))
+              && (!pos.advanced_pawn_push(move) || pos.non_pawn_material(~us) > BishopValueMg || pos.count<ALL_PIECES>(us) == pos.count<PAWN>(us)))
           {
               // Move count based pruning (~30 Elo)
               if (moveCountPruning)
@@ -1009,8 +1009,9 @@ moves_loop: // When in check, search starts from here
               if (!pos.must_capture() && !pos.see_ge(move, Value(-29 * lmrDepth * lmrDepth)))
                   continue;
           }
-          else if (   !pos.must_capture()
-                   && !pos.see_ge(move, -(PawnValueEg + 120 * pos.captures_to_hand()) * (depth / ONE_PLY))) // (~20 Elo)
+          else if ((!givesCheck || !(pos.blockers_for_king(~us) & from_sq(move)))
+                  && !pos.must_capture()
+                  && !pos.see_ge(move, -(PawnValueEg + 120 * pos.captures_to_hand()) * (depth / ONE_PLY))) // (~20 Elo)
                   continue;
       }
 
