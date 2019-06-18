@@ -42,6 +42,9 @@ See the [Fairy-Stockfish Wiki](https://github.com/ianfab/Fairy-Stockfish/wiki) f
 ## Stockfish
 ### Overview
 
+[![Build Status](https://travis-ci.org/official-stockfish/Stockfish.svg?branch=master)](https://travis-ci.org/official-stockfish/Stockfish)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/official-stockfish/Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/mcostalba/stockfish/branch/master)
+
 [Stockfish](https://stockfishchess.org) is a free, powerful UCI chess engine
 derived from Glaurung 2.1. It is not a complete chess program and requires a
 UCI-compatible GUI (e.g. XBoard with PolyGlot, Scid, Cute Chess, eboard, Arena,
@@ -123,8 +126,8 @@ Currently, Stockfish has the following UCI options:
     operating systems. Do not use spaces around the ";" or ":".
 
     Example: `C:\tablebases\wdl345;C:\tablebases\wdl6;D:\tablebases\dtz345;D:\tablebases\dtz6`
-    
-    It is recommended to store .rtbw files on an SSD. There is no loss in storing 
+
+    It is recommended to store .rtbw files on an SSD. There is no loss in storing
     the .rtbz files on a regular HD. It is recommended to verify all md5 checksums
     of the downloaded tablebase files (`md5sum -c checksum.md5`) as corruption will
     lead to engine crashes.
