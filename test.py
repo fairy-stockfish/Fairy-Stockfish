@@ -4,6 +4,7 @@ import unittest
 import pyffish as sf
 
 CAPA = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1"
+SITTUYIN = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1"
 
 standard = {
     "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K
@@ -49,6 +50,9 @@ class TestPyffish(unittest.TestCase):
 
         result = sf.get_san("capablanca", CAPA, "h1i3")
         self.assertEqual(result, "Ci3")
+
+        result = sf.get_san("sittuyin", SITTUYIN, "R@a1")
+        self.assertEqual(result, "R@a1")
 
     def test_gives_check(self):
         self.assertRaises(ValueError, sf.gives_check, "capablanca", CAPA, [])

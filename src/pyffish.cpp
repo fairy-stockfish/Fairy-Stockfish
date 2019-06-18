@@ -42,9 +42,11 @@ const string move_to_san(Position& pos, Move m) {
       san = to > from ? "O-O" : "O-O-O";
   else
   {
+      san = type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@') : "";
+
       if (pt != PAWN)
       {
-          san = pos.piece_to_char()[make_piece(WHITE, pt)];
+          if (type_of(m) != DROP) san += pos.piece_to_char()[make_piece(WHITE, pt)];
 
           // A disambiguation occurs if we have more then one piece of type 'pt'
           // that can reach 'to' with a legal move.
@@ -67,7 +69,7 @@ const string move_to_san(Position& pos, Move m) {
               san += UCI::square(pos, from);
       }
       else if (pos.capture(m))
-          san = UCI::square(pos, from)[0];
+          san += UCI::square(pos, from)[0];
 
       if (pos.capture(m))
           san += 'x';
