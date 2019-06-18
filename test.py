@@ -5,6 +5,8 @@ import pyffish as sf
 
 CAPA = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1"
 SITTUYIN = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1"
+MAKRUK = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1"
+SHOGI = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b 0 1"
 
 standard = {
     "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K
@@ -53,6 +55,13 @@ class TestPyffish(unittest.TestCase):
 
         result = sf.get_san("sittuyin", SITTUYIN, "R@a1")
         self.assertEqual(result, "R@a1")
+
+        result = sf.get_san("shogi", SHOGI, "1g1f")
+        self.assertEqual(result, "P1f")
+
+        MAKRUK = "rnsm1s1r/4n1k1/1ppppppp/p7/2PPP3/PP3PPP/4N2R/RNSKMS2 b - - 1 5"
+        result = sf.get_san("makruk", MAKRUK, "f8f7")
+        self.assertEqual(result, "Sf7")
 
     def test_gives_check(self):
         self.assertRaises(ValueError, sf.gives_check, "capablanca", CAPA, [])

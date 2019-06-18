@@ -50,7 +50,13 @@ const string move_to_san(Position& pos, Move m) {
 
           // A disambiguation occurs if we have more then one piece of type 'pt'
           // that can reach 'to' with a legal move.
-          others = b = (pos.attacks_from(us, pt, to) & pos.pieces(us, pt)) ^ from;
+          if (pt == SHOGI_PAWN
+             || pt == LANCE
+             || (pt == SILVER && UCI::square(pos, from)[0] == UCI::square(pos, to)[0])
+             )
+            others = b = Bitboard(0);
+          else
+            others = b = (pos.attacks_from(us, pt, to) & pos.pieces(us, pt)) ^ from;
 
           while (b)
           {
