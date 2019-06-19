@@ -56,7 +56,7 @@ const string move_to_san(Position& pos, Move m) {
              )
             others = b = Bitboard(0);
           else
-            others = b = (pos.attacks_from(us, pt, to) & pos.pieces(us, pt)) ^ from;
+            others = b = (attacks_bb(~us, pt, to, pos.pieces()) & pos.pieces(us, pt)) ^ from;
 
           while (b)
           {

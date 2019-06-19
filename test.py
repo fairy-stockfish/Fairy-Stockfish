@@ -47,6 +47,23 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, CAPA)
 
     def test_get_san(self):
+        fen = "4k3/8/3R4/8/1R3R2/8/3R4/4K3 w - - 0 1"
+        result = sf.get_san("standard", fen, "b4d4")
+        self.assertEqual(result, "Rbd4")
+
+        result = sf.get_san("standard", fen, "f4d4")
+        self.assertEqual(result, "Rfd4")
+
+        result = sf.get_san("standard", fen, "d2d4")
+        self.assertEqual(result, "R2d4")
+
+        result = sf.get_san("standard", fen, "d6d4")
+        self.assertEqual(result, "R6d4")
+
+        fen = "4k3/8/3R4/3P4/1RP1PR2/8/3R4/4K3 w - - 0 1"
+        result = sf.get_san("standard", fen, "d2d4")
+        self.assertEqual(result, "Rd4")
+
         result = sf.get_san("capablanca", CAPA, "e2e4")
         self.assertEqual(result, "e4")
 
@@ -59,9 +76,20 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", SHOGI, "1g1f")
         self.assertEqual(result, "P1f")
 
-        MAKRUK = "rnsm1s1r/4n1k1/1ppppppp/p7/2PPP3/PP3PPP/4N2R/RNSKMS2 b - - 1 5"
-        result = sf.get_san("makruk", MAKRUK, "f8f7")
+        fen = "rnsm1s1r/4n1k1/1ppppppp/p7/2PPP3/PP3PPP/4N2R/RNSKMS2 b - - 1 5"
+        result = sf.get_san("makruk", fen, "f8f7")
         self.assertEqual(result, "Sf7")
+
+        fen = "4k3/8/8/4S3/8/2S5/8/4K3 w - - 0 1"
+        result = sf.get_san("makruk", fen, "e5d4")
+        self.assertEqual(result, "Sed4")
+
+        result = sf.get_san("makruk", fen, "c3d4")
+        self.assertEqual(result, "Scd4")
+        
+        fen = "4k3/8/8/3S4/8/3S4/8/4K3 w - - 0 1"
+        result = sf.get_san("makruk", fen, "d3d4")
+        self.assertEqual(result, "Sd4")
 
     def test_gives_check(self):
         self.assertRaises(ValueError, sf.gives_check, "capablanca", CAPA, [])
