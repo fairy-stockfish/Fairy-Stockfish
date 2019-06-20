@@ -568,7 +568,7 @@ namespace {
         score -= PawnlessFlank;
 
     // King tropism bonus, to anticipate slow motion attacks on our king
-    score -= FlankAttacks * kingFlankAttacks * (1 + pos.captures_to_hand() + !!pos.max_check_count());
+    score -= FlankAttacks * kingFlankAttacks * (1 + 3 * pos.captures_to_hand() + !!pos.max_check_count());
 
     // For drop games, king danger is independent of game phase
     if (pos.captures_to_hand())
