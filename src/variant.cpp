@@ -505,6 +505,11 @@ VariantMap variants; // Global object
         v->chess960 = true;
         return v;
     }
+    Variant* gothic_variant() {
+        Variant* v = capablanca_variant();
+        v->startFen = "rnbqckabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQCKABNR w KQkq - 0 1";
+        return v;
+    }
     Variant* janus_variant() {
         Variant* v = fairy_variant_base();
         v->maxRank = RANK_8;
@@ -641,6 +646,7 @@ void VariantMap::init() {
     add("shogi", shogi_variant());
     add("capablanca", capablanca_variant());
     add("caparandom", caparandom_variant());
+    add("gothic", gothic_variant());
     add("janus", janus_variant());
     add("modern", modern_variant());
     add("chancellor", chancellor_variant());
