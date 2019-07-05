@@ -42,6 +42,11 @@ class TestPyffish(unittest.TestCase):
         result = sf.legal_moves("capablanca", fen, [])
         self.assertEqual(result, ["a1b1"])
 
+    def test_short_castling(self):
+        moves = ['a2a4', 'f7f5', 'b2b3', 'g8d5', 'b1a3', 'i8h6', 'c1a2', 'h8g6', 'c2c4']
+        result = sf.legal_moves("capablanca", CAPA, moves)
+        self.assertIn("f8i8", result)
+
     def test_get_fen(self):
         result = sf.get_fen("capablanca", CAPA, [])
         self.assertEqual(result, CAPA)
