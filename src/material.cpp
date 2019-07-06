@@ -143,10 +143,10 @@ Entry* probe(const Position& pos) {
   // Map total non-pawn material into [PHASE_ENDGAME, PHASE_MIDGAME]
   if (pos.captures_to_hand())
   {
-      npm = VALUE_ZERO;
+      Value npm2 = VALUE_ZERO;
       for (PieceType pt : pos.piece_types())
-          npm += (pos.count_in_hand(WHITE, pt) + pos.count_in_hand(BLACK, pt)) * PieceValue[MG][make_piece(WHITE, pt)];
-      e->gamePhase = Phase(PHASE_MIDGAME * (MidgameLimit - std::min(npm, MidgameLimit)) / MidgameLimit);
+          npm2 += (pos.count_in_hand(WHITE, pt) + pos.count_in_hand(BLACK, pt)) * PieceValue[MG][make_piece(WHITE, pt)];
+      e->gamePhase = Phase(PHASE_MIDGAME * npm / std::max(int(npm + npm2), 1));
   }
   else
       e->gamePhase = Phase(((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
