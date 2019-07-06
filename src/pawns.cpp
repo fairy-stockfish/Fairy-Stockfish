@@ -36,6 +36,7 @@ namespace {
   constexpr Score Doubled  = S(11, 56);
   constexpr Score Isolated = S( 5, 15);
   constexpr Score WeakUnopposed = S( 13, 27);
+  constexpr Score Attacked2Unsupported = S( 0, 20);
 
   // Connected pawn bonus
   constexpr int Connected[RANK_NB] = { 0, 7, 8, 12, 29, 48, 86 };
@@ -52,11 +53,12 @@ namespace {
   // Danger of enemy pawns moving toward our king by [distance from edge][rank].
   // RANK_1 = 0 is used for files where the enemy has no pawn, or their pawn
   // is behind our king.
+  // [0][1-2] accommodate opponent pawn on edge (likely blocked by our king)
   constexpr Value UnblockedStorm[int(FILE_NB) / 2][RANK_NB] = {
-    { V( 89), V(107), V(123), V(93), V(57), V( 45), V( 51) },
-    { V( 44), V(-18), V(123), V(46), V(39), V( -7), V( 23) },
-    { V(  4), V( 52), V(162), V(37), V( 7), V(-14), V( -2) },
-    { V(-10), V(-14), V( 90), V(15), V( 2), V( -7), V(-16) }
+    { V( 89), V(-285), V(-185), V(93), V(57), V( 45), V( 51) },
+    { V( 44), V( -18), V( 123), V(46), V(39), V( -7), V( 23) },
+    { V(  4), V(  52), V( 162), V(37), V( 7), V(-14), V( -2) },
+    { V(-10), V( -14), V(  90), V(15), V( 2), V( -7), V(-16) }
   };
 
   #undef S
@@ -79,8 +81,13 @@ namespace {
     Bitboard theirPawns = pos.pieces(Them, PAWN);
 
     e->passedPawns[Us] = e->pawnAttacksSpan[Us] = 0;
-    e->kingSquares[Us]   = SQ_NONE;
-    e->pawnAttacks[Us]   = pawn_attacks_bb<Us>(ourPawns);
+    e->kingSquares[Us] = SQ_NONE;
+    e->pawnAttacks[Us] = pawn_attacks_bb<Us>(ourPawns);
+
+    // Unsupported enemy pawns attacked twice by us
+    score += Attacked2Unsupported * popcount(  theirPawns
+                                             & pawn_double_attacks_bb<Us>(ourPawns)
+                                             & ~pawn_attacks_bb<Them>(theirPawns));
 
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
@@ -199,16 +206,12 @@ template<Color Us>
 void Entry::evaluate_shelter(const Position& pos, Square ksq, Score& shelter) {
 
   constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
-  constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
-  Bitboard  BlockSquares = (rank_bb(relative_rank(Us, RANK_1, pos.max_rank())) | rank_bb(relative_rank(Us, RANK_2, pos.max_rank())))
-                          & (FileABB | file_bb(pos.max_file()));
 
   Bitboard b = pos.pieces(PAWN, SHOGI_PAWN) & ~forward_ranks_bb(Them, ksq);
   Bitboard ourPawns = b & pos.pieces(Us);
   Bitboard theirPawns = b & pos.pieces(Them);
 
-  Value bonus[] = { (shift<Down>(theirPawns) & BlockSquares & ksq) ? Value(374) : Value(5),
-                    VALUE_ZERO };
+  Value bonus[] = { Value(5), Value(5) };
 
   File center = clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1));
   for (File f = File(center - 1); f <= File(center + 1); ++f)
