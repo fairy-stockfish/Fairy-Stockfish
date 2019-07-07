@@ -44,7 +44,7 @@ const string move_to_san(Position& pos, Move m) {
   {
       san = type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@') : "";
 
-      if (pt != PAWN)
+      if (pt != PAWN && type_of(m) != DROP)
       {
           if (type_of(m) != DROP) san += pos.piece_to_char()[make_piece(WHITE, pt)];
 
