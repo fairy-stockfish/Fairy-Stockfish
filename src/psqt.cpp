@@ -152,7 +152,7 @@ void init(const Variant* v) {
           psq[~pc][rank_of(s) <= v->maxRank ? relative_square(BLACK, s, v->maxRank) : s] = -psq[pc][s];
       }
       // pieces in pocket
-      psq[ pc][SQ_NONE] = score + make_score(20, 20);
+      psq[ pc][SQ_NONE] = score + make_score(45, 10);
       psq[~pc][SQ_NONE] = -psq[pc][SQ_NONE];
   }
 }
