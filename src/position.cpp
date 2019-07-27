@@ -52,13 +52,13 @@ namespace {
 // valuable attacker for the side to move, remove the attacker we just found
 // from the bitboards and scan for new X-ray attacks behind it.
 
-template<int Pt>
+template<PieceType Pt>
 PieceType min_attacker(const Bitboard* byTypeBB, Square to, Bitboard stmAttackers,
                        Bitboard& occupied, Bitboard& attackers) {
 
   Bitboard b = stmAttackers & byTypeBB[Pt];
   if (!b)
-      return min_attacker<Pt + 1>(byTypeBB, to, stmAttackers, occupied, attackers);
+      return min_attacker<PieceType(Pt + 1)>(byTypeBB, to, stmAttackers, occupied, attackers);
 
   occupied ^= lsb(b); // Remove the attacker from occupied
 
@@ -74,7 +74,7 @@ PieceType min_attacker(const Bitboard* byTypeBB, Square to, Bitboard stmAttacker
   // X-ray may add already processed pieces because byTypeBB[] is constant: in
   // the rook example, now attackers contains _again_ rook in a7, so remove it.
   attackers &= occupied;
-  return (PieceType)Pt;
+  return Pt;
 }
 
 template<>
@@ -159,7 +159,7 @@ void Position::init() {
 
   PRNG rng(1070372);
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)
           for (Square s = SQ_A1; s <= SQ_MAX; ++s)
               Zobrist::psq[make_piece(c, pt)][s] = rng.rand<Key>();
@@ -181,11 +181,11 @@ void Position::init() {
   Zobrist::side = rng.rand<Key>();
   Zobrist::noPawns = rng.rand<Key>();
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (int n = 0; n < CHECKS_NB; ++n)
           Zobrist::checks[c][n] = rng.rand<Key>();
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)
           for (int n = 0; n < SQUARE_NB; ++n)
               Zobrist::inHand[make_piece(c, pt)][n] = rng.rand<Key>();
@@ -194,7 +194,7 @@ void Position::init() {
   std::memset(cuckoo, 0, sizeof(cuckoo));
   std::memset(cuckooMove, 0, sizeof(cuckooMove));
   int count = 0;
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = KNIGHT; pt <= QUEEN || pt == KING; pt != QUEEN ? ++pt : pt = KING)
       {
       Piece pc = make_piece(c, pt);
@@ -518,7 +518,7 @@ void Position::set_state(StateInfo* si) const {
 
   si->key ^= Zobrist::castling[si->castlingRights];
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)
       {
           Piece pc = make_piece(c, pt);
@@ -531,7 +531,7 @@ void Position::set_state(StateInfo* si) const {
       }
 
   if (max_check_count())
-      for (Color c = WHITE; c <= BLACK; ++c)
+      for (Color c : {WHITE, BLACK})
           si->key ^= Zobrist::checks[c][si->checksGiven[c]];
 }
 
@@ -600,7 +600,7 @@ const string Position::fen() const {
   if (piece_drops())
   {
       ss << '[';
-      for (Color c = WHITE; c <= BLACK; ++c)
+      for (Color c : {WHITE, BLACK})
           for (PieceType pt = KING; pt >= PAWN; --pt)
               ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
       ss << ']';
@@ -1940,7 +1940,7 @@ bool Position::pos_is_ok() const {
   if (std::memcmp(&si, st, sizeof(StateInfo)))
       assert(0 && "pos_is_ok: State");
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)
       {
           Piece pc = make_piece(c, pt);
@@ -1953,8 +1953,8 @@ bool Position::pos_is_ok() const {
                   assert(0 && "pos_is_ok: Index");
       }
 
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (CastlingSide s = KING_SIDE; s <= QUEEN_SIDE; s = CastlingSide(s + 1))
+  for (Color c : { WHITE, BLACK })
+      for (CastlingSide s : {KING_SIDE, QUEEN_SIDE})
       {
           if (!can_castle(c | s))
               continue;

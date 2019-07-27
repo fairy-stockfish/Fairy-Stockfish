@@ -376,7 +376,7 @@ void Bitboards::init() {
   init_magics(BishopTable, BishopMagics, BishopDirections);
 #endif
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : { WHITE, BLACK })
       for (PieceType pt = PAWN; pt <= KING; ++pt)
       {
           const PieceInfo* pi = pieceMap.find(pt)->second;
