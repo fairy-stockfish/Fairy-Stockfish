@@ -566,6 +566,9 @@ namespace {
     // King tropism bonus, to anticipate slow motion attacks on our king
     score -= FlankAttacks * kingFlankAttacks * (1 + 5 * pos.captures_to_hand() + !!pos.max_check_count());
 
+    if (pos.max_check_count())
+        score += make_score(0, mg_value(score) / 2);
+
     // For drop games, king danger is independent of game phase
     if (pos.captures_to_hand())
         score = make_score(mg_value(score), mg_value(score)) / (1 + !pos.shogi_doubled_pawn());
