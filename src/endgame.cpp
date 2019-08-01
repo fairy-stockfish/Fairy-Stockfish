@@ -209,6 +209,7 @@ Value Endgame<KPK>::operator()(const Position& pos) const {
 
   Value result;
   if (   pos.promotion_rank() == RANK_8
+      && RANK_MAX == RANK_8
       && pos.promotion_piece_types().find(QUEEN) != pos.promotion_piece_types().end())
   {
       if (!Bitbases::probe(wksq, psq, bksq, us))
@@ -963,6 +964,7 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
   // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
   // it's probably at least a draw even with the pawn.
   if (   pos.promotion_rank() == RANK_8
+      && RANK_MAX == RANK_8
       && pos.promotion_piece_types().find(QUEEN) != pos.promotion_piece_types().end())
       return Bitbases::probe(wksq, psq, bksq, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
   else
