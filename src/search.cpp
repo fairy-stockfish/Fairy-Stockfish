@@ -706,6 +706,7 @@ namespace {
         if (    piecesCount <= TB::Cardinality
             && (piecesCount <  TB::Cardinality || depth >= TB::ProbeDepth)
             &&  pos.rule50_count() == 0
+            &&  Options["UCI_Variant"] == "chess"
             && !pos.can_castle(ANY_CASTLING))
         {
             TB::ProbeState err;

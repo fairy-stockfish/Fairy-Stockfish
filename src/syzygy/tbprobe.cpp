@@ -1260,6 +1260,11 @@ void Tablebases::init(const std::string& paths) {
     MaxCardinality = 0;
     TBFile::Paths = paths;
 
+#ifdef LARGEBOARDS
+    // Tablebases are not working for large-board version
+    return;
+#endif
+
     if (paths.empty() || paths == "<empty>")
         return;
 
@@ -1358,14 +1363,14 @@ void Tablebases::init(const std::string& paths) {
         }
 
     // Add entries in TB tables if the corresponding ".rtbw" file exsists
-    for (PieceType p1 = PAWN; p1 < KING; ++p1) {
+    for (PieceType p1 = PAWN; p1 <= QUEEN; ++p1) {
         TBTables.add({KING, p1, KING});
 
         for (PieceType p2 = PAWN; p2 <= p1; ++p2) {
             TBTables.add({KING, p1, p2, KING});
             TBTables.add({KING, p1, KING, p2});
 
-            for (PieceType p3 = PAWN; p3 < KING; ++p3)
+            for (PieceType p3 = PAWN; p3 <= QUEEN; ++p3)
                 TBTables.add({KING, p1, p2, KING, p3});
 
             for (PieceType p3 = PAWN; p3 <= p2; ++p3) {
@@ -1377,11 +1382,11 @@ void Tablebases::init(const std::string& paths) {
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
                         TBTables.add({KING, p1, p2, p3, p4, p5, KING});
 
-                    for (PieceType p5 = PAWN; p5 < KING; ++p5)
+                    for (PieceType p5 = PAWN; p5 <= QUEEN; ++p5)
                         TBTables.add({KING, p1, p2, p3, p4, KING, p5});
                 }
 
-                for (PieceType p4 = PAWN; p4 < KING; ++p4) {
+                for (PieceType p4 = PAWN; p4 <= QUEEN; ++p4) {
                     TBTables.add({KING, p1, p2, p3, KING, p4});
 
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
