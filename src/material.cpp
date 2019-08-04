@@ -106,7 +106,7 @@ namespace {
         int v = 0;
 
         for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
-            v +=  QuadraticOurs[pt1][pt2] * pieceCount[Us][pt2]
+            v +=  QuadraticOurs[pt1][pt2] * pieceCount[Us][pt2] * (pos.must_capture() && pt1 == KNIGHT && pt2 == PAWN ? 2 : 1)
                 + QuadraticTheirs[pt1][pt2] * pieceCount[Them][pt2];
 
         bonus += pieceCount[Us][pt1] * v;
@@ -164,14 +164,14 @@ Entry* probe(const Position& pos) {
   if ((e->evaluationFunction = Endgames::probe<Value>(key)) != nullptr)
       return e;
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : { WHITE, BLACK })
       if (is_KFsPsK(pos, c))
       {
           e->evaluationFunction = &EvaluateKFsPsK[c];
           return e;
       }
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : { WHITE, BLACK })
       if (is_KXK(pos, c))
       {
           e->evaluationFunction = &EvaluateKXK[c];
@@ -191,7 +191,7 @@ Entry* probe(const Position& pos) {
   // We didn't find any specialized scaling function, so fall back on generic
   // ones that refer to more than one material distribution. Note that in this
   // case we don't return after setting the function.
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : { WHITE, BLACK })
   {
     if (is_KBPsK(pos, c))
         e->scalingFunction[c] = &ScaleKBPsK[c];

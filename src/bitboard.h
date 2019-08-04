@@ -109,6 +109,8 @@ extern Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard LeaperMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard BoardSizeBB[FILE_NB][RANK_NB];
+extern RiderType AttackRiderTypes[PIECE_TYPE_NB];
+extern RiderType MoveRiderTypes[PIECE_TYPE_NB];
 
 #ifdef LARGEBOARDS
 int popcount(Bitboard b); // required for 128 bit pext
@@ -138,8 +140,11 @@ struct Magic {
   }
 };
 
-extern Magic RookMagics[SQUARE_NB];
+extern Magic RookMagicsH[SQUARE_NB];
+extern Magic RookMagicsV[SQUARE_NB];
 extern Magic BishopMagics[SQUARE_NB];
+extern Magic CannonMagicsH[SQUARE_NB];
+extern Magic CannonMagicsV[SQUARE_NB];
 
 inline Bitboard square_bb(Square s) {
   assert(s >= SQ_A1 && s <= SQ_MAX);
@@ -335,6 +340,19 @@ template<class T> constexpr const T& clamp(const T& v, const T& lo, const T&  hi
   return v < lo ? lo : v > hi ? hi : v;
 }
 
+
+template<RiderType R>
+inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
+
+  assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V || R == RIDER_CANNON_H || R == RIDER_CANNON_V);
+  const Magic& m =  R == RIDER_ROOK_H ? RookMagicsH[s]
+                  : R == RIDER_ROOK_V ? RookMagicsV[s]
+                  : R == RIDER_CANNON_H ? CannonMagicsH[s]
+                  : R == RIDER_CANNON_V ? CannonMagicsV[s]
+                  : BishopMagics[s];
+  return m.attacks[m.index(occupied)];
+}
+
 /// attacks_bb() returns a bitboard representing all the squares attacked by a
 /// piece of type Pt (bishop or rook) placed on 's'.
 
@@ -342,16 +360,38 @@ template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
   assert(Pt == BISHOP || Pt == ROOK);
-  const Magic& m = Pt == ROOK ? RookMagics[s] : BishopMagics[s];
-  return m.attacks[m.index(occupied)];
+  return Pt == BISHOP ? rider_attacks_bb<RIDER_BISHOP>(s, occupied)
+                      : rider_attacks_bb<RIDER_ROOK_H>(s, occupied) | rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
 }
 
 inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
-  return LeaperAttacks[c][pt][s] | (PseudoAttacks[c][pt][s] & (attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied)));
+  Bitboard b = LeaperAttacks[c][pt][s];
+  if (AttackRiderTypes[pt] & RIDER_BISHOP)
+      b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
+  if (AttackRiderTypes[pt] & RIDER_ROOK_H)
+      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
+  if (AttackRiderTypes[pt] & RIDER_ROOK_V)
+      b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
+  if (AttackRiderTypes[pt] & RIDER_ROOK_H)
+      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
+  if (AttackRiderTypes[pt] & RIDER_CANNON_V)
+      b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
+  return b & PseudoAttacks[c][pt][s];
 }
 
 inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
-  return LeaperMoves[c][pt][s] | (PseudoMoves[c][pt][s] & (attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied)));
+  Bitboard b = LeaperMoves[c][pt][s];
+  if (MoveRiderTypes[pt] & RIDER_BISHOP)
+      b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
+  if (MoveRiderTypes[pt] & RIDER_ROOK_H)
+      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
+  if (MoveRiderTypes[pt] & RIDER_ROOK_V)
+      b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
+  if (MoveRiderTypes[pt] & RIDER_CANNON_H)
+      b |= rider_attacks_bb<RIDER_CANNON_H>(s, occupied);
+  if (MoveRiderTypes[pt] & RIDER_CANNON_V)
+      b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
+  return b & PseudoMoves[c][pt][s];
 }
 
 

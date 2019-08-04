@@ -106,11 +106,13 @@ public:
   bool piece_demotion() const;
   bool endgame_eval() const;
   bool double_step_enabled() const;
+  Rank double_step_rank() const;
   bool first_rank_double_steps() const;
   bool castling_enabled() const;
   bool castling_dropped_piece() const;
   File castling_kingside_file() const;
   File castling_queenside_file() const;
+  Rank castling_rank() const;
   bool checking_permitted() const;
   bool must_capture() const;
   bool must_drop() const;
@@ -175,6 +177,7 @@ public:
   Bitboard checkers() const;
   Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
+  bool is_discovery_check_on_king(Color c, Move m) const;
 
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
@@ -361,6 +364,11 @@ inline bool Position::double_step_enabled() const {
   return var->doubleStep;
 }
 
+inline Rank Position::double_step_rank() const {
+  assert(var != nullptr);
+  return var->doubleStepRank;
+}
+
 inline bool Position::first_rank_double_steps() const {
   assert(var != nullptr);
   return var->firstRankDoubleSteps;
@@ -384,6 +392,11 @@ inline File Position::castling_kingside_file() const {
 inline File Position::castling_queenside_file() const {
   assert(var != nullptr);
   return var->castlingQueensideFile;
+}
+
+inline Rank Position::castling_rank() const {
+  assert(var != nullptr);
+  return var->castlingRank;
 }
 
 inline bool Position::checking_permitted() const {
@@ -722,6 +735,10 @@ inline Bitboard Position::blockers_for_king(Color c) const {
 
 inline Bitboard Position::check_squares(PieceType pt) const {
   return st->checkSquares[pt];
+}
+
+inline bool Position::is_discovery_check_on_king(Color c, Move m) const {
+  return is_ok(from_sq(m)) && st->blockersForKing[c] & from_sq(m);
 }
 
 inline bool Position::pawn_passed(Color c, Square s) const {

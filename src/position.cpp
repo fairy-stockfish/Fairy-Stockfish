@@ -52,13 +52,13 @@ namespace {
 // valuable attacker for the side to move, remove the attacker we just found
 // from the bitboards and scan for new X-ray attacks behind it.
 
-template<int Pt>
+template<PieceType Pt>
 PieceType min_attacker(const Bitboard* byTypeBB, Square to, Bitboard stmAttackers,
                        Bitboard& occupied, Bitboard& attackers) {
 
   Bitboard b = stmAttackers & byTypeBB[Pt];
   if (!b)
-      return min_attacker<Pt + 1>(byTypeBB, to, stmAttackers, occupied, attackers);
+      return min_attacker<PieceType(Pt + 1)>(byTypeBB, to, stmAttackers, occupied, attackers);
 
   occupied ^= lsb(b); // Remove the attacker from occupied
 
@@ -74,7 +74,7 @@ PieceType min_attacker(const Bitboard* byTypeBB, Square to, Bitboard stmAttacker
   // X-ray may add already processed pieces because byTypeBB[] is constant: in
   // the rook example, now attackers contains _again_ rook in a7, so remove it.
   attackers &= occupied;
-  return (PieceType)Pt;
+  return Pt;
 }
 
 template<>
@@ -113,6 +113,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
       os << UCI::square(pos, pop_lsb(&b)) << " ";
 
   if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
+      && Options["UCI_Variant"] == "chess"
       && !pos.can_castle(ANY_CASTLING))
   {
       StateInfo st;
@@ -159,7 +160,7 @@ void Position::init() {
 
   PRNG rng(1070372);
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)
           for (Square s = SQ_A1; s <= SQ_MAX; ++s)
               Zobrist::psq[make_piece(c, pt)][s] = rng.rand<Key>();
@@ -181,11 +182,11 @@ void Position::init() {
   Zobrist::side = rng.rand<Key>();
   Zobrist::noPawns = rng.rand<Key>();
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (int n = 0; n < CHECKS_NB; ++n)
           Zobrist::checks[c][n] = rng.rand<Key>();
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)
           for (int n = 0; n < SQUARE_NB; ++n)
               Zobrist::inHand[make_piece(c, pt)][n] = rng.rand<Key>();
@@ -194,7 +195,7 @@ void Position::init() {
   std::memset(cuckoo, 0, sizeof(cuckoo));
   std::memset(cuckooMove, 0, sizeof(cuckooMove));
   int count = 0;
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = KNIGHT; pt <= QUEEN || pt == KING; pt != QUEEN ? ++pt : pt = KING)
       {
       Piece pc = make_piece(c, pt);
@@ -360,13 +361,13 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           token = char(toupper(token));
 
           if (token == 'K')
-              for (rsq = make_square(FILE_MAX, relative_rank(c, RANK_1, max_rank())); piece_on(rsq) != rook; --rsq) {}
+              for (rsq = make_square(FILE_MAX, relative_rank(c, castling_rank(), max_rank())); piece_on(rsq) != rook; --rsq) {}
 
           else if (token == 'Q')
-              for (rsq = make_square(FILE_A, relative_rank(c, RANK_1, max_rank())); piece_on(rsq) != rook; ++rsq) {}
+              for (rsq = make_square(FILE_A, relative_rank(c, castling_rank(), max_rank())); piece_on(rsq) != rook; ++rsq) {}
 
           else if (token >= 'A' && token <= 'A' + max_file())
-              rsq = make_square(File(token - 'A'), relative_rank(c, RANK_1, max_rank()));
+              rsq = make_square(File(token - 'A'), relative_rank(c, castling_rank(), max_rank()));
 
           else
               continue;
@@ -448,7 +449,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
 void Position::set_castling_right(Color c, Square rfrom) {
 
-  Square kfrom = count<KING>(c) ? square<KING>(c) : make_square(FILE_E, c == WHITE ? RANK_1 : max_rank());
+  Square kfrom = count<KING>(c) ? square<KING>(c) : make_square(FILE_E, relative_rank(c, castling_rank(), max_rank()));
   CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
   CastlingRight cr = (c | cs);
 
@@ -458,7 +459,7 @@ void Position::set_castling_right(Color c, Square rfrom) {
   castlingRookSquare[cr] = rfrom;
 
   Square kto = make_square(cs == KING_SIDE ? castling_kingside_file() : castling_queenside_file(),
-                           relative_rank(c, RANK_1, max_rank()));
+                           relative_rank(c, castling_rank(), max_rank()));
   Square rto = kto + (cs == KING_SIDE ? WEST : EAST);
 
   castlingPath[cr] =   (between_bb(rfrom, rto) | between_bb(kfrom, kto) | rto | kto)
@@ -518,7 +519,7 @@ void Position::set_state(StateInfo* si) const {
 
   si->key ^= Zobrist::castling[si->castlingRights];
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)
       {
           Piece pc = make_piece(c, pt);
@@ -531,7 +532,7 @@ void Position::set_state(StateInfo* si) const {
       }
 
   if (max_check_count())
-      for (Color c = WHITE; c <= BLACK; ++c)
+      for (Color c : {WHITE, BLACK})
           si->key ^= Zobrist::checks[c][si->checksGiven[c]];
 }
 
@@ -600,7 +601,7 @@ const string Position::fen() const {
   if (piece_drops())
   {
       ss << '[';
-      for (Color c = WHITE; c <= BLACK; ++c)
+      for (Color c : {WHITE, BLACK})
           for (PieceType pt = KING; pt >= PAWN; --pt)
               ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
       ss << ']';
@@ -808,7 +809,7 @@ bool Position::legal(Move m) const {
 
       // After castling, the rook and king final positions are the same in
       // Chess960 as they would be in standard chess.
-      to = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), relative_rank(us, RANK_1, max_rank()));
+      to = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), relative_rank(us, castling_rank(), max_rank()));
       Direction step = to > from ? WEST : EAST;
 
       for (Square s = to; s != from; s += step)
@@ -887,7 +888,8 @@ bool Position::pseudo_legal(const Move m) const {
       if (   !(attacks_from<PAWN>(us, from) & pieces(~us) & to) // Not a capture
           && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
-               && (rank_of(from) == relative_rank(us, RANK_2))
+               && (rank_of(from) == relative_rank(us, double_step_rank())
+                   || (first_rank_double_steps() && rank_of(from) == relative_rank(us, RANK_1)))
                && empty(to)
                && empty(to - pawn_push(us))
                && double_step_enabled()))
@@ -943,7 +945,7 @@ bool Position::gives_check(Move m) const {
 
   // Is there a discovered check?
   if (   type_of(m) != DROP
-      && (st->blockersForKing[~sideToMove] & from)
+      && ((st->blockersForKing[~sideToMove] & from) || pieces(sideToMove, CANNON))
       && attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to, sideToMove))
       return true;
 
@@ -978,7 +980,7 @@ bool Position::gives_check(Move m) const {
       Square kfrom = from;
       Square rfrom = to; // Castling is encoded as 'King captures the rook'
       Square kto = make_square(rfrom > kfrom ? castling_kingside_file() : castling_queenside_file(),
-                              relative_rank(sideToMove, RANK_1, max_rank()));
+                              relative_rank(sideToMove, castling_rank(), max_rank()));
       Square rto = kto + (rfrom > kfrom ? WEST : EAST);
 
       return   (PseudoAttacks[sideToMove][ROOK][rto] & square<KING>(~sideToMove))
@@ -1064,7 +1066,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
               assert(pc == make_piece(us, PAWN));
               assert(to == st->epSquare);
-              assert(relative_rank(~us, to, max_rank()) == RANK_3);
+              assert(relative_rank(~us, to, max_rank()) == Rank(double_step_rank() + 1));
               assert(piece_on(to) == NO_PIECE);
               assert(piece_on(capsq) == make_piece(them, PAWN));
 
@@ -1134,12 +1136,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (type_of(pc) != PAWN)
           st->nonPawnMaterial[us] += PieceValue[MG][pc];
       // Set castling rights for dropped king or rook
-      if (castling_dropped_piece() && relative_rank(us, to, max_rank()) == RANK_1)
+      if (castling_dropped_piece() && relative_rank(us, to, max_rank()) == castling_rank())
       {
           if (type_of(pc) == KING && file_of(to) == FILE_E)
           {
               Bitboard castling_rooks =  pieces(us, ROOK)
-                                       & rank_bb(relative_rank(us, RANK_1, max_rank()))
+                                       & rank_bb(relative_rank(us, castling_rank(), max_rank()))
                                        & (file_bb(FILE_A) | file_bb(max_file()));
               while (castling_rooks)
                   set_castling_right(us, pop_lsb(&castling_rooks));
@@ -1147,7 +1149,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           else if (type_of(pc) == ROOK)
           {
               if (   (file_of(to) == FILE_A || file_of(to) == max_file())
-                  && piece_on(make_square(FILE_E, relative_rank(us, RANK_1, max_rank()))) == make_piece(us, KING))
+                  && piece_on(make_square(FILE_E, relative_rank(us, castling_rank(), max_rank()))) == make_piece(us, KING))
                   set_castling_right(us, to);
           }
       }
@@ -1160,7 +1162,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       // Set en-passant square if the moved pawn can be captured
       if (   std::abs(int(to) - int(from)) == 2 * NORTH
-          && relative_rank(us, rank_of(from), max_rank()) == RANK_2
+          && relative_rank(us, rank_of(from), max_rank()) == double_step_rank()
           && (attacks_from<PAWN>(us, to - pawn_push(us)) & pieces(them, PAWN)))
       {
           st->epSquare = to - pawn_push(us);
@@ -1375,7 +1377,7 @@ void Position::undo_move(Move m) {
 
               assert(type_of(pc) == PAWN);
               assert(to == st->previous->epSquare);
-              assert(relative_rank(~us, to, max_rank()) == RANK_3);
+              assert(relative_rank(~us, to, max_rank()) == Rank(double_step_rank() + 1));
               assert(piece_on(capsq) == NO_PIECE);
               assert(st->capturedPiece == make_piece(~us, PAWN));
           }
@@ -1410,7 +1412,7 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   bool kingSide = to > from;
   rfrom = to; // Castling is encoded as "king captures friendly rook"
   to = make_square(kingSide ? castling_kingside_file() : castling_queenside_file(),
-                   us == WHITE ? RANK_1 : max_rank());
+                   relative_rank(us, castling_rank(), max_rank()));
   rto = to + (kingSide ? WEST : EAST);
 
   // Remove both pieces first since squares could overlap in Chess960
@@ -1910,7 +1912,7 @@ bool Position::pos_is_ok() const {
       || (count<KING>(WHITE) && piece_on(square<KING>(WHITE)) != make_piece(WHITE, KING))
       || (count<KING>(BLACK) && piece_on(square<KING>(BLACK)) != make_piece(BLACK, KING))
       || (   ep_square() != SQ_NONE
-          && relative_rank(~sideToMove, ep_square()) != RANK_3))
+          && relative_rank(~sideToMove, ep_square(), max_rank()) != Rank(double_step_rank() + 1)))
       assert(0 && "pos_is_ok: Default");
 
   if (Fast)
@@ -1940,7 +1942,7 @@ bool Position::pos_is_ok() const {
   if (std::memcmp(&si, st, sizeof(StateInfo)))
       assert(0 && "pos_is_ok: State");
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)
       {
           Piece pc = make_piece(c, pt);
@@ -1953,8 +1955,8 @@ bool Position::pos_is_ok() const {
                   assert(0 && "pos_is_ok: Index");
       }
 
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (CastlingSide s = KING_SIDE; s <= QUEEN_SIDE; s = CastlingSide(s + 1))
+  for (Color c : { WHITE, BLACK })
+      for (CastlingSide s : {KING_SIDE, QUEEN_SIDE})
       {
           if (!can_castle(c | s))
               continue;

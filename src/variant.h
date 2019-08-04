@@ -50,11 +50,13 @@ struct Variant {
   bool pieceDemotion = false;
   bool endgameEval = false;
   bool doubleStep = true;
+  Rank doubleStepRank = RANK_2;
   bool firstRankDoubleSteps = false;
   bool castling = true;
   bool castlingDroppedPiece = false;
   File castlingKingsideFile = FILE_G;
   File castlingQueensideFile = FILE_C;
+  Rank castlingRank = RANK_1;
   bool checking = true;
   bool mustCapture = false;
   bool mustDrop = false;
