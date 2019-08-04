@@ -1300,6 +1300,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->gatesBB[us] ^= to;
       if (gates(them) & to)
           st->gatesBB[them] ^= to;
+      if (!count_in_hand(us, ALL_PIECES) && !captures_to_hand())
+          st->gatesBB[us] = 0;
   }
 
   // Update the key with the final value
