@@ -249,6 +249,17 @@ VariantMap variants; // Global object
         v->countingRule = ASEAN_COUNTING;
         return v;
     }
+    Variant* seirawan_variant() {
+        Variant* v = fairy_variant_base();
+        v->add_piece(ARCHBISHOP, 'h');
+        v->add_piece(CHANCELLOR, 'e');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1";
+        v->gating = true;
+        v->whiteDropRegion = Rank1BB;
+        v->blackDropRegion = Rank8BB;
+        v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
+        return v;
+    }
     Variant* minishogi_variant_base() {
         Variant* v = fairy_variant_base();
         v->variantTemplate = "shogi";
@@ -641,6 +652,7 @@ void VariantMap::init() {
     add("pocketknight", pocketknight_variant());
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
+    add("seirawan", seirawan_variant());
     add("minishogi", minishogi_variant());
     add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());

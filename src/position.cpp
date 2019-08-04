@@ -372,8 +372,30 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           else
               continue;
 
+          // Set gates (and skip castling rights)
+          if (gating())
+          {
+              st->gatesBB[c] |= rsq;
+              if (token == 'K' || token == 'Q')
+                  st->gatesBB[c] |= count<KING>(c) ? square<KING>(c) : make_square(FILE_E, relative_rank(c, castling_rank(), max_rank()));
+              // Do not set castling rights for gates unless there are no pieces in hand,
+              // which means that the file is referring to a chess960 castling right.
+              else if (count_in_hand(c, ALL_PIECES))
+                  continue;
+          }
+
           set_castling_right(c, rsq);
       }
+
+      // Set castling rights for 960 gating variants
+      if (gating())
+          for (Color c : {WHITE, BLACK})
+              if ((gates(c) & pieces(KING)) && !castling_rights(c) && count_in_hand(c, ALL_PIECES))
+              {
+                  Bitboard castling_rooks = gates(c) & pieces(ROOK);
+                  while (castling_rooks)
+                      set_castling_right(c, pop_lsb(&castling_rooks));
+              }
 
       // counting limit
       if (counting_rule() && isdigit(ss.peek()))
@@ -527,7 +549,7 @@ void Position::set_state(StateInfo* si) const {
           for (int cnt = 0; cnt < pieceCount[pc]; ++cnt)
               si->materialKey ^= Zobrist::psq[pc][cnt];
 
-          if (piece_drops())
+          if (piece_drops() || gating())
               si->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
       }
 
@@ -598,7 +620,7 @@ const string Position::fen() const {
   }
 
   // pieces in hand
-  if (piece_drops())
+  if (piece_drops() || gating())
   {
       ss << '[';
       for (Color c : {WHITE, BLACK})
@@ -615,13 +637,23 @@ const string Position::fen() const {
   if (can_castle(WHITE_OOO))
       ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OOO))) : 'Q');
 
+  if (gating() && gates(WHITE))
+      for (File f = FILE_A; f <= max_file(); ++f)
+          if (gates(WHITE) & file_bb(f))
+              ss << char('A' + f);
+
   if (can_castle(BLACK_OO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OO ))) : 'k');
 
   if (can_castle(BLACK_OOO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OOO))) : 'q');
 
-  if (!can_castle(ANY_CASTLING))
+  if (gating() && gates(BLACK))
+      for (File f = FILE_A; f <= max_file(); ++f)
+          if (gates(BLACK) & file_bb(f))
+              ss << char('a' + f);
+
+  if (!can_castle(ANY_CASTLING) && !(gating() && (gates(WHITE) | gates(BLACK))))
       ss << '-';
 
   // Counting limit or ep-square
@@ -854,7 +886,7 @@ bool Position::pseudo_legal(const Move m) const {
                 || (drop_promoted() && promoted_piece_type(type_of(pc)) == in_hand_piece_type(m)));
 
   // Use a slower but simpler function for uncommon cases
-  if (type_of(m) != NORMAL)
+  if (type_of(m) != NORMAL || is_gating(m))
       return MoveList<LEGAL>(*this).contains(m);
 
   // Handle the case where a mandatory piece promotion/demotion is not taken
@@ -947,6 +979,11 @@ bool Position::gives_check(Move m) const {
   if (   type_of(m) != DROP
       && ((st->blockersForKing[~sideToMove] & from) || pieces(sideToMove, CANNON))
       && attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to, sideToMove))
+      return true;
+
+  // Is there a check by gated pieces?
+  if (    is_gating(m)
+      && attacks_bb(sideToMove, gating_type(m), gating_square(m), (pieces() ^ from) | to) & square<KING>(~sideToMove))
       return true;
 
   switch (type_of(m))
@@ -1241,9 +1278,34 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (captures_to_hand() && !captured)
       st->capturedpromoted = false;
 
+  // Add gating piece
+  if (is_gating(m))
+  {
+      Square gate = gating_square(m);
+      Piece gating_piece = make_piece(us, gating_type(m));
+      put_piece(gating_piece, gate);
+      remove_from_hand(gating_piece);
+      st->gatesBB[us] ^= gate;
+      k ^= Zobrist::psq[gating_piece][gate];
+      st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece]];
+      st->nonPawnMaterial[us] += PieceValue[MG][gating_piece];
+  }
+
+  // Remove gates
+  if (gating())
+  {
+      if (is_ok(from) && (gates(us) & from))
+          st->gatesBB[us] ^= from;
+      if (type_of(m) == CASTLING)
+          st->gatesBB[us] ^= to;
+      if (gates(them) & to)
+          st->gatesBB[them] ^= to;
+      if (!count_in_hand(us, ALL_PIECES) && !captures_to_hand())
+          st->gatesBB[us] = 0;
+  }
+
   // Update the key with the final value
   st->key = k;
-
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them), us) & pieces(us) : Bitboard(0);
 
@@ -1311,8 +1373,17 @@ void Position::undo_move(Move m) {
   Square to = to_sq(m);
   Piece pc = piece_on(to);
 
-  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || (type_of(m) == PROMOTION && sittuyin_promotion()));
+  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m) || (type_of(m) == PROMOTION && sittuyin_promotion()));
   assert(type_of(st->capturedPiece) != KING);
+
+  // Remove gated piece
+  if (is_gating(m))
+  {
+      Piece gating_piece = make_piece(us, gating_type(m));
+      remove_piece(gating_piece, gating_square(m));
+      add_to_hand(gating_piece);
+      st->gatesBB[us] |= gating_square(m);
+  }
 
   if (type_of(m) == PROMOTION)
   {
