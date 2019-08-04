@@ -72,6 +72,7 @@ struct Variant {
   bool dropPromoted = false;
   bool shogiDoubledPawn = true;
   bool immobilityIllegal = false;
+  bool gating = false;
   // game end
   int nMoveRule = 50;
   int nFoldRule = 3;

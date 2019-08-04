@@ -677,6 +677,18 @@ inline PieceType promotion_type(Move m) {
   return type_of(m) == PROMOTION ? PieceType((m >> (2 * SQUARE_BITS + MOVE_TYPE_BITS)) & (PIECE_TYPE_NB - 1)) : NO_PIECE_TYPE;
 }
 
+inline PieceType gating_type(Move m) {
+  return PieceType((m >> (2 * SQUARE_BITS + MOVE_TYPE_BITS)) & (PIECE_TYPE_NB - 1));
+}
+
+inline Square gating_square(Move m) {
+  return Square((m >> (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) & SQUARE_BIT_MASK);
+}
+
+inline bool is_gating(Move m) {
+  return gating_type(m) && (type_of(m) == NORMAL || type_of(m) == CASTLING);
+}
+
 constexpr Move make_move(Square from, Square to) {
   return Move((from << SQUARE_BITS) + to);
 }
@@ -688,6 +700,11 @@ inline Move make(Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
 constexpr Move make_drop(Square to, PieceType pt_in_hand, PieceType pt_dropped) {
   return Move((pt_in_hand << (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) + (pt_dropped << (2 * SQUARE_BITS + MOVE_TYPE_BITS)) + DROP + to);
+}
+
+template<MoveType T>
+constexpr Move make_gating(Square from, Square to, PieceType pt, Square gate) {
+  return Move((gate << (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) + (pt << (2 * SQUARE_BITS + MOVE_TYPE_BITS)) + T + (from << SQUARE_BITS) + to);
 }
 
 constexpr PieceType dropped_piece_type(Move m) {
