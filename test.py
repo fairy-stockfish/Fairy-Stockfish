@@ -7,6 +7,7 @@ CAPA = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1"
 SITTUYIN = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1"
 MAKRUK = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1"
 SHOGI = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b 0 1"
+SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1"
 
 standard = {
     "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K
@@ -101,10 +102,32 @@ class TestPyffish(unittest.TestCase):
 
         result = sf.get_san("makruk", fen, "c3d4")
         self.assertEqual(result, "Scd4")
-        
+
         fen = "4k3/8/8/3S4/8/3S4/8/4K3 w - - 0 1"
         result = sf.get_san("makruk", fen, "d3d4")
         self.assertEqual(result, "Sd4")
+
+        UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
+        SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]
+
+        fen = SEIRAWAN
+        for i, move in enumerate(UCI_moves):
+            result = sf.get_san("seirawan", fen, move)
+            self.assertEqual(result, SAN_moves[i])
+            fen = sf.get_fen("seirawan", SEIRAWAN, UCI_moves[:i + 1])
+
+        result = sf.get_san("seirawan", fen, "e1g1")
+        self.assertEqual(result, "O-O")
+
+        result = sf.get_san("seirawan", fen, "e1g1h")
+        self.assertEqual(result, "O-O/He1")
+        result = sf.get_san("seirawan", fen, "e1g1e")
+        self.assertEqual(result, "O-O/Ee1")
+
+        result = sf.get_san("seirawan", fen, "h1e1h")
+        self.assertEqual(result, "O-O/Hh1")
+        result = sf.get_san("seirawan", fen, "h1e1e")
+        self.assertEqual(result, "O-O/Eh1")
 
     def test_gives_check(self):
         self.assertRaises(ValueError, sf.gives_check, "makruk", MAKRUK, [])

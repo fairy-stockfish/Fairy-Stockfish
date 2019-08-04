@@ -39,7 +39,15 @@ const string move_to_san(Position& pos, Move m) {
   PieceType pt = type_of(pc);
 
   if (type_of(m) == CASTLING)
+      {
       san = to > from ? "O-O" : "O-O-O";
+
+        if (is_gating(m))
+        {
+          san += string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
+          san += gating_square(m) == to ? UCI::square(pos, to) : UCI::square(pos, from);
+        }
+      }
   else
   {
       san = type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@') : "";
@@ -84,6 +92,8 @@ const string move_to_san(Position& pos, Move m) {
 
       if (type_of(m) == PROMOTION)
           san += string("=") + pos.piece_to_char()[make_piece(WHITE, promotion_type(m))];
+      else if (is_gating(m))
+          san += string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
   }
 
   if (pos.gives_check(m))
