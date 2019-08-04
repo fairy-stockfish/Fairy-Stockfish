@@ -315,7 +315,9 @@ string UCI::move(const Position& pos, Move m) {
   if (m == MOVE_NULL)
       return "0000";
 
-  if (type_of(m) == CASTLING && !pos.is_chess960())
+  if (is_gating(m) && gating_square(m) == to)
+      from = to_sq(m), to = from_sq(m);
+  else if (type_of(m) == CASTLING && !pos.is_chess960())
       to = make_square(to > from ? pos.castling_kingside_file() : pos.castling_queenside_file(), rank_of(from));
 
   string move = (type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@')
@@ -327,6 +329,8 @@ string UCI::move(const Position& pos, Move m) {
       move += '+';
   else if (type_of(m) == PIECE_DEMOTION)
       move += '-';
+  else if (is_gating(m))
+      move += pos.piece_to_char()[make_piece(BLACK, gating_type(m))];
 
   return move;
 }

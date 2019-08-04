@@ -49,6 +49,7 @@ struct StateInfo {
   int    countingLimit;
   CheckCount checksGiven[COLOR_NB];
   Square epSquare;
+  Bitboard gatesBB[COLOR_NB];
 
   // Not copied when making a move (will be recomputed anyhow)
   int repetition;
@@ -128,6 +129,7 @@ public:
   bool drop_promoted() const;
   bool shogi_doubled_pawn() const;
   bool immobility_illegal() const;
+  bool gating() const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -158,6 +160,7 @@ public:
   Piece piece_on(Square s) const;
   Piece unpromoted_piece_on(Square s) const;
   Square ep_square() const;
+  Bitboard gates(Color c) const;
   bool empty(Square s) const;
   int count(Color c, PieceType pt) const;
   template<PieceType Pt> int count(Color c) const;
@@ -494,6 +497,11 @@ inline bool Position::immobility_illegal() const {
   return var->immobilityIllegal;
 }
 
+inline bool Position::gating() const {
+  assert(var != nullptr);
+  return var->gating;
+}
+
 inline int Position::n_move_rule() const {
   assert(var != nullptr);
   return var->nMoveRule;
@@ -682,6 +690,11 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
 
 inline Square Position::ep_square() const {
   return st->epSquare;
+}
+
+inline Bitboard Position::gates(Color c) const {
+  assert(var != nullptr);
+  return st->gatesBB[c];
 }
 
 inline bool Position::is_on_semiopen_file(Color c, Square s) const {

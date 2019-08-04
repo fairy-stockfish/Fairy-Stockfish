@@ -25,6 +25,24 @@
 
 namespace {
 
+  template<MoveType T>
+  ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to) {
+
+    *moveList++ = make<T>(from, to);
+
+    // Gating moves
+    if (pos.gating() && (pos.gates(us) & square_bb(from)))
+        for (PieceType pt_gating = PAWN; pt_gating <= KING; ++pt_gating)
+            if (pos.count_in_hand(us, pt_gating) && (pos.drop_region(us, pt_gating) & from))
+                *moveList++ = make_gating<T>(from, to, pt_gating, from);
+    if (pos.gating() && T == CASTLING && (pos.gates(us) & square_bb(to)))
+        for (PieceType pt_gating = PAWN; pt_gating <= KING; ++pt_gating)
+            if (pos.count_in_hand(us, pt_gating) && (pos.drop_region(us, pt_gating) & to))
+                *moveList++ = make_gating<T>(from, to, pt_gating, to);
+
+    return moveList;
+  }
+
   template<Color c, GenType Type, Direction D>
   ExtMove* make_promotions(const Position& pos, ExtMove* moveList, Square to) {
 
@@ -273,7 +291,7 @@ namespace {
         }
 
         while (b1)
-            *moveList++ = make_move(from, pop_lsb(&b1));
+            moveList = make_move_and_gating<NORMAL>(pos, moveList, us, from, pop_lsb(&b1));
 
         // Shogi-style piece promotions
         while (b2)
@@ -308,15 +326,15 @@ namespace {
         Square ksq = pos.square<KING>(Us);
         Bitboard b = pos.attacks_from<KING>(Us, ksq) & target;
         while (b)
-            *moveList++ = make_move(ksq, pop_lsb(&b));
+            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(&b));
 
         if (Type != CAPTURES && pos.can_castle(CastlingRight(OO | OOO)))
         {
             if (!pos.castling_impeded(OO) && pos.can_castle(OO))
-                *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(OO));
+                moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, ksq, pos.castling_rook_square(OO));
 
             if (!pos.castling_impeded(OOO) && pos.can_castle(OOO))
-                *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(OOO));
+                moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, ksq, pos.castling_rook_square(OOO));
         }
     }
 
@@ -325,10 +343,10 @@ namespace {
     {
         Square from = make_square(FILE_E, relative_rank(Us, pos.castling_rank(), pos.max_rank()));
         if (!pos.castling_impeded(OO) && pos.can_castle(OO))
-            *moveList++ = make<CASTLING>(from, pos.castling_rook_square(OO));
+            moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, from, pos.castling_rook_square(OO));
 
         if (!pos.castling_impeded(OOO) && pos.can_castle(OOO))
-            *moveList++ = make<CASTLING>(from, pos.castling_rook_square(OOO));
+            moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, from, pos.castling_rook_square(OOO));
     }
 
     return moveList;
@@ -390,7 +408,7 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
          b &= ~PseudoAttacks[~us][QUEEN][pos.square<KING>(~us)];
 
      while (b)
-         *moveList++ = make_move(from, pop_lsb(&b));
+         moveList = make_move_and_gating<NORMAL>(pos, moveList, us, from, pop_lsb(&b));
   }
 
   return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
@@ -422,7 +440,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   // Generate evasions for king, capture and non capture moves
   Bitboard b = pos.attacks_from<KING>(us, ksq) & ~pos.pieces(us) & ~sliderAttacks;
   while (b)
-      *moveList++ = make_move(ksq, pop_lsb(&b));
+      moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
 
   if (more_than_one(pos.checkers()))
       return moveList; // Double check, only a king move can save the day
