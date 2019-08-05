@@ -151,12 +151,7 @@ Entry* probe(const Position& pos) {
   else
       e->gamePhase = Phase(((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
 
-#ifdef LARGEBOARDS
-  // Disable endgame evaluation until it works independent of board size
-  if (false)
-#else
   if (pos.endgame_eval())
-#endif
   {
   // Let's look if we have a specialized evaluation function for this particular
   // material configuration. Firstly we look for a fixed configuration one, then
