@@ -639,7 +639,7 @@ const string Position::fen() const {
 
   if (gating() && gates(WHITE))
       for (File f = FILE_A; f <= max_file(); ++f)
-          if (gates(WHITE) & file_bb(f))
+          if ((gates(WHITE) & file_bb(f)) && count_in_hand(WHITE, ALL_PIECES))
               ss << char('A' + f);
 
   if (can_castle(BLACK_OO))
@@ -650,7 +650,7 @@ const string Position::fen() const {
 
   if (gating() && gates(BLACK))
       for (File f = FILE_A; f <= max_file(); ++f)
-          if (gates(BLACK) & file_bb(f))
+          if ((gates(BLACK) & file_bb(f)) && count_in_hand(BLACK, ALL_PIECES))
               ss << char('a' + f);
 
   if (!can_castle(ANY_CASTLING) && !(gating() && (gates(WHITE) | gates(BLACK))))
