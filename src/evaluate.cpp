@@ -549,7 +549,7 @@ namespace {
                  -  35 * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
                  -  10 * bool(attackedBy2[Us] & attackedBy[Us][KING]) * pos.captures_to_hand()
                  + 150 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
-                 - 873 * !(pos.count<QUEEN>(Them) || pos.captures_to_hand()) / (1 + !!pos.max_check_count())
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand()) / (1 + !!pos.max_check_count())
                  -   6 * mg_value(score) / 8
                  +       mg_value(mobility[Them] - mobility[Us])
                  +   5 * kingFlankAttacks * kingFlankAttacks / 16
