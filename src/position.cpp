@@ -1063,6 +1063,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
+  Square rfrom;
+
   if (to == from)
   {
       assert(type_of(m) == PROMOTION && sittuyin_promotion());
@@ -1082,7 +1084,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       assert(type_of(pc) != NO_PIECE_TYPE);
       assert(captured == make_piece(us, ROOK));
 
-      Square rfrom, rto;
+      Square rto;
       do_castling<true>(us, from, to, rfrom, rto);
 
       k ^= Zobrist::psq[captured][rfrom] ^ Zobrist::psq[captured][rto];
@@ -1296,8 +1298,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       if (is_ok(from) && (gates(us) & from))
           st->gatesBB[us] ^= from;
-      if (type_of(m) == CASTLING)
-          st->gatesBB[us] ^= to;
+      if (type_of(m) == CASTLING && (gates(us) & rfrom))
+          st->gatesBB[us] ^= rfrom;
       if (gates(them) & to)
           st->gatesBB[them] ^= to;
       if (!count_in_hand(us, ALL_PIECES) && !captures_to_hand())
