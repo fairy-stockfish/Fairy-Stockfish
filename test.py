@@ -3,6 +3,8 @@
 import unittest
 import pyffish as sf
 
+STANDARD = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+CHESS960 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1"
 CAPA = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1"
 SITTUYIN = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1"
 MAKRUK = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1"
@@ -59,8 +61,19 @@ class TestPyffish(unittest.TestCase):
         self.assertIn("f1i1", result)
 
     def test_get_fen(self):
+        result = sf.get_fen("standard", STANDARD, [])
+        self.assertEqual(result, STANDARD)
+
         result = sf.get_fen("capablanca", CAPA, [])
         self.assertEqual(result, CAPA)
+
+        fen0 = "reb1k2r/ppppqppp/2nb1n2/4p3/4P3/N1P2N2/PB1PQPPP/RE2KBHR[h] b KQkqac - 2 6"
+        fen1 = "reb2rk1/ppppqppp/2nb1n2/4p3/4P3/N1P2N2/PB1PQPPP/RE2KBHR[h] w KQac - 3 7"
+        result = sf.get_fen("seirawan", fen0, ["e8g8"])
+        self.assertEqual(result, fen1)
+
+        result = sf.get_fen("standard", STANDARD, [], True)
+        self.assertEqual(result, CHESS960)
 
     def test_get_san(self):
         fen = "4k3/8/3R4/8/1R3R2/8/3R4/4K3 w - - 0 1"
