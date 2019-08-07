@@ -1296,8 +1296,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       if (is_ok(from) && (gates(us) & from))
           st->gatesBB[us] ^= from;
-      if (type_of(m) == CASTLING)
-          st->gatesBB[us] ^= to;
+      if (type_of(m) == CASTLING && (gates(us) & to_sq(m)))
+          st->gatesBB[us] ^= to_sq(m);
       if (gates(them) & to)
           st->gatesBB[them] ^= to;
       if (!count_in_hand(us, ALL_PIECES) && !captures_to_hand())
