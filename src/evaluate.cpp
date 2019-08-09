@@ -903,7 +903,7 @@ namespace {
     {
         int remainingChecks = pos.max_check_count() - pos.checks_given(Us);
         assert(remainingChecks > 0);
-        score += make_score(3200, 1000) / (remainingChecks * remainingChecks);
+        score += make_score(3600, 1000) / (remainingChecks * remainingChecks);
     }
 
     // Extinction
