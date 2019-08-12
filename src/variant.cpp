@@ -511,6 +511,13 @@ VariantMap variants; // Global object
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    Variant* capahouse_variant() {
+        Variant* v = capablanca_variant();
+        v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1";
+        v->pieceDrops = true;
+        v->capturesToHand = true;
+        return v;
+    }
     Variant* caparandom_variant() {
         Variant* v = capablanca_variant();
         v->chess960 = true;
@@ -672,6 +679,7 @@ void VariantMap::init() {
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("capablanca", capablanca_variant());
+    add("capahouse", capahouse_variant());
     add("caparandom", caparandom_variant());
     add("gothic", gothic_variant());
     add("janus", janus_variant());
