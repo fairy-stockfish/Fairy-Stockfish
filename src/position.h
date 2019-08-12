@@ -157,6 +157,7 @@ public:
   Bitboard pieces(Color c) const;
   Bitboard pieces(Color c, PieceType pt) const;
   Bitboard pieces(Color c, PieceType pt1, PieceType pt2) const;
+  Bitboard major_pieces(Color c) const;
   Piece piece_on(Square s) const;
   Piece unpromoted_piece_on(Square s) const;
   Square ep_square() const;
@@ -661,6 +662,10 @@ inline Bitboard Position::pieces(Color c, PieceType pt) const {
 
 inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
   return byColorBB[c] & (byTypeBB[pt1] | byTypeBB[pt2]);
+}
+
+inline Bitboard Position::major_pieces(Color c) const {
+  return byColorBB[c] & (byTypeBB[QUEEN] | byTypeBB[AIWOK] | byTypeBB[ARCHBISHOP] | byTypeBB[CHANCELLOR] | byTypeBB[AMAZON]);
 }
 
 inline int Position::count(Color c, PieceType pt) const {
