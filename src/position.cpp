@@ -380,7 +380,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
                   st->gatesBB[c] |= count<KING>(c) ? square<KING>(c) : make_square(FILE_E, relative_rank(c, castling_rank(), max_rank()));
               // Do not set castling rights for gates unless there are no pieces in hand,
               // which means that the file is referring to a chess960 castling right.
-              else if (count_in_hand(c, ALL_PIECES))
+              else if (count_in_hand(c, ALL_PIECES) || captures_to_hand())
                   continue;
           }
 
@@ -390,7 +390,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       // Set castling rights for 960 gating variants
       if (gating())
           for (Color c : {WHITE, BLACK})
-              if ((gates(c) & pieces(KING)) && !castling_rights(c) && count_in_hand(c, ALL_PIECES))
+              if ((gates(c) & pieces(KING)) && !castling_rights(c) && (count_in_hand(c, ALL_PIECES) || captures_to_hand()))
               {
                   Bitboard castling_rooks = gates(c) & pieces(ROOK);
                   while (castling_rooks)
@@ -637,9 +637,9 @@ const string Position::fen() const {
   if (can_castle(WHITE_OOO))
       ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OOO))) : 'Q');
 
-  if (gating() && gates(WHITE))
+  if (gating() && gates(WHITE) && (count_in_hand(WHITE, ALL_PIECES) || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
-          if ((gates(WHITE) & file_bb(f)) && count_in_hand(WHITE, ALL_PIECES))
+          if (gates(WHITE) & file_bb(f))
               ss << char('A' + f);
 
   if (can_castle(BLACK_OO))
@@ -648,9 +648,9 @@ const string Position::fen() const {
   if (can_castle(BLACK_OOO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OOO))) : 'q');
 
-  if (gating() && gates(BLACK))
+  if (gating() && gates(BLACK) && (count_in_hand(BLACK, ALL_PIECES) || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
-          if ((gates(BLACK) & file_bb(f)) && count_in_hand(BLACK, ALL_PIECES))
+          if (gates(BLACK) & file_bb(f))
               ss << char('a' + f);
 
   if (!can_castle(ANY_CASTLING) && !(gating() && (gates(WHITE) | gates(BLACK))))
