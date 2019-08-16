@@ -48,7 +48,8 @@ namespace {
 
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
         for (PieceType pt : pos.promotion_piece_types())
-            *moveList++ = make<PROMOTION>(to - D, to, pt);
+            if (!pos.promotion_limit(pt) || pos.promotion_limit(pt) > pos.count(c, pt))
+                *moveList++ = make<PROMOTION>(to - D, to, pt);
 
     return moveList;
   }
@@ -95,10 +96,11 @@ namespace {
 
     Bitboard emptySquares;
 
-    Bitboard TRank8BB = rank_bb(Us == WHITE ? pos.promotion_rank() : Rank(pos.max_rank() - pos.promotion_rank()));
+    Bitboard TRank8BB = pos.mandatory_pawn_promotion() ? rank_bb(relative_rank(Us, pos.promotion_rank(), pos.max_rank()))
+                                                       : promotion_zone_bb(Us, pos.promotion_rank(), pos.max_rank());
     Bitboard TRank7BB = shift<Down>(TRank8BB);
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
-    Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
+    Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank7BB : AllSquares);
 
     Bitboard enemies = (Type == EVASIONS ? pos.pieces(Them) & target:
                         Type == CAPTURES ? target : pos.pieces(Them));

@@ -861,6 +861,9 @@ namespace {
     int weight = pos.count<ALL_PIECES>(Us) - 1;
     Score score = make_score(bonus * weight * weight / 16, 0);
 
+    if (pos.capture_the_flag(Us))
+        score += make_score(200, 200) * popcount(behind & safe & pos.capture_the_flag(Us));
+
     if (T)
         Trace::add(SPACE, Us, score);
 

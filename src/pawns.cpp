@@ -124,7 +124,7 @@ namespace {
 
         // Passed pawns will be properly scored later in evaluation when we have
         // full attack info.
-        if (passed)
+        if (passed && is_ok(s + Up))
             e->passedPawns[Us] |= s;
 
         // Score this pawn
