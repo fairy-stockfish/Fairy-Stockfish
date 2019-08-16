@@ -44,8 +44,10 @@ struct Variant {
   Rank promotionRank = RANK_8;
   std::set<PieceType, std::greater<PieceType> > promotionPieceTypes = { QUEEN, ROOK, BISHOP, KNIGHT };
   bool sittuyinPromotion = false;
+  uint8_t promotionLimit[PIECE_TYPE_NB] = {}; // 0 means unlimited
   PieceType promotedPieceType[PIECE_TYPE_NB] = {};
   bool piecePromotionOnCapture = false;
+  bool mandatoryPawnPromotion = true;
   bool mandatoryPiecePromotion = false;
   bool pieceDemotion = false;
   bool endgameEval = false;

@@ -101,8 +101,10 @@ public:
   Rank promotion_rank() const;
   const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
   bool sittuyin_promotion() const;
+  int promotion_limit(PieceType pt) const;
   PieceType promoted_piece_type(PieceType pt) const;
   bool piece_promotion_on_capture() const;
+  bool mandatory_pawn_promotion() const;
   bool mandatory_piece_promotion() const;
   bool piece_demotion() const;
   bool endgame_eval() const;
@@ -338,6 +340,11 @@ inline bool Position::sittuyin_promotion() const {
   return var->sittuyinPromotion;
 }
 
+inline int Position::promotion_limit(PieceType pt) const {
+  assert(var != nullptr);
+  return var->promotionLimit[pt];
+}
+
 inline PieceType Position::promoted_piece_type(PieceType pt) const {
   assert(var != nullptr);
   return var->promotedPieceType[pt];
@@ -346,6 +353,11 @@ inline PieceType Position::promoted_piece_type(PieceType pt) const {
 inline bool Position::piece_promotion_on_capture() const {
   assert(var != nullptr);
   return var->piecePromotionOnCapture;
+}
+
+inline bool Position::mandatory_pawn_promotion() const {
+  assert(var != nullptr);
+  return var->mandatoryPawnPromotion;
 }
 
 inline bool Position::mandatory_piece_promotion() const {
