@@ -398,6 +398,16 @@ VariantMap variants; // Global object
         v->castling = false;
         return v;
     }
+    Variant* gardner_variant() {
+        Variant* v = fairy_variant_base();
+        v->maxRank = RANK_5;
+        v->maxFile = FILE_E;
+        v->startFen = "rnbqk/ppppp/5/PPPPP/RNBQK w - - 0 1";
+        v->promotionRank = RANK_5;
+        v->doubleStep = false;
+        v->castling = false;
+        return v;
+    }
     Variant* almost_variant() {
         Variant* v = chess_variant();
         v->remove_piece(QUEEN);
@@ -605,6 +615,27 @@ VariantMap variants; // Global object
         v->stalemateValue = -VALUE_MATE;
         return v;
     }
+    Variant* grand_variant() {
+        Variant* v = fairy_variant_base();
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_J;
+        v->add_piece(ARCHBISHOP, 'a');
+        v->add_piece(CHANCELLOR, 'c');
+        v->startFen = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1";
+        v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionRank = RANK_8;
+        v->promotionLimit[ARCHBISHOP] = 1;
+        v->promotionLimit[CHANCELLOR] = 1;
+        v->promotionLimit[QUEEN] = 1;
+        v->promotionLimit[ROOK] = 2;
+        v->promotionLimit[BISHOP] = 2;
+        v->promotionLimit[KNIGHT] = 2;
+        v->mandatoryPawnPromotion = false;
+        v->immobilityIllegal = true;
+        v->doubleStepRank = RANK_3;
+        v->castling = false;
+        return v;
+    }
     Variant* shako_variant() {
         Variant* v = fairy_variant_base();
         v->maxRank = RANK_10;
@@ -669,6 +700,7 @@ void VariantMap::init() {
     add("judkins", judkinsshogi_variant());
     add("euroshogi", euroshogi_variant());
     add("losalamos", losalamos_variant());
+    add("gardner", gardner_variant());
     add("almost", almost_variant());
     add("chigorin", chigorin_variant());
     add("shatar", shatar_variant());
@@ -688,6 +720,7 @@ void VariantMap::init() {
     add("embassy", embassy_variant());
     add("jesonmor", jesonmor_variant());
     add("courier", courier_variant());
+    add("grand", grand_variant());
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
 #endif
