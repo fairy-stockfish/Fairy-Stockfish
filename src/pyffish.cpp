@@ -92,11 +92,13 @@ const string move_to_san(Position& pos, Move m) {
 
       if (type_of(m) == PROMOTION)
           san += string("=") + pos.piece_to_char()[make_piece(WHITE, promotion_type(m))];
+      else if (type_of(m) == PIECE_PROMOTION)
+          san += string("+");
       else if (is_gating(m))
           san += string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
   }
 
-  if (pos.gives_check(m))
+  if (pos.gives_check(m) && (Options["Protocol"] == "uci"))
   {
       StateInfo st;
       pos.do_move(m, st);
