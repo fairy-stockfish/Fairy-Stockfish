@@ -50,7 +50,8 @@ const string move_to_san(Position& pos, Move m) {
       }
   else
   {
-      san = type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@') : "";
+      san = (pos.is_promoted(from) && Options["Protocol"] == "usi") ? "+" : ""; 
+      san += type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@') : "";
 
       if (pt != PAWN && type_of(m) != DROP)
       {
