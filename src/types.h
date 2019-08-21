@@ -49,7 +49,7 @@
 #pragma warning(disable: 4127) // Conditional expression is constant
 #pragma warning(disable: 4146) // Unary minus operator applied to unsigned type
 #pragma warning(disable: 4800) // Forcing value to bool 'true' or 'false'
-#pragma comment(linker, "/STACK:4000000") // Use 4 MB stack size for MSVC
+#pragma comment(linker, "/STACK:8000000") // Use 8 MB stack size for MSVC
 #endif
 
 /// Predefined macros hell:
