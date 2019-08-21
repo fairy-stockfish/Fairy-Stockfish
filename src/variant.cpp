@@ -255,9 +255,13 @@ VariantMap variants; // Global object
         v->add_piece(CHANCELLOR, 'e');
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1";
         v->gating = true;
-        v->whiteDropRegion = Rank1BB;
-        v->blackDropRegion = Rank8BB;
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
+        return v;
+    }
+    Variant* shouse_variant() {
+        Variant* v = seirawan_variant();
+        v->pieceDrops = true;
+        v->capturesToHand = true;
         return v;
     }
     Variant* minishogi_variant_base() {
@@ -691,6 +695,7 @@ void VariantMap::init() {
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
     add("seirawan", seirawan_variant());
+    add("shouse", shouse_variant());
     add("minishogi", minishogi_variant());
     add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());

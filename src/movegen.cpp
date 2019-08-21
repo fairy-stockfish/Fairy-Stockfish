@@ -31,11 +31,11 @@ namespace {
     *moveList++ = make<T>(from, to);
 
     // Gating moves
-    if (pos.gating() && (pos.gates(us) & square_bb(from)))
+    if (pos.gating() && (pos.gates(us) & from))
         for (PieceType pt_gating = PAWN; pt_gating <= KING; ++pt_gating)
             if (pos.count_in_hand(us, pt_gating) && (pos.drop_region(us, pt_gating) & from))
                 *moveList++ = make_gating<T>(from, to, pt_gating, from);
-    if (pos.gating() && T == CASTLING && (pos.gates(us) & square_bb(to)))
+    if (pos.gating() && T == CASTLING && (pos.gates(us) & to))
         for (PieceType pt_gating = PAWN; pt_gating <= KING; ++pt_gating)
             if (pos.count_in_hand(us, pt_gating) && (pos.drop_region(us, pt_gating) & to))
                 *moveList++ = make_gating<T>(from, to, pt_gating, to);
