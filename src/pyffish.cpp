@@ -55,7 +55,11 @@ const string move_to_san(Position& pos, Move m) {
 
       if (pt != PAWN && type_of(m) != DROP)
       {
-          if (type_of(m) != DROP) san += pos.piece_to_char()[make_piece(WHITE, pt)];
+          if (type_of(m) != DROP)
+              if (pos.is_promoted(from) && Options["Protocol"] == "usi")
+                san += toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]);
+              else
+                san += pos.piece_to_char()[make_piece(WHITE, pt)];
 
           // A disambiguation occurs if we have more then one piece of type 'pt'
           // that can reach 'to' with a legal move.
