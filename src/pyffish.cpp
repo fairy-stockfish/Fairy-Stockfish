@@ -81,10 +81,11 @@ const string move_to_san(Position& pos, Move m) {
           else
               san += UCI::square(pos, from);
       }
-      else if (pos.capture(m))
+      else if (pos.capture(m) && type_of(m) != PROMOTION)
+          // pawn captures (except sittuyin in place promotion)
           san += UCI::square(pos, from)[0];
 
-      if (pos.capture(m))
+      if (pos.capture(m) && type_of(m) != PROMOTION)
           san += 'x';
 
       san += UCI::square(pos, to);
