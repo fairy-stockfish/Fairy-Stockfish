@@ -93,6 +93,8 @@ const string move_to_san(Position& pos, Move m) {
           san += string("=") + pos.piece_to_char()[make_piece(WHITE, promotion_type(m))];
       else if (type_of(m) == PIECE_PROMOTION)
           san += string("+");
+      else if (type_of(m) == NORMAL && Options["Protocol"] == "usi" && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
+          san += string("=");
       else if (is_gating(m))
           san += string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
   }
