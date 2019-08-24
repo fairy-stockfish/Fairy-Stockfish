@@ -110,6 +110,10 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("sittuyin", SITTUYIN, "R@a1")
         self.assertEqual(result, "R@a1")
 
+        fen = "3rr3/1kn3n1/1ss1p1pp/1pPpP3/6PP/p3KN2/2SSFN2/3R3R[] b - - 0 14"
+        result = sf.get_san("sittuyin", fen, "c6c5")
+        self.assertEqual(result, "Scxc5")
+
         result = sf.get_san("shogi", SHOGI, "1g1f")
         self.assertEqual(result, "P1f")
 
