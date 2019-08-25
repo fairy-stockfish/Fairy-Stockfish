@@ -101,6 +101,10 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("standard", fen, "d2d4")
         self.assertEqual(result, "Rd4")
 
+        fen = "1r2k3/P1P5/8/8/8/8/8/4K3 w - - 0 1"
+        result = sf.get_san("standard", fen, "c7b8q")
+        self.assertEqual(result, "cxb8=Q+")
+
         result = sf.get_san("capablanca", CAPA, "e2e4")
         self.assertEqual(result, "e4")
 

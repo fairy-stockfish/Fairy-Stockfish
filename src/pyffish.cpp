@@ -81,11 +81,12 @@ const string move_to_san(Position& pos, Move m) {
           else
               san += UCI::square(pos, from);
       }
-      else if (pos.capture(m) && type_of(m) != PROMOTION)
+      else if (pos.capture(m) && from != to)
           // pawn captures (except sittuyin in place promotion)
+          // TODO: this is wrong! cak az in place lépést kell kizárni, ütés+promotion lehet rendes akkban két felől!!!
           san += UCI::square(pos, from)[0];
 
-      if (pos.capture(m) && type_of(m) != PROMOTION)
+      if (pos.capture(m) && from != to)
           san += 'x';
 
       san += UCI::square(pos, to);
