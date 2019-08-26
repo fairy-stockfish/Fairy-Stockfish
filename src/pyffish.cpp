@@ -50,16 +50,14 @@ const string move_to_san(Position& pos, Move m) {
       }
   else
   {
-      san = (pos.is_promoted(from) && Options["Protocol"] == "usi") ? "+" : ""; 
-      san += type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@') : "";
-
-      if (pt != PAWN && type_of(m) != DROP)
+      if (type_of(m) == DROP)
+          san += UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@');
+      else if (pt != PAWN)
       {
-          if (type_of(m) != DROP)
-              if (pos.is_promoted(from) && Options["Protocol"] == "usi")
-                san += toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]);
-              else
-                san += pos.piece_to_char()[make_piece(WHITE, pt)];
+          if (pos.is_promoted(from) && Options["Protocol"] == "usi")
+              san += "+" + toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]);
+          else
+              san += pos.piece_to_char()[make_piece(WHITE, pt)];
 
           // A disambiguation occurs if we have more then one piece of type 'pt'
           // that can reach 'to' with a legal move.
@@ -81,13 +79,13 @@ const string move_to_san(Position& pos, Move m) {
           else
               san += UCI::square(pos, from);
       }
-      else if (pos.capture(m) && from != to)
-          // pawn captures (except sittuyin in place promotion)
-          // TODO: this is wrong! cak az in place lépést kell kizárni, ütés+promotion lehet rendes akkban két felől!!!
-          san += UCI::square(pos, from)[0];
 
       if (pos.capture(m) && from != to)
+      {
+          if (pt == PAWN)
+              san += UCI::square(pos, from)[0];
           san += 'x';
+      }
       else if (Options["Protocol"] == "usi")
           san += '-';
 
