@@ -74,9 +74,9 @@ const string move_to_san(Position& pos, Move m) {
 
           if (!others)
               { /* disambiguation is not needed */ }
-          else if (!(others & file_bb(from)))
+          else if (!(others & file_bb(from)) && Options["Protocol"] == "uci")
               san += UCI::square(pos, from)[0];
-          else if (!(others & rank_bb(from)))
+          else if (!(others & rank_bb(from)) && Options["Protocol"] == "uci")
               san += UCI::square(pos, from)[1];
           else
               san += UCI::square(pos, from);
@@ -88,6 +88,8 @@ const string move_to_san(Position& pos, Move m) {
 
       if (pos.capture(m) && from != to)
           san += 'x';
+      else if (Options["Protocol"] == "usi")
+          san += '-';
 
       san += UCI::square(pos, to);
 
