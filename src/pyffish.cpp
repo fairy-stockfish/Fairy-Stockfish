@@ -52,42 +52,45 @@ const string move_to_san(Position& pos, Move m) {
   {
       if (type_of(m) == DROP)
           san += UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@');
-      else if (pt != PAWN)
+      else
       {
-          if (pos.is_promoted(from) && Options["Protocol"] == "usi")
-              san += "+" + toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]);
-          else
-              san += pos.piece_to_char()[make_piece(WHITE, pt)];
-
-          // A disambiguation occurs if we have more then one piece of type 'pt'
-          // that can reach 'to' with a legal move.
-          others = b = (attacks_bb(~us, pt, to, pos.pieces()) & pos.pieces(us, pt)) ^ from;
-
-          while (b)
+          if (pt != PAWN)
           {
-              Square s = pop_lsb(&b);
-              if (!pos.legal(make_move(s, to)))
-                  others ^= s;
+              if (pos.is_promoted(from) && Options["Protocol"] == "usi")
+                  san += "+" + toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]);
+              else
+                  san += pos.piece_to_char()[make_piece(WHITE, pt)];
+
+              // A disambiguation occurs if we have more then one piece of type 'pt'
+              // that can reach 'to' with a legal move.
+              others = b = (attacks_bb(~us, pt, to, pos.pieces()) & pos.pieces(us, pt)) ^ from;
+
+              while (b)
+              {
+                  Square s = pop_lsb(&b);
+                  if (!pos.legal(make_move(s, to)))
+                      others ^= s;
+              }
+
+              if (!others)
+                  { /* disambiguation is not needed */ }
+              else if (!(others & file_bb(from)) && Options["Protocol"] == "uci")
+                  san += UCI::square(pos, from)[0];
+              else if (!(others & rank_bb(from)) && Options["Protocol"] == "uci")
+                  san += UCI::square(pos, from)[1];
+              else
+                  san += UCI::square(pos, from);
           }
 
-          if (!others)
-              { /* disambiguation is not needed */ }
-          else if (!(others & file_bb(from)) && Options["Protocol"] == "uci")
-              san += UCI::square(pos, from)[0];
-          else if (!(others & rank_bb(from)) && Options["Protocol"] == "uci")
-              san += UCI::square(pos, from)[1];
-          else
-              san += UCI::square(pos, from);
+          if (pos.capture(m) && from != to)
+          {
+              if (pt == PAWN)
+                  san += UCI::square(pos, from)[0];
+              san += 'x';
+          }
+          else if (Options["Protocol"] == "usi")
+              san += '-';
       }
-
-      if (pos.capture(m) && from != to)
-      {
-          if (pt == PAWN)
-              san += UCI::square(pos, from)[0];
-          san += 'x';
-      }
-      else if (Options["Protocol"] == "usi")
-          san += '-';
 
       san += UCI::square(pos, to);
 

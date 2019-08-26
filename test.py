@@ -128,11 +128,15 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", SHOGI, "4i5h")
         self.assertEqual(result, "G4i-5h")
 
-        fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL[] b 2 2"
+        fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b -"
         result = sf.get_san("shogi", fen, "8h2b")
         self.assertEqual(result, "Bx2b=")
         result = sf.get_san("shogi", fen, "8h2b+")
         self.assertEqual(result, "Bx2b+")
+
+        fen = "lnsgkg1nl/1r5s1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b Bb"
+        result = sf.get_san("shogi", fen, "B*3c")
+        self.assertEqual(result, "B*3c")
 
         fen = "rnsm1s1r/4n1k1/1ppppppp/p7/2PPP3/PP3PPP/4N2R/RNSKMS2 b - - 1 5"
         result = sf.get_san("makruk", fen, "f8f7")
