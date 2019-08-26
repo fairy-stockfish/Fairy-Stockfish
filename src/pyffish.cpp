@@ -68,7 +68,8 @@ const string move_to_san(Position& pos, Move m) {
               while (b)
               {
                   Square s = pop_lsb(&b);
-                  if (!pos.legal(make_move(s, to)))
+                  if (   !pos.legal(make_move(s, to))
+                      || (Options["Protocol"] == "usi" && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
                       others ^= s;
               }
 
