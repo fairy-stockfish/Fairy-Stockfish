@@ -142,6 +142,10 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", fen, "2b3c")
         self.assertEqual(result, "+B-3c")
 
+        fen = "lnk2gsnl/7b1/p1p+SGp1pp/6p2/1pP6/4P4/PP3PPPP/1S2G2R1/L2GK1bNL b PRppns"
+        result = sf.get_san("shogi", fen, "6c6b")
+        self.assertEqual(result, "+S-6b")
+
         fen = "rnsm1s1r/4n1k1/1ppppppp/p7/2PPP3/PP3PPP/4N2R/RNSKMS2 b - - 1 5"
         result = sf.get_san("makruk", fen, "f8f7")
         self.assertEqual(result, "Sf7")
