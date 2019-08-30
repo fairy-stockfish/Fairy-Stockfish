@@ -33,12 +33,14 @@ void PieceInfo::merge(const PieceInfo* pi) {
 namespace {
   PieceInfo* pawn_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "pawn";
       p->stepsQuiet = {NORTH};
       p->stepsCapture = {NORTH_WEST, NORTH_EAST};
       return p;
   }
   PieceInfo* knight_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "knight";
       p->stepsQuiet = {2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
                        NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST };
       p->stepsCapture = {2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
@@ -47,48 +49,61 @@ namespace {
   }
   PieceInfo* bishop_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "bishop";
       p->sliderQuiet = {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
       p->sliderCapture = {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
       return p;
   }
   PieceInfo* rook_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "rook";
       p->sliderQuiet = {NORTH, EAST, SOUTH, WEST};
       p->sliderCapture = {NORTH, EAST, SOUTH, WEST};
       return p;
   }
   PieceInfo* queen_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "queen";
       p->sliderQuiet = {NORTH, EAST, SOUTH, WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
       p->sliderCapture = {NORTH, EAST, SOUTH, WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
       return p;
   }
   PieceInfo* king_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "king";
       p->stepsQuiet = {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST};
       p->stepsCapture = {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST};
       return p;
   }
+  PieceInfo* commoner_piece() {
+      PieceInfo* p = king_piece();
+      p->name = "commoner";
+      return p;
+  }
   PieceInfo* fers_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "fers";
       p->stepsQuiet = {SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST};
       p->stepsCapture = {SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST};
       return p;
   }
   PieceInfo* wazir_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "wazir";
       p->stepsQuiet = {SOUTH, WEST, EAST, NORTH};
       p->stepsCapture = {SOUTH, WEST, EAST, NORTH};
       return p;
   }
   PieceInfo* alfil_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "alfil";
       p->stepsQuiet = {2 * SOUTH_WEST, 2 * SOUTH_EAST, 2 * NORTH_WEST, 2 * NORTH_EAST};
       p->stepsCapture = {2 * SOUTH_WEST, 2 * SOUTH_EAST, 2 * NORTH_WEST, 2 * NORTH_EAST};
       return p;
   }
   PieceInfo* fers_alfil_piece() {
       PieceInfo* p = fers_piece();
+      p->name = "fers_alfil";
       PieceInfo* p2 = alfil_piece();
       p->merge(p2);
       delete p2;
@@ -96,12 +111,14 @@ namespace {
   }
   PieceInfo* silver_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "silver";
       p->stepsQuiet = {SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH, NORTH_EAST};
       p->stepsCapture = {SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH, NORTH_EAST};
       return p;
   }
   PieceInfo* aiwok_piece() {
       PieceInfo* p = rook_piece();
+      p->name = "aiwok";
       PieceInfo* p2 = knight_piece();
       PieceInfo* p3 = fers_piece();
       p->merge(p2);
@@ -112,6 +129,7 @@ namespace {
   }
   PieceInfo* bers_piece() {
       PieceInfo* p = rook_piece();
+      p->name = "bers";
       PieceInfo* p2 = fers_piece();
       p->merge(p2);
       delete p2;
@@ -119,6 +137,7 @@ namespace {
   }
   PieceInfo* archbishop_piece() {
       PieceInfo* p = bishop_piece();
+      p->name = "archbishop";
       PieceInfo* p2 = knight_piece();
       p->merge(p2);
       delete p2;
@@ -126,6 +145,7 @@ namespace {
   }
   PieceInfo* chancellor_piece() {
       PieceInfo* p = rook_piece();
+      p->name = "chancellor";
       PieceInfo* p2 = knight_piece();
       p->merge(p2);
       delete p2;
@@ -133,6 +153,7 @@ namespace {
   }
   PieceInfo* amazon_piece() {
       PieceInfo* p = queen_piece();
+      p->name = "amazon";
       PieceInfo* p2 = knight_piece();
       p->merge(p2);
       delete p2;
@@ -140,6 +161,7 @@ namespace {
   }
   PieceInfo* knibis_piece() {
       PieceInfo* p = bishop_piece();
+      p->name = "knibis";
       PieceInfo* p2 = knight_piece();
       p->merge(p2);
       delete p2;
@@ -149,6 +171,7 @@ namespace {
   }
   PieceInfo* biskni_piece() {
       PieceInfo* p = bishop_piece();
+      p->name = "biskni";
       PieceInfo* p2 = knight_piece();
       p->merge(p2);
       delete p2;
@@ -158,24 +181,28 @@ namespace {
   }
   PieceInfo* shogi_pawn_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "shogi_pawn";
       p->stepsQuiet = {NORTH};
       p->stepsCapture = {NORTH};
       return p;
   }
   PieceInfo* lance_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "lance";
       p->sliderQuiet = {NORTH};
       p->sliderCapture = {NORTH};
       return p;
   }
   PieceInfo* shogi_knight_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "shogi_knight";
       p->stepsQuiet = {2 * NORTH + WEST, 2 * NORTH + EAST};
       p->stepsCapture = {2 * NORTH + WEST, 2 * NORTH + EAST};
       return p;
   }
   PieceInfo* euroshogi_knight_piece() {
       PieceInfo* p = shogi_knight_piece();
+      p->name = "euroshogi_knight";
       p->stepsQuiet.push_back(WEST);
       p->stepsQuiet.push_back(EAST);
       p->stepsCapture.push_back(WEST);
@@ -184,12 +211,14 @@ namespace {
   }
   PieceInfo* gold_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "gold";
       p->stepsQuiet = {SOUTH, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST};
       p->stepsCapture = {SOUTH, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST};
       return p;
   }
   PieceInfo* horse_piece() {
       PieceInfo* p = bishop_piece();
+      p->name = "horse";
       PieceInfo* p2 = wazir_piece();
       p->merge(p2);
       delete p2;
@@ -197,21 +226,25 @@ namespace {
   }
   PieceInfo* clobber_piece() {
       PieceInfo* p = wazir_piece();
+      p->name = "clobber";
       p->stepsQuiet = {};
       return p;
   }
   PieceInfo* breakthrough_piece() {
       PieceInfo* p = pawn_piece();
+      p->name = "breakthrough";
       p->stepsQuiet.push_back(NORTH_WEST);
       p->stepsQuiet.push_back(NORTH_EAST);
       return p;
   }
   PieceInfo* immobile_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "immobile";
       return p;
   }
   PieceInfo* cannon_piece() {
       PieceInfo* p = new PieceInfo();
+      p->name = "cannon";
       p->sliderQuiet = {NORTH, EAST, SOUTH, WEST};
       p->hopperCapture = {NORTH, EAST, SOUTH, WEST};
       return p;
@@ -246,7 +279,7 @@ void PieceMap::init() {
   add(IMMOBILE_PIECE, immobile_piece());
   add(CANNON, cannon_piece());
   add(WAZIR, wazir_piece());
-  add(COMMONER, king_piece());
+  add(COMMONER, commoner_piece());
   add(KING, king_piece());
 }
 

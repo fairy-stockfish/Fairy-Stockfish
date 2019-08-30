@@ -175,6 +175,16 @@ namespace {
          << "\nNodes/second    : " << 1000 * nodes / elapsed << endl;
   }
 
+  // load() is called when engine receives the "load" command.
+  // The function reads variant configuration files.
+
+  void load(istringstream& is) {
+
+    string token;
+    while (is >> token)
+        Options["VariantPath"] = token;
+  }
+
 } // namespace
 
 
@@ -236,6 +246,7 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "bench") bench(pos, is, states);
       else if (token == "d")     sync_cout << pos << sync_endl;
       else if (token == "eval")  sync_cout << Eval::trace(pos) << sync_endl;
+      else if (token == "load")  { load(is); argc = 1; } // continue reading stdin
       else
           sync_cout << "Unknown command: " << cmd << sync_endl;
 

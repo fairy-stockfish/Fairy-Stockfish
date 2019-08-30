@@ -525,7 +525,7 @@ namespace {
         }
     }
 
-    if (pos.max_check_count())
+    if (pos.check_counting())
         kingDanger *= 2;
 
     // Unsafe or occupied checking squares will also be considered, as long as
@@ -543,13 +543,13 @@ namespace {
     int kingFlankAttacks = popcount(b1) + popcount(b2);
 
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
-                 + 69  * kingAttacksCount[Them] * (2 + 8 * !!pos.max_check_count() + pos.captures_to_hand()) / 2
-                 + 185 * popcount(kingRing[Us] & weak) * (1 + pos.captures_to_hand() + !!pos.max_check_count())
+                 + 69  * kingAttacksCount[Them] * (2 + 8 * pos.check_counting() + pos.captures_to_hand()) / 2
+                 + 185 * popcount(kingRing[Us] & weak) * (1 + pos.captures_to_hand() + pos.check_counting())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
                  -  35 * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
                  -  10 * bool(attackedBy2[Us] & attackedBy[Us][KING]) * pos.captures_to_hand()
                  + 150 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
-                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand()) / (1 + !!pos.max_check_count())
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand()) / (1 + pos.check_counting())
                  -   6 * mg_value(score) / 8
                  +       mg_value(mobility[Them] - mobility[Us])
                  +   5 * kingFlankAttacks * kingFlankAttacks / 16
@@ -564,9 +564,9 @@ namespace {
         score -= PawnlessFlank;
 
     // King tropism bonus, to anticipate slow motion attacks on our king
-    score -= FlankAttacks * kingFlankAttacks * (1 + 5 * pos.captures_to_hand() + !!pos.max_check_count());
+    score -= FlankAttacks * kingFlankAttacks * (1 + 5 * pos.captures_to_hand() + pos.check_counting());
 
-    if (pos.max_check_count())
+    if (pos.check_counting())
         score += make_score(0, mg_value(score) / 2);
 
     // For drop games, king danger is independent of game phase
@@ -902,9 +902,9 @@ namespace {
     }
 
     // nCheck
-    if (pos.max_check_count())
+    if (pos.check_counting())
     {
-        int remainingChecks = pos.max_check_count() - pos.checks_given(Us);
+        int remainingChecks = pos.checks_remaining(Us);
         assert(remainingChecks > 0);
         score += make_score(3600, 1000) / (remainingChecks * remainingChecks);
     }
