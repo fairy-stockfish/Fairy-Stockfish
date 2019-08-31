@@ -118,7 +118,7 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("sittuyin", fen, "c6c5")
         self.assertEqual(result, "Scxc5")
 
-        fen = "7R/1r6/3k1np1/3s2N1/3s3P/4n3/6p1/2R3K1[g w - - 2 55"
+        fen = "7R/1r6/3k1np1/3s2N1/3s3P/4n3/6p1/2R3K1[] w - - 2 55"
         result = sf.get_san("sittuyin", fen, "h4h4f")
         self.assertEqual(result, "h4=F")
 
