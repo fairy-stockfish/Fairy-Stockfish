@@ -108,7 +108,7 @@ namespace {
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
-        emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
+        emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces() & pos.board_bb());
 
         Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
         Bitboard b2 = pos.double_step_enabled() ? shift<Up>(b1 & TRank3BB) & emptySquares : Bitboard(0);
@@ -158,7 +158,7 @@ namespace {
     if (pawnsOn7)
     {
         if (Type == CAPTURES)
-            emptySquares = ~pos.pieces();
+            emptySquares = ~pos.pieces() & pos.board_bb();
 
         if (Type == EVASIONS)
             emptySquares &= target;
@@ -193,7 +193,7 @@ namespace {
             {
                 if (pos.count(Us, pt))
                     continue;
-                Bitboard b = (pos.attacks_from(Us, pt, from) & ~pos.pieces()) | from;
+                Bitboard b = (pos.attacks_from(Us, pt, from) & ~pos.pieces() & pos.board_bb()) | from;
                 if (Type == EVASIONS)
                     b &= target;
 
@@ -404,7 +404,7 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
      if (pt == PAWN)
          continue; // Will be generated together with direct checks
 
-     Bitboard b = pos.moves_from(us, pt, from) & ~pos.pieces();
+     Bitboard b = pos.moves_from(us, pt, from) & ~pos.pieces() & pos.board_bb();
 
      if (pt == KING)
          b &= ~PseudoAttacks[~us][QUEEN][pos.square<KING>(~us)];
@@ -440,7 +440,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   }
 
   // Generate evasions for king, capture and non capture moves
-  Bitboard b = pos.attacks_from<KING>(us, ksq) & ~pos.pieces(us) & ~sliderAttacks;
+  Bitboard b = pos.attacks_from<KING>(us, ksq) & ~pos.pieces(us) & ~sliderAttacks & pos.board_bb();
   while (b)
       moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
 

@@ -750,10 +750,6 @@ bool Position::legal(Move m) const {
   assert(color_of(moved_piece(m)) == us);
   assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
 
-  // Illegal moves to squares outside of board
-  if (!(board_bb() & to))
-      return false;
-
   // Illegal checks
   if ((!checking_permitted() || (sittuyin_promotion() && type_of(m) == PROMOTION)) && gives_check(m))
       return false;
@@ -875,6 +871,10 @@ bool Position::pseudo_legal(const Move m) const {
   Square from = from_sq(m);
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
+
+  // Illegal moves to squares outside of board
+  if (!(board_bb() & to))
+      return false;
 
   // Use a fast check for piece drops
   if (type_of(m) == DROP)
