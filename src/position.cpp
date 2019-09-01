@@ -880,10 +880,10 @@ bool Position::pseudo_legal(const Move m) const {
   // Use a fast check for piece drops
   if (type_of(m) == DROP)
       return   piece_drops()
-            && count_in_hand(us, type_of(pc))
+            && count_in_hand(us, in_hand_piece_type(m))
             && (drop_region(us, type_of(pc)) & ~pieces() & to)
             && (   type_of(pc) == in_hand_piece_type(m)
-                || (drop_promoted() && promoted_piece_type(type_of(pc)) == in_hand_piece_type(m)));
+                || (drop_promoted() && type_of(pc) == promoted_piece_type(in_hand_piece_type(m))));
 
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL || is_gating(m))
@@ -892,8 +892,8 @@ bool Position::pseudo_legal(const Move m) const {
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
       && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)
-      && (   (promotion_zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to))
-          || (piece_promotion_on_capture() && !capture(m))))
+      && (promotion_zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to))
+      && (!piece_promotion_on_capture() || capture(m)))
       return false;
 
   // Is not a promotion, so promotion piece must be empty
