@@ -416,11 +416,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   // Check counter for nCheck
   ss >> std::skipws >> token >> std::noskipws;
 
-  if (max_check_count() && ss.peek() == '+')
+  if (check_counting() && ss.peek() == '+')
   {
-      st->checksGiven[WHITE] = CheckCount(std::max(max_check_count() - std::max(token - '0', 0), 0));
+      st->checksRemaining[WHITE] = CheckCount(std::max(token - '0', 0));
       ss >> token >> token;
-      st->checksGiven[BLACK] = CheckCount(std::max(max_check_count() - std::max(token - '0', 0), 0));
+      st->checksRemaining[BLACK] = CheckCount(std::max(token - '0', 0));
   }
   else
       ss.putback(token);
@@ -553,9 +553,9 @@ void Position::set_state(StateInfo* si) const {
               si->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
       }
 
-  if (max_check_count())
+  if (check_counting())
       for (Color c : {WHITE, BLACK})
-          si->key ^= Zobrist::checks[c][si->checksGiven[c]];
+          si->key ^= Zobrist::checks[c][si->checksRemaining[c]];
 }
 
 
@@ -663,8 +663,8 @@ const string Position::fen() const {
       ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ");
 
   // Check count
-  if (max_check_count())
-      ss << (max_check_count() - st->checksGiven[WHITE]) << "+" << (max_check_count() - st->checksGiven[BLACK]) << " ";
+  if (check_counting())
+      ss << st->checksRemaining[WHITE] << "+" << st->checksRemaining[BLACK] << " ";
 
   // Counting ply or 50-move rule counter
   if (st->countingLimit)
@@ -880,10 +880,10 @@ bool Position::pseudo_legal(const Move m) const {
   // Use a fast check for piece drops
   if (type_of(m) == DROP)
       return   piece_drops()
-            && count_in_hand(us, type_of(pc))
+            && count_in_hand(us, in_hand_piece_type(m))
             && (drop_region(us, type_of(pc)) & ~pieces() & to)
             && (   type_of(pc) == in_hand_piece_type(m)
-                || (drop_promoted() && promoted_piece_type(type_of(pc)) == in_hand_piece_type(m)));
+                || (drop_promoted() && type_of(pc) == promoted_piece_type(in_hand_piece_type(m))));
 
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL || is_gating(m))
@@ -892,8 +892,8 @@ bool Position::pseudo_legal(const Move m) const {
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
       && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)
-      && (   (promotion_zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to))
-          || (piece_promotion_on_capture() && !capture(m))))
+      && (promotion_zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to))
+      && (!piece_promotion_on_capture() || capture(m)))
       return false;
 
   // Is not a promotion, so promotion piece must be empty
@@ -1074,8 +1074,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
   assert(type_of(captured) != KING);
 
-  if (max_check_count() && givesCheck)
-      k ^= Zobrist::checks[us][st->checksGiven[us]] ^ Zobrist::checks[us][++(st->checksGiven[us])];
+  if (check_counting() && givesCheck)
+      k ^= Zobrist::checks[us][st->checksRemaining[us]] ^ Zobrist::checks[us][--(st->checksRemaining[us])];
 
   if (type_of(m) == CASTLING)
   {
@@ -1592,7 +1592,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
 
   // nCheck
-  if (max_check_count() && color_of(moved_piece(m)) == sideToMove && gives_check(m))
+  if (check_counting() && color_of(moved_piece(m)) == sideToMove && gives_check(m))
       return true;
 
   // Extinction
@@ -1792,7 +1792,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       return true;
   }
   // nCheck
-  if (max_check_count() && st->checksGiven[~sideToMove] == max_check_count())
+  if (check_counting() && checks_remaining(~sideToMove) == 0)
   {
       result = mated_in(ply);
       return true;

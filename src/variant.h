@@ -93,7 +93,7 @@ struct Variant {
   Bitboard whiteFlag = 0;
   Bitboard blackFlag = 0;
   bool flagMove = false;
-  CheckCount maxCheckCount = CheckCount(0);
+  bool checkCounting = false;
   int connectN = 0;
   CountingRule countingRule = NO_COUNTING;
 
@@ -115,11 +115,15 @@ struct Variant {
   }
 };
 
-struct VariantMap : public std::map<std::string, const Variant*> {
+class VariantMap : public std::map<std::string, const Variant*> {
+public:
   void init();
-  void add(std::string s, const Variant* v);
+  void parse(std::string path);
   void clear_all();
   std::vector<std::string> get_keys();
+
+private:
+  void add(std::string s, const Variant* v);
 };
 
 extern VariantMap variants;

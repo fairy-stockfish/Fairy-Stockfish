@@ -37,7 +37,7 @@ PGOBENCH = ./$(EXE) bench
 
 ### Object files
 OBJS = benchmark.o bitbase.o bitboard.o endgame.o evaluate.o main.o \
-	material.o misc.o movegen.o movepick.o pawns.o piece.o position.o psqt.o \
+	material.o misc.o movegen.o movepick.o parser.o pawns.o piece.o position.o psqt.o \
 	search.o thread.o timeman.o tt.o uci.o ucioption.o variant.o syzygy/tbprobe.o
 
 ### Establish the operating system name
@@ -212,7 +212,7 @@ ifeq ($(COMP),mingw)
 	endif
 
 	CXXFLAGS += -Wextra -Wshadow
-	LDFLAGS += -static
+	LDFLAGS += -static -Wl,--stack,8388608
 endif
 
 ifeq ($(COMP),icc)

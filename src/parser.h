@@ -16,36 +16,20 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PIECE_H_INCLUDED
-#define PIECE_H_INCLUDED
+#ifndef PARSER_H_INCLUDED
+#define PARSER_H_INCLUDED
 
-#include <string>
-#include <map>
-#include <vector>
+#include "variant.h"
 
-#include "types.h"
+class VariantParser {
+public:
+    VariantParser(const std::map<std::string, std::string>& c) : config (c) {};
+    Variant* parse();
+    Variant* parse(Variant* v);
 
-
-/// PieceInfo struct stores information about the piece movements.
-
-struct PieceInfo {
-  std::string name = "";
-  std::vector<Direction> stepsQuiet = {};
-  std::vector<Direction> stepsCapture = {};
-  std::vector<Direction> sliderQuiet = {};
-  std::vector<Direction> sliderCapture = {};
-  std::vector<Direction> hopperQuiet = {};
-  std::vector<Direction> hopperCapture = {};
-
-  void merge(const PieceInfo* pi);
+private:
+    std::map<std::string, std::string> config;
+    template <class T> void parse_attribute(const std::string& key, T& target);
 };
 
-struct PieceMap : public std::map<PieceType, const PieceInfo*> {
-  void init();
-  void add(PieceType pt, const PieceInfo* v);
-  void clear_all();
-};
-
-extern PieceMap pieceMap;
-
-#endif // #ifndef PIECE_H_INCLUDED
+#endif // #ifndef PARSER_H_INCLUDED

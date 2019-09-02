@@ -788,7 +788,7 @@ namespace {
         &&  depth < 2 * ONE_PLY
         && !pos.must_capture()
         && !pos.capture_the_flag_piece()
-        && !pos.max_check_count()
+        && !pos.check_counting()
         &&  eval <= alpha - RazorMargin)
         return qsearch<NT>(pos, ss, alpha, beta);
 
@@ -805,7 +805,7 @@ namespace {
         && !(   pos.extinction_value() == -VALUE_MATE
              && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
         && (pos.checking_permitted() || !pos.capture_the_flag_piece())
-        &&  eval - futility_margin(depth, improving) * (1 + !!pos.max_check_count()) >= beta
+        &&  eval - futility_margin(depth, improving) * (1 + pos.check_counting()) >= beta
         &&  eval < VALUE_KNOWN_WIN) // Do not return unproven wins
         return eval;
 
@@ -868,7 +868,7 @@ namespace {
         &&  (pos.pieces() ^ pos.pieces(CLOBBER_PIECE))
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
-        Value raisedBeta = std::min(beta + 216 * (1 + !!pos.max_check_count() + (pos.extinction_value() != VALUE_NONE)) - 48 * improving, VALUE_INFINITE);
+        Value raisedBeta = std::min(beta + 216 * (1 + pos.check_counting() + (pos.extinction_value() != VALUE_NONE)) - 48 * improving, VALUE_INFINITE);
         MovePicker mp(pos, ttMove, raisedBeta - ss->staticEval, &thisThread->captureHistory);
         int probCutCount = 0;
 

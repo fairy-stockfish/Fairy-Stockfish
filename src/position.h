@@ -47,7 +47,7 @@ struct StateInfo {
   int    pliesFromNull;
   int    countingPly;
   int    countingLimit;
-  CheckCount checksGiven[COLOR_NB];
+  CheckCount checksRemaining[COLOR_NB];
   Square epSquare;
   Bitboard gatesBB[COLOR_NB];
 
@@ -144,9 +144,9 @@ public:
   PieceType capture_the_flag_piece() const;
   Bitboard capture_the_flag(Color c) const;
   bool flag_move() const;
-  CheckCount max_check_count() const;
+  bool check_counting() const;
   int connect_n() const;
-  CheckCount checks_given(Color c) const;
+  CheckCount checks_remaining(Color c) const;
   CountingRule counting_rule() const;
 
   // Variant-specific properties
@@ -602,9 +602,9 @@ inline bool Position::flag_move() const {
   return var->flagMove;
 }
 
-inline CheckCount Position::max_check_count() const {
+inline bool Position::check_counting() const {
   assert(var != nullptr);
-  return var->maxCheckCount;
+  return var->checkCounting;
 }
 
 inline int Position::connect_n() const {
@@ -612,8 +612,8 @@ inline int Position::connect_n() const {
   return var->connectN;
 }
 
-inline CheckCount Position::checks_given(Color c) const {
-  return st->checksGiven[c];
+inline CheckCount Position::checks_remaining(Color c) const {
+  return st->checksRemaining[c];
 }
 
 inline CountingRule Position::counting_rule() const {

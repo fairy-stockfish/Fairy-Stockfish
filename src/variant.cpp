@@ -17,13 +17,19 @@
 */
 
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
+#include "parser.h"
+#include "piece.h"
 #include "variant.h"
 
 using std::string;
 
 VariantMap variants; // Global object
 
+namespace {
     // Define variant rules
     Variant* fairy_variant_base() {
         Variant* v = new Variant();
@@ -187,13 +193,12 @@ VariantMap variants; // Global object
     Variant* threecheck_variant() {
         Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
-        v->maxCheckCount = CheckCount(3);
+        v->checkCounting = true;
         return v;
     }
     Variant* fivecheck_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = threecheck_variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 5+5 0 1";
-        v->maxCheckCount = CheckCount(5);
         return v;
     }
     Variant* crazyhouse_variant() {
@@ -467,39 +472,6 @@ VariantMap variants; // Global object
         v->blackFlag = Rank1BB;
         return v;
     }
-    Variant* connect4_variant() {
-        Variant* v = fairy_variant_base();
-        v->maxRank = RANK_6;
-        v->maxFile = FILE_G;
-        v->reset_pieces();
-        v->add_piece(IMMOBILE_PIECE, 'p');
-        v->startFen = "7/7/7/7/7/7[PPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppp] w 0 1";
-        v->pieceDrops = true;
-        v->dropOnTop = true;
-        v->promotionPieceTypes = {};
-        v->doubleStep = false;
-        v->castling = false;
-        v->stalemateValue = VALUE_DRAW;
-        v->immobilityIllegal = false;
-        v->connectN = 4;
-        return v;
-    }
-    Variant* tictactoe_variant() {
-        Variant* v = fairy_variant_base();
-        v->maxRank = RANK_3;
-        v->maxFile = FILE_C;
-        v->reset_pieces();
-        v->add_piece(IMMOBILE_PIECE, 'p');
-        v->startFen = "3/3/3[PPPPPpppp] w 0 1";
-        v->pieceDrops = true;
-        v->promotionPieceTypes = {};
-        v->doubleStep = false;
-        v->castling = false;
-        v->stalemateValue = VALUE_DRAW;
-        v->immobilityIllegal = false;
-        v->connectN = 3;
-        return v;
-    }
 #ifdef LARGEBOARDS
     Variant* shogi_variant() {
         Variant* v = minishogi_variant_base();
@@ -665,6 +637,10 @@ VariantMap variants; // Global object
     }
 #endif
 
+} // namespace
+
+
+/// VariantMap::init() is called at startup to initialize all predefined variants
 
 void VariantMap::init() {
     // Add to UCI_Variant option
@@ -711,8 +687,6 @@ void VariantMap::init() {
     add("shatar", shatar_variant());
     add("clobber", clobber_variant());
     add("breakthrough", breakthrough_variant());
-    add("connect4", connect4_variant());
-    add("tictactoe", tictactoe_variant());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("capablanca", capablanca_variant());
@@ -729,6 +703,54 @@ void VariantMap::init() {
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
 #endif
+}
+
+
+/// VariantMap::parse reads variants from an INI-style configuration file.
+
+void VariantMap::parse(std::string path) {
+    if (path.empty() || path == "<empty>")
+        return;
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        std::cerr << "Unable to open file " << path << std::endl;
+        return;
+    }
+    std::string variant, variant_template, key, value, input;
+    while (file.peek() != '[' && std::getline(file, input)) {}
+
+    while (file.get() && std::getline(std::getline(file, variant, ']'), input))
+    {
+        // Extract variant template, if specified
+        if (!std::getline(std::getline(std::stringstream(variant), variant, ':'), variant_template))
+            variant_template = "";
+
+        // Read variant rules
+        std::map<std::string, std::string> attribs = {};
+        while (file.peek() != '[' && std::getline(file, input))
+        {
+            std::stringstream ss(input);
+            if (ss.peek() != '#' && std::getline(std::getline(ss, key, '=') >> std::ws, value) && !key.empty())
+                attribs[key.erase(key.find_last_not_of(" ") + 1)] = value;
+        }
+
+        // Create variant
+        if (variants.find(variant) != variants.end())
+            std::cerr << "Variant '" << variant << "' already exists." << std::endl;
+        else if (!variant_template.empty() && variants.find(variant_template) == variants.end())
+            std::cerr << "Variant template '" << variant_template << "' does not exist." << std::endl;
+        else
+        {
+            Variant* v = !variant_template.empty() ? VariantParser(attribs).parse(new Variant(*variants.find(variant_template)->second))
+                                                   : VariantParser(attribs).parse();
+            if (v->maxFile <= FILE_MAX && v->maxRank <= RANK_MAX)
+                add(variant, v);
+            else
+                delete v;
+        }
+    }
+    file.close();
 }
 
 void VariantMap::add(std::string s, const Variant* v) {

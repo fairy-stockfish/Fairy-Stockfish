@@ -48,6 +48,7 @@ void on_hash_size(const Option& o) { TT.resize(o); }
 void on_logger(const Option& o) { start_logger(o); }
 void on_threads(const Option& o) { Threads.set(o); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
+void on_variant_path(const Option& o) { variants.parse(o); Options["UCI_Variant"].set_combo(variants.get_keys()); }
 void on_variant_change(const Option &o) {
     const Variant* v = variants.find(o)->second;
     PSQT::init(v);
@@ -99,6 +100,7 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
+  o["VariantPath"]           << Option("<empty>", on_variant_path);
 }
 
 
@@ -208,6 +210,10 @@ Option& Option::operator=(const string& v) {
       on_change(*this);
 
   return *this;
+}
+
+void Option::set_combo(std::vector<std::string> newComboValues) {
+    comboValues = newComboValues;
 }
 
 } // namespace UCI
