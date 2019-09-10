@@ -187,6 +187,13 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("seirawan", fen, "h1e1e")
         self.assertEqual(result, "O-O/Eh1")
 
+    def test_get_san_moves(self):
+        UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
+        SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]
+
+        result = sf.get_san_moves("seirawan", SEIRAWAN, UCI_moves)
+        self.assertEqual(result, SAN_moves)
+
     def test_gives_check(self):
         self.assertRaises(ValueError, sf.gives_check, "makruk", MAKRUK, [])
         self.assertRaises(ValueError, sf.gives_check, "capablanca", CAPA, [])

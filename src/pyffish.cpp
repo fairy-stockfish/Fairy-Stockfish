@@ -210,6 +210,43 @@ extern "C" PyObject* pyffish_getSAN(PyObject* self, PyObject *args) {
     return Py_BuildValue("s", move_to_san(pos, UCI::to_move(pos, moveStr)).c_str());
 }
 
+// INPUT variant, fen, movelist
+extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
+    PyObject* sanMoves = PyList_New(0), *moveList;
+    Position pos;
+    const char *fen, *variant;
+
+    int chess960 = 0;
+    if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
+        return NULL;
+    }
+    StateListPtr states(new std::deque<StateInfo>(1));
+    buildPosition(pos, states, variant, fen, sanMoves, chess960);
+
+    int numMoves = PyList_Size(moveList);
+    for (int i=0; i<numMoves ; i++) {
+        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
+        Move m;
+        if ((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
+        {
+            //add to the san move list
+            PyObject *move=Py_BuildValue("s", move_to_san(pos, m).c_str());
+            PyList_Append(sanMoves, move);
+            Py_XDECREF(move);
+
+            //do the move
+            states->emplace_back();
+            pos.do_move(m, states->back());
+        }
+        else
+        {
+            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
+            return NULL;
+        }
+    }
+    return sanMoves;
+}
+
 // INPUT variant, fen, move list
 extern "C" PyObject* pyffish_legalMoves(PyObject* self, PyObject *args) {
     PyObject* legalMoves = PyList_New(0), *moveList;
@@ -331,6 +368,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"set_option", (PyCFunction)pyffish_setOption, METH_VARARGS, "Set UCI option."},
     {"start_fen", (PyCFunction)pyffish_startFen, METH_VARARGS, "Get starting position FEN."},
     {"get_san", (PyCFunction)pyffish_getSAN, METH_VARARGS, "Get SAN move from given FEN and UCI move."},
+    {"get_san_moves", (PyCFunction)pyffish_getSANmoves, METH_VARARGS, "Get SAN movelist from given FEN and UCI movelist."},
     {"legal_moves", (PyCFunction)pyffish_legalMoves, METH_VARARGS, "Get legal moves from given FEN and movelist."},
     {"get_fen", (PyCFunction)pyffish_getFEN, METH_VARARGS, "Get resulting FEN from given FEN and movelist."},
     {"gives_check", (PyCFunction)pyffish_givesCheck, METH_VARARGS, "Get check status from given FEN and movelist."},
