@@ -252,19 +252,17 @@ enum Color {
   WHITE, BLACK, COLOR_NB = 2
 };
 
-enum CastlingSide {
-  KING_SIDE, QUEEN_SIDE, CASTLING_SIDE_NB = 2
-};
-
-enum CastlingRight {
+enum CastlingRights {
   NO_CASTLING,
   WHITE_OO,
   WHITE_OOO = WHITE_OO << 1,
   BLACK_OO  = WHITE_OO << 2,
   BLACK_OOO = WHITE_OO << 3,
 
-  WHITE_CASTLING = WHITE_OO | WHITE_OOO,
-  BLACK_CASTLING = BLACK_OO | BLACK_OOO,
+  KING_SIDE      = WHITE_OO  | BLACK_OO,
+  QUEEN_SIDE     = WHITE_OOO | BLACK_OOO,
+  WHITE_CASTLING = WHITE_OO  | WHITE_OOO,
+  BLACK_CASTLING = BLACK_OO  | BLACK_OOO,
   ANY_CASTLING   = WHITE_CASTLING | BLACK_CASTLING,
 
   CASTLING_RIGHT_NB = 16
@@ -568,6 +566,11 @@ inline Score operator*(Score s, int i) {
   return result;
 }
 
+/// Multiplication of a Score by an boolean
+inline Score operator*(Score s, bool b) {
+  return Score(int(s) * int(b));
+}
+
 constexpr Color operator~(Color c) {
   return Color(c ^ BLACK); // Toggle color
 }
@@ -592,8 +595,8 @@ constexpr Piece operator~(Piece pc) {
   return Piece(pc ^ PIECE_TYPE_NB); // Swap color of piece BLACK KNIGHT -> WHITE KNIGHT
 }
 
-constexpr CastlingRight operator|(Color c, CastlingSide s) {
-  return CastlingRight(WHITE_OO << ((s == QUEEN_SIDE) + 2 * c));
+constexpr CastlingRights operator&(Color c, CastlingRights cr) {
+  return CastlingRights((c == WHITE ? WHITE_CASTLING : BLACK_CASTLING) & cr);
 }
 
 constexpr Value mate_in(int ply) {
@@ -655,7 +658,7 @@ constexpr Direction pawn_push(Color c) {
   return c == WHITE ? NORTH : SOUTH;
 }
 
-inline MoveType type_of(Move m) {
+constexpr MoveType type_of(Move m) {
   return MoveType(m & (15 << (2 * SQUARE_BITS)));
 }
 
@@ -663,10 +666,8 @@ constexpr Square to_sq(Move m) {
   return Square(m & SQUARE_BIT_MASK);
 }
 
-inline Square from_sq(Move m) {
-  if (type_of(m) == DROP)
-      return SQ_NONE;
-  return Square((m >> SQUARE_BITS) & SQUARE_BIT_MASK);
+constexpr Square from_sq(Move m) {
+  return type_of(m) == DROP ? SQ_NONE : Square((m >> SQUARE_BITS) & SQUARE_BIT_MASK);
 }
 
 inline int from_to(Move m) {
@@ -700,6 +701,10 @@ inline Move make(Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
 constexpr Move make_drop(Square to, PieceType pt_in_hand, PieceType pt_dropped) {
   return Move((pt_in_hand << (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) + (pt_dropped << (2 * SQUARE_BITS + MOVE_TYPE_BITS)) + DROP + to);
+}
+
+constexpr Move reverse_move(Move m) {
+  return make_move(to_sq(m), from_sq(m));
 }
 
 template<MoveType T>

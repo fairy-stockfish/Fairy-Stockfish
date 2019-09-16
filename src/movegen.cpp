@@ -311,8 +311,8 @@ namespace {
   template<Color Us, GenType Type>
   ExtMove* generate_all(const Position& pos, ExtMove* moveList, Bitboard target) {
 
-    constexpr CastlingRight OO  = Us | KING_SIDE;
-    constexpr CastlingRight OOO = Us | QUEEN_SIDE;
+    constexpr CastlingRights OO  = Us & KING_SIDE;
+    constexpr CastlingRights OOO = Us & QUEEN_SIDE;
     constexpr bool Checks = Type == QUIET_CHECKS; // Reduce template instantations
 
     moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
@@ -330,7 +330,7 @@ namespace {
         while (b)
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(&b));
 
-        if (Type != CAPTURES && pos.can_castle(CastlingRight(OO | OOO)))
+        if (Type != CAPTURES && pos.can_castle(CastlingRights(OO | OOO)))
         {
             if (!pos.castling_impeded(OO) && pos.can_castle(OO))
                 moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, ksq, pos.castling_rook_square(OO));
@@ -341,7 +341,7 @@ namespace {
     }
 
     // Castling with non-king piece
-    if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(CastlingRight(OO | OOO)))
+    if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(CastlingRights(OO | OOO)))
     {
         Square from = make_square(FILE_E, relative_rank(Us, pos.castling_rank(), pos.max_rank()));
         if (!pos.castling_impeded(OO) && pos.can_castle(OO))

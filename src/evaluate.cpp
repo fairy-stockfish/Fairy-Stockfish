@@ -151,6 +151,7 @@ namespace {
   constexpr Score PawnlessFlank      = S( 17, 95);
   constexpr Score RestrictedPiece    = S(  7,  7);
   constexpr Score RookOnPawn         = S( 10, 32);
+  constexpr Score RookOnQueenFile    = S( 11,  4);
   constexpr Score SliderOnQueen      = S( 59, 18);
   constexpr Score ThreatByKing       = S( 24, 89);
   constexpr Score ThreatByPawnPush   = S( 48, 39);
@@ -181,7 +182,7 @@ namespace {
     template<Color Us> Score space() const;
     template<Color Us> Score variant() const;
     ScaleFactor scale_factor(Value eg) const;
-    Score initiative(Value eg) const;
+    Score initiative(Score score) const;
 
     const Position& pos;
     Material::Entry* me;
@@ -391,6 +392,10 @@ namespace {
             if (relative_rank(Us, s, pos.max_rank()) >= RANK_5)
                 score += RookOnPawn * popcount(pos.pieces(Them, PAWN) & PseudoAttacks[Us][ROOK][s]);
 
+            // Bonus for rook on the same file as a queen
+            if (file_bb(s) & pos.pieces(QUEEN))
+                score += RookOnQueenFile;
+
             // Bonus for rook on an open or semi-open file
             if (pos.is_on_semiopen_file(Us, s))
                 score += RookOnFile[bool(pos.is_on_semiopen_file(Them, s))];
@@ -528,10 +533,6 @@ namespace {
     if (pos.check_counting())
         kingDanger *= 2;
 
-    // Unsafe or occupied checking squares will also be considered, as long as
-    // the square is in the attacker's mobility area.
-    unsafeChecks &= mobilityArea[Them];
-
     Square s = file_of(ksq) == FILE_A ? ksq + EAST : file_of(ksq) == pos.max_file() ? ksq + WEST : ksq;
     Bitboard kingFlank = pos.max_file() == FILE_H ? KingFlank[file_of(ksq)] : file_bb(s) | adjacent_files_bb(s);
 
@@ -547,8 +548,8 @@ namespace {
                  + 185 * popcount(kingRing[Us] & weak) * (1 + pos.captures_to_hand() + pos.check_counting())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
                  -  35 * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
-                 -  10 * bool(attackedBy2[Us] & attackedBy[Us][KING]) * pos.captures_to_hand()
-                 + 150 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
+                 + 148 * popcount(unsafeChecks)
+                 +  98 * popcount(pos.blockers_for_king(Us))
                  - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand()) / (1 + pos.check_counting())
                  -   6 * mg_value(score) / 8
                  +       mg_value(mobility[Them] - mobility[Us])
@@ -624,9 +625,6 @@ namespace {
     // Enemies not strongly protected and under our attack
     weak = pos.pieces(Them) & ~stronglyProtected & attackedBy[Us][ALL_PIECES];
 
-    // Safe or protected squares
-    safe = ~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES];
-
     // Bonus according to the kind of attacking pieces
     if (defended | weak)
     {
@@ -663,6 +661,14 @@ namespace {
 
     score += RestrictedPiece * popcount(b);
 
+    // Protected or unattacked squares
+    safe = ~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES];
+
+    // Bonus for attacking enemy pieces with our relatively safe pawns
+    b = pos.pieces(Us, PAWN) & safe;
+    b = pawn_attacks_bb<Us>(b) & nonPawnEnemies;
+    score += ThreatBySafePawn * popcount(b);
+
     // Find squares where our pawns can push on the next move
     b  = shift<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
     b |= shift<Up>(b & TRank3BB) & ~pos.pieces();
@@ -673,12 +679,6 @@ namespace {
     // Bonus for safe pawn threats on the next move
     b = (pawn_attacks_bb<Us>(b) | shift<Up>(shift<Up>(pos.pieces(Us, SHOGI_PAWN)))) & nonPawnEnemies;
     score += ThreatByPawnPush * popcount(b);
-
-    // Our safe or protected pawns
-    b = pos.pieces(Us, PAWN) & safe;
-
-    b = (pawn_attacks_bb<Us>(b) | shift<Up>(pos.pieces(Us, SHOGI_PAWN))) & nonPawnEnemies;
-    score += ThreatBySafePawn * popcount(b);
 
     // Bonus for threats on the next moves against enemy queen
     if (pos.count<QUEEN>(Them) == 1)
@@ -953,7 +953,10 @@ namespace {
   // known attacking/defending status of the players.
 
   template<Tracing T>
-  Score Evaluation<T>::initiative(Value eg) const {
+  Score Evaluation<T>::initiative(Score score) const {
+
+    Value mg = mg_value(score);
+    Value eg = eg_value(score);
 
     // No initiative bonus for extinction variants
     if (pos.extinction_value() != VALUE_NONE || pos.captures_to_hand() || pos.connect_n())
@@ -966,23 +969,29 @@ namespace {
     bool pawnsOnBothFlanks =   (pos.pieces(PAWN) & QueenSide)
                             && (pos.pieces(PAWN) & KingSide);
 
+    bool almostUnwinnable =   !pe->passed_count()
+                           &&  outflanking < 0
+                           && !pawnsOnBothFlanks;
+
     // Compute the initiative bonus for the attacking side
     int complexity =   9 * pe->passed_count()
                     + 11 * pos.count<PAWN>()
                     +  9 * outflanking
                     + 18 * pawnsOnBothFlanks
                     + 49 * !pos.non_pawn_material()
+                    - 36 * almostUnwinnable
                     -103 ;
 
-    // Now apply the bonus: note that we find the attacking side by extracting
-    // the sign of the endgame value, and that we carefully cap the bonus so
-    // that the endgame score will never change sign after the bonus.
+    // Now apply the bonus: note that we find the attacking side by extracting the
+    // sign of the midgame or endgame values, and that we carefully cap the bonus
+    // so that the midgame and endgame scores do not change sign after the bonus.
+    int u = ((mg > 0) - (mg < 0)) * std::max(std::min(complexity + 50, 0), -abs(mg));
     int v = ((eg > 0) - (eg < 0)) * std::max(complexity, -abs(eg));
 
     if (T)
-        Trace::add(INITIATIVE, make_score(0, v));
+        Trace::add(INITIATIVE, make_score(u, v));
 
-    return make_score(0, v);
+    return make_score(u, v);
   }
 
 
@@ -1001,8 +1010,9 @@ namespace {
             && pos.non_pawn_material() == 2 * BishopValueMg)
             sf = 16 + 4 * pe->passed_count();
         else
-            sf = std::min(40 + (pos.opposite_bishops() ? 2 : 7) * pos.count<PAWN>(strongSide), sf);
+            sf = std::min(sf, 36 + (pos.opposite_bishops() ? 2 : 7) * pos.count<PAWN>(strongSide));
 
+        sf = std::max(0, sf - (pos.rule50_count() - 12) / 4  );
     }
 
     return ScaleFactor(sf);
@@ -1068,7 +1078,7 @@ namespace {
             + space<  WHITE>() - space<  BLACK>()
             + variant<WHITE>() - variant<BLACK>();
 
-    score += initiative(eg_value(score));
+    score += initiative(score);
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
     ScaleFactor sf = scale_factor(eg_value(score));
