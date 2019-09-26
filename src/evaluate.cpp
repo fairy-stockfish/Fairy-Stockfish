@@ -297,8 +297,7 @@ namespace {
         // Find attacked squares, including x-ray attacks for bishops and rooks
         b = Pt == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(QUEEN))
           : Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(QUEEN) ^ pos.pieces(Us, ROOK))
-                         : (  (pos.attacks_from(Us, Pt, s) & pos.pieces())
-                            | (pos.moves_from(Us, Pt, s) & ~pos.pieces()));
+                         : pos.attacks_from(Us, Pt, s);
 
         // Restrict mobility to actual squares of board
         b &= pos.board_bb();
@@ -316,6 +315,9 @@ namespace {
             kingAttackersWeight[Us] += KingAttackWeights[std::min(int(Pt), QUEEN + 1)];
             kingAttacksCount[Us] += popcount(b & attackedBy[Them][KING]);
         }
+
+        if (Pt > QUEEN)
+             b = (b & pos.pieces()) | (pos.moves_from(Us, Pt, s) & ~pos.pieces() & pos.board_bb());
 
         int mob = popcount(b & mobilityArea[Us]);
 
