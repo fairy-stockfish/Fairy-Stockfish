@@ -472,17 +472,16 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 void Position::set_castling_right(Color c, Square rfrom) {
 
   Square kfrom = count<KING>(c) ? square<KING>(c) : make_square(FILE_E, relative_rank(c, castling_rank(), max_rank()));
-  CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
-  CastlingRight cr = (c | cs);
+  CastlingRights cr = c & (kfrom < rfrom ? KING_SIDE: QUEEN_SIDE);
 
   st->castlingRights |= cr;
   castlingRightsMask[kfrom] |= cr;
   castlingRightsMask[rfrom] |= cr;
   castlingRookSquare[cr] = rfrom;
 
-  Square kto = make_square(cs == KING_SIDE ? castling_kingside_file() : castling_queenside_file(),
+  Square kto = make_square(cr & KING_SIDE ? castling_kingside_file() : castling_queenside_file(),
                            relative_rank(c, castling_rank(), max_rank()));
-  Square rto = kto + (cs == KING_SIDE ? WEST : EAST);
+  Square rto = kto + (cr & KING_SIDE ? WEST : EAST);
 
   castlingPath[cr] =   (between_bb(rfrom, rto) | between_bb(kfrom, kto) | rto | kto)
                     & ~(square_bb(kfrom) | rfrom);
@@ -751,10 +750,6 @@ bool Position::legal(Move m) const {
   assert(color_of(moved_piece(m)) == us);
   assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
 
-  // Illegal moves to squares outside of board
-  if (!(board_bb() & to))
-      return false;
-
   // Illegal checks
   if ((!checking_permitted() || (sittuyin_promotion() && type_of(m) == PROMOTION)) && gives_check(m))
       return false;
@@ -876,6 +871,10 @@ bool Position::pseudo_legal(const Move m) const {
   Square from = from_sq(m);
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
+
+  // Illegal moves to squares outside of board
+  if (!(board_bb() & to))
+      return false;
 
   // Use a fast check for piece drops
   if (type_of(m) == DROP)
@@ -1344,7 +1343,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (end >= 4)
   {
       StateInfo* stp = st->previous->previous;
-      for (int i=4; i <= end; i += 2)
+      for (int i = 4; i <= end; i += 2)
       {
           stp = stp->previous->previous;
           if (stp->key == st->key)
@@ -2027,14 +2026,14 @@ bool Position::pos_is_ok() const {
       }
 
   for (Color c : { WHITE, BLACK })
-      for (CastlingSide s : {KING_SIDE, QUEEN_SIDE})
+      for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})
       {
-          if (!can_castle(c | s))
+          if (!can_castle(cr))
               continue;
 
-          if (   piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
-              || castlingRightsMask[castlingRookSquare[c | s]] != (c | s)
-              || (castlingRightsMask[square<KING>(c)] & (c | s)) != (c | s))
+          if (   piece_on(castlingRookSquare[cr]) != make_piece(c, ROOK)
+              || castlingRightsMask[castlingRookSquare[cr]] != cr
+              || (count<KING>(c) && (castlingRightsMask[square<KING>(c)] & cr) != cr))
               assert(0 && "pos_is_ok: Castling");
       }
 

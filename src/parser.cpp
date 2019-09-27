@@ -16,8 +16,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <map>
-#include <vector>
 #include <string>
 #include <sstream>
 
@@ -42,9 +40,18 @@ namespace {
 
     template <> void set(const std::string& value, File& target) {
         std::stringstream ss(value);
-        int i;
-        ss >> i;
-        target = File(i - 1);
+        if (isdigit(ss.peek()))
+        {
+            int i;
+            ss >> i;
+            target = File(i - 1);
+        }
+        else
+        {
+            char c;
+            ss >> c;
+            target = File(c - 'a');
+        }
     }
 
     template <> void set(const std::string& value, std::string& target) {

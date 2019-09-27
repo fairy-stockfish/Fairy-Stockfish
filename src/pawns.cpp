@@ -33,6 +33,7 @@ namespace {
 
   // Pawn penalties
   constexpr Score Backward      = S( 9, 24);
+  constexpr Score BlockedStorm  = S(82, 82);
   constexpr Score Doubled       = S(11, 56);
   constexpr Score Isolated      = S( 5, 15);
   constexpr Score WeakLever     = S( 0, 56);
@@ -52,8 +53,8 @@ namespace {
 
   // Danger of enemy pawns moving toward our king by [distance from edge][rank].
   // RANK_1 = 0 is used for files where the enemy has no pawn, or their pawn
-  // is behind our king.
-  // [0][1-2] accommodate opponent pawn on edge (likely blocked by our king)
+  // is behind our king. Note that UnblockedStorm[0][1-2] accommodate opponent pawn
+  // on edge, likely blocked by our king.
   constexpr Value UnblockedStorm[int(FILE_NB) / 2][RANK_NB] = {
     { V( 89), V(-285), V(-185), V(93), V(57), V( 45), V( 51) },
     { V( 44), V( -18), V( 123), V(46), V(39), V( -7), V( 23) },
@@ -70,10 +71,10 @@ namespace {
     constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
     constexpr Direction Up   = (Us == WHITE ? NORTH : SOUTH);
 
-    Bitboard b, neighbours, stoppers, doubled, support, phalanx;
+    Bitboard neighbours, stoppers, support, phalanx;
     Bitboard lever, leverPush;
     Square s;
-    bool opposed, backward, passed;
+    bool opposed, backward, passed, doubled;
     Score score = SCORE_ZERO;
     const Square* pl = pos.squares<PAWN>(Us);
 
@@ -138,20 +139,15 @@ namespace {
         }
 
         else if (!neighbours)
-            score -= Isolated * (1 + 2 * pos.must_capture()) + WeakUnopposed * int(!opposed);
+            score -= Isolated * (1 + 2 * pos.must_capture()) + WeakUnopposed * !opposed;
 
         else if (backward)
-            score -= Backward + WeakUnopposed * int(!opposed);
+            score -= Backward + WeakUnopposed * !opposed;
 
-        if (doubled && !support)
-            score -= Doubled;
+        if (!support)
+            score -=   Doubled * doubled
+                     + WeakLever * more_than_one(lever);
     }
-
-    // Penalize the unsupported and non passed pawns attacked twice by the enemy
-    b =   ourPawns
-        & doubleAttackThem
-        & ~(e->pawnAttacks[Us] | e->passedPawns[Us]);
-    score -= WeakLever * popcount(b);
 
     // Double pawn evaluation if there are no non-pawn pieces
     if (pos.count<ALL_PIECES>(Us) == pos.count<PAWN>(Us))
@@ -205,7 +201,7 @@ Entry* probe(const Position& pos) {
 /// penalty for a king, looking at the king file and the two closest files.
 
 template<Color Us>
-void Entry::evaluate_shelter(const Position& pos, Square ksq, Score& shelter) {
+Score Entry::evaluate_shelter(const Position& pos, Square ksq) {
 
   constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -219,22 +215,21 @@ void Entry::evaluate_shelter(const Position& pos, Square ksq, Score& shelter) {
   for (File f = File(center - 1); f <= File(center + 1); ++f)
   {
       b = ourPawns & file_bb(f);
-      Rank ourRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : RANK_1;
+      int ourRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : 0;
 
       b = theirPawns & file_bb(f);
-      Rank theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : RANK_1;
+      int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : 0;
 
       int d = std::min(std::min(f, File(pos.max_file() - f)), FILE_D);
       bonus += make_score(ShelterStrength[d][ourRank], 0) * (1 + (pos.captures_to_hand() && ourRank <= RANK_2));
 
       if (ourRank && (ourRank == theirRank - 1))
-          bonus -= make_score(82 * (theirRank == RANK_3), 82 * (theirRank == RANK_3));
+          bonus -= BlockedStorm * int(theirRank == RANK_3);
       else
           bonus -= make_score(UnblockedStorm[d][theirRank], 0);
   }
 
-  if (mg_value(bonus) > mg_value(shelter))
-      shelter = bonus;
+  return bonus;
 }
 
 
@@ -248,32 +243,31 @@ Score Entry::do_king_safety(const Position& pos) {
   kingSquares[Us] = ksq;
   castlingRights[Us] = pos.castling_rights(Us);
 
+  Score shelters[3] = { evaluate_shelter<Us>(pos, ksq),
+                        make_score(-VALUE_INFINITE, 0),
+                        make_score(-VALUE_INFINITE, 0) };
+
+  // If we can castle use the bonus after castling if it is bigger
+  if (pos.can_castle(Us & KING_SIDE))
+      shelters[1] = evaluate_shelter<Us>(pos, make_square(pos.castling_kingside_file(), Us == WHITE ? RANK_1 : pos.max_rank()));
+
+  if (pos.can_castle(Us & QUEEN_SIDE))
+      shelters[2] = evaluate_shelter<Us>(pos, make_square(pos.castling_queenside_file(), Us == WHITE ? RANK_1 : pos.max_rank()));
+
+  for (int i : {1, 2})
+     if (mg_value(shelters[i]) > mg_value(shelters[0]))
+         shelters[0] = shelters[i];
+
+  // In endgame we like to bring our king near our closest pawn
   Bitboard pawns = pos.pieces(Us, PAWN);
   int minPawnDist = pawns ? 8 : 0;
 
   if (pawns & PseudoAttacks[Us][KING][ksq])
       minPawnDist = 1;
-
   else while (pawns)
       minPawnDist = std::min(minPawnDist, distance(ksq, pop_lsb(&pawns)));
 
-  Score shelter = make_score(-VALUE_INFINITE, VALUE_ZERO);
-  evaluate_shelter<Us>(pos, ksq, shelter);
-
-  // If we can castle use the bonus after the castling if it is bigger
-  if (pos.can_castle(Us | KING_SIDE))
-  {
-      Square s = make_square(pos.castling_kingside_file(), Us == WHITE ? RANK_1 : pos.max_rank());
-      evaluate_shelter<Us>(pos, s, shelter);
-  }
-
-  if (pos.can_castle(Us | QUEEN_SIDE))
-  {
-      Square s = make_square(pos.castling_queenside_file(), Us == WHITE ? RANK_1 : pos.max_rank());
-      evaluate_shelter<Us>(pos, s, shelter);
-  }
-
-  return shelter - make_score(VALUE_ZERO, 16 * minPawnDist);
+  return shelters[0] - make_score(0, 16 * minPawnDist);
 }
 
 // Explicit template instantiation

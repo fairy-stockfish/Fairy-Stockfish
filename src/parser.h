@@ -19,16 +19,28 @@
 #ifndef PARSER_H_INCLUDED
 #define PARSER_H_INCLUDED
 
+#include <iostream>
+
 #include "variant.h"
+
+class Config : public std::map<std::string, std::string> {
+public:
+    Config::iterator find (const std::string& s) {
+        constexpr bool PrintOptions = false; // print config options?
+        if (PrintOptions)
+            std::cout << s << std::endl;
+        return std::map<std::string, std::string>::find(s);
+    }
+};
 
 class VariantParser {
 public:
-    VariantParser(const std::map<std::string, std::string>& c) : config (c) {};
+    VariantParser(const Config& c) : config (c) {};
     Variant* parse();
     Variant* parse(Variant* v);
 
 private:
-    std::map<std::string, std::string> config;
+    Config config;
     template <class T> void parse_attribute(const std::string& key, T& target);
 };
 

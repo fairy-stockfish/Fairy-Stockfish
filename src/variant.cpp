@@ -727,7 +727,7 @@ void VariantMap::parse(std::string path) {
             variant_template = "";
 
         // Read variant rules
-        std::map<std::string, std::string> attribs = {};
+        Config attribs = {};
         while (file.peek() != '[' && std::getline(file, input))
         {
             std::stringstream ss(input);
