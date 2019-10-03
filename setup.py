@@ -4,7 +4,7 @@ from setuptools import setup, Extension
 from glob import glob
 import platform
 
-args = ["-Wno-date-time", "-flto", "-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS"]
+args = ["-Wno-date-time", "-flto", "-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-std=c++11"]
 
 if "64bit" in platform.architecture():
     args.append("-DIS_64BIT")
