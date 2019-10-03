@@ -105,7 +105,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
       os << "+\n";
   }
 
-  os << "\nFen: " << pos.fen() << "\nKey: " << std::hex << std::uppercase
+  os << "\nFen: " << pos.fen() << "\nSfen: " << pos.fen(true) << "\nKey: " << std::hex << std::uppercase
      << std::setfill('0') << std::setw(16) << pos.key()
      << std::setfill(' ') << std::dec << "\nCheckers: ";
 
@@ -583,7 +583,7 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
 /// Position::fen() returns a FEN representation of the position. In case of
 /// Chess960 the Shredder-FEN notation is used. This is mainly a debugging function.
 
-const string Position::fen() const {
+const string Position::fen(bool sfen) const {
 
   int emptyCnt;
   std::ostringstream ss;
@@ -616,6 +616,19 @@ const string Position::fen() const {
 
       if (r > RANK_1)
           ss << '/';
+  }
+
+  // SFEN
+  if (sfen)
+  {
+      ss << (sideToMove == WHITE ? " b " : " w ");
+      for (Color c : {WHITE, BLACK})
+          for (PieceType pt = KING; pt >= PAWN; --pt)
+              ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
+      if (!count_in_hand(WHITE, ALL_PIECES) && !count_in_hand(BLACK, ALL_PIECES))
+          ss << '-';
+      ss << " " << gamePly + 1;
+      return ss.str();
   }
 
   // pieces in hand
