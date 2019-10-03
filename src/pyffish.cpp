@@ -353,7 +353,7 @@ extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *a
 
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
-    if (strcmp(variant,"crazyhouse")==0 || strcmp(variant,"shogi")==0) {
+    if (pos.captures_to_hand()) {
         wInsufficient = false;
         bInsufficient = false;
     } else {
