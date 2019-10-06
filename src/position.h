@@ -89,7 +89,7 @@ public:
   // FEN string input/output
   Position& set(const Variant* v, const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th, bool sfen = false);
   Position& set(const std::string& code, Color c, StateInfo* si);
-  const std::string fen() const;
+  const std::string fen(bool sfen = false) const;
 
   // Variant rule properties
   const Variant* variant() const;
