@@ -135,7 +135,7 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
 
     if (strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
-    bool sfen = strcmp(variant,"shogi")==0;
+    bool sfen = strcmp(variant,"shogi")==0 || strcmp(variant,"minishogi")==0;
     Options["Protocol"] = (sfen) ? string("usi") : string("uci");
     Options["UCI_Chess960"] = (chess960==0) ? UCI::Option(false) : UCI::Option(true);
     pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
@@ -188,7 +188,7 @@ extern "C" PyObject* pyffish_startFen(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "s", &variant)) {
         return NULL;
     }
-    bool sfen = strcmp(variant,"shogi")==0;
+    bool sfen = strcmp(variant,"shogi")==0 || strcmp(variant,"minishogi")==0;
     Options["Protocol"] = (sfen) ? string("usi") : string("uci");
 
     return Py_BuildValue("s", variants.find(string(variant))->second->startFen.c_str());
