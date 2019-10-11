@@ -926,7 +926,7 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 8th/1st rank.
-      if (mandatory_pawn_promotion() && (promotion_zone_bb(us, promotion_rank(), max_rank()) & to))
+      if (mandatory_pawn_promotion() && rank_of(to) == relative_rank(us, promotion_rank(), max_rank()))
           return false;
 
       if (   !(attacks_from<PAWN>(us, from) & pieces(~us) & to) // Not a capture
@@ -956,7 +956,7 @@ bool Position::pseudo_legal(const Move m) const {
           // Our move must be a blocking evasion or a capture of the checking piece
           Square checksq = lsb(checkers());
           if (  !((between_bb(checksq, square<KING>(us)) | checkers()) & to)
-              || (LeaperAttacks[~us][type_of(piece_on(checksq))][checksq] & square<KING>(us)))
+              || ((LeaperAttacks[~us][type_of(piece_on(checksq))][checksq] & square<KING>(us)) && !(checkers() & to)))
               return false;
       }
       // In case of king moves under check we have to remove king so as to catch

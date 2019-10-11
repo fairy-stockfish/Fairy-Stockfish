@@ -169,6 +169,7 @@ namespace {
 
     for (const auto& m : MoveList<LEGAL>(pos))
     {
+        assert(pos.pseudo_legal(m));
         if (Root && depth <= ONE_PLY)
             cnt = 1, nodes++;
         else
