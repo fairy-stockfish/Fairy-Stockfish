@@ -1068,7 +1068,7 @@ namespace {
             score += pieces<WHITE>(pt) - pieces<BLACK>(pt);
 
     // Evaluate pieces in hand once attack tables are complete
-    if (pos.piece_drops() || pos.gating())
+    if (pos.piece_drops() || pos.seirawan_gating())
         for (PieceType pt = PAWN; pt < KING; ++pt)
             score += hand<WHITE>(pt) - hand<BLACK>(pt);
 

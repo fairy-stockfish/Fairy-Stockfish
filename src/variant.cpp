@@ -62,6 +62,18 @@ namespace {
         v->countingRule = MAKRUK_COUNTING;
         return v;
     }
+    Variant* cambodian_variant() {
+        Variant* v = makruk_variant();
+        v->startFen = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w DEde - 0 1";
+        v->gating = true;
+        v->cambodianMoves = true;
+        return v;
+    }
+    Variant* karouk_variant() {
+        Variant* v = cambodian_variant();
+        v->checkCounting = true;
+        return v;
+    }
     Variant* asean_variant() {
         Variant* v = chess_variant();
         v->remove_piece(BISHOP);
@@ -260,6 +272,7 @@ namespace {
         v->add_piece(CHANCELLOR, 'e');
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1";
         v->gating = true;
+        v->seirawanGating = true;
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
@@ -648,6 +661,8 @@ void VariantMap::init() {
     add("standard", chess_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
+    add("cambodian", cambodian_variant());
+    add("karouk", karouk_variant());
     add("asean", asean_variant());
     add("ai-wok", aiwok_variant());
     add("shatranj", shatranj_variant());

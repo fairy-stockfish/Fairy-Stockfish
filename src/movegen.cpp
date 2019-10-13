@@ -31,11 +31,11 @@ namespace {
     *moveList++ = make<T>(from, to);
 
     // Gating moves
-    if (pos.gating() && (pos.gates(us) & from))
+    if (pos.seirawan_gating() && (pos.gates(us) & from))
         for (PieceType pt_gating = PAWN; pt_gating <= KING; ++pt_gating)
             if (pos.count_in_hand(us, pt_gating) && (pos.drop_region(us, pt_gating) & from))
                 *moveList++ = make_gating<T>(from, to, pt_gating, from);
-    if (pos.gating() && T == CASTLING && (pos.gates(us) & to))
+    if (pos.seirawan_gating() && T == CASTLING && (pos.gates(us) & to))
         for (PieceType pt_gating = PAWN; pt_gating <= KING; ++pt_gating)
             if (pos.count_in_hand(us, pt_gating) && (pos.drop_region(us, pt_gating) & to))
                 *moveList++ = make_gating<T>(from, to, pt_gating, to);
@@ -349,6 +349,28 @@ namespace {
 
         if (!pos.castling_impeded(OOO) && pos.can_castle(OOO))
             moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, from, pos.castling_rook_square(OOO));
+    }
+
+    // Special moves
+    if (pos.cambodian_moves() && pos.gates(Us))
+    {
+        if (Type != CAPTURES && Type != EVASIONS && (pos.pieces(Us, KING) & pos.gates(Us)))
+        {
+            Square from = pos.square<KING>(Us);
+            Bitboard b = PseudoAttacks[WHITE][KNIGHT][from] & rank_bb(rank_of(from + (Us == WHITE ? NORTH : SOUTH)))
+                        & target & ~pos.pieces();
+            while (b)
+                moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, from, pop_lsb(&b));
+        }
+
+        Bitboard b = pos.pieces(Us, FERS) & pos.gates(Us);
+        while (b)
+        {
+            Square from = pop_lsb(&b);
+            Square to = from + 2 * (Us == WHITE ? NORTH : SOUTH);
+            if (is_ok(to) && (target & to))
+                moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, from, to);
+        }
     }
 
     return moveList;

@@ -244,6 +244,7 @@ enum MoveType : int {
   DROP               = 4 << (2 * SQUARE_BITS),
   PIECE_PROMOTION    = 5 << (2 * SQUARE_BITS),
   PIECE_DEMOTION     = 6 << (2 * SQUARE_BITS),
+  SPECIAL            = 7 << (2 * SQUARE_BITS),
 };
 
 constexpr int MOVE_TYPE_BITS = 4;
