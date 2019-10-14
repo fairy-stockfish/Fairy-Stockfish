@@ -384,11 +384,12 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
                   continue;
           }
 
-          set_castling_right(c, rsq);
+          if (castling_enabled())
+              set_castling_right(c, rsq);
       }
 
       // Set castling rights for 960 gating variants
-      if (gating())
+      if (gating() && castling_enabled())
           for (Color c : {WHITE, BLACK})
               if ((gates(c) & pieces(KING)) && !castling_rights(c) && (count_in_hand(c, ALL_PIECES) || captures_to_hand()))
               {
