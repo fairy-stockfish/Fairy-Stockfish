@@ -84,7 +84,11 @@ bool Bitbases::probe(Square wksq, Square wpsq, Square bksq, Color us) {
 
 void Bitbases::init() {
 
-#ifndef LARGEBOARDS
+#ifdef LARGEBOARDS
+    // Bitbases are not working for large-board version
+    return;
+#endif
+
   std::vector<KPKPosition> db(MAX_INDEX);
   unsigned idx, repeat = 1;
 
@@ -102,7 +106,6 @@ void Bitbases::init() {
   for (idx = 0; idx < MAX_INDEX; ++idx)
       if (db[idx] == WIN)
           KPKBitbase[idx / 32] |= 1 << (idx & 0x1F);
-#endif
 }
 
 
