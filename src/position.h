@@ -132,6 +132,8 @@ public:
   bool shogi_doubled_pawn() const;
   bool immobility_illegal() const;
   bool gating() const;
+  bool seirawan_gating() const;
+  bool cambodian_moves() const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -513,6 +515,16 @@ inline bool Position::immobility_illegal() const {
 inline bool Position::gating() const {
   assert(var != nullptr);
   return var->gating;
+}
+
+inline bool Position::seirawan_gating() const {
+  assert(var != nullptr);
+  return var->seirawanGating;
+}
+
+inline bool Position::cambodian_moves() const {
+  assert(var != nullptr);
+  return var->cambodianMoves;
 }
 
 inline int Position::n_move_rule() const {

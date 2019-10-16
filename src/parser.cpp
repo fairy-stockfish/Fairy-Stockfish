@@ -172,6 +172,8 @@ Variant* VariantParser::parse(Variant* v) {
     parse_attribute("shogiDoubledPawn", v->shogiDoubledPawn);
     parse_attribute("immobilityIllegal", v->immobilityIllegal);
     parse_attribute("gating", v->gating);
+    parse_attribute("seirawanGating", v->seirawanGating);
+    parse_attribute("cambodianMoves", v->cambodianMoves);
     // game end
     parse_attribute("nMoveRule", v->nMoveRule);
     parse_attribute("nFoldRule", v->nFoldRule);

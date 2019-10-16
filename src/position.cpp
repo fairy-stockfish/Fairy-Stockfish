@@ -269,8 +269,8 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   size_t idx;
   std::istringstream ss(fenStr);
 
-  std::memset(this, 0, sizeof(Position));
-  std::memset(si, 0, sizeof(StateInfo));
+  std::memset(static_cast<void*>(this), 0, sizeof(Position));
+  std::memset(static_cast<void*>(si), 0, sizeof(StateInfo));
   std::fill_n(&pieceList[0][0], sizeof(pieceList) / sizeof(Square), SQ_NONE);
   var = v;
   st = si;
@@ -380,17 +380,18 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
                   st->gatesBB[c] |= count<KING>(c) ? square<KING>(c) : make_square(FILE_E, relative_rank(c, castling_rank(), max_rank()));
               // Do not set castling rights for gates unless there are no pieces in hand,
               // which means that the file is referring to a chess960 castling right.
-              else if (count_in_hand(c, ALL_PIECES) || captures_to_hand())
+              else if (!seirawan_gating() || count_in_hand(c, ALL_PIECES) || captures_to_hand())
                   continue;
           }
 
-          set_castling_right(c, rsq);
+          if (castling_enabled())
+              set_castling_right(c, rsq);
       }
 
       // Set castling rights for 960 gating variants
-      if (gating())
+      if (gating() && castling_enabled())
           for (Color c : {WHITE, BLACK})
-              if ((gates(c) & pieces(KING)) && !castling_rights(c) && (count_in_hand(c, ALL_PIECES) || captures_to_hand()))
+              if ((gates(c) & pieces(KING)) && !castling_rights(c) && (!seirawan_gating() || count_in_hand(c, ALL_PIECES) || captures_to_hand()))
               {
                   Bitboard castling_rooks = gates(c) & pieces(ROOK);
                   while (castling_rooks)
@@ -416,11 +417,21 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   // Check counter for nCheck
   ss >> std::skipws >> token >> std::noskipws;
 
-  if (check_counting() && ss.peek() == '+')
+  if (check_counting())
   {
-      st->checksRemaining[WHITE] = CheckCount(std::max(token - '0', 0));
-      ss >> token >> token;
-      st->checksRemaining[BLACK] = CheckCount(std::max(token - '0', 0));
+      if (ss.peek() == '+')
+      {
+          st->checksRemaining[WHITE] = CheckCount(std::max(token - '0', 0));
+          ss >> token >> token;
+          st->checksRemaining[BLACK] = CheckCount(std::max(token - '0', 0));
+      }
+      else
+      {
+          // If check count is not provided, assume that the next check wins
+          st->checksRemaining[WHITE] = CheckCount(1);
+          st->checksRemaining[BLACK] = CheckCount(1);
+          ss.putback(token);
+      }
   }
   else
       ss.putback(token);
@@ -548,7 +559,7 @@ void Position::set_state(StateInfo* si) const {
           for (int cnt = 0; cnt < pieceCount[pc]; ++cnt)
               si->materialKey ^= Zobrist::psq[pc][cnt];
 
-          if (piece_drops() || gating())
+          if (piece_drops() || seirawan_gating())
               si->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
       }
 
@@ -632,7 +643,7 @@ const string Position::fen(bool sfen) const {
   }
 
   // pieces in hand
-  if (piece_drops() || gating())
+  if (piece_drops() || seirawan_gating())
   {
       ss << '[';
       for (Color c : {WHITE, BLACK})
@@ -649,7 +660,7 @@ const string Position::fen(bool sfen) const {
   if (can_castle(WHITE_OOO))
       ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OOO))) : 'Q');
 
-  if (gating() && gates(WHITE) && (count_in_hand(WHITE, ALL_PIECES) || captures_to_hand()))
+  if (gating() && gates(WHITE) && (!seirawan_gating() || count_in_hand(WHITE, ALL_PIECES) || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
           if (gates(WHITE) & file_bb(f))
               ss << char('A' + f);
@@ -660,7 +671,7 @@ const string Position::fen(bool sfen) const {
   if (can_castle(BLACK_OOO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OOO))) : 'q');
 
-  if (gating() && gates(BLACK) && (count_in_hand(BLACK, ALL_PIECES) || captures_to_hand()))
+  if (gating() && gates(BLACK) && (!seirawan_gating() || count_in_hand(BLACK, ALL_PIECES) || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
           if (gates(BLACK) & file_bb(f))
               ss << char('a' + f);
@@ -740,6 +751,15 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
   Bitboard b = 0;
   for (PieceType pt : piece_types())
       b |= attacks_bb(~c, pt, s, occupied) & pieces(c, pt);
+
+  // Consider special move of neang in cambodian chess
+  if (cambodian_moves())
+  {
+      Square fers_sq = s + 2 * (c == WHITE ? SOUTH : NORTH);
+      if (is_ok(fers_sq))
+          b |= pieces(c, FERS) & gates(c) & fers_sq;
+  }
+
   return b;
 }
 
@@ -1002,6 +1022,7 @@ bool Position::gives_check(Move m) const {
   {
   case NORMAL:
   case DROP:
+  case SPECIAL:
       return false;
 
   case PROMOTION:
@@ -1057,7 +1078,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Copy some fields of the old state to our new StateInfo object except the
   // ones which are going to be recalculated from scratch anyway and then switch
   // our state pointer to point to the new (ready to be updated) state.
-  std::memcpy(&newSt, st, offsetof(StateInfo, key));
+  std::memcpy(static_cast<void*>(&newSt), static_cast<void*>(st), offsetof(StateInfo, key));
   newSt.previous = st;
   st = &newSt;
 
@@ -1312,7 +1333,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->gatesBB[us] ^= to_sq(m);
       if (gates(them) & to)
           st->gatesBB[them] ^= to;
-      if (!count_in_hand(us, ALL_PIECES) && !captures_to_hand())
+      if (seirawan_gating() && !count_in_hand(us, ALL_PIECES) && !captures_to_hand())
           st->gatesBB[us] = 0;
   }
 
