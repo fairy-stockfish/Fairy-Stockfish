@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include "types.h"
+#include "piece.h"
 #include "variant.h"
 
 Value PieceValue[PHASE_NB][PIECE_NB] = {
@@ -128,6 +129,15 @@ void init(const Variant* v) {
       PieceValue[EG][~pc] = PieceValue[EG][pc];
 
       Score score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
+
+      // Scale slider piece values with board size
+      const PieceInfo* pi = pieceMap.find(pt)->second;
+      if (pi->sliderQuiet.size() || pi->sliderCapture.size())
+      {
+          int offset = pi->stepsQuiet.size() || pi->stepsCapture.size() ? 16 : 6;
+          score = make_score(mg_value(score) * (v->maxRank + v->maxFile + offset) / (14 + offset),
+                             eg_value(score) * (v->maxRank + v->maxFile + offset) / (14 + offset));
+      }
 
       // For drop variants, halve the piece values
       if (v->capturesToHand || !v->checking)

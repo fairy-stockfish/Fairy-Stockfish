@@ -264,6 +264,7 @@ namespace {
         v->sittuyinPromotion = true;
         v->immobilityIllegal = false;
         v->countingRule = ASEAN_COUNTING;
+        v->nMoveRule = 50;
         return v;
     }
     Variant* seirawan_variant() {
