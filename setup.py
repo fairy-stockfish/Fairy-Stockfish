@@ -6,19 +6,10 @@ import platform
 import io
 
 
-if "Windows" in platform.system():
-    args = [
-        "-DLARGEBOARDS",
-        "-DPRECOMPUTED_MAGICS",
-        "/LTCG",
-        "/std:c++11"]
-else:
-    args = [
-        "-DLARGEBOARDS",
-        "-DPRECOMPUTED_MAGICS",
-        "-flto",
-        "-Wno-date-time",
-        "-std=c++11"]
+args = ["-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-flto", "-std=c++11"]
+
+if not platform.python_compiler().startswith("MSC"):
+    args.append("-Wno-date-time")
 
 if "64bit" in platform.architecture():
     args.append("-DIS_64BIT")
