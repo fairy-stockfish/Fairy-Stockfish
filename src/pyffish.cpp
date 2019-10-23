@@ -125,7 +125,7 @@ bool hasInsufficientMaterial(Color c, Position *p) {
     if (p->count(c, BISHOP) > 1 && p->count(c, KNIGHT) == 0)
     {
         bool sameColor;
-        sameColor = ((DarkSquares & (p->pieces(c, BISHOP))) == 0) || ((~DarkSquares & (p->pieces(c, BISHOP))) == 0);
+        sameColor = ((DarkSquares & (p->pieces(c, BISHOP))) == Bitboard(0)) || ((~DarkSquares & (p->pieces(c, BISHOP))) == Bitboard(0));
         return sameColor;
     }
     return false;
