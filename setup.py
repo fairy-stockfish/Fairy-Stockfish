@@ -5,11 +5,21 @@ from glob import glob
 import platform
 import io
 
-args = ["-flto", "-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-std=c++11"]
 
-if "Windows" not in platform.system():
-    args.append("-Wno-date-time")
-    
+if "Windows" in platform.system():
+    args = [
+        "-DLARGEBOARDS",
+        "-DPRECOMPUTED_MAGICS",
+        "/LTCG",
+        "/std:c++11"]
+else:
+    args = [
+        "-DLARGEBOARDS",
+        "-DPRECOMPUTED_MAGICS",
+        "-flto",
+        "-Wno-date-time",
+        "-std=c++11"]
+
 if "64bit" in platform.architecture():
     args.append("-DIS_64BIT")
 
