@@ -7,9 +7,29 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-    - PYTHON: "C:\\Python35-x64"
-    - PYTHON: "C:\\Python36-x64"
-    - PYTHON: "C:\\Python37-x64"
+    - python: 27
+      ARCH: X86
+
+    - python: 27-x64
+      ARCH: AMD64
+
+    - python: 35
+      ARCH: X86
+
+    - python: 35-x64
+      ARCH: AMD64
+
+    - python: 36
+      ARCH: X86
+
+    - python: 36-x64
+      ARCH: AMD64
+
+    - python: 37
+      ARCH: X86
+
+    - python: 37-x64
+      ARCH: AMD64
 
 install:
   # We need wheel installed to build wheels
