@@ -16,7 +16,7 @@ CLASSIFIERS = [
     "Operating System :: OS Independent",
 ]
 
-with open("Readme.md", "r") as fh:
+with open("Readme.md", "r", encoding="utf8") as fh:
     long_description = fh.read().strip()
 
 pyffish_module = Extension(
