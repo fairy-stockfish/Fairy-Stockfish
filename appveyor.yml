@@ -7,7 +7,6 @@ environment:
 
 init:
   - "ECHO %PYTHON% %PYTHON_ARCH% %MSVC_VERSION%"
-  - "%PYTHON%\\python.exe --version"
 
 install:
   - ps: |
