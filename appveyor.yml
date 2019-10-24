@@ -1,30 +1,24 @@
 environment:
 
   matrix:
-    - PYTHON: "C:\\Python35"
-      PYTHON_ARCH: 32
-
-    - PYTHON: "C:\\Python36"
-      PYTHON_ARCH: 32
-
-    - PYTHON: "C:\\Python37"
-      PYTHON_ARCH: 32
-
-    # x64 builds
-    - PYTHON: "C:\\Python35-x64"
-      PYTHON_ARCH: 64
-
     - PYTHON: "C:\\Python36-x64"
-      PYTHON_ARCH: 64
-
     - PYTHON: "C:\\Python37-x64"
-      PYTHON_ARCH: 64
+    - PYTHON: "C:\\Python38-x64"
 
 init:
   - "ECHO %PYTHON% %PYTHON_ARCH% %MSVC_VERSION%"
   - "%PYTHON%\\python.exe --version"
 
 install:
+  - ps: |
+      if (-not (Test-Path $env:PYTHON)) {
+        curl -o install_python.ps1 https://raw.githubusercontent.com/matthew-brett/multibuild/11a389d78892cf90addac8f69433d5e22bfa422a/install_python.ps1
+        .\install_python.ps1
+      }
+  - ps: if (-not (Test-Path $env:PYTHON)) { throw "No $env:PYTHON" }
+  - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - python --version
+
   # We need wheel installed to build wheels
   - "%PYTHON%\\python.exe -m pip install wheel"
 
