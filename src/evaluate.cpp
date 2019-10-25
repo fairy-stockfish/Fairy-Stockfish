@@ -204,12 +204,14 @@ namespace {
     // kingAttackersCount[color] is the number of pieces of the given color
     // which attack a square in the kingRing of the enemy king.
     int kingAttackersCount[COLOR_NB];
+    int kingAttackersCountInHand[COLOR_NB];
 
     // kingAttackersWeight[color] is the sum of the "weights" of the pieces of
     // the given color which attack a square in the kingRing of the enemy king.
     // The weights of the individual piece types are given by the elements in
     // the KingAttackWeights array.
     int kingAttackersWeight[COLOR_NB];
+    int kingAttackersWeightInHand[COLOR_NB];
 
     // kingAttacksCount[color] is the number of attacks by the given color to
     // squares directly adjacent to the enemy king. Pieces which attack more
@@ -267,6 +269,7 @@ namespace {
 
     kingAttackersCount[Them] = popcount(kingRing[Us] & pe->pawn_attacks(Them));
     kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
+    kingAttackersCountInHand[Them] = kingAttackersWeightInHand[Them] = 0;
 
     // Remove from kingRing[] the squares defended by two pawns
     kingRing[Us] &= ~dblAttackByPawn;
@@ -432,8 +435,8 @@ namespace {
         Bitboard b = pos.drop_region(Us, pt) & ~pos.pieces() & (~attackedBy2[Them] | attackedBy[Us][ALL_PIECES]);
         if ((b & kingRing[Them]) && pt != SHOGI_PAWN)
         {
-            kingAttackersCount[Us] += pos.count_in_hand(Us, pt);
-            kingAttackersWeight[Us] += KingAttackWeights[std::min(int(pt), QUEEN + 1)] * pos.count_in_hand(Us, pt);
+            kingAttackersCountInHand[Us] += pos.count_in_hand(Us, pt);
+            kingAttackersWeightInHand[Us] += KingAttackWeights[std::min(int(pt), QUEEN + 1)] * pos.count_in_hand(Us, pt);
             kingAttacksCount[Us] += popcount(b & attackedBy[Them][KING]);
         }
         Bitboard theirHalf = pos.board_bb() & ~forward_ranks_bb(Them, relative_rank(Them, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
@@ -540,6 +543,8 @@ namespace {
     int kingFlankAttacks = popcount(b1) + popcount(b2);
 
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
+                 +       kingAttackersCountInHand[Them] * kingAttackersWeight[Them]
+                 +       kingAttackersCount[Them] * kingAttackersWeightInHand[Them]
                  + 69  * kingAttacksCount[Them] * (2 + 8 * pos.check_counting() + pos.captures_to_hand()) / 2
                  + 185 * popcount(kingRing[Us] & weak) * (1 + pos.captures_to_hand() + pos.check_counting())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
