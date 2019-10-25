@@ -65,7 +65,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
              refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d) {
 
-  assert(d > DEPTH_ZERO);
+  assert(d > 0);
 
   stage = pos.checkers() ? EVASION_TT : MAIN_TT;
   ttMove = ttm && pos.pseudo_legal(ttm) ? ttm : MOVE_NONE;
@@ -77,7 +77,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                        const CapturePieceToHistory* cph, const PieceToHistory** ch, Square rs)
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch), recaptureSquare(rs), depth(d) {
 
-  assert(d <= DEPTH_ZERO);
+  assert(d <= 0);
 
   stage = pos.checkers() ? EVASION_TT : QSEARCH_TT;
   ttMove =   ttm
@@ -115,11 +115,11 @@ void MovePicker::score() {
                    + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
       else if (Type == QUIETS)
-          m.value =  (*mainHistory)[pos.side_to_move()][from_to(m)]
-                   + (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)]
-                   + (*continuationHistory[1])[history_slot(pos.moved_piece(m))][to_sq(m)]
-                   + (*continuationHistory[3])[history_slot(pos.moved_piece(m))][to_sq(m)]
-                   + (*continuationHistory[5])[history_slot(pos.moved_piece(m))][to_sq(m)] / 2;
+          m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
+                   + 2 * (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)]
+                   + 2 * (*continuationHistory[1])[history_slot(pos.moved_piece(m))][to_sq(m)]
+                   + 2 * (*continuationHistory[3])[history_slot(pos.moved_piece(m))][to_sq(m)]
+                   +     (*continuationHistory[5])[history_slot(pos.moved_piece(m))][to_sq(m)];
 
       else // Type == EVASIONS
       {
@@ -211,7 +211,7 @@ top:
           endMoves = generate<QUIETS>(pos, cur);
 
           score<QUIETS>();
-          partial_insertion_sort(cur, endMoves, -4000 * depth / ONE_PLY);
+          partial_insertion_sort(cur, endMoves, -3000 * depth);
       }
 
       ++stage;

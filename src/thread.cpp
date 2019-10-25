@@ -70,18 +70,22 @@ void Thread::clear() {
   mainHistory.fill(0);
   captureHistory.fill(0);
 
-  for (auto& to : continuationHistory)
-      for (auto& h : to)
-          h->fill(0);
+  for (bool inCheck : { false, true })
+	  for (StatsType c : { NoCaptures, Captures })
+		  for (auto& to : continuationHistory[inCheck][c])
+			  for (auto& h : to)
+				  h->fill(0);
 
-  continuationHistory[NO_PIECE][0]->fill(Search::CounterMovePruneThreshold - 1);
+  for (bool inCheck : { false, true })
+	  for (StatsType c : { NoCaptures, Captures })
+      continuationHistory[inCheck][c][NO_PIECE][0]->fill(Search::CounterMovePruneThreshold - 1);
 }
 
 /// Thread::start_searching() wakes up the thread that will start the search
 
 void Thread::start_searching() {
 
-  std::lock_guard<Mutex> lk(mutex);
+  std::lock_guard<std::mutex> lk(mutex);
   searching = true;
   cv.notify_one(); // Wake up the thread in idle_loop()
 }
@@ -92,7 +96,7 @@ void Thread::start_searching() {
 
 void Thread::wait_for_search_finished() {
 
-  std::unique_lock<Mutex> lk(mutex);
+  std::unique_lock<std::mutex> lk(mutex);
   cv.wait(lk, [&]{ return !searching; });
 }
 
@@ -112,7 +116,7 @@ void Thread::idle_loop() {
 
   while (true)
   {
-      std::unique_lock<Mutex> lk(mutex);
+      std::unique_lock<std::mutex> lk(mutex);
       searching = false;
       cv.notify_one(); // Wake up anyone waiting for search finished
       cv.wait(lk, [&]{ return searching; });
@@ -148,6 +152,9 @@ void ThreadPool::set(size_t requested) {
 
       // Reallocate the hash with the new threadpool size
       TT.resize(Options["Hash"]);
+
+      // Init thread number dependent search params.
+      Search::init();
   }
 }
 
@@ -201,7 +208,7 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
   for (Thread* th : *this)
   {
       th->shuffleExts = th->nodes = th->tbHits = th->nmpMinPly = 0;
-      th->rootDepth = th->completedDepth = DEPTH_ZERO;
+      th->rootDepth = th->completedDepth = 0;
       th->rootMoves = rootMoves;
       th->rootPos.set(pos.variant(), pos.fen(), pos.is_chess960(), &setupStates->back(), th);
   }
