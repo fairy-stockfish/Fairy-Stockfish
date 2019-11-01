@@ -228,9 +228,17 @@ void MainThread::search() {
   {
       rootMoves.emplace_back(MOVE_NONE);
       Value variantResult;
+      Value result =  rootPos.is_game_end(variantResult) ? variantResult
+                    : rootPos.checkers()                 ? rootPos.checkmate_value()
+                                                         : rootPos.stalemate_value();
+      if (Options["Protocol"] == "xboard")
+          sync_cout << (  result == VALUE_DRAW ? "1/2-1/2 {Draw}"
+                        : (rootPos.side_to_move() == BLACK ? -result : result) == VALUE_MATE ? "1-0 {White wins}"
+                        : "0-1 {Black wins}")
+                    << sync_endl;
+      else
       sync_cout << "info depth 0 score "
-                << UCI::value(  rootPos.is_game_end(variantResult) ? variantResult
-                              : rootPos.checkers() ? rootPos.checkmate_value() : rootPos.stalemate_value())
+                << UCI::value(result)
                 << sync_endl;
   }
   else
@@ -268,7 +276,7 @@ void MainThread::search() {
   if (Limits.npmsec)
       Time.availableNodes += Limits.inc[us] - Threads.nodes_searched();
 
-  Thread* bestThread = this;
+  bestThread = this;
 
   // Check if there are threads with a better score than main thread
   if (    Options["MultiPV"] == 1
@@ -306,6 +314,14 @@ void MainThread::search() {
   // Send again PV info if we have a new best thread
   if (bestThread != this)
       sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
+
+  if (Options["Protocol"] == "xboard")
+  {
+      // Send move only when not in analyze mode and not at game end
+      if (!Options["UCI_AnalyseMode"] && rootMoves[0].pv[0] != MOVE_NONE)
+          sync_cout << "move " << UCI::move(rootPos, bestThread->rootMoves[0].pv[0]) << sync_endl;
+      return;
+  }
 
   sync_cout << "bestmove " << UCI::move(rootPos, bestThread->rootMoves[0].pv[0]);
 
@@ -962,7 +978,7 @@ moves_loop: // When in check, search starts from here
 
       ss->moveCount = ++moveCount;
 
-      if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
+      if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000 && Options["Protocol"] != "xboard")
           sync_cout << "info depth " << depth
                     << " currmove " << UCI::move(pos, move)
                     << " currmovenumber " << moveCount + thisThread->pvIdx << sync_endl;
@@ -1769,6 +1785,21 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
       if (ss.rdbuf()->in_avail()) // Not at first line
           ss << "\n";
 
+      if (Options["Protocol"] == "xboard")
+      {
+          ss << d << " "
+             << UCI::value(v) << " "
+             << elapsed / 10 << " "
+             << nodesSearched << " "
+             << rootMoves[i].selDepth << " "
+             << nodesSearched * 1000 / elapsed << " "
+             << tbHits << "\t";
+
+          for (Move m : rootMoves[i].pv)
+              ss << " " << UCI::move(pos, m);
+      }
+      else
+      {
       ss << "info"
          << " depth "    << d
          << " seldepth " << rootMoves[i].selDepth
@@ -1790,6 +1821,7 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
 
       for (Move m : rootMoves[i].pv)
           ss << " " << UCI::move(pos, m);
+      }
   }
 
   return ss.str();
