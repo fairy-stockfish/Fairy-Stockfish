@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
   pieceMap.init();
   variants.init();
   UCI::init(Options);
-  PSQT::init(variants.find("chess")->second);
+  PSQT::init(variants.find(Options["UCI_Variant"])->second);
   Bitboards::init();
   Position::init();
   Bitbases::init();
