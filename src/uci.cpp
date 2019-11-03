@@ -471,7 +471,7 @@ string UCI::value(Value v) {
       if (abs(v) < VALUE_MATE - MAX_PLY)
           ss << v * 100 / PawnValueEg;
       else
-          ss << (v > 0 ? XBOARD_VALUE_MATE + v - VALUE_MATE + 1 : -XBOARD_VALUE_MATE + VALUE_MATE + v - 1) / 2;
+          ss << (v > 0 ? XBOARD_VALUE_MATE + VALUE_MATE - v + 1 : -XBOARD_VALUE_MATE - VALUE_MATE - v - 1) / 2;
   } else
 
   if (abs(v) < VALUE_MATE - MAX_PLY)
