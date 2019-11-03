@@ -435,8 +435,8 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
          moveList = make_move_and_gating<NORMAL>(pos, moveList, us, from, pop_lsb(&b));
   }
 
-  return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
-                     : generate_all<BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
+  return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces() & pos.board_bb())
+                     : generate_all<BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces() & pos.board_bb());
 }
 
 
