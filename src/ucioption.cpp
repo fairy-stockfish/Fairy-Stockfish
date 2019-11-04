@@ -42,6 +42,13 @@ namespace PSQT {
 
 namespace UCI {
 
+// standard variants of XBoard/WinBoard
+std::set<string> standard_variants = {
+    "normal", "fischerandom", "3check", "makruk", "shatranj",
+    "asean", "seirawan", "crazyhouse", "suicide", "giveaway", "losers",
+    "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi"
+};
+
 /// 'On change' actions, triggered by an option's value change
 void on_clear_hash(const Option&) { Search::clear(); }
 void on_hash_size(const Option& o) { TT.resize(o); }
@@ -52,13 +59,24 @@ void on_variant_path(const Option& o) { variants.parse(o); Options["UCI_Variant"
 void on_variant_change(const Option &o) {
     const Variant* v = variants.find(o)->second;
     PSQT::init(v);
-    sync_cout << "info string variant " << (std::string)o
-              << " files " << v->maxFile + 1
-              << " ranks " << v->maxRank + 1
-              << " pocket " << (v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0)
-              << " template " << v->variantTemplate
-              << " startpos " << v->startFen
-              << sync_endl;
+    // Do not send setup command for known variants
+    if (standard_variants.find(o) != standard_variants.end())
+        return;
+    int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0;
+    if (Options["Protocol"] == "xboard")
+        sync_cout << "setup (-) "
+                  << v->maxFile + 1 << "x" << v->maxRank + 1
+                  << "+" << pocketsize << "_" << v->variantTemplate
+                  << " " << v->startFen
+                  << sync_endl;
+    else
+        sync_cout << "info string variant " << (std::string)o
+                << " files " << v->maxFile + 1
+                << " ranks " << v->maxRank + 1
+                << " pocket " << pocketsize
+                << " template " << v->variantTemplate
+                << " startpos " << v->startFen
+                << sync_endl;
 }
 
 
@@ -77,7 +95,7 @@ void init(OptionsMap& o) {
   // at most 2^32 clusters.
   constexpr int MaxHashMB = Is64Bit ? 131072 : 2048;
 
-  o["Protocol"]              << Option("uci", {"uci", "usi"});
+  o["Protocol"]              << Option("uci", {"uci", "usi", "xboard"});
   o["Debug Log File"]        << Option("", on_logger);
   o["Contempt"]              << Option(24, -100, 100);
   o["Analysis Contempt"]     << Option("Both", {"Both", "Off", "White", "Black"});
@@ -108,6 +126,35 @@ void init(OptionsMap& o) {
 /// insertion order (the idx field) and in the format defined by the UCI protocol.
 
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
+
+  if (Options["Protocol"] == "xboard")
+  {
+      for (size_t idx = 0; idx < om.size(); ++idx)
+          for (const auto& it : om)
+              if (it.second.idx == idx && it.first != "Protocol")
+              {
+                  const Option& o = it.second;
+                  os << "\nfeature option=\"" << it.first << " -" << o.type;
+
+                  if (o.type == "string" || o.type == "check" || o.type == "combo")
+                      os << " " << o.defaultValue;
+
+                  if (o.type == "combo")
+                      for (string value : o.comboValues)
+                          if (value != o.defaultValue)
+                              os << " /// " << value;
+
+                  if (o.type == "spin")
+                      os << " " << int(stof(o.defaultValue))
+                         << " " << o.min
+                         << " " << o.max;
+
+                  os << "\"";
+
+                  break;
+              }
+  }
+  else
 
   for (size_t idx = 0; idx < om.size(); ++idx)
       for (const auto& it : om)
@@ -166,6 +213,11 @@ bool Option::operator==(const char* s) const {
   assert(type == "combo");
   return   !CaseInsensitiveLess()(currentValue, s)
         && !CaseInsensitiveLess()(s, currentValue);
+}
+
+bool Option::operator!=(const char* s) const {
+  assert(type == "combo");
+  return !(*this == s);
 }
 
 

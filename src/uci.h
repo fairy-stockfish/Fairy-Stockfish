@@ -58,6 +58,7 @@ public:
   operator double() const;
   operator std::string() const;
   bool operator==(const char*) const;
+  bool operator!=(const char*) const;
   void set_combo(std::vector<std::string> newComboValues);
 
 private:

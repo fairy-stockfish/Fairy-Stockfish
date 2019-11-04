@@ -361,13 +361,13 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           token = char(toupper(token));
 
           if (token == 'K')
-              for (rsq = make_square(FILE_MAX, relative_rank(c, castling_rank(), max_rank())); piece_on(rsq) != rook; --rsq) {}
+              for (rsq = make_square(FILE_MAX, castling_rank(c)); piece_on(rsq) != rook; --rsq) {}
 
           else if (token == 'Q')
-              for (rsq = make_square(FILE_A, relative_rank(c, castling_rank(), max_rank())); piece_on(rsq) != rook; ++rsq) {}
+              for (rsq = make_square(FILE_A, castling_rank(c)); piece_on(rsq) != rook; ++rsq) {}
 
           else if (token >= 'A' && token <= 'A' + max_file())
-              rsq = make_square(File(token - 'A'), relative_rank(c, castling_rank(), max_rank()));
+              rsq = make_square(File(token - 'A'), castling_rank(c));
 
           else
               continue;
@@ -377,7 +377,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           {
               st->gatesBB[c] |= rsq;
               if (token == 'K' || token == 'Q')
-                  st->gatesBB[c] |= count<KING>(c) ? square<KING>(c) : make_square(FILE_E, relative_rank(c, castling_rank(), max_rank()));
+                  st->gatesBB[c] |= count<KING>(c) ? square<KING>(c) : make_square(FILE_E, castling_rank(c));
               // Do not set castling rights for gates unless there are no pieces in hand,
               // which means that the file is referring to a chess960 castling right.
               else if (!seirawan_gating() || count_in_hand(c, ALL_PIECES) || captures_to_hand())
@@ -482,7 +482,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
 void Position::set_castling_right(Color c, Square rfrom) {
 
-  Square kfrom = count<KING>(c) ? square<KING>(c) : make_square(FILE_E, relative_rank(c, castling_rank(), max_rank()));
+  Square kfrom = count<KING>(c) ? square<KING>(c) : make_square(FILE_E, castling_rank(c));
   CastlingRights cr = c & (kfrom < rfrom ? KING_SIDE: QUEEN_SIDE);
 
   st->castlingRights |= cr;
@@ -490,8 +490,7 @@ void Position::set_castling_right(Color c, Square rfrom) {
   castlingRightsMask[rfrom] |= cr;
   castlingRookSquare[cr] = rfrom;
 
-  Square kto = make_square(cr & KING_SIDE ? castling_kingside_file() : castling_queenside_file(),
-                           relative_rank(c, castling_rank(), max_rank()));
+  Square kto = make_square(cr & KING_SIDE ? castling_kingside_file() : castling_queenside_file(), castling_rank(c));
   Square rto = kto + (cr & KING_SIDE ? WEST : EAST);
 
   castlingPath[cr] =   (between_bb(rfrom, rto) | between_bb(kfrom, kto) | rto | kto)
@@ -782,6 +781,7 @@ bool Position::legal(Move m) const {
 
   assert(color_of(moved_piece(m)) == us);
   assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
+  assert(board_bb() & to);
 
   // Illegal checks
   if ((!checking_permitted() || (sittuyin_promotion() && type_of(m) == PROMOTION)) && gives_check(m))
@@ -869,7 +869,7 @@ bool Position::legal(Move m) const {
 
       // After castling, the rook and king final positions are the same in
       // Chess960 as they would be in standard chess.
-      to = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), relative_rank(us, castling_rank(), max_rank()));
+      to = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
       Direction step = to > from ? WEST : EAST;
 
       for (Square s = to; s != from; s += step)
@@ -1049,8 +1049,7 @@ bool Position::gives_check(Move m) const {
   {
       Square kfrom = from;
       Square rfrom = to; // Castling is encoded as 'King captures the rook'
-      Square kto = make_square(rfrom > kfrom ? castling_kingside_file() : castling_queenside_file(),
-                              relative_rank(sideToMove, castling_rank(), max_rank()));
+      Square kto = make_square(rfrom > kfrom ? castling_kingside_file() : castling_queenside_file(), castling_rank(sideToMove));
       Square rto = kto + (rfrom > kfrom ? WEST : EAST);
 
       return   (PseudoAttacks[sideToMove][ROOK][rto] & square<KING>(~sideToMove))
@@ -1206,12 +1205,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (type_of(pc) != PAWN)
           st->nonPawnMaterial[us] += PieceValue[MG][pc];
       // Set castling rights for dropped king or rook
-      if (castling_dropped_piece() && relative_rank(us, to, max_rank()) == castling_rank())
+      if (castling_dropped_piece() && rank_of(to) == castling_rank(us))
       {
           if (type_of(pc) == KING && file_of(to) == FILE_E)
           {
               Bitboard castling_rooks =  pieces(us, ROOK)
-                                       & rank_bb(relative_rank(us, castling_rank(), max_rank()))
+                                       & rank_bb(castling_rank(us))
                                        & (file_bb(FILE_A) | file_bb(max_file()));
               while (castling_rooks)
                   set_castling_right(us, pop_lsb(&castling_rooks));
@@ -1219,7 +1218,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           else if (type_of(pc) == ROOK)
           {
               if (   (file_of(to) == FILE_A || file_of(to) == max_file())
-                  && piece_on(make_square(FILE_E, relative_rank(us, castling_rank(), max_rank()))) == make_piece(us, KING))
+                  && piece_on(make_square(FILE_E, castling_rank(us))) == make_piece(us, KING))
                   set_castling_right(us, to);
           }
       }
@@ -1515,8 +1514,7 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
 
   bool kingSide = to > from;
   rfrom = to; // Castling is encoded as "king captures friendly rook"
-  to = make_square(kingSide ? castling_kingside_file() : castling_queenside_file(),
-                   relative_rank(us, castling_rank(), max_rank()));
+  to = make_square(kingSide ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
   rto = to + (kingSide ? WEST : EAST);
 
   // Remove both pieces first since squares could overlap in Chess960

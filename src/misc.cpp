@@ -102,6 +102,13 @@ public:
     if (!fname.empty() && !l.file.is_open())
     {
         l.file.open(fname, ifstream::out);
+
+        if (!l.file.is_open())
+        {
+            cerr << "Unable to open debug log file " << fname << endl;
+            exit(EXIT_FAILURE);
+        }
+
         cin.rdbuf(&l.in);
         cout.rdbuf(&l.out);
     }
@@ -168,7 +175,7 @@ void dbg_print() {
 
 std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 
-  static Mutex m;
+  static std::mutex m;
 
   if (sc == IO_LOCK)
       m.lock();

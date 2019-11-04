@@ -41,6 +41,11 @@ namespace {
         v->endgameEval = true;
         return v;
     }
+    Variant* chess960_variant() {
+        Variant* v = chess_variant();
+        v->chess960 = true;
+        return v;
+    }
     Variant* fairy_variant() {
         Variant* v = chess_variant();
         v->add_piece(SILVER, 's');
@@ -659,7 +664,8 @@ namespace {
 void VariantMap::init() {
     // Add to UCI_Variant option
     add("chess", chess_variant());
-    add("standard", chess_variant());
+    add("normal", chess_variant());
+    add("fischerandom", chess960_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("cambodian", cambodian_variant());

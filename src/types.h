@@ -43,6 +43,7 @@
 #include <climits>
 #include <cstdint>
 #include <cstdlib>
+#include <algorithm>
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
@@ -302,6 +303,7 @@ enum Value : int {
   VALUE_DRAW      = 0,
   VALUE_KNOWN_WIN = 10000,
   VALUE_MATE      = 32000,
+  XBOARD_VALUE_MATE = 200000,
   VALUE_INFINITE  = 32001,
   VALUE_NONE      = 32002,
 
@@ -374,21 +376,17 @@ enum RiderType {
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 
-enum Depth : int {
+typedef int Depth;
 
-  ONE_PLY = 1,
+enum : int {
 
-  DEPTH_ZERO          =  0 * ONE_PLY,
-  DEPTH_QS_CHECKS     =  0 * ONE_PLY,
-  DEPTH_QS_NO_CHECKS  = -1 * ONE_PLY,
-  DEPTH_QS_RECAPTURES = -5 * ONE_PLY,
+  DEPTH_QS_CHECKS     =  0,
+  DEPTH_QS_NO_CHECKS  = -1,
+  DEPTH_QS_RECAPTURES = -5,
 
-  DEPTH_NONE   = -6 * ONE_PLY,
+  DEPTH_NONE   = -6,
   DEPTH_OFFSET = DEPTH_NONE,
-  DEPTH_MAX    = MAX_PLY * ONE_PLY
 };
-
-static_assert(!(ONE_PLY & (ONE_PLY - 1)), "ONE_PLY is not a power of 2");
 
 enum Square : int {
 #ifdef LARGEBOARDS
@@ -514,8 +512,6 @@ inline T& operator*=(T& d, int i) { return d = T(int(d) * i); }    \
 inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
 
 ENABLE_FULL_OPERATORS_ON(Value)
-ENABLE_FULL_OPERATORS_ON(CheckCount)
-ENABLE_FULL_OPERATORS_ON(Depth)
 ENABLE_FULL_OPERATORS_ON(Direction)
 
 ENABLE_INCR_OPERATORS_ON(PieceType)
@@ -584,16 +580,12 @@ constexpr Square operator~(Square s) {
 #endif
 }
 
-constexpr File operator~(File f) {
-  return File(FILE_MAX - f); // Horizontal flip FILE_A -> FILE_H
-}
-
-constexpr Rank operator~(Rank r) {
-  return Rank(RANK_MAX - r); // Vertical flip Rank_1 -> Rank_8
-}
-
 constexpr Piece operator~(Piece pc) {
   return Piece(pc ^ PIECE_TYPE_NB); // Swap color of piece BLACK KNIGHT -> WHITE KNIGHT
+}
+
+inline File map_to_queenside(File f) {
+  return std::min(f, File(FILE_H - f)); // Map files ABCDEFGH to files ABCDDCBA
 }
 
 constexpr CastlingRights operator&(Color c, CastlingRights cr) {

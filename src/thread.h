@@ -42,8 +42,8 @@
 
 class Thread {
 
-  Mutex mutex;
-  ConditionVariable cv;
+  std::mutex mutex;
+  std::condition_variable cv;
   size_t idx;
   bool exit = false, searching = true; // Set before starting std::thread
   NativeThread stdThread;
@@ -71,7 +71,7 @@ public:
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
   CapturePieceToHistory captureHistory;
-  ContinuationHistory continuationHistory;
+  ContinuationHistory continuationHistory[2][2];
   Score contempt;
 };
 
@@ -90,6 +90,7 @@ struct MainThread : public Thread {
   int callsCnt;
   bool stopOnPonderhit;
   std::atomic_bool ponder;
+  Thread* bestThread; // to fetch best move when in XBoard mode
 };
 
 
@@ -109,9 +110,9 @@ struct ThreadPool : public std::vector<Thread*> {
 
   std::atomic_bool stop;
 
-private:
   StateListPtr setupStates;
 
+private:
   uint64_t accumulate(std::atomic<uint64_t> Thread::* member) const {
 
     uint64_t sum = 0;
