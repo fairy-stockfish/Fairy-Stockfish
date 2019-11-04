@@ -292,7 +292,7 @@ void UCI::loop(int argc, char* argv[]) {
               for (string v : variants.get_keys())
                   if (v != "chess")
                       vars += "," + v;
-              sync_cout << "feature setboard=1 usermove=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 myname=Fairy-Stockfish variants=\"" << vars << "\""
+              sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 myname=Fairy-Stockfish variants=\"" << vars << "\""
                         << Options << sync_endl
                         << "feature done=1" << sync_endl;
           }
