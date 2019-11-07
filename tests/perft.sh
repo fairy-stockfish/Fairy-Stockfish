@@ -11,7 +11,7 @@ trap 'error ${LINENO}' ERR
 echo "perft testing started"
 
 cat << EOF > perft.exp
-   set timeout 30
+   set timeout 60
    lassign \$argv var pos depth result
    spawn ./stockfish
    send "setoption name UCI_Variant value \$var\\n"
