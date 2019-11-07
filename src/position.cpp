@@ -303,7 +303,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
               break;
       }
 
-      else if ((idx = piece_to_char().find(token)) != string::npos)
+      else if ((idx = piece_to_char().find(token)) != string::npos || (idx = piece_to_char_synonyms().find(token)) != string::npos)
       {
           put_piece(Piece(idx), sq);
           ++sq;
@@ -749,7 +749,22 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
 
   Bitboard b = 0;
   for (PieceType pt : piece_types())
-      b |= attacks_bb(~c, pt, s, occupied) & pieces(c, pt);
+      if (board_bb(c, pt) & s)
+      {
+          // Consider asymmetrical move of horse
+          if (pt == HORSE)
+          {
+              Bitboard horses = PseudoAttacks[~c][KNIGHT][s] & pieces(c, HORSE);
+              while (horses)
+              {
+                  Square s2 = pop_lsb(&horses);
+                  if (attacks_bb(c, HORSE, s2, occupied) & s)
+                      b |= s2;
+              }
+          }
+          else
+              b |= attacks_bb(~c, pt, s, occupied) & pieces(c, pt);
+      }
 
   // Consider special move of neang in cambodian chess
   if (cambodian_moves())
@@ -883,11 +898,27 @@ bool Position::legal(Move m) const {
             || !(attackers_to(to, pieces() ^ to_sq(m), ~us));
   }
 
+  // Flying general rule
+  if (var->flyingGeneral && count<KING>(us))
+  {
+      Square s = type_of(moved_piece(m)) == KING ? to : square<KING>(us);
+      if (attacks_bb(~us, ROOK, s, (pieces() ^ from) | to) & pieces(~us, KING) & ~square_bb(to))
+          return false;
+  }
+
+  // Xiangqi general
+  if (var->xiangqiGeneral && type_of(moved_piece(m)) == KING && !(PseudoAttacks[us][WAZIR][from] & to))
+      return false;
+
+  // Xiangqi soldier
+  if (type_of(moved_piece(m)) == SOLDIER && unpromoted_soldier(us, from) && file_of(from) != file_of(to))
+      return false;
+
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
   if (type_of(moved_piece(m)) == KING)
-      return type_of(m) == CASTLING || !attackers_to(to, ~us);
+      return type_of(m) == CASTLING || !attackers_to(to, (pieces() ^ from) | to, ~us);
 
   // A non-king move is legal if the king is not under attack after the move.
   return !count<KING>(us) || !(attackers_to(square<KING>(us), (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us) & ~SquareBB[to]);
@@ -965,7 +996,7 @@ bool Position::pseudo_legal(const Move m) const {
   // Evasions generator already takes care to avoid some kind of illegal moves
   // and legal() relies on this. We therefore have to take care that the same
   // kind of moves are filtered out here.
-  if (checkers())
+  if (checkers() & ~(pieces(CANNON) | pieces(HORSE, ELEPHANT)))
   {
       if (type_of(pc) != KING)
       {
@@ -1004,12 +1035,20 @@ bool Position::gives_check(Move m) const {
       return false;
 
   // Is there a direct check?
-  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && (st->checkSquares[type_of(moved_piece(m))] & to))
-      return true;
+  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION)
+  {
+      if (type_of(moved_piece(m)) == CANNON || type_of(moved_piece(m)) == HORSE)
+      {
+          if (attacks_bb(sideToMove, type_of(moved_piece(m)), to, (pieces() ^ from) | to) & square<KING>(~sideToMove))
+              return true;
+      }
+      else if (st->checkSquares[type_of(moved_piece(m))] & to)
+          return true;
+  }
 
   // Is there a discovered check?
   if (   type_of(m) != DROP
-      && ((st->blockersForKing[~sideToMove] & from) || pieces(sideToMove, CANNON))
+      && ((st->blockersForKing[~sideToMove] & from) || pieces(sideToMove, CANNON, HORSE))
       && attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to, sideToMove))
       return true;
 
