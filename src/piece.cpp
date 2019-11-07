@@ -216,9 +216,9 @@ namespace {
       p->stepsCapture = {SOUTH, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST};
       return p;
   }
-  PieceInfo* horse_piece() {
+  PieceInfo* dragon_horse_piece() {
       PieceInfo* p = bishop_piece();
-      p->name = "horse";
+      p->name = "dragon_horse";
       PieceInfo* p2 = wazir_piece();
       p->merge(p2);
       delete p2;
@@ -249,6 +249,25 @@ namespace {
       p->hopperCapture = {NORTH, EAST, SOUTH, WEST};
       return p;
   }
+  PieceInfo* soldier_piece() {
+      PieceInfo* p = new PieceInfo();
+      p->name = "soldier";
+      p->stepsQuiet = {NORTH, WEST, EAST};
+      p->stepsCapture = {NORTH, WEST, EAST};
+      return p;
+  }
+  PieceInfo* horse_piece() {
+      PieceInfo* p = knight_piece();
+      p->name = "horse";
+      p->lameLeaper = true;
+      return p;
+  }
+  PieceInfo* elephant_piece() {
+      PieceInfo* p = alfil_piece();
+      p->name = "elephant";
+      p->lameLeaper = true;
+      return p;
+  }
 }
 
 void PieceMap::init() {
@@ -273,11 +292,14 @@ void PieceMap::init() {
   add(SHOGI_KNIGHT, shogi_knight_piece());
   add(EUROSHOGI_KNIGHT, euroshogi_knight_piece());
   add(GOLD, gold_piece());
-  add(HORSE, horse_piece());
+  add(DRAGON_HORSE, dragon_horse_piece());
   add(CLOBBER_PIECE, clobber_piece());
   add(BREAKTHROUGH_PIECE, breakthrough_piece());
   add(IMMOBILE_PIECE, immobile_piece());
   add(CANNON, cannon_piece());
+  add(SOLDIER, soldier_piece());
+  add(HORSE, horse_piece());
+  add(ELEPHANT, elephant_piece());
   add(WAZIR, wazir_piece());
   add(COMMONER, commoner_piece());
   add(KING, king_piece());

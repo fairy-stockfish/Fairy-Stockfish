@@ -28,13 +28,15 @@ Value PieceValue[PHASE_NB][PIECE_NB] = {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg,
     FersValueMg, AlfilValueMg, FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg,
     ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg, BiskniValueMg,
-    ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, HorseValueMg,
-    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, CannonPieceValueMg, WazirValueMg, CommonerValueMg },
+    ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, DragonHorseValueMg,
+    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg,
+    CannonPieceValueMg, SoldierValueMg, HorseValueMg, ElephantValueMg, WazirValueMg, CommonerValueMg },
   { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg,
     FersValueEg, AlfilValueEg, FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg,
     ArchbishopValueMg, ChancellorValueEg, AmazonValueEg, KnibisValueMg, BiskniValueMg,
-    ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, HorseValueEg,
-    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, CannonPieceValueEg, WazirValueEg, CommonerValueEg }
+    ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, DragonHorseValueEg,
+    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg,
+    CannonPieceValueEg, SoldierValueEg, HorseValueEg, ElephantValueEg, WazirValueEg, CommonerValueEg }
 };
 
 namespace PSQT {

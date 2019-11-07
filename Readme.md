@@ -5,7 +5,7 @@
 [![Build Status](https://travis-ci.org/ianfab/Fairy-Stockfish.svg?branch=master)](https://travis-ci.org/ianfab/Fairy-Stockfish)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/ianfab/Fairy-Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/ianfab/Fairy-Stockfish/branch/master)
 
-Fairy-Stockfish is a UCI/USI chess variant engine derived from [Stockfish](https://github.com/official-stockfish/Stockfish/) designed for the support of fairy chess variants and easy extensibility with more games. It can play various historical, regional, and modern chess variants as well [games with user-defined rules](https://github.com/ianfab/Fairy-Stockfish/wiki/Variant-configuration).
+Fairy-Stockfish is a UCI/USI/XBoard chess variant engine derived from [Stockfish](https://github.com/official-stockfish/Stockfish/) designed for the support of fairy chess variants and easy extensibility with more games. It can play various historical, regional, and modern chess variants as well [games with user-defined rules](https://github.com/ianfab/Fairy-Stockfish/wiki/Variant-configuration).
 
 The goal of the project is to create an engine supporting a large variety of chess-like games, equipped with the powerful search of Stockfish. It is complementary to Stockfish forks more specialized for certain chess variants, such as [multi-variant Stockfish](https://github.com/ddugovic/Stockfish), [Seirawan-Stockfish](https://github.com/ianfab/Seirawan-Stockfish), [Makruk-Stockfish](https://github.com/ianfab/Makruk-Stockfish), etc., supporting many more variants with the tradeoff of slightly lower performance compared to a specialized implementation.
 
@@ -14,11 +14,12 @@ The goal of the project is to create an engine supporting a large variety of che
 The games currently supported besides chess are listed below. Fairy-Stockfish can also play user-defined variants loaded via a variant configuration file, see the file `src/variants.ini`.
 
 ### Regional and historical games
-- [Shatranj](https://en.wikipedia.org/wiki/Shatranj), [Courier](https://en.wikipedia.org/wiki/Courier_chess)
+- [Xiangqi](https://en.wikipedia.org/wiki/Xiangqi), [Minixiangqi](http://mlwi.magix.net/bg/minixiangqi.htm)
+- [Shogi](https://en.wikipedia.org/wiki/Shogi)
 - [Makruk](https://en.wikipedia.org/wiki/Makruk), [Ouk Chatrang](https://en.wikipedia.org/wiki/Makruk#Cambodian_chess), [Kar Ouk](https://en.wikipedia.org/wiki/Makruk#Cambodian_chess), [ASEAN](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok
 - [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)
 - [Shatar](https://en.wikipedia.org/wiki/Shatar), [Jeson Mor](https://en.wikipedia.org/wiki/Jeson_Mor)
-- [Shogi](https://en.wikipedia.org/wiki/Shogi)
+- [Shatranj](https://en.wikipedia.org/wiki/Shatranj), [Courier](https://en.wikipedia.org/wiki/Courier_chess)
 
 ### Chess variants
 - [Capablanca](https://en.wikipedia.org/wiki/Capablanca_Chess), [Janus](https://en.wikipedia.org/wiki/Janus_Chess), [Modern](https://en.wikipedia.org/wiki/Modern_Chess_(chess_variant)), [Chancellor](https://en.wikipedia.org/wiki/Chancellor_Chess), [Embassy](https://en.wikipedia.org/wiki/Embassy_Chess), [Gothic](https://www.chessvariants.com/large.dir/gothicchess.html), [Capablanca random chess](https://en.wikipedia.org/wiki/Capablanca_Random_Chess)

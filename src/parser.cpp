@@ -174,6 +174,9 @@ Variant* VariantParser::parse(Variant* v) {
     parse_attribute("gating", v->gating);
     parse_attribute("seirawanGating", v->seirawanGating);
     parse_attribute("cambodianMoves", v->cambodianMoves);
+    parse_attribute("flyingGeneral", v->flyingGeneral);
+    parse_attribute("xiangqiGeneral", v->xiangqiGeneral);
+    parse_attribute("xiangqiSoldier", v->xiangqiSoldier);
     // game end
     parse_attribute("nMoveRule", v->nMoveRule);
     parse_attribute("nFoldRule", v->nFoldRule);
