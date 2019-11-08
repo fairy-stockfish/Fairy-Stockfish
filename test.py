@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import faulthandler
 import unittest
 import pyffish as sf
 
-STANDARD = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+faulthandler.enable()
+
+CHESS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 CHESS960 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1"
 CAPA = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1"
 CAPAHOUSE = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1"
@@ -12,8 +15,9 @@ MAKRUK = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1"
 SHOGI = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b 0 1"
 SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1"
 GRAND = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1"
+XIANGQI = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
 
-standard = {
+positions = {
     "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K
     "k7/b7/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KB
     "k7/n7/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KN
@@ -45,6 +49,9 @@ class TestPyffish(unittest.TestCase):
         result = sf.start_fen("capahouse")
         self.assertEqual(result, CAPAHOUSE)
 
+        result = sf.start_fen("xiangqi")
+        self.assertEqual(result, XIANGQI)
+
     def test_legal_moves(self):
         fen = "10/10/10/10/10/k9/10/K9 w - - 0 1"
         result = sf.legal_moves("capablanca", fen, [])
@@ -52,6 +59,9 @@ class TestPyffish(unittest.TestCase):
 
         result = sf.legal_moves("grand", GRAND, ["a3a5"])
         self.assertIn("a10b10", result)
+
+        result = sf.legal_moves("xiangqi", XIANGQI, ["h3h10"])
+        self.assertIn("i10h10", result)
 
     def test_short_castling(self):
         legals = ['f5f4', 'a7a6', 'b7b6', 'c7c6', 'd7d6', 'e7e6', 'i7i6', 'j7j6', 'a7a5', 'b7b5', 'c7c5', 'e7e5', 'i7i5', 'j7j5', 'b8a6', 'b8c6', 'h6g4', 'h6i4', 'h6j5', 'h6f7', 'h6g8', 'h6i8', 'd5a2', 'd5b3', 'd5f3', 'd5c4', 'd5e4', 'd5c6', 'd5e6', 'd5f7', 'd5g8', 'j8g8', 'j8h8', 'j8i8', 'e8f7', 'c8b6', 'c8d6', 'g6g2', 'g6g3', 'g6f4', 'g6g4', 'g6h4', 'g6e5', 'g6g5', 'g6i5', 'g6a6', 'g6b6', 'g6c6', 'g6d6', 'g6e6', 'g6f6', 'g6h8', 'f8f7', 'f8g8', 'f8i8']
@@ -69,11 +79,14 @@ class TestPyffish(unittest.TestCase):
         self.assertIn("f1i1", result)
 
     def test_get_fen(self):
-        result = sf.get_fen("standard", STANDARD, [])
-        self.assertEqual(result, STANDARD)
+        result = sf.get_fen("chess", CHESS, [])
+        self.assertEqual(result, CHESS)
 
         result = sf.get_fen("capablanca", CAPA, [])
         self.assertEqual(result, CAPA)
+
+        result = sf.get_fen("xiangqi", XIANGQI, [])
+        self.assertEqual(result, XIANGQI)
 
         fen = "rnab1kbcnr/ppppPppppp/10/4q5/10/10/PPPPP1PPPP/RNABQKBCNR[p] b KQkq - 0 3"
         result = sf.get_fen("capahouse", CAPA, ["f2f4", "e7e5", "f4e5", "e8e5", "P@e7"])
@@ -84,29 +97,29 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("seirawan", fen0, ["e8g8"])
         self.assertEqual(result, fen1)
 
-        result = sf.get_fen("standard", STANDARD, [], True)
+        result = sf.get_fen("chess", CHESS, [], True)
         self.assertEqual(result, CHESS960)
 
     def test_get_san(self):
         fen = "4k3/8/3R4/8/1R3R2/8/3R4/4K3 w - - 0 1"
-        result = sf.get_san("standard", fen, "b4d4")
+        result = sf.get_san("chess", fen, "b4d4")
         self.assertEqual(result, "Rbd4")
 
-        result = sf.get_san("standard", fen, "f4d4")
+        result = sf.get_san("chess", fen, "f4d4")
         self.assertEqual(result, "Rfd4")
 
-        result = sf.get_san("standard", fen, "d2d4")
+        result = sf.get_san("chess", fen, "d2d4")
         self.assertEqual(result, "R2d4")
 
-        result = sf.get_san("standard", fen, "d6d4")
+        result = sf.get_san("chess", fen, "d6d4")
         self.assertEqual(result, "R6d4")
 
         fen = "4k3/8/3R4/3P4/1RP1PR2/8/3R4/4K3 w - - 0 1"
-        result = sf.get_san("standard", fen, "d2d4")
+        result = sf.get_san("chess", fen, "d2d4")
         self.assertEqual(result, "Rd4")
 
         fen = "1r2k3/P1P5/8/8/8/8/8/4K3 w - - 0 1"
-        result = sf.get_san("standard", fen, "c7b8q")
+        result = sf.get_san("chess", fen, "c7b8q")
         self.assertEqual(result, "cxb8=Q+")
 
         result = sf.get_san("capablanca", CAPA, "e2e4")
@@ -214,10 +227,10 @@ class TestPyffish(unittest.TestCase):
         self.assertNotEqual(result, 0)
 
     def test_has_insufficient_material(self):
-        for fen in standard:
-            # print(fen, standard[fen])
-            result = sf.has_insufficient_material("standard", fen, [])
-            self.assertEqual(result, standard[fen])
+        for fen in positions:
+            # print(fen, chess[fen])
+            result = sf.has_insufficient_material("chess", fen, [])
+            self.assertEqual(result, positions[fen])
 
 
 if __name__ == '__main__':
