@@ -918,7 +918,7 @@ bool Position::legal(Move m) const {
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
   if (type_of(moved_piece(m)) == KING)
-      return type_of(m) == CASTLING || !attackers_to(to, (pieces() ^ from) | to, ~us);
+      return type_of(m) == CASTLING || !attackers_to(to, (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us);
 
   // A non-king move is legal if the king is not under attack after the move.
   return !count<KING>(us) || !(attackers_to(square<KING>(us), (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us) & ~SquareBB[to]);
