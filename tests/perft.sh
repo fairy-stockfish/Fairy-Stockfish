@@ -11,7 +11,7 @@ trap 'error ${LINENO}' ERR
 echo "perft testing started"
 
 cat << EOF > perft.exp
-   set timeout 30
+   set timeout 60
    lassign \$argv var pos depth result
    spawn ./stockfish
    send "setoption name UCI_Variant value \$var\\n"
@@ -68,6 +68,7 @@ if [[ $1 == "largeboard" ]]; then
   expect perft.exp chancellor startpos 4 436656 > /dev/null
   expect perft.exp courier startpos 4 500337 > /dev/null
   expect perft.exp grand startpos 3 259514 > /dev/null
+  expect perft.exp xiangqi startpos 4 3290240 > /dev/null
 fi
 
 rm perft.exp

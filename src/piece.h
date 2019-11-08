@@ -36,6 +36,7 @@ struct PieceInfo {
   std::vector<Direction> sliderCapture = {};
   std::vector<Direction> hopperQuiet = {};
   std::vector<Direction> hopperCapture = {};
+  bool lameLeaper = false;
 
   void merge(const PieceInfo* pi);
 };

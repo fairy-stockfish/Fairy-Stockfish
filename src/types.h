@@ -331,25 +331,28 @@ enum Value : int {
   ShogiKnightValueMg       = 350,   ShogiKnightValueEg       = 300,
   EuroShogiKnightValueMg   = 400,   EuroShogiKnightValueEg   = 400,
   GoldValueMg              = 640,   GoldValueEg              = 640,
-  HorseValueMg             = 1500,  HorseValueEg             = 1500,
+  DragonHorseValueMg       = 1500,  DragonHorseValueEg       = 1500,
   ClobberPieceValueMg      = 300,   ClobberPieceValueEg      = 300,
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
   ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
-  CannonPieceValueMg       = 900,   CannonPieceValueEg       = 900,
+  CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
+  SoldierValueMg           = 200,   SoldierValueEg           = 300,
+  HorseValueMg             = 500,   HorseValueEg             = 800,
+  ElephantValueMg          = 350,   ElephantValueEg          = 350,
   WazirValueMg             = 400,   WazirValueEg             = 400,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
 
-constexpr int PIECE_TYPE_BITS = 5; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
+constexpr int PIECE_TYPE_BITS = 6; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
 
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN,
   FERS, MET = FERS, ALFIL, FERS_ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
   ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI,
-  SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, HORSE,
-  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, WAZIR, COMMONER, KING,
+  SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, DRAGON_HORSE,
+  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, SOLDIER, HORSE, ELEPHANT, WAZIR, COMMONER, KING,
   ALL_PIECES = 0,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS
@@ -372,6 +375,8 @@ enum RiderType {
   RIDER_ROOK_V = 1 << 2,
   RIDER_CANNON_H = 1 << 3,
   RIDER_CANNON_V = 1 << 4,
+  RIDER_HORSE = 1 << 5,
+  RIDER_ELEPHANT = 1 << 6,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];

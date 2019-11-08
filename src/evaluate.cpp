@@ -342,6 +342,9 @@ namespace {
         if (pos.captures_to_hand() && pos.count<KING>(Them) && pos.count<KING>(Us))
             score -= KingProximity * distance(s, pos.square<KING>(Us)) * distance(s, pos.square<KING>(Them));
 
+        if (Pt == SOLDIER && pos.unpromoted_soldier(Us, s))
+            score -= make_score(PieceValue[MG][Pt], PieceValue[EG][Pt]) / 2;
+
         if (Pt == BISHOP || Pt == KNIGHT)
         {
             // Bonus if piece is on an outpost square or can reach one

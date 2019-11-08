@@ -96,7 +96,7 @@ namespace {
 
         // Flag the pawn
         opposed    = theirPawns & forward_file_bb(Us, s);
-        blocked    = theirPawns & (s + Up);
+        blocked    = is_ok(s + Up) ? theirPawns & (s + Up) : Bitboard(0);
         stoppers   = theirPawns & passed_pawn_span(Us, s);
         lever      = theirPawns & PseudoAttacks[Us][PAWN][s];
         leverPush  = relative_rank(Them, s, pos.max_rank()) > RANK_1 ? theirPawns & PseudoAttacks[Us][PAWN][s + Up] : Bitboard(0);

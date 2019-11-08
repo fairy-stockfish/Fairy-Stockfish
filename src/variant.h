@@ -40,7 +40,9 @@ struct Variant {
   std::set<PieceType> pieceTypes = { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
   std::string pieceToChar =  " PNBRQ" + std::string(KING - QUEEN - 1, ' ') + "K" + std::string(PIECE_TYPE_NB - KING - 1, ' ')
                            + " pnbrq" + std::string(KING - QUEEN - 1, ' ') + "k" + std::string(PIECE_TYPE_NB - KING - 1, ' ');
+  std::string pieceToCharSynonyms = std::string(PIECE_NB, ' ');
   std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  Bitboard mobilityRegion[COLOR_NB][PIECE_TYPE_NB] = {};
   Rank promotionRank = RANK_8;
   std::set<PieceType, std::greater<PieceType> > promotionPieceTypes = { QUEEN, ROOK, BISHOP, KNIGHT };
   bool sittuyinPromotion = false;
@@ -77,6 +79,9 @@ struct Variant {
   bool gating = false;
   bool seirawanGating = false;
   bool cambodianMoves = false;
+  bool flyingGeneral = false;
+  bool xiangqiGeneral = false;
+  bool xiangqiSoldier = false;
   // game end
   int nMoveRule = 50;
   int nFoldRule = 3;
@@ -99,20 +104,25 @@ struct Variant {
   int connectN = 0;
   CountingRule countingRule = NO_COUNTING;
 
-  void add_piece(PieceType pt, char c) {
+  void add_piece(PieceType pt, char c, char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
       pieceToChar[make_piece(BLACK, pt)] = tolower(c);
+      pieceToCharSynonyms[make_piece(WHITE, pt)] = toupper(c2);
+      pieceToCharSynonyms[make_piece(BLACK, pt)] = tolower(c2);
       pieceTypes.insert(pt);
   }
 
   void remove_piece(PieceType pt) {
       pieceToChar[make_piece(WHITE, pt)] = ' ';
       pieceToChar[make_piece(BLACK, pt)] = ' ';
+      pieceToCharSynonyms[make_piece(WHITE, pt)] = ' ';
+      pieceToCharSynonyms[make_piece(BLACK, pt)] = ' ';
       pieceTypes.erase(pt);
   }
 
   void reset_pieces() {
       pieceToChar = std::string(PIECE_NB, ' ');
+      pieceToCharSynonyms = std::string(PIECE_NB, ' ');
       pieceTypes.clear();
   }
 };
