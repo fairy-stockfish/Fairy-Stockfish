@@ -96,8 +96,10 @@ public:
   Rank max_rank() const;
   File max_file() const;
   Bitboard board_bb() const;
+  Bitboard board_bb(Color c, PieceType pt) const;
   const std::set<PieceType>& piece_types() const;
   const std::string piece_to_char() const;
+  const std::string piece_to_char_synonyms() const;
   Rank promotion_rank() const;
   const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
   bool sittuyin_promotion() const;
@@ -115,7 +117,7 @@ public:
   bool castling_dropped_piece() const;
   File castling_kingside_file() const;
   File castling_queenside_file() const;
-  Rank castling_rank() const;
+  Rank castling_rank(Color c) const;
   bool checking_permitted() const;
   bool must_capture() const;
   bool must_drop() const;
@@ -134,6 +136,7 @@ public:
   bool gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
+  bool unpromoted_soldier(Color c, Square s) const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -317,6 +320,11 @@ inline Bitboard Position::board_bb() const {
   return board_size_bb(var->maxFile, var->maxRank);
 }
 
+inline Bitboard Position::board_bb(Color c, PieceType pt) const {
+  assert(var != nullptr);
+  return var->mobilityRegion[c][pt] ? var->mobilityRegion[c][pt] : board_bb();
+}
+
 inline const std::set<PieceType>& Position::piece_types() const {
   assert(var != nullptr);
   return var->pieceTypes;
@@ -325,6 +333,11 @@ inline const std::set<PieceType>& Position::piece_types() const {
 inline const std::string Position::piece_to_char() const {
   assert(var != nullptr);
   return var->pieceToChar;
+}
+
+inline const std::string Position::piece_to_char_synonyms() const {
+  assert(var != nullptr);
+  return var->pieceToCharSynonyms;
 }
 
 inline Rank Position::promotion_rank() const {
@@ -412,9 +425,9 @@ inline File Position::castling_queenside_file() const {
   return var->castlingQueensideFile;
 }
 
-inline Rank Position::castling_rank() const {
+inline Rank Position::castling_rank(Color c) const {
   assert(var != nullptr);
-  return var->castlingRank;
+  return relative_rank(c, var->castlingRank, max_rank());
 }
 
 inline bool Position::checking_permitted() const {
@@ -463,7 +476,7 @@ inline Bitboard Position::drop_region(Color c) const {
 }
 
 inline Bitboard Position::drop_region(Color c, PieceType pt) const {
-  Bitboard b = drop_region(c) & board_bb();
+  Bitboard b = drop_region(c) & board_bb(c, pt);
 
   // Connect4-style drops
   if (drop_on_top())
@@ -525,6 +538,11 @@ inline bool Position::seirawan_gating() const {
 inline bool Position::cambodian_moves() const {
   assert(var != nullptr);
   return var->cambodianMoves;
+}
+
+inline bool Position::unpromoted_soldier(Color c, Square s) const {
+  assert(var != nullptr);
+  return var->xiangqiSoldier && relative_rank(c, s, var->maxRank) <= RANK_5;
 }
 
 inline int Position::n_move_rule() const {
@@ -748,15 +766,15 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 
 template<PieceType Pt>
 inline Bitboard Position::attacks_from(Color c, Square s) const {
-  return attacks_bb(c, Pt, s, byTypeBB[ALL_PIECES]);
+  return attacks_bb(c, Pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, Pt);
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
-  return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]);
+  return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
 }
 
 inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
-  return moves_bb(c, pt, s, byTypeBB[ALL_PIECES]);
+  return moves_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
 }
 
 inline Bitboard Position::attackers_to(Square s) const {
@@ -844,7 +862,7 @@ inline bool Position::is_chess960() const {
 
 inline bool Position::capture_or_promotion(Move m) const {
   assert(is_ok(m));
-  return type_of(m) != NORMAL && type_of(m) != PIECE_PROMOTION ? type_of(m) != DROP && type_of(m) != CASTLING : !empty(to_sq(m));
+  return type_of(m) == PROMOTION || type_of(m) == ENPASSANT || (type_of(m) != CASTLING && !empty(to_sq(m)));
 }
 
 inline bool Position::capture(Move m) const {

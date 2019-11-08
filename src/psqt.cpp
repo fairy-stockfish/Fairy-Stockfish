@@ -21,19 +21,22 @@
 #include <algorithm>
 
 #include "types.h"
+#include "piece.h"
 #include "variant.h"
 
 Value PieceValue[PHASE_NB][PIECE_NB] = {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg,
     FersValueMg, AlfilValueMg, FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg,
     ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg, BiskniValueMg,
-    ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, HorseValueMg,
-    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, CannonPieceValueMg, WazirValueMg, CommonerValueMg },
+    ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, DragonHorseValueMg,
+    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg,
+    CannonPieceValueMg, SoldierValueMg, HorseValueMg, ElephantValueMg, WazirValueMg, CommonerValueMg },
   { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg,
     FersValueEg, AlfilValueEg, FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg,
     ArchbishopValueMg, ChancellorValueEg, AmazonValueEg, KnibisValueMg, BiskniValueMg,
-    ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, HorseValueEg,
-    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, CannonPieceValueEg, WazirValueEg, CommonerValueEg }
+    ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, DragonHorseValueEg,
+    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg,
+    CannonPieceValueEg, SoldierValueEg, HorseValueEg, ElephantValueEg, WazirValueEg, CommonerValueEg }
 };
 
 namespace PSQT {
@@ -68,14 +71,14 @@ constexpr Score Bonus[PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
    { S(-48,-51), S( -3,-40), S(-12,-39), S(-25,-20) }
   },
   { // Rook
-   { S(-24, -2), S(-13,-6), S(-7, -3), S( 2,-2) },
-   { S(-18,-10), S(-10,-7), S(-5,  1), S( 9, 0) },
-   { S(-21, 10), S( -7,-4), S( 3,  2), S(-1,-2) },
-   { S(-13, -5), S( -5, 2), S(-4, -8), S(-6, 8) },
-   { S(-24, -8), S(-12, 5), S(-1,  4), S( 6,-9) },
-   { S(-24,  3), S( -4,-2), S( 4,-10), S(10, 7) },
-   { S( -8,  1), S(  6, 2), S(10, 17), S(12,-8) },
-   { S(-22, 12), S(-24,-6), S(-6, 13), S( 4, 7) }
+   { S(-31, -9), S(-20,-13), S(-14,-10), S(-5, -9) },
+   { S(-21,-12), S(-13, -9), S( -8, -1), S( 6, -2) },
+   { S(-25,  6), S(-11, -8), S( -1, -2), S( 3, -6) },
+   { S(-13, -6), S( -5,  1), S( -4, -9), S(-6,  7) },
+   { S(-27, -5), S(-15,  8), S( -4,  7), S( 3, -6) },
+   { S(-22,  6), S( -2,  1), S(  6, -7), S(12, 10) },
+   { S( -2,  4), S( 12,  5), S( 16, 20), S(18, -5) },
+   { S(-17, 18), S(-19,  0), S( -1, 19), S( 9, 13) }
   },
   { // Queen
    { S( 3,-69), S(-5,-57), S(-5,-47), S( 4,-26) },
@@ -128,6 +131,15 @@ void init(const Variant* v) {
       PieceValue[EG][~pc] = PieceValue[EG][pc];
 
       Score score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
+
+      // Scale slider piece values with board size
+      const PieceInfo* pi = pieceMap.find(pt)->second;
+      if (pi->sliderQuiet.size() || pi->sliderCapture.size())
+      {
+          int offset = pi->stepsQuiet.size() || pi->stepsCapture.size() ? 16 : 6;
+          score = make_score(mg_value(score) * (v->maxRank + v->maxFile + offset) / (14 + offset),
+                             eg_value(score) * (v->maxRank + v->maxFile + offset) / (14 + offset));
+      }
 
       // For drop variants, halve the piece values
       if (v->capturesToHand || !v->checking)

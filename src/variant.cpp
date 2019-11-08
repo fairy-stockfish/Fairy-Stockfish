@@ -41,6 +41,11 @@ namespace {
         v->endgameEval = true;
         return v;
     }
+    Variant* chess960_variant() {
+        Variant* v = chess_variant();
+        v->chess960 = true;
+        return v;
+    }
     Variant* fairy_variant() {
         Variant* v = chess_variant();
         v->add_piece(SILVER, 's');
@@ -264,6 +269,7 @@ namespace {
         v->sittuyinPromotion = true;
         v->immobilityIllegal = false;
         v->countingRule = ASEAN_COUNTING;
+        v->nMoveRule = 50;
         return v;
     }
     Variant* seirawan_variant() {
@@ -292,7 +298,7 @@ namespace {
         v->add_piece(SILVER, 's');
         v->add_piece(GOLD, 'g');
         v->add_piece(BISHOP, 'b');
-        v->add_piece(HORSE, 'h');
+        v->add_piece(DRAGON_HORSE, 'h');
         v->add_piece(ROOK, 'r');
         v->add_piece(DRAGON, 'd');
         v->add_piece(KING, 'k');
@@ -305,7 +311,7 @@ namespace {
         v->castling = false;
         v->promotedPieceType[SHOGI_PAWN] = GOLD;
         v->promotedPieceType[SILVER]     = GOLD;
-        v->promotedPieceType[BISHOP]     = HORSE;
+        v->promotedPieceType[BISHOP]     = DRAGON_HORSE;
         v->promotedPieceType[ROOK]       = DRAGON;
         v->shogiDoubledPawn = false;
         v->immobilityIllegal = true;
@@ -485,6 +491,35 @@ namespace {
         v->blackFlag = Rank1BB;
         return v;
     }
+    Variant* minixiangqi_variant() {
+        Variant* v = fairy_variant_base();
+        v->maxRank = RANK_7;
+        v->maxFile = FILE_G;
+        v->reset_pieces();
+        v->add_piece(ROOK, 'r');
+        v->add_piece(HORSE, 'n', 'h');
+        v->add_piece(KING, 'k');
+        v->add_piece(CANNON, 'c');
+        v->add_piece(SOLDIER, 'p');
+        v->startFen = "rcnkncr/p1ppp1p/7/7/7/P1PPP1P/RCNKNCR w - - 0 1";
+        Bitboard white_castle = make_bitboard(SQ_C1, SQ_D1, SQ_E1,
+                                              SQ_C2, SQ_D2, SQ_E2,
+                                              SQ_C3, SQ_D3, SQ_E3);
+        Bitboard black_castle = make_bitboard(SQ_C5, SQ_D5, SQ_E5,
+                                              SQ_C6, SQ_D6, SQ_E6,
+                                              SQ_C7, SQ_D7, SQ_E7);
+        v->mobilityRegion[WHITE][KING] = white_castle;
+        v->mobilityRegion[BLACK][KING] = black_castle;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->stalemateValue = -VALUE_MATE;
+        //v->nFoldValue = VALUE_MATE;
+        v->perpetualCheckIllegal = true;
+        v->flyingGeneral = true;
+        v->xiangqiGeneral = true;
+        return v;
+    }
 #ifdef LARGEBOARDS
     Variant* shogi_variant() {
         Variant* v = minishogi_variant_base();
@@ -648,6 +683,28 @@ namespace {
                       "pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP w 0 1";
         return v;
     }
+    Variant* xiangqi_variant() {
+        Variant* v = minixiangqi_variant();
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_I;
+        v->add_piece(ELEPHANT, 'b', 'e');
+        v->add_piece(FERS, 'a');
+        v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+        Bitboard white_castle = make_bitboard(SQ_D1, SQ_E1, SQ_F1,
+                                              SQ_D2, SQ_E2, SQ_F2,
+                                              SQ_D3, SQ_E3, SQ_F3);
+        Bitboard black_castle = make_bitboard(SQ_D8, SQ_E8, SQ_F8,
+                                              SQ_D9, SQ_E9, SQ_F9,
+                                              SQ_D10, SQ_E10, SQ_F10);
+        v->mobilityRegion[WHITE][KING] = white_castle;
+        v->mobilityRegion[BLACK][KING] = black_castle;
+        v->mobilityRegion[WHITE][FERS] = white_castle;
+        v->mobilityRegion[BLACK][FERS] = black_castle;
+        v->mobilityRegion[WHITE][ELEPHANT] = Rank1BB | Rank2BB | Rank3BB | Rank4BB | Rank5BB;
+        v->mobilityRegion[BLACK][ELEPHANT] = Rank6BB | Rank7BB | Rank8BB | Rank9BB | Rank10BB;
+        v->xiangqiSoldier = true;
+        return v;
+    }
 #endif
 
 } // namespace
@@ -658,7 +715,8 @@ namespace {
 void VariantMap::init() {
     // Add to UCI_Variant option
     add("chess", chess_variant());
-    add("standard", chess_variant());
+    add("normal", chess_variant());
+    add("fischerandom", chess960_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("cambodian", cambodian_variant());
@@ -702,6 +760,7 @@ void VariantMap::init() {
     add("shatar", shatar_variant());
     add("clobber", clobber_variant());
     add("breakthrough", breakthrough_variant());
+    add("minixiangqi", minixiangqi_variant());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("capablanca", capablanca_variant());
@@ -717,6 +776,7 @@ void VariantMap::init() {
     add("grand", grand_variant());
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
+    add("xiangqi", xiangqi_variant());
 #endif
 }
 

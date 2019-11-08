@@ -43,6 +43,7 @@
 #include <climits>
 #include <cstdint>
 #include <cstdlib>
+#include <algorithm>
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
@@ -302,6 +303,7 @@ enum Value : int {
   VALUE_DRAW      = 0,
   VALUE_KNOWN_WIN = 10000,
   VALUE_MATE      = 32000,
+  XBOARD_VALUE_MATE = 200000,
   VALUE_INFINITE  = 32001,
   VALUE_NONE      = 32002,
 
@@ -329,25 +331,28 @@ enum Value : int {
   ShogiKnightValueMg       = 350,   ShogiKnightValueEg       = 300,
   EuroShogiKnightValueMg   = 400,   EuroShogiKnightValueEg   = 400,
   GoldValueMg              = 640,   GoldValueEg              = 640,
-  HorseValueMg             = 1500,  HorseValueEg             = 1500,
+  DragonHorseValueMg       = 1500,  DragonHorseValueEg       = 1500,
   ClobberPieceValueMg      = 300,   ClobberPieceValueEg      = 300,
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
   ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
-  CannonPieceValueMg       = 900,   CannonPieceValueEg       = 900,
+  CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
+  SoldierValueMg           = 200,   SoldierValueEg           = 300,
+  HorseValueMg             = 500,   HorseValueEg             = 800,
+  ElephantValueMg          = 350,   ElephantValueEg          = 350,
   WazirValueMg             = 400,   WazirValueEg             = 400,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
 
-constexpr int PIECE_TYPE_BITS = 5; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
+constexpr int PIECE_TYPE_BITS = 6; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
 
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN,
   FERS, MET = FERS, ALFIL, FERS_ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
   ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI,
-  SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, HORSE,
-  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, WAZIR, COMMONER, KING,
+  SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, DRAGON_HORSE,
+  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, SOLDIER, HORSE, ELEPHANT, WAZIR, COMMONER, KING,
   ALL_PIECES = 0,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS
@@ -370,25 +375,23 @@ enum RiderType {
   RIDER_ROOK_V = 1 << 2,
   RIDER_CANNON_H = 1 << 3,
   RIDER_CANNON_V = 1 << 4,
+  RIDER_HORSE = 1 << 5,
+  RIDER_ELEPHANT = 1 << 6,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 
-enum Depth : int {
+typedef int Depth;
 
-  ONE_PLY = 1,
+enum : int {
 
-  DEPTH_ZERO          =  0 * ONE_PLY,
-  DEPTH_QS_CHECKS     =  0 * ONE_PLY,
-  DEPTH_QS_NO_CHECKS  = -1 * ONE_PLY,
-  DEPTH_QS_RECAPTURES = -5 * ONE_PLY,
+  DEPTH_QS_CHECKS     =  0,
+  DEPTH_QS_NO_CHECKS  = -1,
+  DEPTH_QS_RECAPTURES = -5,
 
-  DEPTH_NONE   = -6 * ONE_PLY,
+  DEPTH_NONE   = -6,
   DEPTH_OFFSET = DEPTH_NONE,
-  DEPTH_MAX    = MAX_PLY * ONE_PLY
 };
-
-static_assert(!(ONE_PLY & (ONE_PLY - 1)), "ONE_PLY is not a power of 2");
 
 enum Square : int {
 #ifdef LARGEBOARDS
@@ -514,8 +517,6 @@ inline T& operator*=(T& d, int i) { return d = T(int(d) * i); }    \
 inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
 
 ENABLE_FULL_OPERATORS_ON(Value)
-ENABLE_FULL_OPERATORS_ON(CheckCount)
-ENABLE_FULL_OPERATORS_ON(Depth)
 ENABLE_FULL_OPERATORS_ON(Direction)
 
 ENABLE_INCR_OPERATORS_ON(PieceType)
@@ -584,16 +585,12 @@ constexpr Square operator~(Square s) {
 #endif
 }
 
-constexpr File operator~(File f) {
-  return File(FILE_MAX - f); // Horizontal flip FILE_A -> FILE_H
-}
-
-constexpr Rank operator~(Rank r) {
-  return Rank(RANK_MAX - r); // Vertical flip Rank_1 -> Rank_8
-}
-
 constexpr Piece operator~(Piece pc) {
   return Piece(pc ^ PIECE_TYPE_NB); // Swap color of piece BLACK KNIGHT -> WHITE KNIGHT
+}
+
+inline File map_to_queenside(File f) {
+  return std::min(f, File(FILE_H - f)); // Map files ABCDEFGH to files ABCDDCBA
 }
 
 constexpr CastlingRights operator&(Color c, CastlingRights cr) {
