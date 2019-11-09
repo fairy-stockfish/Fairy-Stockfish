@@ -95,7 +95,7 @@ void init(OptionsMap& o) {
   // at most 2^32 clusters.
   constexpr int MaxHashMB = Is64Bit ? 131072 : 2048;
 
-  o["Protocol"]              << Option("uci", {"uci", "usi", "xboard"});
+  o["Protocol"]              << Option("uci", {"uci", "usi", "ucci", "xboard"});
   o["Debug Log File"]        << Option("", on_logger);
   o["Contempt"]              << Option(24, -100, 100);
   o["Analysis Contempt"]     << Option("Both", {"Both", "Off", "White", "Black"});
@@ -161,7 +161,14 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
           if (it.second.idx == idx)
           {
               const Option& o = it.second;
-              os << "\noption name " << it.first << " type " << o.type;
+              if (Options["Protocol"] == "ucci")
+              {
+                  string name = it.first;
+                  std::replace(name.begin(), name.end(), ' ', '_');
+                  os << "\noption " <<  name << " type " << o.type;
+              }
+              else
+                  os << "\noption name " << it.first << " type " << o.type;
 
               if (o.type == "string" || o.type == "check" || o.type == "combo")
                   os << " default " << o.defaultValue;

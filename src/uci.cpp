@@ -85,6 +85,9 @@ namespace {
 
     is >> token; // Consume "name" token
 
+    if (Options["Protocol"] == "ucci")
+        name = token;
+    else
     // Read option name (can contain spaces)
     while (is >> token && token != "value")
         name += (name.empty() ? "" : " ") + token;
@@ -95,6 +98,8 @@ namespace {
 
     if (Options.count(name))
         Options[name] = value;
+    else if (Options["Protocol"] == "ucci" && (std::replace(name.begin(), name.end(), '_', ' '), Options.count(name)))
+        Options[name] = value;
     else
         sync_cout << "No such option: " << name << sync_endl;
   }
@@ -104,13 +109,15 @@ namespace {
   // the thinking time and other parameters from the input string, then starts
   // the search.
 
-  void go(Position& pos, istringstream& is, StateListPtr& states) {
+  void go(Position& pos, istringstream& is, StateListPtr& states, const std::vector<Move>& banmoves = {}) {
 
     Search::LimitsType limits;
     string token;
     bool ponderMode = false;
 
     limits.startTime = now(); // As early as possible!
+
+    limits.banmoves = banmoves;
 
     while (is >> token)
         if (token == "searchmoves")
@@ -129,6 +136,11 @@ namespace {
         else if (token == "perft")     is >> limits.perft;
         else if (token == "infinite")  limits.infinite = 1;
         else if (token == "ponder")    ponderMode = true;
+        // UCCI commands
+        else if (token == "time")      is >> limits.time[pos.side_to_move()];
+        else if (token == "opptime")   is >> limits.time[~pos.side_to_move()];
+        else if (token == "increment") is >> limits.inc[pos.side_to_move()];
+        else if (token == "oppinc")    is >> limits.inc[~pos.side_to_move()];
 
     Threads.start_thinking(pos, states, limits, ponderMode);
   }
@@ -268,12 +280,14 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "ponderhit")
           Threads.main()->ponder = false; // Switch to normal search
 
-      else if (token == "uci" || token == "usi" || token == "xboard")
+      else if (token == "uci" || token == "usi" || token == "ucci" || token == "xboard")
       {
           Options["Protocol"] = token;
+          if (token == "ucci")
+              Options["UCI_Variant"] = string("xiangqi");
           if (token != "xboard")
               sync_cout << "id name " << engine_info(true)
-                          << "\n"       << Options
+                          << "\n" << Options
                           << "\n" << token << "ok"  << sync_endl;
       }
 
@@ -292,7 +306,8 @@ void UCI::loop(int argc, char* argv[]) {
               for (string v : variants.get_keys())
                   if (v != "chess")
                       vars += "," + v;
-              sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 myname=Fairy-Stockfish variants=\"" << vars << "\""
+              sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 myname=Fairy-Stockfish variants=\""
+                        << vars << "\""
                         << Options << sync_endl
                         << "feature done=1" << sync_endl;
           }
@@ -434,9 +449,13 @@ void UCI::loop(int argc, char* argv[]) {
       }
 
       else if (token == "setoption")  setoption(is);
-      else if (token == "go")         go(pos, is, states);
-      else if (token == "position")   position(pos, is, states);
-      else if (token == "ucinewgame" || token == "usinewgame") Search::clear();
+      // UCCI-specific banmoves command
+      else if (token == "banmoves")
+          while (is >> token)
+              limits.banmoves.push_back(UCI::to_move(pos, token));
+      else if (token == "go")         go(pos, is, states, limits.banmoves);
+      else if (token == "position")   position(pos, is, states), limits.banmoves.clear();
+      else if (token == "ucinewgame" || token == "usinewgame" || token == "uccinewgame") Search::clear();
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
 
       // Additional custom non-UCI commands, mainly for debugging.
@@ -495,7 +514,7 @@ std::string UCI::square(const Position& pos, Square s) {
                                   : std::string{ char('0' + (pos.max_file() - file_of(s) + 1) / 10),
                                                  char('0' + (pos.max_file() - file_of(s) + 1) % 10),
                                                  char('a' + pos.max_rank() - rank_of(s)) };
-  else if (Options["Protocol"] == "xboard" && pos.max_rank() == RANK_10)
+  else if ((Options["Protocol"] == "xboard" || Options["Protocol"] == "ucci") && pos.max_rank() == RANK_10)
       return std::string{ char('a' + file_of(s)), char('0' + rank_of(s)) };
   else
       return rank_of(s) < RANK_10 ? std::string{ char('a' + file_of(s)), char('1' + (rank_of(s) % 10)) }
