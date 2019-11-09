@@ -192,6 +192,19 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", XIANGQI, "c1e3")
         self.assertEqual(result, "Ece3")
 
+        result = sf.get_san("xiangqi", XIANGQI, "h3h10")
+        self.assertEqual(result, "Cxh10")
+
+        result = sf.get_san("xiangqi", XIANGQI, "h3h5")
+        self.assertEqual(result, "Ch5")
+
+        fen = "1rb1ka2r/4a4/2ncb1nc1/p1p1p1p1p/9/2P6/P3PNP1P/2N1C2C1/9/R1BAKAB1R w - - 1 7"
+        result = sf.get_san("xiangqi", fen, "c3e2")
+        self.assertEqual(result, "Hce2")
+
+        result = sf.get_san("xiangqi", fen, "c3d5")
+        self.assertEqual(result, "Hd5")
+
         fen = "rnsm1s1r/4n1k1/1ppppppp/p7/2PPP3/PP3PPP/4N2R/RNSKMS2 b - - 1 5"
         result = sf.get_san("makruk", fen, "f8f7")
         self.assertEqual(result, "Sf7")
