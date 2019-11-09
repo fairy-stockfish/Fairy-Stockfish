@@ -65,12 +65,14 @@ const string move_to_san(Position& pos, Move m) {
 
               // A disambiguation occurs if we have more then one piece of type 'pt'
               // that can reach 'to' with a legal move.
-              others = b = (attacks_bb(~us, pt, to, pos.pieces()) & pos.pieces(us, pt)) ^ from;
+              others = b = ((pos.capture(m) ? attacks_bb(~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())
+                                            :   moves_bb(~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())) & pos.pieces(us, pt)) ^ from;
 
               while (b)
               {
                   Square s = pop_lsb(&b);
-                  if (   !pos.legal(make_move(s, to))
+                  if (   !pos.pseudo_legal(make_move(s, to))
+                      || !pos.legal(make_move(s, to))
                       || (Options["Protocol"] == "usi" && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
                       others ^= s;
               }
