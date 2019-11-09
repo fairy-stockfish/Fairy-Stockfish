@@ -58,6 +58,8 @@ const string move_to_san(Position& pos, Move m) {
           {
               if (pos.is_promoted(from) && Options["Protocol"] == "usi")
                   san += "+" + string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
+              else if (pos.piece_to_char_synonyms()[make_piece(WHITE, pt)] != ' ')
+                  san += pos.piece_to_char_synonyms()[make_piece(WHITE, pt)];
               else
                   san += pos.piece_to_char()[make_piece(WHITE, pt)];
 
