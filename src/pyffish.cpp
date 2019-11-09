@@ -126,17 +126,17 @@ bool hasInsufficientMaterial(Color c, const Position& pos) {
 
     // To avoid false positives, treat pawn + anything as sufficient mating material.
     // This is too conservative for South-East Asian variants.
-    if (pos.count(c, PAWN) && pos.count(c, ALL_PIECES) >= 3)
+    if (pos.count(c, PAWN) && pos.count<ALL_PIECES>() >= 4)
         return false;
 
     if (pos.count(c, KNIGHT) >= 2 || (pos.count(c, KNIGHT) && (pos.count(c, BISHOP) || pos.count(c, FERS))))
         return false;
 
     // Check for opposite colored color-bound pieces
-    if (pos.count(c, BISHOP) > 1 && (DarkSquares & pos.pieces(c, BISHOP)) && (~DarkSquares & pos.pieces(c, BISHOP)))
+    if (pos.count(c, BISHOP) && (DarkSquares & pos.pieces(BISHOP)) && (~DarkSquares & pos.pieces(BISHOP)))
         return false;
 
-    if (pos.count(c, FERS) > 1 && (DarkSquares & pos.pieces(c, FERS)) && (~DarkSquares & pos.pieces(c, FERS)))
+    if (pos.count(c, FERS) && (DarkSquares & pos.pieces(FERS)) && (~DarkSquares & pos.pieces(FERS)))
         return false;
 
     // Pieces sufficient for stalemate (Xiangqi)
@@ -146,7 +146,7 @@ bool hasInsufficientMaterial(Color c, const Position& pos) {
             if (pos.count(c, pt))
                 return false;
 
-        if (pos.count(c, CANNON) && pos.count(c, ALL_PIECES) >= 3)
+        if (pos.count(c, CANNON) && (pos.count(c, ALL_PIECES) > 2 || pos.count(~c, ALL_PIECES) > 1))
             return false;
     }
 

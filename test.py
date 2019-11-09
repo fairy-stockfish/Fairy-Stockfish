@@ -17,19 +17,42 @@ SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg -
 GRAND = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1"
 XIANGQI = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
 
-positions = {
-    "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K
-    "k7/b7/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KB
-    "k7/n7/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KN
-    "k7/p7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KP
-    "k7/r7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KR
-    "k7/q7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KQ
-    "k7/nn6/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vsNN K
-    "k7/bb6/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KBB opp color
-    "k7/b1b5/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KBB same color
-    # TODO: implement more lichess/python-chess adjudication rule
-    #    "kb6/8/8/8/8/8/8/K1B6 w - - 0 1": (True, True),  # KB vs KB same color
-    #    "kb6/8/8/8/8/8/8/KB7 w - - 0 1": (False, False),  # KB vs KB opp color
+variant_positions = {
+    "chess": {
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K
+        "k7/b7/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KB
+        "k7/n7/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KN
+        "k7/p7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KP
+        "k7/r7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KR
+        "k7/q7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KQ
+        "k7/nn6/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vsNN K
+        "k7/bb6/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KBB opp color
+        "k7/b1b5/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KBB same color
+        "kb6/8/8/8/8/8/8/K1B6 w - - 0 1": (True, True),  # KB vs KB same color
+        "kb6/8/8/8/8/8/8/KB7 w - - 0 1": (False, False),  # KB vs KB opp color
+    },
+    "seirawan": {
+        "k7/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # K vs K
+        "k7/8/8/8/8/8/8/KH6[] w - - 0 1": (False, True),  # KH vs K
+        "k7/8/8/8/8/8/8/4K3[E] w E - 0 1": (False, True),  # KE vs K
+    },
+    "sittuyin": {
+        "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1": (False, False),  # starting position
+        "k7/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # K vs K
+        "k6P/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # KP vs K
+        "k6P/8/8/8/8/8/8/K6p[] w - - 0 1": (False, False),  # KP vs KP
+        "k7/8/8/8/8/8/8/KFF5[] w - - 0 1": (False, True),  # KFF vs K
+        "k7/8/8/8/8/8/8/KS6[] w - - 0 1": (False, True),  # KS vs K
+    },
+    "xiangqi": {
+        "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1": (False, False),  # starting position
+        "5k3/4a4/3CN4/9/1PP5p/9/8P/4C4/4A4/2B1K4 w - - 0 46": (False, False),  # issue #53
+        "4k4/9/9/9/9/9/9/9/9/4K4 w - - 0 1": (True, True),  # K vs K
+        "4k4/9/9/4p4/9/9/9/9/9/4KR3 w - - 0 1": (False, False),  # KR vs KP
+        "4k4/9/9/9/9/9/9/9/9/3KN4 w - - 0 1": (False, True),  # KN vs K
+        "4k4/9/4b4/9/9/9/9/4B4/9/4K4 w - - 0 1": (True, True),  # KB vs KB
+        "4k4/9/9/9/9/9/9/9/4A4/4KC3 w - - 0 1": (False, True),  # KCA vs K
+    },
 }
 
 
@@ -227,10 +250,10 @@ class TestPyffish(unittest.TestCase):
         self.assertNotEqual(result, 0)
 
     def test_has_insufficient_material(self):
-        for fen in positions:
-            # print(fen, chess[fen])
-            result = sf.has_insufficient_material("chess", fen, [])
-            self.assertEqual(result, positions[fen])
+        for variant, positions in variant_positions.items():
+            for fen, expected_result in positions.items():
+                result = sf.has_insufficient_material(variant, fen, [])
+                self.assertEqual(result, expected_result, "{}: {}".format(variant, fen))
 
 
 if __name__ == '__main__':
