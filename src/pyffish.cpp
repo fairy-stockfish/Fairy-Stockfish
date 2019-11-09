@@ -115,20 +115,42 @@ const string move_to_san(Position& pos, Move m) {
   return san;
 }
 
-bool hasInsufficientMaterial(Color c, Position *p) {
-    if (p->count(c, PAWN) > 0 || p->count(c, ROOK) > 0 || p->count(c, QUEEN) > 0 || p->count(c, ARCHBISHOP) > 0 || p->count(c, CHANCELLOR) > 0)
+bool hasInsufficientMaterial(Color c, const Position& pos) {
+
+    if (pos.captures_to_hand() || pos.count_in_hand(c, ALL_PIECES))
         return false;
 
-    if (p->count(c, KNIGHT) + p->count(c, BISHOP) < 2)
-        return true;
+    for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER })
+        if (pos.count(c, pt) || (pos.count(c, PAWN) && pos.promotion_piece_types().find(pt) != pos.promotion_piece_types().end()))
+            return false;
 
-    if (p->count(c, BISHOP) > 1 && p->count(c, KNIGHT) == 0)
+    // To avoid false positives, treat pawn + anything as sufficient mating material.
+    // This is too conservative for South-East Asian variants.
+    if (pos.count(c, PAWN) && pos.count(c, ALL_PIECES) >= 3)
+        return false;
+
+    if (pos.count(c, KNIGHT) >= 2 || (pos.count(c, KNIGHT) && (pos.count(c, BISHOP) || pos.count(c, FERS))))
+        return false;
+
+    // Check for opposite colored color-bound pieces
+    if (pos.count(c, BISHOP) > 1 && (DarkSquares & pos.pieces(c, BISHOP)) && (~DarkSquares & pos.pieces(c, BISHOP)))
+        return false;
+
+    if (pos.count(c, FERS) > 1 && (DarkSquares & pos.pieces(c, FERS)) && (~DarkSquares & pos.pieces(c, FERS)))
+        return false;
+
+    // Pieces sufficient for stalemate (Xiangqi)
+    if (pos.stalemate_value() != VALUE_DRAW)
     {
-        bool sameColor;
-        sameColor = ((DarkSquares & (p->pieces(c, BISHOP))) == Bitboard(0)) || ((~DarkSquares & (p->pieces(c, BISHOP))) == Bitboard(0));
-        return sameColor;
+        for (PieceType pt : { HORSE, SOLDIER })
+            if (pos.count(c, pt))
+                return false;
+
+        if (pos.count(c, CANNON) && pos.count(c, ALL_PIECES) >= 3)
+            return false;
     }
-    return false;
+
+    return true;
 }
 
 void buildPosition(Position& pos, StateListPtr& states, const char *variant, const char *fen, PyObject *moveList, const int chess960) {
@@ -345,7 +367,6 @@ extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *a
     PyObject *moveList;
     Position pos;
     const char *fen, *variant;
-    bool wInsufficient, bInsufficient;
     int chess960 = 0;
     if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
         return NULL;
@@ -353,13 +374,10 @@ extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *a
 
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
-    if (pos.captures_to_hand()) {
-        wInsufficient = false;
-        bInsufficient = false;
-    } else {
-        wInsufficient = hasInsufficientMaterial(WHITE, &pos);
-        bInsufficient = hasInsufficientMaterial(BLACK, &pos);
-    }
+
+    bool wInsufficient = hasInsufficientMaterial(WHITE, pos);
+    bool bInsufficient = hasInsufficientMaterial(BLACK, pos);
+
     return Py_BuildValue("(OO)", wInsufficient ? Py_True : Py_False, bInsufficient ? Py_True : Py_False);
 }
 
