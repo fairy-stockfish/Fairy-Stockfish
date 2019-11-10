@@ -554,11 +554,10 @@ namespace {
                  -  35 * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
                  + 148 * popcount(unsafeChecks)
                  +  98 * popcount(pos.blockers_for_king(Us))
-                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand()) / (1 + pos.check_counting())
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.xiangqi_general()) / (1 + pos.check_counting())
                  -   6 * mg_value(score) / 8
                  +       mg_value(mobility[Them] - mobility[Us])
                  +   3 * kingFlankAttacks * kingFlankAttacks / 8
-                 + 500 * pos.xiangqi_general()
                  -   7;
 
     // Transform the kingDanger units into a Score, and subtract it from the evaluation
