@@ -1915,7 +1915,7 @@ bool Position::has_game_cycle(int ply) const {
 
   int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
-  if (end < 3 || var->nFoldValue != VALUE_DRAW)
+  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal)
     return false;
 
   Key originalKey = st->key;
