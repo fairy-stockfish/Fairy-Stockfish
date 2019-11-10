@@ -258,7 +258,7 @@ namespace {
 
     // Init our king safety tables
     kingRing[Us] = attackedBy[Us][KING];
-    if (pos.count<KING>(Us) && relative_rank(Us, ksq) == RANK_1)
+    if (pos.count<KING>(Us) && relative_rank(Us, ksq, pos.max_rank()) == RANK_1)
         kingRing[Us] |= shift<Up>(kingRing[Us]);
 
     if (pos.count<KING>(Us) && file_of(ksq) == pos.max_file())
@@ -577,7 +577,7 @@ namespace {
 
     // For drop games, king danger is independent of game phase
     if (pos.captures_to_hand())
-        score = make_score(mg_value(score), mg_value(score)) / (1 + !pos.shogi_doubled_pawn());
+        score = make_score(mg_value(score), mg_value(score)) * 2 / (2 + 3 * !pos.shogi_doubled_pawn());
 
     if (T)
         Trace::add(KING, Us, score);
