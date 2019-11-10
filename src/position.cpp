@@ -722,7 +722,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   {
       Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
       if (b)
-          snipers |= b & ~attacks_from(~c, pt, s);
+          snipers |= b & ~attacks_bb(~c, pt, s, pieces());
   }
   Bitboard occupancy = pieces() ^ snipers;
 
@@ -731,7 +731,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
     Square sniperSq = pop_lsb(&snipers);
     Bitboard b = between_bb(s, sniperSq) & occupancy;
 
-    if (b && !more_than_one(b))
+    if (b && (!more_than_one(b) || (type_of(piece_on(sniperSq)) == CANNON && popcount(b) == 2)))
     {
         blockers |= b;
         if (b & pieces(color_of(piece_on(s))))
