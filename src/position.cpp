@@ -774,6 +774,9 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
           b |= pieces(c, FERS) & gates(c) & fers_sq;
   }
 
+  if (var->xiangqiGeneral)
+      b ^= b & pieces(KING) & ~PseudoAttacks[~c][WAZIR][s];
+
   return b;
 }
 
