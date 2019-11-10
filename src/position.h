@@ -136,6 +136,7 @@ public:
   bool gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
+  bool xiangqi_general() const;
   bool unpromoted_soldier(Color c, Square s) const;
   // winning conditions
   int n_move_rule() const;
@@ -538,6 +539,11 @@ inline bool Position::seirawan_gating() const {
 inline bool Position::cambodian_moves() const {
   assert(var != nullptr);
   return var->cambodianMoves;
+}
+
+inline bool Position::xiangqi_general() const {
+  assert(var != nullptr);
+  return var->xiangqiGeneral;
 }
 
 inline bool Position::unpromoted_soldier(Color c, Square s) const {
