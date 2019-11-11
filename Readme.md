@@ -59,9 +59,9 @@ The following UCI options are added or changed compared to official Stockfish:
     For variants without castling, this option does not have any effect.
 
   * #### Protocol
-    Can be used to switch between dialects of the UCI protocol, namely UCI and USI (for Shogi).
+    Can be used to switch between the supported protocols, namely UCI, UCCI (Xiangqi), USI (Shogi) and XBoard/CECP.
     This option is automatically set to the respective protocol if a GUI starts communication
-    with the "uci" or "usi" command (as required by the protocols).
+    with one of the `uci`/`ucci`/`usi`/`xboard` commands (as required by the protocols).
 
   * #### VariantPath
     The path to the configuration file for user-defined variants.
