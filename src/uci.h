@@ -60,6 +60,7 @@ public:
   bool operator==(const char*) const;
   bool operator!=(const char*) const;
   void set_combo(std::vector<std::string> newComboValues);
+  void set_default(std::string newDefault);
 
 private:
   friend std::ostream& operator<<(std::ostream&, const OptionsMap&);

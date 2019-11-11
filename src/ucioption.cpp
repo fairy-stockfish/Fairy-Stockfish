@@ -275,4 +275,8 @@ void Option::set_combo(std::vector<std::string> newComboValues) {
     comboValues = newComboValues;
 }
 
+void Option::set_default(std::string newDefault) {
+    defaultValue = currentValue = newDefault;
+}
+
 } // namespace UCI

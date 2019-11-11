@@ -282,9 +282,11 @@ void UCI::loop(int argc, char* argv[]) {
 
       else if (token == "uci" || token == "usi" || token == "ucci" || token == "xboard")
       {
-          Options["Protocol"] = token;
-          if (token == "ucci")
-              Options["UCI_Variant"] = string("xiangqi");
+          Options["Protocol"].set_default(token);
+          string defaultVariant = string(  token == "usi"  ? "shogi"
+                                         : token == "ucci" ? "xiangqi"
+                                                           : "chess");
+          Options["UCI_Variant"].set_default(defaultVariant);
           if (token != "xboard")
               sync_cout << "id name " << engine_info(true)
                           << "\n" << Options
