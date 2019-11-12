@@ -98,8 +98,8 @@ public:
   Bitboard board_bb() const;
   Bitboard board_bb(Color c, PieceType pt) const;
   const std::set<PieceType>& piece_types() const;
-  const std::string piece_to_char() const;
-  const std::string piece_to_char_synonyms() const;
+  const std::string& piece_to_char() const;
+  const std::string& piece_to_char_synonyms() const;
   Rank promotion_rank() const;
   const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
   bool sittuyin_promotion() const;
@@ -331,12 +331,12 @@ inline const std::set<PieceType>& Position::piece_types() const {
   return var->pieceTypes;
 }
 
-inline const std::string Position::piece_to_char() const {
+inline const std::string& Position::piece_to_char() const {
   assert(var != nullptr);
   return var->pieceToChar;
 }
 
-inline const std::string Position::piece_to_char_synonyms() const {
+inline const std::string& Position::piece_to_char_synonyms() const {
   assert(var != nullptr);
   return var->pieceToCharSynonyms;
 }
