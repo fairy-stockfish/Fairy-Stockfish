@@ -425,6 +425,14 @@ void UCI::loop(int argc, char* argv[]) {
                       xboard_go(pos, analysis_limits, states);
               }
           }
+          // Additional custom non-UCI commands, mainly for debugging.
+          else if (token == "perft")
+          {
+              Search::LimitsType perft_limits;
+              is >> perft_limits.perft;
+              xboard_go(pos, perft_limits, states);
+          }
+          // Move strings and unknown commands
           else
           {
               // process move string
