@@ -54,6 +54,7 @@ namespace {
     }
     Variant* makruk_variant() {
         Variant* v = chess_variant();
+        v->variantTemplate = "makruk";
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(KHON, 's');
