@@ -2017,7 +2017,7 @@ void Position::flip() {
   string f, token;
   std::stringstream ss(fen());
 
-  for (Rank r = RANK_MAX; r >= RANK_1; --r) // Piece placement
+  for (Rank r = max_rank(); r >= RANK_1; --r) // Piece placement
   {
       std::getline(ss, token, r > RANK_1 ? '/' : ' ');
       f.insert(0, token + (f.empty() ? " " : "/"));

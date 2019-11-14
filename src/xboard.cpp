@@ -19,6 +19,7 @@
 #include <iostream>
 #include <string>
 
+#include "evaluate.h"
 #include "search.h"
 #include "thread.h"
 #include "types.h"
@@ -223,6 +224,10 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       is >> perft_limits.perft;
       go(pos, perft_limits, states);
   }
+  else if (token == "d")
+      sync_cout << pos << sync_endl;
+  else if (token == "eval")
+      sync_cout << Eval::trace(pos) << sync_endl;
   // Move strings and unknown commands
   else
   {
