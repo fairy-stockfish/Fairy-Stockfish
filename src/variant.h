@@ -61,6 +61,7 @@ struct Variant {
   File castlingKingsideFile = FILE_G;
   File castlingQueensideFile = FILE_C;
   Rank castlingRank = RANK_1;
+  PieceType castlingRookPiece = ROOK;
   bool checking = true;
   bool mustCapture = false;
   bool mustDrop = false;

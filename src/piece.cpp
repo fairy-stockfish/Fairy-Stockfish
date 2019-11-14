@@ -179,6 +179,26 @@ namespace {
       p->sliderCapture = {};
       return p;
   }
+  PieceInfo* kniroo_piece() {
+      PieceInfo* p = rook_piece();
+      p->name = "kniroo";
+      PieceInfo* p2 = knight_piece();
+      p->merge(p2);
+      delete p2;
+      p->stepsCapture = {};
+      p->sliderQuiet = {};
+      return p;
+  }
+  PieceInfo* rookni_piece() {
+      PieceInfo* p = rook_piece();
+      p->name = "rookni";
+      PieceInfo* p2 = knight_piece();
+      p->merge(p2);
+      delete p2;
+      p->stepsQuiet = {};
+      p->sliderCapture = {};
+      return p;
+  }
   PieceInfo* shogi_pawn_piece() {
       PieceInfo* p = new PieceInfo();
       p->name = "shogi_pawn";
@@ -295,6 +315,8 @@ void PieceMap::init() {
   add(AMAZON, amazon_piece());
   add(KNIBIS, knibis_piece());
   add(BISKNI, biskni_piece());
+  add(KNIROO, kniroo_piece());
+  add(ROOKNI, rookni_piece());
   add(SHOGI_PAWN, shogi_pawn_piece());
   add(LANCE, lance_piece());
   add(SHOGI_KNIGHT, shogi_knight_piece());

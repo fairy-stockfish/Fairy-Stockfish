@@ -118,6 +118,7 @@ public:
   File castling_kingside_file() const;
   File castling_queenside_file() const;
   Rank castling_rank(Color c) const;
+  PieceType castling_rook_piece() const;
   bool checking_permitted() const;
   bool must_capture() const;
   bool must_drop() const;
@@ -429,6 +430,11 @@ inline File Position::castling_queenside_file() const {
 inline Rank Position::castling_rank(Color c) const {
   assert(var != nullptr);
   return relative_rank(c, var->castlingRank, max_rank());
+}
+
+inline PieceType Position::castling_rook_piece() const {
+  assert(var != nullptr);
+  return var->castlingRookPiece;
 }
 
 inline bool Position::checking_permitted() const {

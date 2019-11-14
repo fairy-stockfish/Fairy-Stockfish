@@ -133,6 +133,16 @@ namespace {
         v->promotionPieceTypes = {QUEEN, ROOK, BISKNI, KNIBIS};
         return v;
     }
+    Variant* newzealand_variant() {
+        Variant* v = chess_variant();
+        v->remove_piece(ROOK);
+        v->remove_piece(KNIGHT);
+        v->add_piece(ROOKNI, 'r');
+        v->add_piece(KNIROO, 'n');
+        v->castlingRookPiece = ROOKNI;
+        v->promotionPieceTypes = {QUEEN, ROOKNI, BISHOP, KNIROO};
+        return v;
+    }
     Variant* kingofthehill_variant() {
         Variant* v = fairy_variant_base();
         v->flagPiece = KING;
@@ -737,6 +747,7 @@ void VariantMap::init() {
     add("shatranj", shatranj_variant());
     add("amazon", amazon_variant());
     add("hoppelpoppel", hoppelpoppel_variant());
+    add("newzealand", newzealand_variant());
     add("kingofthehill", kingofthehill_variant());
     add("racingkings", racingkings_variant());
     add("losers", losers_variant());

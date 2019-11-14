@@ -156,6 +156,16 @@ Variant* VariantParser::parse(Variant* v) {
     parse_attribute("castlingKingsideFile", v->castlingKingsideFile);
     parse_attribute("castlingQueensideFile", v->castlingQueensideFile);
     parse_attribute("castlingRank", v->castlingRank);
+    // castling rook piece type
+    const auto& it_castling_rook_piece = config.find("castlingRookPiece");
+    if (it_castling_rook_piece != config.end())
+    {
+        char token;
+        size_t idx;
+        std::stringstream ss(it_castling_rook_piece->second);
+        if (ss >> token && (idx = v->pieceToChar.find(token)) != std::string::npos)
+            v->castlingRookPiece = PieceType(idx);
+    }
     parse_attribute("checking", v->checking);
     parse_attribute("mustCapture", v->mustCapture);
     parse_attribute("mustDrop", v->mustDrop);
