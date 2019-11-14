@@ -268,6 +268,14 @@ namespace {
       p->lameLeaper = true;
       return p;
   }
+  PieceInfo* centaur_piece() {
+      PieceInfo* p = commoner_piece();
+      p->name = "centaur";
+      PieceInfo* p2 = knight_piece();
+      p->merge(p2);
+      delete p2;
+      return p;
+  }
 }
 
 void PieceMap::init() {
@@ -302,6 +310,7 @@ void PieceMap::init() {
   add(ELEPHANT, elephant_piece());
   add(WAZIR, wazir_piece());
   add(COMMONER, commoner_piece());
+  add(CENTAUR, centaur_piece());
   add(KING, king_piece());
 }
 

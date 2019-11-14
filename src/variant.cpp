@@ -604,6 +604,17 @@ namespace {
         v->startFen = "rnbqkcabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQKCABNR w KQkq - 0 1";
         return v;
     }
+    Variant* centaur_variant() {
+        Variant* v = fairy_variant_base();
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_J;
+        v->castlingKingsideFile = FILE_I;
+        v->castlingQueensideFile = FILE_C;
+        v->add_piece(CENTAUR, 'c');
+        v->startFen = "rcnbqkbncr/pppppppppp/10/10/10/10/PPPPPPPPPP/RCNBQKBNCR w KQkq - 0 1";
+        v->promotionPieceTypes = {CENTAUR, QUEEN, ROOK, BISHOP, KNIGHT};
+        return v;
+    }
     Variant* jesonmor_variant() {
         Variant* v = fairy_variant_base();
         v->maxRank = RANK_9;
@@ -771,6 +782,7 @@ void VariantMap::init() {
     add("modern", modern_variant());
     add("chancellor", chancellor_variant());
     add("embassy", embassy_variant());
+    add("centaur", centaur_variant());
     add("jesonmor", jesonmor_variant());
     add("courier", courier_variant());
     add("grand", grand_variant());
