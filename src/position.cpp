@@ -97,9 +97,28 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
   for (Rank r = pos.max_rank(); r >= RANK_1; --r)
   {
       for (File f = FILE_A; f <= pos.max_file(); ++f)
-          os << " | " << pos.piece_to_char()[pos.piece_on(make_square(f, r))];
+          if (pos.unpromoted_piece_on(make_square(f, r)))
+              os << " |+" << pos.piece_to_char()[pos.unpromoted_piece_on(make_square(f, r))];
+          else
+              os << " | " << pos.piece_to_char()[pos.piece_on(make_square(f, r))];
 
-      os << " |\n ";
+      os << " |";
+      if (r == pos.max_rank() || r == RANK_1)
+      {
+          Color c = r == RANK_1 ? WHITE : BLACK;
+          if (c == pos.side_to_move())
+              os << " *";
+          else
+              os << "  ";
+          if (pos.piece_drops() || pos.seirawan_gating())
+          {
+              os << " [";
+              for (PieceType pt = KING; pt >= PAWN; --pt)
+                  os << std::string(pos.count_in_hand(c, pt), pos.piece_to_char()[make_piece(c, pt)]);
+              os << "]";
+          }
+      }
+      os << "\n ";
       for (File f = FILE_A; f <= pos.max_file(); ++f)
           os << "+---";
       os << "+\n";
