@@ -752,13 +752,13 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
       if (board_bb(c, pt) & s)
       {
           // Consider asymmetrical move of horse
-          if (pt == HORSE)
+          if (pt == HORSE || pt == BANNER)
           {
-              Bitboard horses = PseudoAttacks[~c][KNIGHT][s] & pieces(c, HORSE);
+              Bitboard horses = PseudoAttacks[~c][pt][s] & pieces(c, pt);
               while (horses)
               {
                   Square s2 = pop_lsb(&horses);
-                  if (attacks_bb(c, HORSE, s2, occupied) & s)
+                  if (attacks_bb(c, pt, s2, occupied) & s)
                       b |= s2;
               }
           }
@@ -999,7 +999,7 @@ bool Position::pseudo_legal(const Move m) const {
   // Evasions generator already takes care to avoid some kind of illegal moves
   // and legal() relies on this. We therefore have to take care that the same
   // kind of moves are filtered out here.
-  if (checkers() & ~(pieces(CANNON) | pieces(HORSE, ELEPHANT)))
+  if (checkers() & ~(pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT)))
   {
       if (type_of(pc) != KING)
       {
@@ -1040,18 +1040,19 @@ bool Position::gives_check(Move m) const {
   // Is there a direct check?
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION)
   {
-      if (type_of(moved_piece(m)) == CANNON || type_of(moved_piece(m)) == HORSE)
+      PieceType pt = type_of(moved_piece(m));
+      if (pt == CANNON || pt == BANNER || pt == HORSE)
       {
-          if (attacks_bb(sideToMove, type_of(moved_piece(m)), to, (pieces() ^ from) | to) & square<KING>(~sideToMove))
+          if (attacks_bb(sideToMove, pt, to, (pieces() ^ from) | to) & square<KING>(~sideToMove))
               return true;
       }
-      else if (st->checkSquares[type_of(moved_piece(m))] & to)
+      else if (st->checkSquares[pt] & to)
           return true;
   }
 
   // Is there a discovered check?
   if (   type_of(m) != DROP
-      && ((st->blockersForKing[~sideToMove] & from) || pieces(sideToMove, CANNON, HORSE))
+      && ((st->blockersForKing[~sideToMove] & from) || (pieces(sideToMove, CANNON, BANNER) | pieces(HORSE, ELEPHANT)))
       && attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to, sideToMove))
       return true;
 

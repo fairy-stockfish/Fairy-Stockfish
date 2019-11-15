@@ -288,6 +288,16 @@ namespace {
       p->lameLeaper = true;
       return p;
   }
+  PieceInfo* banner_piece() {
+      PieceInfo* p = rook_piece();
+      p->name = "banner";
+      PieceInfo* p2 = horse_piece();
+      p->merge(p2);
+      delete p2;
+      p->hopperCapture = {NORTH, EAST, SOUTH, WEST};
+      p->lameLeaper = true;
+      return p;
+  }
   PieceInfo* centaur_piece() {
       PieceInfo* p = commoner_piece();
       p->name = "centaur";
@@ -330,6 +340,7 @@ void PieceMap::init() {
   add(SOLDIER, soldier_piece());
   add(HORSE, horse_piece());
   add(ELEPHANT, elephant_piece());
+  add(BANNER, banner_piece());
   add(WAZIR, wazir_piece());
   add(COMMONER, commoner_piece());
   add(CENTAUR, centaur_piece());
