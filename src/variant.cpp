@@ -514,6 +514,7 @@ namespace {
     }
     Variant* minixiangqi_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "xiangqi";
         v->pieceToCharTable = "PN.R.....K.C.pn.r.....k.c.";
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
