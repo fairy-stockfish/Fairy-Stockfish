@@ -106,6 +106,7 @@ Variant* VariantParser::parse(Variant* v) {
             v->add_piece(pieceInfo.first, keyValue->second.at(0));
     }
     parse_attribute("variantTemplate", v->variantTemplate);
+    parse_attribute("pieceToCharTable", v->pieceToCharTable);
     parse_attribute("pocketSize", v->pocketSize);
     parse_attribute("maxRank", v->maxRank);
     parse_attribute("maxFile", v->maxFile);

@@ -64,7 +64,7 @@ void on_variant_change(const Option &o) {
         return;
     int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0;
     if (Options["Protocol"] == "xboard")
-        sync_cout << "setup (-) "
+        sync_cout << "setup (" << v->pieceToCharTable << ") "
                   << v->maxFile + 1 << "x" << v->maxRank + 1
                   << "+" << pocketsize << "_" << v->variantTemplate
                   << " " << v->startFen

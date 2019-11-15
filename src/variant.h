@@ -33,6 +33,7 @@
 
 struct Variant {
   std::string variantTemplate = "fairy";
+  std::string pieceToCharTable = "-";
   int pocketSize = 0;
   Rank maxRank = RANK_8;
   File maxFile = FILE_H;

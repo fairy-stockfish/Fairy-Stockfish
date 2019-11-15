@@ -119,6 +119,7 @@ namespace {
     }
     Variant* amazon_variant() {
         Variant* v = chess_variant();
+        v->pieceToCharTable = "PNBR..............AKpnbr..............ak";
         v->remove_piece(QUEEN);
         v->add_piece(AMAZON, 'a');
         v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1";
@@ -335,6 +336,7 @@ namespace {
     }
     Variant* minishogi_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "P.BR.S...G.+.++.+Kp.br.s...g.+.++.+k";
         v->pocketSize = 5;
         v->nFoldValue = -VALUE_MATE;
         v->nFoldValueAbsolute = true;
@@ -378,6 +380,8 @@ namespace {
     }
     Variant* dobutsu_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "C....E...G.+.....Lc....e...g.+.....l";
+        v->pocketSize = 3;
         v->maxRank = RANK_4;
         v->maxFile = FILE_C;
         v->reset_pieces();
@@ -398,6 +402,8 @@ namespace {
     }
     Variant* gorogoroshogi_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "P....S...G.+....+Kp....s...g.+....+k";
+        v->pocketSize = 3;
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
         v->startFen = "sgkgs/5/1ppp1/1PPP1/5/SGKGS[-] w 0 1";
@@ -406,6 +412,7 @@ namespace {
     }
     Variant* judkinsshogi_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "PNBR.S...G.++++.+Kpnbr.s...g.++++.+k";
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
         v->add_piece(SHOGI_KNIGHT, 'n');
@@ -416,6 +423,7 @@ namespace {
     }
     Variant* euroshogi_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "PNBR.....G.++++Kpnbr.....g.++++k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_H;
         v->add_piece(EUROSHOGI_KNIGHT, 'n');
@@ -427,6 +435,7 @@ namespace {
     }
     Variant* losalamos_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PN.RQ................Kpn.rq................k";
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
         v->remove_piece(BISHOP);
@@ -464,6 +473,7 @@ namespace {
     }
     Variant* shatar_variant() {
         Variant* v = chess_variant();
+        v->pieceToCharTable = "PNBR..........J......Kpnbr..........j......k";
         v->remove_piece(QUEEN);
         v->add_piece(BERS, 'j');
         v->startFen = "rnbjkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBJKBNR w - - 0 1";
@@ -504,6 +514,7 @@ namespace {
     }
     Variant* minixiangqi_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PN.R.....K.C.pn.r.....k.c.";
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
         v->reset_pieces();
