@@ -64,7 +64,7 @@ void on_variant_change(const Option &o) {
         return;
     int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0;
     if (Options["Protocol"] == "xboard")
-        sync_cout << "setup (-) "
+        sync_cout << "setup (" << v->pieceToCharTable << ") "
                   << v->maxFile + 1 << "x" << v->maxRank + 1
                   << "+" << pocketsize << "_" << v->variantTemplate
                   << " " << v->startFen
@@ -95,7 +95,7 @@ void init(OptionsMap& o) {
   // at most 2^32 clusters.
   constexpr int MaxHashMB = Is64Bit ? 131072 : 2048;
 
-  o["Protocol"]              << Option("uci", {"uci", "usi", "xboard"});
+  o["Protocol"]              << Option("uci", {"uci", "usi", "ucci", "xboard"});
   o["Debug Log File"]        << Option("", on_logger);
   o["Contempt"]              << Option(24, -100, 100);
   o["Analysis Contempt"]     << Option("Both", {"Both", "Off", "White", "Black"});
@@ -161,7 +161,14 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
           if (it.second.idx == idx)
           {
               const Option& o = it.second;
-              os << "\noption name " << it.first << " type " << o.type;
+              if (Options["Protocol"] == "ucci")
+              {
+                  string name = it.first;
+                  std::replace(name.begin(), name.end(), ' ', '_');
+                  os << "\noption " <<  name << " type " << o.type;
+              }
+              else
+                  os << "\noption name " << it.first << " type " << o.type;
 
               if (o.type == "string" || o.type == "check" || o.type == "combo")
                   os << " default " << o.defaultValue;
@@ -266,6 +273,10 @@ Option& Option::operator=(const string& v) {
 
 void Option::set_combo(std::vector<std::string> newComboValues) {
     comboValues = newComboValues;
+}
+
+void Option::set_default(std::string newDefault) {
+    defaultValue = currentValue = newDefault;
 }
 
 } // namespace UCI

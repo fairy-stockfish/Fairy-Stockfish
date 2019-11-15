@@ -258,7 +258,7 @@ namespace {
 
     // Init our king safety tables
     kingRing[Us] = attackedBy[Us][KING];
-    if (pos.count<KING>(Us) && relative_rank(Us, ksq) == RANK_1)
+    if (pos.count<KING>(Us) && relative_rank(Us, ksq, pos.max_rank()) == RANK_1)
         kingRing[Us] |= shift<Up>(kingRing[Us]);
 
     if (pos.count<KING>(Us) && file_of(ksq) == pos.max_file())
@@ -554,7 +554,7 @@ namespace {
                  -  35 * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
                  + 148 * popcount(unsafeChecks)
                  +  98 * popcount(pos.blockers_for_king(Us))
-                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand()) / (1 + pos.check_counting())
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.xiangqi_general()) / (1 + pos.check_counting())
                  -   6 * mg_value(score) / 8
                  +       mg_value(mobility[Them] - mobility[Us])
                  +   3 * kingFlankAttacks * kingFlankAttacks / 8
@@ -576,7 +576,7 @@ namespace {
 
     // For drop games, king danger is independent of game phase
     if (pos.captures_to_hand())
-        score = make_score(mg_value(score), mg_value(score)) / (1 + !pos.shogi_doubled_pawn());
+        score = make_score(mg_value(score), mg_value(score)) * 2 / (2 + 3 * !pos.shogi_doubled_pawn());
 
     if (T)
         Trace::add(KING, Us, score);
@@ -1004,7 +1004,7 @@ namespace {
             && pos.non_pawn_material() == 2 * BishopValueMg)
             sf = 16 + 4 * pe->passed_count();
         else
-            sf = std::min(sf, 36 + (pos.opposite_bishops() ? 2 : 7) * pos.count<PAWN>(strongSide));
+            sf = std::min(sf, 36 + (pos.opposite_bishops() ? 2 : 7) * (pos.count<PAWN>(strongSide) + pos.count<SOLDIER>(strongSide)));
 
         sf = std::max(0, sf - (pos.rule50_count() - 12) / 4  );
     }

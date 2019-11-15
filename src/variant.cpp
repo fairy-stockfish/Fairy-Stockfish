@@ -54,6 +54,7 @@ namespace {
     }
     Variant* makruk_variant() {
         Variant* v = chess_variant();
+        v->variantTemplate = "makruk";
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(KHON, 's');
@@ -118,6 +119,7 @@ namespace {
     }
     Variant* amazon_variant() {
         Variant* v = chess_variant();
+        v->pieceToCharTable = "PNBR..............AKpnbr..............ak";
         v->remove_piece(QUEEN);
         v->add_piece(AMAZON, 'a');
         v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1";
@@ -131,6 +133,16 @@ namespace {
         v->add_piece(KNIBIS, 'n');
         v->add_piece(BISKNI, 'b');
         v->promotionPieceTypes = {QUEEN, ROOK, BISKNI, KNIBIS};
+        return v;
+    }
+    Variant* newzealand_variant() {
+        Variant* v = chess_variant();
+        v->remove_piece(ROOK);
+        v->remove_piece(KNIGHT);
+        v->add_piece(ROOKNI, 'r');
+        v->add_piece(KNIROO, 'n');
+        v->castlingRookPiece = ROOKNI;
+        v->promotionPieceTypes = {QUEEN, ROOKNI, BISHOP, KNIROO};
         return v;
     }
     Variant* kingofthehill_variant() {
@@ -324,6 +336,7 @@ namespace {
     }
     Variant* minishogi_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "P.BR.S...G.+.++.+Kp.br.s...g.+.++.+k";
         v->pocketSize = 5;
         v->nFoldValue = -VALUE_MATE;
         v->nFoldValueAbsolute = true;
@@ -367,6 +380,8 @@ namespace {
     }
     Variant* dobutsu_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "C....E...G.+.....Lc....e...g.+.....l";
+        v->pocketSize = 3;
         v->maxRank = RANK_4;
         v->maxFile = FILE_C;
         v->reset_pieces();
@@ -387,6 +402,8 @@ namespace {
     }
     Variant* gorogoroshogi_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "P....S...G.+....+Kp....s...g.+....+k";
+        v->pocketSize = 3;
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
         v->startFen = "sgkgs/5/1ppp1/1PPP1/5/SGKGS[-] w 0 1";
@@ -395,6 +412,7 @@ namespace {
     }
     Variant* judkinsshogi_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "PNBR.S...G.++++.+Kpnbr.s...g.++++.+k";
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
         v->add_piece(SHOGI_KNIGHT, 'n');
@@ -405,6 +423,7 @@ namespace {
     }
     Variant* euroshogi_variant() {
         Variant* v = minishogi_variant_base();
+        v->pieceToCharTable = "PNBR.....G.++++Kpnbr.....g.++++k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_H;
         v->add_piece(EUROSHOGI_KNIGHT, 'n');
@@ -416,6 +435,7 @@ namespace {
     }
     Variant* losalamos_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PN.RQ................Kpn.rq................k";
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
         v->remove_piece(BISHOP);
@@ -453,6 +473,7 @@ namespace {
     }
     Variant* shatar_variant() {
         Variant* v = chess_variant();
+        v->pieceToCharTable = "PNBR..........J......Kpnbr..........j......k";
         v->remove_piece(QUEEN);
         v->add_piece(BERS, 'j');
         v->startFen = "rnbjkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBJKBNR w - - 0 1";
@@ -493,6 +514,8 @@ namespace {
     }
     Variant* minixiangqi_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "xiangqi";
+        v->pieceToCharTable = "PN.R.....K.C.pn.r.....k.c.";
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
         v->reset_pieces();
@@ -602,6 +625,17 @@ namespace {
         v->castlingKingsideFile = FILE_H;
         v->castlingQueensideFile = FILE_B;
         v->startFen = "rnbqkcabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQKCABNR w KQkq - 0 1";
+        return v;
+    }
+    Variant* centaur_variant() {
+        Variant* v = fairy_variant_base();
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_J;
+        v->castlingKingsideFile = FILE_I;
+        v->castlingQueensideFile = FILE_C;
+        v->add_piece(CENTAUR, 'c');
+        v->startFen = "rcnbqkbncr/pppppppppp/10/10/10/10/PPPPPPPPPP/RCNBQKBNCR w KQkq - 0 1";
+        v->promotionPieceTypes = {CENTAUR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
     Variant* jesonmor_variant() {
@@ -726,6 +760,7 @@ void VariantMap::init() {
     add("shatranj", shatranj_variant());
     add("amazon", amazon_variant());
     add("hoppelpoppel", hoppelpoppel_variant());
+    add("newzealand", newzealand_variant());
     add("kingofthehill", kingofthehill_variant());
     add("racingkings", racingkings_variant());
     add("losers", losers_variant());
@@ -771,6 +806,7 @@ void VariantMap::init() {
     add("modern", modern_variant());
     add("chancellor", chancellor_variant());
     add("embassy", embassy_variant());
+    add("centaur", centaur_variant());
     add("jesonmor", jesonmor_variant());
     add("courier", courier_variant());
     add("grand", grand_variant());

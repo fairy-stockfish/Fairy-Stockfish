@@ -356,7 +356,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       {
           Square rsq;
           Color c = islower(token) ? BLACK : WHITE;
-          Piece rook = make_piece(c, ROOK);
+          Piece rook = make_piece(c, castling_rook_piece());
 
           token = char(toupper(token));
 
@@ -393,7 +393,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           for (Color c : {WHITE, BLACK})
               if ((gates(c) & pieces(KING)) && !castling_rights(c) && (!seirawan_gating() || count_in_hand(c, ALL_PIECES) || captures_to_hand()))
               {
-                  Bitboard castling_rooks = gates(c) & pieces(ROOK);
+                  Bitboard castling_rooks = gates(c) & pieces(castling_rook_piece());
                   while (castling_rooks)
                       set_castling_right(c, pop_lsb(&castling_rooks));
               }
@@ -722,7 +722,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   {
       Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
       if (b)
-          snipers |= b & ~attacks_from(~c, pt, s);
+          snipers |= b & ~attacks_bb(~c, pt, s, pieces());
   }
   Bitboard occupancy = pieces() ^ snipers;
 
@@ -731,7 +731,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
     Square sniperSq = pop_lsb(&snipers);
     Bitboard b = between_bb(s, sniperSq) & occupancy;
 
-    if (b && !more_than_one(b))
+    if (b && (!more_than_one(b) || (type_of(piece_on(sniperSq)) == CANNON && popcount(b) == 2)))
     {
         blockers |= b;
         if (b & pieces(color_of(piece_on(s))))
@@ -773,6 +773,9 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
       if (is_ok(fers_sq))
           b |= pieces(c, FERS) & gates(c) & fers_sq;
   }
+
+  if (var->xiangqiGeneral)
+      b ^= b & pieces(KING) & ~PseudoAttacks[~c][WAZIR][s];
 
   return b;
 }
@@ -1091,8 +1094,8 @@ bool Position::gives_check(Move m) const {
       Square kto = make_square(rfrom > kfrom ? castling_kingside_file() : castling_queenside_file(), castling_rank(sideToMove));
       Square rto = kto + (rfrom > kfrom ? WEST : EAST);
 
-      return   (PseudoAttacks[sideToMove][ROOK][rto] & square<KING>(~sideToMove))
-            && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
+      return   (PseudoAttacks[sideToMove][type_of(piece_on(rfrom))][rto] & square<KING>(~sideToMove))
+            && (attacks_bb(sideToMove, type_of(piece_on(rfrom)), rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
   }
   default:
       assert(false);
@@ -1151,7 +1154,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (type_of(m) == CASTLING)
   {
       assert(type_of(pc) != NO_PIECE_TYPE);
-      assert(captured == make_piece(us, ROOK));
+      assert(captured == make_piece(us, castling_rook_piece()));
 
       Square rfrom, rto;
       do_castling<true>(us, from, to, rfrom, rto);
@@ -1248,13 +1251,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           if (type_of(pc) == KING && file_of(to) == FILE_E)
           {
-              Bitboard castling_rooks =  pieces(us, ROOK)
+              Bitboard castling_rooks =  pieces(us, castling_rook_piece())
                                        & rank_bb(castling_rank(us))
                                        & (file_bb(FILE_A) | file_bb(max_file()));
               while (castling_rooks)
                   set_castling_right(us, pop_lsb(&castling_rooks));
           }
-          else if (type_of(pc) == ROOK)
+          else if (type_of(pc) == castling_rook_piece())
           {
               if (   (file_of(to) == FILE_A || file_of(to) == max_file())
                   && piece_on(make_square(FILE_E, castling_rank(us))) == make_piece(us, KING))
@@ -1557,12 +1560,13 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   rto = to + (kingSide ? WEST : EAST);
 
   // Remove both pieces first since squares could overlap in Chess960
-  Piece castling_piece = piece_on(Do ? from : to);
-  remove_piece(castling_piece, Do ? from : to);
-  remove_piece(make_piece(us, ROOK), Do ? rfrom : rto);
+  Piece castlingKingPiece = piece_on(Do ? from : to);
+  Piece castlingRookPiece = piece_on(Do ? rfrom : rto);
+  remove_piece(castlingKingPiece, Do ? from : to);
+  remove_piece(castlingRookPiece, Do ? rfrom : rto);
   board[Do ? from : to] = board[Do ? rfrom : rto] = NO_PIECE; // Since remove_piece doesn't do it for us
-  put_piece(castling_piece, Do ? to : from);
-  put_piece(make_piece(us, ROOK), Do ? rto : rfrom);
+  put_piece(castlingKingPiece, Do ? to : from);
+  put_piece(castlingRookPiece, Do ? rto : rfrom);
 }
 
 
@@ -1915,7 +1919,7 @@ bool Position::has_game_cycle(int ply) const {
 
   int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
-  if (end < 3 || var->nFoldValue != VALUE_DRAW)
+  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal)
     return false;
 
   Key originalKey = st->key;
@@ -2014,7 +2018,7 @@ void Position::flip() {
   string f, token;
   std::stringstream ss(fen());
 
-  for (Rank r = RANK_MAX; r >= RANK_1; --r) // Piece placement
+  for (Rank r = max_rank(); r >= RANK_1; --r) // Piece placement
   {
       std::getline(ss, token, r > RANK_1 ? '/' : ' ');
       f.insert(0, token + (f.empty() ? " " : "/"));
@@ -2102,7 +2106,7 @@ bool Position::pos_is_ok() const {
           if (!can_castle(cr))
               continue;
 
-          if (   piece_on(castlingRookSquare[cr]) != make_piece(c, ROOK)
+          if (   piece_on(castlingRookSquare[cr]) != make_piece(c, castling_rook_piece())
               || castlingRightsMask[castlingRookSquare[cr]] != cr
               || (count<KING>(c) && (castlingRightsMask[square<KING>(c)] & cr) != cr))
               assert(0 && "pos_is_ok: Castling");
