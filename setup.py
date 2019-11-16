@@ -24,7 +24,7 @@ pyffish_module = Extension(
     sources=glob("src/*.cpp") + glob("src/syzygy/*.cpp"),
     extra_compile_args=args)
 
-setup(name="pyffish", version="0.0.30",
+setup(name="pyffish", version="0.0.31",
       description="Fairy-Stockfish Python wrapper",
       long_description=long_description,
       long_description_content_type="text/markdown",
