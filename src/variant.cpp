@@ -739,6 +739,13 @@ namespace {
         v->xiangqiSoldier = true;
         return v;
     }
+    Variant* manchu_variant() {
+        Variant* v = xiangqi_variant();
+        v->pieceToCharTable = "PN.R.AB..K.C....M.....pn.r.ab..k.c..........";
+        v->add_piece(BANNER, 'm');
+        v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/9/9/M1BAKAB2 w - - 0 1";
+        return v;
+    }
 #endif
 
 } // namespace
@@ -813,6 +820,7 @@ void VariantMap::init() {
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
     add("xiangqi", xiangqi_variant());
+    add("manchu", manchu_variant());
 #endif
 }
 

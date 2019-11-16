@@ -15,7 +15,7 @@ The goal of the project is to create an engine supporting a large variety of che
 The games currently supported besides chess are listed below. Fairy-Stockfish can also play user-defined variants loaded via a variant configuration file, see the file `src/variants.ini`.
 
 ### Regional and historical games
-- [Xiangqi](https://en.wikipedia.org/wiki/Xiangqi), [Minixiangqi](http://mlwi.magix.net/bg/minixiangqi.htm)
+- [Xiangqi](https://en.wikipedia.org/wiki/Xiangqi), [Manchu](https://en.wikipedia.org/wiki/Manchu_chess), [Minixiangqi](http://mlwi.magix.net/bg/minixiangqi.htm)
 - [Shogi](https://en.wikipedia.org/wiki/Shogi)
 - [Makruk](https://en.wikipedia.org/wiki/Makruk), [Ouk Chatrang](https://en.wikipedia.org/wiki/Makruk#Cambodian_chess), [Kar Ouk](https://en.wikipedia.org/wiki/Makruk#Cambodian_chess), [ASEAN](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok
 - [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)

@@ -338,9 +338,10 @@ enum Value : int {
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
   ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
   CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
-  SoldierValueMg           = 200,   SoldierValueEg           = 300,
+  SoldierValueMg           = 150,   SoldierValueEg           = 300,
   HorseValueMg             = 500,   HorseValueEg             = 800,
-  ElephantValueMg          = 350,   ElephantValueEg          = 350,
+  ElephantValueMg          = 300,   ElephantValueEg          = 300,
+  BannerValueMg            = 3500,  BannerValueEg            = 3500,
   WazirValueMg             = 400,   WazirValueEg             = 400,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
   CentaurValueMg           = 1500,  CentaurValueEg           = 1500,
@@ -355,7 +356,8 @@ enum PieceType {
   FERS, MET = FERS, ALFIL, FERS_ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
   ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI, KNIROO, ROOKNI,
   SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, DRAGON_HORSE,
-  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, SOLDIER, HORSE, ELEPHANT, WAZIR, COMMONER, CENTAUR, KING,
+  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, SOLDIER, HORSE, ELEPHANT, BANNER,
+  WAZIR, COMMONER, CENTAUR, KING,
   ALL_PIECES = 0,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS

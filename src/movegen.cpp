@@ -453,7 +453,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   Bitboard sliders = pos.checkers();
 
   // Consider all evasion moves for special pieces
-  if (sliders & (pos.pieces(CANNON) | pos.pieces(HORSE, ELEPHANT)))
+  if (sliders & (pos.pieces(CANNON, BANNER) | pos.pieces(HORSE, ELEPHANT)))
   {
       Bitboard target = pos.board_bb() & ~pos.pieces(us);
       Bitboard b = pos.attacks_from<KING>(us, ksq) & target;
