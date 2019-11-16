@@ -1002,7 +1002,7 @@ bool Position::pseudo_legal(const Move m) const {
       if (mandatory_pawn_promotion() && rank_of(to) == relative_rank(us, promotion_rank(), max_rank()))
           return false;
 
-      if (   !(attacks_from<PAWN>(us, from) & pieces(~us) & to) // Not a capture
+      if (   !(attacks_from<PAWN>(from, us) & pieces(~us) & to) // Not a capture
           && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
                && (rank_of(from) == relative_rank(us, double_step_rank(), max_rank())
@@ -1294,7 +1294,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Set en-passant square if the moved pawn can be captured
       if (   std::abs(int(to) - int(from)) == 2 * NORTH
           && relative_rank(us, rank_of(from), max_rank()) == double_step_rank()
-          && (attacks_from<PAWN>(us, to - pawn_push(us)) & pieces(them, PAWN)))
+          && (attacks_from<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN)))
       {
           st->epSquare = to - pawn_push(us);
           k ^= Zobrist::enpassant[file_of(st->epSquare)];

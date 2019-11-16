@@ -311,10 +311,10 @@ enum Value : int {
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
 
   PawnValueMg   = 128,   PawnValueEg   = 213,
-  KnightValueMg = 782,   KnightValueEg = 865,
-  BishopValueMg = 830,   BishopValueEg = 918,
-  RookValueMg   = 1289,  RookValueEg   = 1378,
-  QueenValueMg  = 2529,  QueenValueEg  = 2687,
+  KnightValueMg = 781,   KnightValueEg = 854,
+  BishopValueMg = 825,   BishopValueEg = 915,
+  RookValueMg   = 1276,  RookValueEg   = 1380,
+  QueenValueMg  = 2538,  QueenValueEg  = 2682,
   FersValueMg              = 420,   FersValueEg              = 450,
   AlfilValueMg             = 330,   AlfilValueEg             = 300,
   FersAlfilValueMg         = 600,   FersAlfilValueEg         = 600,
@@ -573,7 +573,7 @@ inline Score operator*(Score s, int i) {
   return result;
 }
 
-/// Multiplication of a Score by an boolean
+/// Multiplication of a Score by a boolean
 inline Score operator*(Score s, bool b) {
   return Score(int(s) * int(b));
 }

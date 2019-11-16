@@ -165,6 +165,12 @@ inline Bitboard& operator^=(Bitboard& b, Square s) { return b ^= square_bb(s); }
 inline Bitboard  operator-( Bitboard  b, Square s) { return b & ~square_bb(s); }
 inline Bitboard& operator-=(Bitboard& b, Square s) { return b &= ~square_bb(s); }
 
+inline Bitboard  operator&(Square s, Bitboard b) { return b & s; }
+inline Bitboard  operator|(Square s, Bitboard b) { return b | s; }
+inline Bitboard  operator^(Square s, Bitboard b) { return b ^ s; }
+
+inline Bitboard  operator|(Square s, Square s2) { return square_bb(s) | square_bb(s2); }
+
 constexpr bool more_than_one(Bitboard b) {
   return b & (b - 1);
 }
@@ -460,10 +466,10 @@ inline Square msb(Bitboard b) {
   assert(b);
 #ifdef LARGEBOARDS
   if (b >> 64)
-      return Square(SQUARE_BIT_MASK ^ __builtin_clzll(b >> 64));
-  return Square(SQUARE_BIT_MASK ^ (__builtin_clzll(b) + 64));
+      return Square(int(SQUARE_BIT_MASK) ^ __builtin_clzll(b >> 64));
+  return Square(int(SQUARE_BIT_MASK) ^ (__builtin_clzll(b) + 64));
 #else
-  return Square(SQUARE_BIT_MASK ^ __builtin_clzll(b));
+  return Square(int(SQUARE_BIT_MASK) ^ __builtin_clzll(b));
 #endif
 }
 

@@ -69,7 +69,7 @@ namespace {
   Score evaluate(const Position& pos, Pawns::Entry* e) {
 
     constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
-    constexpr Direction Up   = (Us == WHITE ? NORTH : SOUTH);
+    constexpr Direction Up   = pawn_push(Us);
 
     Bitboard neighbours, stoppers, support, phalanx, opposed;
     Bitboard lever, leverPush, blocked;
@@ -109,7 +109,7 @@ namespace {
         // the adjacent files and cannot safely advance.
         backward =   is_ok(s + Up)
                   && !(neighbours & forward_ranks_bb(Them, s + Up))
-                  && (stoppers & (leverPush | blocked));
+                  && (stoppers & blocked);
 
         // Compute additional span if pawn is not backward nor blocked
         if (!backward && !blocked)
