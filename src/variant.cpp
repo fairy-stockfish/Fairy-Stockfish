@@ -249,6 +249,7 @@ namespace {
     }
     Variant* pocketknight_variant() {
         Variant* v = fairy_variant_base();
+        v->pocketSize = 2;
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = false;
@@ -722,6 +723,7 @@ namespace {
     }
     Variant* xiangqi_variant() {
         Variant* v = minixiangqi_variant();
+        v->pieceToCharTable = "PN.R.AB..K.C..........pn.r.ab..k.c..........";
         v->maxRank = RANK_10;
         v->maxFile = FILE_I;
         v->add_piece(ELEPHANT, 'b', 'e');
