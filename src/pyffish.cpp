@@ -135,26 +135,25 @@ bool hasInsufficientMaterial(Color c, const Position& pos) {
     if (pos.count(c, PAWN) && pos.count<ALL_PIECES>() >= 4)
         return false;
 
-    if (pos.count(c, KNIGHT) >= 2 || (pos.count(c, KNIGHT) && (pos.count(c, BISHOP) || pos.count(c, FERS))))
+    if (pos.count(c, KNIGHT) >= 2 || (pos.count(c, KNIGHT) && (pos.count(c, BISHOP) || pos.count(c, FERS) || pos.count(c, FERS_ALFIL))))
         return false;
 
     // Check for opposite colored color-bound pieces
-    if (pos.count(c, BISHOP) && (DarkSquares & pos.pieces(BISHOP)) && (~DarkSquares & pos.pieces(BISHOP)))
+    if (   (pos.count(c, BISHOP) || pos.count(c, FERS_ALFIL))
+        && (DarkSquares & pos.pieces(BISHOP, FERS_ALFIL)) && (~DarkSquares & pos.pieces(BISHOP, FERS_ALFIL)))
         return false;
 
     if (pos.count(c, FERS) && (DarkSquares & pos.pieces(FERS)) && (~DarkSquares & pos.pieces(FERS)))
         return false;
 
+    if (pos.count(c, CANNON) && (pos.count(c, ALL_PIECES) > 2 || pos.count(~c, ALL_PIECES) > 1))
+        return false;
+
     // Pieces sufficient for stalemate (Xiangqi)
     if (pos.stalemate_value() != VALUE_DRAW)
-    {
         for (PieceType pt : { HORSE, SOLDIER })
             if (pos.count(c, pt))
                 return false;
-
-        if (pos.count(c, CANNON) && (pos.count(c, ALL_PIECES) > 2 || pos.count(~c, ALL_PIECES) > 1))
-            return false;
-    }
 
     return true;
 }
