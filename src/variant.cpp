@@ -286,6 +286,7 @@ namespace {
     }
     Variant* seirawan_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PNBRQ.E..........H...Kpnbrq.e..........h...k";
         v->add_piece(ARCHBISHOP, 'h');
         v->add_piece(CHANCELLOR, 'e');
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1";
@@ -558,6 +559,7 @@ namespace {
     }
     Variant* capablanca_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
         v->castlingKingsideFile = FILE_I;
@@ -696,6 +698,7 @@ namespace {
     }
     Variant* shako_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PNBRQ.E....C.........Kpnbrq.e....c.........k";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->add_piece(FERS_ALFIL, 'e');
