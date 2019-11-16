@@ -103,6 +103,8 @@ const string move_to_san(Position& pos, Move m) {
           san += string("=") + pos.piece_to_char()[make_piece(WHITE, promotion_type(m))];
       else if (type_of(m) == PIECE_PROMOTION)
           san += string("+");
+      else if (type_of(m) == PIECE_DEMOTION)
+          san += string("-");
       else if (type_of(m) == NORMAL && Options["Protocol"] == "usi" && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
           san += string("=");
       else if (is_gating(m))
@@ -133,26 +135,25 @@ bool hasInsufficientMaterial(Color c, const Position& pos) {
     if (pos.count(c, PAWN) && pos.count<ALL_PIECES>() >= 4)
         return false;
 
-    if (pos.count(c, KNIGHT) >= 2 || (pos.count(c, KNIGHT) && (pos.count(c, BISHOP) || pos.count(c, FERS))))
+    if (pos.count(c, KNIGHT) >= 2 || (pos.count(c, KNIGHT) && (pos.count(c, BISHOP) || pos.count(c, FERS) || pos.count(c, FERS_ALFIL))))
         return false;
 
     // Check for opposite colored color-bound pieces
-    if (pos.count(c, BISHOP) && (DarkSquares & pos.pieces(BISHOP)) && (~DarkSquares & pos.pieces(BISHOP)))
+    if (   (pos.count(c, BISHOP) || pos.count(c, FERS_ALFIL))
+        && (DarkSquares & pos.pieces(BISHOP, FERS_ALFIL)) && (~DarkSquares & pos.pieces(BISHOP, FERS_ALFIL)))
         return false;
 
     if (pos.count(c, FERS) && (DarkSquares & pos.pieces(FERS)) && (~DarkSquares & pos.pieces(FERS)))
         return false;
 
+    if (pos.count(c, CANNON) && (pos.count(c, ALL_PIECES) > 2 || pos.count(~c, ALL_PIECES) > 1))
+        return false;
+
     // Pieces sufficient for stalemate (Xiangqi)
     if (pos.stalemate_value() != VALUE_DRAW)
-    {
         for (PieceType pt : { HORSE, SOLDIER })
             if (pos.count(c, pt))
                 return false;
-
-        if (pos.count(c, CANNON) && (pos.count(c, ALL_PIECES) > 2 || pos.count(~c, ALL_PIECES) > 1))
-            return false;
-    }
 
     return true;
 }
@@ -160,11 +161,13 @@ bool hasInsufficientMaterial(Color c, const Position& pos) {
 void buildPosition(Position& pos, StateListPtr& states, const char *variant, const char *fen, PyObject *moveList, const int chess960) {
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
 
-    if (strcmp(fen,"startpos")==0) fen=variants.find(string(variant))->second->startFen.c_str();
-    bool sfen = strcmp(variant,"shogi")==0 || strcmp(variant,"minishogi")==0;
+    const Variant* v = variants.find(string(variant))->second;
+    if (strcmp(fen, "startpos") == 0)
+        fen = v->startFen.c_str();
+    bool sfen = v->variantTemplate == "shogi";
     Options["Protocol"] = (sfen) ? string("usi") : string("uci");
     Options["UCI_Chess960"] = (chess960==0) ? UCI::Option(false) : UCI::Option(true);
-    pos.set(variants.find(string(variant))->second, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
+    pos.set(v, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
     // parse move list
     int numMoves = PyList_Size(moveList);
@@ -214,8 +217,6 @@ extern "C" PyObject* pyffish_startFen(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "s", &variant)) {
         return NULL;
     }
-    bool sfen = strcmp(variant,"shogi")==0 || strcmp(variant,"minishogi")==0;
-    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
 
     return Py_BuildValue("s", variants.find(string(variant))->second->startFen.c_str());
 }

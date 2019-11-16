@@ -324,8 +324,10 @@ enum Value : int {
   ArchbishopValueMg        = 2200,  ArchbishopValueEg        = 2200,
   ChancellorValueMg        = 2300,  ChancellorValueEg        = 2600,
   AmazonValueMg            = 3000,  AmazonValueEg            = 3000,
-  KnibisValueMg            = 800,   KnibisValueEg            = 800,
-  BiskniValueMg            = 800,   BiskniValueEg            = 800,
+  KnibisValueMg            = 1100,  KnibisValueEg            = 1200,
+  BiskniValueMg            = 750,   BiskniValueEg            = 700,
+  KnirooValueMg            = 900,   KnirooValueEg            = 900,
+  RookniValueMg            = 900,   RookniValueEg            = 900,
   ShogiPawnValueMg         =  90,   ShogiPawnValueEg         = 100,
   LanceValueMg             = 350,   LanceValueEg             = 250,
   ShogiKnightValueMg       = 350,   ShogiKnightValueEg       = 300,
@@ -336,11 +338,13 @@ enum Value : int {
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
   ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
   CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
-  SoldierValueMg           = 200,   SoldierValueEg           = 300,
+  SoldierValueMg           = 150,   SoldierValueEg           = 300,
   HorseValueMg             = 500,   HorseValueEg             = 800,
-  ElephantValueMg          = 350,   ElephantValueEg          = 350,
+  ElephantValueMg          = 300,   ElephantValueEg          = 300,
+  BannerValueMg            = 3500,  BannerValueEg            = 3500,
   WazirValueMg             = 400,   WazirValueEg             = 400,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
+  CentaurValueMg           = 1500,  CentaurValueEg           = 1500,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
@@ -350,9 +354,10 @@ constexpr int PIECE_TYPE_BITS = 6; // PIECE_TYPE_NB = pow(2, PIECE_TYPE_BITS)
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN,
   FERS, MET = FERS, ALFIL, FERS_ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
-  ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI,
+  ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI, KNIROO, ROOKNI,
   SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, DRAGON_HORSE,
-  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, SOLDIER, HORSE, ELEPHANT, WAZIR, COMMONER, KING,
+  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, SOLDIER, HORSE, ELEPHANT, BANNER,
+  WAZIR, COMMONER, CENTAUR, KING,
   ALL_PIECES = 0,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS

@@ -179,6 +179,26 @@ namespace {
       p->sliderCapture = {};
       return p;
   }
+  PieceInfo* kniroo_piece() {
+      PieceInfo* p = rook_piece();
+      p->name = "kniroo";
+      PieceInfo* p2 = knight_piece();
+      p->merge(p2);
+      delete p2;
+      p->stepsCapture = {};
+      p->sliderQuiet = {};
+      return p;
+  }
+  PieceInfo* rookni_piece() {
+      PieceInfo* p = rook_piece();
+      p->name = "rookni";
+      PieceInfo* p2 = knight_piece();
+      p->merge(p2);
+      delete p2;
+      p->stepsQuiet = {};
+      p->sliderCapture = {};
+      return p;
+  }
   PieceInfo* shogi_pawn_piece() {
       PieceInfo* p = new PieceInfo();
       p->name = "shogi_pawn";
@@ -268,6 +288,24 @@ namespace {
       p->lameLeaper = true;
       return p;
   }
+  PieceInfo* banner_piece() {
+      PieceInfo* p = rook_piece();
+      p->name = "banner";
+      PieceInfo* p2 = horse_piece();
+      p->merge(p2);
+      delete p2;
+      p->hopperCapture = {NORTH, EAST, SOUTH, WEST};
+      p->lameLeaper = true;
+      return p;
+  }
+  PieceInfo* centaur_piece() {
+      PieceInfo* p = commoner_piece();
+      p->name = "centaur";
+      PieceInfo* p2 = knight_piece();
+      p->merge(p2);
+      delete p2;
+      return p;
+  }
 }
 
 void PieceMap::init() {
@@ -287,6 +325,8 @@ void PieceMap::init() {
   add(AMAZON, amazon_piece());
   add(KNIBIS, knibis_piece());
   add(BISKNI, biskni_piece());
+  add(KNIROO, kniroo_piece());
+  add(ROOKNI, rookni_piece());
   add(SHOGI_PAWN, shogi_pawn_piece());
   add(LANCE, lance_piece());
   add(SHOGI_KNIGHT, shogi_knight_piece());
@@ -300,8 +340,10 @@ void PieceMap::init() {
   add(SOLDIER, soldier_piece());
   add(HORSE, horse_piece());
   add(ELEPHANT, elephant_piece());
+  add(BANNER, banner_piece());
   add(WAZIR, wazir_piece());
   add(COMMONER, commoner_piece());
+  add(CENTAUR, centaur_piece());
   add(KING, king_piece());
 }
 

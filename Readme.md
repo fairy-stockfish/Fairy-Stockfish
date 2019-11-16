@@ -6,7 +6,7 @@
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/ianfab/Fairy-Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/ianfab/Fairy-Stockfish/branch/master)
 [![PyPI version](https://badge.fury.io/py/pyffish.svg)](https://badge.fury.io/py/pyffish)
 
-Fairy-Stockfish is a UCI/USI/XBoard chess variant engine derived from [Stockfish](https://github.com/official-stockfish/Stockfish/) designed for the support of fairy chess variants and easy extensibility with more games. It can play various historical, regional, and modern chess variants as well [games with user-defined rules](https://github.com/ianfab/Fairy-Stockfish/wiki/Variant-configuration).
+Fairy-Stockfish is a UCI/UCCI/USI/XBoard chess variant engine derived from [Stockfish](https://github.com/official-stockfish/Stockfish/) designed for the support of fairy chess variants and easy extensibility with more games. It can play various historical, regional, and modern chess variants as well [games with user-defined rules](https://github.com/ianfab/Fairy-Stockfish/wiki/Variant-configuration).
 
 The goal of the project is to create an engine supporting a large variety of chess-like games, equipped with the powerful search of Stockfish. It is complementary to Stockfish forks more specialized for certain chess variants, such as [multi-variant Stockfish](https://github.com/ddugovic/Stockfish), [Seirawan-Stockfish](https://github.com/ianfab/Seirawan-Stockfish), [Makruk-Stockfish](https://github.com/ianfab/Makruk-Stockfish), etc., supporting many more variants with the tradeoff of slightly lower performance compared to a specialized implementation.
 
@@ -15,7 +15,7 @@ The goal of the project is to create an engine supporting a large variety of che
 The games currently supported besides chess are listed below. Fairy-Stockfish can also play user-defined variants loaded via a variant configuration file, see the file `src/variants.ini`.
 
 ### Regional and historical games
-- [Xiangqi](https://en.wikipedia.org/wiki/Xiangqi), [Minixiangqi](http://mlwi.magix.net/bg/minixiangqi.htm)
+- [Xiangqi](https://en.wikipedia.org/wiki/Xiangqi), [Manchu](https://en.wikipedia.org/wiki/Manchu_chess), [Minixiangqi](http://mlwi.magix.net/bg/minixiangqi.htm)
 - [Shogi](https://en.wikipedia.org/wiki/Shogi)
 - [Makruk](https://en.wikipedia.org/wiki/Makruk), [Ouk Chatrang](https://en.wikipedia.org/wiki/Makruk#Cambodian_chess), [Kar Ouk](https://en.wikipedia.org/wiki/Makruk#Cambodian_chess), [ASEAN](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok
 - [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)
@@ -24,11 +24,12 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 
 ### Chess variants
 - [Capablanca](https://en.wikipedia.org/wiki/Capablanca_Chess), [Janus](https://en.wikipedia.org/wiki/Janus_Chess), [Modern](https://en.wikipedia.org/wiki/Modern_Chess_(chess_variant)), [Chancellor](https://en.wikipedia.org/wiki/Chancellor_Chess), [Embassy](https://en.wikipedia.org/wiki/Embassy_Chess), [Gothic](https://www.chessvariants.com/large.dir/gothicchess.html), [Capablanca random chess](https://en.wikipedia.org/wiki/Capablanca_Random_Chess)
-- [Grand](https://en.wikipedia.org/wiki/Grand_Chess), [Shako](https://www.chessvariants.com/large.dir/shako.html)
+- [Grand](https://en.wikipedia.org/wiki/Grand_Chess), [Shako](https://www.chessvariants.com/large.dir/shako.html), [Centaur](https://www.chessvariants.com/large.dir/contest/royalcourt.html)
 - [Chess960](https://en.wikipedia.org/wiki/Chess960), [Placement/Pre-Chess](https://www.chessvariants.com/link/placement-chess)
 - [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse), [Loop](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Chessgi](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Pocket Knight](http://www.chessvariants.com/other.dir/pocket.html), Capablanca-Crazyhouse
 - [Seirawan](https://en.wikipedia.org/wiki/Seirawan_chess), Seirawan-Crazyhouse
-- [Amazon](https://en.wikipedia.org/wiki/Amazon_(chess)), [Chigorin](https://en.wikipedia.org/wiki/Chigorin_Chess), [Almost chess](https://en.wikipedia.org/wiki/Almost_Chess), [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html)
+- [Amazon](https://en.wikipedia.org/wiki/Amazon_(chess)), [Chigorin](https://en.wikipedia.org/wiki/Chigorin_Chess), [Almost chess](https://en.wikipedia.org/wiki/Almost_Chess)
+- [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html), New Zealand
 - [Antichess](https://lichess.org/variant/antichess), [Giveaway](http://www.chessvariants.com/diffobjective.dir/giveaway.old.html), [Losers](https://www.chessclub.com/help/Wild17), [Codrus](http://www.binnewirtz.com/Schlagschach1.htm)
 - [Extinction](https://en.wikipedia.org/wiki/Extinction_chess), [Kinglet](https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_Chess)
 - [King of the Hill](https://en.wikipedia.org/wiki/King_of_the_Hill_(chess)), [Racing Kings](https://en.wikipedia.org/wiki/V._R._Parton#Racing_Kings)
@@ -60,9 +61,9 @@ The following UCI options are added or changed compared to official Stockfish:
     For variants without castling, this option does not have any effect.
 
   * #### Protocol
-    Can be used to switch between dialects of the UCI protocol, namely UCI and USI (for Shogi).
+    Can be used to switch between the supported protocols, namely UCI, UCCI (Xiangqi), USI (Shogi) and XBoard/CECP.
     This option is automatically set to the respective protocol if a GUI starts communication
-    with the "uci" or "usi" command (as required by the protocols).
+    with one of the `uci`/`ucci`/`usi`/`xboard` commands (as required by the protocols).
 
   * #### VariantPath
     The path to the configuration file for user-defined variants.

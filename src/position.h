@@ -98,8 +98,8 @@ public:
   Bitboard board_bb() const;
   Bitboard board_bb(Color c, PieceType pt) const;
   const std::set<PieceType>& piece_types() const;
-  const std::string piece_to_char() const;
-  const std::string piece_to_char_synonyms() const;
+  const std::string& piece_to_char() const;
+  const std::string& piece_to_char_synonyms() const;
   Rank promotion_rank() const;
   const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
   bool sittuyin_promotion() const;
@@ -118,6 +118,7 @@ public:
   File castling_kingside_file() const;
   File castling_queenside_file() const;
   Rank castling_rank(Color c) const;
+  PieceType castling_rook_piece() const;
   bool checking_permitted() const;
   bool must_capture() const;
   bool must_drop() const;
@@ -136,6 +137,7 @@ public:
   bool gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
+  bool xiangqi_general() const;
   bool unpromoted_soldier(Color c, Square s) const;
   // winning conditions
   int n_move_rule() const;
@@ -330,12 +332,12 @@ inline const std::set<PieceType>& Position::piece_types() const {
   return var->pieceTypes;
 }
 
-inline const std::string Position::piece_to_char() const {
+inline const std::string& Position::piece_to_char() const {
   assert(var != nullptr);
   return var->pieceToChar;
 }
 
-inline const std::string Position::piece_to_char_synonyms() const {
+inline const std::string& Position::piece_to_char_synonyms() const {
   assert(var != nullptr);
   return var->pieceToCharSynonyms;
 }
@@ -428,6 +430,11 @@ inline File Position::castling_queenside_file() const {
 inline Rank Position::castling_rank(Color c) const {
   assert(var != nullptr);
   return relative_rank(c, var->castlingRank, max_rank());
+}
+
+inline PieceType Position::castling_rook_piece() const {
+  assert(var != nullptr);
+  return var->castlingRookPiece;
 }
 
 inline bool Position::checking_permitted() const {
@@ -538,6 +545,11 @@ inline bool Position::seirawan_gating() const {
 inline bool Position::cambodian_moves() const {
   assert(var != nullptr);
   return var->cambodianMoves;
+}
+
+inline bool Position::xiangqi_general() const {
+  assert(var != nullptr);
+  return var->xiangqiGeneral;
 }
 
 inline bool Position::unpromoted_soldier(Color c, Square s) const {
