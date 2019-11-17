@@ -133,7 +133,7 @@ namespace {
   constexpr Score PassedRank[RANK_NB] = {
     S(0, 0), S(10, 28), S(17, 33), S(15, 41), S(62, 72), S(168, 177), S(276, 260)
   };
-  
+
   // OutpostRank[Rank] contains a bonus according to the rank of the outpost
   constexpr Score OutpostRank[RANK_NB] = {
     S(0, 0), S(0, 0), S(0, 0), S(28, 18), S(30, 24), S(32, 19)
@@ -464,7 +464,7 @@ namespace {
     if (!pos.count<KING>(Us) || !pos.checking_permitted())
         return SCORE_ZERO;
 
-    Bitboard weak, b1, b2, safe, unsafeChecks = 0;
+    Bitboard weak, b1, b2, b3, safe, unsafeChecks = 0;
     Bitboard queenChecks, knightChecks, pawnChecks, otherChecks;
     int kingDanger = 0;
     const Square ksq = pos.square<KING>(Us);
@@ -542,12 +542,14 @@ namespace {
     Square s = file_of(ksq) == FILE_A ? ksq + EAST : file_of(ksq) == pos.max_file() ? ksq + WEST : ksq;
     Bitboard kingFlank = pos.max_file() == FILE_H ? KingFlank[file_of(ksq)] : file_bb(s) | adjacent_files_bb(s);
 
-    // Find the squares that opponent attacks in our king flank, and the squares
-    // which are attacked twice in that flank.
+    // Find the squares that opponent attacks in our king flank, the squares
+    // which they attack twice in that flank, and the squares that we defend.
     b1 = attackedBy[Them][ALL_PIECES] & kingFlank & Camp;
     b2 = b1 & attackedBy2[Them];
+    b3 = attackedBy[Us][ALL_PIECES] & kingFlank & Camp;
 
-    int kingFlankAttacks = popcount(b1) + popcount(b2);
+    int kingFlankAttack = popcount(b1) + popcount(b2);
+    int kingFlankDefense = popcount(b3);
 
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
                  +       kingAttackersCountInHand[Them] * kingAttackersWeight[Them]
@@ -556,7 +558,8 @@ namespace {
                  + 148 * popcount(unsafeChecks)
                  +  98 * popcount(pos.blockers_for_king(Us))
                  +  69 * kingAttacksCount[Them] * (2 + 8 * pos.check_counting() + pos.captures_to_hand()) / 2
-                 +   3 * kingFlankAttacks * kingFlankAttacks / 8
+                 +   4 * (kingFlankAttack - kingFlankDefense)
+                 +   3 * kingFlankAttack * kingFlankAttack / 8
                  +       mg_value(mobility[Them] - mobility[Us])
                  - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.xiangqi_general()) / (1 + pos.check_counting())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
@@ -572,8 +575,8 @@ namespace {
     if (!(pos.pieces(PAWN) & kingFlank))
         score -= PawnlessFlank;
 
-    // King tropism bonus, to anticipate slow motion attacks on our king
-    score -= FlankAttacks * kingFlankAttacks * (1 + 5 * pos.captures_to_hand() + pos.check_counting());
+    // Penalty if king flank is under attack, potentially moving toward the king
+    score -= FlankAttacks * kingFlankAttack * (1 + 5 * pos.captures_to_hand() + pos.check_counting());
 
     if (pos.check_counting())
         score += make_score(0, mg_value(score) / 2);
