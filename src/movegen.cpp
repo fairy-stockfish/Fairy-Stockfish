@@ -260,6 +260,9 @@ namespace {
 
         Bitboard b1 = (  (pos.attacks_from(us, pt, from) & pos.pieces())
                        | (pos.moves_from(us, pt, from) & ~pos.pieces())) & target;
+        // Xiangqi soldier
+        if (pt == SOLDIER && pos.unpromoted_soldier(us, from))
+            b1 &= file_bb(file_of(from));
         Bitboard b2 = pos.promoted_piece_type(pt) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
 
@@ -327,6 +330,8 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         Bitboard b = pos.attacks_from<KING>(ksq, Us) & target;
+        if (pos.xiangqi_general())
+            b &= PseudoAttacks[Us][WAZIR][ksq];
         while (b)
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(&b));
 
@@ -429,7 +434,11 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
      Bitboard b = pos.moves_from(us, pt, from) & ~pos.pieces();
 
      if (pt == KING)
+     {
          b &= ~PseudoAttacks[~us][QUEEN][pos.square<KING>(~us)];
+         if (pos.xiangqi_general())
+             b &= PseudoAttacks[us][WAZIR][from];
+     }
 
      while (b)
          moveList = make_move_and_gating<NORMAL>(pos, moveList, us, from, pop_lsb(&b));
@@ -457,6 +466,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   {
       Bitboard target = pos.board_bb() & ~pos.pieces(us);
       Bitboard b = pos.attacks_from<KING>(ksq, us) & target;
+      if (pos.xiangqi_general())
+          b &= PseudoAttacks[us][WAZIR][ksq];
       while (b)
           moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
       return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList, target)
@@ -474,6 +485,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 
   // Generate evasions for king, capture and non capture moves
   Bitboard b = pos.attacks_from<KING>(ksq, us) & ~pos.pieces(us) & ~sliderAttacks;
+  if (pos.xiangqi_general())
+      b &= PseudoAttacks[us][WAZIR][ksq];
   while (b)
       moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
 

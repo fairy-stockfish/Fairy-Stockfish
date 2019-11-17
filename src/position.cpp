@@ -793,7 +793,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
           b |= pieces(c, FERS) & gates(c) & fers_sq;
   }
 
-  if (var->xiangqiGeneral)
+  if (xiangqi_general())
       b ^= b & pieces(KING) & ~PseudoAttacks[~c][WAZIR][s];
 
   return b;
@@ -928,14 +928,6 @@ bool Position::legal(Move m) const {
           return false;
   }
 
-  // Xiangqi general
-  if (var->xiangqiGeneral && type_of(moved_piece(m)) == KING && !(PseudoAttacks[us][WAZIR][from] & to))
-      return false;
-
-  // Xiangqi soldier
-  if (type_of(moved_piece(m)) == SOLDIER && unpromoted_soldier(us, from) && file_of(from) != file_of(to))
-      return false;
-
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
@@ -973,6 +965,14 @@ bool Position::pseudo_legal(const Move m) const {
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL || is_gating(m))
       return MoveList<LEGAL>(*this).contains(m);
+
+  // Xiangqi general
+  if (xiangqi_general() && type_of(pc) == KING && !(PseudoAttacks[us][WAZIR][from] & to))
+      return false;
+
+  // Xiangqi soldier
+  if (type_of(pc) == SOLDIER && unpromoted_soldier(us, from) && file_of(from) != file_of(to))
+      return false;
 
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
