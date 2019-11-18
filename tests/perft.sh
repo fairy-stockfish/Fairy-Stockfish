@@ -38,6 +38,7 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp pocketknight startpos 4 3071267 > /dev/null
   expect perft.exp amazon startpos 5 9319911 > /dev/null
   expect perft.exp makruk startpos 5 6223994 > /dev/null
+  expect perft.exp cambodian startpos 5 8601434 > /dev/null
   expect perft.exp shatranj startpos 5 1164248 > /dev/null
   expect perft.exp hoppelpoppel startpos 5 5056643 > /dev/null
   expect perft.exp newzealand startpos 5 4987426 > /dev/null
