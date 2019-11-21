@@ -578,7 +578,7 @@ namespace {
     // Penalty if king flank is under attack, potentially moving toward the king
     score -= FlankAttacks * kingFlankAttack * (1 + 5 * pos.captures_to_hand() + pos.check_counting());
 
-    if (pos.check_counting())
+    if (pos.check_counting() || pos.xiangqi_general())
         score += make_score(0, mg_value(score) / 2);
 
     // For drop games, king danger is independent of game phase
