@@ -317,7 +317,7 @@ enum Value : int {
   QueenValueMg  = 2538,  QueenValueEg  = 2682,
   FersValueMg              = 420,   FersValueEg              = 450,
   AlfilValueMg             = 330,   AlfilValueEg             = 300,
-  FersAlfilValueMg         = 600,   FersAlfilValueEg         = 600,
+  FersAlfilValueMg         = 700,   FersAlfilValueEg         = 650,
   SilverValueMg            = 630,   SilverValueEg            = 630,
   AiwokValueMg             = 2500,  AiwokValueEg             = 2500,
   BersValueMg              = 2000,  BersValueEg              = 2000,
@@ -341,10 +341,10 @@ enum Value : int {
   SoldierValueMg           = 150,   SoldierValueEg           = 300,
   HorseValueMg             = 500,   HorseValueEg             = 800,
   ElephantValueMg          = 300,   ElephantValueEg          = 300,
-  BannerValueMg            = 3500,  BannerValueEg            = 3500,
+  BannerValueMg            = 3400,  BannerValueEg            = 3500,
   WazirValueMg             = 400,   WazirValueEg             = 400,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
-  CentaurValueMg           = 1500,  CentaurValueEg           = 1500,
+  CentaurValueMg           = 1600,  CentaurValueEg           = 1700,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
