@@ -104,6 +104,7 @@ namespace {
     }
     Variant* shatranj_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "shatranj";
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(ALFIL, 'b');
@@ -176,6 +177,7 @@ namespace {
     }
     Variant* giveaway_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "giveaway";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
@@ -233,6 +235,7 @@ namespace {
     }
     Variant* crazyhouse_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "crazyhouse";
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
@@ -288,6 +291,7 @@ namespace {
     }
     Variant* seirawan_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "seirawan";
         v->pieceToCharTable = "PNBRQ.E..........H...Kpnbrq.e..........h...k";
         v->add_piece(ARCHBISHOP, 'h');
         v->add_piece(CHANCELLOR, 'e');
@@ -299,6 +303,7 @@ namespace {
     }
     Variant* shouse_variant() {
         Variant* v = seirawan_variant();
+        v->variantTemplate = "crazyhouse";
         v->pieceDrops = true;
         v->capturesToHand = true;
         return v;
