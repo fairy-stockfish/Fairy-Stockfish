@@ -307,6 +307,12 @@ namespace {
         // Restrict mobility to actual squares of board
         b &= pos.board_bb();
 
+        if (Pt == SOLDIER && pos.unpromoted_soldier(Us, s))
+        {
+            b &= file_bb(s);
+            score -= make_score(PieceValue[MG][Pt], PieceValue[EG][Pt]) / 3;
+        }
+
         if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];
 
@@ -345,9 +351,6 @@ namespace {
         // Penalty if the piece is far from the kings in drop variants
         if (pos.captures_to_hand() && pos.count<KING>(Them) && pos.count<KING>(Us))
             score -= KingProximity * distance(s, pos.square<KING>(Us)) * distance(s, pos.square<KING>(Them));
-
-        if (Pt == SOLDIER && pos.unpromoted_soldier(Us, s))
-            score -= make_score(PieceValue[MG][Pt], PieceValue[EG][Pt]) / 2;
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {

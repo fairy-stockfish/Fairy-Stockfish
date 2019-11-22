@@ -796,6 +796,9 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
   if (xiangqi_general())
       b ^= b & pieces(KING) & ~PseudoAttacks[~c][WAZIR][s];
 
+  if (unpromoted_soldier(c, s))
+      b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
+
   return b;
 }
 
