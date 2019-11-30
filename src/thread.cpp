@@ -71,13 +71,13 @@ void Thread::clear() {
   captureHistory.fill(0);
 
   for (bool inCheck : { false, true })
-	  for (StatsType c : { NoCaptures, Captures })
-		  for (auto& to : continuationHistory[inCheck][c])
-			  for (auto& h : to)
-				  h->fill(0);
+    for (StatsType c : { NoCaptures, Captures })
+      for (auto& to : continuationHistory[inCheck][c])
+        for (auto& h : to)
+          h->fill(0);
 
   for (bool inCheck : { false, true })
-	  for (StatsType c : { NoCaptures, Captures })
+    for (StatsType c : { NoCaptures, Captures })
       continuationHistory[inCheck][c][NO_PIECE][0]->fill(Search::CounterMovePruneThreshold - 1);
 }
 
@@ -207,7 +207,7 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
 
   for (Thread* th : *this)
   {
-      th->shuffleExts = th->nodes = th->tbHits = th->nmpMinPly = 0;
+      th->nodes = th->tbHits = th->nmpMinPly = 0;
       th->rootDepth = th->completedDepth = 0;
       th->rootMoves = rootMoves;
       th->rootPos.set(pos.variant(), pos.fen(), pos.is_chess960(), &setupStates->back(), th);

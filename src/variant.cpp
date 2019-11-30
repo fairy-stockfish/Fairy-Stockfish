@@ -95,6 +95,7 @@ namespace {
     }
     Variant* aiwok_variant() {
         Variant* v = makruk_variant();
+        v->pieceToCharTable = "PN.R...A..SKpn.r...a..sk";
         v->remove_piece(MET);
         v->add_piece(AIWOK, 'a');
         v->startFen = "rnsaksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKASNR w - - 0 1";
@@ -103,6 +104,7 @@ namespace {
     }
     Variant* shatranj_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "shatranj";
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(ALFIL, 'b');
@@ -175,6 +177,7 @@ namespace {
     }
     Variant* giveaway_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "giveaway";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
@@ -232,6 +235,7 @@ namespace {
     }
     Variant* crazyhouse_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "crazyhouse";
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
@@ -249,6 +253,7 @@ namespace {
     }
     Variant* pocketknight_variant() {
         Variant* v = fairy_variant_base();
+        v->pocketSize = 2;
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = false;
@@ -286,6 +291,7 @@ namespace {
     }
     Variant* seirawan_variant() {
         Variant* v = fairy_variant_base();
+        v->variantTemplate = "seirawan";
         v->pieceToCharTable = "PNBRQ.E..........H...Kpnbrq.e..........h...k";
         v->add_piece(ARCHBISHOP, 'h');
         v->add_piece(CHANCELLOR, 'e');
@@ -297,6 +303,7 @@ namespace {
     }
     Variant* shouse_variant() {
         Variant* v = seirawan_variant();
+        v->variantTemplate = "crazyhouse";
         v->pieceDrops = true;
         v->capturesToHand = true;
         return v;
@@ -459,6 +466,7 @@ namespace {
     }
     Variant* almost_variant() {
         Variant* v = chess_variant();
+        v->pieceToCharTable = "PNBR............CKpnbr............ck";
         v->remove_piece(QUEEN);
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rnbckbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBCKBNR w KQkq - 0 1";
@@ -467,6 +475,7 @@ namespace {
     }
     Variant* chigorin_variant() {
         Variant* v = chess_variant();
+        v->pieceToCharTable = "PNBR............CKpnbrq............k";
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rbbqkbbr/pppppppp/8/8/8/8/PPPPPPPP/RNNCKNNR w KQkq - 0 1";
         v->promotionPieceTypes = {QUEEN, CHANCELLOR, ROOK, BISHOP, KNIGHT};
@@ -589,6 +598,7 @@ namespace {
     }
     Variant* janus_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PNBRQ............J...Kpnbrq............J...k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
         v->castlingKingsideFile = FILE_I;
@@ -600,6 +610,7 @@ namespace {
     }
     Variant* modern_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PNBRQ..M.............Kpnbrq..m.............k";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
         v->promotionRank = RANK_9;
@@ -612,6 +623,7 @@ namespace {
     }
     Variant* chancellor_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PNBRQ...........CKpnbrq...........ck";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
         v->promotionRank = RANK_9;
@@ -631,6 +643,7 @@ namespace {
     }
     Variant* centaur_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PNBRQ...............CKpnbrq...............ck";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
         v->castlingKingsideFile = FILE_I;
@@ -722,6 +735,7 @@ namespace {
     }
     Variant* xiangqi_variant() {
         Variant* v = minixiangqi_variant();
+        v->pieceToCharTable = "PN.R.AB..K.C..........pn.r.ab..k.c..........";
         v->maxRank = RANK_10;
         v->maxFile = FILE_I;
         v->add_piece(ELEPHANT, 'b', 'e');

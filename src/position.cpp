@@ -793,8 +793,11 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
           b |= pieces(c, FERS) & gates(c) & fers_sq;
   }
 
-  if (var->xiangqiGeneral)
+  if (xiangqi_general())
       b ^= b & pieces(KING) & ~PseudoAttacks[~c][WAZIR][s];
+
+  if (unpromoted_soldier(c, s))
+      b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
 
   return b;
 }
@@ -928,14 +931,6 @@ bool Position::legal(Move m) const {
           return false;
   }
 
-  // Xiangqi general
-  if (var->xiangqiGeneral && type_of(moved_piece(m)) == KING && !(PseudoAttacks[us][WAZIR][from] & to))
-      return false;
-
-  // Xiangqi soldier
-  if (type_of(moved_piece(m)) == SOLDIER && unpromoted_soldier(us, from) && file_of(from) != file_of(to))
-      return false;
-
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
@@ -974,6 +969,14 @@ bool Position::pseudo_legal(const Move m) const {
   if (type_of(m) != NORMAL || is_gating(m))
       return MoveList<LEGAL>(*this).contains(m);
 
+  // Xiangqi general
+  if (xiangqi_general() && type_of(pc) == KING && !(PseudoAttacks[us][WAZIR][from] & to))
+      return false;
+
+  // Xiangqi soldier
+  if (type_of(pc) == SOLDIER && unpromoted_soldier(us, from) && file_of(from) != file_of(to))
+      return false;
+
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
       && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)
@@ -1002,7 +1005,7 @@ bool Position::pseudo_legal(const Move m) const {
       if (mandatory_pawn_promotion() && rank_of(to) == relative_rank(us, promotion_rank(), max_rank()))
           return false;
 
-      if (   !(attacks_from<PAWN>(us, from) & pieces(~us) & to) // Not a capture
+      if (   !(attacks_from<PAWN>(from, us) & pieces(~us) & to) // Not a capture
           && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
                && (rank_of(from) == relative_rank(us, double_step_rank(), max_rank())
@@ -1294,7 +1297,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Set en-passant square if the moved pawn can be captured
       if (   std::abs(int(to) - int(from)) == 2 * NORTH
           && relative_rank(us, rank_of(from), max_rank()) == double_step_rank()
-          && (attacks_from<PAWN>(us, to - pawn_push(us)) & pieces(them, PAWN)))
+          && (attacks_from<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN)))
       {
           st->epSquare = to - pawn_push(us);
           k ^= Zobrist::enpassant[file_of(st->epSquare)];
@@ -1784,23 +1787,28 @@ bool Position::is_optional_game_end(Value& result, int ply) const {
       {
           StateInfo* stp = st->previous->previous;
           int cnt = 0;
-          bool perpetual = true;
+          bool perpetualThem = st->checkersBB && stp->checkersBB;
+          bool perpetualUs = st->previous->checkersBB && stp->previous->checkersBB;
 
           for (int i = 4; i <= end; i += 2)
           {
               stp = stp->previous->previous;
-              perpetual &= bool(stp->checkersBB);
+              perpetualThem &= bool(stp->checkersBB);
 
               // Return a draw score if a position repeats once earlier but strictly
               // after the root, or repeats twice before or at the root.
               if (   stp->key == st->key
                   && ++cnt + 1 == (ply > i ? 2 : n_fold_rule()))
               {
-                  result = convert_mate_value(  var->perpetualCheckIllegal && perpetual ? VALUE_MATE
+                  result = convert_mate_value(  var->perpetualCheckIllegal && perpetualThem ? VALUE_MATE
+                                              : var->perpetualCheckIllegal && perpetualUs ? -VALUE_MATE
                                               : var->nFoldValueAbsolute && sideToMove == BLACK ? -var->nFoldValue
                                               : var->nFoldValue, ply);
                   return true;
               }
+
+              if (i + 1 <= end)
+                  perpetualUs &= bool(stp->previous->checkersBB);
           }
       }
   }

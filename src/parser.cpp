@@ -75,11 +75,12 @@ namespace {
     }
 
     template <> void set(const std::string& value, Bitboard& target) {
-        char token, token2;
+        char file;
+        int rank;
         std::stringstream ss(value);
         target = 0;
-        while (ss >> token && ss >> token2)
-            target |= make_square(File(tolower(token) - 'a'), Rank(token2 - '1'));
+        while (ss >> file && ss >> rank)
+            target |= file == '*' ? rank_bb(Rank(rank - 1)) : square_bb(make_square(File(tolower(file) - 'a'), Rank(rank - 1)));
     }
 
 } // namespace
