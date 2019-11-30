@@ -389,7 +389,7 @@ inline bool Position::piece_demotion() const {
 
 inline bool Position::endgame_eval() const {
   assert(var != nullptr);
-  return var->endgameEval;
+  return var->endgameEval && !count_in_hand(WHITE, ALL_PIECES) && !count_in_hand(BLACK, ALL_PIECES);
 }
 
 inline bool Position::double_step_enabled() const {

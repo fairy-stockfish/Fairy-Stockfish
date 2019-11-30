@@ -252,7 +252,7 @@ namespace {
         return v;
     }
     Variant* pocketknight_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pocketSize = 2;
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
         v->pieceDrops = true;
@@ -290,7 +290,7 @@ namespace {
         return v;
     }
     Variant* seirawan_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->variantTemplate = "seirawan";
         v->pieceToCharTable = "PNBRQ.E..........H...Kpnbrq.e..........h...k";
         v->add_piece(ARCHBISHOP, 'h');
