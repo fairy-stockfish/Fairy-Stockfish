@@ -1915,6 +1915,12 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
       }
   }
+  // Tsume mode: Assume that side with king wins when not in check
+  if (Options["TsumeMode"] && count<KING>(sideToMove) && !checkers())
+  {
+      result = mate_in(ply);
+      return true;
+  }
 
   return false;
 }
