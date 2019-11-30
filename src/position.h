@@ -198,7 +198,7 @@ public:
   Bitboard attackers_to(Square s, Bitboard occupied) const;
   Bitboard attackers_to(Square s, Bitboard occupied, Color c) const;
   Bitboard attacks_from(Color c, PieceType pt, Square s) const;
-  template<PieceType> Bitboard attacks_from(Color c, Square s) const;
+  template<PieceType> Bitboard attacks_from(Square s, Color c) const;
   Bitboard moves_from(Color c, PieceType pt, Square s) const;
   Bitboard slider_blockers(Bitboard sliders, Square s, Bitboard& pinners, Color c) const;
 
@@ -777,7 +777,7 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 }
 
 template<PieceType Pt>
-inline Bitboard Position::attacks_from(Color c, Square s) const {
+inline Bitboard Position::attacks_from(Square s, Color c) const {
   return attacks_bb(c, Pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, Pt);
 }
 
@@ -925,7 +925,7 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
 
   // index[from] is not updated and becomes stale. This works as long as index[]
   // is accessed just by known occupied squares.
-  Bitboard fromTo = square_bb(from) ^ square_bb(to);
+  Bitboard fromTo = square_bb(from) ^ to; // from == to needs to cancel out
   byTypeBB[ALL_PIECES] ^= fromTo;
   byTypeBB[type_of(pc)] ^= fromTo;
   byColorBB[color_of(pc)] ^= fromTo;
