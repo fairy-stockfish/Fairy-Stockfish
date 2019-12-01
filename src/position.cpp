@@ -1723,6 +1723,15 @@ bool Position::see_ge(Move m, Value threshold) const {
   Bitboard occupied = type_of(m) == DROP ? pieces() ^ to : pieces() ^ from ^ to;
   Bitboard attackers = attackers_to(to, occupied) & occupied;
 
+  // Flying general rule
+  if (var->flyingGeneral)
+  {
+      if (attackers & pieces(us, KING))
+          attackers |= attacks_bb(us, ROOK, to, occupied & ~pieces(ROOK)) & pieces(~us, KING);
+      if (attackers & pieces(~us, KING))
+          attackers |= attacks_bb(~us, ROOK, to, occupied & ~pieces(ROOK)) & pieces(us, KING);
+  }
+
   while (true)
   {
       stmAttackers = attackers & pieces(stm);
