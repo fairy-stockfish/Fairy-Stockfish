@@ -86,10 +86,17 @@ namespace {
 
     assert(pos.count<PAWN>(strongSide) == 1);
 
-    if (file_of(pos.square<PAWN>(strongSide)) >= FILE_E)
-        sq = Square(int(sq) ^ 7); // Mirror SQ_H1 -> SQ_A1
+    if (file_of(pos.square<PAWN>(strongSide)) > pos.max_file() / 2)
+        sq = Square(sq + pos.max_file() - 2 * file_of(sq)); // Mirror SQ_H1 -> SQ_A1
 
-    return strongSide == WHITE ? sq : ~sq;
+    return relative_square(strongSide, sq, pos.max_rank());
+  }
+
+  // Map the square to an 8x8 board
+  Square map_to_standard_board(const Position& pos, Square s) {
+    File f = file_of(s) > pos.max_file() / 2 ? File(FILE_H - pos.max_file() + file_of(s)) : file_of(s);
+    Rank r = rank_of(s) > pos.max_rank() / 2 ? Rank(RANK_8 - pos.max_rank() + rank_of(s)) : rank_of(s);
+    return Square(r * 8 + f);
   }
 
 } // namespace
@@ -148,7 +155,7 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
 
   Value result =  pos.non_pawn_material(strongSide)
                 + pos.count<PAWN>(strongSide) * PawnValueEg
-                + PushToEdges[loserKSq]
+                + PushToEdges[map_to_standard_board(pos, loserKSq)]
                 + PushClose[distance(winnerKSq, loserKSq)];
 
   if (   pos.count<QUEEN>(strongSide)
@@ -186,7 +193,7 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
 
   Value result =  VALUE_KNOWN_WIN
                 + PushClose[distance(winnerKSq, loserKSq)]
-                + PushToCorners[opposite_colors(bishopSq, SQ_A1) ? ~loserKSq : loserKSq];
+                + PushToCorners[map_to_standard_board(pos, relative_square(opposite_colors(bishopSq, SQ_A1) ? BLACK : WHITE, loserKSq, pos.max_rank()))];
 
   assert(abs(result) < VALUE_MATE_IN_MAX_PLY);
   return strongSide == pos.side_to_move() ? result : -result;
@@ -280,7 +287,7 @@ Value Endgame<KRKB>::operator()(const Position& pos) const {
   assert(verify_material(pos, strongSide, RookValueMg, 0));
   assert(verify_material(pos, weakSide, BishopValueMg, 0));
 
-  Value result = Value(PushToEdges[pos.square<KING>(weakSide)]);
+  Value result = Value(PushToEdges[map_to_standard_board(pos, pos.square<KING>(weakSide))]);
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
@@ -295,7 +302,7 @@ Value Endgame<KRKN>::operator()(const Position& pos) const {
 
   Square bksq = pos.square<KING>(weakSide);
   Square bnsq = pos.square<KNIGHT>(weakSide);
-  Value result = Value(PushToEdges[bksq] + PushAway[distance(bksq, bnsq)]);
+  Value result = Value(PushToEdges[map_to_standard_board(pos, bksq)] + PushAway[distance(bksq, bnsq)]);
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
@@ -340,7 +347,7 @@ Value Endgame<KQKR>::operator()(const Position& pos) const {
 
   Value result =  QueenValueEg
                 - RookValueEg
-                + PushToEdges[loserKSq]
+                + PushToEdges[map_to_standard_board(pos, loserKSq)]
                 + PushClose[distance(winnerKSq, loserKSq)];
 
   return strongSide == pos.side_to_move() ? result : -result;
@@ -356,7 +363,7 @@ Value Endgame<KNNKP>::operator()(const Position& pos) const {
 
   Value result =  2 * KnightValueEg
                 - PawnValueEg
-                + PushToEdges[pos.square<KING>(weakSide)];
+                + PushToEdges[map_to_standard_board(pos, pos.square<KING>(weakSide))];
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -377,7 +384,7 @@ Value Endgame<KFsPsK>::operator()(const Position& pos) const {
 
   Value result =  pos.non_pawn_material(strongSide)
                 + pos.count<PAWN>(strongSide) * PawnValueEg
-                + PushToEdges[loserKSq]
+                + PushToEdges[map_to_standard_board(pos, loserKSq)]
                 + PushClose[distance(winnerKSq, loserKSq)];
 
   if (   pos.count<FERS>(strongSide) >= 3
@@ -420,7 +427,7 @@ Value Endgame<KNSK>::operator()(const Position& pos) const {
 
   Value result =  VALUE_KNOWN_WIN
                 + PushClose[distance(winnerKSq, loserKSq)]
-                + PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+                + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -443,12 +450,12 @@ Value Endgame<KNFK>::operator()(const Position& pos) const {
   // to drive the enemy toward corners A8 or H1.
   if (opposite_colors(fersSq, SQ_A1))
   {
-      winnerKSq = ~winnerKSq;
-      loserKSq  = ~loserKSq;
+      winnerKSq = relative_square(BLACK, winnerKSq, pos.max_rank());
+      loserKSq  = relative_square(BLACK, loserKSq, pos.max_rank());
   }
 
   Value result =  Value(PushClose[distance(winnerKSq, loserKSq)])
-                + PushToCorners[loserKSq];
+                + PushToCorners[map_to_standard_board(pos, loserKSq)] / 10;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -466,7 +473,7 @@ Value Endgame<KNSFKR>::operator()(const Position& pos) const {
 
   Value result =  KnightValueEg + SilverValueEg + FersValueEg - RookValueEg
                 + PushClose[distance(winnerKSq, loserKSq)]
-                + PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+                + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -484,7 +491,7 @@ Value Endgame<KSFK>::operator()(const Position& pos) const {
 
   Value result =  VALUE_KNOWN_WIN
                 + PushClose[distance(winnerKSq, loserKSq)]
-                + PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+                + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
 
   return strongSide == pos.side_to_move() ? result : -result;
 }

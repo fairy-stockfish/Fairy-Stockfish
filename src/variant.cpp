@@ -567,7 +567,7 @@ namespace {
         return v;
     }
     Variant* capablanca_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -584,6 +584,7 @@ namespace {
         v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
+        v->endgameEval = false;
         return v;
     }
     Variant* caparandom_variant() {
@@ -597,7 +598,7 @@ namespace {
         return v;
     }
     Variant* janus_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ............J...Kpnbrq............J...k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -609,7 +610,7 @@ namespace {
         return v;
     }
     Variant* modern_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ..M.............Kpnbrq..m.............k";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -622,7 +623,7 @@ namespace {
         return v;
     }
     Variant* chancellor_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ...........CKpnbrq...........ck";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -642,7 +643,7 @@ namespace {
         return v;
     }
     Variant* centaur_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ...............CKpnbrq...............ck";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
