@@ -118,6 +118,7 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
+  o["TsumeMode"]             << Option(false);
   o["VariantPath"]           << Option("<empty>", on_variant_path);
 }
 

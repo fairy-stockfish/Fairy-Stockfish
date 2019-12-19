@@ -125,6 +125,11 @@ Score psq[PIECE_NB][SQUARE_NB + 1];
 // tables are initialized by flipping and changing the sign of the white scores.
 void init(const Variant* v) {
 
+  PieceType strongestPiece = NO_PIECE_TYPE;
+  for (PieceType pt : v->pieceTypes)
+      if (PieceValue[MG][pt] > PieceValue[MG][strongestPiece])
+          strongestPiece = pt;
+
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
       Piece pc = make_piece(WHITE, pt);
@@ -147,6 +152,9 @@ void init(const Variant* v) {
       if (v->capturesToHand || !v->checking)
           score = make_score(mg_value(score) * int(EndgameLimit) / (2 * EndgameLimit + mg_value(score)),
                              eg_value(score) * int(EndgameLimit) / (2 * EndgameLimit + eg_value(score)));
+      else if (pt == strongestPiece)
+              score += make_score(std::max(QueenValueMg - PieceValue[MG][pt], VALUE_ZERO) / 20,
+                                  std::max(QueenValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
 
       // For antichess variants, use negative piece values
       if (   v->extinctionValue == VALUE_MATE

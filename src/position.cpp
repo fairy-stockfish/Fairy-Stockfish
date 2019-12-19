@@ -1723,6 +1723,15 @@ bool Position::see_ge(Move m, Value threshold) const {
   Bitboard occupied = type_of(m) == DROP ? pieces() ^ to : pieces() ^ from ^ to;
   Bitboard attackers = attackers_to(to, occupied) & occupied;
 
+  // Flying general rule
+  if (var->flyingGeneral)
+  {
+      if (attackers & pieces(us, KING))
+          attackers |= attacks_bb(us, ROOK, to, occupied & ~pieces(ROOK)) & pieces(~us, KING);
+      if (attackers & pieces(~us, KING))
+          attackers |= attacks_bb(~us, ROOK, to, occupied & ~pieces(ROOK)) & pieces(us, KING);
+  }
+
   while (true)
   {
       stmAttackers = attackers & pieces(stm);
@@ -1914,6 +1923,12 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
               return true;
           }
       }
+  }
+  // Tsume mode: Assume that side with king wins when not in check
+  if (Options["TsumeMode"] && count<KING>(sideToMove) && !checkers())
+  {
+      result = mate_in(ply);
+      return true;
   }
 
   return false;

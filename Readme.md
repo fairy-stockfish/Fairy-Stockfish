@@ -47,7 +47,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Clobber](https://en.wikipedia.org/wiki/Clobber)
 
 ## Installation
-You can download [binary releases](https://github.com/ianfab/Fairy-Stockfish/releases) for Windows and Linux or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). You probably want to use it together with a GUI, see https://github.com/ianfab/Fairy-Stockfish/wiki/Usage for recommendations. Or play against it right away online at https://pychess-variants.herokuapp.com/.
+You can download [binary releases](https://github.com/ianfab/Fairy-Stockfish/releases) for Windows and Linux or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you probably want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage). Or play against it right away online at [pychess-variants](https://pychess-variants.herokuapp.com/).
 
 ## UCI parameters
 
@@ -56,7 +56,7 @@ The following UCI options are added or changed compared to official Stockfish:
   * #### UCI_Variant
     The most important option, since it allows to set the variant that is going to be played.
     Most GUIs for chess variants set this option automatically if you select a variant in the GUI,
-    but in case of usage via CLI or via Shogi GUIs the option needs to be set manually.
+    but in case of usage via the CLI the option needs to be set manually.
 
   * #### UCI_Chess960
     Used as a universal flag to switch between Chess960-style shuffling variants (such as Crazyhouse960,
@@ -65,12 +65,17 @@ The following UCI options are added or changed compared to official Stockfish:
 
   * #### Protocol
     Can be used to switch between the supported protocols, namely UCI, UCCI (Xiangqi), USI (Shogi) and XBoard/CECP.
-    This option is automatically set to the respective protocol if a GUI starts communication
+    This option is automatically set to the respective protocol if communication is started
     with one of the `uci`/`ucci`/`usi`/`xboard` commands (as required by the protocols).
 
   * #### VariantPath
     The path to the configuration file for user-defined variants.
     Alternatively, the [`load`](https://github.com/ianfab/Fairy-Stockfish/wiki/Variant-configuration#loading-variant-configuration) command can be used.
+
+  * #### TsumeMode
+    When enabled assumes that the side without a king has to strive for a forced mate, and otherwise loses.
+    This option should be enabled when solving Tsume puzzles, otherwise it might wrongly go for a brinkmate.
+    Although it mainly targets Shogi, the option can be used for any variant where checkmate is the goal.
 
 ## Help
 
