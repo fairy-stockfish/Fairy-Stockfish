@@ -319,7 +319,7 @@ enum Value : int {
   AlfilValueMg             = 330,   AlfilValueEg             = 300,
   FersAlfilValueMg         = 700,   FersAlfilValueEg         = 650,
   SilverValueMg            = 630,   SilverValueEg            = 630,
-  AiwokValueMg             = 2500,  AiwokValueEg             = 2500,
+  AiwokValueMg             = 2300,  AiwokValueEg             = 2700,
   BersValueMg              = 2000,  BersValueEg              = 2000,
   ArchbishopValueMg        = 2200,  ArchbishopValueEg        = 2200,
   ChancellorValueMg        = 2300,  ChancellorValueEg        = 2600,
