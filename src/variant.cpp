@@ -33,6 +33,7 @@ namespace {
     // Define variant rules
     Variant* fairy_variant_base() {
         Variant* v = new Variant();
+        v->pieceToCharTable = "PNBRQ................Kpnbrq................k";
         v->endgameEval = false;
         return v;
     }
@@ -55,6 +56,7 @@ namespace {
     Variant* makruk_variant() {
         Variant* v = chess_variant();
         v->variantTemplate = "makruk";
+        v->pieceToCharTable = "PN.R.M....SKpn.r.m....sk";
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(KHON, 's');
@@ -253,6 +255,7 @@ namespace {
     }
     Variant* pocketknight_variant() {
         Variant* v = chess_variant();
+        v->variantTemplate = "bughouse";
         v->pocketSize = 2;
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
         v->pieceDrops = true;
@@ -261,6 +264,7 @@ namespace {
     }
     Variant* placement_variant() {
         Variant* v = chess_variant();
+        v->variantTemplate = "bughouse";
         v->startFen = "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - - 0 1";
         v->mustDrop = true;
         v->pieceDrops = true;
@@ -273,6 +277,8 @@ namespace {
     }
     Variant* sittuyin_variant() {
         Variant* v = makruk_variant();
+        v->variantTemplate = "bughouse";
+        v->pieceToCharTable = "PN.R.F....SKpn.r.f....sk";
         v->startFen = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1";
         v->remove_piece(MET);
         v->add_piece(MET, 'f');
@@ -496,6 +502,7 @@ namespace {
     }
     Variant* clobber_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "P.................p.................";
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
         v->reset_pieces();
@@ -510,6 +517,7 @@ namespace {
     }
     Variant* breakthrough_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "P.................p.................";
         v->reset_pieces();
         v->add_piece(BREAKTHROUGH_PIECE, 'p');
         v->startFen = "pppppppp/pppppppp/8/8/8/8/PPPPPPPP/PPPPPPPP w 0 1";

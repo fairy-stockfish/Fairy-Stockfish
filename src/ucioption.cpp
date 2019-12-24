@@ -25,6 +25,7 @@
 #include <iostream>
 
 #include "misc.h"
+#include "piece.h"
 #include "search.h"
 #include "thread.h"
 #include "tt.h"
@@ -64,11 +65,36 @@ void on_variant_change(const Option &o) {
         return;
     int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0;
     if (Options["Protocol"] == "xboard")
+    {
+        // Send setup command
         sync_cout << "setup (" << v->pieceToCharTable << ") "
                   << v->maxFile + 1 << "x" << v->maxRank + 1
                   << "+" << pocketsize << "_" << v->variantTemplate
                   << " " << v->startFen
                   << sync_endl;
+        // Send piece command with Betza notation
+        for (PieceType pt : v->pieceTypes)
+        {
+            string suffix =   pt == PAWN && v->doubleStep     ? "ifmnD"
+                            : pt == KING && v->cambodianMoves ? "ismN"
+                            : pt == FERS && v->cambodianMoves ? "ifnD"
+                                                              : "";
+            if (v->pieceDrops)
+            {
+                if (pt == PAWN && !v->firstRankDrops)
+                    suffix += "j";
+                else if (pt == SHOGI_PAWN && !v->shogiDoubledPawn)
+                    suffix += "f";
+                else if (pt == BISHOP && v->dropOppositeColoredBishop)
+                    suffix += "s";
+                suffix += "@" + std::to_string(pt == PAWN ? v->promotionRank : v->maxRank + 1);
+            }
+            sync_cout << "piece " << v->pieceToChar[pt] << "& " << pieceMap.find(pt)->second->betza << suffix << sync_endl;
+            PieceType promType = v->promotedPieceType[pt];
+            if (promType)
+                sync_cout << "piece +" << v->pieceToChar[pt] << "& " << pieceMap.find(promType)->second->betza << sync_endl;
+        }
+    }
     else
         sync_cout << "info string variant " << (std::string)o
                 << " files " << v->maxFile + 1

@@ -30,6 +30,7 @@
 
 struct PieceInfo {
   std::string name = "";
+  std::string betza = "";
   std::vector<Direction> stepsQuiet = {};
   std::vector<Direction> stepsCapture = {};
   std::vector<Direction> sliderQuiet = {};
