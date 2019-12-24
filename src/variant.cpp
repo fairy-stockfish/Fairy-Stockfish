@@ -255,6 +255,7 @@ namespace {
     }
     Variant* pocketknight_variant() {
         Variant* v = chess_variant();
+        v->variantTemplate = "bughouse";
         v->pocketSize = 2;
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
         v->pieceDrops = true;
