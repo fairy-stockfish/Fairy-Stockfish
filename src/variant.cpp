@@ -33,6 +33,7 @@ namespace {
     // Define variant rules
     Variant* fairy_variant_base() {
         Variant* v = new Variant();
+        v->pieceToCharTable = "PNBRQ................Kpnbrq................k";
         v->endgameEval = false;
         return v;
     }
@@ -55,6 +56,7 @@ namespace {
     Variant* makruk_variant() {
         Variant* v = chess_variant();
         v->variantTemplate = "makruk";
+        v->pieceToCharTable = "PN.R.M....SKpn.r.m....sk";
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(KHON, 's');
@@ -273,6 +275,7 @@ namespace {
     }
     Variant* sittuyin_variant() {
         Variant* v = makruk_variant();
+        v->pieceToCharTable = "PN.R.F....SKpn.r.f....sk";
         v->startFen = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1";
         v->remove_piece(MET);
         v->add_piece(MET, 'f');
