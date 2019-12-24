@@ -263,6 +263,7 @@ namespace {
     }
     Variant* placement_variant() {
         Variant* v = chess_variant();
+        v->variantTemplate = "bughouse";
         v->startFen = "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - - 0 1";
         v->mustDrop = true;
         v->pieceDrops = true;
@@ -275,6 +276,7 @@ namespace {
     }
     Variant* sittuyin_variant() {
         Variant* v = makruk_variant();
+        v->variantTemplate = "bughouse";
         v->pieceToCharTable = "PN.R.F....SKpn.r.f....sk";
         v->startFen = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1";
         v->remove_piece(MET);
@@ -499,6 +501,7 @@ namespace {
     }
     Variant* clobber_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "P.................p.................";
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
         v->reset_pieces();
@@ -513,6 +516,7 @@ namespace {
     }
     Variant* breakthrough_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "P.................p.................";
         v->reset_pieces();
         v->add_piece(BREAKTHROUGH_PIECE, 'p');
         v->startFen = "pppppppp/pppppppp/8/8/8/8/PPPPPPPP/PPPPPPPP w 0 1";
