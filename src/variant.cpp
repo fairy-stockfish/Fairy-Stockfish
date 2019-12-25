@@ -253,6 +253,12 @@ namespace {
         v->firstRankDrops = true;
         return v;
     }
+    Variant* bughouse_variant() {
+        Variant* v = crazyhouse_variant();
+        v->variantTemplate = "bughouse";
+        v->capturesToHand = false;
+        return v;
+    }
     Variant* pocketknight_variant() {
         Variant* v = chess_variant();
         v->variantTemplate = "bughouse";
@@ -808,6 +814,7 @@ void VariantMap::init() {
     add("crazyhouse", crazyhouse_variant());
     add("loop", loop_variant());
     add("chessgi", chessgi_variant());
+    add("bughouse", bughouse_variant());
     add("pocketknight", pocketknight_variant());
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
