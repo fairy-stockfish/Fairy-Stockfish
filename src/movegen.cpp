@@ -191,7 +191,7 @@ namespace {
             Square from = pop_lsb(&pawns);
             for (PieceType pt : pos.promotion_piece_types())
             {
-                if (pos.count(Us, pt))
+                if (pos.promotion_limit(pt) && pos.promotion_limit(pt) <= pos.count(Us, pt))
                     continue;
                 Bitboard b = (pos.attacks_from(Us, pt, from) & ~pos.pieces()) | from;
                 if (Type == EVASIONS)

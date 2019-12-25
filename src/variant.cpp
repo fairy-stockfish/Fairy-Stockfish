@@ -296,6 +296,7 @@ namespace {
         v->sittuyinRookDrop = true;
         v->promotionRank = RANK_1; // no regular promotions
         v->sittuyinPromotion = true;
+        v->promotionLimit[FERS] = 1;
         v->immobilityIllegal = false;
         v->countingRule = ASEAN_COUNTING;
         v->nMoveRule = 50;
