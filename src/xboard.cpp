@@ -217,6 +217,24 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
               go(pos, analysisLimits, states);
       }
   }
+  // Bughouse commands
+  else if (token == "partner") {} // ignore for now
+  else if (token == "ptell")
+  {
+      // TODO: parse requests by partner
+  }
+  else if (token == "holding")
+  {
+      // holding [<white>] [<black>] <color><piece>
+      std::string white_holdings, black_holdings;
+      if (   std::getline(is, token, '[') && std::getline(is, white_holdings, ']')
+          && std::getline(is, token, '[') && std::getline(is, black_holdings, ']'))
+      {
+          std::transform(black_holdings.begin(), black_holdings.end(), black_holdings.begin(), ::tolower);
+          std::string fen = pos.fen(false, white_holdings + black_holdings);
+          setboard(pos, states, fen);
+      }
+  }
   // Additional custom non-XBoard commands
   else if (token == "perft")
   {

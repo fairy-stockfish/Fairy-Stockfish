@@ -612,7 +612,7 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
 /// Position::fen() returns a FEN representation of the position. In case of
 /// Chess960 the Shredder-FEN notation is used. This is mainly a debugging function.
 
-const string Position::fen(bool sfen) const {
+const string Position::fen(bool sfen, std::string holdings) const {
 
   int emptyCnt;
   std::ostringstream ss;
@@ -664,9 +664,12 @@ const string Position::fen(bool sfen) const {
   if (piece_drops() || seirawan_gating())
   {
       ss << '[';
-      for (Color c : {WHITE, BLACK})
-          for (PieceType pt = KING; pt >= PAWN; --pt)
-              ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
+      if (holdings != "-")
+          ss << holdings;
+      else
+          for (Color c : {WHITE, BLACK})
+              for (PieceType pt = KING; pt >= PAWN; --pt)
+                  ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
       ss << ']';
   }
 
