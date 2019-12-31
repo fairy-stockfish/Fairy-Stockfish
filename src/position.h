@@ -569,6 +569,11 @@ inline int Position::n_fold_rule() const {
 
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
+  if (var->stalematePieceCount)
+  {
+      int c = count<ALL_PIECES>(sideToMove) - count<ALL_PIECES>(~sideToMove);
+      return c == 0 ? VALUE_DRAW : convert_mate_value(c < 0 ? var->stalemateValue : -var->stalemateValue, ply);
+  }
   return convert_mate_value(var->stalemateValue, ply);
 }
 

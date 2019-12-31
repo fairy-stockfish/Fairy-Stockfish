@@ -201,6 +201,11 @@ namespace {
         v->castling = false;
         return v;
     }
+    Variant* suicide_variant() {
+        Variant* v = antichess_variant();
+        v->stalematePieceCount = true;
+        return v;
+    }
     Variant* codrus_variant() {
         Variant* v = giveaway_variant();
         v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, KNIGHT};
@@ -813,6 +818,7 @@ void VariantMap::init() {
     add("losers", losers_variant());
     add("giveaway", giveaway_variant());
     add("antichess", antichess_variant());
+    add("suicide", suicide_variant());
     add("codrus", codrus_variant());
     add("extinction", extinction_variant());
     add("kinglet", kinglet_variant());
