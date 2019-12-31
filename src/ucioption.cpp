@@ -45,7 +45,7 @@ namespace UCI {
 
 // standard variants of XBoard/WinBoard
 std::set<string> standard_variants = {
-    "normal", "fischerandom", "3check", "makruk", "shatranj",
+    "normal", "nocastle", "fischerandom", "3check", "makruk", "shatranj",
     "asean", "seirawan", "crazyhouse", "bughouse", "suicide", "giveaway", "losers",
     "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi"
 };

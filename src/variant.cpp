@@ -47,6 +47,12 @@ namespace {
         v->chess960 = true;
         return v;
     }
+    Variant* nocastle_variant() {
+        Variant* v = chess_variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        v->castling = false;
+        return v;
+    }
     Variant* fairy_variant() {
         Variant* v = chess_variant();
         v->add_piece(SILVER, 's');
@@ -791,6 +797,7 @@ void VariantMap::init() {
     add("chess", chess_variant());
     add("normal", chess_variant());
     add("fischerandom", chess960_variant());
+    add("nocastle", nocastle_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("cambodian", cambodian_variant());
