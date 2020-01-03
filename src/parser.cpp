@@ -121,7 +121,7 @@ Variant* VariantParser::parse(Variant* v) {
         char token;
         size_t idx;
         std::stringstream ss(it_prom->second);
-        while (ss >> token && ((idx = v->pieceToChar.find(token)) != std::string::npos))
+        while (ss >> token && ((idx = v->pieceToChar.find(toupper(token))) != std::string::npos))
             v->promotionPieceTypes.insert(PieceType(idx));
     }
     parse_attribute("sittuyinPromotion", v->sittuyinPromotion);
@@ -165,7 +165,7 @@ Variant* VariantParser::parse(Variant* v) {
         char token;
         size_t idx;
         std::stringstream ss(it_castling_rook_piece->second);
-        if (ss >> token && (idx = v->pieceToChar.find(token)) != std::string::npos)
+        if (ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos)
             v->castlingRookPiece = PieceType(idx);
     }
     parse_attribute("checking", v->checking);
@@ -209,7 +209,7 @@ Variant* VariantParser::parse(Variant* v) {
         char token;
         size_t idx;
         std::stringstream ss(it_ext->second);
-        while (ss >> token && ((idx = v->pieceToChar.find(token)) != std::string::npos || token == '*'))
+        while (ss >> token && ((idx = v->pieceToChar.find(toupper(token))) != std::string::npos || token == '*'))
             v->extinctionPieceTypes.insert(PieceType(token == '*' ? 0 : idx));
     }
     // flag piece type
@@ -219,7 +219,7 @@ Variant* VariantParser::parse(Variant* v) {
         char token;
         size_t idx;
         std::stringstream ss(it_flag_pt->second);
-        if (ss >> token && (idx = v->pieceToChar.find(token)) != std::string::npos)
+        if (ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos)
             v->flagPiece = PieceType(idx);
     }
     parse_attribute("whiteFlag", v->whiteFlag);
