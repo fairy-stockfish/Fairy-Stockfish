@@ -893,7 +893,7 @@ namespace {
         &&  (pos.pieces() ^ pos.pieces(CLOBBER_PIECE))
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
-        Value raisedBeta = std::min(beta + 191 * (1 + pos.check_counting() + (pos.extinction_value() != VALUE_NONE)) - 46 * improving, VALUE_INFINITE);
+        Value raisedBeta = std::min(beta + (191 + 20 * !!pos.capture_the_flag_piece()) * (1 + pos.check_counting() + (pos.extinction_value() != VALUE_NONE)) - 46 * improving, VALUE_INFINITE);
         MovePicker mp(pos, ttMove, raisedBeta - ss->staticEval, &thisThread->captureHistory);
         int probCutCount = 0;
 
