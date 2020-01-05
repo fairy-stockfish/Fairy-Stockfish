@@ -107,12 +107,18 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       for (std::string v : variants.get_keys())
           if (v != "chess")
               vars += "," + v;
-      sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 myname=Fairy-Stockfish variants=\""
+      sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 ping=1 myname=Fairy-Stockfish variants=\""
                 << vars << "\""
                 << Options << sync_endl
                 << "feature done=1" << sync_endl;
   }
   else if (token == "accepted" || token == "rejected" || token == "result" || token == "?") {}
+  else if (token == "ping")
+  {
+      if (!(is >> token))
+          token = "";
+      sync_cout << "pong " << token << sync_endl;
+  }
   else if (token == "new")
   {
       setboard(pos, states);
