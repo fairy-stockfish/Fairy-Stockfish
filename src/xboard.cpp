@@ -89,12 +89,17 @@ namespace XBoard {
 /// StateMachine::process_command() processes commands of the XBoard protocol.
 
 void StateMachine::process_command(Position& pos, std::string token, std::istringstream& is, StateListPtr& states) {
-  if (moveAfterSearch)
+  if (moveAfterSearch && token != "ptell")
   {
+      // abort search in bughouse when receiving "holding" command
+      bool doMove = token != "holding" || Threads.abort.exchange(true);
       Threads.stop = true;
       Threads.main()->wait_for_search_finished();
-      do_move(pos, moveList, states, Threads.main()->bestThread->rootMoves[0].pv[0]);
-      moveAfterSearch = false;
+      if (doMove)
+      {
+          do_move(pos, moveList, states, Threads.main()->bestThread->rootMoves[0].pv[0]);
+          moveAfterSearch = false;
+      }
   }
   if (token == "protover")
   {
@@ -234,6 +239,9 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           std::string fen = pos.fen(false, white_holdings + black_holdings);
           setboard(pos, states, fen);
       }
+      // restart search
+      if (moveAfterSearch)
+          go(pos, limits, states);
   }
   // Additional custom non-XBoard commands
   else if (token == "perft")
