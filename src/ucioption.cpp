@@ -163,8 +163,10 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
                   const Option& o = it.second;
                   os << "\nfeature option=\"" << it.first << " -" << o.type;
 
-                  if (o.type == "string" || o.type == "check" || o.type == "combo")
+                  if (o.type == "string" || o.type == "combo")
                       os << " " << o.defaultValue;
+                  else if (o.type == "check")
+                      os << " " << int(o.defaultValue == "true");
 
                   if (o.type == "combo")
                       for (string value : o.comboValues)
@@ -304,6 +306,10 @@ void Option::set_combo(std::vector<std::string> newComboValues) {
 
 void Option::set_default(std::string newDefault) {
     defaultValue = currentValue = newDefault;
+}
+
+const std::string Option::get_type() const {
+    return type;
 }
 
 } // namespace UCI

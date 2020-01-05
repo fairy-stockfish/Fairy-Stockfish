@@ -201,7 +201,11 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       std::getline(is, name, '=');
       std::getline(is, value);
       if (Options.count(name))
+      {
+          if (Options[name].get_type() == "check")
+              value = value == "1" ? "true" : "false";
           Options[name] = value;
+      }
   }
   else if (token == "analyze")
   {
