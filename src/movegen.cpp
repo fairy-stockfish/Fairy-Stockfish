@@ -263,7 +263,8 @@ namespace {
         // Xiangqi soldier
         if (pt == SOLDIER && pos.unpromoted_soldier(us, from))
             b1 &= file_bb(file_of(from));
-        Bitboard b2 = pos.promoted_piece_type(pt) ? b1 : Bitboard(0);
+        PieceType prom_pt = pos.promoted_piece_type(pt);
+        Bitboard b2 = prom_pt && (!pos.promotion_limit(prom_pt) || pos.promotion_limit(prom_pt) > pos.count(us, prom_pt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
 
         if (Checks)
