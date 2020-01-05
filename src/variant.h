@@ -63,6 +63,7 @@ struct Variant {
   File castlingQueensideFile = FILE_C;
   Rank castlingRank = RANK_1;
   PieceType castlingRookPiece = ROOK;
+  PieceType kingType = KING;
   bool checking = true;
   bool mustCapture = false;
   bool mustDrop = false;
@@ -82,7 +83,6 @@ struct Variant {
   bool seirawanGating = false;
   bool cambodianMoves = false;
   bool flyingGeneral = false;
-  bool xiangqiGeneral = false;
   bool xiangqiSoldier = false;
   // game end
   int nMoveRule = 50;

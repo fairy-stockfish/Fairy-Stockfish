@@ -564,7 +564,7 @@ namespace {
                  +   4 * (kingFlankAttack - kingFlankDefense)
                  +   3 * kingFlankAttack * kingFlankAttack / 8
                  +       mg_value(mobility[Them] - mobility[Us])
-                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.xiangqi_general()) / (1 + pos.check_counting())
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.king_type() == WAZIR) / (1 + pos.check_counting())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
                  -  35 * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
                  -   6 * mg_value(score) / 8
@@ -581,7 +581,7 @@ namespace {
     // Penalty if king flank is under attack, potentially moving toward the king
     score -= FlankAttacks * kingFlankAttack * (1 + 5 * pos.captures_to_hand() + pos.check_counting());
 
-    if (pos.check_counting() || pos.xiangqi_general())
+    if (pos.check_counting() || pos.king_type() == WAZIR)
         score += make_score(0, mg_value(score) / 2);
 
     // For drop games, king danger is independent of game phase

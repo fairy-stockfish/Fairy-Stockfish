@@ -42,6 +42,7 @@ public:
 private:
     Config config;
     template <class T> void parse_attribute(const std::string& key, T& target);
+    void parse_attribute(const std::string& key, PieceType& target, std::string pieceToChar);
 };
 
 #endif // #ifndef PARSER_H_INCLUDED

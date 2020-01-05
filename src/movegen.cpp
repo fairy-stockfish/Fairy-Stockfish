@@ -329,9 +329,8 @@ namespace {
     if (Type != QUIET_CHECKS && Type != EVASIONS && pos.count<KING>(Us))
     {
         Square ksq = pos.square<KING>(Us);
-        Bitboard b = pos.attacks_from<KING>(ksq, Us) & target;
-        if (pos.xiangqi_general())
-            b &= PseudoAttacks[Us][WAZIR][ksq];
+        Bitboard b = (  (pos.attacks_from(Us, KING, ksq) & pos.pieces())
+                      | (pos.moves_from(Us, KING, ksq) & ~pos.pieces())) & target;
         while (b)
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(&b));
 
@@ -433,12 +432,8 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 
      Bitboard b = pos.moves_from(us, pt, from) & ~pos.pieces();
 
-     if (pt == KING)
-     {
+     if (pt == KING && pos.king_type() == KING)
          b &= ~PseudoAttacks[~us][QUEEN][pos.square<KING>(~us)];
-         if (pos.xiangqi_general())
-             b &= PseudoAttacks[us][WAZIR][from];
-     }
 
      while (b)
          moveList = make_move_and_gating<NORMAL>(pos, moveList, us, from, pop_lsb(&b));
@@ -465,9 +460,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   if (sliders & (pos.pieces(CANNON, BANNER) | pos.pieces(HORSE, ELEPHANT)))
   {
       Bitboard target = pos.board_bb() & ~pos.pieces(us);
-      Bitboard b = pos.attacks_from<KING>(ksq, us) & target;
-      if (pos.xiangqi_general())
-          b &= PseudoAttacks[us][WAZIR][ksq];
+      Bitboard b = (  (pos.attacks_from(us, KING, ksq) & pos.pieces())
+                    | (pos.moves_from(us, KING, ksq) & ~pos.pieces())) & target;
       while (b)
           moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
       return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList, target)
@@ -484,9 +478,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   }
 
   // Generate evasions for king, capture and non capture moves
-  Bitboard b = pos.attacks_from<KING>(ksq, us) & ~pos.pieces(us) & ~sliderAttacks;
-  if (pos.xiangqi_general())
-      b &= PseudoAttacks[us][WAZIR][ksq];
+  Bitboard b = (  (pos.attacks_from(us, KING, ksq) & pos.pieces())
+                | (pos.moves_from(us, KING, ksq) & ~pos.pieces())) & ~pos.pieces(us) & ~sliderAttacks;
   while (b)
       moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
 

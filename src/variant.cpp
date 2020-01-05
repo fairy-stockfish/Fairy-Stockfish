@@ -174,6 +174,15 @@ namespace {
         v->checking = false;
         return v;
     }
+    Variant* knightmate_variant() {
+        Variant* v = fairy_variant_base();
+        v->add_piece(COMMONER, 'm');
+        v->remove_piece(KNIGHT);
+        v->startFen = "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1";
+        v->kingType = KNIGHT;
+        v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP};
+        return v;
+    }
     Variant* losers_variant() {
         Variant* v = fairy_variant_base();
         v->checkmateValue = VALUE_MATE;
@@ -569,6 +578,7 @@ namespace {
                                               SQ_C7, SQ_D7, SQ_E7);
         v->mobilityRegion[WHITE][KING] = white_castle;
         v->mobilityRegion[BLACK][KING] = black_castle;
+        v->kingType = WAZIR;
         v->promotionPieceTypes = {};
         v->doubleStep = false;
         v->castling = false;
@@ -576,7 +586,6 @@ namespace {
         //v->nFoldValue = VALUE_MATE;
         v->perpetualCheckIllegal = true;
         v->flyingGeneral = true;
-        v->xiangqiGeneral = true;
         return v;
     }
 #ifdef LARGEBOARDS
@@ -815,6 +824,7 @@ void VariantMap::init() {
     add("newzealand", newzealand_variant());
     add("kingofthehill", kingofthehill_variant());
     add("racingkings", racingkings_variant());
+    add("knightmate", knightmate_variant());
     add("losers", losers_variant());
     add("giveaway", giveaway_variant());
     add("antichess", antichess_variant());

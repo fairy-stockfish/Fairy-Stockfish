@@ -45,6 +45,7 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp loop startpos 5 4888832 > /dev/null
   expect perft.exp chessgi startpos 5 4889167 > /dev/null
   expect perft.exp racingkings startpos 5 9472927 > /dev/null
+  expect perft.exp knightmate startpos 5 3249033 > /dev/null
   expect perft.exp losers startpos 5 2723795 > /dev/null
   expect perft.exp antichess startpos 5 2732672 > /dev/null
   expect perft.exp giveaway startpos 5 2732672 > /dev/null

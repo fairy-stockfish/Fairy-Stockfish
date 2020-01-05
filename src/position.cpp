@@ -773,19 +773,20 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
   for (PieceType pt : piece_types())
       if (board_bb(c, pt) & s)
       {
+          PieceType move_pt = pt == KING ? king_type() : pt;
           // Consider asymmetrical move of horse
-          if (pt == HORSE || pt == BANNER)
+          if (move_pt == HORSE || move_pt == BANNER)
           {
-              Bitboard horses = PseudoAttacks[~c][pt][s] & pieces(c, pt);
+              Bitboard horses = PseudoAttacks[~c][move_pt][s] & pieces(c, pt);
               while (horses)
               {
                   Square s2 = pop_lsb(&horses);
-                  if (attacks_bb(c, pt, s2, occupied) & s)
+                  if (attacks_bb(c, move_pt, s2, occupied) & s)
                       b |= s2;
               }
           }
           else
-              b |= attacks_bb(~c, pt, s, occupied) & pieces(c, pt);
+              b |= attacks_bb(~c, move_pt, s, occupied) & pieces(c, pt);
       }
 
   // Consider special move of neang in cambodian chess
@@ -795,9 +796,6 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
       if (is_ok(fers_sq))
           b |= pieces(c, FERS) & gates(c) & fers_sq;
   }
-
-  if (xiangqi_general())
-      b ^= b & pieces(KING) & ~PseudoAttacks[~c][WAZIR][s];
 
   if (unpromoted_soldier(c, s))
       b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
@@ -971,10 +969,6 @@ bool Position::pseudo_legal(const Move m) const {
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL || is_gating(m))
       return MoveList<LEGAL>(*this).contains(m);
-
-  // Xiangqi general
-  if (xiangqi_general() && type_of(pc) == KING && !(PseudoAttacks[us][WAZIR][from] & to))
-      return false;
 
   // Xiangqi soldier
   if (type_of(pc) == SOLDIER && unpromoted_soldier(us, from) && file_of(from) != file_of(to))

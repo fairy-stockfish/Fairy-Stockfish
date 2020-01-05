@@ -119,6 +119,7 @@ public:
   File castling_queenside_file() const;
   Rank castling_rank(Color c) const;
   PieceType castling_rook_piece() const;
+  PieceType king_type() const;
   bool checking_permitted() const;
   bool must_capture() const;
   bool must_drop() const;
@@ -137,7 +138,6 @@ public:
   bool gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
-  bool xiangqi_general() const;
   bool unpromoted_soldier(Color c, Square s) const;
   // winning conditions
   int n_move_rule() const;
@@ -437,6 +437,11 @@ inline PieceType Position::castling_rook_piece() const {
   return var->castlingRookPiece;
 }
 
+inline PieceType Position::king_type() const {
+  assert(var != nullptr);
+  return var->kingType;
+}
+
 inline bool Position::checking_permitted() const {
   assert(var != nullptr);
   return var->checking;
@@ -545,11 +550,6 @@ inline bool Position::seirawan_gating() const {
 inline bool Position::cambodian_moves() const {
   assert(var != nullptr);
   return var->cambodianMoves;
-}
-
-inline bool Position::xiangqi_general() const {
-  assert(var != nullptr);
-  return var->xiangqiGeneral;
 }
 
 inline bool Position::unpromoted_soldier(Color c, Square s) const {
@@ -787,11 +787,11 @@ inline Bitboard Position::attacks_from(Square s, Color c) const {
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
-  return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
+  return attacks_bb(c, pt == KING ? king_type() : pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
 }
 
 inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
-  return moves_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
+  return moves_bb(c, pt == KING ? king_type() : pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
 }
 
 inline Bitboard Position::attackers_to(Square s) const {
