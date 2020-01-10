@@ -825,7 +825,7 @@ bool Position::legal(Move m) const {
   assert(board_bb() & to);
 
   // Illegal checks
-  if ((!checking_permitted() || (sittuyin_promotion() && type_of(m) == PROMOTION)) && gives_check(m))
+  if ((!checking_permitted() || (sittuyin_promotion() && type_of(m) == PROMOTION) || (!drop_checks() && type_of(m) == DROP)) && gives_check(m))
       return false;
 
   // Illegal quiet moves

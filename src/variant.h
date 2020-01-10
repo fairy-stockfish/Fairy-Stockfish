@@ -66,6 +66,7 @@ struct Variant {
   PieceType castlingRookPiece = ROOK;
   PieceType kingType = KING;
   bool checking = true;
+  bool dropChecks = true;
   bool mustCapture = false;
   bool mustDrop = false;
   bool pieceDrops = false;

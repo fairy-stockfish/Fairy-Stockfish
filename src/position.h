@@ -122,6 +122,7 @@ public:
   PieceType castling_rook_piece() const;
   PieceType king_type() const;
   bool checking_permitted() const;
+  bool drop_checks() const;
   bool must_capture() const;
   bool must_drop() const;
   bool piece_drops() const;
@@ -451,6 +452,11 @@ inline PieceType Position::king_type() const {
 inline bool Position::checking_permitted() const {
   assert(var != nullptr);
   return var->checking;
+}
+
+inline bool Position::drop_checks() const {
+  assert(var != nullptr);
+  return var->dropChecks;
 }
 
 inline bool Position::must_capture() const {
