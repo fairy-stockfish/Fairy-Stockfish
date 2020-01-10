@@ -131,6 +131,7 @@ Variant* VariantParser::parse(Variant* v) {
     const auto& it_prom = config.find("promotionPieceTypes");
     if (it_prom != config.end())
     {
+        v->promotionPieceTypes = {};
         char token;
         size_t idx;
         std::stringstream ss(it_prom->second);
@@ -180,6 +181,7 @@ Variant* VariantParser::parse(Variant* v) {
     parse_attribute("dropLoop", v->dropLoop);
     parse_attribute("capturesToHand", v->capturesToHand);
     parse_attribute("firstRankPawnDrops", v->firstRankPawnDrops);
+    parse_attribute("promotionZonePawnDrops", v->promotionZonePawnDrops);
     parse_attribute("dropOnTop", v->dropOnTop);
     parse_attribute("whiteDropRegion", v->whiteDropRegion);
     parse_attribute("blackDropRegion", v->blackDropRegion);

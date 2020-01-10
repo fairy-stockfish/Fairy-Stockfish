@@ -1300,17 +1300,22 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           k ^= Zobrist::enpassant[file_of(st->epSquare)];
       }
 
-      else if (type_of(m) == PROMOTION)
+      else if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
       {
-          Piece promotion = make_piece(us, promotion_type(m));
+          Piece promotion = make_piece(us, type_of(m) == PROMOTION ? promotion_type(m) : promoted_piece_type(PAWN));
 
           assert(relative_rank(us, to, max_rank()) >= promotion_rank() || sittuyin_promotion());
           assert(type_of(promotion) >= KNIGHT && type_of(promotion) < KING);
 
           remove_piece(pc, to);
           put_piece(promotion, to);
-          if (captures_to_hand() && !drop_loop())
-              promotedPieces = promotedPieces | to;
+          if (type_of(m) == PIECE_PROMOTION)
+          {
+              promotedPieces |= to;
+              unpromotedBoard[to] = pc;
+          }
+          else if (captures_to_hand() && !drop_loop())
+              promotedPieces |= to;
 
           // Update hash keys
           k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];

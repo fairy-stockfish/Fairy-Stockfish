@@ -47,9 +47,14 @@ namespace {
   ExtMove* make_promotions(const Position& pos, ExtMove* moveList, Square to) {
 
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
+    {
         for (PieceType pt : pos.promotion_piece_types())
             if (!pos.promotion_limit(pt) || pos.promotion_limit(pt) > pos.count(c, pt))
                 *moveList++ = make<PROMOTION>(to - D, to, pt);
+        PieceType pt = pos.promoted_piece_type(PAWN);
+        if (pt && !(pos.piece_promotion_on_capture() && pos.empty(to)))
+            *moveList++ = make<PIECE_PROMOTION>(to - D, to);
+    }
 
     return moveList;
   }

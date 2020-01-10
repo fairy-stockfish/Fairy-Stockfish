@@ -508,7 +508,8 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   // Pawns on back ranks
   if (pt == PAWN)
   {
-      b &= ~promotion_zone_bb(c, promotion_rank(), max_rank());
+      if (!var->promotionZonePawnDrops)
+          b &= ~promotion_zone_bb(c, promotion_rank(), max_rank());
       if (!first_rank_pawn_drops())
           b &= ~rank_bb(relative_rank(c, RANK_1, max_rank()));
   }
