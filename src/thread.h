@@ -110,6 +110,7 @@ struct ThreadPool : public std::vector<Thread*> {
 
   std::atomic_bool stop;
   std::atomic_bool abort;
+  std::atomic_bool sit;
 
   StateListPtr setupStates;
 

@@ -260,7 +260,7 @@ void MainThread::search() {
   // GUI sends a "stop" or "ponderhit" command. We therefore simply wait here
   // until the GUI sends one of those commands.
 
-  while (!Threads.stop && (ponder || Limits.infinite))
+  while (!Threads.stop && (ponder || Limits.infinite || (rootPos.two_boards() && (Threads.sit || this->rootMoves[0].score <= VALUE_MATED_IN_MAX_PLY) && Time.elapsed() < Limits.time[us] - 1000)))
   {} // Busy wait for a stop or a ponder reset
 
   // Stop the threads if not already stopped (also raise the stop if
@@ -558,7 +558,7 @@ void Thread::search() {
               // keep pondering until the GUI sends "ponderhit" or "stop".
               if (mainThread->ponder)
                   mainThread->stopOnPonderhit = true;
-              else
+              else if (!Threads.sit && !(rootPos.two_boards() && bestValue <= VALUE_MATED_IN_MAX_PLY))
                   Threads.stop = true;
           }
       }

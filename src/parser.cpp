@@ -124,6 +124,7 @@ Variant* VariantParser::parse(Variant* v) {
     parse_attribute("maxRank", v->maxRank);
     parse_attribute("maxFile", v->maxFile);
     parse_attribute("chess960", v->chess960);
+    parse_attribute("twoBoards", v->twoBoards);
     parse_attribute("startFen", v->startFen);
     parse_attribute("promotionRank", v->promotionRank);
     // promotion piece types

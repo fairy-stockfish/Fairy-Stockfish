@@ -124,6 +124,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       setboard(pos, states);
       // play second by default
       playColor = ~pos.side_to_move();
+      Threads.sit = false;
   }
   else if (token == "variant")
   {
@@ -236,7 +237,23 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   else if (token == "partner") {} // ignore for now
   else if (token == "ptell")
   {
-      // TODO: parse requests by partner
+      // parse requests by partner
+      is >> token;
+      if (token == "help")
+          sync_cout << "tellics ptell I listen to the commands help, sit, and go." << sync_endl;
+      else if (token == "hi" || token == "hello")
+          sync_cout << "tellics ptell hi" << sync_endl;
+      else if (token == "sit")
+      {
+          Threads.stop = false;
+          Threads.sit = true;
+          sync_cout << "tellics ptell I sit, tell me 'go' to continue" << sync_endl;
+      }
+      else if (token == "go")
+      {
+          Threads.sit = false;
+          Threads.stop = true;
+      }
   }
   else if (token == "holding")
   {

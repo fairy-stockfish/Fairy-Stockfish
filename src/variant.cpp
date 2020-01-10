@@ -276,6 +276,7 @@ namespace {
     Variant* bughouse_variant() {
         Variant* v = crazyhouse_variant();
         v->variantTemplate = "bughouse";
+        v->twoBoards = true;
         v->capturesToHand = false;
         return v;
     }
