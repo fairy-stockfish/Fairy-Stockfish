@@ -81,7 +81,7 @@ void on_variant_change(const Option &o) {
                                                               : "";
             if (v->pieceDrops)
             {
-                if (pt == PAWN && !v->firstRankDrops)
+                if (pt == PAWN && !v->firstRankPawnDrops)
                     suffix += "j";
                 else if (pt == SHOGI_PAWN && !v->shogiDoubledPawn)
                     suffix += "f";

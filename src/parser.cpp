@@ -179,7 +179,7 @@ Variant* VariantParser::parse(Variant* v) {
     parse_attribute("pieceDrops", v->pieceDrops);
     parse_attribute("dropLoop", v->dropLoop);
     parse_attribute("capturesToHand", v->capturesToHand);
-    parse_attribute("firstRankDrops", v->firstRankDrops);
+    parse_attribute("firstRankPawnDrops", v->firstRankPawnDrops);
     parse_attribute("dropOnTop", v->dropOnTop);
     parse_attribute("whiteDropRegion", v->whiteDropRegion);
     parse_attribute("blackDropRegion", v->blackDropRegion);

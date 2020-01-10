@@ -128,7 +128,7 @@ public:
   bool piece_drops() const;
   bool drop_loop() const;
   bool captures_to_hand() const;
-  bool first_rank_drops() const;
+  bool first_rank_pawn_drops() const;
   bool drop_on_top() const;
   Bitboard drop_region(Color c) const;
   Bitboard drop_region(Color c, PieceType pt) const;
@@ -484,9 +484,9 @@ inline bool Position::captures_to_hand() const {
   return var->capturesToHand;
 }
 
-inline bool Position::first_rank_drops() const {
+inline bool Position::first_rank_pawn_drops() const {
   assert(var != nullptr);
-  return var->firstRankDrops;
+  return var->firstRankPawnDrops;
 }
 
 inline bool Position::drop_on_top() const {
@@ -509,7 +509,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   if (pt == PAWN)
   {
       b &= ~promotion_zone_bb(c, promotion_rank(), max_rank());
-      if (!first_rank_drops())
+      if (!first_rank_pawn_drops())
           b &= ~rank_bb(relative_rank(c, RANK_1, max_rank()));
   }
   // Doubled shogi pawns

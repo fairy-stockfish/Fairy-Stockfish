@@ -270,7 +270,7 @@ namespace {
     }
     Variant* chessgi_variant() {
         Variant* v = loop_variant();
-        v->firstRankDrops = true;
+        v->firstRankPawnDrops = true;
         return v;
     }
     Variant* bughouse_variant() {

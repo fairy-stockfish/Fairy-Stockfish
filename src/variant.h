@@ -72,7 +72,7 @@ struct Variant {
   bool pieceDrops = false;
   bool dropLoop = false;
   bool capturesToHand = false;
-  bool firstRankDrops = false;
+  bool firstRankPawnDrops = false;
   bool dropOnTop = false;
   Bitboard whiteDropRegion = AllSquares;
   Bitboard blackDropRegion = AllSquares;
