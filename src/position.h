@@ -796,7 +796,7 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 
 template<PieceType Pt>
 inline Bitboard Position::attacks_from(Square s, Color c) const {
-  return attacks_bb(c, Pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, Pt);
+  return attacks_bb(c, Pt == KING ? king_type() : Pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, Pt);
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
