@@ -90,7 +90,7 @@ void on_variant_change(const Option &o) {
                     suffix += "f";
                 else if (pt == BISHOP && v->dropOppositeColoredBishop)
                     suffix += "s";
-                suffix += "@" + std::to_string(pt == PAWN ? v->promotionRank : v->maxRank + 1);
+                suffix += "@" + std::to_string(pt == PAWN && !v->promotionZonePawnDrops ? v->promotionRank : v->maxRank + 1);
             }
             sync_cout << "piece " << v->pieceToChar[pt] << "& " << pieceMap.find(pt)->second->betza << suffix << sync_endl;
             PieceType promType = v->promotedPieceType[pt];
