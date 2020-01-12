@@ -73,12 +73,15 @@ void on_variant_change(const Option &o) {
                   << " " << v->startFen
                   << sync_endl;
         // Send piece command with Betza notation
+        // https://www.gnu.org/software/xboard/Betza.html
         for (PieceType pt : v->pieceTypes)
         {
             string suffix =   pt == PAWN && v->doubleStep     ? "ifmnD"
                             : pt == KING && v->cambodianMoves ? "ismN"
                             : pt == FERS && v->cambodianMoves ? "ifnD"
                                                               : "";
+            if (pt == KING && v->castling)
+                 suffix += "O" + std::to_string((v->castlingKingsideFile - v->castlingQueensideFile) / 2);
             if (v->pieceDrops)
             {
                 if (pt == PAWN && !v->firstRankPawnDrops)
