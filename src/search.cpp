@@ -29,6 +29,7 @@
 #include "misc.h"
 #include "movegen.h"
 #include "movepick.h"
+#include "partner.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
@@ -260,7 +261,7 @@ void MainThread::search() {
   // GUI sends a "stop" or "ponderhit" command. We therefore simply wait here
   // until the GUI sends one of those commands.
 
-  while (!Threads.stop && (ponder || Limits.infinite || (rootPos.two_boards() && (Threads.sit || this->rootMoves[0].score <= VALUE_MATED_IN_MAX_PLY) && Time.elapsed() < Limits.time[us] - 1000)))
+  while (!Threads.stop && (ponder || Limits.infinite || (rootPos.two_boards() && (Partner.sitRequested || this->rootMoves[0].score <= VALUE_MATED_IN_MAX_PLY) && Time.elapsed() < Limits.time[us] - 1000)))
   {} // Busy wait for a stop or a ponder reset
 
   // Stop the threads if not already stopped (also raise the stop if
@@ -558,7 +559,7 @@ void Thread::search() {
               // keep pondering until the GUI sends "ponderhit" or "stop".
               if (mainThread->ponder)
                   mainThread->stopOnPonderhit = true;
-              else if (!Threads.sit && !(rootPos.two_boards() && bestValue <= VALUE_MATED_IN_MAX_PLY))
+              else if (!(rootPos.two_boards() && (Partner.sitRequested || bestValue <= VALUE_MATED_IN_MAX_PLY)))
                   Threads.stop = true;
           }
       }
@@ -1744,6 +1745,9 @@ void MainThread::check_time() {
 
   // We should not stop pondering until told so by the GUI
   if (ponder)
+      return;
+
+  if (Partner.sitRequested)
       return;
 
   if (   (Limits.use_time_management() && (elapsed > Time.maximum() - 10 || stopOnPonderhit))

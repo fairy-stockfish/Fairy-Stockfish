@@ -20,6 +20,7 @@
 #include <string>
 
 #include "evaluate.h"
+#include "partner.h"
 #include "search.h"
 #include "thread.h"
 #include "types.h"
@@ -234,25 +235,20 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       }
   }
   // Bughouse commands
-  else if (token == "partner") {} // ignore for now
+  else if (token == "partner")
+      Partner.parse_partner(is);
   else if (token == "ptell")
   {
-      // parse requests by partner
-      is >> token;
-      if (token == "help")
-          sync_cout << "tellics ptell I listen to the commands help, sit, and go." << sync_endl;
-      else if (token == "hi" || token == "hello")
-          sync_cout << "tellics ptell hi" << sync_endl;
-      else if (token == "sit")
+      Partner.parse_ptell(is, pos);
+      // play move requested by partner
+      if (moveAfterSearch && Partner.moveRequested)
       {
-          Threads.stop = false;
-          Threads.sit = true;
-          sync_cout << "tellics ptell I sit, tell me 'go' to continue" << sync_endl;
-      }
-      else if (token == "go")
-      {
-          Threads.sit = false;
           Threads.stop = true;
+          Threads.main()->wait_for_search_finished();
+          sync_cout << "move " << UCI::move(pos, Partner.moveRequested) << sync_endl;
+          do_move(pos, moveList, states, Partner.moveRequested);
+          moveAfterSearch = false;
+          Partner.moveRequested = MOVE_NONE;
       }
   }
   else if (token == "holding")
