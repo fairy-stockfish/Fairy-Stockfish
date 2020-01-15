@@ -61,6 +61,7 @@ public:
   Pawns::Table pawnsTable;
   Material::Table materialTable;
   size_t pvIdx, pvLast;
+  uint64_t ttHitAverage;
   int selDepth, nmpMinPly;
   Color nmpColor;
   std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
@@ -87,6 +88,7 @@ struct MainThread : public Thread {
 
   double previousTimeReduction;
   Value previousScore;
+  Value iterValue[4];
   int callsCnt;
   bool stopOnPonderhit;
   std::atomic_bool ponder;
