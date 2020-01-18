@@ -116,7 +116,12 @@ Variant* VariantParser::parse(Variant* v) {
     {
         const auto& keyValue = config.find(pieceInfo.second->name);
         if (keyValue != config.end() && !keyValue->second.empty())
-            v->add_piece(pieceInfo.first, keyValue->second.at(0));
+        {
+            if (isalpha(keyValue->second.at(0)))
+                v->add_piece(pieceInfo.first, keyValue->second.at(0));
+            else
+                v->remove_piece(pieceInfo.first);
+        }
     }
     parse_attribute("variantTemplate", v->variantTemplate);
     parse_attribute("pieceToCharTable", v->pieceToCharTable);
@@ -156,7 +161,7 @@ Variant* VariantParser::parse(Variant* v) {
         size_t idx, idx2;
         std::stringstream ss(it_prom_pt->second);
         while (   ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos && ss >> token
-               && ss >> token && (idx2 = v->pieceToChar.find(toupper(token))) != std::string::npos)
+               && ss >> token && (idx2 = (token == '-' ? 0 : v->pieceToChar.find(toupper(token)))) != std::string::npos)
             v->promotedPieceType[idx] = PieceType(idx2);
     }
     parse_attribute("piecePromotionOnCapture", v->piecePromotionOnCapture);
@@ -212,6 +217,7 @@ Variant* VariantParser::parse(Variant* v) {
     const auto& it_ext = config.find("extinctionPieceTypes");
     if (it_ext != config.end())
     {
+        v->extinctionPieceTypes = {};
         char token;
         size_t idx;
         std::stringstream ss(it_ext->second);
