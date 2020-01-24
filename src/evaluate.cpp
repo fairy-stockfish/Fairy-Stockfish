@@ -892,7 +892,7 @@ namespace {
             {
                 Square s2 = pop_lsb(&target_squares);
                 int dist =  distance(s1, s2)
-                          + (isKingCTF ? popcount(pos.attackers_to(s2, Them)) : 0)
+                          + (isKingCTF || pos.flag_move() ? popcount(pos.attackers_to(s2, Them)) : 0)
                           + !!(pos.pieces(Us) & s2);
                 score += make_score(2500, 2500) / (1 + scale * dist * dist);
             }
