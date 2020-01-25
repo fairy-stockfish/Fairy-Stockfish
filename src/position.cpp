@@ -775,7 +775,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
       {
           PieceType move_pt = pt == KING ? king_type() : pt;
           // Consider asymmetrical move of horse
-          if (move_pt == HORSE || move_pt == BANNER)
+          if (AttackRiderTypes[move_pt] & ASYMMETRICAL_RIDERS)
           {
               Bitboard horses = PseudoAttacks[~c][move_pt][s] & pieces(c, pt);
               while (horses)
@@ -1060,7 +1060,7 @@ bool Position::gives_check(Move m) const {
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION)
   {
       PieceType pt = type_of(moved_piece(m));
-      if (pt == CANNON || pt == BANNER || pt == HORSE)
+      if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
       {
           if (attacks_bb(sideToMove, pt, to, (pieces() ^ from) | to) & square<KING>(~sideToMove))
               return true;
