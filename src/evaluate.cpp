@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -378,20 +378,19 @@ namespace {
                 // Bonus for bishop on a long diagonal which can "see" both center squares
                 if (more_than_one(attacks_bb<BISHOP>(s, pos.pieces(PAWN)) & Center))
                     score += LongDiagonalBishop;
-            }
 
-            // An important Chess960 pattern: A cornered bishop blocked by a friendly
-            // pawn diagonally in front of it is a very serious problem, especially
-            // when that pawn is also blocked.
-            if (   Pt == BISHOP
-                && pos.is_chess960()
-                && (s == relative_square(Us, SQ_A1) || s == relative_square(Us, SQ_H1)))
-            {
-                Direction d = pawn_push(Us) + (file_of(s) == FILE_A ? EAST : WEST);
-                if (pos.piece_on(s + d) == make_piece(Us, PAWN))
-                    score -= !pos.empty(s + d + pawn_push(Us))                ? CorneredBishop * 4
-                            : pos.piece_on(s + d + d) == make_piece(Us, PAWN) ? CorneredBishop * 2
-                                                                              : CorneredBishop;
+                // An important Chess960 pattern: a cornered bishop blocked by a friendly
+                // pawn diagonally in front of it is a very serious problem, especially
+                // when that pawn is also blocked.
+                if (   pos.is_chess960()
+                    && (s == relative_square(Us, SQ_A1) || s == relative_square(Us, SQ_H1)))
+                {
+                    Direction d = pawn_push(Us) + (file_of(s) == FILE_A ? EAST : WEST);
+                    if (pos.piece_on(s + d) == make_piece(Us, PAWN))
+                        score -= !pos.empty(s + d + pawn_push(Us))                ? CorneredBishop * 4
+                                : pos.piece_on(s + d + d) == make_piece(Us, PAWN) ? CorneredBishop * 2
+                                                                                  : CorneredBishop;
+                }
             }
         }
 
@@ -964,6 +963,9 @@ namespace {
                      :  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
                       - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
 
+    bool infiltration =   (pos.count<KING>(WHITE) && rank_of(pos.square<KING>(WHITE)) > RANK_4)
+                       || (pos.count<KING>(BLACK) && rank_of(pos.square<KING>(BLACK)) < RANK_5);
+
     bool pawnsOnBothFlanks =   (pos.pieces(PAWN) & QueenSide)
                             && (pos.pieces(PAWN) & KingSide);
 
@@ -977,10 +979,11 @@ namespace {
                     + 11 * pos.count<PAWN>()
                     + 15 * pos.count<SOLDIER>()
                     +  9 * outflanking
+                    + 12 * infiltration
                     + 21 * pawnsOnBothFlanks
                     + 51 * !pos.non_pawn_material()
                     - 43 * almostUnwinnable
-                    - 95 ;
+                    - 100 ;
 
     // Now apply the bonus: note that we find the attacking side by extracting the
     // sign of the midgame or endgame values, and that we carefully cap the bonus

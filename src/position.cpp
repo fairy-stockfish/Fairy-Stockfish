@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -1289,11 +1289,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->nonPawnMaterial[us] += PieceValue[MG][promotion];
       }
 
-      // Update pawn hash key and prefetch access to pawnsTable
-      if (type_of(m) == DROP)
-          st->pawnKey ^= Zobrist::psq[pc][to];
-      else
-          st->pawnKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+      // Update pawn hash key
+      st->pawnKey ^= (type_of(m) != DROP ? Zobrist::psq[pc][from] : 0) ^ Zobrist::psq[pc][to];
 
       // Reset rule 50 draw counter
       st->rule50 = 0;
@@ -1557,7 +1554,7 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
 }
 
 
-/// Position::do(undo)_null_move() is used to do(undo) a "null move": It flips
+/// Position::do(undo)_null_move() is used to do(undo) a "null move": it flips
 /// the side to move without executing any move on the board.
 
 void Position::do_null_move(StateInfo& newSt) {
@@ -1666,9 +1663,9 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (swap <= 0)
       return true;
 
-  Bitboard occ = (type_of(m) != DROP ? pieces() ^ from : pieces()) ^ to;
+  Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) ^ to;
   Color stm = color_of(moved_piece(m));
-  Bitboard attackers = attackers_to(to, occ);
+  Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
   int res = 1;
 
@@ -1676,15 +1673,15 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (var->flyingGeneral)
   {
       if (attackers & pieces(stm, KING))
-          attackers |= attacks_bb(stm, ROOK, to, occ & ~pieces(ROOK)) & pieces(~stm, KING);
+          attackers |= attacks_bb(stm, ROOK, to, occupied & ~pieces(ROOK)) & pieces(~stm, KING);
       if (attackers & pieces(~stm, KING))
-          attackers |= attacks_bb(~stm, ROOK, to, occ & ~pieces(ROOK)) & pieces(stm, KING);
+          attackers |= attacks_bb(~stm, ROOK, to, occupied & ~pieces(ROOK)) & pieces(stm, KING);
   }
 
   while (true)
   {
       stm = ~stm;
-      attackers &= occ;
+      attackers &= occupied;
 
       // If stm has no more attackers then give up: stm loses
       if (!(stmAttackers = attackers & pieces(stm)))
@@ -1692,7 +1689,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       // Don't allow pinned pieces to attack (except the king) as long as
       // there are pinners on their original square.
-      if (st->pinners[~stm] & occ)
+      if (st->pinners[~stm] & occupied)
           stmAttackers &= ~st->blockersForKing[stm];
 
       if (!stmAttackers)
@@ -1707,8 +1704,8 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = PawnValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
-          attackers |= attacks_bb<BISHOP>(to, occ) & pieces(BISHOP, QUEEN);
+          occupied ^= lsb(bb);
+          attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
       }
 
       else if ((bb = stmAttackers & pieces(KNIGHT)))
@@ -1716,7 +1713,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = KnightValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
+          occupied ^= lsb(bb);
       }
 
       else if ((bb = stmAttackers & pieces(BISHOP)))
@@ -1724,8 +1721,8 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = BishopValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
-          attackers |= attacks_bb<BISHOP>(to, occ) & pieces(BISHOP, QUEEN);
+          occupied ^= lsb(bb);
+          attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
       }
 
       else if ((bb = stmAttackers & pieces(ROOK)))
@@ -1733,8 +1730,8 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = RookValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
-          attackers |= attacks_bb<ROOK>(to, occ) & pieces(ROOK, QUEEN);
+          occupied ^= lsb(bb);
+          attackers |= attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN);
       }
 
       else if ((bb = stmAttackers & pieces(QUEEN)))
@@ -1742,9 +1739,9 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = QueenValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
-          attackers |=  (attacks_bb<BISHOP>(to, occ) & pieces(BISHOP, QUEEN))
-                      | (attacks_bb<ROOK  >(to, occ) & pieces(ROOK  , QUEEN));
+          occupied ^= lsb(bb);
+          attackers |=  (attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN))
+                      | (attacks_bb<ROOK  >(to, occupied) & pieces(ROOK  , QUEEN));
       }
 
       // fairy pieces
@@ -1754,7 +1751,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = PieceValue[MG][piece_on(lsb(bb))] - swap) < res)
               break;
 
-          occ ^= lsb(bb);
+          occupied ^= lsb(bb);
       }
 
       else // KING
@@ -1763,7 +1760,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           return (attackers & ~pieces(stm)) ? res ^ 1 : res;
   }
 
-  return res;
+  return bool(res);
 }
 
 /// Position::is_optinal_game_end() tests whether the position may end the game by

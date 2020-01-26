@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -413,6 +413,8 @@ void Thread::search() {
   contempt = (us == WHITE ?  make_score(ct, ct / 2)
                           : -make_score(ct, ct / 2));
 
+  int searchAgainCounter = 0;
+
   // Iterative deepening loop until requested to stop or the target depth is reached
   while (   ++rootDepth < MAX_PLY
          && !Threads.stop
@@ -429,6 +431,9 @@ void Thread::search() {
 
       size_t pvFirst = 0;
       pvLast = 0;
+
+      if (!Threads.increaseDepth)
+         searchAgainCounter++;
 
       // MultiPV loop. We perform a full root search for each PV line
       for (pvIdx = 0; pvIdx < multiPV && !Threads.stop; ++pvIdx)
@@ -465,7 +470,7 @@ void Thread::search() {
           int failedHighCnt = 0;
           while (true)
           {
-              Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt);
+              Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
               bestValue = ::search<PV>(rootPos, ss, alpha, beta, adjustedDepth, false);
 
               // Bring the best move to the front. It is critical that sorting
@@ -578,6 +583,12 @@ void Thread::search() {
               else if (!(rootPos.two_boards() && (Partner.sitRequested || bestValue <= VALUE_MATED_IN_MAX_PLY)))
                   Threads.stop = true;
           }
+          else if (   Threads.increaseDepth
+                   && !mainThread->ponder
+                   && Time.elapsed() > Time.optimum() * fallingEval * reduction * bestMoveInstability * 0.6)
+                   Threads.increaseDepth = false;
+          else
+                   Threads.increaseDepth = true;
       }
 
       mainThread->iterValue[iterIdx] = bestValue;
@@ -739,7 +750,9 @@ namespace {
                 update_continuation_histories(ss, pos.moved_piece(ttMove), to_sq(ttMove), penalty);
             }
         }
-        return ttValue;
+
+        if (pos.rule50_count() < 90)
+            return ttValue;
     }
 
     // Step 5. Tablebases probe
@@ -830,7 +843,7 @@ namespace {
         tte->save(posKey, VALUE_NONE, ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
     }
 
-    // Step 7. Razoring (~2 Elo)
+    // Step 7. Razoring (~1 Elo)
     if (   !rootNode // The required rootNode PV handling is not available in qsearch
         &&  depth < 2
         && !pos.must_capture()
@@ -846,7 +859,7 @@ namespace {
     if (pos.must_capture() && MoveList<CAPTURES>(pos).size())
         goto moves_loop;
 
-    // Step 8. Futility pruning: child node (~30 Elo)
+    // Step 8. Futility pruning: child node (~50 Elo)
     if (   !PvNode
         &&  depth < 6
         && !(   pos.extinction_value() == -VALUE_MATE
@@ -859,10 +872,10 @@ namespace {
     // Step 9. Null move search with verification search (~40 Elo)
     if (   !PvNode
         && (ss-1)->currentMove != MOVE_NULL
-        && (ss-1)->statScore < 23405
+        && (ss-1)->statScore < 23397
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 32 * depth + 317 - improving * 30
+        &&  ss->staticEval >= beta - 32 * depth + 292 - improving * 30
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (pos.pieces(~us) ^ pos.pieces(~us, PAWN))
@@ -952,7 +965,7 @@ namespace {
             }
     }
 
-    // Step 11. Internal iterative deepening (~2 Elo)
+    // Step 11. Internal iterative deepening (~1 Elo)
     if (depth >= (7 - 2 * pos.captures_to_hand()) && !ttMove)
     {
         search<NT>(pos, ss, alpha, beta, depth - (7 - 2 * pos.captures_to_hand()), cutNode);
@@ -1017,7 +1030,7 @@ moves_loop: // When in check, search starts from here
       // Calculate new depth for this move
       newDepth = depth - 1;
 
-      // Step 13. Pruning at shallow depth (~170 Elo)
+      // Step 13. Pruning at shallow depth (~200 Elo)
       if (  !rootNode
           && (pos.non_pawn_material(us) || !(pos.pieces(us) ^ pos.pieces(us, PAWN)))
           && bestValue > VALUE_MATED_IN_MAX_PLY)
@@ -1039,26 +1052,30 @@ moves_loop: // When in check, search starts from here
                   && (*contHist[1])[history_slot(movedPiece)][to_sq(move)] < CounterMovePruneThreshold)
                   continue;
 
-              // Futility pruning: parent node (~2 Elo)
+              // Futility pruning: parent node (~5 Elo)
               if (   lmrDepth < 6
                   && !inCheck
                   && !(   pos.extinction_value() == -VALUE_MATE
                        && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
-                  && ss->staticEval + 255 + 182 * lmrDepth <= alpha)
+                  && ss->staticEval + 235 + 172 * lmrDepth <= alpha
+                  &&  thisThread->mainHistory[us][from_to(move)]
+                    + (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
+                    + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
+                    + (*contHist[3])[history_slot(movedPiece)][to_sq(move)] < 25000)
                   continue;
 
-              // Prune moves with negative SEE (~10 Elo)
+              // Prune moves with negative SEE (~20 Elo)
               if (!pos.must_capture() && !pos.see_ge(move, Value(-(32 - std::min(lmrDepth, 18)) * lmrDepth * lmrDepth)))
                   continue;
           }
           else if (   !pos.must_capture()
-                   && !pos.see_ge(move, Value(-194 - 120 * pos.captures_to_hand()) * depth)) // (~20 Elo)
+                   && !pos.see_ge(move, Value(-194 - 120 * pos.captures_to_hand()) * depth)) // (~25 Elo)
                   continue;
       }
 
-      // Step 14. Extensions (~70 Elo)
+      // Step 14. Extensions (~75 Elo)
 
-      // Singular extension search (~60 Elo). If all moves but one fail low on a
+      // Singular extension search (~70 Elo). If all moves but one fail low on a
       // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
       // then that move is singular and should be extended. To verify this we do
       // a reduced search on all the other moves but the ttMove and if the
@@ -1143,10 +1160,10 @@ moves_loop: // When in check, search starts from here
       // Step 15. Make the move
       pos.do_move(move, st, givesCheck);
 
-      // Step 16. Reduced depth search (LMR). If the move fails high it will be
+      // Step 16. Reduced depth search (LMR, ~200 Elo). If the move fails high it will be
       // re-searched at full depth.
       if (    depth >= 3
-          &&  moveCount > 1 + 2 * rootNode
+          &&  moveCount > 1 + rootNode + (rootNode && bestValue < alpha)
           && (!rootNode || thisThread->best_move_count(move) == 0)
           && (  !captureOrPromotion
               || moveCountPruning
@@ -1165,31 +1182,31 @@ moves_loop: // When in check, search starts from here
           if (th.marked())
               r++;
 
-          // Decrease reduction if position is or has been on the PV
+          // Decrease reduction if position is or has been on the PV (~10 Elo)
           if (ttPv)
               r -= 2;
 
-          // Decrease reduction if opponent's move count is high (~10 Elo)
+          // Decrease reduction if opponent's move count is high (~5 Elo)
           if ((ss-1)->moveCount > 14)
               r--;
 
-          // Decrease reduction if ttMove has been singularly extended
+          // Decrease reduction if ttMove has been singularly extended (~3 Elo)
           if (singularLMR)
               r -= 2;
 
           if (!captureOrPromotion && !(pos.must_capture() && MoveList<CAPTURES>(pos).size()))
           {
-              // Increase reduction if ttMove is a capture (~0 Elo)
+              // Increase reduction if ttMove is a capture (~5 Elo)
               if (ttCapture)
                   r++;
 
-              // Increase reduction for cut nodes (~5 Elo)
+              // Increase reduction for cut nodes (~10 Elo)
               if (cutNode)
                   r += 2;
 
               // Decrease reduction for moves that escape a capture. Filter out
               // castling moves, because they are coded as "king captures rook" and
-              // hence break make_move(). (~5 Elo)
+              // hence break make_move(). (~2 Elo)
               else if (    type_of(move) == NORMAL
                        && !pos.see_ge(reverse_move(move)))
                   r -= 2;
@@ -1217,6 +1234,10 @@ moves_loop: // When in check, search starts from here
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
               r -= ss->statScore / 16384;
           }
+
+          // Increase reduction for captures/promotions if late move and at low depth
+          else if (depth < 8 && moveCount > 2)
+              r++;
 
           Depth d = clamp(newDepth - r, 1, newDepth);
 
