@@ -46,44 +46,6 @@ namespace Zobrist {
   Key checks[COLOR_NB][CHECKS_NB];
 }
 
-namespace {
-
-// min_attacker() is a helper function used by see_ge() to locate the least
-// valuable attacker for the side to move, remove the attacker we just found
-// from the bitboards and scan for new X-ray attacks behind it.
-
-template<PieceType Pt>
-PieceType min_attacker(const Bitboard* byTypeBB, Square to, Bitboard stmAttackers,
-                       Bitboard& occupied, Bitboard& attackers) {
-
-  Bitboard b = stmAttackers & byTypeBB[Pt];
-  if (!b)
-      return min_attacker<PieceType(Pt + 1)>(byTypeBB, to, stmAttackers, occupied, attackers);
-
-  occupied ^= lsb(b); // Remove the attacker from occupied
-
-  // Add any X-ray attack behind the just removed piece. For instance with
-  // rooks in a8 and a7 attacking a1, after removing a7 we add rook in a8.
-  // Note that new added attackers can be of any color.
-  if (Pt == PAWN || Pt == BISHOP || Pt == QUEEN)
-      attackers |= attacks_bb<BISHOP>(to, occupied) & (byTypeBB[BISHOP] | byTypeBB[QUEEN]);
-
-  if (Pt == ROOK || Pt == QUEEN)
-      attackers |= attacks_bb<ROOK>(to, occupied) & (byTypeBB[ROOK] | byTypeBB[QUEEN]);
-
-  // X-ray may add already processed pieces because byTypeBB[] is constant: in
-  // the rook example, now attackers contains _again_ rook in a7, so remove it.
-  attackers &= occupied;
-  return Pt;
-}
-
-template<>
-PieceType min_attacker<KING>(const Bitboard*, Square, Bitboard, Bitboard&, Bitboard&) {
-  return KING; // No need to update bitboards: it is the last cycle
-}
-
-} // namespace
-
 
 /// operator<<(Position) returns an ASCII representation of the position
 
@@ -1682,14 +1644,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (type_of(m) != NORMAL && type_of(m) != DROP && type_of(m) != PIECE_PROMOTION)
       return VALUE_ZERO >= threshold;
 
-  Bitboard stmAttackers;
   Square from = from_sq(m), to = to_sq(m);
-  PieceType nextVictim = type_of(m) == DROP ? dropped_piece_type(m) : type_of(piece_on(from));
-  Color us = type_of(m) == DROP ? sideToMove : color_of(piece_on(from));
-  Color stm = ~us; // First consider opponent's move
-  Value balance;   // Values of the pieces taken by us minus opponent's ones
-
-
   // nCheck
   if (check_counting() && color_of(moved_piece(m)) == sideToMove && gives_check(m))
       return true;
@@ -1703,79 +1658,113 @@ bool Position::see_ge(Move m, Value threshold) const {
               && count<ALL_PIECES>(~sideToMove) == 1)))
       return extinction_value() < VALUE_ZERO;
 
-  // The opponent may be able to recapture so this is the best result
-  // we can hope for.
-  balance = PieceValue[MG][piece_on(to)] - threshold;
-
-  if (balance < VALUE_ZERO)
+  int swap = PieceValue[MG][piece_on(to)] - threshold;
+  if (swap < 0)
       return false;
 
-  // Now assume the worst possible result: that the opponent can
-  // capture our piece for free.
-  balance -= PieceValue[MG][nextVictim];
-
-  // If it is enough (like in PxQ) then return immediately. Note that
-  // in case nextVictim == KING we always return here, this is ok
-  // if the given move is legal.
-  if (balance >= VALUE_ZERO)
+  swap = PieceValue[MG][moved_piece(m)] - swap;
+  if (swap <= 0)
       return true;
 
-  // Find all attackers to the destination square, with the moving piece
-  // removed, but possibly an X-ray attacker added behind it.
-  Bitboard occupied = type_of(m) == DROP ? pieces() ^ to : pieces() ^ from ^ to;
-  Bitboard attackers = attackers_to(to, occupied) & occupied;
+  Bitboard occ = (type_of(m) != DROP ? pieces() ^ from : pieces()) ^ to;
+  Color stm = color_of(moved_piece(m));
+  Bitboard attackers = attackers_to(to, occ);
+  Bitboard stmAttackers, bb;
+  int res = 1;
 
   // Flying general rule
   if (var->flyingGeneral)
   {
-      if (attackers & pieces(us, KING))
-          attackers |= attacks_bb(us, ROOK, to, occupied & ~pieces(ROOK)) & pieces(~us, KING);
-      if (attackers & pieces(~us, KING))
-          attackers |= attacks_bb(~us, ROOK, to, occupied & ~pieces(ROOK)) & pieces(us, KING);
+      if (attackers & pieces(stm, KING))
+          attackers |= attacks_bb(stm, ROOK, to, occ & ~pieces(ROOK)) & pieces(~stm, KING);
+      if (attackers & pieces(~stm, KING))
+          attackers |= attacks_bb(~stm, ROOK, to, occ & ~pieces(ROOK)) & pieces(stm, KING);
   }
 
   while (true)
   {
-      stmAttackers = attackers & pieces(stm);
-
-      // Don't allow pinned pieces to attack (except the king) as long as
-      // any pinners are on their original square.
-      if (st->pinners[~stm] & occupied)
-          stmAttackers &= ~st->blockersForKing[stm];
+      stm = ~stm;
+      attackers &= occ;
 
       // If stm has no more attackers then give up: stm loses
+      if (!(stmAttackers = attackers & pieces(stm)))
+          break;
+
+      // Don't allow pinned pieces to attack (except the king) as long as
+      // there are pinners on their original square.
+      if (st->pinners[~stm] & occ)
+          stmAttackers &= ~st->blockersForKing[stm];
+
       if (!stmAttackers)
           break;
 
+      res ^= 1;
+
       // Locate and remove the next least valuable attacker, and add to
-      // the bitboard 'attackers' the possibly X-ray attackers behind it.
-      nextVictim = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
-
-      stm = ~stm; // Switch side to move
-
-      // Negamax the balance with alpha = balance, beta = balance+1 and
-      // add nextVictim's value.
-      //
-      //      (balance, balance+1) -> (-balance-1, -balance)
-      //
-      assert(balance < VALUE_ZERO);
-
-      balance = -balance - 1 - PieceValue[MG][nextVictim];
-
-      // If balance is still non-negative after giving away nextVictim then we
-      // win. The only thing to be careful about it is that we should revert
-      // stm if we captured with the king when the opponent still has attackers.
-      if (balance >= VALUE_ZERO)
+      // the bitboard 'attackers' any X-ray attackers behind it.
+      if ((bb = stmAttackers & pieces(PAWN)))
       {
-          if (nextVictim == KING && (attackers & pieces(stm)))
-              stm = ~stm;
-          break;
-      }
-      assert(nextVictim != KING);
-  }
-  return us != stm; // We break the above loop when stm loses
-}
+          if ((swap = PawnValueMg - swap) < res)
+              break;
 
+          occ ^= lsb(bb);
+          attackers |= attacks_bb<BISHOP>(to, occ) & pieces(BISHOP, QUEEN);
+      }
+
+      else if ((bb = stmAttackers & pieces(KNIGHT)))
+      {
+          if ((swap = KnightValueMg - swap) < res)
+              break;
+
+          occ ^= lsb(bb);
+      }
+
+      else if ((bb = stmAttackers & pieces(BISHOP)))
+      {
+          if ((swap = BishopValueMg - swap) < res)
+              break;
+
+          occ ^= lsb(bb);
+          attackers |= attacks_bb<BISHOP>(to, occ) & pieces(BISHOP, QUEEN);
+      }
+
+      else if ((bb = stmAttackers & pieces(ROOK)))
+      {
+          if ((swap = RookValueMg - swap) < res)
+              break;
+
+          occ ^= lsb(bb);
+          attackers |= attacks_bb<ROOK>(to, occ) & pieces(ROOK, QUEEN);
+      }
+
+      else if ((bb = stmAttackers & pieces(QUEEN)))
+      {
+          if ((swap = QueenValueMg - swap) < res)
+              break;
+
+          occ ^= lsb(bb);
+          attackers |=  (attacks_bb<BISHOP>(to, occ) & pieces(BISHOP, QUEEN))
+                      | (attacks_bb<ROOK  >(to, occ) & pieces(ROOK  , QUEEN));
+      }
+
+      // fairy pieces
+      // pick next piece without considering value
+      else if ((bb = stmAttackers & ~pieces(KING)))
+      {
+          if ((swap = PieceValue[MG][piece_on(lsb(bb))] - swap) < res)
+              break;
+
+          occ ^= lsb(bb);
+      }
+
+      else // KING
+           // If we "capture" with the king but opponent still has attackers,
+           // reverse the result.
+          return (attackers & ~pieces(stm)) ? res ^ 1 : res;
+  }
+
+  return res;
+}
 
 /// Position::is_optinal_game_end() tests whether the position may end the game by
 /// 50-move rule, by repetition, or a variant rule that allows a player to claim a game result.
