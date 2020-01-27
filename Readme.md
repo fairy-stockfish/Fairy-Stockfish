@@ -15,8 +15,8 @@ The goal of the project is to create an engine supporting a large variety of che
 The games currently supported besides chess are listed below. Fairy-Stockfish can also play user-defined variants loaded via a variant configuration file, see the file [`src/variants.ini`](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/variants.ini).
 
 ### Regional and historical games
-- [Xiangqi](https://en.wikipedia.org/wiki/Xiangqi), [Manchu](https://en.wikipedia.org/wiki/Manchu_chess), [Minixiangqi](http://mlwi.magix.net/bg/minixiangqi.htm)
-- [Shogi](https://en.wikipedia.org/wiki/Shogi)
+- [Xiangqi](https://en.wikipedia.org/wiki/Xiangqi), [Manchu](https://en.wikipedia.org/wiki/Manchu_chess), [Minixiangqi](http://mlwi.magix.net/bg/minixiangqi.htm), [Supply chess](https://en.wikipedia.org/wiki/Xiangqi#Variations)
+- [Shogi](https://en.wikipedia.org/wiki/Shogi), [Shogi variants](https://github.com/ianfab/Fairy-Stockfish#shogi-variants)
 - [Makruk](https://en.wikipedia.org/wiki/Makruk), [Ouk Chatrang](https://en.wikipedia.org/wiki/Makruk#Cambodian_chess), [Kar Ouk](https://en.wikipedia.org/wiki/Makruk#Cambodian_chess), [ASEAN](http://hgm.nubati.net/rules/ASEAN.html), Ai-Wok
 - [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)
 - [Shatar](https://en.wikipedia.org/wiki/Shatar), [Jeson Mor](https://en.wikipedia.org/wiki/Jeson_Mor)
@@ -26,16 +26,17 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Capablanca](https://en.wikipedia.org/wiki/Capablanca_Chess), [Janus](https://en.wikipedia.org/wiki/Janus_Chess), [Modern](https://en.wikipedia.org/wiki/Modern_Chess_(chess_variant)), [Chancellor](https://en.wikipedia.org/wiki/Chancellor_Chess), [Embassy](https://en.wikipedia.org/wiki/Embassy_Chess), [Gothic](https://www.chessvariants.com/large.dir/gothicchess.html), [Capablanca random chess](https://en.wikipedia.org/wiki/Capablanca_Random_Chess)
 - [Grand](https://en.wikipedia.org/wiki/Grand_Chess), [Shako](https://www.chessvariants.com/large.dir/shako.html), [Centaur](https://www.chessvariants.com/large.dir/contest/royalcourt.html)
 - [Chess960](https://en.wikipedia.org/wiki/Chess960), [Placement/Pre-Chess](https://www.chessvariants.com/link/placement-chess)
-- [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse), [Loop](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Chessgi](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Pocket Knight](http://www.chessvariants.com/other.dir/pocket.html), Capablanca-Crazyhouse
+- [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse), [Bughouse](https://en.wikipedia.org/wiki/Bughouse_chess), [Loop](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Chessgi](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Pocket Knight](http://www.chessvariants.com/other.dir/pocket.html), Capablanca-Crazyhouse
 - [Seirawan](https://en.wikipedia.org/wiki/Seirawan_chess), Seirawan-Crazyhouse
 - [Amazon](https://en.wikipedia.org/wiki/Amazon_(chess)), [Chigorin](https://en.wikipedia.org/wiki/Chigorin_Chess), [Almost chess](https://en.wikipedia.org/wiki/Almost_Chess)
 - [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html), New Zealand
-- [Antichess](https://lichess.org/variant/antichess), [Giveaway](http://www.chessvariants.com/diffobjective.dir/giveaway.old.html), [Losers](https://www.chessclub.com/help/Wild17), [Codrus](http://www.binnewirtz.com/Schlagschach1.htm)
+- [Antichess](https://lichess.org/variant/antichess), [Giveaway](http://www.chessvariants.com/diffobjective.dir/giveaway.old.html), [Suicide](https://www.freechess.org/Help/HelpFiles/suicide_chess.html), [Losers](https://www.chessclub.com/help/Wild17), [Codrus](http://www.binnewirtz.com/Schlagschach1.htm)
 - [Extinction](https://en.wikipedia.org/wiki/Extinction_chess), [Kinglet](https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_Chess)
 - [King of the Hill](https://en.wikipedia.org/wiki/King_of_the_Hill_(chess)), [Racing Kings](https://en.wikipedia.org/wiki/V._R._Parton#Racing_Kings)
 - [Three-check](https://en.wikipedia.org/wiki/Three-check_chess), Five-check
 - [Los Alamos](https://en.wikipedia.org/wiki/Los_Alamos_chess)
 - [Horde](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess)
+- [Knightmate](https://www.chessvariants.com/diffobjective.dir/knightmate.html)
 
 ### Shogi variants
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi)
@@ -237,6 +238,14 @@ compile (for instance with Microsoft MSVC) you need to manually
 set/unset some switches in the compiler command line; see file *types.h*
 for a quick reference.
 
+When reporting an issue or a bug, please tell us which version and
+compiler you used to create your executable. These informations can
+be found by typing the following commands in a console:
+
+```
+    ./stockfish
+    compiler
+```
 
 ## Understanding the code base and participating in the project
 
@@ -246,12 +255,12 @@ community effort. There are a few ways to help contribute to its growth.
 ### Donating hardware
 
 Improving Stockfish requires a massive amount of testing. You can donate
-your hardware resources by installing the [Fishtest Worker](https://github.com/glinscott/fishtest/wiki/Running-the-worker)
-and view the current tests on [Fishtest](http://tests.stockfishchess.org/tests).
+your hardware resources by installing the [Fishtest Worker](https://github.com/glinscott/fishtest/wiki/Running-the-worker:-overview)
+and view the current tests on [Fishtest](https://tests.stockfishchess.org/tests).
 
 ### Improving the code
 
-If you want to help improve the code, there are several valuable ressources:
+If you want to help improve the code, there are several valuable resources:
 
 * [In this wiki,](https://www.chessprogramming.org) many techniques used in
 Stockfish are explained with a lot of background information.
@@ -263,7 +272,7 @@ Nevertheless, a helpful resource.
 
 * The latest source can always be found on [GitHub](https://github.com/official-stockfish/Stockfish).
 Discussions about Stockfish take place in the [FishCooking](https://groups.google.com/forum/#!forum/fishcooking)
-group and engine testing is done on [Fishtest](http://tests.stockfishchess.org/tests).
+group and engine testing is done on [Fishtest](https://tests.stockfishchess.org/tests).
 If you want to help improve Stockfish, please read this [guideline](https://github.com/glinscott/fishtest/wiki/Creating-my-first-test)
 first, where the basics of Stockfish development are explained.
 

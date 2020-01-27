@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -45,8 +45,8 @@ namespace UCI {
 
 // standard variants of XBoard/WinBoard
 std::set<string> standard_variants = {
-    "normal", "fischerandom", "3check", "makruk", "shatranj",
-    "asean", "seirawan", "crazyhouse", "suicide", "giveaway", "losers",
+    "normal", "nocastle", "fischerandom", "knightmate", "3check", "makruk", "shatranj",
+    "asean", "seirawan", "crazyhouse", "bughouse", "suicide", "giveaway", "losers",
     "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi"
 };
 
@@ -73,23 +73,26 @@ void on_variant_change(const Option &o) {
                   << " " << v->startFen
                   << sync_endl;
         // Send piece command with Betza notation
+        // https://www.gnu.org/software/xboard/Betza.html
         for (PieceType pt : v->pieceTypes)
         {
             string suffix =   pt == PAWN && v->doubleStep     ? "ifmnD"
                             : pt == KING && v->cambodianMoves ? "ismN"
                             : pt == FERS && v->cambodianMoves ? "ifnD"
                                                               : "";
+            if (pt == KING && v->castling)
+                 suffix += "O" + std::to_string((v->castlingKingsideFile - v->castlingQueensideFile) / 2);
             if (v->pieceDrops)
             {
-                if (pt == PAWN && !v->firstRankDrops)
+                if (pt == PAWN && !v->firstRankPawnDrops)
                     suffix += "j";
                 else if (pt == SHOGI_PAWN && !v->shogiDoubledPawn)
                     suffix += "f";
                 else if (pt == BISHOP && v->dropOppositeColoredBishop)
                     suffix += "s";
-                suffix += "@" + std::to_string(pt == PAWN ? v->promotionRank : v->maxRank + 1);
+                suffix += "@" + std::to_string(pt == PAWN && !v->promotionZonePawnDrops ? v->promotionRank : v->maxRank + 1);
             }
-            sync_cout << "piece " << v->pieceToChar[pt] << "& " << pieceMap.find(pt)->second->betza << suffix << sync_endl;
+            sync_cout << "piece " << v->pieceToChar[pt] << "& " << pieceMap.find(pt == KING ? v->kingType : pt)->second->betza << suffix << sync_endl;
             PieceType promType = v->promotedPieceType[pt];
             if (promType)
                 sync_cout << "piece +" << v->pieceToChar[pt] << "& " << pieceMap.find(promType)->second->betza << sync_endl;
@@ -163,8 +166,10 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
                   const Option& o = it.second;
                   os << "\nfeature option=\"" << it.first << " -" << o.type;
 
-                  if (o.type == "string" || o.type == "check" || o.type == "combo")
+                  if (o.type == "string" || o.type == "combo")
                       os << " " << o.defaultValue;
+                  else if (o.type == "check")
+                      os << " " << int(o.defaultValue == "true");
 
                   if (o.type == "combo")
                       for (string value : o.comboValues)
@@ -304,6 +309,10 @@ void Option::set_combo(std::vector<std::string> newComboValues) {
 
 void Option::set_default(std::string newDefault) {
     defaultValue = currentValue = newDefault;
+}
+
+const std::string Option::get_type() const {
+    return type;
 }
 
 } // namespace UCI

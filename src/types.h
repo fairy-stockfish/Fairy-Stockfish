@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -326,8 +326,8 @@ enum Value : int {
   AmazonValueMg            = 2700,  AmazonValueEg            = 2850,
   KnibisValueMg            = 1100,  KnibisValueEg            = 1200,
   BiskniValueMg            = 750,   BiskniValueEg            = 700,
-  KnirooValueMg            = 900,   KnirooValueEg            = 900,
-  RookniValueMg            = 900,   RookniValueEg            = 900,
+  KnirooValueMg            = 1050,  KnirooValueEg            = 1250,
+  RookniValueMg            = 800,   RookniValueEg            = 950,
   ShogiPawnValueMg         =  90,   ShogiPawnValueEg         = 100,
   LanceValueMg             = 350,   LanceValueEg             = 250,
   ShogiKnightValueMg       = 350,   ShogiKnightValueEg       = 300,
@@ -382,6 +382,8 @@ enum RiderType {
   RIDER_CANNON_V = 1 << 4,
   RIDER_HORSE = 1 << 5,
   RIDER_ELEPHANT = 1 << 6,
+  HOPPING_RIDERS = RIDER_CANNON_H | RIDER_CANNON_V,
+  ASYMMETRICAL_RIDERS = RIDER_HORSE,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];

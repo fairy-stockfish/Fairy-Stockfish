@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -47,9 +47,14 @@ namespace {
   ExtMove* make_promotions(const Position& pos, ExtMove* moveList, Square to) {
 
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
+    {
         for (PieceType pt : pos.promotion_piece_types())
             if (!pos.promotion_limit(pt) || pos.promotion_limit(pt) > pos.count(c, pt))
                 *moveList++ = make<PROMOTION>(to - D, to, pt);
+        PieceType pt = pos.promoted_piece_type(PAWN);
+        if (pt && !(pos.piece_promotion_on_capture() && pos.empty(to)))
+            *moveList++ = make<PIECE_PROMOTION>(to - D, to);
+    }
 
     return moveList;
   }
@@ -191,7 +196,7 @@ namespace {
             Square from = pop_lsb(&pawns);
             for (PieceType pt : pos.promotion_piece_types())
             {
-                if (pos.count(Us, pt))
+                if (pos.promotion_limit(pt) && pos.promotion_limit(pt) <= pos.count(Us, pt))
                     continue;
                 Bitboard b = (pos.attacks_from(Us, pt, from) & ~pos.pieces()) | from;
                 if (Type == EVASIONS)
@@ -263,7 +268,8 @@ namespace {
         // Xiangqi soldier
         if (pt == SOLDIER && pos.unpromoted_soldier(us, from))
             b1 &= file_bb(file_of(from));
-        Bitboard b2 = pos.promoted_piece_type(pt) ? b1 : Bitboard(0);
+        PieceType prom_pt = pos.promoted_piece_type(pt);
+        Bitboard b2 = prom_pt && (!pos.promotion_limit(prom_pt) || pos.promotion_limit(prom_pt) > pos.count(us, prom_pt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
 
         if (Checks)
@@ -329,9 +335,8 @@ namespace {
     if (Type != QUIET_CHECKS && Type != EVASIONS && pos.count<KING>(Us))
     {
         Square ksq = pos.square<KING>(Us);
-        Bitboard b = pos.attacks_from<KING>(ksq, Us) & target;
-        if (pos.xiangqi_general())
-            b &= PseudoAttacks[Us][WAZIR][ksq];
+        Bitboard b = (  (pos.attacks_from(Us, KING, ksq) & pos.pieces())
+                      | (pos.moves_from(Us, KING, ksq) & ~pos.pieces())) & target;
         while (b)
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(&b));
 
@@ -433,12 +438,8 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 
      Bitboard b = pos.moves_from(us, pt, from) & ~pos.pieces();
 
-     if (pt == KING)
-     {
+     if (pt == KING && pos.king_type() == KING)
          b &= ~PseudoAttacks[~us][QUEEN][pos.square<KING>(~us)];
-         if (pos.xiangqi_general())
-             b &= PseudoAttacks[us][WAZIR][from];
-     }
 
      while (b)
          moveList = make_move_and_gating<NORMAL>(pos, moveList, us, from, pop_lsb(&b));
@@ -465,9 +466,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   if (sliders & (pos.pieces(CANNON, BANNER) | pos.pieces(HORSE, ELEPHANT)))
   {
       Bitboard target = pos.board_bb() & ~pos.pieces(us);
-      Bitboard b = pos.attacks_from<KING>(ksq, us) & target;
-      if (pos.xiangqi_general())
-          b &= PseudoAttacks[us][WAZIR][ksq];
+      Bitboard b = (  (pos.attacks_from(us, KING, ksq) & pos.pieces())
+                    | (pos.moves_from(us, KING, ksq) & ~pos.pieces())) & target;
       while (b)
           moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
       return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList, target)
@@ -484,9 +484,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   }
 
   // Generate evasions for king, capture and non capture moves
-  Bitboard b = pos.attacks_from<KING>(ksq, us) & ~pos.pieces(us) & ~sliderAttacks;
-  if (pos.xiangqi_general())
-      b &= PseudoAttacks[us][WAZIR][ksq];
+  Bitboard b = (  (pos.attacks_from(us, KING, ksq) & pos.pieces())
+                | (pos.moves_from(us, KING, ksq) & ~pos.pieces())) & ~pos.pieces(us) & ~sliderAttacks;
   while (b)
       moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
 

@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2019 Fabian Fichter
+  Copyright (C) 2018-2020 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -91,6 +91,18 @@ template <class T> void VariantParser::parse_attribute(const std::string& key, T
         set(it->second, target);
 }
 
+void VariantParser::parse_attribute(const std::string& key, PieceType& target, std::string pieceToChar) {
+    const auto& it = config.find(key);
+    if (it != config.end())
+    {
+        char token;
+        size_t idx;
+        std::stringstream ss(it->second);
+        if (ss >> token && (idx = pieceToChar.find(toupper(token))) != std::string::npos)
+            target = PieceType(idx);
+    }
+}
+
 Variant* VariantParser::parse() {
     Variant* v = new Variant();
     v->reset_pieces();
@@ -104,7 +116,12 @@ Variant* VariantParser::parse(Variant* v) {
     {
         const auto& keyValue = config.find(pieceInfo.second->name);
         if (keyValue != config.end() && !keyValue->second.empty())
-            v->add_piece(pieceInfo.first, keyValue->second.at(0));
+        {
+            if (isalpha(keyValue->second.at(0)))
+                v->add_piece(pieceInfo.first, keyValue->second.at(0));
+            else
+                v->remove_piece(pieceInfo.first);
+        }
     }
     parse_attribute("variantTemplate", v->variantTemplate);
     parse_attribute("pieceToCharTable", v->pieceToCharTable);
@@ -112,16 +129,18 @@ Variant* VariantParser::parse(Variant* v) {
     parse_attribute("maxRank", v->maxRank);
     parse_attribute("maxFile", v->maxFile);
     parse_attribute("chess960", v->chess960);
+    parse_attribute("twoBoards", v->twoBoards);
     parse_attribute("startFen", v->startFen);
     parse_attribute("promotionRank", v->promotionRank);
     // promotion piece types
     const auto& it_prom = config.find("promotionPieceTypes");
     if (it_prom != config.end())
     {
+        v->promotionPieceTypes = {};
         char token;
         size_t idx;
         std::stringstream ss(it_prom->second);
-        while (ss >> token && ((idx = v->pieceToChar.find(token)) != std::string::npos))
+        while (ss >> token && ((idx = v->pieceToChar.find(toupper(token))) != std::string::npos))
             v->promotionPieceTypes.insert(PieceType(idx));
     }
     parse_attribute("sittuyinPromotion", v->sittuyinPromotion);
@@ -142,7 +161,7 @@ Variant* VariantParser::parse(Variant* v) {
         size_t idx, idx2;
         std::stringstream ss(it_prom_pt->second);
         while (   ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos && ss >> token
-               && ss >> token && (idx2 = v->pieceToChar.find(toupper(token))) != std::string::npos)
+               && ss >> token && (idx2 = (token == '-' ? 0 : v->pieceToChar.find(toupper(token)))) != std::string::npos)
             v->promotedPieceType[idx] = PieceType(idx2);
     }
     parse_attribute("piecePromotionOnCapture", v->piecePromotionOnCapture);
@@ -158,23 +177,16 @@ Variant* VariantParser::parse(Variant* v) {
     parse_attribute("castlingKingsideFile", v->castlingKingsideFile);
     parse_attribute("castlingQueensideFile", v->castlingQueensideFile);
     parse_attribute("castlingRank", v->castlingRank);
-    // castling rook piece type
-    const auto& it_castling_rook_piece = config.find("castlingRookPiece");
-    if (it_castling_rook_piece != config.end())
-    {
-        char token;
-        size_t idx;
-        std::stringstream ss(it_castling_rook_piece->second);
-        if (ss >> token && (idx = v->pieceToChar.find(token)) != std::string::npos)
-            v->castlingRookPiece = PieceType(idx);
-    }
+    parse_attribute("castlingRookPiece", v->castlingRookPiece, v->pieceToChar);
+    parse_attribute("kingType", v->kingType, v->pieceToChar);
     parse_attribute("checking", v->checking);
     parse_attribute("mustCapture", v->mustCapture);
     parse_attribute("mustDrop", v->mustDrop);
     parse_attribute("pieceDrops", v->pieceDrops);
     parse_attribute("dropLoop", v->dropLoop);
     parse_attribute("capturesToHand", v->capturesToHand);
-    parse_attribute("firstRankDrops", v->firstRankDrops);
+    parse_attribute("firstRankPawnDrops", v->firstRankPawnDrops);
+    parse_attribute("promotionZonePawnDrops", v->promotionZonePawnDrops);
     parse_attribute("dropOnTop", v->dropOnTop);
     parse_attribute("whiteDropRegion", v->whiteDropRegion);
     parse_attribute("blackDropRegion", v->blackDropRegion);
@@ -187,7 +199,6 @@ Variant* VariantParser::parse(Variant* v) {
     parse_attribute("seirawanGating", v->seirawanGating);
     parse_attribute("cambodianMoves", v->cambodianMoves);
     parse_attribute("flyingGeneral", v->flyingGeneral);
-    parse_attribute("xiangqiGeneral", v->xiangqiGeneral);
     parse_attribute("xiangqiSoldier", v->xiangqiSoldier);
     // game end
     parse_attribute("nMoveRule", v->nMoveRule);
@@ -206,22 +217,14 @@ Variant* VariantParser::parse(Variant* v) {
     const auto& it_ext = config.find("extinctionPieceTypes");
     if (it_ext != config.end())
     {
+        v->extinctionPieceTypes = {};
         char token;
         size_t idx;
         std::stringstream ss(it_ext->second);
-        while (ss >> token && ((idx = v->pieceToChar.find(token)) != std::string::npos || token == '*'))
+        while (ss >> token && ((idx = v->pieceToChar.find(toupper(token))) != std::string::npos || token == '*'))
             v->extinctionPieceTypes.insert(PieceType(token == '*' ? 0 : idx));
     }
-    // flag piece type
-    const auto& it_flag_pt = config.find("flagPiece");
-    if (it_flag_pt != config.end())
-    {
-        char token;
-        size_t idx;
-        std::stringstream ss(it_flag_pt->second);
-        if (ss >> token && (idx = v->pieceToChar.find(token)) != std::string::npos)
-            v->flagPiece = PieceType(idx);
-    }
+    parse_attribute("flagPiece", v->flagPiece, v->pieceToChar);
     parse_attribute("whiteFlag", v->whiteFlag);
     parse_attribute("blackFlag", v->blackFlag);
     parse_attribute("flagMove", v->flagMove);
