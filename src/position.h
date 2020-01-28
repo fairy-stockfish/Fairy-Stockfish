@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,7 +52,6 @@ struct StateInfo {
   Bitboard gatesBB[COLOR_NB];
 
   // Not copied when making a move (will be recomputed anyhow)
-  int repetition;
   Key        key;
   Bitboard   checkersBB;
   Piece      capturedPiece;
@@ -63,6 +62,7 @@ struct StateInfo {
   Bitboard   checkSquares[PIECE_TYPE_NB];
   bool       capturedpromoted;
   bool       shak;
+  int        repetition;
 };
 
 /// A list to keep track of the position states along the setup moves (from the
@@ -89,12 +89,13 @@ public:
   // FEN string input/output
   Position& set(const Variant* v, const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th, bool sfen = false);
   Position& set(const std::string& code, Color c, StateInfo* si);
-  const std::string fen(bool sfen = false) const;
+  const std::string fen(bool sfen = false, std::string holdings = "-") const;
 
   // Variant rule properties
   const Variant* variant() const;
   Rank max_rank() const;
   File max_file() const;
+  bool two_boards() const;
   Bitboard board_bb() const;
   Bitboard board_bb(Color c, PieceType pt) const;
   const std::set<PieceType>& piece_types() const;
@@ -119,13 +120,15 @@ public:
   File castling_queenside_file() const;
   Rank castling_rank(Color c) const;
   PieceType castling_rook_piece() const;
+  PieceType king_type() const;
   bool checking_permitted() const;
+  bool drop_checks() const;
   bool must_capture() const;
   bool must_drop() const;
   bool piece_drops() const;
   bool drop_loop() const;
   bool captures_to_hand() const;
-  bool first_rank_drops() const;
+  bool first_rank_pawn_drops() const;
   bool drop_on_top() const;
   Bitboard drop_region(Color c) const;
   Bitboard drop_region(Color c, PieceType pt) const;
@@ -137,7 +140,6 @@ public:
   bool gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
-  bool xiangqi_general() const;
   bool unpromoted_soldier(Color c, Square s) const;
   // winning conditions
   int n_move_rule() const;
@@ -317,6 +319,11 @@ inline File Position::max_file() const {
   return var->maxFile;
 }
 
+inline bool Position::two_boards() const {
+  assert(var != nullptr);
+  return var->twoBoards;
+}
+
 inline Bitboard Position::board_bb() const {
   assert(var != nullptr);
   return board_size_bb(var->maxFile, var->maxRank);
@@ -389,7 +396,7 @@ inline bool Position::piece_demotion() const {
 
 inline bool Position::endgame_eval() const {
   assert(var != nullptr);
-  return var->endgameEval;
+  return var->endgameEval && !count_in_hand(WHITE, ALL_PIECES) && !count_in_hand(BLACK, ALL_PIECES);
 }
 
 inline bool Position::double_step_enabled() const {
@@ -437,9 +444,19 @@ inline PieceType Position::castling_rook_piece() const {
   return var->castlingRookPiece;
 }
 
+inline PieceType Position::king_type() const {
+  assert(var != nullptr);
+  return var->kingType;
+}
+
 inline bool Position::checking_permitted() const {
   assert(var != nullptr);
   return var->checking;
+}
+
+inline bool Position::drop_checks() const {
+  assert(var != nullptr);
+  return var->dropChecks;
 }
 
 inline bool Position::must_capture() const {
@@ -467,9 +484,9 @@ inline bool Position::captures_to_hand() const {
   return var->capturesToHand;
 }
 
-inline bool Position::first_rank_drops() const {
+inline bool Position::first_rank_pawn_drops() const {
   assert(var != nullptr);
-  return var->firstRankDrops;
+  return var->firstRankPawnDrops;
 }
 
 inline bool Position::drop_on_top() const {
@@ -491,8 +508,9 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   // Pawns on back ranks
   if (pt == PAWN)
   {
-      b &= ~promotion_zone_bb(c, promotion_rank(), max_rank());
-      if (!first_rank_drops())
+      if (!var->promotionZonePawnDrops)
+          b &= ~promotion_zone_bb(c, promotion_rank(), max_rank());
+      if (!first_rank_pawn_drops())
           b &= ~rank_bb(relative_rank(c, RANK_1, max_rank()));
   }
   // Doubled shogi pawns
@@ -547,11 +565,6 @@ inline bool Position::cambodian_moves() const {
   return var->cambodianMoves;
 }
 
-inline bool Position::xiangqi_general() const {
-  assert(var != nullptr);
-  return var->xiangqiGeneral;
-}
-
 inline bool Position::unpromoted_soldier(Color c, Square s) const {
   assert(var != nullptr);
   return var->xiangqiSoldier && relative_rank(c, s, var->maxRank) <= RANK_5;
@@ -569,6 +582,11 @@ inline int Position::n_fold_rule() const {
 
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
+  if (var->stalematePieceCount)
+  {
+      int c = count<ALL_PIECES>(sideToMove) - count<ALL_PIECES>(~sideToMove);
+      return c == 0 ? VALUE_DRAW : convert_mate_value(c < 0 ? var->stalemateValue : -var->stalemateValue, ply);
+  }
   return convert_mate_value(var->stalemateValue, ply);
 }
 
@@ -769,24 +787,28 @@ inline int Position::castling_rights(Color c) const {
 }
 
 inline bool Position::castling_impeded(CastlingRights cr) const {
+  assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
+
   return byTypeBB[ALL_PIECES] & castlingPath[cr];
 }
 
 inline Square Position::castling_rook_square(CastlingRights cr) const {
+  assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
+
   return castlingRookSquare[cr];
 }
 
 template<PieceType Pt>
 inline Bitboard Position::attacks_from(Square s, Color c) const {
-  return attacks_bb(c, Pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, Pt);
+  return attacks_bb(c, Pt == KING ? king_type() : Pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, Pt);
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
-  return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
+  return attacks_bb(c, pt == KING ? king_type() : pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
 }
 
 inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
-  return moves_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
+  return moves_bb(c, pt == KING ? king_type() : pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
 }
 
 inline Bitboard Position::attackers_to(Square s) const {

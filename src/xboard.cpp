@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2019 Fabian Fichter
+  Copyright (C) 2018-2020 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #include <string>
 
 #include "evaluate.h"
+#include "partner.h"
 #include "search.h"
 #include "thread.h"
 #include "types.h"
@@ -89,12 +90,17 @@ namespace XBoard {
 /// StateMachine::process_command() processes commands of the XBoard protocol.
 
 void StateMachine::process_command(Position& pos, std::string token, std::istringstream& is, StateListPtr& states) {
-  if (moveAfterSearch)
+  if (moveAfterSearch && token != "ptell")
   {
+      // abort search in bughouse when receiving "holding" command
+      bool doMove = token != "holding" || Threads.abort.exchange(true);
       Threads.stop = true;
       Threads.main()->wait_for_search_finished();
-      do_move(pos, moveList, states, Threads.main()->bestThread->rootMoves[0].pv[0]);
-      moveAfterSearch = false;
+      if (doMove)
+      {
+          do_move(pos, moveList, states, Threads.main()->bestThread->rootMoves[0].pv[0]);
+          moveAfterSearch = false;
+      }
   }
   if (token == "protover")
   {
@@ -102,17 +108,24 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       for (std::string v : variants.get_keys())
           if (v != "chess")
               vars += "," + v;
-      sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 myname=Fairy-Stockfish variants=\""
+      sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 ping=1 myname=Fairy-Stockfish variants=\""
                 << vars << "\""
                 << Options << sync_endl
                 << "feature done=1" << sync_endl;
   }
   else if (token == "accepted" || token == "rejected" || token == "result" || token == "?") {}
+  else if (token == "ping")
+  {
+      if (!(is >> token))
+          token = "";
+      sync_cout << "pong " << token << sync_endl;
+  }
   else if (token == "new")
   {
       setboard(pos, states);
       // play second by default
       playColor = ~pos.side_to_move();
+      Threads.sit = false;
   }
   else if (token == "variant")
   {
@@ -190,7 +203,11 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       std::getline(is, name, '=');
       std::getline(is, value);
       if (Options.count(name))
+      {
+          if (Options[name].get_type() == "check")
+              value = value == "1" ? "true" : "false";
           Options[name] = value;
+      }
   }
   else if (token == "analyze")
   {
@@ -216,6 +233,38 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           if (Options["UCI_AnalyseMode"])
               go(pos, analysisLimits, states);
       }
+  }
+  // Bughouse commands
+  else if (token == "partner")
+      Partner.parse_partner(is);
+  else if (token == "ptell")
+  {
+      Partner.parse_ptell(is, pos);
+      // play move requested by partner
+      if (moveAfterSearch && Partner.moveRequested)
+      {
+          Threads.stop = true;
+          Threads.main()->wait_for_search_finished();
+          sync_cout << "move " << UCI::move(pos, Partner.moveRequested) << sync_endl;
+          do_move(pos, moveList, states, Partner.moveRequested);
+          moveAfterSearch = false;
+          Partner.moveRequested = MOVE_NONE;
+      }
+  }
+  else if (token == "holding")
+  {
+      // holding [<white>] [<black>] <color><piece>
+      std::string white_holdings, black_holdings;
+      if (   std::getline(is, token, '[') && std::getline(is, white_holdings, ']')
+          && std::getline(is, token, '[') && std::getline(is, black_holdings, ']'))
+      {
+          std::transform(black_holdings.begin(), black_holdings.end(), black_holdings.begin(), ::tolower);
+          std::string fen = pos.fen(false, white_holdings + black_holdings);
+          setboard(pos, states, fen);
+      }
+      // restart search
+      if (moveAfterSearch)
+          go(pos, limits, states);
   }
   // Additional custom non-XBoard commands
   else if (token == "perft")

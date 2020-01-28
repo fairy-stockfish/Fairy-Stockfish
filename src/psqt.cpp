@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -95,8 +95,8 @@ constexpr Score Bonus[PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
 };
 
 constexpr Score KingBonus[RANK_NB][int(FILE_NB) / 2] = {
-   { S(271,  1), S(327, 45), S(270, 85), S(192, 76) },
-   { S(278, 53), S(303,100), S(230,133), S(174,135) },
+   { S(271,  1), S(327, 45), S(271, 85), S(198, 76) },
+   { S(278, 53), S(303,100), S(234,133), S(179,135) },
    { S(195, 88), S(258,130), S(169,169), S(120,175) },
    { S(164,103), S(190,156), S(138,172), S( 98,172) },
    { S(154, 96), S(179,166), S(105,199), S( 70,199) },
@@ -125,6 +125,11 @@ Score psq[PIECE_NB][SQUARE_NB + 1];
 // tables are initialized by flipping and changing the sign of the white scores.
 void init(const Variant* v) {
 
+  PieceType strongestPiece = NO_PIECE_TYPE;
+  for (PieceType pt : v->pieceTypes)
+      if (PieceValue[MG][pt] > PieceValue[MG][strongestPiece])
+          strongestPiece = pt;
+
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
       Piece pc = make_piece(WHITE, pt);
@@ -145,8 +150,11 @@ void init(const Variant* v) {
 
       // For drop variants, halve the piece values
       if (v->capturesToHand || !v->checking)
-          score = make_score(mg_value(score) * int(EndgameLimit) / (2 * EndgameLimit + mg_value(score)),
-                             eg_value(score) * int(EndgameLimit) / (2 * EndgameLimit + eg_value(score)));
+          score = make_score(mg_value(score) * 3500 / (7000 + mg_value(score)),
+                             eg_value(score) * 3500 / (7000 + eg_value(score)));
+      else if (pt == strongestPiece)
+              score += make_score(std::max(QueenValueMg - PieceValue[MG][pt], VALUE_ZERO) / 20,
+                                  std::max(QueenValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
 
       // For antichess variants, use negative piece values
       if (   v->extinctionValue == VALUE_MATE

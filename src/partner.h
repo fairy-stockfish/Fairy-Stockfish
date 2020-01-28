@@ -16,36 +16,26 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef XBOARD_H_INCLUDED
-#define XBOARD_H_INCLUDED
+#ifndef PARTNER_H_INCLUDED
+#define PARTNER_H_INCLUDED
 
+#include <atomic>
 #include <sstream>
-#include <string>
 
-#include "types.h"
+#include "position.h"
 
-class Position;
+/// PartnerHandler manages the communication with the partner
+/// in games played on two boards, such as bughouse.
 
-namespace XBoard {
+struct PartnerHandler {
+    void parse_partner(std::istringstream& is);
+    void parse_ptell(std::istringstream& is, const Position& pos);
 
-/// StateMachine class maintains the states required by XBoard protocol
-
-class StateMachine {
-public:
-  StateMachine() {
-    moveList = std::deque<Move>();
-    moveAfterSearch = false;
-    playColor = COLOR_NB;
-  }
-  void process_command(Position& pos, std::string token, std::istringstream& is, StateListPtr& states);
-
-private:
-  std::deque<Move> moveList;
-  Search::LimitsType limits;
-  bool moveAfterSearch;
-  Color playColor;
+    std::atomic<bool> isFairy;
+    std::atomic<bool> sitRequested;
+    Move moveRequested;
 };
 
-} // namespace XBoard
+extern PartnerHandler Partner;
 
-#endif // #ifndef XBOARD_H_INCLUDED
+#endif // #ifndef PARTNER_H_INCLUDED

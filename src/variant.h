@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2019 Fabian Fichter
+  Copyright (C) 2018-2020 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@ struct Variant {
   Rank maxRank = RANK_8;
   File maxFile = FILE_H;
   bool chess960 = false;
+  bool twoBoards = false;
   std::set<PieceType> pieceTypes = { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
   std::string pieceToChar =  " PNBRQ" + std::string(KING - QUEEN - 1, ' ') + "K" + std::string(PIECE_TYPE_NB - KING - 1, ' ')
                            + " pnbrq" + std::string(KING - QUEEN - 1, ' ') + "k" + std::string(PIECE_TYPE_NB - KING - 1, ' ');
@@ -47,7 +48,7 @@ struct Variant {
   Rank promotionRank = RANK_8;
   std::set<PieceType, std::greater<PieceType> > promotionPieceTypes = { QUEEN, ROOK, BISHOP, KNIGHT };
   bool sittuyinPromotion = false;
-  uint8_t promotionLimit[PIECE_TYPE_NB] = {}; // 0 means unlimited
+  int promotionLimit[PIECE_TYPE_NB] = {}; // 0 means unlimited
   PieceType promotedPieceType[PIECE_TYPE_NB] = {};
   bool piecePromotionOnCapture = false;
   bool mandatoryPawnPromotion = true;
@@ -63,13 +64,16 @@ struct Variant {
   File castlingQueensideFile = FILE_C;
   Rank castlingRank = RANK_1;
   PieceType castlingRookPiece = ROOK;
+  PieceType kingType = KING;
   bool checking = true;
+  bool dropChecks = true;
   bool mustCapture = false;
   bool mustDrop = false;
   bool pieceDrops = false;
   bool dropLoop = false;
   bool capturesToHand = false;
-  bool firstRankDrops = false;
+  bool firstRankPawnDrops = false;
+  bool promotionZonePawnDrops = false;
   bool dropOnTop = false;
   Bitboard whiteDropRegion = AllSquares;
   Bitboard blackDropRegion = AllSquares;
@@ -82,7 +86,6 @@ struct Variant {
   bool seirawanGating = false;
   bool cambodianMoves = false;
   bool flyingGeneral = false;
-  bool xiangqiGeneral = false;
   bool xiangqiSoldier = false;
   // game end
   int nMoveRule = 50;
@@ -91,6 +94,7 @@ struct Variant {
   bool nFoldValueAbsolute = false;
   bool perpetualCheckIllegal = false;
   Value stalemateValue = VALUE_DRAW;
+  bool stalematePieceCount = false; // multiply stalemate value by sign(count(~stm) - count(stm))
   Value checkmateValue = -VALUE_MATE;
   bool shogiPawnDropMateIllegal = false;
   bool shatarMateRule = false;

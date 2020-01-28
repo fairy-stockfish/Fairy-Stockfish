@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2019 Fabian Fichter
+  Copyright (C) 2018-2020 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ namespace {
     // Define variant rules
     Variant* fairy_variant_base() {
         Variant* v = new Variant();
+        v->pieceToCharTable = "PNBRQ................Kpnbrq................k";
         v->endgameEval = false;
         return v;
     }
@@ -46,6 +47,12 @@ namespace {
         v->chess960 = true;
         return v;
     }
+    Variant* nocastle_variant() {
+        Variant* v = chess_variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        v->castling = false;
+        return v;
+    }
     Variant* fairy_variant() {
         Variant* v = chess_variant();
         v->add_piece(SILVER, 's');
@@ -55,6 +62,7 @@ namespace {
     Variant* makruk_variant() {
         Variant* v = chess_variant();
         v->variantTemplate = "makruk";
+        v->pieceToCharTable = "PN.R.M....SKpn.r.m....sk";
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(KHON, 's');
@@ -166,6 +174,15 @@ namespace {
         v->checking = false;
         return v;
     }
+    Variant* knightmate_variant() {
+        Variant* v = fairy_variant_base();
+        v->add_piece(COMMONER, 'm');
+        v->remove_piece(KNIGHT);
+        v->startFen = "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1";
+        v->kingType = KNIGHT;
+        v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP};
+        return v;
+    }
     Variant* losers_variant() {
         Variant* v = fairy_variant_base();
         v->checkmateValue = VALUE_MATE;
@@ -191,6 +208,11 @@ namespace {
         Variant* v = giveaway_variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
         v->castling = false;
+        return v;
+    }
+    Variant* suicide_variant() {
+        Variant* v = antichess_variant();
+        v->stalematePieceCount = true;
         return v;
     }
     Variant* codrus_variant() {
@@ -248,11 +270,19 @@ namespace {
     }
     Variant* chessgi_variant() {
         Variant* v = loop_variant();
-        v->firstRankDrops = true;
+        v->firstRankPawnDrops = true;
+        return v;
+    }
+    Variant* bughouse_variant() {
+        Variant* v = crazyhouse_variant();
+        v->variantTemplate = "bughouse";
+        v->twoBoards = true;
+        v->capturesToHand = false;
         return v;
     }
     Variant* pocketknight_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
+        v->variantTemplate = "bughouse";
         v->pocketSize = 2;
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
         v->pieceDrops = true;
@@ -261,6 +291,7 @@ namespace {
     }
     Variant* placement_variant() {
         Variant* v = chess_variant();
+        v->variantTemplate = "bughouse";
         v->startFen = "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - - 0 1";
         v->mustDrop = true;
         v->pieceDrops = true;
@@ -273,6 +304,8 @@ namespace {
     }
     Variant* sittuyin_variant() {
         Variant* v = makruk_variant();
+        v->variantTemplate = "bughouse";
+        v->pieceToCharTable = "PN.R.F....SKpn.r.f....sk";
         v->startFen = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1";
         v->remove_piece(MET);
         v->add_piece(MET, 'f');
@@ -284,13 +317,14 @@ namespace {
         v->sittuyinRookDrop = true;
         v->promotionRank = RANK_1; // no regular promotions
         v->sittuyinPromotion = true;
+        v->promotionLimit[FERS] = 1;
         v->immobilityIllegal = false;
         v->countingRule = ASEAN_COUNTING;
         v->nMoveRule = 50;
         return v;
     }
     Variant* seirawan_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->variantTemplate = "seirawan";
         v->pieceToCharTable = "PNBRQ.E..........H...Kpnbrq.e..........h...k";
         v->add_piece(ARCHBISHOP, 'h');
@@ -496,6 +530,7 @@ namespace {
     }
     Variant* clobber_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "P.................p.................";
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
         v->reset_pieces();
@@ -510,6 +545,7 @@ namespace {
     }
     Variant* breakthrough_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "P.................p.................";
         v->reset_pieces();
         v->add_piece(BREAKTHROUGH_PIECE, 'p');
         v->startFen = "pppppppp/pppppppp/8/8/8/8/PPPPPPPP/PPPPPPPP w 0 1";
@@ -543,6 +579,7 @@ namespace {
                                               SQ_C7, SQ_D7, SQ_E7);
         v->mobilityRegion[WHITE][KING] = white_castle;
         v->mobilityRegion[BLACK][KING] = black_castle;
+        v->kingType = WAZIR;
         v->promotionPieceTypes = {};
         v->doubleStep = false;
         v->castling = false;
@@ -550,7 +587,6 @@ namespace {
         //v->nFoldValue = VALUE_MATE;
         v->perpetualCheckIllegal = true;
         v->flyingGeneral = true;
-        v->xiangqiGeneral = true;
         return v;
     }
 #ifdef LARGEBOARDS
@@ -567,7 +603,7 @@ namespace {
         return v;
     }
     Variant* capablanca_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -584,6 +620,7 @@ namespace {
         v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
+        v->endgameEval = false;
         return v;
     }
     Variant* caparandom_variant() {
@@ -597,7 +634,7 @@ namespace {
         return v;
     }
     Variant* janus_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ............J...Kpnbrq............J...k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -609,7 +646,7 @@ namespace {
         return v;
     }
     Variant* modern_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ..M.............Kpnbrq..m.............k";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -622,7 +659,7 @@ namespace {
         return v;
     }
     Variant* chancellor_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ...........CKpnbrq...........ck";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -642,7 +679,7 @@ namespace {
         return v;
     }
     Variant* centaur_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->pieceToCharTable = "PNBRQ...............CKpnbrq...............ck";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -756,11 +793,26 @@ namespace {
         v->xiangqiSoldier = true;
         return v;
     }
+    // Manchu/Yitong chess
+    // https://en.wikipedia.org/wiki/Manchu_chess
     Variant* manchu_variant() {
         Variant* v = xiangqi_variant();
         v->pieceToCharTable = "PN.R.AB..K.C....M.....pn.r.ab..k.c..........";
         v->add_piece(BANNER, 'm');
         v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/9/9/M1BAKAB2 w - - 0 1";
+        return v;
+    }
+    // Supply chess
+    // https://en.wikipedia.org/wiki/Xiangqi#Variations
+    Variant* supply_variant() {
+        Variant* v = xiangqi_variant();
+        v->variantTemplate = "bughouse";
+        v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR[] w - - 0 1";
+        v->twoBoards = true;
+        v->pieceDrops = true;
+        v->dropChecks = false;
+        v->whiteDropRegion = v->mobilityRegion[WHITE][ELEPHANT];
+        v->blackDropRegion = v->mobilityRegion[BLACK][ELEPHANT];
         return v;
     }
 #endif
@@ -775,6 +827,7 @@ void VariantMap::init() {
     add("chess", chess_variant());
     add("normal", chess_variant());
     add("fischerandom", chess960_variant());
+    add("nocastle", nocastle_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("cambodian", cambodian_variant());
@@ -787,9 +840,11 @@ void VariantMap::init() {
     add("newzealand", newzealand_variant());
     add("kingofthehill", kingofthehill_variant());
     add("racingkings", racingkings_variant());
+    add("knightmate", knightmate_variant());
     add("losers", losers_variant());
     add("giveaway", giveaway_variant());
     add("antichess", antichess_variant());
+    add("suicide", suicide_variant());
     add("codrus", codrus_variant());
     add("extinction", extinction_variant());
     add("kinglet", kinglet_variant());
@@ -799,6 +854,7 @@ void VariantMap::init() {
     add("crazyhouse", crazyhouse_variant());
     add("loop", loop_variant());
     add("chessgi", chessgi_variant());
+    add("bughouse", bughouse_variant());
     add("pocketknight", pocketknight_variant());
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
@@ -838,6 +894,7 @@ void VariantMap::init() {
     add("clobber10", clobber10_variant());
     add("xiangqi", xiangqi_variant());
     add("manchu", manchu_variant());
+    add("supply", supply_variant());
 #endif
 }
 
