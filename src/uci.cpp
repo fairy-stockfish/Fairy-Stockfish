@@ -142,6 +142,15 @@ namespace {
         else if (token == "opptime")   is >> limits.time[~pos.side_to_move()];
         else if (token == "increment") is >> limits.inc[pos.side_to_move()];
         else if (token == "oppinc")    is >> limits.inc[~pos.side_to_move()];
+        // USI commands
+        else if (token == "byoyomi")
+        {
+            int byoyomi = 0;
+            is >> byoyomi;
+            limits.inc[WHITE] = limits.inc[BLACK] = byoyomi;
+            limits.time[WHITE] += byoyomi;
+            limits.time[BLACK] += byoyomi;
+        }
 
     Threads.start_thinking(pos, states, limits, ponderMode);
   }
@@ -366,7 +375,7 @@ string UCI::move(const Position& pos, Move m) {
   Square to = to_sq(m);
 
   if (m == MOVE_NONE)
-      return "(none)";
+      return Options["Protocol"] == "usi" ? "resign" : "(none)";
 
   if (m == MOVE_NULL)
       return "0000";
