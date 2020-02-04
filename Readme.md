@@ -47,7 +47,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Clobber](https://en.wikipedia.org/wiki/Clobber)
 
 ## Installation
-You can download [binary releases](https://github.com/ianfab/Fairy-Stockfish/releases) for Windows and Linux or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you probably want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage). Or play against it right away online at [pychess-variants](https://pychess-variants.herokuapp.com/).
+You can download [binary releases](https://github.com/ianfab/Fairy-Stockfish/releases) for Windows and Linux or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you probably want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage). Or play against it right away online at [pychess-variants](https://www.pychess.org/).
 
 ## UCI parameters
 
