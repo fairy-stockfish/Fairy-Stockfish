@@ -211,6 +211,16 @@ namespace {
         Options["VariantPath"] = token;
   }
 
+  // check() is called when engine receives the "check" command.
+  // The function reads variant configuration files and validates them.
+
+  void check(istringstream& is) {
+
+    string token;
+    while (is >> token)
+        variants.parse<true>(token);
+  }
+
 } // namespace
 
 
@@ -291,6 +301,7 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "eval")     sync_cout << Eval::trace(pos) << sync_endl;
       else if (token == "compiler") sync_cout << compiler_info() << sync_endl;
       else if (token == "load")     { load(is); argc = 1; } // continue reading stdin
+      else if (token == "check")    check(is);
       else
           sync_cout << "Unknown command: " << cmd << sync_endl;
 

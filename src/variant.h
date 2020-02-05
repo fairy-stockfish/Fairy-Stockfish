@@ -136,7 +136,7 @@ struct Variant {
 class VariantMap : public std::map<std::string, const Variant*> {
 public:
   void init();
-  void parse(std::string path);
+  template <bool DoCheck> void parse(std::string path);
   void clear_all();
   std::vector<std::string> get_keys();
 
