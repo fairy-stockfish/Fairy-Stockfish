@@ -259,7 +259,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           && std::getline(is, token, '[') && std::getline(is, black_holdings, ']'))
       {
           std::transform(black_holdings.begin(), black_holdings.end(), black_holdings.begin(), ::tolower);
-          std::string fen = pos.fen(false, white_holdings + black_holdings);
+          std::string fen = pos.fen(false, false, white_holdings + black_holdings);
           setboard(pos, states, fen);
       }
       // restart search

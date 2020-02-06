@@ -300,7 +300,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           ++sq;
       }
       // Set flag for promoted pieces
-      else if (captures_to_hand() && !drop_loop() && token == '~')
+      else if (token == '~')
           promotedPieces |= SquareBB[sq - 1];
       // Stop before pieces in hand
       else if (token == '[')
@@ -574,7 +574,7 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
 /// Position::fen() returns a FEN representation of the position. In case of
 /// Chess960 the Shredder-FEN notation is used. This is mainly a debugging function.
 
-const string Position::fen(bool sfen, std::string holdings) const {
+const string Position::fen(bool sfen, bool showPromoted, std::string holdings) const {
 
   int emptyCnt;
   std::ostringstream ss;
@@ -599,7 +599,7 @@ const string Position::fen(bool sfen, std::string holdings) const {
                   ss << piece_to_char()[piece_on(make_square(f, r))];
 
                   // Set promoted pieces
-                  if (captures_to_hand() && is_promoted(make_square(f, r)))
+                  if (((captures_to_hand() && !drop_loop()) || showPromoted) && is_promoted(make_square(f, r)))
                       ss << "~";
               }
           }
@@ -1173,17 +1173,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       // Update board and piece lists
       remove_piece(captured, capsq);
+      st->capturedpromoted = is_promoted(to);
       if (captures_to_hand())
       {
-          st->capturedpromoted = is_promoted(to);
-          Piece pieceToHand =  !is_promoted(to)   ? ~captured
+          Piece pieceToHand =  !is_promoted(to) || drop_loop() ? ~captured
                              : unpromotedCaptured ? ~unpromotedCaptured
                                                   : make_piece(~color_of(captured), PAWN);
           add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
-          promotedPieces -= to;
       }
+      promotedPieces -= to;
       unpromotedBoard[to] = NO_PIECE;
 
       // Update material hash key and prefetch access to materialTable
@@ -1271,13 +1271,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           remove_piece(pc, to);
           put_piece(promotion, to);
+          promotedPieces |= to;
           if (type_of(m) == PIECE_PROMOTION)
-          {
-              promotedPieces |= to;
               unpromotedBoard[to] = pc;
-          }
-          else if (captures_to_hand() && !drop_loop())
-              promotedPieces |= to;
 
           // Update hash keys
           k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
@@ -1452,8 +1448,7 @@ void Position::undo_move(Move m) {
       remove_piece(pc, to);
       pc = make_piece(us, PAWN);
       put_piece(pc, to);
-      if (captures_to_hand() && !drop_loop())
-          promotedPieces -= to;
+      promotedPieces -= to;
   }
   else if (type_of(m) == PIECE_PROMOTION)
   {
@@ -1483,7 +1478,7 @@ void Position::undo_move(Move m) {
           undrop_piece(make_piece(us, in_hand_piece_type(m)), pc, to); // Remove the dropped piece
       else
           move_piece(pc, to, from); // Put the piece back at the source square
-      if (captures_to_hand() && !drop_loop() && is_promoted(to))
+      if (is_promoted(to))
       {
           promotedPieces = (promotedPieces - to);
           if (type_of(m) != DROP)
@@ -1513,13 +1508,12 @@ void Position::undo_move(Move m) {
 
           put_piece(st->capturedPiece, capsq); // Restore the captured piece
           if (captures_to_hand())
-          {
               remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
                                                                                                    : make_piece(~color_of(st->capturedPiece), PAWN))
                                                                     : ~st->capturedPiece);
-              if (!drop_loop() && st->capturedpromoted)
-                  promotedPieces |= to;
-          }
+
+          if (st->capturedpromoted)
+              promotedPieces |= to;
           if (st->unpromotedCapturedPiece)
               unpromotedBoard[to] = st->unpromotedCapturedPiece;
       }
