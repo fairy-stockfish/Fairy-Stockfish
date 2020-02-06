@@ -891,6 +891,10 @@ bool Position::legal(Move m) const {
           return false;
   }
 
+  // Makpong rule
+  if (var->makpongRule && checkers() && type_of(moved_piece(m)) == KING && (checkers() ^ to))
+      return false;
+
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.

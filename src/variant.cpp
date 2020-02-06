@@ -59,6 +59,7 @@ namespace {
         v->add_piece(FERS, 'f');
         return v;
     }
+    // Makruk (Thai Chess)
     Variant* makruk_variant() {
         Variant* v = chess_variant();
         v->variantTemplate = "makruk";
@@ -74,6 +75,14 @@ namespace {
         v->castling = false;
         v->nMoveRule = 0;
         v->countingRule = MAKRUK_COUNTING;
+        return v;
+    }
+    // Makpong (Defensive Chess)
+    // A Makruk variant used for tie-breaks
+    // https://www.mayhematics.com/v/vol8/vc64b.pdf, p. 177
+    Variant* makpong_variant() {
+        Variant* v = makruk_variant();
+        v->makpongRule = true;
         return v;
     }
     Variant* cambodian_variant() {
@@ -830,6 +839,7 @@ void VariantMap::init() {
     add("nocastle", nocastle_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
+    add("makpong", makpong_variant());
     add("cambodian", cambodian_variant());
     add("karouk", karouk_variant());
     add("asean", asean_variant());

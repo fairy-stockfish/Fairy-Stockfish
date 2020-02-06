@@ -85,6 +85,7 @@ struct Variant {
   bool gating = false;
   bool seirawanGating = false;
   bool cambodianMoves = false;
+  bool makpongRule = false;
   bool flyingGeneral = false;
   bool xiangqiSoldier = false;
   // game end
