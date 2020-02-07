@@ -1965,6 +1965,17 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       result = mate_in(ply);
       return true;
   }
+  // Checkless
+  // Illegal checks are treated as losing, hence perft is incorrect.
+  if (var->checkless && checkers())
+  {
+      for (const auto& mevasion : MoveList<EVASIONS>(*this))
+          if (legal(mevasion))
+          {
+              result = mate_in(ply);
+              return true;
+          }
+  }
 
   return false;
 }

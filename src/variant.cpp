@@ -576,6 +576,11 @@ namespace {
         v->shatarMateRule = true;
         return v;
     }
+    Variant* checkless_variant() {
+        Variant* v = chess_variant();
+        v->checkless = true;
+        return v;
+    }
     Variant* clobber_variant() {
         Variant* v = fairy_variant_base();
         v->pieceToCharTable = "P.................p.................";
@@ -983,6 +988,7 @@ void VariantMap::init() {
     add("almost", almost_variant());
     add("chigorin", chigorin_variant());
     add("shatar", shatar_variant());
+    add("checkless", checkless_variant());
     add("clobber", clobber_variant());
     add("breakthrough", breakthrough_variant());
     add("minixiangqi", minixiangqi_variant());
