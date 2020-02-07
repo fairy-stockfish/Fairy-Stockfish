@@ -286,7 +286,9 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
       else if ((idx = piece_to_char().find(token)) != string::npos || (idx = piece_to_char_synonyms().find(token)) != string::npos)
       {
-          put_piece(Piece(idx), sq);
+          if (ss.peek() == '~')
+              ss >> token;
+          put_piece(Piece(idx), sq, token == '~');
           ++sq;
       }
       // Promoted shogi pieces
@@ -294,14 +296,9 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       {
           ss >> token;
           idx = piece_to_char().find(token);
-          unpromotedBoard[sq] = Piece(idx);
-          promotedPieces |= SquareBB[sq];
-          put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq);
+          put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
           ++sq;
       }
-      // Set flag for promoted pieces
-      else if (token == '~')
-          promotedPieces |= SquareBB[sq - 1];
       // Stop before pieces in hand
       else if (token == '[')
           break;
@@ -1124,7 +1121,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       assert(type_of(m) == PROMOTION && sittuyin_promotion());
       captured = NO_PIECE;
   }
-  Piece unpromotedCaptured = unpromoted_piece_on(to);
+  st->capturedpromoted = is_promoted(to);
+  st->unpromotedCapturedPiece = captured ? unpromoted_piece_on(to) : NO_PIECE;
 
   assert(color_of(pc) == us);
   assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
@@ -1172,19 +1170,18 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->nonPawnMaterial[them] -= PieceValue[MG][captured];
 
       // Update board and piece lists
+      bool capturedPromoted = is_promoted(capsq);
+      Piece unpromotedCaptured = unpromoted_piece_on(capsq);
       remove_piece(captured, capsq);
-      st->capturedpromoted = is_promoted(to);
       if (captures_to_hand())
       {
-          Piece pieceToHand =  !is_promoted(to) || drop_loop() ? ~captured
+          Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
                              : unpromotedCaptured ? ~unpromotedCaptured
                                                   : make_piece(~color_of(captured), PAWN);
           add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
       }
-      promotedPieces -= to;
-      unpromotedBoard[to] = NO_PIECE;
 
       // Update material hash key and prefetch access to materialTable
       k ^= Zobrist::psq[captured][capsq];
@@ -1270,10 +1267,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           assert(type_of(promotion) >= KNIGHT && type_of(promotion) < KING);
 
           remove_piece(pc, to);
-          put_piece(promotion, to);
-          promotedPieces |= to;
-          if (type_of(m) == PIECE_PROMOTION)
-              unpromotedBoard[to] = pc;
+          put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
 
           // Update hash keys
           k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
@@ -1296,9 +1290,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       Piece promotion = make_piece(us, promoted_piece_type(type_of(pc)));
 
       remove_piece(pc, to);
-      put_piece(promotion, to);
-      promotedPieces |= to;
-      unpromotedBoard[to] = pc;
+      put_piece(promotion, to, true, pc);
 
       // Update hash keys
       k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
@@ -1310,12 +1302,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
   else if (type_of(m) == PIECE_DEMOTION)
   {
-      Piece demotion = unpromoted_piece_on(from);
+      Piece demotion = unpromoted_piece_on(to);
 
       remove_piece(pc, to);
       put_piece(demotion, to);
-      promotedPieces ^= from;
-      unpromotedBoard[from] = NO_PIECE;
 
       // Update hash keys
       k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[demotion][to];
@@ -1328,9 +1318,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   // Set capture piece
   st->capturedPiece = captured;
-  st->unpromotedCapturedPiece = captured ? unpromotedCaptured : NO_PIECE;
-  if (captures_to_hand() && !captured)
-      st->capturedpromoted = false;
 
   // Add gating piece
   if (is_gating(m))
@@ -1362,20 +1349,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->key = k;
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them), us) & pieces(us) : Bitboard(0);
-
-  // Update information about promoted pieces
-  if (type_of(m) != DROP && is_promoted(from))
-      promotedPieces = (promotedPieces - from) | to;
-  else if (type_of(m) == DROP && in_hand_piece_type(m) != dropped_piece_type(m))
-      promotedPieces = promotedPieces | to;
-
-  if (type_of(m) != DROP && unpromoted_piece_on(from))
-  {
-      unpromotedBoard[to] = unpromotedBoard[from];
-      unpromotedBoard[from] = NO_PIECE;
-  }
-  else if (type_of(m) == DROP && in_hand_piece_type(m) != dropped_piece_type(m))
-      unpromotedBoard[to] = make_piece(us, in_hand_piece_type(m));
 
   sideToMove = ~sideToMove;
 
@@ -1448,23 +1421,20 @@ void Position::undo_move(Move m) {
       remove_piece(pc, to);
       pc = make_piece(us, PAWN);
       put_piece(pc, to);
-      promotedPieces -= to;
   }
   else if (type_of(m) == PIECE_PROMOTION)
   {
+      Piece unpromotedPiece = unpromoted_piece_on(to);
       remove_piece(pc, to);
-      pc = unpromoted_piece_on(to);
+      pc = unpromotedPiece;
       put_piece(pc, to);
-      unpromotedBoard[to] = NO_PIECE;
-      promotedPieces -= to;
   }
   else if (type_of(m) == PIECE_DEMOTION)
   {
       remove_piece(pc, to);
-      unpromotedBoard[from] = pc;
+      Piece unpromotedPc = pc;
       pc = make_piece(us, promoted_piece_type(type_of(pc)));
-      put_piece(pc, to);
-      promotedPieces |= from;
+      put_piece(pc, to, true, unpromotedPc);
   }
 
   if (type_of(m) == CASTLING)
@@ -1478,18 +1448,6 @@ void Position::undo_move(Move m) {
           undrop_piece(make_piece(us, in_hand_piece_type(m)), pc, to); // Remove the dropped piece
       else
           move_piece(pc, to, from); // Put the piece back at the source square
-      if (is_promoted(to))
-      {
-          promotedPieces = (promotedPieces - to);
-          if (type_of(m) != DROP)
-              promotedPieces |= from;
-      }
-      if (unpromoted_piece_on(to))
-      {
-          if (type_of(m) != DROP)
-              unpromotedBoard[from] = unpromotedBoard[to];
-          unpromotedBoard[to] = NO_PIECE;
-      }
 
       if (st->capturedPiece)
       {
@@ -1506,16 +1464,11 @@ void Position::undo_move(Move m) {
               assert(st->capturedPiece == make_piece(~us, PAWN));
           }
 
-          put_piece(st->capturedPiece, capsq); // Restore the captured piece
+          put_piece(st->capturedPiece, capsq, st->capturedpromoted, st->unpromotedCapturedPiece); // Restore the captured piece
           if (captures_to_hand())
               remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
                                                                                                    : make_piece(~color_of(st->capturedPiece), PAWN))
                                                                     : ~st->capturedPiece);
-
-          if (st->capturedpromoted)
-              promotedPieces |= to;
-          if (st->unpromotedCapturedPiece)
-              unpromotedBoard[to] = st->unpromotedCapturedPiece;
       }
   }
 

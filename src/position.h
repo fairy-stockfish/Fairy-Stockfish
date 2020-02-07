@@ -264,7 +264,7 @@ private:
   void set_check_info(StateInfo* si) const;
 
   // Other helpers
-  void put_piece(Piece pc, Square s);
+  void put_piece(Piece pc, Square s, bool isPromoted = false, Piece unpromotedPc = NO_PIECE);
   void remove_piece(Piece pc, Square s);
   void move_piece(Piece pc, Square from, Square to);
   template<bool Do>
@@ -913,7 +913,7 @@ inline Thread* Position::this_thread() const {
   return thisThread;
 }
 
-inline void Position::put_piece(Piece pc, Square s) {
+inline void Position::put_piece(Piece pc, Square s, bool isPromoted, Piece unpromotedPc) {
 
   board[s] = pc;
   byTypeBB[ALL_PIECES] |= s;
@@ -923,6 +923,9 @@ inline void Position::put_piece(Piece pc, Square s) {
   pieceList[pc][index[s]] = s;
   pieceCount[make_piece(color_of(pc), ALL_PIECES)]++;
   psq += PSQT::psq[pc][s];
+  if (isPromoted)
+      promotedPieces |= s;
+  unpromotedBoard[s] = unpromotedPc;
 }
 
 inline void Position::remove_piece(Piece pc, Square s) {
@@ -941,6 +944,8 @@ inline void Position::remove_piece(Piece pc, Square s) {
   pieceList[pc][pieceCount[pc]] = SQ_NONE;
   pieceCount[make_piece(color_of(pc), ALL_PIECES)]--;
   psq -= PSQT::psq[pc][s];
+  promotedPieces -= s;
+  unpromotedBoard[s] = NO_PIECE;
 }
 
 inline void Position::move_piece(Piece pc, Square from, Square to) {
@@ -956,6 +961,10 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
   index[to] = index[from];
   pieceList[pc][index[to]] = to;
   psq += PSQT::psq[pc][to] - PSQT::psq[pc][from];
+  if (is_promoted(from))
+      promotedPieces ^= fromTo;
+  unpromotedBoard[to] = unpromotedBoard[from];
+  unpromotedBoard[from] = NO_PIECE;
 }
 
 inline void Position::do_move(Move m, StateInfo& newSt) {
@@ -980,7 +989,7 @@ inline void Position::remove_from_hand(Piece pc) {
 
 inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s) {
   assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]);
-  put_piece(pc_drop, s);
+  put_piece(pc_drop, s, pc_drop != pc_hand, pc_drop != pc_hand ? pc_hand : NO_PIECE);
   remove_from_hand(pc_hand);
 }
 

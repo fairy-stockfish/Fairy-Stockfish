@@ -53,6 +53,7 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp ai-wok startpos 5 13275068 > /dev/null
   expect perft.exp euroshogi startpos 5 9451149 > /dev/null
   expect perft.exp minishogi startpos 5 533203 > /dev/null
+  expect perft.exp kyotoshogi startpos 5 225903 > /dev/null
   expect perft.exp horde startpos 6 5396554 > /dev/null
   expect perft.exp placement startpos 4 1597696 > /dev/null
   expect perft.exp sittuyin startpos 3 580096 > /dev/null
