@@ -97,7 +97,7 @@ namespace {
   struct Skill {
     explicit Skill(int l) : level(l) {}
     bool enabled() const { return level < 20; }
-    bool time_to_pick(Depth depth) const { return depth == 1 + level; }
+    bool time_to_pick(Depth depth) const { return depth == 1 + std::max(level, 0); }
     Move pick_best(size_t multiPV);
 
     int level;
