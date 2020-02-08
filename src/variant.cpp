@@ -59,6 +59,7 @@ namespace {
         v->add_piece(FERS, 'f');
         return v;
     }
+    // Makruk (Thai Chess)
     Variant* makruk_variant() {
         Variant* v = chess_variant();
         v->variantTemplate = "makruk";
@@ -74,6 +75,14 @@ namespace {
         v->castling = false;
         v->nMoveRule = 0;
         v->countingRule = MAKRUK_COUNTING;
+        return v;
+    }
+    // Makpong (Defensive Chess)
+    // A Makruk variant used for tie-breaks
+    // https://www.mayhematics.com/v/vol8/vc64b.pdf, p. 177
+    Variant* makpong_variant() {
+        Variant* v = makruk_variant();
+        v->makpongRule = true;
         return v;
     }
     Variant* cambodian_variant() {
@@ -830,6 +839,7 @@ void VariantMap::init() {
     add("nocastle", nocastle_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
+    add("makpong", makpong_variant());
     add("cambodian", cambodian_variant());
     add("karouk", karouk_variant());
     add("asean", asean_variant());
@@ -901,6 +911,7 @@ void VariantMap::init() {
 
 /// VariantMap::parse reads variants from an INI-style configuration file.
 
+template <bool DoCheck>
 void VariantMap::parse(std::string path) {
     if (path.empty() || path == "<empty>")
         return;
@@ -913,6 +924,7 @@ void VariantMap::parse(std::string path) {
     std::string variant, variant_template, key, value, input;
     while (file.peek() != '[' && std::getline(file, input)) {}
 
+    std::vector<std::string> varsToErase = {};
     while (file.get() && std::getline(std::getline(file, variant, ']'), input))
     {
         // Extract variant template, if specified
@@ -935,16 +947,33 @@ void VariantMap::parse(std::string path) {
             std::cerr << "Variant template '" << variant_template << "' does not exist." << std::endl;
         else
         {
-            Variant* v = !variant_template.empty() ? VariantParser(attribs).parse(new Variant(*variants.find(variant_template)->second))
-                                                   : VariantParser(attribs).parse();
+            if (DoCheck)
+                std::cerr << "Parsing variant: " << variant << std::endl;
+            Variant* v = !variant_template.empty() ? VariantParser<DoCheck>(attribs).parse(new Variant(*variants.find(variant_template)->second))
+                                                   : VariantParser<DoCheck>(attribs).parse();
             if (v->maxFile <= FILE_MAX && v->maxRank <= RANK_MAX)
+            {
                 add(variant, v);
+                // In order to allow inheritance, we need to temporarily add configured variants
+                // even when only checking them, but we remove them later after parsing is finished.
+                if (DoCheck)
+                    varsToErase.push_back(variant);
+            }
             else
                 delete v;
         }
     }
     file.close();
+    // Clean up temporary variants
+    for (std::string tempVar : varsToErase)
+    {
+        delete variants[tempVar];
+        variants.erase(tempVar);
+    }
 }
+
+template void VariantMap::parse<true>(std::string path);
+template void VariantMap::parse<false>(std::string path);
 
 void VariantMap::add(std::string s, const Variant* v) {
   insert(std::pair<std::string, const Variant*>(s, v));
