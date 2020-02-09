@@ -303,14 +303,14 @@ extern "C" PyObject* pyffish_getFEN(PyObject* self, PyObject *args) {
     Position pos;
     const char *fen, *variant;
 
-    int chess960 = 0;
-    if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
+    bool chess960 = false, sfen = false, showPromoted = false;
+    if (!PyArg_ParseTuple(args, "ssO!|ppp", &variant, &fen, &PyList_Type, &moveList, &chess960, &sfen, &showPromoted)) {
         return NULL;
     }
 
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
-    return Py_BuildValue("s", pos.fen().c_str());
+    return Py_BuildValue("s", pos.fen(sfen, showPromoted).c_str());
 }
 
 // INPUT variant, fen, move list
