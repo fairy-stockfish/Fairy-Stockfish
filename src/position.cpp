@@ -270,9 +270,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           {
               sq += 10 * (token - '0') * EAST;
               ss >> token;
-              sq += (token - '0') * EAST;
           }
-          else
 #endif
           sq += (token - '0') * EAST; // Advance the given number of files
       }
