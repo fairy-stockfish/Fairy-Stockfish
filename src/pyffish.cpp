@@ -158,7 +158,7 @@ bool hasInsufficientMaterial(Color c, const Position& pos) {
     return true;
 }
 
-void buildPosition(Position& pos, StateListPtr& states, const char *variant, const char *fen, PyObject *moveList, const int chess960) {
+void buildPosition(Position& pos, StateListPtr& states, const char *variant, const char *fen, PyObject *moveList, const bool chess960) {
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
 
     const Variant* v = variants.find(string(variant))->second;
@@ -166,7 +166,7 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
         fen = v->startFen.c_str();
     bool sfen = v->variantTemplate == "shogi";
     Options["Protocol"] = (sfen) ? string("usi") : string("uci");
-    Options["UCI_Chess960"] = (chess960==0) ? UCI::Option(false) : UCI::Option(true);
+    Options["UCI_Chess960"] = (chess960) ? UCI::Option(true) : UCI::Option(false);
     pos.set(v, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
     // parse move list
@@ -227,7 +227,7 @@ extern "C" PyObject* pyffish_getSAN(PyObject* self, PyObject *args) {
     Position pos;
     const char *fen, *variant, *move;
 
-    int chess960 = 0;
+    int chess960 = false;
     if (!PyArg_ParseTuple(args, "sss|p", &variant, &fen,  &move, &chess960)) {
         return NULL;
     }
@@ -243,7 +243,7 @@ extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
     Position pos;
     const char *fen, *variant;
 
-    int chess960 = 0;
+    int chess960 = false;
     if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
         return NULL;
     }
@@ -280,7 +280,7 @@ extern "C" PyObject* pyffish_legalMoves(PyObject* self, PyObject *args) {
     Position pos;
     const char *fen, *variant;
 
-    int chess960 = 0;
+    int chess960 = false;
     if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
         return NULL;
     }
@@ -318,7 +318,7 @@ extern "C" PyObject* pyffish_givesCheck(PyObject* self, PyObject *args) {
     PyObject *moveList;
     Position pos;
     const char *fen, *variant;
-    int chess960 = 0;
+    int chess960 = false;
     if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen,  &PyList_Type, &moveList, &chess960)) {
         return NULL;
     }
@@ -338,7 +338,7 @@ extern "C" PyObject* pyffish_isImmediateGameEnd(PyObject* self, PyObject *args) 
     const char *fen, *variant;
     bool gameEnd;
     Value result;
-    int chess960 = 0;
+    int chess960 = false;
     if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
         return NULL;
     }
@@ -356,7 +356,7 @@ extern "C" PyObject* pyffish_isOptionalGameEnd(PyObject* self, PyObject *args) {
     const char *fen, *variant;
     bool gameEnd;
     Value result;
-    int chess960 = 0;
+    int chess960 = false;
     if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
         return NULL;
     }
@@ -372,7 +372,7 @@ extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *a
     PyObject *moveList;
     Position pos;
     const char *fen, *variant;
-    int chess960 = 0;
+    int chess960 = false;
     if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
         return NULL;
     }
