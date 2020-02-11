@@ -303,7 +303,7 @@ extern "C" PyObject* pyffish_getFEN(PyObject* self, PyObject *args) {
     Position pos;
     const char *fen, *variant;
 
-    bool chess960 = false, sfen = false, showPromoted = false;
+    int chess960 = false, sfen = false, showPromoted = false;
     if (!PyArg_ParseTuple(args, "ssO!|ppp", &variant, &fen, &PyList_Type, &moveList, &chess960, &sfen, &showPromoted)) {
         return NULL;
     }
