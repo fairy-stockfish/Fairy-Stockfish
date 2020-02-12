@@ -32,11 +32,11 @@ namespace {
 
     // Gating moves
     if (pos.seirawan_gating() && (pos.gates(us) & from))
-        for (PieceType pt_gating = PAWN; pt_gating <= KING; ++pt_gating)
+        for (PieceType pt_gating : pos.piece_types())
             if (pos.count_in_hand(us, pt_gating) && (pos.drop_region(us, pt_gating) & from))
                 *moveList++ = make_gating<T>(from, to, pt_gating, from);
     if (pos.seirawan_gating() && T == CASTLING && (pos.gates(us) & to))
-        for (PieceType pt_gating = PAWN; pt_gating <= KING; ++pt_gating)
+        for (PieceType pt_gating : pos.piece_types())
             if (pos.count_in_hand(us, pt_gating) && (pos.drop_region(us, pt_gating) & to))
                 *moveList++ = make_gating<T>(from, to, pt_gating, to);
 
@@ -325,11 +325,12 @@ namespace {
     constexpr bool Checks = Type == QUIET_CHECKS; // Reduce template instantations
 
     moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
-    for (PieceType pt = PieceType(PAWN + 1); pt < KING; ++pt)
-        moveList = generate_moves<Checks>(pos, moveList, Us, pt, target);
+    for (PieceType pt : pos.piece_types())
+        if (pt != PAWN && pt != KING)
+            moveList = generate_moves<Checks>(pos, moveList, Us, pt, target);
     // generate drops
     if (pos.piece_drops() && Type != CAPTURES && pos.count_in_hand(Us, ALL_PIECES))
-        for (PieceType pt = PAWN; pt <= KING; ++pt)
+        for (PieceType pt : pos.piece_types())
             moveList = generate_drops<Us, Checks>(pos, moveList, pt, target & ~pos.pieces(~Us));
 
     if (Type != QUIET_CHECKS && Type != EVASIONS && pos.count<KING>(Us))
