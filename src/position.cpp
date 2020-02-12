@@ -1355,11 +1355,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   sideToMove = ~sideToMove;
 
   if (   counting_rule()
-      && (  ((!st->countingLimit || captured) && count<ALL_PIECES>(sideToMove) == 1)
-          || (!st->countingLimit && !count<PAWN>())))
+      && (!st->countingLimit || (captured && count<ALL_PIECES>(sideToMove) == 1))
+      && counting_limit())
   {
       st->countingLimit = 2 * counting_limit();
-      st->countingPly = st->countingLimit && count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
+      st->countingPly = count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
   }
 
   // Update king attacks used for fast check detection
@@ -1762,7 +1762,7 @@ bool Position::is_optional_game_end(Value& result, int ply) const {
   // counting rules
   if (   counting_rule()
       && st->countingLimit
-      && st->countingPly >= st->countingLimit
+      && st->countingPly > st->countingLimit
       && (!checkers() || MoveList<LEGAL>(*this).size()))
   {
       result = VALUE_DRAW;
@@ -1945,17 +1945,15 @@ int Position::counting_limit() const {
 
   assert(counting_rule());
 
-  // No counting yet
-  if (count<PAWN>() && count<ALL_PIECES>(sideToMove) > 1)
-      return 0;
-
   switch (counting_rule())
   {
   case MAKRUK_COUNTING:
+      // No counting for side to move
+      if (count<PAWN>() || count<ALL_PIECES>(~sideToMove) == 1)
+          return 0;
       // Board's honor rule
       if (count<ALL_PIECES>(sideToMove) > 1)
           return 64;
-
       // Pieces' honor rule
       if (count<ROOK>(~sideToMove) > 1)
           return 8;
