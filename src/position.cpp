@@ -416,12 +416,23 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   if (sfen)
   {
       // Pieces in hand for SFEN
+      int handCount = 1;
       while ((ss >> token) && !isspace(token))
       {
           if (token == '-')
               continue;
+          else if (isdigit(token))
+          {
+              handCount = token - '0';
+              while (isdigit(ss.peek()) && ss >> token)
+                  handCount = 10 * handCount + (token - '0');
+          }
           else if ((idx = piece_to_char().find(token)) != string::npos)
-              add_to_hand(Piece(idx));
+          {
+              for (int i = 0; i < handCount; i++)
+                  add_to_hand(Piece(idx));
+              handCount = 1;
+          }
       }
       // Move count is in ply for SFEN
       ss >> std::skipws >> gamePly;
@@ -610,7 +621,12 @@ const string Position::fen(bool sfen, bool showPromoted, std::string holdings) c
       ss << (sideToMove == WHITE ? " b " : " w ");
       for (Color c : {WHITE, BLACK})
           for (PieceType pt = KING; pt >= PAWN; --pt)
-              ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
+              if (pieceCountInHand[c][pt])
+              {
+                  if (pieceCountInHand[c][pt] > 1)
+                      ss << pieceCountInHand[c][pt];
+                  ss << piece_to_char()[make_piece(c, pt)];
+              }
       if (!count_in_hand(WHITE, ALL_PIECES) && !count_in_hand(BLACK, ALL_PIECES))
           ss << '-';
       ss << " " << gamePly + 1;
