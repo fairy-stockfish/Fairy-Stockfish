@@ -159,9 +159,9 @@ void init(const Variant* v) {
       // For antichess variants, use negative piece values
       if (   v->extinctionValue == VALUE_MATE
           && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
-          score = -score / 8;
+          score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
       else if (v->bareKingValue == VALUE_MATE)
-          score = -score / 8;
+          score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
 
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
