@@ -122,6 +122,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   }
   else if (token == "new")
   {
+      Search::clear();
       setboard(pos, states);
       // play second by default
       playColor = ~pos.side_to_move();
