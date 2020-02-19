@@ -112,7 +112,7 @@ namespace {
         bonus += pieceCount[Us][pt1] * v;
     }
 
-    return bonus;
+    return bonus * (1 + pos.must_capture());
   }
 
 } // namespace
