@@ -224,6 +224,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("dropChecks", v->dropChecks);
     parse_attribute("mustCapture", v->mustCapture);
     parse_attribute("mustDrop", v->mustDrop);
+    parse_attribute("mustDropType", v->mustDropType, v->pieceToChar);
     parse_attribute("pieceDrops", v->pieceDrops);
     parse_attribute("dropLoop", v->dropLoop);
     parse_attribute("capturesToHand", v->capturesToHand);
@@ -269,6 +270,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         if (DoCheck && idx == std::string::npos)
             std::cerr << "extinctionPieceTypes - Invalid piece type: " << token << std::endl;
     }
+    parse_attribute("extinctionPieceCount", v->extinctionPieceCount);
+    parse_attribute("extinctionOpponentPieceCount", v->extinctionOpponentPieceCount);
     parse_attribute("flagPiece", v->flagPiece, v->pieceToChar);
     parse_attribute("whiteFlag", v->whiteFlag);
     parse_attribute("blackFlag", v->blackFlag);

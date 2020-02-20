@@ -150,6 +150,8 @@ public:
   Value extinction_value(int ply = 0) const;
   bool bare_king_move() const;
   const std::set<PieceType>& extinction_piece_types() const;
+  int extinction_piece_count() const;
+  int extinction_opponent_piece_count() const;
   PieceType capture_the_flag_piece() const;
   Bitboard capture_the_flag(Color c) const;
   bool flag_move() const;
@@ -160,6 +162,7 @@ public:
 
   // Variant-specific properties
   int count_in_hand(Color c, PieceType pt) const;
+  int count_with_hand(Color c, PieceType pt) const;
 
   // Position representation
   Bitboard pieces() const;
@@ -647,6 +650,16 @@ inline const std::set<PieceType>& Position::extinction_piece_types() const {
   return var->extinctionPieceTypes;
 }
 
+inline int Position::extinction_piece_count() const {
+  assert(var != nullptr);
+  return var->extinctionPieceCount;
+}
+
+inline int Position::extinction_opponent_piece_count() const {
+  assert(var != nullptr);
+  return var->extinctionOpponentPieceCount;
+}
+
 inline PieceType Position::capture_the_flag_piece() const {
   assert(var != nullptr);
   return var->flagPiece;
@@ -973,6 +986,10 @@ inline void Position::do_move(Move m, StateInfo& newSt) {
 
 inline int Position::count_in_hand(Color c, PieceType pt) const {
   return pieceCountInHand[c][pt];
+}
+
+inline int Position::count_with_hand(Color c, PieceType pt) const {
+  return pieceCount[make_piece(c, pt)] + pieceCountInHand[c][pt];
 }
 
 inline void Position::add_to_hand(Piece pc) {

@@ -287,6 +287,20 @@ namespace {
         v->variantTemplate = "bughouse";
         v->twoBoards = true;
         v->capturesToHand = false;
+        v->stalemateValue = -VALUE_MATE;
+        return v;
+    }
+    // Koedem (Bughouse variant)
+    // http://schachclub-oetigheim.de/wp-content/uploads/2016/04/Koedem-rules.pdf
+    Variant* koedem_variant() {
+        Variant* v = bughouse_variant();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->mustDrop = true;
+        v->mustDropType = COMMONER;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionOpponentPieceCount = 2; // own all kings/commoners
         return v;
     }
     Variant* pocketknight_variant() {
@@ -865,6 +879,7 @@ void VariantMap::init() {
     add("loop", loop_variant());
     add("chessgi", chessgi_variant());
     add("bughouse", bughouse_variant());
+    add("koedem", koedem_variant());
     add("pocketknight", pocketknight_variant());
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
