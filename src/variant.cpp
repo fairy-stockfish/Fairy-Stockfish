@@ -245,6 +245,18 @@ namespace {
         v->extinctionPieceTypes = {PAWN};
         return v;
     }
+    // Three Kings Chess
+    // https://github.com/cutechess/cutechess/blob/master/projects/lib/src/board/threekingsboard.h
+    Variant* threekings_variant() {
+        Variant* v = fairy_variant_base();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->startFen = "knbqkbnk/pppppppp/8/8/8/8/PPPPPPPP/KNBQKBNK w - - 0 1";
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPieceCount = 2;
+        return v;
+    }
     Variant* horde_variant() {
         Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
@@ -872,6 +884,7 @@ void VariantMap::init() {
     add("codrus", codrus_variant());
     add("extinction", extinction_variant());
     add("kinglet", kinglet_variant());
+    add("threekings", threekings_variant());
     add("horde", horde_variant());
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
