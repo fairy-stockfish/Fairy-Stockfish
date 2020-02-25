@@ -322,10 +322,7 @@ extern "C" PyObject* pyffish_givesCheck(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen,  &PyList_Type, &moveList, &chess960)) {
         return NULL;
     }
-    if (PyList_Size(moveList) < 1) {
-        PyErr_SetString(PyExc_ValueError, (string("Move list can't be empty.")).c_str());
-        return NULL;
-    }
+
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
     return Py_BuildValue("O", pos.checkers() ? Py_True : Py_False);

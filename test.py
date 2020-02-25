@@ -327,8 +327,8 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, SAN_moves)
 
     def test_gives_check(self):
-        self.assertRaises(ValueError, sf.gives_check, "makruk", MAKRUK, [])
-        self.assertRaises(ValueError, sf.gives_check, "capablanca", CAPA, [])
+        result = sf.gives_check("capablanca", CAPA, [])
+        self.assertFalse(result)
 
         result = sf.gives_check("capablanca", CAPA, ["e2e4"])
         self.assertFalse(result)
