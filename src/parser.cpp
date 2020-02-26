@@ -170,7 +170,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     {
         v->promotionPieceTypes = {};
         char token;
-        size_t idx;
+        size_t idx = 0;
         std::stringstream ss(it_prom->second);
         while (ss >> token && ((idx = v->pieceToChar.find(toupper(token))) != std::string::npos))
             v->promotionPieceTypes.insert(PieceType(idx));
@@ -263,7 +263,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     {
         v->extinctionPieceTypes = {};
         char token;
-        size_t idx;
+        size_t idx = 0;
         std::stringstream ss(it_ext->second);
         while (ss >> token && (idx = token == '*' ? size_t(ALL_PIECES) : v->pieceToChar.find(toupper(token))) != std::string::npos)
             v->extinctionPieceTypes.insert(PieceType(idx));
