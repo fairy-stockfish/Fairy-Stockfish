@@ -535,7 +535,7 @@ namespace {
     }
 
     if (pos.check_counting())
-        kingDanger *= 2;
+        kingDanger = kingDanger * 12 / 5;
 
     Square s = file_of(ksq) == FILE_A ? ksq + EAST : file_of(ksq) == pos.max_file() ? ksq + WEST : ksq;
     Bitboard kingFlank = pos.max_file() == FILE_H ? KingFlank[file_of(ksq)] : file_bb(s) | adjacent_files_bb(s);
