@@ -149,9 +149,12 @@ void init(const Variant* v) {
       }
 
       // For drop variants, halve the piece values
-      if (v->capturesToHand || !v->checking)
+      if (v->capturesToHand)
           score = make_score(mg_value(score) * 3500 / (7000 + mg_value(score)),
                              eg_value(score) * 3500 / (7000 + eg_value(score)));
+      else if (!v->checking)
+          score = make_score(mg_value(score) * 2000 / (3500 + mg_value(score)),
+                             eg_value(score) * 2200 / (3500 + eg_value(score)));
       else if (pt == strongestPiece)
               score += make_score(std::max(QueenValueMg - PieceValue[MG][pt], VALUE_ZERO) / 20,
                                   std::max(QueenValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
