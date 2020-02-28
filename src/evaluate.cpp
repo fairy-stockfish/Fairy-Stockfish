@@ -494,6 +494,7 @@ namespace {
             // which we can't give a rook check, because rook checks are more valuable.
             queenChecks = (b1 | b2)
                         & get_attacks(Them, QUEEN)
+                        & pos.board_bb()
                         & safe
                         & ~attackedBy[Us][QUEEN]
                         & ~(b1 & attackedBy[Them][ROOK]);
