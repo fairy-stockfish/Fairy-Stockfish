@@ -457,7 +457,7 @@ namespace {
 
     constexpr Color    Them = (Us == WHITE ? BLACK : WHITE);
     Rank r = relative_rank(Us, std::min(Rank((pos.max_rank() - 1) / 2 + 1), pos.max_rank()), pos.max_rank());
-    Bitboard Camp = AllSquares ^ forward_ranks_bb(Us, r);
+    Bitboard Camp = pos.board_bb() & ~forward_ranks_bb(Us, r);
 
     if (!pos.count<KING>(Us) || !pos.checking_permitted())
         return SCORE_ZERO;
