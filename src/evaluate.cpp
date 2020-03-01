@@ -483,7 +483,7 @@ namespace {
     b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
 
     std::function <Bitboard (Color, PieceType)> get_attacks = [this](Color c, PieceType pt) {
-        return attackedBy[c][pt] | (pos.captures_to_hand() && pos.count_in_hand(c, pt) ? ~pos.pieces() : Bitboard(0));
+        return attackedBy[c][pt] | (pos.piece_drops() && pos.count_in_hand(c, pt) ? pos.drop_region(c, pt) & ~pos.pieces() : Bitboard(0));
     };
     for (PieceType pt : pos.piece_types())
     {
@@ -514,7 +514,7 @@ namespace {
                 unsafeChecks |= knightChecks;
             break;
         case PAWN:
-            if (pos.captures_to_hand() && pos.count_in_hand(Them, pt))
+            if (pos.piece_drops() && pos.count_in_hand(Them, pt))
             {
                 pawnChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & ~pos.pieces() & pos.board_bb();
                 if (pawnChecks & safe)
