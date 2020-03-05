@@ -25,6 +25,7 @@
   let backoff = 1;
 
   function poll() {
+    console.log("poll", queue)
     const command = queue.shift();
     if (!command) return;
 
@@ -35,11 +36,14 @@
   }
 
   Module['postMessage'] = function(command) {
+    console.log("post message pre run", command)
     queue.push(command);
   };
 
   Module['postRun'] = function() {
+    console.log("post run")
     Module['postMessage'] = function(command) {
+      console.log("post message post run", command)
       queue.push(command);
       if (queue.length == 1) poll();
     };

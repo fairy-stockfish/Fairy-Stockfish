@@ -2,22 +2,20 @@
 
 <script>
 
-  var sf = Stockfish()
-
-  console.log("created Stockfish", sf)
+  console.log("creating Stockfish ...")
 
   setTimeout(_ => {
 
-    console.log("adding message listener")
+    var sf = Stockfish()
+
+    console.log("created Stockfish", sf)
 
     sf.addMessageListener(function (line){
-    console.log(line)
+        console.log(">>", line)
     })
-
-    console.log("issuing uci command")
 
     sf.postMessage('uci')
     
-  }, 10000)
+  }, 3000)
 
 </script>

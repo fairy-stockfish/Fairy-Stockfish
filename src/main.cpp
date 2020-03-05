@@ -40,20 +40,32 @@ int main(int argc, char* argv[]) {
   std::cout << engine_info() << std::endl;
 
   pieceMap.init();
+  std::cout << "piece map initialized" << std::endl;
   variants.init();
+  std::cout << "variants initialized" << std::endl;
   UCI::init(Options);
+  std::cout << "uci initialized" << std::endl;
   PSQT::init(variants.find(Options["UCI_Variant"])->second);
+  std::cout << "psqt initialized" << std::endl;
   Bitboards::init();
+  std::cout << "bitboard initialized" << std::endl;
   Position::init();
+  std::cout << "position initialized" << std::endl;
   Bitbases::init();
+  std::cout << "bitbases initialized" << std::endl;
   Endgames::init();
-  Threads.set(Options["Threads"]);
+  std::cout << "endgames initialized" << std::endl;
+  /*Threads.set(Options["Threads"]);
+  std::cout << "threads initialized" << std::endl;
   Search::clear(); // After threads are up
+  std::cout << "search cleared" << std::endl;*/
 
-  UCI::loop(argc, argv);
+  /*UCI::loop(argc, argv);
 
-  Threads.set(0);
+  Threads.set(0);*/
   variants.clear_all();
+  std::cout << "variants cleard" << std::endl;
   pieceMap.clear_all();
+  std::cout << "piece map cleared" << std::endl;
   return 0;
 }
