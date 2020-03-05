@@ -312,8 +312,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         // pieceToCharTable
         if (v->pieceToCharTable != "-")
         {
-            ss = std::stringstream(v->pieceToCharTable);
-            while (ss >> token)
+            /*ss = std::stringstream(v->pieceToCharTable);
+            while (ss >> token)*/
+            while (std::stringstream(v->pieceToCharTable) >> token)
                 if (isalpha(token) && v->pieceToChar.find(toupper(token)) == std::string::npos)
                     std::cerr << "pieceToCharTable - Invalid piece type: " << token << std::endl;
             for (PieceType pt : v->pieceTypes)

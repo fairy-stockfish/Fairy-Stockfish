@@ -1,3 +1,10 @@
 stockfish
+
+stockfish.exe
+
+stockfish.js
+stockfish.worker.js
+stockfish.wasm
+
 *.o
 .depend
