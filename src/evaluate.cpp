@@ -514,7 +514,7 @@ namespace {
                 unsafeChecks |= knightChecks;
             break;
         case PAWN:
-            if (pos.piece_drops() && pos.count_in_hand(Them, pt))
+            if (pos.piece_drops() && (pos.count_in_hand(Them, pt) || pos.two_boards()))
             {
                 pawnChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & ~pos.pieces() & pos.board_bb();
                 if (pawnChecks & safe)
