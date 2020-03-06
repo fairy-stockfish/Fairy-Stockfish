@@ -583,7 +583,7 @@ namespace {
         score += make_score(0, mg_value(score) / 2);
 
     // For drop games, king danger is independent of game phase
-    if (pos.captures_to_hand())
+    if (pos.captures_to_hand() || pos.two_boards())
         score = make_score(mg_value(score), mg_value(score)) * 2 / (2 + 16 / pos.max_rank() * !pos.shogi_doubled_pawn());
 
     if (T)
