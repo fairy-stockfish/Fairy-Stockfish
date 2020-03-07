@@ -164,9 +164,12 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           limits.inc[BLACK] = num * 1000;
       }
       else if (token == "sd")
-      is >> limits.depth;
+          is >> limits.depth;
       else if (token == "st")
-      is >> limits.movetime;
+      {
+          is >> num;
+          limits.movetime = num * 1000;
+      }
       // Note: time/otim are in centi-, not milliseconds
       else if (token == "time")
       {
