@@ -28,11 +28,13 @@
 /// in games played on two boards, such as bughouse.
 
 struct PartnerHandler {
+    void reset();
+    void ptell(const std::string& message);
     void parse_partner(std::istringstream& is);
     void parse_ptell(std::istringstream& is, const Position& pos);
 
     std::atomic<bool> isFairy;
-    std::atomic<bool> sitRequested;
+    std::atomic<bool> sitRequested, partnerDead, weDead;
     Move moveRequested;
 };
 

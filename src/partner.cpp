@@ -26,10 +26,18 @@
 
 PartnerHandler Partner; // Global object
 
+void PartnerHandler::reset() {
+    sitRequested = partnerDead = weDead = false;
+}
+
+void PartnerHandler::ptell(const std::string& message) {
+    sync_cout << "tellics ptell " << message << sync_endl;
+}
+
 void PartnerHandler::parse_partner(std::istringstream& is) {
     std::string token;
     if (is >> token)
-        sync_cout << "tellics ptell partner Fairy-Stockfish is an engine. Ask it 'help' for supported commands." << sync_endl;
+        ptell("partner Fairy-Stockfish is an engine. Ask it 'help' for supported commands.");
     else
         isFairy = false;
 }
@@ -45,15 +53,15 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
     else if (token == "help")
     {
         if (!(is >> token))
-            sync_cout << "tellics ptell I listen to the commands help, sit, go, and move. Ptell 'help sit', etc. for details." << sync_endl;
+            ptell("I listen to the commands help, sit, go, and move. Ptell 'help sit', etc. for details.");
         else if (token == "sit")
-            sync_cout << "tellics ptell After receiving 'sit', I stop moving. Also see 'go'." << sync_endl;
+            ptell("After receiving 'sit', I stop moving. Also see 'go'.");
         else if (token == "go")
-            sync_cout << "tellics ptell After receiving 'go', I will no longer sit." << sync_endl;
+            ptell("After receiving 'go', I will no longer sit.");
         else if (token == "move")
         {
-            sync_cout << "tellics ptell After receiving 'move', I will move immediately."  << sync_endl;
-            sync_cout << "tellics ptell If you specify a valid move, e.g., 'move e2e4', I will play it." << sync_endl;
+            ptell("After receiving 'move', I will move immediately." );
+            ptell("If you specify a valid move, e.g., 'move e2e4', I will play it.");
         }
     }
     else if (!pos.two_boards())
@@ -61,12 +69,22 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
     else if (token == "sit")
     {
         sitRequested = true;
-        sync_cout << "tellics ptell I sit, tell me 'go' to continue" << sync_endl;
+        ptell("I sit, tell me 'go' to continue");
     }
     else if (token == "go")
     {
         sitRequested = false;
         Threads.stop = true;
+    }
+    else if (token == "dead")
+    {
+        partnerDead = true;
+        ptell("I will play fast");
+    }
+    else if (token == "x")
+    {
+        partnerDead = false;
+        ptell("I will play normally again");
     }
     else if (token == "move")
     {
@@ -77,7 +95,7 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
             if (move && !Threads.abort.exchange(true))
                 moveRequested = move;
             else
-                sync_cout << "tellics ptell sorry, not possible" << sync_endl;
+                ptell("sorry, not possible");
         }
         else
             Threads.stop = true;

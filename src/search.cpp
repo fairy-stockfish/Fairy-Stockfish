@@ -258,6 +258,20 @@ void MainThread::search() {
       Thread::search(); // Let's start searching!
   }
 
+  if (rootPos.two_boards() && !Threads.abort)
+  {
+      if (!Partner.weDead && this->rootMoves[0].score <= VALUE_MATED_IN_MAX_PLY)
+      {
+          Partner.ptell("dead");
+          Partner.weDead = true;
+      }
+      else if (Partner.weDead && this->rootMoves[0].score > VALUE_MATED_IN_MAX_PLY)
+      {
+          Partner.ptell("x");
+          Partner.weDead = false;
+      }
+  }
+
   // When we reach the maximum depth, we can arrive here without a raise of
   // Threads.stop. However, if we are pondering or in an infinite search,
   // the UCI protocol states that we shouldn't print the best move before the

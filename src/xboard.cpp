@@ -127,6 +127,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       // play second by default
       playColor = ~pos.side_to_move();
       Threads.sit = false;
+      Partner.reset();
   }
   else if (token == "variant")
   {

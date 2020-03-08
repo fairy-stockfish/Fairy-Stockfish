@@ -22,6 +22,7 @@
 #include <cfloat>
 #include <cmath>
 
+#include "partner.h"
 #include "search.h"
 #include "timeman.h"
 #include "uci.h"
@@ -127,6 +128,9 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
       optimumTime = std::min(t1, optimumTime);
       maximumTime = std::min(t2, maximumTime);
   }
+
+  if (pos.two_boards() && Partner.partnerDead)
+      optimumTime /= 4;
 
   if (Options["Ponder"])
       optimumTime += optimumTime / 4;
