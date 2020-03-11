@@ -27,14 +27,22 @@
 /// PartnerHandler manages the communication with the partner
 /// in games played on two boards, such as bughouse.
 
+enum PartnerType {
+  HUMAN,
+  FAIRY,
+  ALL_PARTNERS
+};
+
 struct PartnerHandler {
     void reset();
+    template <PartnerType p = ALL_PARTNERS>
     void ptell(const std::string& message);
     void parse_partner(std::istringstream& is);
     void parse_ptell(std::istringstream& is, const Position& pos);
 
     std::atomic<bool> isFairy;
-    std::atomic<bool> sitRequested, partnerDead, weDead;
+    std::atomic<bool> fast, sitRequested, partnerDead, weDead;
+    std::atomic<int> time, opptime;
     Move moveRequested;
 };
 

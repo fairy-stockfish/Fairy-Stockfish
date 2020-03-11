@@ -258,8 +258,12 @@ void MainThread::search() {
       Thread::search(); // Let's start searching!
   }
 
-  if (rootPos.two_boards() && !Threads.abort)
+  if (rootPos.two_boards() && !Threads.abort && Options["Protocol"] == "xboard")
   {
+      if (Limits.time[us])
+          Partner.ptell<FAIRY>("time " + std::to_string(Limits.time[us] / 10));
+      if (Limits.time[~us])
+          Partner.ptell<FAIRY>("otim " + std::to_string(Limits.time[~us] / 10));
       if (!Partner.weDead && this->rootMoves[0].score <= VALUE_MATED_IN_MAX_PLY)
       {
           Partner.ptell("dead");

@@ -120,6 +120,15 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
                  + limits.inc[us] * (hypMTG - 1)
                  - moveOverhead * (2 + std::min(hypMTG, 40));
 
+      // Adjust time management for four-player variants
+      if (pos.two_boards())
+      {
+          if (Partner.partnerDead && Partner.opptime)
+              hypMyTime -= Partner.opptime * 10;
+          else if (Partner.fast || Partner.partnerDead)
+              hypMyTime /= 4;
+      }
+
       hypMyTime = std::max(hypMyTime, TimePoint(0));
 
       TimePoint t1 = minThinkingTime + remaining<OptimumTime>(pos, hypMyTime, hypMTG, ply, slowMover);
@@ -128,9 +137,6 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
       optimumTime = std::min(t1, optimumTime);
       maximumTime = std::min(t2, maximumTime);
   }
-
-  if (pos.two_boards() && Partner.partnerDead)
-      optimumTime /= 4;
 
   if (Options["Ponder"])
       optimumTime += optimumTime / 4;

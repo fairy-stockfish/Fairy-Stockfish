@@ -27,16 +27,20 @@
 PartnerHandler Partner; // Global object
 
 void PartnerHandler::reset() {
-    sitRequested = partnerDead = weDead = false;
+    fast = sitRequested = partnerDead = weDead = false;
+    time = opptime = 0;
 }
 
+template <PartnerType p>
 void PartnerHandler::ptell(const std::string& message) {
-    sync_cout << "tellics ptell " << message << sync_endl;
+    if (p == ALL_PARTNERS || (p == FAIRY && isFairy) || (p == HUMAN && !isFairy))
+        sync_cout << "tellics ptell " << message << sync_endl;
 }
 
 void PartnerHandler::parse_partner(std::istringstream& is) {
     std::string token;
     if (is >> token)
+        // handshake to identify Fairy-Stockfish
         ptell("partner Fairy-Stockfish is an engine. Ask it 'help' for supported commands.");
     else
         isFairy = false;
@@ -47,44 +51,53 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
     is >> token;
     if (token == "partner")
     {
+        // handshake to identify Fairy-Stockfish
         if (is >> token && token == "Fairy-Stockfish")
             isFairy = true;
     }
     else if (token == "help")
     {
         if (!(is >> token))
-            ptell("I listen to the commands help, sit, go, and move. Ptell 'help sit', etc. for details.");
+        {
+            ptell<HUMAN>("I listen to the commands help, sit, go, move, fast, slow, dead, x, time, and otim.");
+            ptell<HUMAN>("Tell 'help sit', etc. for details.");
+        }
         else if (token == "sit")
-            ptell("After receiving 'sit', I stop moving. Also see 'go'.");
+            ptell<HUMAN>("After receiving 'sit', I stop moving. Also see 'go'.");
         else if (token == "go")
-            ptell("After receiving 'go', I will no longer sit.");
+            ptell<HUMAN>("After receiving 'go', I will no longer sit.");
         else if (token == "move")
         {
-            ptell("After receiving 'move', I will move immediately." );
-            ptell("If you specify a valid move, e.g., 'move e2e4', I will play it.");
+            ptell<HUMAN>("After receiving 'move', I will move immediately." );
+            ptell<HUMAN>("If you specify a valid move, e.g., 'move e2e4', I will play it.");
         }
+        else if (token == "fast")
+            ptell<HUMAN>("After receiving 'go', I will play fast.");
+        else if (token == "slow")
+            ptell<HUMAN>("After receiving 'slow', I will play at normal speed.");
+        else if (token == "dead")
+            ptell<HUMAN>("After receiving 'dead', I assume you are dead and I play fast.");
+        else if (token == "x")
+            ptell<HUMAN>("After receiving 'x', I assume I can play normally again.");
+        else if (token == "time")
+        {
+            ptell<HUMAN>("'time' together with your time in centiseconds allows me to consider your time.");
+            ptell<HUMAN>("E.g., 'time 1000' for 10 seconds.");
+        }
+        else if (token == "otim")
+            ptell<HUMAN>("'otim' together with your opponent's time in centiseconds allows me to consider his time.");
     }
     else if (!pos.two_boards())
         return;
     else if (token == "sit")
     {
         sitRequested = true;
-        ptell("I sit, tell me 'go' to continue");
+        ptell<HUMAN>("I sit, tell me 'go' to continue");
     }
     else if (token == "go")
     {
         sitRequested = false;
         Threads.stop = true;
-    }
-    else if (token == "dead")
-    {
-        partnerDead = true;
-        ptell("I will play fast");
-    }
-    else if (token == "x")
-    {
-        partnerDead = false;
-        ptell("I will play normally again");
     }
     else if (token == "move")
     {
@@ -95,9 +108,43 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
             if (move && !Threads.abort.exchange(true))
                 moveRequested = move;
             else
-                ptell("sorry, not possible");
+                ptell<HUMAN>("sorry, not possible");
         }
         else
             Threads.stop = true;
     }
+    else if (token == "fast")
+    {
+        fast = true;
+        ptell<HUMAN>("I play fast, tell me 'slow' to play normally again");
+    }
+    else if (token == "slow")
+    {
+        fast = false;
+        ptell<HUMAN>("I play at normal speed again.");
+    }
+    else if (token == "dead")
+    {
+        partnerDead = true;
+        ptell<HUMAN>("I play fast, tell me 'x' if you are no longer dead.");
+    }
+    else if (token == "x")
+    {
+        partnerDead = false;
+        ptell<HUMAN>("I play normally again");
+    }
+    else if (token == "time")
+    {
+        int value;
+        time = (is >> value) ? value : 0;
+    }
+    else if (token == "otim")
+    {
+        int value;
+        opptime = (is >> value) ? value : 0;
+    }
 }
+
+template void PartnerHandler::ptell<HUMAN>(const std::string&);
+template void PartnerHandler::ptell<FAIRY>(const std::string&);
+template void PartnerHandler::ptell<ALL_PARTNERS>(const std::string&);
