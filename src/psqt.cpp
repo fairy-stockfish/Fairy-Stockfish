@@ -158,6 +158,9 @@ void init(const Variant* v) {
       else if (v->twoBoards)
           score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
                              eg_value(score) * 7000 / (7000 + eg_value(score)));
+      else if (v->checkCounting)
+          score = make_score(mg_value(score) * (40000 + mg_value(score)) / 41000,
+                             eg_value(score) * (30000 + eg_value(score)) / 31000);
       else if (pt == strongestPiece)
               score += make_score(std::max(QueenValueMg - PieceValue[MG][pt], VALUE_ZERO) / 20,
                                   std::max(QueenValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
