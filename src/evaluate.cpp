@@ -345,7 +345,7 @@ namespace {
                                 PieceValue[EG][Pt] - PieceValue[EG][pos.unpromoted_piece_on(s)]) / 8;
 
         // Penalty if the piece is far from the kings in drop variants
-        if (pos.captures_to_hand() && pos.count<KING>(Them) && pos.count<KING>(Us))
+        if ((pos.captures_to_hand() || pos.two_boards()) && pos.count<KING>(Them) && pos.count<KING>(Us))
             score -= KingProximity * distance(s, pos.square<KING>(Us)) * distance(s, pos.square<KING>(Them));
 
         if (Pt == BISHOP || Pt == KNIGHT)
