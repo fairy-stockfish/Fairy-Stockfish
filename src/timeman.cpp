@@ -125,8 +125,12 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
       {
           if (Partner.partnerDead && Partner.opptime)
               hypMyTime -= Partner.opptime * 10;
-          else if (Partner.fast || Partner.partnerDead)
-              hypMyTime /= 4;
+          else
+          {
+              hypMyTime = std::min(hypMyTime, 5000 + std::min(std::abs(limits.time[us] - Partner.opptime * 10), TimePoint(Partner.opptime * 10)));
+              if (Partner.fast || Partner.partnerDead)
+                  hypMyTime /= 4;
+          }
       }
 
       hypMyTime = std::max(hypMyTime, TimePoint(0));
