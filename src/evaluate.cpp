@@ -514,7 +514,7 @@ namespace {
                 unsafeChecks |= knightChecks;
             break;
         case PAWN:
-            if (pos.piece_drops() && (pos.count_in_hand(Them, pt) || pos.two_boards()))
+            if (pos.piece_drops() && pos.count_in_hand(Them, pt))
             {
                 pawnChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & ~pos.pieces() & pos.board_bb();
                 if (pawnChecks & safe)
@@ -533,6 +533,14 @@ namespace {
             else
                 unsafeChecks |= otherChecks;
         }
+    }
+
+    // Virtual piece drops
+    if (pos.two_boards() && pos.piece_drops())
+    {
+        for (PieceType pt : pos.piece_types())
+            if (!pos.count_in_hand(Them, pt) && (attacks_bb(Us, pt, ksq, pos.pieces()) & safe & pos.drop_region(Them, pt) & ~pos.pieces()))
+                kingDanger += OtherSafeCheck * 500 / (500 + PieceValue[MG][pt]);
     }
 
     if (pos.check_counting())
