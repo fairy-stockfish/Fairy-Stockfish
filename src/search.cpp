@@ -260,20 +260,8 @@ void MainThread::search() {
 
   if (rootPos.two_boards() && !Threads.abort && Options["Protocol"] == "xboard")
   {
-      if (Limits.time[us])
-          Partner.ptell<FAIRY>("time " + std::to_string(Limits.time[us] / 10));
-      if (Limits.time[~us])
-          Partner.ptell<FAIRY>("otim " + std::to_string(Limits.time[~us] / 10));
-      if (!Partner.weDead && this->rootMoves[0].score <= VALUE_MATED_IN_MAX_PLY)
-      {
-          Partner.ptell("dead");
-          Partner.weDead = true;
-      }
-      else if (Partner.weDead && this->rootMoves[0].score > VALUE_MATED_IN_MAX_PLY)
-      {
-          Partner.ptell("x");
-          Partner.weDead = false;
-      }
+      while (!Threads.stop && (Partner.sitRequested || Partner.weDead) && Time.elapsed() < Limits.time[us] - 1000)
+      {}
   }
 
   // When we reach the maximum depth, we can arrive here without a raise of
@@ -282,7 +270,7 @@ void MainThread::search() {
   // GUI sends a "stop" or "ponderhit" command. We therefore simply wait here
   // until the GUI sends one of those commands.
 
-  while (!Threads.stop && (ponder || Limits.infinite || (rootPos.two_boards() && (Partner.sitRequested || this->rootMoves[0].score <= VALUE_MATED_IN_MAX_PLY) && Time.elapsed() < Limits.time[us] - 1000)))
+  while (!Threads.stop && (ponder || Limits.infinite))
   {} // Busy wait for a stop or a ponder reset
 
   // Stop the threads if not already stopped (also raise the stop if
@@ -590,6 +578,34 @@ void Thread::search() {
           }
           double bestMoveInstability = 1 + totBestMoveChanges / Threads.size();
 
+          if (completedDepth >= 8 && rootPos.two_boards() && Options["Protocol"] == "xboard")
+          {
+              if (Limits.time[us])
+                  Partner.ptell<FAIRY>("time " + std::to_string((Limits.time[us] - Time.elapsed()) / 10));
+              if (Limits.time[~us])
+                  Partner.ptell<FAIRY>("otim " + std::to_string(Limits.time[~us] / 10));
+              if (!Partner.weDead && bestValue <= VALUE_MATED_IN_MAX_PLY)
+              {
+                  Partner.ptell("dead");
+                  Partner.weDead = true;
+              }
+              else if (Partner.weDead && bestValue > VALUE_MATED_IN_MAX_PLY)
+              {
+                  Partner.ptell("x");
+                  Partner.weDead = false;
+              }
+              else if (!Partner.weWin && bestValue >= VALUE_MATE_IN_MAX_PLY && Limits.time[~us] < Partner.time * 10)
+              {
+                  Partner.ptell("sit");
+                  Partner.weWin = true;
+              }
+              else if (Partner.weWin && (bestValue < VALUE_MATE_IN_MAX_PLY || Limits.time[~us] > Partner.time * 10))
+              {
+                  Partner.ptell("x");
+                  Partner.weWin = false;
+              }
+          }
+
           // Stop the search if we have only one legal move, or if available time elapsed
           if (   rootMoves.size() == 1
               || Time.elapsed() > Time.optimum() * fallingEval * reduction * bestMoveInstability)
@@ -598,7 +614,7 @@ void Thread::search() {
               // keep pondering until the GUI sends "ponderhit" or "stop".
               if (mainThread->ponder)
                   mainThread->stopOnPonderhit = true;
-              else if (!(rootPos.two_boards() && (Partner.sitRequested || bestValue <= VALUE_MATED_IN_MAX_PLY)))
+              else if (!(rootPos.two_boards() && (Partner.sitRequested || Partner.weDead)))
                   Threads.stop = true;
           }
           else if (   Threads.increaseDepth
@@ -1813,7 +1829,9 @@ void MainThread::check_time() {
   if (ponder)
       return;
 
-  if (Partner.sitRequested)
+  if (   rootPos.two_boards()
+      && Time.elapsed() < Limits.time[rootPos.side_to_move()] - 1000
+      && (Partner.sitRequested || Partner.weDead))
       return;
 
   if (   (Limits.use_time_management() && (elapsed > Time.maximum() - 10 || stopOnPonderhit))

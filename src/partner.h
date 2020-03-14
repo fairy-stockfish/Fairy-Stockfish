@@ -41,7 +41,7 @@ struct PartnerHandler {
     void parse_ptell(std::istringstream& is, const Position& pos);
 
     std::atomic<bool> isFairy;
-    std::atomic<bool> fast, sitRequested, partnerDead, weDead;
+    std::atomic<bool> fast, sitRequested, partnerDead, weDead, weWin;
     std::atomic<int> time, opptime;
     Move moveRequested;
 };

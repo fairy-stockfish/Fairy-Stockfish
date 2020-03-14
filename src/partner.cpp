@@ -27,7 +27,7 @@
 PartnerHandler Partner; // Global object
 
 void PartnerHandler::reset() {
-    fast = sitRequested = partnerDead = weDead = false;
+    fast = sitRequested = partnerDead = weDead = weWin = false;
     time = opptime = 0;
 }
 
@@ -91,7 +91,9 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
         return;
     else if (token == "sit")
     {
-        sitRequested = true;
+        // Avoid deadlocking sit
+        if (!isFairy || !weWin)
+            sitRequested = true;
         ptell<HUMAN>("I sit, tell me 'go' to continue");
     }
     else if (token == "go")
@@ -131,6 +133,7 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
     else if (token == "x")
     {
         partnerDead = false;
+        sitRequested = false;
         ptell<HUMAN>("I play normally again");
     }
     else if (token == "time")
