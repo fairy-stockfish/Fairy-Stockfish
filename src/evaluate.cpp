@@ -540,7 +540,12 @@ namespace {
     {
         for (PieceType pt : pos.piece_types())
             if (!pos.count_in_hand(Them, pt) && (attacks_bb(Us, pt, ksq, pos.pieces()) & safe & pos.drop_region(Them, pt) & ~pos.pieces()))
+            {
                 kingDanger += OtherSafeCheck * 500 / (500 + PieceValue[MG][pt]);
+                // Presumably a mate threat
+                if (!(attackedBy[Us][KING] & ~(attackedBy[Them][ALL_PIECES] | pos.pieces(Us))))
+                    kingDanger += 2000;
+            }
     }
 
     if (pos.check_counting())
