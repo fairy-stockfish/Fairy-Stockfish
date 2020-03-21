@@ -938,6 +938,8 @@ bool Position::pseudo_legal(const Move m) const {
   // Use a fast check for piece drops
   if (type_of(m) == DROP)
       return   piece_drops()
+            && pc != NO_PIECE
+            && color_of(pc) == us
             && count_in_hand(us, in_hand_piece_type(m))
             && (drop_region(us, type_of(pc)) & ~pieces() & to)
             && (   type_of(pc) == in_hand_piece_type(m)
