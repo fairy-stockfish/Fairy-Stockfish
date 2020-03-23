@@ -221,6 +221,17 @@ extern "C" PyObject* pyffish_startFen(PyObject* self, PyObject *args) {
     return Py_BuildValue("s", variants.find(string(variant))->second->startFen.c_str());
 }
 
+// INPUT variant
+extern "C" PyObject* pyffish_twoBoards(PyObject* self, PyObject *args) {
+    const char *variant;
+
+    if (!PyArg_ParseTuple(args, "s", &variant)) {
+        return NULL;
+    }
+
+    return Py_BuildValue("O", variants.find(string(variant))->second->twoBoards ? Py_True : Py_False);
+}
+
 // INPUT variant, fen, move
 extern "C" PyObject* pyffish_getSAN(PyObject* self, PyObject *args) {
     PyObject* moveList = PyList_New(0);
@@ -329,6 +340,29 @@ extern "C" PyObject* pyffish_givesCheck(PyObject* self, PyObject *args) {
 }
 
 // INPUT variant, fen, move list
+// should only be called when the move list is empty
+extern "C" PyObject* pyffish_gameResult(PyObject* self, PyObject *args) {
+    PyObject *moveList;
+    Position pos;
+    const char *fen, *variant;
+    bool gameEnd;
+    Value result;
+    int chess960 = false;
+    if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
+        return NULL;
+    }
+
+    StateListPtr states(new std::deque<StateInfo>(1));
+    buildPosition(pos, states, variant, fen, moveList, chess960);
+    assert(!MoveList<LEGAL>(pos).size());
+    gameEnd = pos.is_immediate_game_end(result);
+    if (!gameEnd)
+        result = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
+
+    return Py_BuildValue("i", result);
+}
+
+// INPUT variant, fen, move list
 extern "C" PyObject* pyffish_isImmediateGameEnd(PyObject* self, PyObject *args) {
     PyObject *moveList;
     Position pos;
@@ -383,18 +417,21 @@ extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *a
     return Py_BuildValue("(OO)", wInsufficient ? Py_True : Py_False, bInsufficient ? Py_True : Py_False);
 }
 
+
 static PyMethodDef PyFFishMethods[] = {
     {"info", (PyCFunction)pyffish_info, METH_NOARGS, "Get Stockfish version info."},
     {"set_option", (PyCFunction)pyffish_setOption, METH_VARARGS, "Set UCI option."},
     {"start_fen", (PyCFunction)pyffish_startFen, METH_VARARGS, "Get starting position FEN."},
+    {"two_boards", (PyCFunction)pyffish_twoBoards, METH_VARARGS, "Checks whether the variant is played on two boards."},
     {"get_san", (PyCFunction)pyffish_getSAN, METH_VARARGS, "Get SAN move from given FEN and UCI move."},
     {"get_san_moves", (PyCFunction)pyffish_getSANmoves, METH_VARARGS, "Get SAN movelist from given FEN and UCI movelist."},
     {"legal_moves", (PyCFunction)pyffish_legalMoves, METH_VARARGS, "Get legal moves from given FEN and movelist."},
     {"get_fen", (PyCFunction)pyffish_getFEN, METH_VARARGS, "Get resulting FEN from given FEN and movelist."},
     {"gives_check", (PyCFunction)pyffish_givesCheck, METH_VARARGS, "Get check status from given FEN and movelist."},
+    {"game_result", (PyCFunction)pyffish_gameResult, METH_VARARGS, "Get result from given FEN, considering variant end, checkmate, and stalemate."},
     {"is_immediate_game_end", (PyCFunction)pyffish_isImmediateGameEnd, METH_VARARGS, "Get result from given FEN if variant rules ends the game."},
     {"is_optional_game_end", (PyCFunction)pyffish_isOptionalGameEnd, METH_VARARGS, "Get result from given FEN it rules enable game end by player."},
-    {"has_insufficient_material", (PyCFunction)pyffish_hasInsufficientMaterial, METH_VARARGS, "Set UCI option."},
+    {"has_insufficient_material", (PyCFunction)pyffish_hasInsufficientMaterial, METH_VARARGS, "Checks for insufficient material."},
     {NULL, NULL, 0, NULL},  // sentinel
 };
 
