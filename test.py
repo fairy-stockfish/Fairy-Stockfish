@@ -113,6 +113,10 @@ class TestPyffish(unittest.TestCase):
         result = sf.set_option("UCI_Variant", "capablanca")
         self.assertIsNone(result)
 
+    def test_two_boards(self):
+        self.assertFalse(sf.two_boards("chess"))
+        self.assertTrue(sf.two_boards("bughouse"))
+
     def test_start_fen(self):
         result = sf.start_fen("capablanca")
         self.assertEqual(result, CAPA)
@@ -336,6 +340,10 @@ class TestPyffish(unittest.TestCase):
         moves = ["g2g3", "d7d5", "a2a3", "c8h3"]
         result = sf.gives_check("capablanca", CAPA, moves)
         self.assertTrue(result)
+
+    def test_game_result(self):
+        result = sf.game_result("chess", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
+        self.assertTrue(result < 0)
 
     def test_is_immediate_game_end(self):
         result = sf.is_immediate_game_end("capablanca", CAPA, [])
