@@ -38,6 +38,9 @@ const string move_to_san(Position& pos, Move m, const bool shogi) {
   Piece pc = pos.piece_on(from);
   PieceType pt = type_of(pc);
 
+  string protocol = Options["Protocol"];
+  Options["Protocol"] = string(shogi ? "usi" : "uci");
+
   if (type_of(m) == CASTLING)
       {
       san = to > from ? "O-O" : "O-O-O";
@@ -118,6 +121,8 @@ const string move_to_san(Position& pos, Move m, const bool shogi) {
       san += MoveList<LEGAL>(pos).size() ? "+" : "#";
       pos.undo_move(m);
   }
+  // reset protocol
+  Options["Protocol"] = protocol;
   return san;
 }
 
