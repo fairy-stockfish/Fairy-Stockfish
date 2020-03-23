@@ -12,7 +12,7 @@ CAPA = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1"
 CAPAHOUSE = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1"
 SITTUYIN = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1"
 MAKRUK = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1"
-SHOGI = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1"
+SHOGI = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1"
 SHOGI_SFEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
 SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1"
 GRAND = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1"
@@ -243,28 +243,28 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("sittuyin", fen, "h4h4f")
         self.assertEqual(result, "h4=F")
 
-        result = sf.get_san("shogi", SHOGI, "1g1f")
+        result = sf.get_san("shogi", SHOGI, "i3i4")
         self.assertEqual(result, "P-1f")
 
-        result = sf.get_san("shogi", SHOGI, "4i5h")
+        result = sf.get_san("shogi", SHOGI, "f1e2")
         self.assertEqual(result, "G4i-5h")
 
-        fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b -"
-        result = sf.get_san("shogi", fen, "8h2b")
+        fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -"
+        result = sf.get_san("shogi", fen, "b2h8")
         self.assertEqual(result, "Bx2b=")
-        result = sf.get_san("shogi", fen, "8h2b+")
+        result = sf.get_san("shogi", fen, "b2h8+")
         self.assertEqual(result, "Bx2b+")
 
-        fen = "lnsgkg1nl/1r5s1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b Bb"
-        result = sf.get_san("shogi", fen, "B*3c")
+        fen = "lnsgkg1nl/1r5s1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL[Bb] w "
+        result = sf.get_san("shogi", fen, "B@g7")
         self.assertEqual(result, "B*3c")
 
-        fen = "lnsgkg1nl/1r4s+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b B"
-        result = sf.get_san("shogi", fen, "2b3c")
+        fen = "lnsgkg1nl/1r4s+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL[B] w "
+        result = sf.get_san("shogi", fen, "h8g7")
         self.assertEqual(result, "+B-3c")
 
-        fen = "lnk2gsnl/7b1/p1p+SGp1pp/6p2/1pP6/4P4/PP3PPPP/1S2G2R1/L2GK1bNL b PRppns"
-        result = sf.get_san("shogi", fen, "6c6b")
+        fen = "lnk2gsnl/7b1/p1p+SGp1pp/6p2/1pP6/4P4/PP3PPPP/1S2G2R1/L2GK1bNL[PRppns] w "
+        result = sf.get_san("shogi", fen, "d7d8")
         self.assertEqual(result, "+S-6b")
 
         result = sf.get_san("xiangqi", XIANGQI, "h1g3")

@@ -29,7 +29,7 @@ using namespace std;
 namespace
 {
 
-const string move_to_san(Position& pos, Move m) {
+const string move_to_san(Position& pos, Move m, const bool shogi) {
   Bitboard others, b;
   string san;
   Color us = pos.side_to_move();
@@ -37,6 +37,9 @@ const string move_to_san(Position& pos, Move m) {
   Square to = to_sq(m);
   Piece pc = pos.piece_on(from);
   PieceType pt = type_of(pc);
+
+  string protocol = Options["Protocol"];
+  Options["Protocol"] = string(shogi ? "usi" : "uci");
 
   if (type_of(m) == CASTLING)
       {
@@ -51,12 +54,12 @@ const string move_to_san(Position& pos, Move m) {
   else
   {
       if (type_of(m) == DROP)
-          san += UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@');
+          san += UCI::dropped_piece(pos, m) + (shogi ? '*' : '@');
       else
       {
           if (pt != PAWN)
           {
-              if (pos.is_promoted(from) && Options["Protocol"] == "usi")
+              if (pos.is_promoted(from) && shogi)
                   san += "+" + string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
               else if (pos.piece_to_char_synonyms()[make_piece(WHITE, pt)] != ' ')
                   san += pos.piece_to_char_synonyms()[make_piece(WHITE, pt)];
@@ -73,15 +76,15 @@ const string move_to_san(Position& pos, Move m) {
                   Square s = pop_lsb(&b);
                   if (   !pos.pseudo_legal(make_move(s, to))
                       || !pos.legal(make_move(s, to))
-                      || (Options["Protocol"] == "usi" && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
+                      || (shogi && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
                       others ^= s;
               }
 
               if (!others)
                   { /* disambiguation is not needed */ }
-              else if (!(others & file_bb(from)) && Options["Protocol"] == "uci")
+              else if (!(others & file_bb(from)) && !shogi)
                   san += UCI::square(pos, from)[0];
-              else if (!(others & rank_bb(from)) && Options["Protocol"] == "uci")
+              else if (!(others & rank_bb(from)) && !shogi)
                   san += UCI::square(pos, from)[1];
               else
                   san += UCI::square(pos, from);
@@ -93,7 +96,7 @@ const string move_to_san(Position& pos, Move m) {
                   san += UCI::square(pos, from)[0];
               san += 'x';
           }
-          else if (Options["Protocol"] == "usi")
+          else if (shogi)
               san += '-';
       }
 
@@ -105,19 +108,21 @@ const string move_to_san(Position& pos, Move m) {
           san += string("+");
       else if (type_of(m) == PIECE_DEMOTION)
           san += string("-");
-      else if (type_of(m) == NORMAL && Options["Protocol"] == "usi" && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
+      else if (type_of(m) == NORMAL && shogi && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
           san += string("=");
       else if (is_gating(m))
           san += string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
   }
 
-  if (pos.gives_check(m) && (Options["Protocol"] == "uci"))
+  if (pos.gives_check(m) && (!shogi))
   {
       StateInfo st;
       pos.do_move(m, st);
       san += MoveList<LEGAL>(pos).size() ? "+" : "#";
       pos.undo_move(m);
   }
+  // reset protocol
+  Options["Protocol"] = protocol;
   return san;
 }
 
@@ -164,8 +169,8 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
     const Variant* v = variants.find(string(variant))->second;
     if (strcmp(fen, "startpos") == 0)
         fen = v->startFen.c_str();
-    bool sfen = v->variantTemplate == "shogi";
-    Options["Protocol"] = (sfen) ? string("usi") : string("uci");
+    bool sfen = false;
+    Options["Protocol"] = string("uci");
     Options["UCI_Chess960"] = (chess960) ? UCI::Option(true) : UCI::Option(false);
     pos.set(v, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
@@ -245,7 +250,9 @@ extern "C" PyObject* pyffish_getSAN(PyObject* self, PyObject *args) {
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
     string moveStr = move;
-    return Py_BuildValue("s", move_to_san(pos, UCI::to_move(pos, moveStr)).c_str());
+    const Variant* v = variants.find(string(variant))->second;
+    const bool shogi = v->variantTemplate == "shogi";
+    return Py_BuildValue("s", move_to_san(pos, UCI::to_move(pos, moveStr), shogi).c_str());
 }
 
 // INPUT variant, fen, movelist
@@ -261,6 +268,9 @@ extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, sanMoves, chess960);
 
+    const Variant* v = variants.find(string(variant))->second;
+    const bool shogi = v->variantTemplate == "shogi";
+
     int numMoves = PyList_Size(moveList);
     for (int i=0; i<numMoves ; i++) {
         string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
@@ -268,7 +278,7 @@ extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
         if ((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
         {
             //add to the san move list
-            PyObject *move=Py_BuildValue("s", move_to_san(pos, m).c_str());
+            PyObject *move=Py_BuildValue("s", move_to_san(pos, m, shogi).c_str());
             PyList_Append(sanMoves, move);
             Py_XDECREF(move);
 

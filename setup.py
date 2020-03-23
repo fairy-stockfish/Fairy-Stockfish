@@ -3,8 +3,13 @@
 from setuptools import setup, Extension
 from glob import glob
 import platform
+import io
 
-args = ["-Wno-date-time", "-flto", "-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-std=c++11"]
+
+args = ["-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-flto", "-std=c++11"]
+
+if not platform.python_compiler().startswith("MSC"):
+    args.append("-Wno-date-time")
 
 if "64bit" in platform.architecture():
     args.append("-DIS_64BIT")
@@ -16,7 +21,7 @@ CLASSIFIERS = [
     "Operating System :: OS Independent",
 ]
 
-with open("Readme.md", "r") as fh:
+with io.open("Readme.md", "r", encoding="utf8") as fh:
     long_description = fh.read().strip()
 
 pyffish_module = Extension(
@@ -33,5 +38,6 @@ setup(name="pyffish", version="0.0.40",
       license="GPL3",
       classifiers=CLASSIFIERS,
       url="https://github.com/gbtami/Fairy-Stockfish",
+      python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*",
       ext_modules=[pyffish_module]
       )
