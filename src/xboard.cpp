@@ -122,10 +122,12 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   }
   else if (token == "new")
   {
+      Search::clear();
       setboard(pos, states);
       // play second by default
       playColor = ~pos.side_to_move();
       Threads.sit = false;
+      Partner.reset();
   }
   else if (token == "variant")
   {
@@ -163,9 +165,12 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           limits.inc[BLACK] = num * 1000;
       }
       else if (token == "sd")
-      is >> limits.depth;
+          is >> limits.depth;
       else if (token == "st")
-      is >> limits.movetime;
+      {
+          is >> num;
+          limits.movetime = num * 1000;
+      }
       // Note: time/otim are in centi-, not milliseconds
       else if (token == "time")
       {
@@ -258,8 +263,19 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       if (   std::getline(is, token, '[') && std::getline(is, white_holdings, ']')
           && std::getline(is, token, '[') && std::getline(is, black_holdings, ']'))
       {
-          std::transform(black_holdings.begin(), black_holdings.end(), black_holdings.begin(), ::tolower);
-          std::string fen = pos.fen(false, false, white_holdings + black_holdings);
+          std::string fen;
+          char color, pieceType;
+          // Use the obtained holding if available to avoid race conditions
+          if (is >> color && is >> pieceType)
+          {
+              fen = pos.fen();
+              fen.insert(fen.find(']'), 1, toupper(color) == 'B' ? tolower(pieceType) : toupper(pieceType));
+          }
+          else
+          {
+              std::transform(black_holdings.begin(), black_holdings.end(), black_holdings.begin(), ::tolower);
+              fen = pos.fen(false, false, white_holdings + black_holdings);
+          }
           setboard(pos, states, fen);
       }
       // restart search

@@ -245,6 +245,18 @@ namespace {
         v->extinctionPieceTypes = {PAWN};
         return v;
     }
+    // Three Kings Chess
+    // https://github.com/cutechess/cutechess/blob/master/projects/lib/src/board/threekingsboard.h
+    Variant* threekings_variant() {
+        Variant* v = fairy_variant_base();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->startFen = "knbqkbnk/pppppppp/8/8/8/8/PPPPPPPP/KNBQKBNK w - - 0 1";
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPieceCount = 2;
+        return v;
+    }
     Variant* horde_variant() {
         Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
@@ -287,6 +299,20 @@ namespace {
         v->variantTemplate = "bughouse";
         v->twoBoards = true;
         v->capturesToHand = false;
+        v->stalemateValue = -VALUE_MATE;
+        return v;
+    }
+    // Koedem (Bughouse variant)
+    // http://schachclub-oetigheim.de/wp-content/uploads/2016/04/Koedem-rules.pdf
+    Variant* koedem_variant() {
+        Variant* v = bughouse_variant();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->mustDrop = true;
+        v->mustDropType = COMMONER;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionOpponentPieceCount = 2; // own all kings/commoners
         return v;
     }
     Variant* pocketknight_variant() {
@@ -858,6 +884,7 @@ void VariantMap::init() {
     add("codrus", codrus_variant());
     add("extinction", extinction_variant());
     add("kinglet", kinglet_variant());
+    add("threekings", threekings_variant());
     add("horde", horde_variant());
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
@@ -865,6 +892,7 @@ void VariantMap::init() {
     add("loop", loop_variant());
     add("chessgi", chessgi_variant());
     add("bughouse", bughouse_variant());
+    add("koedem", koedem_variant());
     add("pocketknight", pocketknight_variant());
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());

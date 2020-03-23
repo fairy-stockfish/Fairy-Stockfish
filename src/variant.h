@@ -69,6 +69,7 @@ struct Variant {
   bool dropChecks = true;
   bool mustCapture = false;
   bool mustDrop = false;
+  PieceType mustDropType = ALL_PIECES;
   bool pieceDrops = false;
   bool dropLoop = false;
   bool capturesToHand = false;
@@ -103,6 +104,8 @@ struct Variant {
   Value extinctionValue = VALUE_NONE;
   bool bareKingMove = false;
   std::set<PieceType> extinctionPieceTypes = {};
+  int extinctionPieceCount = 0;
+  int extinctionOpponentPieceCount = 0;
   PieceType flagPiece = NO_PIECE_TYPE;
   Bitboard whiteFlag = 0;
   Bitboard blackFlag = 0;

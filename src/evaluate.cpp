@@ -345,7 +345,7 @@ namespace {
                                 PieceValue[EG][Pt] - PieceValue[EG][pos.unpromoted_piece_on(s)]) / 8;
 
         // Penalty if the piece is far from the kings in drop variants
-        if (pos.captures_to_hand() && pos.count<KING>(Them) && pos.count<KING>(Us))
+        if ((pos.captures_to_hand() || pos.two_boards()) && pos.count<KING>(Them) && pos.count<KING>(Us))
             score -= KingProximity * distance(s, pos.square<KING>(Us)) * distance(s, pos.square<KING>(Them));
 
         if (Pt == BISHOP || Pt == KNIGHT)
@@ -457,7 +457,7 @@ namespace {
 
     constexpr Color    Them = (Us == WHITE ? BLACK : WHITE);
     Rank r = relative_rank(Us, std::min(Rank((pos.max_rank() - 1) / 2 + 1), pos.max_rank()), pos.max_rank());
-    Bitboard Camp = AllSquares ^ forward_ranks_bb(Us, r);
+    Bitboard Camp = pos.board_bb() & ~forward_ranks_bb(Us, r);
 
     if (!pos.count<KING>(Us) || !pos.checking_permitted())
         return SCORE_ZERO;
@@ -483,7 +483,7 @@ namespace {
     b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
 
     std::function <Bitboard (Color, PieceType)> get_attacks = [this](Color c, PieceType pt) {
-        return attackedBy[c][pt] | (pos.captures_to_hand() && pos.count_in_hand(c, pt) ? ~pos.pieces() : Bitboard(0));
+        return attackedBy[c][pt] | (pos.piece_drops() && pos.count_in_hand(c, pt) ? pos.drop_region(c, pt) & ~pos.pieces() : Bitboard(0));
     };
     for (PieceType pt : pos.piece_types())
     {
@@ -494,6 +494,7 @@ namespace {
             // which we can't give a rook check, because rook checks are more valuable.
             queenChecks = (b1 | b2)
                         & get_attacks(Them, QUEEN)
+                        & pos.board_bb()
                         & safe
                         & ~attackedBy[Us][QUEEN]
                         & ~(b1 & attackedBy[Them][ROOK]);
@@ -513,7 +514,7 @@ namespace {
                 unsafeChecks |= knightChecks;
             break;
         case PAWN:
-            if (pos.captures_to_hand() && pos.count_in_hand(Them, pt))
+            if (pos.piece_drops() && pos.count_in_hand(Them, pt))
             {
                 pawnChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & ~pos.pieces() & pos.board_bb();
                 if (pawnChecks & safe)
@@ -534,8 +535,21 @@ namespace {
         }
     }
 
+    // Virtual piece drops
+    if (pos.two_boards() && pos.piece_drops())
+    {
+        for (PieceType pt : pos.piece_types())
+            if (!pos.count_in_hand(Them, pt) && (attacks_bb(Us, pt, ksq, pos.pieces()) & safe & pos.drop_region(Them, pt) & ~pos.pieces()))
+            {
+                kingDanger += OtherSafeCheck * 500 / (500 + PieceValue[MG][pt]);
+                // Presumably a mate threat
+                if (!(attackedBy[Us][KING] & ~(attackedBy[Them][ALL_PIECES] | pos.pieces(Us))))
+                    kingDanger += 2000;
+            }
+    }
+
     if (pos.check_counting())
-        kingDanger *= 2;
+        kingDanger += kingDanger * 7 / (3 + pos.checks_remaining(Them));
 
     Square s = file_of(ksq) == FILE_A ? ksq + EAST : file_of(ksq) == pos.max_file() ? ksq + WEST : ksq;
     Bitboard kingFlank = pos.max_file() == FILE_H ? KingFlank[file_of(ksq)] : file_bb(s) | adjacent_files_bb(s);
@@ -558,7 +572,7 @@ namespace {
                  +  69 * kingAttacksCount[Them] * (2 + 8 * pos.check_counting() + pos.captures_to_hand()) / 2
                  +   3 * kingFlankAttack * kingFlankAttack / 8
                  +       mg_value(mobility[Them] - mobility[Us])
-                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.king_type() == WAZIR) / (1 + pos.check_counting())
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.king_type() == WAZIR) / (1 + pos.check_counting() + pos.two_boards())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
                  -   6 * mg_value(score) / 8
                  -   4 * kingFlankDefense
@@ -575,12 +589,15 @@ namespace {
     // Penalty if king flank is under attack, potentially moving toward the king
     score -= FlankAttacks * kingFlankAttack * (1 + 5 * pos.captures_to_hand() + pos.check_counting());
 
-    if (pos.check_counting() || pos.king_type() == WAZIR)
+    if (pos.check_counting())
+        score += make_score(0, mg_value(score) * 2 / (2 + pos.checks_remaining(Them)));
+
+    if (pos.king_type() == WAZIR)
         score += make_score(0, mg_value(score) / 2);
 
     // For drop games, king danger is independent of game phase
-    if (pos.captures_to_hand())
-        score = make_score(mg_value(score), mg_value(score)) * 2 / (2 + 3 * !pos.shogi_doubled_pawn());
+    if (pos.captures_to_hand() || pos.two_boards())
+        score = make_score(mg_value(score), mg_value(score)) * 2 / (2 + 16 / pos.max_rank() * !pos.shogi_doubled_pawn());
 
     if (T)
         Trace::add(KING, Us, score);
@@ -911,7 +928,11 @@ namespace {
     {
         for (PieceType pt : pos.extinction_piece_types())
             if (pt != ALL_PIECES)
-                score += make_score(1100, 1100) / pos.count(Us, pt) * (pos.extinction_value() / VALUE_MATE);
+            {
+                int denom = std::max(pos.count(Us, pt) - pos.extinction_piece_count(), 1);
+                if (pos.count(Them, pt) >= pos.extinction_opponent_piece_count() || pos.two_boards())
+                    score += make_score(1100, 1100) / denom * (pos.extinction_value() / VALUE_MATE);
+            }
             else if (pos.extinction_value() == VALUE_MATE && !pos.count<KING>(Us))
                 score += make_score(5000, pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
     }

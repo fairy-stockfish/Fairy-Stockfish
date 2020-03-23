@@ -22,6 +22,7 @@
 #include <cfloat>
 #include <cmath>
 
+#include "partner.h"
 #include "search.h"
 #include "timeman.h"
 #include "uci.h"
@@ -118,6 +119,19 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
       hypMyTime =  limits.time[us]
                  + limits.inc[us] * (hypMTG - 1)
                  - moveOverhead * (2 + std::min(hypMTG, 40));
+
+      // Adjust time management for four-player variants
+      if (pos.two_boards())
+      {
+          if (Partner.partnerDead && Partner.opptime)
+              hypMyTime -= Partner.opptime * 10;
+          else
+          {
+              hypMyTime = std::min(hypMyTime, 5000 + std::min(std::abs(limits.time[us] - Partner.opptime * 10), TimePoint(Partner.opptime * 10)));
+              if (Partner.fast || Partner.partnerDead)
+                  hypMyTime /= 4;
+          }
+      }
 
       hypMyTime = std::max(hypMyTime, TimePoint(0));
 

@@ -819,7 +819,7 @@ bool Position::legal(Move m) const {
   }
 
   // Illegal non-drop moves
-  if (must_drop() && type_of(m) != DROP && count_in_hand(us, ALL_PIECES))
+  if (must_drop() && type_of(m) != DROP && count_in_hand(us, var->mustDropType))
   {
       if (checkers())
       {
@@ -938,6 +938,8 @@ bool Position::pseudo_legal(const Move m) const {
   // Use a fast check for piece drops
   if (type_of(m) == DROP)
       return   piece_drops()
+            && pc != NO_PIECE
+            && color_of(pc) == us
             && count_in_hand(us, in_hand_piece_type(m))
             && (drop_region(us, type_of(pc)) & ~pieces() & to)
             && (   type_of(pc) == in_hand_piece_type(m)
@@ -1615,9 +1617,9 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (   extinction_value() != VALUE_NONE
       && piece_on(to)
       && (   (   extinction_piece_types().find(type_of(piece_on(to))) != extinction_piece_types().end()
-              && pieceCount[piece_on(to)] == 1)
+              && pieceCount[piece_on(to)] == extinction_piece_count() + 1)
           || (   extinction_piece_types().find(ALL_PIECES) != extinction_piece_types().end()
-              && count<ALL_PIECES>(~sideToMove) == 1)))
+              && count<ALL_PIECES>(~sideToMove) == extinction_piece_count() + 1)))
       return extinction_value() < VALUE_ZERO;
 
   int swap = PieceValue[MG][piece_on(to)] - threshold;
@@ -1832,12 +1834,14 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   // extinction
   if (extinction_value() != VALUE_NONE)
   {
-      for (PieceType pt : extinction_piece_types())
-          if (!count(WHITE, pt) || !count(BLACK, pt))
-          {
-              result = !count(sideToMove, pt) ? extinction_value(ply) : -extinction_value(ply);
-              return true;
-          }
+      for (Color c : { WHITE, BLACK })
+          for (PieceType pt : extinction_piece_types())
+              if (   count_with_hand( c, pt) <= var->extinctionPieceCount
+                  && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount)
+              {
+                  result = c == sideToMove ? extinction_value(ply) : -extinction_value(ply);
+                  return true;
+              }
   }
   // capture the flag
   if (   capture_the_flag_piece()

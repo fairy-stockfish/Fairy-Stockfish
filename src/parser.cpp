@@ -170,7 +170,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     {
         v->promotionPieceTypes = {};
         char token;
-        size_t idx;
+        size_t idx = 0;
         std::stringstream ss(it_prom->second);
         while (ss >> token && ((idx = v->pieceToChar.find(toupper(token))) != std::string::npos))
             v->promotionPieceTypes.insert(PieceType(idx));
@@ -224,6 +224,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("dropChecks", v->dropChecks);
     parse_attribute("mustCapture", v->mustCapture);
     parse_attribute("mustDrop", v->mustDrop);
+    parse_attribute("mustDropType", v->mustDropType, v->pieceToChar);
     parse_attribute("pieceDrops", v->pieceDrops);
     parse_attribute("dropLoop", v->dropLoop);
     parse_attribute("capturesToHand", v->capturesToHand);
@@ -262,13 +263,15 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     {
         v->extinctionPieceTypes = {};
         char token;
-        size_t idx;
+        size_t idx = 0;
         std::stringstream ss(it_ext->second);
         while (ss >> token && (idx = token == '*' ? size_t(ALL_PIECES) : v->pieceToChar.find(toupper(token))) != std::string::npos)
             v->extinctionPieceTypes.insert(PieceType(idx));
         if (DoCheck && idx == std::string::npos)
             std::cerr << "extinctionPieceTypes - Invalid piece type: " << token << std::endl;
     }
+    parse_attribute("extinctionPieceCount", v->extinctionPieceCount);
+    parse_attribute("extinctionOpponentPieceCount", v->extinctionOpponentPieceCount);
     parse_attribute("flagPiece", v->flagPiece, v->pieceToChar);
     parse_attribute("whiteFlag", v->whiteFlag);
     parse_attribute("blackFlag", v->blackFlag);
