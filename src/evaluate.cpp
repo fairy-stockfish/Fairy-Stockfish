@@ -931,7 +931,9 @@ namespace {
             {
                 int denom = std::max(pos.count(Us, pt) - pos.extinction_piece_count(), 1);
                 if (pos.count(Them, pt) >= pos.extinction_opponent_piece_count() || pos.two_boards())
-                    score += make_score(1100, 1100) / denom * (pos.extinction_value() / VALUE_MATE);
+                    score += make_score(1000000 / (500 + PieceValue[MG][pt]),
+                                        1000000 / (500 + PieceValue[EG][pt])) / (denom * denom)
+                            * (pos.extinction_value() / VALUE_MATE);
             }
             else if (pos.extinction_value() == VALUE_MATE && !pos.count<KING>(Us))
                 score += make_score(5000, pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
