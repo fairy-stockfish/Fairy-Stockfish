@@ -18,6 +18,8 @@
 
 #include <algorithm>
 #include <bitset>
+#include <iostream>
+#include <iomanip>
 
 #include "bitboard.h"
 #include "magic.h"
@@ -454,7 +456,10 @@ namespace {
                     break;
             }
         }
+        std::cout << "      B(0x" << std::hex << std::uppercase << uint64_t(m.magic >> 64) << ", 0x" << uint64_t(m.magic) << "),"
+                  << std::nouppercase << std::dec << std::endl;
     }
+    std::cout << "Size: 0x" << std::hex << magics[SQ_MAX].attacks - magics[SQ_A1].attacks + size << std::endl;
 
     delete[] occupancy;
     delete[] reference;
