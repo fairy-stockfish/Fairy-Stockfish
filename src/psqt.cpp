@@ -153,6 +153,15 @@ void init(const Variant* v) {
                              eg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider));
       }
 
+      // Increase leapers' value in makpong
+      if (v->makpongRule)
+      {
+          if (std::any_of(pi->stepsCapture.begin(), pi->stepsCapture.end(), [](Direction d) { return dist(d) > 1; })
+                  && !pi->lameLeaper)
+              score = make_score(mg_value(score) * 4200 / (3500 + mg_value(score)),
+                                 eg_value(score) * 4700 / (3500 + mg_value(score)));
+      }
+
       // For drop variants, halve the piece values
       if (v->capturesToHand)
           score = make_score(mg_value(score) * 3500 / (7000 + mg_value(score)),
