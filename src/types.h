@@ -729,4 +729,9 @@ inline bool is_ok(Move m) {
   return from_sq(m) != to_sq(m) || type_of(m) == PROMOTION; // Catch MOVE_NULL and MOVE_NONE
 }
 
+inline int dist(Direction d) {
+  return std::abs(d % NORTH) < NORTH / 2 ? std::max(std::abs(d / NORTH), std::abs(d % NORTH))
+      : std::max(std::abs(d / NORTH) + 1, NORTH - std::abs(d % NORTH));
+}
+
 #endif // #ifndef TYPES_H_INCLUDED
