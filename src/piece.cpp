@@ -298,6 +298,14 @@ namespace {
       p->hopperCapture = {NORTH, EAST, SOUTH, WEST};
       return p;
   }
+  PieceInfo* janggi_cannon_piece() {
+      PieceInfo* p = new PieceInfo();
+      p->name = "janggi_cannon";
+      p->betza = "pR";
+      p->hopperQuiet = {NORTH, EAST, SOUTH, WEST};
+      p->hopperCapture = {NORTH, EAST, SOUTH, WEST};
+      return p;
+  }
   PieceInfo* soldier_piece() {
       PieceInfo* p = new PieceInfo();
       p->name = "soldier";
@@ -317,6 +325,21 @@ namespace {
       PieceInfo* p = alfil_piece();
       p->name = "elephant";
       p->betza = "nA";
+      p->lameLeaper = true;
+      return p;
+  }
+  PieceInfo* janggi_elephant_piece() {
+      PieceInfo* p = new PieceInfo();
+      p->name = "janggi_elephant";
+      p->betza = "nZ";
+      p->stepsQuiet = {SOUTH + 2 * SOUTH_WEST, SOUTH + 2 * SOUTH_EAST,
+                       WEST  + 2 * SOUTH_WEST, EAST  + 2 * SOUTH_EAST,
+                       WEST  + 2 * NORTH_WEST, EAST  + 2 * NORTH_EAST,
+                       NORTH + 2 * NORTH_WEST, NORTH + 2 * NORTH_EAST};
+      p->stepsCapture = {SOUTH + 2 * SOUTH_WEST, SOUTH + 2 * SOUTH_EAST,
+                         WEST  + 2 * SOUTH_WEST, EAST  + 2 * SOUTH_EAST,
+                         WEST  + 2 * NORTH_WEST, EAST  + 2 * NORTH_EAST,
+                         NORTH + 2 * NORTH_WEST, NORTH + 2 * NORTH_EAST};
       p->lameLeaper = true;
       return p;
   }
@@ -371,9 +394,11 @@ void PieceMap::init() {
   add(BREAKTHROUGH_PIECE, breakthrough_piece());
   add(IMMOBILE_PIECE, immobile_piece());
   add(CANNON, cannon_piece());
+  add(JANGGI_CANNON, janggi_cannon_piece());
   add(SOLDIER, soldier_piece());
   add(HORSE, horse_piece());
   add(ELEPHANT, elephant_piece());
+  add(JANGGI_ELEPHANT, janggi_elephant_piece());
   add(BANNER, banner_piece());
   add(WAZIR, wazir_piece());
   add(COMMONER, commoner_piece());

@@ -850,6 +850,35 @@ namespace {
         v->blackDropRegion = v->mobilityRegion[BLACK][ELEPHANT];
         return v;
     }
+    // Janggi (Korean chess)
+    // https://en.wikipedia.org/wiki/Janggi
+    Variant* janggi_variant() {
+        Variant* v = xiangqi_variant();
+        v->remove_piece(FERS);
+        v->remove_piece(CANNON);
+        v->remove_piece(ELEPHANT);
+        v->add_piece(WAZIR, 'a');
+        v->add_piece(JANGGI_CANNON, 'c');
+        v->add_piece(JANGGI_ELEPHANT, 'b', 'e');
+        v->startFen = "rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1";
+        Bitboard white_castle = make_bitboard(SQ_D1, SQ_E1, SQ_F1,
+                                              SQ_D2, SQ_E2, SQ_F2,
+                                              SQ_D3, SQ_E3, SQ_F3);
+        Bitboard black_castle = make_bitboard(SQ_D8, SQ_E8, SQ_F8,
+                                              SQ_D9, SQ_E9, SQ_F9,
+                                              SQ_D10, SQ_E10, SQ_F10);
+        v->mobilityRegion[WHITE][WAZIR] = white_castle;
+        v->mobilityRegion[BLACK][WAZIR] = black_castle;
+        v->xiangqiSoldier = false;
+        v->flyingGeneral = false;
+        v->bikjangRule = true;
+        v->diagonalLines = make_bitboard(SQ_D1, SQ_F1, SQ_E2, SQ_D3, SQ_F3,
+                                         SQ_D8, SQ_F8, SQ_E9, SQ_D10, SQ_F10);
+        v->passOnStalemate = true;
+        v->nFoldValue = -VALUE_MATE;
+        v->perpetualCheckIllegal = true;
+        return v;
+    }
 #endif
 
 } // namespace
@@ -933,6 +962,7 @@ void VariantMap::init() {
     add("xiangqi", xiangqi_variant());
     add("manchu", manchu_variant());
     add("supply", supply_variant());
+    add("janggi", janggi_variant());
 #endif
 }
 
