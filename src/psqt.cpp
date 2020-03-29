@@ -143,9 +143,14 @@ void init(const Variant* v) {
       const PieceInfo* pi = pieceMap.find(pt)->second;
       if (pi->sliderQuiet.size() || pi->sliderCapture.size())
       {
-          int offset = pi->stepsQuiet.size() || pi->stepsCapture.size() ? 16 : 6;
-          score = make_score(mg_value(score) * (v->maxRank + v->maxFile + offset) / (14 + offset),
-                             eg_value(score) * (v->maxRank + v->maxFile + offset) / (14 + offset));
+          constexpr int lc = 5;
+          constexpr int rm = 5;
+          constexpr int r0 = rm + RANK_8;
+          int r1 = rm + (v->maxRank + v->maxFile) / 2;
+          int leaper = pi->stepsQuiet.size() + pi->stepsCapture.size();
+          int slider = pi->sliderQuiet.size() + pi->sliderCapture.size();
+          score = make_score(mg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider),
+                             eg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider));
       }
 
       // For drop variants, halve the piece values
