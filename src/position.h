@@ -141,6 +141,7 @@ public:
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   bool unpromoted_soldier(Color c, Square s) const;
+  bool makpong() const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -571,6 +572,11 @@ inline bool Position::cambodian_moves() const {
 inline bool Position::unpromoted_soldier(Color c, Square s) const {
   assert(var != nullptr);
   return var->xiangqiSoldier && relative_rank(c, s, var->maxRank) <= RANK_5;
+}
+
+inline bool Position::makpong() const {
+  assert(var != nullptr);
+  return var->makpongRule;
 }
 
 inline int Position::n_move_rule() const {

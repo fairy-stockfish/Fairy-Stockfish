@@ -572,7 +572,7 @@ namespace {
                  +  69 * kingAttacksCount[Them] * (2 + 8 * pos.check_counting() + pos.captures_to_hand()) / 2
                  +   3 * kingFlankAttack * kingFlankAttack / 8
                  +       mg_value(mobility[Them] - mobility[Us])
-                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.king_type() == WAZIR) / (1 + pos.check_counting() + pos.two_boards())
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.king_type() == WAZIR) / (1 + pos.check_counting() + pos.two_boards() + pos.makpong())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
                  -   6 * mg_value(score) / 8
                  -   4 * kingFlankDefense
@@ -931,7 +931,9 @@ namespace {
             {
                 int denom = std::max(pos.count(Us, pt) - pos.extinction_piece_count(), 1);
                 if (pos.count(Them, pt) >= pos.extinction_opponent_piece_count() || pos.two_boards())
-                    score += make_score(1100, 1100) / denom * (pos.extinction_value() / VALUE_MATE);
+                    score += make_score(1000000 / (500 + PieceValue[MG][pt]),
+                                        1000000 / (500 + PieceValue[EG][pt])) / (denom * denom)
+                            * (pos.extinction_value() / VALUE_MATE);
             }
             else if (pos.extinction_value() == VALUE_MATE && !pos.count<KING>(Us))
                 score += make_score(5000, pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
