@@ -62,6 +62,7 @@ struct StateInfo {
   Bitboard   checkSquares[PIECE_TYPE_NB];
   bool       capturedpromoted;
   bool       shak;
+  bool       bikjang;
   int        repetition;
 };
 
@@ -140,6 +141,8 @@ public:
   bool gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
+  Bitboard diagonal_lines() const;
+  bool pass_on_stalemate() const;
   bool unpromoted_soldier(Color c, Square s) const;
   bool makpong() const;
   // winning conditions
@@ -203,6 +206,7 @@ public:
   Bitboard attackers_to(Square s, Color c) const;
   Bitboard attackers_to(Square s, Bitboard occupied) const;
   Bitboard attackers_to(Square s, Bitboard occupied, Color c) const;
+  Bitboard attackers_to(Square s, Bitboard occupied, Color c, Bitboard janggiCannons) const;
   Bitboard attacks_from(Color c, PieceType pt, Square s) const;
   template<PieceType> Bitboard attacks_from(Square s, Color c) const;
   Bitboard moves_from(Color c, PieceType pt, Square s) const;
@@ -569,6 +573,16 @@ inline bool Position::cambodian_moves() const {
   return var->cambodianMoves;
 }
 
+inline Bitboard Position::diagonal_lines() const {
+  assert(var != nullptr);
+  return var->diagonalLines;
+}
+
+inline bool Position::pass_on_stalemate() const {
+  assert(var != nullptr);
+  return var->passOnStalemate;
+}
+
 inline bool Position::unpromoted_soldier(Color c, Square s) const {
   assert(var != nullptr);
   return var->xiangqiSoldier && relative_rank(c, s, var->maxRank) <= RANK_5;
@@ -836,6 +850,10 @@ inline Bitboard Position::attackers_to(Square s) const {
 
 inline Bitboard Position::attackers_to(Square s, Color c) const {
   return attackers_to(s, byTypeBB[ALL_PIECES], c);
+}
+
+inline Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
+  return attackers_to(s, occupied, c, byTypeBB[JANGGI_CANNON]);
 }
 
 inline Bitboard Position::checkers() const {

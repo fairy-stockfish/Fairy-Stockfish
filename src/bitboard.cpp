@@ -46,6 +46,7 @@ Magic CannonMagicsH[SQUARE_NB];
 Magic CannonMagicsV[SQUARE_NB];
 Magic HorseMagics[SQUARE_NB];
 Magic ElephantMagics[SQUARE_NB];
+Magic JanggiElephantMagics[SQUARE_NB];
 
 namespace {
 
@@ -57,6 +58,7 @@ namespace {
   Bitboard CannonTableV[0x4800];  // To store vertical cannon attacks
   Bitboard HorseTable[0x500];  // To store horse attacks
   Bitboard ElephantTable[0x400];  // To store elephant attacks
+  Bitboard JanggiElephantTable[0x1C000];  // To store janggi elephant attacks
 #else
   Bitboard RookTableH[0xA00];  // To store horizontal rook attacks
   Bitboard RookTableV[0xA00];  // To store vertical rook attacks
@@ -65,6 +67,7 @@ namespace {
   Bitboard CannonTableV[0xA00];  // To store vertical cannon attacks
   Bitboard HorseTable[0x240];  // To store horse attacks
   Bitboard ElephantTable[0x1A0];  // To store elephant attacks
+  Bitboard JanggiElephantTable[0x5C00];  // To store janggi elephant attacks
 #endif
 
   enum MovementType { RIDER, HOPPER, LAME_LEAPER };
@@ -172,6 +175,18 @@ const std::string Bitboards::pretty(Bitboard b) {
 
 void Bitboards::init() {
 
+  // Piece moves
+  std::vector<Direction> RookDirectionsV = { NORTH, SOUTH};
+  std::vector<Direction> RookDirectionsH = { EAST, WEST };
+  std::vector<Direction> BishopDirections = { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
+  std::vector<Direction> HorseDirections = {2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
+                                            NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST };
+  std::vector<Direction> ElephantDirections = { 2 * NORTH_EAST, 2 * SOUTH_EAST, 2 * SOUTH_WEST, 2 * NORTH_WEST };
+  std::vector<Direction> JanggiElephantDirections = { NORTH + 2 * NORTH_EAST, EAST  + 2 * NORTH_EAST,
+                                                      EAST  + 2 * SOUTH_EAST, SOUTH + 2 * SOUTH_EAST,
+                                                      SOUTH + 2 * SOUTH_WEST, WEST + 2 * SOUTH_WEST,
+                                                      WEST  + 2 * NORTH_WEST, NORTH + 2 * NORTH_WEST };
+
   // Initialize rider types
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
@@ -181,51 +196,53 @@ void Bitboards::init() {
       {
           for (Direction d : pi->stepsCapture)
           {
-              if (   d == 2 * SOUTH + WEST || d == 2 * SOUTH + EAST || d == SOUTH + 2 * WEST || d == SOUTH + 2 * EAST
-                  || d == NORTH + 2 * WEST || d == NORTH + 2 * EAST || d == 2 * NORTH + WEST || d == 2 * NORTH + EAST)
+              if (std::find(HorseDirections.begin(), HorseDirections.end(), d) != HorseDirections.end())
                   AttackRiderTypes[pt] |= RIDER_HORSE;
-              if (d == 2 * NORTH_EAST || d == 2 * SOUTH_EAST || d == 2 * SOUTH_WEST || d == 2 * NORTH_WEST)
+              if (std::find(ElephantDirections.begin(), ElephantDirections.end(), d) != ElephantDirections.end())
                   AttackRiderTypes[pt] |= RIDER_ELEPHANT;
+              if (std::find(JanggiElephantDirections.begin(), JanggiElephantDirections.end(), d) != JanggiElephantDirections.end())
+                  AttackRiderTypes[pt] |= RIDER_JANGGI_ELEPHANT;
           }
           for (Direction d : pi->stepsQuiet)
           {
-              if (   d == 2 * SOUTH + WEST || d == 2 * SOUTH + EAST || d == SOUTH + 2 * WEST || d == SOUTH + 2 * EAST
-                  || d == NORTH + 2 * WEST || d == NORTH + 2 * EAST || d == 2 * NORTH + WEST || d == 2 * NORTH + EAST)
+              if (std::find(HorseDirections.begin(), HorseDirections.end(), d) != HorseDirections.end())
                   MoveRiderTypes[pt] |= RIDER_HORSE;
-              if (d == 2 * NORTH_EAST || d == 2 * SOUTH_EAST || d == 2 * SOUTH_WEST || d == 2 * NORTH_WEST)
+              if (std::find(ElephantDirections.begin(), ElephantDirections.end(), d) != ElephantDirections.end())
                   MoveRiderTypes[pt] |= RIDER_ELEPHANT;
+              if (std::find(JanggiElephantDirections.begin(), JanggiElephantDirections.end(), d) != JanggiElephantDirections.end())
+                  MoveRiderTypes[pt] |= RIDER_JANGGI_ELEPHANT;
           }
       }
       for (Direction d : pi->sliderCapture)
       {
-          if (d == NORTH_EAST || d == SOUTH_WEST || d == NORTH_WEST || d == SOUTH_EAST)
+          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
               AttackRiderTypes[pt] |= RIDER_BISHOP;
-          if (d == EAST || d == WEST)
+          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
               AttackRiderTypes[pt] |= RIDER_ROOK_H;
-          if (d == NORTH || d == SOUTH)
+          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               AttackRiderTypes[pt] |= RIDER_ROOK_V;
       }
       for (Direction d : pi->sliderQuiet)
       {
-          if (d == NORTH_EAST || d == SOUTH_WEST || d == NORTH_WEST || d == SOUTH_EAST)
+          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
               MoveRiderTypes[pt] |= RIDER_BISHOP;
-          if (d == EAST || d == WEST)
+          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
               MoveRiderTypes[pt] |= RIDER_ROOK_H;
-          if (d == NORTH || d == SOUTH)
+          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               MoveRiderTypes[pt] |= RIDER_ROOK_V;
       }
       for (Direction d : pi->hopperCapture)
       {
-          if (d == EAST || d == WEST)
+          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
               AttackRiderTypes[pt] |= RIDER_CANNON_H;
-          if (d == NORTH || d == SOUTH)
+          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               AttackRiderTypes[pt] |= RIDER_CANNON_V;
       }
       for (Direction d : pi->hopperQuiet)
       {
-          if (d == EAST || d == WEST)
+          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
               MoveRiderTypes[pt] |= RIDER_CANNON_H;
-          if (d == NORTH || d == SOUTH)
+          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               MoveRiderTypes[pt] |= RIDER_CANNON_V;
       }
   }
@@ -244,14 +261,6 @@ void Bitboards::init() {
       for (Square s2 = SQ_A1; s2 <= SQ_MAX; ++s2)
               SquareDistance[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
 
-  // Piece moves
-  std::vector<Direction> RookDirectionsV = { NORTH, SOUTH};
-  std::vector<Direction> RookDirectionsH = { EAST, WEST };
-  std::vector<Direction> BishopDirections = { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
-  std::vector<Direction> HorseDirections = {2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-                                            NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST };
-  std::vector<Direction> ElephantDirections = { 2 * NORTH_EAST, 2 * SOUTH_EAST, 2 * SOUTH_WEST, 2 * NORTH_WEST };
-
 #ifdef PRECOMPUTED_MAGICS
   init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH, RookMagicHInit);
   init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV, RookMagicVInit);
@@ -260,6 +269,7 @@ void Bitboards::init() {
   init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV, CannonMagicVInit);
   init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections, HorseMagicInit);
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections, ElephantMagicInit);
+  init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections, JanggiElephantMagicInit);
 #else
   init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH);
   init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV);
@@ -268,6 +278,7 @@ void Bitboards::init() {
   init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV);
   init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections);
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections);
+  init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections);
 #endif
 
   for (Color c : { WHITE, BLACK })

@@ -338,9 +338,11 @@ enum Value : int {
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
   ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
   CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
+  JanggiCannonPieceValueMg = 800,   JanggiCannonPieceValueEg = 600,
   SoldierValueMg           = 150,   SoldierValueEg           = 300,
   HorseValueMg             = 500,   HorseValueEg             = 800,
   ElephantValueMg          = 300,   ElephantValueEg          = 300,
+  JanggiElephantValueMg    = 350,   JanggiElephantValueEg    = 350,
   BannerValueMg            = 3400,  BannerValueEg            = 3500,
   WazirValueMg             = 400,   WazirValueEg             = 400,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
@@ -356,7 +358,8 @@ enum PieceType {
   FERS, MET = FERS, ALFIL, FERS_ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
   ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI, KNIROO, ROOKNI,
   SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, DRAGON_HORSE,
-  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, SOLDIER, HORSE, ELEPHANT, BANNER,
+  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, JANGGI_CANNON,
+  SOLDIER, HORSE, ELEPHANT, JANGGI_ELEPHANT, BANNER,
   WAZIR, COMMONER, CENTAUR, KING,
   ALL_PIECES = 0,
 
@@ -382,8 +385,9 @@ enum RiderType {
   RIDER_CANNON_V = 1 << 4,
   RIDER_HORSE = 1 << 5,
   RIDER_ELEPHANT = 1 << 6,
+  RIDER_JANGGI_ELEPHANT = 1 << 7,
   HOPPING_RIDERS = RIDER_CANNON_H | RIDER_CANNON_V,
-  ASYMMETRICAL_RIDERS = RIDER_HORSE,
+  ASYMMETRICAL_RIDERS = RIDER_HORSE | RIDER_JANGGI_ELEPHANT,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
@@ -726,7 +730,12 @@ constexpr PieceType in_hand_piece_type(Move m) {
 }
 
 inline bool is_ok(Move m) {
-  return from_sq(m) != to_sq(m) || type_of(m) == PROMOTION; // Catch MOVE_NULL and MOVE_NONE
+  return from_sq(m) != to_sq(m) || type_of(m) == PROMOTION || type_of(m) == SPECIAL; // Catch MOVE_NULL and MOVE_NONE
+}
+
+inline int dist(Direction d) {
+  return std::abs(d % NORTH) < NORTH / 2 ? std::max(std::abs(d / NORTH), std::abs(d % NORTH))
+      : std::max(std::abs(d / NORTH) + 1, NORTH - std::abs(d % NORTH));
 }
 
 #endif // #ifndef TYPES_H_INCLUDED

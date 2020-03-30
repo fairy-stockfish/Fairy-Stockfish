@@ -499,6 +499,7 @@ void Position::set_check_info(StateInfo* si) const {
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_from(~sideToMove, pt, ksq) : Bitboard(0);
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
+  si->bikjang = ksq != SQ_NONE ? bool(attacks_from(sideToMove, ROOK, ksq) & pieces(sideToMove, KING)) : false;
 }
 
 
@@ -740,7 +741,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 /// Position::attackers_to() computes a bitboard of all pieces which attack a
 /// given square. Slider attacks use the occupied bitboard to indicate occupancy.
 
-Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
+Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard janggiCannons) const {
 
   Bitboard b = 0;
   for (PieceType pt : piece_types())
@@ -758,6 +759,8 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
                       b |= s2;
               }
           }
+          else if (pt == JANGGI_CANNON)
+              b |= attacks_bb(~c, move_pt, s, occupied) & attacks_bb(~c, move_pt, s, occupied & ~janggiCannons) & pieces(c, JANGGI_CANNON);
           else
               b |= attacks_bb(~c, move_pt, s, occupied) & pieces(c, pt);
       }
@@ -768,6 +771,20 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) const {
       Square fers_sq = s + 2 * (c == WHITE ? SOUTH : NORTH);
       if (is_ok(fers_sq))
           b |= pieces(c, FERS) & gates(c) & fers_sq;
+  }
+
+  // Janggi palace moves
+  if (diagonal_lines() & s)
+  {
+      Bitboard diags = 0;
+      if (king_type() == WAZIR)
+          diags |= attacks_bb(~c, FERS, s, occupied) & pieces(c, KING);
+      diags |= attacks_bb(~c, FERS, s, occupied) & pieces(c, WAZIR);
+      diags |= attacks_bb(~c, PAWN, s, occupied) & pieces(c, SOLDIER);
+      diags |= attacks_bb(~c, BISHOP, s, occupied) & pieces(c, ROOK);
+      // TODO: fix for longer diagonals
+      diags |= attacks_bb(~c, ALFIL, s, occupied) & ~attacks_bb(~c, ELEPHANT, s, occupied & ~janggiCannons) & pieces(c, JANGGI_CANNON);
+      b |= diags & diagonal_lines();
   }
 
   if (unpromoted_soldier(c, s))
@@ -856,6 +873,14 @@ bool Position::legal(Move m) const {
   if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(moves_bb(us, type_of(moved_piece(m)), to, 0) & board_bb()))
       return false;
 
+  // Illegal passing move
+  if (pass_on_stalemate() && type_of(m) == SPECIAL && from == to && !checkers())
+  {
+      for (const auto& move : MoveList<NON_EVASIONS>(*this))
+          if (!(type_of(move) == SPECIAL && from == to) && legal(move))
+              return false;
+  }
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
@@ -897,11 +922,13 @@ bool Position::legal(Move m) const {
             || !(attackers_to(to, pieces() ^ to_sq(m), ~us));
   }
 
+  Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+
   // Flying general rule
   if (var->flyingGeneral && count<KING>(us))
   {
       Square s = type_of(moved_piece(m)) == KING ? to : square<KING>(us);
-      if (attacks_bb(~us, ROOK, s, (pieces() ^ from) | to) & pieces(~us, KING) & ~square_bb(to))
+      if (attacks_bb(~us, ROOK, s, occupied) & pieces(~us, KING) & ~square_bb(to))
           return false;
   }
 
@@ -913,10 +940,16 @@ bool Position::legal(Move m) const {
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
   if (type_of(moved_piece(m)) == KING)
-      return type_of(m) == CASTLING || !attackers_to(to, (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us);
+      return type_of(m) == CASTLING || !attackers_to(to, occupied, ~us);
+
+  Bitboard janggiCannons = pieces(JANGGI_CANNON);
+  if (type_of(moved_piece(m)) == JANGGI_CANNON)
+      janggiCannons = (type_of(m) == DROP ? janggiCannons : janggiCannons ^ from) | to;
+  else if (janggiCannons & to)
+      janggiCannons ^= to;
 
   // A non-king move is legal if the king is not under attack after the move.
-  return !count<KING>(us) || !(attackers_to(square<KING>(us), (type_of(m) != DROP ? pieces() ^ from : pieces()) | to, ~us) & ~SquareBB[to]);
+  return !count<KING>(us) || !(attackers_to(square<KING>(us), occupied, ~us, janggiCannons) & ~SquareBB[to]);
 }
 
 
@@ -994,10 +1027,14 @@ bool Position::pseudo_legal(const Move m) const {
   else if (!((capture(m) ? attacks_from(us, type_of(pc), from) : moves_from(us, type_of(pc), from)) & to))
       return false;
 
+  // Janggi cannon
+  if (type_of(pc) == JANGGI_CANNON && (pieces(JANGGI_CANNON) & (between_bb(from, to) | to)))
+       return false;
+
   // Evasions generator already takes care to avoid some kind of illegal moves
   // and legal() relies on this. We therefore have to take care that the same
   // kind of moves are filtered out here.
-  if (checkers() & ~(pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT)))
+  if (checkers() & ~(pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT) | pieces(JANGGI_CANNON, JANGGI_ELEPHANT)))
   {
       if (type_of(pc) != KING)
       {
@@ -1041,23 +1078,43 @@ bool Position::gives_check(Move m) const {
       PieceType pt = type_of(moved_piece(m));
       if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
       {
-          if (attacks_bb(sideToMove, pt, to, (pieces() ^ from) | to) & square<KING>(~sideToMove))
+          Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+          if (attacks_bb(sideToMove, pt, to, occupied) & square<KING>(~sideToMove))
               return true;
       }
       else if (st->checkSquares[pt] & to)
           return true;
   }
 
+  Bitboard janggiCannons = pieces(JANGGI_CANNON);
+  if (type_of(moved_piece(m)) == JANGGI_CANNON)
+      janggiCannons = (type_of(m) == DROP ? janggiCannons : janggiCannons ^ from) | to;
+  else if (janggiCannons & to)
+      janggiCannons ^= to;
+
   // Is there a discovered check?
-  if (   type_of(m) != DROP
-      && ((st->blockersForKing[~sideToMove] & from) || (pieces(sideToMove, CANNON, BANNER) | pieces(HORSE, ELEPHANT)))
-      && attackers_to(square<KING>(~sideToMove), (pieces() ^ from) | to, sideToMove))
+  if (  ((type_of(m) != DROP && (st->blockersForKing[~sideToMove] & from)) || pieces(sideToMove, CANNON, BANNER)
+          || pieces(HORSE, ELEPHANT) || pieces(JANGGI_CANNON, JANGGI_ELEPHANT))
+      && attackers_to(square<KING>(~sideToMove), (type_of(m) == DROP ? pieces() : pieces() ^ from) | to, sideToMove, janggiCannons))
       return true;
 
   // Is there a check by gated pieces?
   if (    is_gating(m)
       && attacks_bb(sideToMove, gating_type(m), gating_square(m), (pieces() ^ from) | to) & square<KING>(~sideToMove))
       return true;
+
+  // Is there a check by special diagonal moves?
+  if (more_than_one(diagonal_lines() & (to | square<KING>(~sideToMove))))
+  {
+      PieceType pt = type_of(moved_piece(m));
+      PieceType diagType = pt == WAZIR ? FERS : pt == SOLDIER ? PAWN : pt == ROOK ? BISHOP : NO_PIECE_TYPE;
+      Bitboard occupied = type_of(m) == DROP ? pieces() : pieces() ^ from;
+      if (diagType && (attacks_bb(sideToMove, diagType, to, occupied) & square<KING>(~sideToMove)))
+          return true;
+      // TODO: fix for longer diagonals
+      else if (pt == JANGGI_CANNON && (attacks_bb(sideToMove, ALFIL, to, occupied) & ~attacks_bb(sideToMove, ELEPHANT, to, occupied) & square<KING>(~sideToMove)))
+          return true;
+  }
 
   switch (type_of(m))
   {
@@ -1138,7 +1195,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
   if (to == from)
   {
-      assert(type_of(m) == PROMOTION && sittuyin_promotion());
+      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (type_of(m) == SPECIAL && pass_on_stalemate()));
       captured = NO_PIECE;
   }
   st->capturedpromoted = is_promoted(to);
@@ -1420,7 +1477,8 @@ void Position::undo_move(Move m) {
   Square to = to_sq(m);
   Piece pc = piece_on(to);
 
-  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m) || (type_of(m) == PROMOTION && sittuyin_promotion()));
+  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
+         || (type_of(m) == PROMOTION && sittuyin_promotion()) || (type_of(m) == SPECIAL && pass_on_stalemate()));
   assert(type_of(st->capturedPiece) != KING);
 
   // Remove gated piece
@@ -1880,6 +1938,21 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
               return true;
           }
       }
+  }
+  // Check for bikjang rule (Janggi)
+  if (var->bikjangRule && st->pliesFromNull > 0 && st->bikjang && st->previous->bikjang)
+  {
+      // material counting
+      auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
+      int materialCount =  weigth_count(ROOK, 13)
+                         + weigth_count(JANGGI_CANNON, 7)
+                         + weigth_count(HORSE, 5)
+                         + weigth_count(JANGGI_ELEPHANT, 3)
+                         + weigth_count(WAZIR, 3)
+                         + weigth_count(SOLDIER, 2)
+                         - 1;
+      result = (sideToMove == WHITE) == (materialCount > 0) ? mate_in(ply) : mated_in(ply);
+      return true;
   }
   // Tsume mode: Assume that side with king wins when not in check
   if (!count<KING>(~sideToMove) && count<KING>(sideToMove) && !checkers() && Options["TsumeMode"])
