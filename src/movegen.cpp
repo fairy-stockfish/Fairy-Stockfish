@@ -347,7 +347,7 @@ namespace {
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(&b));
 
         // Passing move by king
-        if (pos.pass_on_stalemate())
+        if (pos.king_pass())
             *moveList++ = make<SPECIAL>(ksq, ksq);
 
         if (Type != CAPTURES && pos.can_castle(CastlingRights(OO | OOO)))

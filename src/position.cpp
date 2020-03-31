@@ -873,8 +873,8 @@ bool Position::legal(Move m) const {
   if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(moves_bb(us, type_of(moved_piece(m)), to, 0) & board_bb()))
       return false;
 
-  // Illegal passing move
-  if (pass_on_stalemate() && type_of(m) == SPECIAL && from == to && !checkers())
+  // Illegal king passing move
+  if (king_pass_on_stalemate() && type_of(m) == SPECIAL && from == to && !checkers())
   {
       for (const auto& move : MoveList<NON_EVASIONS>(*this))
           if (!(type_of(move) == SPECIAL && from == to) && legal(move))
@@ -1195,7 +1195,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
   if (to == from)
   {
-      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (type_of(m) == SPECIAL && pass_on_stalemate()));
+      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (type_of(m) == SPECIAL && king_pass()));
       captured = NO_PIECE;
   }
   st->capturedpromoted = is_promoted(to);
@@ -1478,7 +1478,8 @@ void Position::undo_move(Move m) {
   Piece pc = piece_on(to);
 
   assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
-         || (type_of(m) == PROMOTION && sittuyin_promotion()) || (type_of(m) == SPECIAL && pass_on_stalemate()));
+         || (type_of(m) == PROMOTION && sittuyin_promotion())
+         || (type_of(m) == SPECIAL && king_pass()));
   assert(type_of(st->capturedPiece) != KING);
 
   // Remove gated piece
