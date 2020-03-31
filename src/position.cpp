@@ -499,7 +499,7 @@ void Position::set_check_info(StateInfo* si) const {
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_from(~sideToMove, pt, ksq) : Bitboard(0);
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
-  si->bikjang = ksq != SQ_NONE ? bool(attacks_from(sideToMove, ROOK, ksq) & pieces(sideToMove, KING)) : false;
+  si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_from(sideToMove, ROOK, ksq) & pieces(sideToMove, KING)) : false;
 }
 
 
