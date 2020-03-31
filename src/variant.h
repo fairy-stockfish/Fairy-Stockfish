@@ -87,7 +87,8 @@ struct Variant {
   bool seirawanGating = false;
   bool cambodianMoves = false;
   Bitboard diagonalLines = 0;
-  bool passOnStalemate = false;
+  bool kingPass = false;
+  bool kingPassOnStalemate = false;
   bool makpongRule = false;
   bool flyingGeneral = false;
   bool xiangqiSoldier = false;

@@ -347,7 +347,7 @@ namespace {
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(&b));
 
         // Passing move by king
-        if (pos.pass_on_stalemate())
+        if (pos.king_pass())
             *moveList++ = make<SPECIAL>(ksq, ksq);
 
         if (Type != CAPTURES && pos.can_castle(CastlingRights(OO | OOO)))
@@ -520,6 +520,19 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
                 | (pos.moves_from(us, KING, ksq) & ~pos.pieces())) & ~pos.pieces(us) & ~sliderAttacks;
   while (b)
       moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
+
+  // Janggi king palace moves
+  if (pos.diagonal_lines() & ksq)
+  {
+      PieceType movePt = pos.king_type();
+      PieceType diagType = movePt == WAZIR ? FERS : movePt == SOLDIER ? PAWN : movePt == ROOK ? BISHOP : NO_PIECE_TYPE;
+      if (diagType)
+      {
+          b = attacks_bb(us, diagType, ksq, pos.pieces()) & pos.board_bb(us, KING) & pos.diagonal_lines() & ~pos.pieces(us) & ~sliderAttacks;
+          while (b)
+              moveList = make_move_and_gating<SPECIAL>(pos, moveList, us, ksq, pop_lsb(&b));
+      }
+  }
 
   if (more_than_one(pos.checkers()))
       return moveList; // Double check, only a king move can save the day

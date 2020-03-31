@@ -142,7 +142,8 @@ public:
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
-  bool pass_on_stalemate() const;
+  bool king_pass() const;
+  bool king_pass_on_stalemate() const;
   bool unpromoted_soldier(Color c, Square s) const;
   bool makpong() const;
   // winning conditions
@@ -578,9 +579,14 @@ inline Bitboard Position::diagonal_lines() const {
   return var->diagonalLines;
 }
 
-inline bool Position::pass_on_stalemate() const {
+inline bool Position::king_pass() const {
   assert(var != nullptr);
-  return var->passOnStalemate;
+  return var->kingPass || var->kingPassOnStalemate;
+}
+
+inline bool Position::king_pass_on_stalemate() const {
+  assert(var != nullptr);
+  return var->kingPassOnStalemate;
 }
 
 inline bool Position::unpromoted_soldier(Color c, Square s) const {

@@ -499,7 +499,7 @@ void Position::set_check_info(StateInfo* si) const {
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_from(~sideToMove, pt, ksq) : Bitboard(0);
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
-  si->bikjang = ksq != SQ_NONE ? bool(attacks_from(sideToMove, ROOK, ksq) & pieces(sideToMove, KING)) : false;
+  si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_from(sideToMove, ROOK, ksq) & pieces(sideToMove, KING)) : false;
 }
 
 
@@ -873,8 +873,8 @@ bool Position::legal(Move m) const {
   if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(moves_bb(us, type_of(moved_piece(m)), to, 0) & board_bb()))
       return false;
 
-  // Illegal passing move
-  if (pass_on_stalemate() && type_of(m) == SPECIAL && from == to && !checkers())
+  // Illegal king passing move
+  if (king_pass_on_stalemate() && type_of(m) == SPECIAL && from == to && !checkers())
   {
       for (const auto& move : MoveList<NON_EVASIONS>(*this))
           if (!(type_of(move) == SPECIAL && from == to) && legal(move))
@@ -924,8 +924,9 @@ bool Position::legal(Move m) const {
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
 
-  // Flying general rule
-  if (var->flyingGeneral && count<KING>(us))
+  // Flying general rule and bikjang
+  // In case of bikjang passing is allowed
+  if ((var->flyingGeneral && count<KING>(us)) || (st->bikjang && !(type_of(moved_piece(m)) == KING && from == to)))
   {
       Square s = type_of(moved_piece(m)) == KING ? to : square<KING>(us);
       if (attacks_bb(~us, ROOK, s, occupied) & pieces(~us, KING) & ~square_bb(to))
@@ -1195,7 +1196,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
   if (to == from)
   {
-      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (type_of(m) == SPECIAL && pass_on_stalemate()));
+      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (type_of(m) == SPECIAL && king_pass()));
       captured = NO_PIECE;
   }
   st->capturedpromoted = is_promoted(to);
@@ -1478,7 +1479,8 @@ void Position::undo_move(Move m) {
   Piece pc = piece_on(to);
 
   assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
-         || (type_of(m) == PROMOTION && sittuyin_promotion()) || (type_of(m) == SPECIAL && pass_on_stalemate()));
+         || (type_of(m) == PROMOTION && sittuyin_promotion())
+         || (type_of(m) == SPECIAL && king_pass()));
   assert(type_of(st->capturedPiece) != KING);
 
   // Remove gated piece
