@@ -924,8 +924,9 @@ bool Position::legal(Move m) const {
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
 
-  // Flying general rule
-  if (var->flyingGeneral && count<KING>(us))
+  // Flying general rule and bikjang
+  // In case of bikjang passing is allowed
+  if ((var->flyingGeneral && count<KING>(us)) || (st->bikjang && !(type_of(moved_piece(m)) == KING && from == to)))
   {
       Square s = type_of(moved_piece(m)) == KING ? to : square<KING>(us);
       if (attacks_bb(~us, ROOK, s, occupied) & pieces(~us, KING) & ~square_bb(to))
