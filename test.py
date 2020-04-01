@@ -360,7 +360,7 @@ class TestPyffish(unittest.TestCase):
         result = sf.is_immediate_game_end("janggi", JANGGI, moves.split())
         self.assertFalse(result[0])
 
-        moves = "e2e3 e9f9 h3d3 e7f7 i1i3 h10i8 i3h3 c10e7 h3h8 i10i9 h8b8 i9g9 d3f3 f9e9 f3f10 e7c10 f10c10 b10c8 c10g10 g9f9 b8c8 a10b10 b3f3 f9h9 a1a2 h9f9 a2d2 b10b9 d2d10 e9d10 c8c10 d10d9 f3f9 i8g9 f9b9 a7a6 g10g7 f7f6 e4e5 c7d7 g1e4 i7i6 e4b6 d9d8 c10c8 d8d9 b9g9 d7d6 b6e8 i6h6 e5e6 f6e6 c1e4 a6b6 e4b6 d6d5 c4c5 d9d10 e3d3 h6i6 c5c6 d5c5 c6c7"
+        moves = "e2e3 e9f9 h3d3 e7f7 i1i3 h10i8 i3h3 c10e7 h3h8 i10i9 h8b8 i9g9 d3f3 f9e9 f3f10 e7c10 f10c10 b10c8 c10g10 g9f9 b8c8 a10b10 b3f3 f9h9 a1a2 h9f9 a2d2 b10b9 d2d10 e9d10 c8c10 d10d9 f3f9 i8g9 f9b9 a7a6 g10g7 f7f6 e4e5 c7d7 g1e4 i7i6 e4b6 d9d8 c10c8 d8d9 b9g9 d7d6 b6e8 i6h6 e5e6 f6e6 c1e4 a6b6 e4b6 d6d5 c4c5 d9d10 e3d3 h6i6 c5c6 d5c5 d3d3"
         result = sf.is_immediate_game_end("janggi", JANGGI, moves.split())
         self.assertTrue(result[0])
         self.assertTrue(result[1] < 0)
