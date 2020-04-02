@@ -151,12 +151,15 @@ bool hasInsufficientMaterial(Color c, const Position& pos) {
     if (pos.count(c, FERS) && (DarkSquares & pos.pieces(FERS)) && (~DarkSquares & pos.pieces(FERS)))
         return false;
 
-    if (pos.count(c, CANNON) && (pos.count(c, ALL_PIECES) > 2 || pos.count(~c, ALL_PIECES) > 1))
+    if (pos.pieces(c, CANNON, JANGGI_CANNON) && (pos.count(c, ALL_PIECES) > 2 || pos.count(~c, ALL_PIECES) > 1))
+        return false;
+
+    if (pos.count(c, JANGGI_ELEPHANT) >= 2)
         return false;
 
     // Pieces sufficient for stalemate (Xiangqi)
     if (pos.stalemate_value() != VALUE_DRAW)
-        for (PieceType pt : { HORSE, SOLDIER })
+        for (PieceType pt : { HORSE, SOLDIER, JANGGI_ELEPHANT })
             if (pos.count(c, pt))
                 return false;
 
