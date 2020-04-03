@@ -168,6 +168,7 @@ public:
   // Variant-specific properties
   int count_in_hand(Color c, PieceType pt) const;
   int count_with_hand(Color c, PieceType pt) const;
+  bool bikjang() const;
 
   // Position representation
   Bitboard pieces() const;
@@ -1020,6 +1021,10 @@ inline int Position::count_in_hand(Color c, PieceType pt) const {
 
 inline int Position::count_with_hand(Color c, PieceType pt) const {
   return pieceCount[make_piece(c, pt)] + pieceCountInHand[c][pt];
+}
+
+inline bool Position::bikjang() const {
+  return st->bikjang;
 }
 
 inline void Position::add_to_hand(Piece pc) {

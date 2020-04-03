@@ -494,8 +494,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   Bitboard sliderAttacks = 0;
   Bitboard sliders = pos.checkers();
 
-  // Passing move by king
-  if (pos.king_pass())
+  // Passing move by king in bikjang
+  if (pos.bikjang() && pos.king_pass())
       *moveList++ = make<SPECIAL>(ksq, ksq);
 
   // Consider all evasion moves for special pieces
