@@ -643,8 +643,9 @@ namespace {
         while (bExt)
         {
             PieceType pt = type_of(pos.piece_on(pop_lsb(&bExt)));
+            int denom = std::max(pos.count_with_hand(Them, pt) - pos.extinction_piece_count(), 1);
             if (pos.extinction_piece_types().find(pt) != pos.extinction_piece_types().end())
-                score += make_score(500, 500) / std::max(pos.count_with_hand(Them, pt) - pos.extinction_piece_count(), 1);
+                score += make_score(1000, 1000) / (denom * denom);
         }
     }
 
