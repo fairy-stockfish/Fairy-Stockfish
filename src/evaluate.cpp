@@ -321,6 +321,12 @@ namespace {
             score -= make_score(PieceValue[MG][Pt], PieceValue[EG][Pt]) / 3;
         }
 
+        if (Pt == JANGGI_CANNON)
+        {
+            b &= ~pos.pieces(Pt);
+            b &= attacks_bb(Us, Pt, s, pos.pieces() ^ pos.pieces(Pt));
+        }
+
         if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];
 
