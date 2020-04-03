@@ -584,7 +584,8 @@ namespace {
                  +  69 * kingAttacksCount[Them] * (2 + 8 * pos.check_counting() + pos.captures_to_hand()) / 2
                  +   3 * kingFlankAttack * kingFlankAttack / 8
                  +       mg_value(mobility[Them] - mobility[Us])
-                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.king_type() == WAZIR) / (1 + pos.check_counting() + pos.two_boards() + pos.makpong())
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || (pos.king_type() == WAZIR && !pos.diagonal_lines()))
+                       / (1 + pos.check_counting() + pos.two_boards() + pos.makpong())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
                  -   6 * mg_value(score) / 8
                  -   4 * kingFlankDefense
