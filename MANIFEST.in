@@ -1,0 +1,2 @@
+include AUTHORS Copying.txt Readme.md test.py
+recursive-include src *.h *.cpp

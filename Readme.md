@@ -4,6 +4,7 @@
 
 [![Build Status](https://travis-ci.org/ianfab/Fairy-Stockfish.svg?branch=master)](https://travis-ci.org/ianfab/Fairy-Stockfish)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/ianfab/Fairy-Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/ianfab/Fairy-Stockfish/branch/master)
+[![PyPI version](https://badge.fury.io/py/pyffish.svg)](https://badge.fury.io/py/pyffish)
 
 Fairy-Stockfish is a chess variant engine derived from [Stockfish](https://github.com/official-stockfish/Stockfish/) designed for the support of fairy chess variants and easy extensibility with more games. It can play various historical, regional, and modern chess variants as well as [games with user-defined rules](https://github.com/ianfab/Fairy-Stockfish/wiki/Variant-configuration). For [compatibility with graphical user interfaces](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) it supports the UCI, UCCI, USI, and CECP/XBoard protocols.
 
