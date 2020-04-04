@@ -533,6 +533,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       if (diagType)
       {
           b = attacks_bb(us, diagType, ksq, pos.pieces()) & pos.board_bb(us, KING) & pos.diagonal_lines() & ~pos.pieces(us) & ~sliderAttacks;
+          if (!more_than_one(pos.checkers()))
+              b &= ~pos.checkers();
           while (b)
               moveList = make_move_and_gating<SPECIAL>(pos, moveList, us, ksq, pop_lsb(&b));
       }
