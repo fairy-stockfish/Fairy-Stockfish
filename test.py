@@ -306,6 +306,15 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", XIANGQI, "h3h5")
         self.assertEqual(result, "Ch5")
 
+        # skip disambiguation for elephants and advisors, but not for pieces that require it
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/1NB6/P1P1P1P1P/1C1A3C1/9/RNBAK21R w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "c5e3", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "E7-5")
+        result = sf.get_san("xiangqi", fen, "d1e2", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "A6+5")
+        result = sf.get_san("xiangqi", fen, "b5c7", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "H++7")
+
         # Tandem pawns
         fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
         result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_WXF)

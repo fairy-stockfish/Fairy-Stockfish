@@ -143,7 +143,17 @@ Disambiguation disambiguation_level(const Position& pos, Move m, Notation n) {
 
     // Xiangqi uses either file disambiguation or +/- if two pieces on file
     if (n == NOTATION_XIANGQI_WXF)
-        return popcount(file_bb(from) & pos.pieces(us, pt)) == 2 ? RANK_DISAMBIGUATION : FILE_DISAMBIGUATION;
+    {
+        // Disambiguate by rank (+/-) if target square of other piece is valid
+        if (popcount(pos.pieces(us, pt) & file_bb(from)) == 2)
+        {
+            Square otherFrom = lsb((pos.pieces(us, pt) & file_bb(from)) ^ from);
+            Square otherTo = otherFrom + Direction(to) - Direction(from);
+            if (is_ok(otherTo) && (pos.board_bb(us, pt) & otherTo))
+                return RANK_DISAMBIGUATION;
+        }
+        return FILE_DISAMBIGUATION;
+    }
 
     // Pawn captures always use disambiguation
     if ((n == NOTATION_SAN || n == NOTATION_LAN) && pt == PAWN && pos.capture(m) && from != to)
