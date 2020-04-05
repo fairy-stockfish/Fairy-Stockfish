@@ -300,32 +300,11 @@ namespace {
           : Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(QUEEN) ^ pos.pieces(Us, ROOK))
                          : pos.attacks_from(Us, Pt, s);
 
-        // Janggi palace moves
-        if (pos.diagonal_lines() & s)
-        {
-            PieceType diagType = Pt == WAZIR ? FERS : Pt == SOLDIER ? PAWN : Pt == ROOK ? BISHOP : NO_PIECE_TYPE;
-            if (diagType)
-                b |= attacks_bb(Us, diagType, s, pos.pieces()) & pos.board_bb(Us, Pt) & pos.diagonal_lines();
-            else if (Pt == JANGGI_CANNON)
-                // TODO: fix for longer diagonals
-                b |= attacks_bb(Us, ALFIL, s, pos.pieces()) & ~attacks_bb(Us, ELEPHANT, s, pos.pieces() ^ pos.pieces(JANGGI_CANNON))
-                    & pos.board_bb(Us, Pt) & pos.diagonal_lines();
-        }
-
         // Restrict mobility to actual squares of board
         b &= pos.board_bb();
 
         if (Pt == SOLDIER && pos.unpromoted_soldier(Us, s))
-        {
-            b &= file_bb(s);
             score -= make_score(PieceValue[MG][Pt], PieceValue[EG][Pt]) / 3;
-        }
-
-        if (Pt == JANGGI_CANNON)
-        {
-            b &= ~pos.pieces(Pt);
-            b &= attacks_bb(Us, Pt, s, pos.pieces() ^ pos.pieces(Pt));
-        }
 
         if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];

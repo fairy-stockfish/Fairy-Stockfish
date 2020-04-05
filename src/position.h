@@ -840,15 +840,61 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 
 template<PieceType Pt>
 inline Bitboard Position::attacks_from(Square s, Color c) const {
-  return attacks_bb(c, Pt == KING ? king_type() : Pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, Pt);
+  return attacks_from(c, Pt, s);
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
-  return attacks_bb(c, pt == KING ? king_type() : pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
+  PieceType movePt = pt == KING ? king_type() : pt;
+  Bitboard b = attacks_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
+  // Xiangqi soldier
+  if (pt == SOLDIER && unpromoted_soldier(c, s))
+      b &= file_bb(file_of(s));
+  // Janggi cannon restrictions
+  if (pt == JANGGI_CANNON)
+  {
+      b &= ~pieces(pt);
+      b &= attacks_bb(c, pt, s, pieces() ^ pieces(pt));
+  }
+  // Janggi palace moves
+  if (diagonal_lines() & s)
+  {
+      PieceType diagType = movePt == WAZIR ? FERS : movePt == SOLDIER ? PAWN : movePt == ROOK ? BISHOP : NO_PIECE_TYPE;
+      if (diagType)
+          b |= attacks_bb(c, diagType, s, pieces()) & diagonal_lines();
+      else if (movePt == JANGGI_CANNON)
+          // TODO: fix for longer diagonals
+          b |=   attacks_bb(c, ALFIL, s, pieces())
+              & ~attacks_bb(c, ELEPHANT, s, pieces() ^ pieces(pt))
+              & diagonal_lines();
+  }
+  return b & board_bb(c, pt);
 }
 
 inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
-  return moves_bb(c, pt == KING ? king_type() : pt, s, byTypeBB[ALL_PIECES]) & board_bb(c, pt);
+  PieceType movePt = pt == KING ? king_type() : pt;
+  Bitboard b = moves_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
+  // Xiangqi soldier
+  if (pt == SOLDIER && unpromoted_soldier(c, s))
+      b &= file_bb(file_of(s));
+  // Janggi cannon restrictions
+  if (pt == JANGGI_CANNON)
+  {
+      b &= ~pieces(pt);
+      b &= attacks_bb(c, pt, s, pieces() ^ pieces(pt));
+  }
+  // Janggi palace moves
+  if (diagonal_lines() & s)
+  {
+      PieceType diagType = movePt == WAZIR ? FERS : movePt == SOLDIER ? PAWN : movePt == ROOK ? BISHOP : NO_PIECE_TYPE;
+      if (diagType)
+          b |= attacks_bb(c, diagType, s, pieces()) & diagonal_lines();
+      else if (movePt == JANGGI_CANNON)
+          // TODO: fix for longer diagonals
+          b |=   attacks_bb(c, ALFIL, s, pieces())
+              & ~attacks_bb(c, ELEPHANT, s, pieces() ^ pieces(pt))
+              & diagonal_lines();
+  }
+  return b & board_bb(c, pt);
 }
 
 inline Bitboard Position::attackers_to(Square s) const {
