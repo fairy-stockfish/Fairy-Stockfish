@@ -241,6 +241,9 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("capablanca", CAPA, "e2e4")
         self.assertEqual(result, "e4")
 
+        result = sf.get_san("capablanca", CAPA, "e2e4", False, sf.NOTATION_LAN)
+        self.assertEqual(result, "e2-e4")
+
         result = sf.get_san("capablanca", CAPA, "h1i3")
         self.assertEqual(result, "Ci3")
 
@@ -258,38 +261,58 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", SHOGI, "i3i4")
         self.assertEqual(result, "P-1f")
 
-        result = sf.get_san("shogi", SHOGI, "f1e2")
+        result = sf.get_san("shogi", SHOGI, "i3i4", False, sf.NOTATION_SHOGI_HOSKING)
+        self.assertEqual(result, "P16")
+
+        result = sf.get_san("shogi", SHOGI, "f1e2", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "G4i-5h")
 
         fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -"
-        result = sf.get_san("shogi", fen, "b2h8")
+        result = sf.get_san("shogi", fen, "b2h8", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "Bx2b=")
-        result = sf.get_san("shogi", fen, "b2h8+")
+        result = sf.get_san("shogi", fen, "b2h8+", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "Bx2b+")
 
         fen = "lnsgkg1nl/1r5s1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL[Bb] w "
-        result = sf.get_san("shogi", fen, "B@g7")
+        result = sf.get_san("shogi", fen, "B@g7", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "B*3c")
 
         fen = "lnsgkg1nl/1r4s+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL[B] w "
-        result = sf.get_san("shogi", fen, "h8g7")
+        result = sf.get_san("shogi", fen, "h8g7", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "+B-3c")
 
         fen = "lnk2gsnl/7b1/p1p+SGp1pp/6p2/1pP6/4P4/PP3PPPP/1S2G2R1/L2GK1bNL[PRppns] w "
-        result = sf.get_san("shogi", fen, "d7d8")
+        result = sf.get_san("shogi", fen, "d7d8", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "+S-6b")
 
         result = sf.get_san("xiangqi", XIANGQI, "h1g3")
         self.assertEqual(result, "Hg3")
 
+        result = sf.get_san("xiangqi", XIANGQI, "h1g3", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "H2+3")
+
         result = sf.get_san("xiangqi", XIANGQI, "c1e3")
         self.assertEqual(result, "Ece3")
+
+        result = sf.get_san("xiangqi", XIANGQI, "c1e3", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "E7+5")
 
         result = sf.get_san("xiangqi", XIANGQI, "h3h10")
         self.assertEqual(result, "Cxh10")
 
+        result = sf.get_san("xiangqi", XIANGQI, "h3h10", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "C2+7")
+
         result = sf.get_san("xiangqi", XIANGQI, "h3h5")
         self.assertEqual(result, "Ch5")
+
+        # Tandem pawns
+        fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "15=6")
+
+        result = sf.get_san("janggi", JANGGI, "b1c3", False, sf.NOTATION_JANGGI)
+        self.assertEqual(result, "H02-83")
 
         fen = "1rb1ka2r/4a4/2ncb1nc1/p1p1p1p1p/9/2P6/P3PNP1P/2N1C2C1/9/R1BAKAB1R w - - 1 7"
         result = sf.get_san("xiangqi", fen, "c3e2")
@@ -340,6 +363,18 @@ class TestPyffish(unittest.TestCase):
         SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]
 
         result = sf.get_san_moves("seirawan", SEIRAWAN, UCI_moves)
+        self.assertEqual(result, SAN_moves)
+
+        UCI_moves = ["c3c4", "g7g6", "b2h8"]
+        SAN_moves = ["P-7f", "P-3d", "Bx2b="]
+
+        result = sf.get_san_moves("shogi", SHOGI, UCI_moves)
+        self.assertEqual(result, SAN_moves)
+
+        UCI_moves = ["h3e3", "h10g8", "h1g3", "c10e8", "a1a3", "i10h10"]
+        SAN_moves = ["C2=5", "H8+7", "H2+3", "E3+5", "R9+2", "R9=8"]
+
+        result = sf.get_san_moves("xiangqi", XIANGQI, UCI_moves, False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, SAN_moves)
 
     def test_gives_check(self):
