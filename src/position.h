@@ -865,6 +865,7 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
           // TODO: fix for longer diagonals
           b |=   attacks_bb(c, ALFIL, s, pieces())
               & ~attacks_bb(c, ELEPHANT, s, pieces() ^ pieces(pt))
+              & ~pieces(pt)
               & diagonal_lines();
   }
   return b & board_bb(c, pt);
@@ -892,6 +893,7 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
           // TODO: fix for longer diagonals
           b |=   attacks_bb(c, ALFIL, s, pieces())
               & ~attacks_bb(c, ELEPHANT, s, pieces() ^ pieces(pt))
+              & ~pieces(pt)
               & diagonal_lines();
   }
   return b & board_bb(c, pt);
