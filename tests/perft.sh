@@ -74,8 +74,10 @@ if [[ $1 == "largeboard" ]]; then
   expect perft.exp courier startpos 4 500337 > /dev/null
   expect perft.exp grand startpos 3 259514 > /dev/null
   expect perft.exp xiangqi startpos 4 3290240 > /dev/null
+  expect perft.exp xiangqi "fen 1rbaka2R/5r3/6n2/2p1p1p2/4P1bP1/PpC3Bc1/1nPR2P2/2N2AN2/1c2K1p2/2BAC4 w - - 0 1" 4 4485547 > /dev/null
   expect perft.exp janggi startpos 4 1067293 > /dev/null
-  expect perft.exp janggi "fen 1n1kaabn1/cr2N4/5C1c1/p1pNp3p/9/9/P1PbP1P1P/3r1p3/4A4/R1BA1KB1R b - - 0 1" 4 76826 > /dev/null
+  expect perft.exp janggi "fen 1n1kaabn1/cr2N4/5C1c1/p1pNp3p/9/9/P1PbP1P1P/3r1p3/4A4/R1BA1KB1R b - - 0 1" 4 76824 > /dev/null
+  expect perft.exp janggi "fen 1Pbcka3/3nNn1c1/N2CaC3/1pB6/9/9/5P3/9/4K4/9 w - - 0 23" 4 151944 > /dev/null
 fi
 
 rm perft.exp

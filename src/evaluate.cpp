@@ -304,10 +304,7 @@ namespace {
         b &= pos.board_bb();
 
         if (Pt == SOLDIER && pos.unpromoted_soldier(Us, s))
-        {
-            b &= file_bb(s);
             score -= make_score(PieceValue[MG][Pt], PieceValue[EG][Pt]) / 3;
-        }
 
         if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];
@@ -572,7 +569,8 @@ namespace {
                  +  69 * kingAttacksCount[Them] * (2 + 8 * pos.check_counting() + pos.captures_to_hand()) / 2
                  +   3 * kingFlankAttack * kingFlankAttack / 8
                  +       mg_value(mobility[Them] - mobility[Us])
-                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || pos.king_type() == WAZIR) / (1 + pos.check_counting() + pos.two_boards() + pos.makpong())
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || (pos.king_type() == WAZIR && !pos.diagonal_lines()))
+                       / (1 + pos.check_counting() + pos.two_boards() + pos.makpong())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
                  -   6 * mg_value(score) / 8
                  -   4 * kingFlankDefense
@@ -643,8 +641,9 @@ namespace {
         while (bExt)
         {
             PieceType pt = type_of(pos.piece_on(pop_lsb(&bExt)));
+            int denom = std::max(pos.count_with_hand(Them, pt) - pos.extinction_piece_count(), 1);
             if (pos.extinction_piece_types().find(pt) != pos.extinction_piece_types().end())
-                score += make_score(300, 300) / std::max(pos.count_with_hand(Them, pt) - pos.extinction_piece_count(), 1);
+                score += make_score(1000, 1000) / (denom * denom);
         }
     }
 

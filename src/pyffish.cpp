@@ -24,106 +24,254 @@ namespace PSQT {
   void init(const Variant* v);
 }
 
-using namespace std;
-
 namespace
 {
 
-const string move_to_san(Position& pos, Move m, const bool shogi) {
-  Bitboard others, b;
-  string san;
-  Color us = pos.side_to_move();
-  Square from = from_sq(m);
-  Square to = to_sq(m);
-  Piece pc = pos.piece_on(from);
-  PieceType pt = type_of(pc);
+enum Notation {
+    NOTATION_DEFAULT,
+    // https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
+    NOTATION_SAN,
+    NOTATION_LAN,
+    // https://en.wikipedia.org/wiki/Shogi_notation#Western_notation
+    NOTATION_SHOGI_HOSKING, // Examples: P76, S’34
+    NOTATION_SHOGI_HODGES, // Examples: P-7f, S*3d
+    // http://www.janggi.pl/janggi-notation/
+    NOTATION_JANGGI,
+    // https://en.wikipedia.org/wiki/Xiangqi#Notation
+    NOTATION_XIANGQI_WXF,
+};
 
-  string protocol = Options["Protocol"];
-  Options["Protocol"] = string(shogi ? "usi" : "uci");
+Notation default_notation(const Variant* v) {
+    if (v->variantTemplate == "shogi")
+        return NOTATION_SHOGI_HODGES;
+    return NOTATION_SAN;
+}
 
-  if (type_of(m) == CASTLING)
-      {
-      san = to > from ? "O-O" : "O-O-O";
+enum Disambiguation {
+    NO_DISAMBIGUATION,
+    FILE_DISAMBIGUATION,
+    RANK_DISAMBIGUATION,
+    SQUARE_DISAMBIGUATION,
+};
+
+bool is_shogi(Notation n) {
+    return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES;
+}
+
+std::string piece(const Position& pos, Move m, Notation n) {
+    Color us = pos.side_to_move();
+    Square from = from_sq(m);
+    Piece pc = pos.moved_piece(m);
+    PieceType pt = type_of(pc);
+    // Quiet pawn moves
+    if ((n == NOTATION_SAN || n == NOTATION_LAN) && type_of(pc) == PAWN && type_of(m) != DROP)
+        return "";
+    // Tandem pawns
+    else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) > 2)
+        return std::to_string(popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1);
+    // Moves of promoted pieces
+    else if (type_of(m) != DROP && pos.unpromoted_piece_on(from))
+        return "+" + std::string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
+    // Promoted drops
+    else if (type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
+        return "+" + std::string(1, toupper(pos.piece_to_char()[in_hand_piece_type(m)]));
+    else if (pos.piece_to_char_synonyms()[pc] != ' ')
+        return std::string(1, toupper(pos.piece_to_char_synonyms()[pc]));
+    else
+        return std::string(1, toupper(pos.piece_to_char()[pc]));
+}
+
+std::string file(const Position& pos, Square s, Notation n) {
+    switch (n) {
+    case NOTATION_SHOGI_HOSKING:
+    case NOTATION_SHOGI_HODGES:
+        return std::to_string(pos.max_file() - file_of(s) + 1);
+    case NOTATION_JANGGI:
+        return std::to_string(file_of(s) + 1);
+    case NOTATION_XIANGQI_WXF:
+        return std::to_string((pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s)) + 1);
+    default:
+        return std::string(1, char('a' + file_of(s)));
+    }
+}
+
+std::string rank(const Position& pos, Square s, Notation n) {
+    switch (n) {
+    case NOTATION_SHOGI_HOSKING:
+        return std::to_string(pos.max_rank() - rank_of(s) + 1);
+    case NOTATION_SHOGI_HODGES:
+        return std::string(1, char('a' + pos.max_rank() - rank_of(s)));
+    case NOTATION_JANGGI:
+        return std::to_string((pos.max_rank() - rank_of(s) + 1) % 10);
+    case NOTATION_XIANGQI_WXF:
+    {
+        if (pos.empty(s))
+            return std::to_string(relative_rank(pos.side_to_move(), s, pos.max_rank()) + 1);
+        else if (pos.pieces(pos.side_to_move(), type_of(pos.piece_on(s))) & forward_file_bb(pos.side_to_move(), s))
+            return "-";
+        else
+            return "+";
+    }
+    default:
+        return std::to_string(rank_of(s) + 1);
+    }
+}
+
+std::string square(const Position& pos, Square s, Notation n) {
+    switch (n) {
+    case NOTATION_JANGGI:
+        return rank(pos, s, n) + file(pos, s, n);
+    default:
+        return file(pos, s, n) + rank(pos, s, n);
+    }
+}
+
+Disambiguation disambiguation_level(const Position& pos, Move m, Notation n) {
+    // Drops never need disambiguation
+    if (type_of(m) == DROP)
+        return NO_DISAMBIGUATION;
+
+    // NOTATION_LAN and Janggi always use disambiguation
+    if (n == NOTATION_LAN || n == NOTATION_JANGGI)
+        return SQUARE_DISAMBIGUATION;
+
+    Color us = pos.side_to_move();
+    Square from = from_sq(m);
+    Square to = to_sq(m);
+    Piece pc = pos.moved_piece(m);
+    PieceType pt = type_of(pc);
+
+    // Xiangqi uses either file disambiguation or +/- if two pieces on file
+    if (n == NOTATION_XIANGQI_WXF)
+    {
+        // Disambiguate by rank (+/-) if target square of other piece is valid
+        if (popcount(pos.pieces(us, pt) & file_bb(from)) == 2)
+        {
+            Square otherFrom = lsb((pos.pieces(us, pt) & file_bb(from)) ^ from);
+            Square otherTo = otherFrom + Direction(to) - Direction(from);
+            if (is_ok(otherTo) && (pos.board_bb(us, pt) & otherTo))
+                return RANK_DISAMBIGUATION;
+        }
+        return FILE_DISAMBIGUATION;
+    }
+
+    // Pawn captures always use disambiguation
+    if ((n == NOTATION_SAN || n == NOTATION_LAN) && pt == PAWN && pos.capture(m) && from != to)
+        return FILE_DISAMBIGUATION;
+
+    // A disambiguation occurs if we have more then one piece of type 'pt'
+    // that can reach 'to' with a legal move.
+    Bitboard others, b;
+    others = b = ((pos.capture(m) ? attacks_bb(~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())
+                                  : moves_bb(  ~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())) & pos.pieces(us, pt)) & ~square_bb(from);
+
+    while (b)
+    {
+        Square s = pop_lsb(&b);
+        if (   !pos.pseudo_legal(make_move(s, to))
+            || !pos.legal(make_move(s, to))
+            || (is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
+            others ^= s;
+    }
+
+    if (!others)
+        return NO_DISAMBIGUATION;
+    else if (is_shogi(n))
+        return SQUARE_DISAMBIGUATION;
+    else if (!(others & file_bb(from)))
+        return FILE_DISAMBIGUATION;
+    else if (!(others & rank_bb(from)))
+        return RANK_DISAMBIGUATION;
+    else
+        return SQUARE_DISAMBIGUATION;
+}
+
+std::string disambiguation(const Position& pos, Square s, Notation n, Disambiguation d) {
+    switch (d)
+    {
+    case FILE_DISAMBIGUATION:
+        return file(pos, s, n);
+    case RANK_DISAMBIGUATION:
+        return rank(pos, s, n);
+    case SQUARE_DISAMBIGUATION:
+        return square(pos, s, n);
+    default:
+        assert(d == NO_DISAMBIGUATION);
+        return "";
+    }
+}
+
+const std::string move_to_san(Position& pos, Move m, Notation n) {
+    std::string san = "";
+    Color us = pos.side_to_move();
+    Square from = from_sq(m);
+    Square to = to_sq(m);
+
+    if (type_of(m) == CASTLING)
+    {
+        san = to > from ? "O-O" : "O-O-O";
 
         if (is_gating(m))
         {
-          san += string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
-          san += gating_square(m) == to ? UCI::square(pos, to) : UCI::square(pos, from);
+            san += std::string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
+            san += square(pos, gating_square(m), n);
         }
-      }
-  else
-  {
-      if (type_of(m) == DROP)
-          san += UCI::dropped_piece(pos, m) + (shogi ? '*' : '@');
-      else
-      {
-          if (pt != PAWN)
-          {
-              if (pos.is_promoted(from) && shogi)
-                  san += "+" + string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
-              else if (pos.piece_to_char_synonyms()[make_piece(WHITE, pt)] != ' ')
-                  san += pos.piece_to_char_synonyms()[make_piece(WHITE, pt)];
-              else
-                  san += pos.piece_to_char()[make_piece(WHITE, pt)];
+    }
+    else
+    {
+        // Piece
+        san += piece(pos, m, n);
 
-              // A disambiguation occurs if we have more then one piece of type 'pt'
-              // that can reach 'to' with a legal move.
-              others = b = ((pos.capture(m) ? attacks_bb(~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())
-                                            :   moves_bb(~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())) & pos.pieces(us, pt)) ^ from;
+        // Origin square, disambiguation
+        Disambiguation d = disambiguation_level(pos, m, n);
+        san += disambiguation(pos, from, n, d);
 
-              while (b)
-              {
-                  Square s = pop_lsb(&b);
-                  if (   !pos.pseudo_legal(make_move(s, to))
-                      || !pos.legal(make_move(s, to))
-                      || (shogi && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
-                      others ^= s;
-              }
+        // Separator/Operator
+        if (type_of(m) == DROP)
+            san += (n == NOTATION_SHOGI_HODGES ? '*' : n == NOTATION_SHOGI_HOSKING ? '\'' : '@');
+        else if (n == NOTATION_XIANGQI_WXF)
+        {
+            if (rank_of(from) == rank_of(to))
+                san += '=';
+            else if (relative_rank(us, to, pos.max_rank()) > relative_rank(us, from, pos.max_rank()))
+                san += '+';
+            else
+                san += '-';
+        }
+        else if (pos.capture(m) && from != to)
+            san += 'x';
+        else if (n == NOTATION_LAN || n == NOTATION_SHOGI_HODGES || (n == NOTATION_SHOGI_HOSKING && d == SQUARE_DISAMBIGUATION) || n == NOTATION_JANGGI)
+            san += '-';
 
-              if (!others)
-                  { /* disambiguation is not needed */ }
-              else if (!(others & file_bb(from)) && !shogi)
-                  san += UCI::square(pos, from)[0];
-              else if (!(others & rank_bb(from)) && !shogi)
-                  san += UCI::square(pos, from)[1];
-              else
-                  san += UCI::square(pos, from);
-          }
+        // Destination square
+        if (n == NOTATION_XIANGQI_WXF && type_of(m) != DROP)
+            san += file_of(to) == file_of(from) ? std::to_string(std::abs(rank_of(to) - rank_of(from))) : file(pos, to, n);
+        else
+            san += square(pos, to, n);
 
-          if (pos.capture(m) && from != to)
-          {
-              if (pt == PAWN)
-                  san += UCI::square(pos, from)[0];
-              san += 'x';
-          }
-          else if (shogi)
-              san += '-';
-      }
+        // Suffix
+        if (type_of(m) == PROMOTION)
+            san += std::string("=") + pos.piece_to_char()[make_piece(WHITE, promotion_type(m))];
+        else if (type_of(m) == PIECE_PROMOTION)
+            san += std::string("+");
+        else if (type_of(m) == PIECE_DEMOTION)
+            san += std::string("-");
+        else if (type_of(m) == NORMAL && is_shogi(n) && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
+            san += std::string("=");
+        if (is_gating(m))
+            san += std::string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
+    }
 
-      san += UCI::square(pos, to);
+    // Check and checkmate
+    if (pos.gives_check(m) && !is_shogi(n))
+    {
+        StateInfo st;
+        pos.do_move(m, st);
+        san += MoveList<LEGAL>(pos).size() ? "+" : "#";
+        pos.undo_move(m);
+    }
 
-      if (type_of(m) == PROMOTION)
-          san += string("=") + pos.piece_to_char()[make_piece(WHITE, promotion_type(m))];
-      else if (type_of(m) == PIECE_PROMOTION)
-          san += string("+");
-      else if (type_of(m) == PIECE_DEMOTION)
-          san += string("-");
-      else if (type_of(m) == NORMAL && shogi && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
-          san += string("=");
-      else if (is_gating(m))
-          san += string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
-  }
-
-  if (pos.gives_check(m) && (!shogi))
-  {
-      StateInfo st;
-      pos.do_move(m, st);
-      san += MoveList<LEGAL>(pos).size() ? "+" : "#";
-      pos.undo_move(m);
-  }
-  // reset protocol
-  Options["Protocol"] = protocol;
-  return san;
+    return san;
 }
 
 bool hasInsufficientMaterial(Color c, const Position& pos) {
@@ -169,18 +317,17 @@ bool hasInsufficientMaterial(Color c, const Position& pos) {
 void buildPosition(Position& pos, StateListPtr& states, const char *variant, const char *fen, PyObject *moveList, const bool chess960) {
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
 
-    const Variant* v = variants.find(string(variant))->second;
+    const Variant* v = variants.find(std::string(variant))->second;
     if (strcmp(fen, "startpos") == 0)
         fen = v->startFen.c_str();
-    bool sfen = false;
-    Options["Protocol"] = string("uci");
-    Options["UCI_Chess960"] = (chess960) ? UCI::Option(true) : UCI::Option(false);
-    pos.set(v, string(fen), Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
+    Options["UCI_Chess960"] = chess960;
+    pos.set(v, std::string(fen), chess960, &states->back(), Threads.main());
 
     // parse move list
     int numMoves = PyList_Size(moveList);
-    for (int i=0; i<numMoves ; i++) {
-        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
+    for (int i = 0; i < numMoves ; i++)
+    {
+        std::string moveStr(PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")));
         Move m;
         if ((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
         {
@@ -189,9 +336,7 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
             pos.do_move(m, states->back());
         }
         else
-        {
-            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
-        }
+            PyErr_SetString(PyExc_ValueError, (std::string("Invalid move '") + moveStr + "'").c_str());
     }
     return;
 }
@@ -209,10 +354,10 @@ extern "C" PyObject* pyffish_setOption(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "sO", &name, &valueObj)) return NULL;
 
     if (Options.count(name))
-        Options[name] = string(PyBytes_AS_STRING(PyUnicode_AsEncodedString(PyObject_Str(valueObj), "UTF-8", "strict")));
+        Options[name] = std::string(PyBytes_AS_STRING(PyUnicode_AsEncodedString(PyObject_Str(valueObj), "UTF-8", "strict")));
     else
     {
-        PyErr_SetString(PyExc_ValueError, (string("No such option ")+name+"'").c_str());
+        PyErr_SetString(PyExc_ValueError, (std::string("No such option ") + name + "'").c_str());
         return NULL;
     }
     Py_RETURN_NONE;
@@ -226,7 +371,7 @@ extern "C" PyObject* pyffish_startFen(PyObject* self, PyObject *args) {
         return NULL;
     }
 
-    return Py_BuildValue("s", variants.find(string(variant))->second->startFen.c_str());
+    return Py_BuildValue("s", variants.find(std::string(variant))->second->startFen.c_str());
 }
 
 // INPUT variant
@@ -237,7 +382,7 @@ extern "C" PyObject* pyffish_twoBoards(PyObject* self, PyObject *args) {
         return NULL;
     }
 
-    return Py_BuildValue("O", variants.find(string(variant))->second->twoBoards ? Py_True : Py_False);
+    return Py_BuildValue("O", variants.find(std::string(variant))->second->twoBoards ? Py_True : Py_False);
 }
 
 // INPUT variant, fen, move
@@ -247,15 +392,16 @@ extern "C" PyObject* pyffish_getSAN(PyObject* self, PyObject *args) {
     const char *fen, *variant, *move;
 
     int chess960 = false;
-    if (!PyArg_ParseTuple(args, "sss|p", &variant, &fen,  &move, &chess960)) {
+    Notation notation = NOTATION_DEFAULT;
+    if (!PyArg_ParseTuple(args, "sss|pi", &variant, &fen,  &move, &chess960, &notation)) {
         return NULL;
     }
+    if (notation == NOTATION_DEFAULT)
+        notation = default_notation(variants.find(std::string(variant))->second);
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
-    string moveStr = move;
-    const Variant* v = variants.find(string(variant))->second;
-    const bool shogi = v->variantTemplate == "shogi";
-    return Py_BuildValue("s", move_to_san(pos, UCI::to_move(pos, moveStr), shogi).c_str());
+    std::string moveStr = move;
+    return Py_BuildValue("s", move_to_san(pos, UCI::to_move(pos, moveStr), notation).c_str());
 }
 
 // INPUT variant, fen, movelist
@@ -265,23 +411,23 @@ extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
     const char *fen, *variant;
 
     int chess960 = false;
-    if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
+    Notation notation = NOTATION_DEFAULT;
+    if (!PyArg_ParseTuple(args, "ssO!|pi", &variant, &fen, &PyList_Type, &moveList, &chess960, &notation)) {
         return NULL;
     }
+    if (notation == NOTATION_DEFAULT)
+        notation = default_notation(variants.find(std::string(variant))->second);
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, sanMoves, chess960);
 
-    const Variant* v = variants.find(string(variant))->second;
-    const bool shogi = v->variantTemplate == "shogi";
-
     int numMoves = PyList_Size(moveList);
     for (int i=0; i<numMoves ; i++) {
-        string moveStr( PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")) );
+        std::string moveStr(PyBytes_AS_STRING(PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict")));
         Move m;
         if ((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
         {
             //add to the san move list
-            PyObject *move=Py_BuildValue("s", move_to_san(pos, m, shogi).c_str());
+            PyObject *move = Py_BuildValue("s", move_to_san(pos, m, notation).c_str());
             PyList_Append(sanMoves, move);
             Py_XDECREF(move);
 
@@ -291,7 +437,7 @@ extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
         }
         else
         {
-            PyErr_SetString(PyExc_ValueError, (string("Invalid move '")+moveStr+"'").c_str());
+            PyErr_SetString(PyExc_ValueError, (std::string("Invalid move '") + moveStr + "'").c_str());
             return NULL;
         }
     }
@@ -314,7 +460,7 @@ extern "C" PyObject* pyffish_legalMoves(PyObject* self, PyObject *args) {
     for (const auto& m : MoveList<LEGAL>(pos))
     {
         PyObject *moveStr;
-        moveStr=Py_BuildValue("s", UCI::move(pos, m).c_str());
+        moveStr = Py_BuildValue("s", UCI::move(pos, m).c_str());
         PyList_Append(legalMoves, moveStr);
         Py_XDECREF(moveStr);
     }
@@ -467,11 +613,24 @@ PyMODINIT_FUNC PyInit_pyffish() {
     Py_INCREF(PyFFishError);
     PyModule_AddObject(module, "error", PyFFishError);
 
+    // values
+    PyModule_AddObject(module, "VALUE_MATE", PyLong_FromLong(VALUE_MATE));
+    PyModule_AddObject(module, "VALUE_DRAW", PyLong_FromLong(VALUE_DRAW));
+
+    // notations
+    PyModule_AddObject(module, "NOTATION_DEFAULT", PyLong_FromLong(NOTATION_DEFAULT));
+    PyModule_AddObject(module, "NOTATION_SAN", PyLong_FromLong(NOTATION_SAN));
+    PyModule_AddObject(module, "NOTATION_LAN", PyLong_FromLong(NOTATION_LAN));
+    PyModule_AddObject(module, "NOTATION_SHOGI_HOSKING", PyLong_FromLong(NOTATION_SHOGI_HOSKING));
+    PyModule_AddObject(module, "NOTATION_SHOGI_HODGES", PyLong_FromLong(NOTATION_SHOGI_HODGES));
+    PyModule_AddObject(module, "NOTATION_JANGGI", PyLong_FromLong(NOTATION_JANGGI));
+    PyModule_AddObject(module, "NOTATION_XIANGQI_WXF", PyLong_FromLong(NOTATION_XIANGQI_WXF));
+
     // initialize stockfish
     pieceMap.init();
     variants.init();
     UCI::init(Options);
-    PSQT::init(variants.find("chess")->second);
+    PSQT::init(variants.find(Options["UCI_Variant"])->second);
     Bitboards::init();
     Position::init();
     Bitbases::init();

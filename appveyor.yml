@@ -1,50 +1,72 @@
-environment:
+version: 1.0.{build}
+clone_depth: 50
 
-  matrix:
-    - PYTHON: "C:\\Python36-x64"
-    - PYTHON: "C:\\Python37-x64"
-    - PYTHON: "C:\\Python38-x64"
+branches:
+  only:
+    - master
+    - merge
+    - appveyor
 
+# Operating system (build VM template)
+os: Visual Studio 2017
+
+# Build platform, i.e. x86, x64, AnyCPU. This setting is optional.
+platform:
+  - x86
+  - x64
+
+# build Configuration, i.e. Debug, Release, etc.
+configuration:
+  - Debug
+  - Release
+
+matrix:
+  # The build fail immediately once one of the job fails
+  fast_finish: true
+
+# Scripts that are called at very beginning, before repo cloning
 init:
-  - "ECHO %PYTHON% %PYTHON_ARCH% %MSVC_VERSION%"
+  - cmake --version
+  - msbuild /version
 
-install:
+before_build:
   - ps: |
-      if (-not (Test-Path $env:PYTHON)) {
-        curl -o install_python.ps1 https://raw.githubusercontent.com/matthew-brett/multibuild/11a389d78892cf90addac8f69433d5e22bfa422a/install_python.ps1
-        .\install_python.ps1
-      }
-  - ps: if (-not (Test-Path $env:PYTHON)) { throw "No $env:PYTHON" }
-  - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - python --version
+      # Get sources
+      $src = get-childitem -Path *.cpp -Recurse -Exclude pyffish.cpp | select -ExpandProperty FullName
+      $src = $src -join ' '
+      $src = $src.Replace("\", "/")
 
-  # We need wheel installed to build wheels
-  - "%PYTHON%\\python.exe -m pip install wheel"
+      # Build CMakeLists.txt
+      $t = 'cmake_minimum_required(VERSION 3.8)',
+           'project(Stockfish)',
+           'set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src)',
+           'set(source_files', $src, ')',
+           'add_executable(stockfish ${source_files})'
 
-build: off
+      # Write CMakeLists.txt withouth BOM
+      $MyPath = (Get-Item -Path "." -Verbose).FullName + '\CMakeLists.txt'
+      $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
+      [System.IO.File]::WriteAllLines($MyPath, $t, $Utf8NoBomEncoding)
 
-test_script:
-  # Put your test command here.
-  # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
-  # you can remove "build.cmd" from the front of the command, as it's
-  # only needed to support those cases.
-  # Note that you must use the environment variable %PYTHON% to refer to
-  # the interpreter you're using - Appveyor does not do anything special
-  # to put the Python version you want to use on PATH.
-  - "%PYTHON%\\python.exe setup.py test"
+      # Obtain bench reference from git log
+      $b = git log HEAD | sls "\b[Bb]ench[ :]+[0-9]{7}" | select -first 1
+      $bench = $b -match '\D+(\d+)' | % { $matches[1] }
+      Write-Host "Reference bench:" $bench
+      $g = "Visual Studio 15 2017"
+      If (${env:PLATFORM} -eq 'x64') { $g = $g + ' Win64' }
+      cmake -G "${g}" .
+      Write-Host "Generated files for: " $g
 
-after_test:
-  # This step builds your wheels.
-  # Again, you only need build.cmd if you're building C extensions for
-  # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
-  # interpreter
-  - "%PYTHON%\\python.exe setup.py bdist_wheel"
+build_script:
+  - cmake --build . --config %CONFIGURATION% -- /verbosity:minimal
 
-artifacts:
-  # bdist_wheel puts your built wheel in the dist directory
-  - path: dist\*
-
-#on_success:
-#  You can use this step to upload your artifacts to a public website.
-#  See Appveyor's documentation for more details. Or you can simply
-#  access your wheels from the Appveyor "artifacts" tab for your build.
+before_test:
+  - cd src/%CONFIGURATION%
+  - stockfish bench 2> out.txt >NUL
+  - ps: |
+      # Verify bench number
+      $s = (gc "./out.txt" | out-string)
+      $r = ($s -match 'Nodes searched \D+(\d+)' | % { $matches[1] })
+      Write-Host "Engine bench:" $r
+      Write-Host "Reference bench:" $bench
+      If ($r -ne $bench) { exit 1 }
