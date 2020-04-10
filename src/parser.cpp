@@ -246,7 +246,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("kingPassOnStalemate", v->kingPassOnStalemate);
     parse_attribute("makpongRule", v->makpongRule);
     parse_attribute("flyingGeneral", v->flyingGeneral);
-    parse_attribute("xiangqiSoldier", v->xiangqiSoldier);
+    parse_attribute("soldierPromotionRank", v->soldierPromotionRank);
     // game end
     parse_attribute("nMoveRule", v->nMoveRule);
     parse_attribute("nFoldRule", v->nFoldRule);

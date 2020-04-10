@@ -985,10 +985,6 @@ bool Position::pseudo_legal(const Move m) const {
   if (type_of(m) != NORMAL || is_gating(m))
       return MoveList<LEGAL>(*this).contains(m);
 
-  // Xiangqi soldier
-  if (type_of(pc) == SOLDIER && unpromoted_soldier(us, from) && file_of(from) != file_of(to))
-      return false;
-
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
       && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)

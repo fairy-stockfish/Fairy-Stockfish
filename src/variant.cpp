@@ -825,7 +825,7 @@ namespace {
         v->mobilityRegion[BLACK][FERS] = black_castle;
         v->mobilityRegion[WHITE][ELEPHANT] = Rank1BB | Rank2BB | Rank3BB | Rank4BB | Rank5BB;
         v->mobilityRegion[BLACK][ELEPHANT] = Rank6BB | Rank7BB | Rank8BB | Rank9BB | Rank10BB;
-        v->xiangqiSoldier = true;
+        v->soldierPromotionRank = RANK_6;
         return v;
     }
     // Manchu/Yitong chess
@@ -869,7 +869,7 @@ namespace {
                                               SQ_D10, SQ_E10, SQ_F10);
         v->mobilityRegion[WHITE][WAZIR] = white_castle;
         v->mobilityRegion[BLACK][WAZIR] = black_castle;
-        v->xiangqiSoldier = false;
+        v->soldierPromotionRank = RANK_1;
         v->flyingGeneral = false;
         v->bikjangRule = true;
         v->diagonalLines = make_bitboard(SQ_D1, SQ_F1, SQ_E2, SQ_D3, SQ_F3,

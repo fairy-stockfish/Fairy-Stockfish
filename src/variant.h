@@ -91,7 +91,7 @@ struct Variant {
   bool kingPassOnStalemate = false;
   bool makpongRule = false;
   bool flyingGeneral = false;
-  bool xiangqiSoldier = false;
+  Rank soldierPromotionRank = RANK_1;
   // game end
   int nMoveRule = 50;
   int nFoldRule = 3;
