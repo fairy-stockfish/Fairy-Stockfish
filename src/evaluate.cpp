@@ -303,9 +303,6 @@ namespace {
         // Restrict mobility to actual squares of board
         b &= pos.board_bb();
 
-        if (Pt == SOLDIER && pos.unpromoted_soldier(Us, s))
-            score -= make_score(PieceValue[MG][Pt], PieceValue[EG][Pt]) / 3;
-
         if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];
 
