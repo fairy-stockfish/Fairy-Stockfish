@@ -10,6 +10,9 @@ Fairy-Stockfish is a chess variant engine derived from [Stockfish](https://githu
 
 The goal of the project is to create an engine supporting a large variety of chess-like games, equipped with the powerful search of Stockfish. It is complementary to Stockfish forks more specialized for certain chess variants, such as [multi-variant Stockfish](https://github.com/ddugovic/Stockfish), [Seirawan-Stockfish](https://github.com/ianfab/Seirawan-Stockfish), etc., supporting many more variants with the tradeoff of slightly lower performance compared to a specialized implementation. Due to its multi-protocol support Fairy-Stockfish should work with almost any chess variant GUI.
 
+## Installation
+You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64.exe) or [Linux binary](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64) from the [latest release](https://github.com/ianfab/Fairy-Stockfish/releases/latest) or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you perhaps want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage#guis), or play against it right away online at [pychess](https://www.pychess.org/). Read more about [how to use](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) Fairy-Stockfish in the wiki.
+
 ## Supported games
 
 The games currently supported besides chess are listed below. Fairy-Stockfish can also play user-defined variants loaded via a variant configuration file, see the file [`src/variants.ini`](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/variants.ini) and the [wiki](https://github.com/ianfab/Fairy-Stockfish/wiki/Variant-configuration).
@@ -49,9 +52,6 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 ### Related games
 - [Breakthrough](https://en.wikipedia.org/wiki/Breakthrough_(board_game))
 - [Clobber](https://en.wikipedia.org/wiki/Clobber)
-
-## Installation
-You can download [binary releases](https://github.com/ianfab/Fairy-Stockfish/releases) for Windows and Linux or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you probably want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage). Or play against it right away online at [pychess-variants](https://www.pychess.org/).
 
 ## UCI parameters
 
