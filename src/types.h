@@ -699,6 +699,10 @@ inline bool is_gating(Move m) {
   return gating_type(m) && (type_of(m) == NORMAL || type_of(m) == CASTLING);
 }
 
+inline bool is_pass(Move m) {
+  return type_of(m) == SPECIAL || from_sq(m) == to_sq(m);
+}
+
 constexpr Move make_move(Square from, Square to) {
   return Move((from << SQUARE_BITS) + to);
 }

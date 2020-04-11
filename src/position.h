@@ -63,6 +63,7 @@ struct StateInfo {
   bool       capturedpromoted;
   bool       shak;
   bool       bikjang;
+  bool       pass;
   int        repetition;
 };
 
