@@ -912,7 +912,7 @@ namespace {
         Bitboard processed = 0;
         // Traverse all paths of the CTF pieces to the CTF targets.
         // Put squares that are attacked or occupied on hold for one iteration.
-        for (int dist = 0; ctfPieces && (ctfTargets & ~processed); dist++)
+        for (int dist = 0; (ctfPieces || onHold) && (ctfTargets & ~processed); dist++)
         {
             score += make_score(2500, 2500) * popcount(ctfTargets & ctfPieces) / (1 + dist * dist);
             Bitboard current = ctfPieces;
