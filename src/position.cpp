@@ -874,10 +874,10 @@ bool Position::legal(Move m) const {
       return false;
 
   // Illegal king passing move
-  if (king_pass_on_stalemate() && type_of(m) == SPECIAL && from == to && !checkers())
+  if (king_pass_on_stalemate() && is_pass(m) && !checkers())
   {
       for (const auto& move : MoveList<NON_EVASIONS>(*this))
-          if (!(type_of(move) == SPECIAL && from == to) && legal(move))
+          if (!is_pass(move) && legal(move))
               return false;
   }
 
@@ -926,7 +926,7 @@ bool Position::legal(Move m) const {
 
   // Flying general rule and bikjang
   // In case of bikjang passing is always allowed, even when in check
-  if (st->bikjang && type_of(m) == SPECIAL && from == to)
+  if (st->bikjang && is_pass(m))
       return true;
   if ((var->flyingGeneral && count<KING>(us)) || st->bikjang)
   {
@@ -984,10 +984,6 @@ bool Position::pseudo_legal(const Move m) const {
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL || is_gating(m))
       return MoveList<LEGAL>(*this).contains(m);
-
-  // Xiangqi soldier
-  if (type_of(pc) == SOLDIER && unpromoted_soldier(us, from) && file_of(from) != file_of(to))
-      return false;
 
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
@@ -1198,11 +1194,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
   if (to == from)
   {
-      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (type_of(m) == SPECIAL && king_pass()));
+      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && king_pass()));
       captured = NO_PIECE;
   }
   st->capturedpromoted = is_promoted(to);
   st->unpromotedCapturedPiece = captured ? unpromoted_piece_on(to) : NO_PIECE;
+  st->pass = is_pass(m);
 
   assert(color_of(pc) == us);
   assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
@@ -1482,7 +1479,7 @@ void Position::undo_move(Move m) {
 
   assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
          || (type_of(m) == PROMOTION && sittuyin_promotion())
-         || (type_of(m) == SPECIAL && king_pass()));
+         || (is_pass(m) && king_pass()));
   assert(type_of(st->capturedPiece) != KING);
 
   // Remove gated piece
@@ -1944,7 +1941,8 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
   // Check for bikjang rule (Janggi)
-  if (var->bikjangRule && st->pliesFromNull > 0 && st->bikjang && st->previous->bikjang)
+  if (var->bikjangRule && st->pliesFromNull > 0 && (   (st->bikjang && st->previous->bikjang)
+                                                    || (st->pass && st->previous->pass)))
   {
       // material counting
       auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };

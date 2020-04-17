@@ -303,9 +303,6 @@ namespace {
         // Restrict mobility to actual squares of board
         b &= pos.board_bb();
 
-        if (Pt == SOLDIER && pos.unpromoted_soldier(Us, s))
-            score -= make_score(PieceValue[MG][Pt], PieceValue[EG][Pt]) / 3;
-
         if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];
 
@@ -569,7 +566,7 @@ namespace {
                  +  69 * kingAttacksCount[Them] * (2 + 8 * pos.check_counting() + pos.captures_to_hand()) / 2
                  +   3 * kingFlankAttack * kingFlankAttack / 8
                  +       mg_value(mobility[Them] - mobility[Us])
-                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || (pos.king_type() == WAZIR && !pos.diagonal_lines()))
+                 - 873 * !(pos.major_pieces(Them) || pos.captures_to_hand() || (pos.king_type() != KING && !pos.diagonal_lines()))
                        / (1 + pos.check_counting() + pos.two_boards() + pos.makpong())
                  - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
                  -   6 * mg_value(score) / 8
@@ -908,20 +905,27 @@ namespace {
     // Capture the flag
     if (pos.capture_the_flag(Us))
     {
-        bool isKingCTF = pos.capture_the_flag_piece() == KING;
+        PieceType ptCtf = pos.capture_the_flag_piece();
         Bitboard ctfPieces = pos.pieces(Us, pos.capture_the_flag_piece());
-        int scale = pos.count(Us, pos.capture_the_flag_piece());
-        while (ctfPieces)
+        Bitboard ctfTargets = pos.capture_the_flag(Us) & pos.board_bb();
+        Bitboard onHold = 0;
+        Bitboard processed = 0;
+        // Traverse all paths of the CTF pieces to the CTF targets.
+        // Put squares that are attacked or occupied on hold for one iteration.
+        for (int dist = 0; (ctfPieces || onHold) && (ctfTargets & ~processed); dist++)
         {
-            Square s1 = pop_lsb(&ctfPieces);
-            Bitboard target_squares = pos.capture_the_flag(Us) & pos.board_bb();
-            while (target_squares)
+            score += make_score(2500, 2500) * popcount(ctfTargets & ctfPieces) / (1 + dist * dist);
+            Bitboard current = ctfPieces;
+            processed |= ctfPieces;
+            ctfPieces = onHold & ~processed;
+            onHold = 0;
+            while (current)
             {
-                Square s2 = pop_lsb(&target_squares);
-                int dist =  distance(s1, s2)
-                          + (isKingCTF || pos.flag_move() ? popcount(pos.attackers_to(s2, Them)) : 0)
-                          + !!(pos.pieces(Us) & s2);
-                score += make_score(2500, 2500) / (1 + scale * dist * dist);
+                Square s = pop_lsb(&current);
+                Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
+                                    | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
+                ctfPieces |= attacks & ~pos.pieces(Us) & ~attackedBy[Them][ALL_PIECES];
+                onHold |= attacks;
             }
         }
     }

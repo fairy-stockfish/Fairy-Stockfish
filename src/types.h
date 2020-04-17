@@ -339,12 +339,12 @@ enum Value : int {
   ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
   CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
   JanggiCannonPieceValueMg = 800,   JanggiCannonPieceValueEg = 600,
-  SoldierValueMg           = 150,   SoldierValueEg           = 300,
+  SoldierValueMg           = 200,   SoldierValueEg           = 270,
   HorseValueMg             = 500,   HorseValueEg             = 800,
   ElephantValueMg          = 300,   ElephantValueEg          = 300,
-  JanggiElephantValueMg    = 350,   JanggiElephantValueEg    = 350,
+  JanggiElephantValueMg    = 340,   JanggiElephantValueEg    = 350,
   BannerValueMg            = 3400,  BannerValueEg            = 3500,
-  WazirValueMg             = 400,   WazirValueEg             = 400,
+  WazirValueMg             = 400,   WazirValueEg             = 350,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
   CentaurValueMg           = 1600,  CentaurValueEg           = 1700,
 
@@ -697,6 +697,10 @@ inline Square gating_square(Move m) {
 
 inline bool is_gating(Move m) {
   return gating_type(m) && (type_of(m) == NORMAL || type_of(m) == CASTLING);
+}
+
+inline bool is_pass(Move m) {
+  return type_of(m) == SPECIAL || from_sq(m) == to_sq(m);
 }
 
 constexpr Move make_move(Square from, Square to) {

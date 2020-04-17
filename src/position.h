@@ -63,6 +63,7 @@ struct StateInfo {
   bool       capturedpromoted;
   bool       shak;
   bool       bikjang;
+  bool       pass;
   int        repetition;
 };
 
@@ -592,7 +593,7 @@ inline bool Position::king_pass_on_stalemate() const {
 
 inline bool Position::unpromoted_soldier(Color c, Square s) const {
   assert(var != nullptr);
-  return var->xiangqiSoldier && relative_rank(c, s, var->maxRank) <= RANK_5;
+  return relative_rank(c, s, var->maxRank) < var->soldierPromotionRank;
 }
 
 inline bool Position::makpong() const {
