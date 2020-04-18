@@ -103,7 +103,7 @@ struct Variant {
   Value checkmateValue = -VALUE_MATE;
   bool shogiPawnDropMateIllegal = false;
   bool shatarMateRule = false;
-  bool bikjangRule = false;
+  Value bikjangValue = VALUE_NONE;
   Value bareKingValue = VALUE_NONE;
   Value extinctionValue = VALUE_NONE;
   bool bareKingMove = false;
