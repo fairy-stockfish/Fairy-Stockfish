@@ -499,7 +499,7 @@ void Position::set_check_info(StateInfo* si) const {
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, pt, ksq, pieces()) : Bitboard(0);
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
-  si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
+  si->bikjang = var->bikjangValue != VALUE_NONE && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
 }
 
 
@@ -1941,8 +1941,8 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
   // Check for bikjang rule (Janggi)
-  if (var->bikjangRule && st->pliesFromNull > 0 && (   (st->bikjang && st->previous->bikjang)
-                                                    || (st->pass && st->previous->pass)))
+  if (var->bikjangValue != VALUE_NONE && st->pliesFromNull > 0 && (   (st->bikjang && st->previous->bikjang)
+                                                                   || (st->pass && st->previous->pass)))
   {
       // material counting
       auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
@@ -1953,7 +1953,8 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
                          + weigth_count(WAZIR, 3)
                          + weigth_count(SOLDIER, 2)
                          - 1;
-      result = (sideToMove == WHITE) == (materialCount > 0) ? mate_in(ply) : mated_in(ply);
+      bool stmUpMaterial = (sideToMove == WHITE) == (materialCount > 0);
+      result = convert_mate_value(stmUpMaterial ? var->bikjangValue : -var->bikjangValue, ply);
       return true;
   }
   // Tsume mode: Assume that side with king wins when not in check

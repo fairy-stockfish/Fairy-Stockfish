@@ -257,7 +257,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("checkmateValue", v->checkmateValue);
     parse_attribute("shogiPawnDropMateIllegal", v->shogiPawnDropMateIllegal);
     parse_attribute("shatarMateRule", v->shatarMateRule);
-    parse_attribute("bikjangRule", v->bikjangRule);
+    parse_attribute("bikjangValue", v->bikjangValue);
     parse_attribute("bareKingValue", v->bareKingValue);
     parse_attribute("extinctionValue", v->extinctionValue);
     parse_attribute("bareKingMove", v->bareKingMove);
