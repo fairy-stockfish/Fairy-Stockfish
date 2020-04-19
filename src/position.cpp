@@ -1434,7 +1434,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       && counting_limit())
   {
       st->countingLimit = 2 * counting_limit();
-      st->countingPly = count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
+      st->countingPly = counting_rule() == MAKRUK_COUNTING && count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
   }
 
   // Update king attacks used for fast check detection
