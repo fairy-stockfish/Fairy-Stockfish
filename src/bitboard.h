@@ -279,6 +279,16 @@ inline Bitboard between_bb(Square s1, Square s2) {
                            ^(AllSquares << (s2 + !(s1 < s2))));
 }
 
+inline Bitboard between_bb(Square s1, Square s2, PieceType pt) {
+  if (pt == HORSE)
+      return PseudoAttacks[WHITE][WAZIR][s2] & PseudoAttacks[WHITE][FERS][s1];
+  else if (pt == JANGGI_ELEPHANT)
+      return  (PseudoAttacks[WHITE][WAZIR][s2] & PseudoAttacks[WHITE][ALFIL][s1])
+            | (PseudoAttacks[WHITE][KNIGHT][s2] & PseudoAttacks[WHITE][FERS][s1]);
+  else
+      return between_bb(s1, s2);
+}
+
 
 /// forward_ranks_bb() returns a bitboard representing the squares on the ranks
 /// in front of the given one, from the point of view of the given color. For instance,
