@@ -906,26 +906,31 @@ namespace {
     if (pos.capture_the_flag(Us))
     {
         PieceType ptCtf = pos.capture_the_flag_piece();
-        Bitboard ctfPieces = pos.pieces(Us, pos.capture_the_flag_piece());
+        Bitboard ctfPieces = pos.pieces(Us, ptCtf);
         Bitboard ctfTargets = pos.capture_the_flag(Us) & pos.board_bb();
         Bitboard onHold = 0;
+        Bitboard onHold2 = 0;
         Bitboard processed = 0;
         // Traverse all paths of the CTF pieces to the CTF targets.
         // Put squares that are attacked or occupied on hold for one iteration.
-        for (int dist = 0; (ctfPieces || onHold) && (ctfTargets & ~processed); dist++)
+        for (int dist = 0; (ctfPieces || onHold || onHold2) && (ctfTargets & ~processed); dist++)
         {
-            score += make_score(2500, 2500) * popcount(ctfTargets & ctfPieces) / (1 + dist * dist);
+            int wins = popcount(ctfTargets & ctfPieces);
+            if (wins)
+                score += make_score(4000, 4000) * wins / (wins + dist * dist);
             Bitboard current = ctfPieces;
             processed |= ctfPieces;
             ctfPieces = onHold & ~processed;
-            onHold = 0;
+            onHold = onHold2 & ~processed;
+            onHold2 = 0;
             while (current)
             {
                 Square s = pop_lsb(&current);
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
                                     | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
                 ctfPieces |= attacks & ~pos.pieces(Us) & ~attackedBy[Them][ALL_PIECES];
-                onHold |= attacks;
+                onHold |= attacks & ~((pos.pieces(Us) & attackedBy[Them][ALL_PIECES]) | attackedBy2[Them]);
+                onHold2 |= attacks;
             }
         }
     }
