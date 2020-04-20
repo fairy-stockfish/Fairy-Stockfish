@@ -918,7 +918,7 @@ namespace {
             int wins = popcount(ctfTargets & ctfPieces);
             if (wins)
                 score += make_score(4000, 4000) * wins / (wins + dist * dist);
-            Bitboard current = ctfPieces;
+            Bitboard current = ctfPieces & ~ctfTargets;
             processed |= ctfPieces;
             ctfPieces = onHold & ~processed;
             onHold = onHold2 & ~processed;
