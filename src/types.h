@@ -346,7 +346,7 @@ enum Value : int {
   BannerValueMg            = 3400,  BannerValueEg            = 3500,
   WazirValueMg             = 400,   WazirValueEg             = 350,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
-  CentaurValueMg           = 1600,  CentaurValueEg           = 1700,
+  CentaurValueMg           = 1800,  CentaurValueEg           = 1900,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
