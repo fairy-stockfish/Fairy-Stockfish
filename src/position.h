@@ -91,7 +91,7 @@ public:
   // FEN string input/output
   Position& set(const Variant* v, const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th, bool sfen = false);
   Position& set(const std::string& code, Color c, StateInfo* si);
-  const std::string fen(bool sfen = false, bool showPromoted = false, std::string holdings = "-") const;
+  const std::string fen(bool sfen = false, bool showPromoted = false, unsigned int countStarted = 0, std::string holdings = "-") const;
 
   // Variant rule properties
   const Variant* variant() const;
@@ -254,7 +254,7 @@ public:
   Thread* this_thread() const;
   bool is_immediate_game_end() const;
   bool is_game_end(Value& result, int ply = 0) const;
-  bool is_optional_game_end(Value& result, int ply = 0) const;
+  bool is_optional_game_end(Value& result, int ply = 0, unsigned int countStarted = 0) const;
   bool is_immediate_game_end(Value& result, int ply = 0) const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;

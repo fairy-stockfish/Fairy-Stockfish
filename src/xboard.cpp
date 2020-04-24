@@ -274,7 +274,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           else
           {
               std::transform(black_holdings.begin(), black_holdings.end(), black_holdings.begin(), ::tolower);
-              fen = pos.fen(false, false, white_holdings + black_holdings);
+              fen = pos.fen(false, false, 0, white_holdings + black_holdings);
           }
           setboard(pos, states, fen);
       }
