@@ -801,7 +801,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
       b |= diags & diagonal_lines();
   }
 
-  if (unpromoted_soldier(c, s))
+  if (b & pieces(SOLDIER) && relative_rank(c, s, max_rank()) < var->soldierPromotionRank)
       b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
 
   return b;

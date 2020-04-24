@@ -245,7 +245,10 @@ namespace {
     if (pos.must_capture())
         mobilityArea[Us] = AllSquares;
     else
-        mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them) | shift<Down>(pos.pieces(Them, SHOGI_PAWN, SOLDIER)));
+        mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them)
+                               | shift<Down>(pos.pieces(Them, SHOGI_PAWN, SOLDIER))
+                               | shift<EAST>(pos.promoted_soldiers(Them))
+                               | shift<WEST>(pos.promoted_soldiers(Them)));
 
     // Initialize attackedBy[] for king and pawns
     attackedBy[Us][KING] = pos.count<KING>(Us) ? pos.attacks_from<KING>(ksq, Us) : Bitboard(0);
