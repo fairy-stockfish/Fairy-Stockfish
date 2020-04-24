@@ -110,8 +110,8 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
               vars += "," + v;
       sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 ping=1 myname=Fairy-Stockfish variants=\""
                 << vars << "\""
-                << Options << sync_endl
-                << "feature done=1" << sync_endl;
+                << Options << sync_endl;
+      sync_cout << "feature done=1" << sync_endl;
   }
   else if (token == "accepted" || token == "rejected" || token == "result" || token == "?") {}
   else if (token == "ping")
