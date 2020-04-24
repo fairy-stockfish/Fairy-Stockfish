@@ -879,10 +879,16 @@ namespace {
         v->perpetualCheckIllegal = true;
         return v;
     }
-    // Casual rules of Janggi, where bikjang is a draw
-    Variant* janggi_casual_variant() {
+    // Traditional rules of Janggi, where bikjang is a draw
+    Variant* janggi_traditional_variant() {
         Variant* v = janggi_variant();
         v->bikjangValue = VALUE_DRAW;
+        return v;
+    }
+    // Casual rules of Janggi, where bikjang is not considered
+    Variant* janggi_casual_variant() {
+        Variant* v = janggi_variant();
+        v->bikjangValue = VALUE_NONE;
         return v;
     }
 #endif
@@ -969,6 +975,7 @@ void VariantMap::init() {
     add("manchu", manchu_variant());
     add("supply", supply_variant());
     add("janggi", janggi_variant());
+    add("janggitraditional", janggi_traditional_variant());
     add("janggicasual", janggi_casual_variant());
 #endif
 }

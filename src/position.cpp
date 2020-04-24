@@ -718,14 +718,28 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   {
       Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
       if (b)
-          snipers |= b & ~attacks_bb(~c, pt, s, pieces());
+      {
+          // Consider asymmetrical moves (e.g., horse)
+          if (AttackRiderTypes[pt] & ASYMMETRICAL_RIDERS)
+          {
+              Bitboard asymmetricals = PseudoAttacks[~c][pt][s] & pieces(c, pt);
+              while (asymmetricals)
+              {
+                  Square s2 = pop_lsb(&asymmetricals);
+                  if (!(attacks_from(c, pt, s2) & s))
+                      snipers |= s2;
+              }
+          }
+          else
+              snipers |= b & ~attacks_bb(~c, pt, s, pieces());
+      }
   }
   Bitboard occupancy = pieces() ^ snipers;
 
   while (snipers)
   {
     Square sniperSq = pop_lsb(&snipers);
-    Bitboard b = between_bb(s, sniperSq) & occupancy;
+    Bitboard b = between_bb(s, sniperSq, type_of(piece_on(sniperSq))) & occupancy;
 
     if (b && (!more_than_one(b) || ((AttackRiderTypes[type_of(piece_on(sniperSq))] & HOPPING_RIDERS) && popcount(b) == 2)))
     {
@@ -787,7 +801,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
       b |= diags & diagonal_lines();
   }
 
-  if (unpromoted_soldier(c, s))
+  if (b & pieces(SOLDIER) && relative_rank(c, s, max_rank()) < var->soldierPromotionRank)
       b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
 
   return b;
@@ -1434,7 +1448,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       && counting_limit())
   {
       st->countingLimit = 2 * counting_limit();
-      st->countingPly = count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
+      st->countingPly = counting_rule() == MAKRUK_COUNTING && count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
   }
 
   // Update king attacks used for fast check detection

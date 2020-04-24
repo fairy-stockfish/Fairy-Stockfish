@@ -8,7 +8,7 @@
 
 Fairy-Stockfish is a chess variant engine derived from [Stockfish](https://github.com/official-stockfish/Stockfish/) designed for the support of fairy chess variants and easy extensibility with more games. It can play various historical, regional, and modern chess variants as well as [games with user-defined rules](https://github.com/ianfab/Fairy-Stockfish/wiki/Variant-configuration). For [compatibility with graphical user interfaces](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) it supports the UCI, UCCI, USI, and CECP/XBoard protocols.
 
-The goal of the project is to create an engine supporting a large variety of chess-like games, equipped with the powerful search of Stockfish. It is complementary to Stockfish forks more specialized for certain chess variants, such as [multi-variant Stockfish](https://github.com/ddugovic/Stockfish), [Seirawan-Stockfish](https://github.com/ianfab/Seirawan-Stockfish), etc., supporting many more variants with the tradeoff of slightly lower performance compared to a specialized implementation. Due to its multi-protocol support Fairy-Stockfish should work with almost any chess variant GUI.
+The goal of the project is to create an engine supporting a large variety of chess-like games, equipped with the powerful search of Stockfish. Despite its generality the [playing strength](https://github.com/ianfab/Fairy-Stockfish/wiki/Playing-strength) is on a very high level in almost all supported variants. Due to its multi-protocol support Fairy-Stockfish should work with almost any chess variant GUI.
 
 ## Installation
 You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64.exe) or [Linux binary](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64) from the [latest release](https://github.com/ianfab/Fairy-Stockfish/releases/latest) or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you perhaps want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage#guis), or play against it right away online at [pychess](https://www.pychess.org/). Read more about [how to use](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) Fairy-Stockfish in the wiki.
@@ -53,33 +53,9 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Breakthrough](https://en.wikipedia.org/wiki/Breakthrough_(board_game))
 - [Clobber](https://en.wikipedia.org/wiki/Clobber)
 
-## UCI parameters
+## Contributing
 
-The following UCI options are added or changed compared to official Stockfish:
-
-  * #### UCI_Variant
-    The most important option, since it allows to set the variant that is going to be played.
-    Most GUIs for chess variants set this option automatically if you select a variant in the GUI,
-    but in case of usage via the CLI the option needs to be set manually.
-
-  * #### UCI_Chess960
-    Used as a universal flag to switch between Chess960-style shuffling variants (such as Crazyhouse960,
-    S-Chess960/2880, Capablanca Random Chess, etc.) and the respective normal variant.
-    For variants without castling, this option does not have any effect.
-
-  * #### Protocol
-    Can be used to switch between the supported protocols, namely UCI, UCCI (Xiangqi), USI (Shogi) and XBoard/CECP.
-    This option is automatically set to the respective protocol if communication is started
-    with one of the `uci`/`ucci`/`usi`/`xboard` commands (as required by the protocols).
-
-  * #### VariantPath
-    The path to the configuration file for user-defined variants.
-    Alternatively, the [`load`](https://github.com/ianfab/Fairy-Stockfish/wiki/Variant-configuration#loading-variant-configuration) command can be used.
-
-  * #### TsumeMode
-    When enabled assumes that the side without a king has to strive for a forced mate, and otherwise loses.
-    This option should be enabled when solving Tsume puzzles, otherwise it might wrongly go for a brinkmate.
-    Although it mainly targets Shogi, the option can be used for any variant where checkmate is the goal.
+If you appreciate this project, please consider to support it by [donating via paypal](https://paypal.me/FairyStockfish), [contributing CPU time](https://github.com/ianfab/fishtest/wiki) to the framework for testing of code improvements, or by [contributing](https://github.com/ianfab/Fairy-Stockfish/wiki/Contributing) to the code or documentation.
 
 ## Help
 

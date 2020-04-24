@@ -145,7 +145,7 @@ public:
   Bitboard diagonal_lines() const;
   bool king_pass() const;
   bool king_pass_on_stalemate() const;
-  bool unpromoted_soldier(Color c, Square s) const;
+  Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
   // winning conditions
   int n_move_rule() const;
@@ -591,9 +591,9 @@ inline bool Position::king_pass_on_stalemate() const {
   return var->kingPassOnStalemate;
 }
 
-inline bool Position::unpromoted_soldier(Color c, Square s) const {
+inline Bitboard Position::promoted_soldiers(Color c) const {
   assert(var != nullptr);
-  return relative_rank(c, s, var->maxRank) < var->soldierPromotionRank;
+  return pieces(c, SOLDIER) & promotion_zone_bb(c, var->soldierPromotionRank, max_rank());
 }
 
 inline bool Position::makpong() const {
@@ -848,7 +848,7 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
   PieceType movePt = pt == KING ? king_type() : pt;
   Bitboard b = attacks_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
   // Xiangqi soldier
-  if (pt == SOLDIER && unpromoted_soldier(c, s))
+  if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
   // Janggi cannon restrictions
   if (pt == JANGGI_CANNON)
@@ -876,7 +876,7 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
   PieceType movePt = pt == KING ? king_type() : pt;
   Bitboard b = moves_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
   // Xiangqi soldier
-  if (pt == SOLDIER && unpromoted_soldier(c, s))
+  if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
   // Janggi cannon restrictions
   if (pt == JANGGI_CANNON)
