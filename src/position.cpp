@@ -499,7 +499,7 @@ void Position::set_check_info(StateInfo* si) const {
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, pt, ksq, pieces()) : Bitboard(0);
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
-  si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
+  si->bikjang = var->bikjangValue != VALUE_NONE && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
 }
 
 
@@ -718,14 +718,28 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   {
       Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
       if (b)
-          snipers |= b & ~attacks_bb(~c, pt, s, pieces());
+      {
+          // Consider asymmetrical moves (e.g., horse)
+          if (AttackRiderTypes[pt] & ASYMMETRICAL_RIDERS)
+          {
+              Bitboard asymmetricals = PseudoAttacks[~c][pt][s] & pieces(c, pt);
+              while (asymmetricals)
+              {
+                  Square s2 = pop_lsb(&asymmetricals);
+                  if (!(attacks_from(c, pt, s2) & s))
+                      snipers |= s2;
+              }
+          }
+          else
+              snipers |= b & ~attacks_bb(~c, pt, s, pieces());
+      }
   }
   Bitboard occupancy = pieces() ^ snipers;
 
   while (snipers)
   {
     Square sniperSq = pop_lsb(&snipers);
-    Bitboard b = between_bb(s, sniperSq) & occupancy;
+    Bitboard b = between_bb(s, sniperSq, type_of(piece_on(sniperSq))) & occupancy;
 
     if (b && (!more_than_one(b) || ((AttackRiderTypes[type_of(piece_on(sniperSq))] & HOPPING_RIDERS) && popcount(b) == 2)))
     {
@@ -787,7 +801,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
       b |= diags & diagonal_lines();
   }
 
-  if (unpromoted_soldier(c, s))
+  if (b & pieces(SOLDIER) && relative_rank(c, s, max_rank()) < var->soldierPromotionRank)
       b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
 
   return b;
@@ -1434,7 +1448,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       && counting_limit())
   {
       st->countingLimit = 2 * counting_limit();
-      st->countingPly = count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
+      st->countingPly = counting_rule() == MAKRUK_COUNTING && count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
   }
 
   // Update king attacks used for fast check detection
@@ -1941,8 +1955,8 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
   // Check for bikjang rule (Janggi)
-  if (var->bikjangRule && st->pliesFromNull > 0 && (   (st->bikjang && st->previous->bikjang)
-                                                    || (st->pass && st->previous->pass)))
+  if (var->bikjangValue != VALUE_NONE && st->pliesFromNull > 0 && (   (st->bikjang && st->previous->bikjang)
+                                                                   || (st->pass && st->previous->pass)))
   {
       // material counting
       auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
@@ -1953,7 +1967,8 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
                          + weigth_count(WAZIR, 3)
                          + weigth_count(SOLDIER, 2)
                          - 1;
-      result = (sideToMove == WHITE) == (materialCount > 0) ? mate_in(ply) : mated_in(ply);
+      bool stmUpMaterial = (sideToMove == WHITE) == (materialCount > 0);
+      result = convert_mate_value(stmUpMaterial ? var->bikjangValue : -var->bikjangValue, ply);
       return true;
   }
   // Tsume mode: Assume that side with king wins when not in check

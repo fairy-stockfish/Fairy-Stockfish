@@ -203,7 +203,11 @@ namespace {
                     b &= target;
 
                 while (b)
-                    *moveList++ = make<PROMOTION>(from, pop_lsb(&b), pt);
+                {
+                    Square to = pop_lsb(&b);
+                    if (!(attacks_bb(Us, pt, to, pos.pieces() ^ from) & pos.pieces(Them)))
+                        *moveList++ = make<PROMOTION>(from, to, pt);
+                }
             }
         }
     }

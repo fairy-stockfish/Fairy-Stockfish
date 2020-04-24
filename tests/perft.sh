@@ -57,8 +57,9 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp horde startpos 6 5396554 > /dev/null
   expect perft.exp placement startpos 4 1597696 > /dev/null
   expect perft.exp sittuyin startpos 3 580096 > /dev/null
-  expect perft.exp sittuyin "fen 8/8/6R1/s3r3/P5R1/1KP3p1/1F2kr2/8[-] b - - 0 72" 4 657824 > /dev/null
-  expect perft.exp sittuyin "fen 2r5/6k1/6p1/3s2P1/3npR2/8/p2N2F1/3K4 w - - 1 50" 4 394031 > /dev/null
+  expect perft.exp sittuyin "fen 8/8/6R1/s3r3/P5R1/1KP3p1/1F2kr2/8[] b - - 0 72" 4 652686 > /dev/null
+  expect perft.exp sittuyin "fen 2r5/6k1/6p1/3s2P1/3npR2/8/p2N2F1/3K4[] w - - 1 50" 4 373984 > /dev/null
+  expect perft.exp sittuyin "fen 8/6s1/5P2/3n4/pR2K2S/1P6/1k4p1/8[] w - - 1 50" 4 268869 > /dev/null
   expect perft.exp seirawan startpos 5 27639803 > /dev/null
   expect perft.exp seirawan "fen reb1k2r/ppppqppp/2nb1n2/4p3/4P3/N1P2N2/PB1PQPPP/RE2KBHR[h] b KQkqc - 3 7" 5 31463761 > /dev/null
 fi

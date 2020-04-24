@@ -245,7 +245,10 @@ namespace {
     if (pos.must_capture())
         mobilityArea[Us] = AllSquares;
     else
-        mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them) | shift<Down>(pos.pieces(Them, SHOGI_PAWN, SOLDIER)));
+        mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them)
+                               | shift<Down>(pos.pieces(Them, SHOGI_PAWN, SOLDIER))
+                               | shift<EAST>(pos.promoted_soldiers(Them))
+                               | shift<WEST>(pos.promoted_soldiers(Them)));
 
     // Initialize attackedBy[] for king and pawns
     attackedBy[Us][KING] = pos.count<KING>(Us) ? pos.attacks_from<KING>(ksq, Us) : Bitboard(0);
@@ -906,26 +909,31 @@ namespace {
     if (pos.capture_the_flag(Us))
     {
         PieceType ptCtf = pos.capture_the_flag_piece();
-        Bitboard ctfPieces = pos.pieces(Us, pos.capture_the_flag_piece());
+        Bitboard ctfPieces = pos.pieces(Us, ptCtf);
         Bitboard ctfTargets = pos.capture_the_flag(Us) & pos.board_bb();
         Bitboard onHold = 0;
+        Bitboard onHold2 = 0;
         Bitboard processed = 0;
         // Traverse all paths of the CTF pieces to the CTF targets.
         // Put squares that are attacked or occupied on hold for one iteration.
-        for (int dist = 0; (ctfPieces || onHold) && (ctfTargets & ~processed); dist++)
+        for (int dist = 0; (ctfPieces || onHold || onHold2) && (ctfTargets & ~processed); dist++)
         {
-            score += make_score(2500, 2500) * popcount(ctfTargets & ctfPieces) / (1 + dist * dist);
-            Bitboard current = ctfPieces;
+            int wins = popcount(ctfTargets & ctfPieces);
+            if (wins)
+                score += make_score(4000, 4000) * wins / (wins + dist * dist);
+            Bitboard current = ctfPieces & ~ctfTargets;
             processed |= ctfPieces;
             ctfPieces = onHold & ~processed;
-            onHold = 0;
+            onHold = onHold2 & ~processed;
+            onHold2 = 0;
             while (current)
             {
                 Square s = pop_lsb(&current);
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
                                     | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
                 ctfPieces |= attacks & ~pos.pieces(Us) & ~attackedBy[Them][ALL_PIECES];
-                onHold |= attacks;
+                onHold |= attacks & ~((pos.pieces(Us, PAWN) & attackedBy[Them][ALL_PIECES]) | attackedBy2[Them]);
+                onHold2 |= attacks;
             }
         }
     }
@@ -994,7 +1002,7 @@ namespace {
     Value eg = eg_value(score);
 
     // No initiative bonus for extinction variants
-    if (pos.extinction_value() != VALUE_NONE || pos.captures_to_hand() || pos.connect_n())
+    if (pos.extinction_value() != VALUE_NONE || pos.must_capture() || pos.captures_to_hand() || pos.connect_n())
       return SCORE_ZERO;
 
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0

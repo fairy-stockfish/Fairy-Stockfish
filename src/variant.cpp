@@ -871,12 +871,24 @@ namespace {
         v->mobilityRegion[BLACK][WAZIR] = black_castle;
         v->soldierPromotionRank = RANK_1;
         v->flyingGeneral = false;
-        v->bikjangRule = true;
+        v->bikjangValue = VALUE_MATE;
         v->diagonalLines = make_bitboard(SQ_D1, SQ_F1, SQ_E2, SQ_D3, SQ_F3,
                                          SQ_D8, SQ_F8, SQ_E9, SQ_D10, SQ_F10);
         v->kingPass = true;
         v->nFoldValue = -VALUE_MATE;
         v->perpetualCheckIllegal = true;
+        return v;
+    }
+    // Traditional rules of Janggi, where bikjang is a draw
+    Variant* janggi_traditional_variant() {
+        Variant* v = janggi_variant();
+        v->bikjangValue = VALUE_DRAW;
+        return v;
+    }
+    // Casual rules of Janggi, where bikjang is not considered
+    Variant* janggi_casual_variant() {
+        Variant* v = janggi_variant();
+        v->bikjangValue = VALUE_NONE;
         return v;
     }
 #endif
@@ -963,6 +975,8 @@ void VariantMap::init() {
     add("manchu", manchu_variant());
     add("supply", supply_variant());
     add("janggi", janggi_variant());
+    add("janggitraditional", janggi_traditional_variant());
+    add("janggicasual", janggi_casual_variant());
 #endif
 }
 

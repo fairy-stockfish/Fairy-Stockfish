@@ -70,15 +70,16 @@ namespace {
     template <> bool set(const std::string& value, Value& target) {
         target =  value == "win"  ? VALUE_MATE
                 : value == "loss" ? -VALUE_MATE
-                : VALUE_DRAW;
-        return value == "win" || value == "loss" || value == "draw";
+                : value == "draw" ? VALUE_DRAW
+                : VALUE_NONE;
+        return value == "win" || value == "loss" || value == "draw" || value == "none";
     }
 
     template <> bool set(const std::string& value, CountingRule& target) {
         target =  value == "makruk"  ? MAKRUK_COUNTING
                 : value == "asean" ? ASEAN_COUNTING
                 : NO_COUNTING;
-        return value == "makruk" || value == "asean" || value == "";
+        return value == "makruk" || value == "asean" || value == "none";
     }
 
     template <> bool set(const std::string& value, Bitboard& target) {
@@ -257,7 +258,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("checkmateValue", v->checkmateValue);
     parse_attribute("shogiPawnDropMateIllegal", v->shogiPawnDropMateIllegal);
     parse_attribute("shatarMateRule", v->shatarMateRule);
-    parse_attribute("bikjangRule", v->bikjangRule);
+    parse_attribute("bikjangValue", v->bikjangValue);
     parse_attribute("bareKingValue", v->bareKingValue);
     parse_attribute("extinctionValue", v->extinctionValue);
     parse_attribute("bareKingMove", v->bareKingMove);
