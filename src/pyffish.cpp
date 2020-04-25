@@ -156,14 +156,20 @@ Disambiguation disambiguation_level(const Position& pos, Move m, Notation n) {
     }
 
     // Pawn captures always use disambiguation
-    if ((n == NOTATION_SAN || n == NOTATION_LAN) && pt == PAWN && pos.capture(m) && from != to)
-        return FILE_DISAMBIGUATION;
+    if (n == NOTATION_SAN && pt == PAWN)
+    {
+        if (pos.capture(m))
+            return FILE_DISAMBIGUATION;
+        if (type_of(m) == PROMOTION && from != to && pos.sittuyin_promotion())
+            return SQUARE_DISAMBIGUATION;
+    }
 
     // A disambiguation occurs if we have more then one piece of type 'pt'
     // that can reach 'to' with a legal move.
     Bitboard others, b;
-    others = b = ((pos.capture(m) ? attacks_bb(~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())
-                                  : moves_bb(  ~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())) & pos.pieces(us, pt)) & ~square_bb(from);
+    others = b = ((pos.capture(m) ? attacks_bb(~us, pt, to, AttackRiderTypes[pt] & ASYMMETRICAL_RIDERS ? Bitboard(0) : pos.pieces())
+                                  : moves_bb(  ~us, pt, to, MoveRiderTypes[pt] & ASYMMETRICAL_RIDERS ? Bitboard(0) : pos.pieces()))
+                & pos.pieces(us, pt)) & ~square_bb(from);
 
     while (b)
     {
@@ -238,7 +244,7 @@ const std::string move_to_san(Position& pos, Move m, Notation n) {
             else
                 san += '-';
         }
-        else if (pos.capture(m) && from != to)
+        else if (pos.capture(m))
             san += 'x';
         else if (n == NOTATION_LAN || n == NOTATION_SHOGI_HODGES || (n == NOTATION_SHOGI_HOSKING && d == SQUARE_DISAMBIGUATION) || n == NOTATION_JANGGI)
             san += '-';
