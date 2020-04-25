@@ -238,6 +238,10 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("chess", fen, "c7b8q")
         self.assertEqual(result, "cxb8=Q+")
 
+        fen = "1r2k3/P1P5/8/8/8/8/8/4K3 w - - 0 1"
+        result = sf.get_san("chess", fen, "c7b8q", False, sf.NOTATION_LAN)
+        self.assertEqual(result, "c7xb8=Q+")
+
         result = sf.get_san("capablanca", CAPA, "e2e4")
         self.assertEqual(result, "e4")
 
@@ -257,6 +261,10 @@ class TestPyffish(unittest.TestCase):
         fen = "7R/1r6/3k1np1/3s2N1/3s3P/4n3/6p1/2R3K1[] w - - 2 55"
         result = sf.get_san("sittuyin", fen, "h4h4f")
         self.assertEqual(result, "h4=F")
+
+        fen = "k7/2K3P1/8/4P3/8/8/8/1R6[] w - - 0 1"
+        result = sf.get_san("sittuyin", fen, "e5f6f")
+        self.assertEqual(result, "e5f6=F")
 
         result = sf.get_san("shogi", SHOGI, "i3i4")
         self.assertEqual(result, "P-1f")
