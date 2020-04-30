@@ -1853,7 +1853,6 @@ bool Position::is_optional_game_end(Value& result, int ply, unsigned int countSt
       }
   }
 
-      
   // counting rules
   if (   counting_rule()
       && st->countingLimit
