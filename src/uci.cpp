@@ -284,6 +284,17 @@ namespace {
     }
   }
 
+  // rules() prints the rules of the given variant.
+
+  void rules(istringstream& is) {
+
+    string token;
+    if (is >> token && variants.find(token) != variants.end())
+        sync_cout << variants.find(token) << sync_endl;
+    else
+        sync_cout << "No such variant: " << token << sync_endl;
+  }
+
 } // namespace
 
 
@@ -400,6 +411,7 @@ void UCI::loop(int argc, char* argv[]) {
       }
       else if (token == "load")     { load(is); argc = 1; } // continue reading stdin
       else if (token == "check")    load(is, true);
+      else if (token == "rules")    rules(is);
       // UCI-Cyclone omits the "position" keyword
       else if (token == "fen" || token == "startpos")
       {

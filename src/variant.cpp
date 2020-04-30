@@ -23,6 +23,8 @@
 
 #include "parser.h"
 #include "piece.h"
+#include "position.h"
+#include "thread.h"
 #include "variant.h"
 
 using std::string;
@@ -2217,6 +2219,40 @@ std::vector<std::string> VariantMap::get_keys() {
   for (auto const& element : *this)
       keys.push_back(element.first);
   return keys;
+}
+
+std::string value_to_result(Value value) {
+    return  value == VALUE_MATE  ? "win"
+          : value == -VALUE_MATE ? "loss"
+                                 : "draw";
+}
+
+std::ostream& operator<<(std::ostream& os, const VariantMap::iterator& variantIterator) {
+    std::string variantName = variantIterator->first;
+    variantName[0] = toupper(variantName[0]);
+    const Variant* v = variantIterator->second;
+    StateInfo st;
+    Position pos;
+    pos.set(v, v->startFen, v->chess960, &st, Threads.main());
+
+    os << variantName << " is a chess variant played on a board of " << v->maxFile + 1 << " x " << v->maxRank + 1 << " squares." << std::endl;
+
+    // diagram
+    os << pos << std::endl << std::endl;
+
+    os << "# Game end" << std::endl << std::endl;
+    // checkmate
+    if (v->checking && (v->pieceTypes & KING))
+        os << "Checkmating the opponent's king leads to a "
+           << value_to_result(-v->checkmateValue)
+           << " for the the player who delivered the checkmate." << std::endl << std::endl;
+
+    // stalemate
+    os << "Stalemate is adjudicated as a " << value_to_result(v->stalemateValue) << " for player who can not move." << std::endl;
+
+    // TODO: implement more options
+
+    return os;
 }
 
 } // namespace Stockfish

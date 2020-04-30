@@ -166,6 +166,17 @@ namespace XBoard {
     return ss.str();
   }
 
+  // rules() prints the rules of the given variant.
+
+  void rules(std::istringstream& is) {
+
+    std::string token;
+    if (is >> token && variants.find(token) != variants.end())
+        sync_cout << variants.find(token) << sync_endl;
+    else
+        sync_cout << "Error (unkown command): " << token << sync_endl;
+  }
+
 /// StateMachine::process_command() processes commands of the XBoard protocol.
 
 void StateMachine::process_command(std::string token, std::istringstream& is) {
@@ -448,6 +459,8 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
       sync_cout << pos << sync_endl;
   else if (token == "eval")
       sync_cout << Eval::trace(pos) << sync_endl;
+  else if (token == "rules")
+      rules(is);
   // Move strings and unknown commands
   else
   {
