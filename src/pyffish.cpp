@@ -483,10 +483,11 @@ extern "C" PyObject* pyffish_getFEN(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ssO!|pppi", &variant, &fen, &PyList_Type, &moveList, &chess960, &sfen, &showPromoted, &countStarted)) {
         return NULL;
     }
+    countStarted = std::min<unsigned int>(countStarted, INT_MAX); // pseudo-unsigned
 
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
-    return Py_BuildValue("s", pos.fen(sfen, showPromoted, (unsigned int)countStarted).c_str());
+    return Py_BuildValue("s", pos.fen(sfen, showPromoted, countStarted).c_str());
 }
 
 // INPUT variant, fen, move list
@@ -556,10 +557,11 @@ extern "C" PyObject* pyffish_isOptionalGameEnd(PyObject* self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ssO!|pi", &variant, &fen, &PyList_Type, &moveList, &chess960, &countStarted)) {
         return NULL;
     }
+    countStarted = std::min<unsigned int>(countStarted, INT_MAX); // pseudo-unsigned
 
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
-    gameEnd = pos.is_optional_game_end(result, 0, (unsigned int)countStarted);
+    gameEnd = pos.is_optional_game_end(result, 0, countStarted);
     return Py_BuildValue("(Oi)", gameEnd ? Py_True : Py_False, result);
 }
 
