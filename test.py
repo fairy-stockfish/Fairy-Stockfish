@@ -29,12 +29,6 @@ startFen = r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R[] w -
 pieceDrops = true
 capturesToHand = true
 
-# Hybrid variant of Gothic-chess and crazyhouse, using Capablanca as a template
-[gothhouse:capablanca]
-startFen = rnbqckabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQCKABNR[] w KQkq - 0 1
-pieceDrops = true
-capturesToHand = true
-
 # Shogun chess
 [shogun:crazyhouse]
 startFen = rnb+fkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB+FKBNR w KQkq - 0 1
@@ -52,7 +46,20 @@ firstRankPawnDrops = true
 promotionZonePawnDrops = true
 whiteDropRegion = *1 *2 *3 *4 *5
 blackDropRegion = *4 *5 *6 *7 *8
-immobilityIllegal = true"""
+immobilityIllegal = true
+
+# Asymmetric variant with one army using pieces that move like knights but attack like other pieces (kniroo and knibis)
+[orda:chess]
+startFen = lhaykahl/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1
+centaur = h
+knibis = a
+kniroo = l
+silver = y
+promotionPieceTypes = qh
+flagPiece = k
+whiteFlag = *8
+blackFlag = *1
+"""
 
 print(ini_text, file=open("variants.ini", "w"))
 sf.set_option("VariantPath", "variants.ini")
@@ -107,7 +114,10 @@ variant_positions = {
         "k9/10/10/10/10/10/10/10/10/KNE7 w - - 0 1": (False, True),  # KNE vs K
         "kb8/10/10/10/10/10/10/10/10/KE8 w - - 0 1": (False, False),  # KE vs KB opp color
         "kb8/10/10/10/10/10/10/10/10/K1E7 w - - 0 1": (True, True),  # KE vs KB same color
-    }
+    },
+    "orda": {
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (False, False),  # K vs K
+    },
 }
 
 

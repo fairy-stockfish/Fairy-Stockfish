@@ -282,7 +282,8 @@ const std::string move_to_san(Position& pos, Move m, Notation n) {
 
 bool hasInsufficientMaterial(Color c, const Position& pos) {
 
-    if (pos.captures_to_hand() || pos.count_in_hand(c, ALL_PIECES))
+    if (   pos.captures_to_hand() || pos.count_in_hand(c, ALL_PIECES)
+        || (pos.capture_the_flag_piece() && pos.count(c, pos.capture_the_flag_piece())))
         return false;
 
     for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER })
