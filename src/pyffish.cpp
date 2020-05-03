@@ -156,14 +156,20 @@ Disambiguation disambiguation_level(const Position& pos, Move m, Notation n) {
     }
 
     // Pawn captures always use disambiguation
-    if ((n == NOTATION_SAN || n == NOTATION_LAN) && pt == PAWN && pos.capture(m) && from != to)
-        return FILE_DISAMBIGUATION;
+    if (n == NOTATION_SAN && pt == PAWN)
+    {
+        if (pos.capture(m))
+            return FILE_DISAMBIGUATION;
+        if (type_of(m) == PROMOTION && from != to && pos.sittuyin_promotion())
+            return SQUARE_DISAMBIGUATION;
+    }
 
     // A disambiguation occurs if we have more then one piece of type 'pt'
     // that can reach 'to' with a legal move.
     Bitboard others, b;
-    others = b = ((pos.capture(m) ? attacks_bb(~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())
-                                  : moves_bb(  ~us, pt == HORSE ? KNIGHT : pt, to, pos.pieces())) & pos.pieces(us, pt)) & ~square_bb(from);
+    others = b = ((pos.capture(m) ? attacks_bb(~us, pt, to, AttackRiderTypes[pt] & ASYMMETRICAL_RIDERS ? Bitboard(0) : pos.pieces())
+                                  : moves_bb(  ~us, pt, to, MoveRiderTypes[pt] & ASYMMETRICAL_RIDERS ? Bitboard(0) : pos.pieces()))
+                & pos.pieces(us, pt)) & ~square_bb(from);
 
     while (b)
     {
@@ -238,7 +244,7 @@ const std::string move_to_san(Position& pos, Move m, Notation n) {
             else
                 san += '-';
         }
-        else if (pos.capture(m) && from != to)
+        else if (pos.capture(m))
             san += 'x';
         else if (n == NOTATION_LAN || n == NOTATION_SHOGI_HODGES || (n == NOTATION_SHOGI_HOSKING && d == SQUARE_DISAMBIGUATION) || n == NOTATION_JANGGI)
             san += '-';
@@ -276,7 +282,8 @@ const std::string move_to_san(Position& pos, Move m, Notation n) {
 
 bool hasInsufficientMaterial(Color c, const Position& pos) {
 
-    if (pos.captures_to_hand() || pos.count_in_hand(c, ALL_PIECES))
+    if (   pos.captures_to_hand() || pos.count_in_hand(c, ALL_PIECES)
+        || (pos.capture_the_flag_piece() && pos.count(c, pos.capture_the_flag_piece())))
         return false;
 
     for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER })
@@ -473,14 +480,15 @@ extern "C" PyObject* pyffish_getFEN(PyObject* self, PyObject *args) {
     Position pos;
     const char *fen, *variant;
 
-    int chess960 = false, sfen = false, showPromoted = false;
-    if (!PyArg_ParseTuple(args, "ssO!|ppp", &variant, &fen, &PyList_Type, &moveList, &chess960, &sfen, &showPromoted)) {
+    int chess960 = false, sfen = false, showPromoted = false, countStarted = 0;
+    if (!PyArg_ParseTuple(args, "ssO!|pppi", &variant, &fen, &PyList_Type, &moveList, &chess960, &sfen, &showPromoted, &countStarted)) {
         return NULL;
     }
+    countStarted = std::min<unsigned int>(countStarted, INT_MAX); // pseudo-unsigned
 
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
-    return Py_BuildValue("s", pos.fen(sfen, showPromoted).c_str());
+    return Py_BuildValue("s", pos.fen(sfen, showPromoted, countStarted).c_str());
 }
 
 // INPUT variant, fen, move list
@@ -546,14 +554,15 @@ extern "C" PyObject* pyffish_isOptionalGameEnd(PyObject* self, PyObject *args) {
     const char *fen, *variant;
     bool gameEnd;
     Value result;
-    int chess960 = false;
-    if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen, &PyList_Type, &moveList, &chess960)) {
+    int chess960 = false, countStarted = 0;
+    if (!PyArg_ParseTuple(args, "ssO!|pi", &variant, &fen, &PyList_Type, &moveList, &chess960, &countStarted)) {
         return NULL;
     }
+    countStarted = std::min<unsigned int>(countStarted, INT_MAX); // pseudo-unsigned
 
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
-    gameEnd = pos.is_optional_game_end(result);
+    gameEnd = pos.is_optional_game_end(result, 0, countStarted);
     return Py_BuildValue("(Oi)", gameEnd ? Py_True : Py_False, result);
 }
 

@@ -581,7 +581,7 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
 /// Position::fen() returns a FEN representation of the position. In case of
 /// Chess960 the Shredder-FEN notation is used. This is mainly a debugging function.
 
-const string Position::fen(bool sfen, bool showPromoted, std::string holdings) const {
+const string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string holdings) const {
 
   int emptyCnt;
   std::ostringstream ss;
@@ -686,7 +686,7 @@ const string Position::fen(bool sfen, bool showPromoted, std::string holdings) c
 
   // Counting ply or 50-move rule counter
   if (st->countingLimit)
-      ss << st->countingPly;
+      ss << counting_ply(countStarted);
   else
       ss << st->rule50;
 
@@ -1806,7 +1806,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 /// Position::is_optinal_game_end() tests whether the position may end the game by
 /// 50-move rule, by repetition, or a variant rule that allows a player to claim a game result.
 
-bool Position::is_optional_game_end(Value& result, int ply) const {
+bool Position::is_optional_game_end(Value& result, int ply, int countStarted) const {
 
   // n-move rule
   if (n_move_rule() && st->rule50 > (2 * n_move_rule() - 1) && (!checkers() || MoveList<LEGAL>(*this).size()))
@@ -1853,7 +1853,7 @@ bool Position::is_optional_game_end(Value& result, int ply) const {
   // counting rules
   if (   counting_rule()
       && st->countingLimit
-      && st->countingPly > st->countingLimit
+      && counting_ply(countStarted) > st->countingLimit
       && (!checkers() || MoveList<LEGAL>(*this).size()))
   {
       result = VALUE_DRAW;
