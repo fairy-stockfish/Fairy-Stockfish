@@ -161,7 +161,8 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
   {
       for (size_t idx = 0; idx < om.size(); ++idx)
           for (const auto& it : om)
-              if (it.second.idx == idx && it.first != "Protocol")
+              if (it.second.idx == idx && it.first != "Protocol" && it.first != "UCI_Variant"
+                                       && it.first != "Threads" && it.first != "Hash")
               {
                   const Option& o = it.second;
                   os << "\nfeature option=\"" << it.first << " -" << o.type;
