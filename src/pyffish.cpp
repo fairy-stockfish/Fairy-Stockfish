@@ -70,10 +70,10 @@ std::string piece(const Position& pos, Move m, Notation n) {
     else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) > 2)
         return std::to_string(popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1);
     // Moves of promoted pieces
-    else if (type_of(m) != DROP && pos.unpromoted_piece_on(from))
+    else if (is_shogi(n) && type_of(m) != DROP && pos.unpromoted_piece_on(from))
         return "+" + std::string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
     // Promoted drops
-    else if (type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
+    else if (is_shogi(n) && type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
         return "+" + std::string(1, toupper(pos.piece_to_char()[in_hand_piece_type(m)]));
     else if (pos.piece_to_char_synonyms()[pc] != ' ')
         return std::string(1, toupper(pos.piece_to_char_synonyms()[pc]));
@@ -259,9 +259,9 @@ const std::string move_to_san(Position& pos, Move m, Notation n) {
         if (type_of(m) == PROMOTION)
             san += std::string("=") + pos.piece_to_char()[make_piece(WHITE, promotion_type(m))];
         else if (type_of(m) == PIECE_PROMOTION)
-            san += std::string("+");
+            san += is_shogi(n) ? std::string("+") : std::string("=") + pos.piece_to_char()[make_piece(WHITE, pos.promoted_piece_type(type_of(pos.moved_piece(m))))];
         else if (type_of(m) == PIECE_DEMOTION)
-            san += std::string("-");
+            san += is_shogi(n) ? std::string("-") : std::string("=") + std::string(1, pos.piece_to_char()[pos.unpromoted_piece_on(from)]);
         else if (type_of(m) == NORMAL && is_shogi(n) && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
             san += std::string("=");
         if (is_gating(m))

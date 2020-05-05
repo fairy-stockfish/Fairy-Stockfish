@@ -425,20 +425,22 @@ class TestPyffish(unittest.TestCase):
     def test_get_san_moves(self):
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
         SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]
-
         result = sf.get_san_moves("seirawan", SEIRAWAN, UCI_moves)
         self.assertEqual(result, SAN_moves)
 
         UCI_moves = ["c3c4", "g7g6", "b2h8"]
         SAN_moves = ["P-7f", "P-3d", "Bx2b="]
-
         result = sf.get_san_moves("shogi", SHOGI, UCI_moves)
         self.assertEqual(result, SAN_moves)
 
         UCI_moves = ["h3e3", "h10g8", "h1g3", "c10e8", "a1a3", "i10h10"]
         SAN_moves = ["C2=5", "H8+7", "H2+3", "E3+5", "R9+2", "R9=8"]
-
         result = sf.get_san_moves("xiangqi", XIANGQI, UCI_moves, False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, SAN_moves)
+
+        UCI_moves = ["e2e4", "d7d5", "f1a6+", "d8d6"]
+        SAN_moves = ["e4", "d5", "Ba6=A", "Qd6"]
+        result = sf.get_san_moves("shogun", SHOGUN, UCI_moves)
         self.assertEqual(result, SAN_moves)
 
     def test_gives_check(self):
