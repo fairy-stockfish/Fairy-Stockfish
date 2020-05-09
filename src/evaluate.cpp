@@ -932,7 +932,7 @@ namespace {
                 Square s = pop_lsb(&current);
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
                                     | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
-                ctfPieces |= attacks & ~pos.pieces(Us) & ~attackedBy[Them][ALL_PIECES];
+                ctfPieces |= attacks & ~(pos.pieces(Us, PAWN) | attackedBy[Them][ALL_PIECES]);
                 onHold |= attacks & ~((pos.pieces(Us, PAWN) & attackedBy[Them][ALL_PIECES]) | attackedBy2[Them]);
                 onHold2 |= attacks;
             }
