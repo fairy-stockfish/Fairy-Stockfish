@@ -35,6 +35,7 @@ enum Notation {
     // https://en.wikipedia.org/wiki/Shogi_notation#Western_notation
     NOTATION_SHOGI_HOSKING, // Examples: P76, S’34
     NOTATION_SHOGI_HODGES, // Examples: P-7f, S*3d
+    NOTATION_SHOGI_HODGES_NUMBER, // Examples: P-76, S*34
     // http://www.janggi.pl/janggi-notation/
     NOTATION_JANGGI,
     // https://en.wikipedia.org/wiki/Xiangqi#Notation
@@ -43,7 +44,7 @@ enum Notation {
 
 Notation default_notation(const Variant* v) {
     if (v->variantTemplate == "shogi")
-        return NOTATION_SHOGI_HODGES;
+        return NOTATION_SHOGI_HODGES_NUMBER;
     return NOTATION_SAN;
 }
 
@@ -55,7 +56,7 @@ enum Disambiguation {
 };
 
 bool is_shogi(Notation n) {
-    return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES;
+    return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES || n == NOTATION_SHOGI_HODGES_NUMBER;
 }
 
 std::string piece(const Position& pos, Move m, Notation n) {
@@ -85,6 +86,7 @@ std::string file(const Position& pos, Square s, Notation n) {
     switch (n) {
     case NOTATION_SHOGI_HOSKING:
     case NOTATION_SHOGI_HODGES:
+    case NOTATION_SHOGI_HODGES_NUMBER:
         return std::to_string(pos.max_file() - file_of(s) + 1);
     case NOTATION_JANGGI:
         return std::to_string(file_of(s) + 1);
@@ -98,6 +100,7 @@ std::string file(const Position& pos, Square s, Notation n) {
 std::string rank(const Position& pos, Square s, Notation n) {
     switch (n) {
     case NOTATION_SHOGI_HOSKING:
+    case NOTATION_SHOGI_HODGES_NUMBER:
         return std::to_string(pos.max_rank() - rank_of(s) + 1);
     case NOTATION_SHOGI_HODGES:
         return std::string(1, char('a' + pos.max_rank() - rank_of(s)));
@@ -234,7 +237,7 @@ const std::string move_to_san(Position& pos, Move m, Notation n) {
 
         // Separator/Operator
         if (type_of(m) == DROP)
-            san += (n == NOTATION_SHOGI_HODGES ? '*' : n == NOTATION_SHOGI_HOSKING ? '\'' : '@');
+            san += n == NOTATION_SHOGI_HOSKING ? '\'' : is_shogi(n) ? '*' : '@';
         else if (n == NOTATION_XIANGQI_WXF)
         {
             if (rank_of(from) == rank_of(to))
@@ -246,7 +249,7 @@ const std::string move_to_san(Position& pos, Move m, Notation n) {
         }
         else if (pos.capture(m))
             san += 'x';
-        else if (n == NOTATION_LAN || n == NOTATION_SHOGI_HODGES || (n == NOTATION_SHOGI_HOSKING && d == SQUARE_DISAMBIGUATION) || n == NOTATION_JANGGI)
+        else if (n == NOTATION_LAN || (is_shogi(n) && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION)) || n == NOTATION_JANGGI)
             san += '-';
 
         // Destination square
@@ -632,6 +635,7 @@ PyMODINIT_FUNC PyInit_pyffish() {
     PyModule_AddObject(module, "NOTATION_LAN", PyLong_FromLong(NOTATION_LAN));
     PyModule_AddObject(module, "NOTATION_SHOGI_HOSKING", PyLong_FromLong(NOTATION_SHOGI_HOSKING));
     PyModule_AddObject(module, "NOTATION_SHOGI_HODGES", PyLong_FromLong(NOTATION_SHOGI_HODGES));
+    PyModule_AddObject(module, "NOTATION_SHOGI_HODGES_NUMBER", PyLong_FromLong(NOTATION_SHOGI_HODGES_NUMBER));
     PyModule_AddObject(module, "NOTATION_JANGGI", PyLong_FromLong(NOTATION_JANGGI));
     PyModule_AddObject(module, "NOTATION_XIANGQI_WXF", PyLong_FromLong(NOTATION_XIANGQI_WXF));
 
