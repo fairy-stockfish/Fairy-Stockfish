@@ -80,8 +80,23 @@ void on_variant_change(const Option &o) {
                             : pt == KING && v->cambodianMoves ? "ismN"
                             : pt == FERS && v->cambodianMoves ? "ifnD"
                                                               : "";
+            // Janggi palace moves
+            if (v->diagonalLines)
+            {
+                PieceType pt2 = pt == KING ? v->kingType : pt;
+                if (pt2 == WAZIR)
+                    suffix += "F";
+                else if (pt2 == SOLDIER)
+                    suffix += "fF";
+                else if (pt2 == ROOK)
+                    suffix += "B";
+                else if (pt2 == JANGGI_CANNON)
+                    suffix += "pB";
+            }
+            // Castling
             if (pt == KING && v->castling)
                  suffix += "O" + std::to_string((v->castlingKingsideFile - v->castlingQueensideFile) / 2);
+            // Drop region
             if (v->pieceDrops)
             {
                 if (pt == PAWN && !v->firstRankPawnDrops)
