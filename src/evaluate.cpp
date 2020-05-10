@@ -902,7 +902,8 @@ namespace {
   template<Tracing T> template<Color Us>
   Score Evaluation<T>::variant() const {
 
-    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
+    constexpr Color Them = ~Us;
+    constexpr Direction Down = pawn_push(Them);
 
     Score score = SCORE_ZERO;
 
@@ -933,7 +934,7 @@ namespace {
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
                                     | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
                 ctfPieces |= attacks & ~(pos.pieces(Us, PAWN) | attackedBy[Them][ALL_PIECES]);
-                onHold |= attacks & ~((pos.pieces(Us, PAWN) & attackedBy[Them][ALL_PIECES]) | attackedBy2[Them]);
+                onHold |= attacks & ~((pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | attackedBy[Them][ALL_PIECES])) | attackedBy2[Them]);
                 onHold2 |= attacks;
             }
         }
