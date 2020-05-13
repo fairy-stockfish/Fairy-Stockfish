@@ -391,6 +391,9 @@ string UCI::move(const Position& pos, Move m) {
   if (m == MOVE_NULL)
       return "0000";
 
+  if (is_pass(m) && Options["Protocol"] == "xboard")
+      return "pass";
+
   if (is_gating(m) && gating_square(m) == to)
       from = to_sq(m), to = from_sq(m);
   else if (type_of(m) == CASTLING && !pos.is_chess960())
@@ -428,7 +431,7 @@ Move UCI::to_move(const Position& pos, string& str) {
   }
 
   for (const auto& m : MoveList<LEGAL>(pos))
-      if (str == UCI::move(pos, m))
+      if (str == UCI::move(pos, m) || (is_pass(m) && str == UCI::square(pos, from_sq(m)) + UCI::square(pos, to_sq(m))))
           return m;
 
   return MOVE_NONE;

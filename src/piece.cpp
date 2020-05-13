@@ -331,7 +331,7 @@ namespace {
   PieceInfo* janggi_elephant_piece() {
       PieceInfo* p = new PieceInfo();
       p->name = "janggi_elephant";
-      p->betza = "nZ";
+      p->betza = "mafsmafW";
       p->stepsQuiet = {SOUTH + 2 * SOUTH_WEST, SOUTH + 2 * SOUTH_EAST,
                        WEST  + 2 * SOUTH_WEST, EAST  + 2 * SOUTH_EAST,
                        WEST  + 2 * NORTH_WEST, EAST  + 2 * NORTH_EAST,

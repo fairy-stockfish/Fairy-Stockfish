@@ -564,7 +564,7 @@ namespace {
                  +       kingAttackersCountInHand[Them] * kingAttackersWeight[Them]
                  +       kingAttackersCount[Them] * kingAttackersWeightInHand[Them]
                  + 185 * popcount(kingRing[Us] & (weak | ~pos.board_bb(Us, KING))) * (1 + pos.captures_to_hand() + pos.check_counting())
-                 + 148 * popcount(unsafeChecks)
+                 + 148 * popcount(unsafeChecks) * (1 + pos.check_counting())
                  +  98 * popcount(pos.blockers_for_king(Us))
                  +  69 * kingAttacksCount[Them] * (2 + 8 * pos.check_counting() + pos.captures_to_hand()) / 2
                  +   3 * kingFlankAttack * kingFlankAttack / 8
@@ -902,7 +902,8 @@ namespace {
   template<Tracing T> template<Color Us>
   Score Evaluation<T>::variant() const {
 
-    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
+    constexpr Color Them = ~Us;
+    constexpr Direction Down = pawn_push(Them);
 
     Score score = SCORE_ZERO;
 
@@ -932,8 +933,8 @@ namespace {
                 Square s = pop_lsb(&current);
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
                                     | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
-                ctfPieces |= attacks & ~pos.pieces(Us) & ~attackedBy[Them][ALL_PIECES];
-                onHold |= attacks & ~((pos.pieces(Us, PAWN) & attackedBy[Them][ALL_PIECES]) | attackedBy2[Them]);
+                ctfPieces |= attacks & ~(pos.pieces(Us, PAWN) | attackedBy[Them][ALL_PIECES]);
+                onHold |= attacks & ~((pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | attackedBy[Them][ALL_PIECES])) | attackedBy2[Them]);
                 onHold2 |= attacks;
             }
         }

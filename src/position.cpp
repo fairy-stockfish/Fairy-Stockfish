@@ -743,6 +743,9 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 
     if (b && (!more_than_one(b) || ((AttackRiderTypes[type_of(piece_on(sniperSq))] & HOPPING_RIDERS) && popcount(b) == 2)))
     {
+        // Janggi cannons block each other
+        if ((pieces(JANGGI_CANNON) & sniperSq) && (pieces(JANGGI_CANNON) & b))
+            b &= pieces(JANGGI_CANNON);
         blockers |= b;
         if (b & pieces(color_of(piece_on(s))))
             pinners |= sniperSq;
@@ -1717,6 +1720,10 @@ bool Position::see_ge(Move m, Value threshold) const {
       if (attackers & pieces(~stm, KING))
           attackers |= attacks_bb(~stm, ROOK, to, occupied & ~pieces(ROOK)) & pieces(stm, KING);
   }
+
+  // Janggi cannons can not capture each other
+  if (type_of(moved_piece(m)) == JANGGI_CANNON && !(attackers & pieces(~stm) & ~pieces(JANGGI_CANNON)))
+      attackers &= ~pieces(~stm, JANGGI_CANNON);
 
   while (true)
   {
