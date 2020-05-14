@@ -191,7 +191,7 @@ void init(const Variant* v) {
           File f = std::max(std::min(file_of(s), File(v->maxFile - file_of(s))), FILE_A);
           Rank r = rank_of(s);
           psq[ pc][ s] = score + (  pt == PAWN  ? PBonus[std::min(r, RANK_8)][std::min(file_of(s), FILE_H)]
-                                  : pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                  : pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
                                   : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)]
                                                 : make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - 8));
           if (pt == SOLDIER && r < v->soldierPromotionRank)
