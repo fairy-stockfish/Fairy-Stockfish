@@ -344,7 +344,7 @@ enum Value : int {
   CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
   JanggiCannonPieceValueMg = 800,   JanggiCannonPieceValueEg = 600,
   SoldierValueMg           = 200,   SoldierValueEg           = 270,
-  HorseValueMg             = 500,   HorseValueEg             = 800,
+  HorseValueMg             = 520,   HorseValueEg             = 800,
   ElephantValueMg          = 300,   ElephantValueEg          = 300,
   JanggiElephantValueMg    = 340,   JanggiElephantValueEg    = 350,
   BannerValueMg            = 3400,  BannerValueEg            = 3500,
