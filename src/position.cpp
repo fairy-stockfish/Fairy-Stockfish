@@ -499,7 +499,7 @@ void Position::set_check_info(StateInfo* si) const {
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, pt, ksq, pieces()) : Bitboard(0);
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
-  si->bikjang = var->bikjangValue != VALUE_NONE && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
+  si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
 }
 
 
@@ -1961,21 +1961,12 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
       }
   }
-  // Check for bikjang rule (Janggi)
-  if (var->bikjangValue != VALUE_NONE && st->pliesFromNull > 0 && (   (st->bikjang && st->previous->bikjang)
-                                                                   || (st->pass && st->previous->pass)))
+  // Check for bikjang rule (Janggi) and double passing
+  if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
   {
-      // material counting
-      auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
-      int materialCount =  weigth_count(ROOK, 13)
-                         + weigth_count(JANGGI_CANNON, 7)
-                         + weigth_count(HORSE, 5)
-                         + weigth_count(JANGGI_ELEPHANT, 3)
-                         + weigth_count(WAZIR, 3)
-                         + weigth_count(SOLDIER, 2)
-                         - 1;
-      bool stmUpMaterial = (sideToMove == WHITE) == (materialCount > 0);
-      result = convert_mate_value(stmUpMaterial ? var->bikjangValue : -var->bikjangValue, ply);
+      result = var->materialCounting ? convert_mate_value(sideToMove == WHITE ?  material_counting_result()
+                                                                              : -material_counting_result(), ply)
+                                     : VALUE_DRAW;
       return true;
   }
   // Tsume mode: Assume that side with king wins when not in check

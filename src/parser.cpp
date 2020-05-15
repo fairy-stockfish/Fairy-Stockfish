@@ -75,6 +75,13 @@ namespace {
         return value == "win" || value == "loss" || value == "draw" || value == "none";
     }
 
+    template <> bool set(const std::string& value, MaterialCounting& target) {
+        target =  value == "janggi"  ? JANGGI_MATERIAL
+                : value == "unweighted" ? UNWEIGHTED_MATERIAL
+                : NO_MATERIAL_COUNTING;
+        return value == "janggi" || value == "unweighted" || value == "none";
+    }
+
     template <> bool set(const std::string& value, CountingRule& target) {
         target =  value == "makruk"  ? MAKRUK_COUNTING
                 : value == "asean" ? ASEAN_COUNTING
@@ -107,6 +114,7 @@ template <class T> void VariantParser<DoCheck>::parse_attribute(const std::strin
                                   : std::is_same<T, File>() ? "File"
                                   : std::is_same<T, bool>() ? "bool"
                                   : std::is_same<T, Value>() ? "Value"
+                                  : std::is_same<T, MaterialCounting>() ? "MaterialCounting"
                                   : std::is_same<T, CountingRule>() ? "CountingRule"
                                   : std::is_same<T, Bitboard>() ? "Bitboard"
                                   : typeid(T).name();
@@ -267,7 +275,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("checkmateValue", v->checkmateValue);
     parse_attribute("shogiPawnDropMateIllegal", v->shogiPawnDropMateIllegal);
     parse_attribute("shatarMateRule", v->shatarMateRule);
-    parse_attribute("bikjangValue", v->bikjangValue);
+    parse_attribute("bikjangRule", v->bikjangRule);
     parse_attribute("bareKingValue", v->bareKingValue);
     parse_attribute("extinctionValue", v->extinctionValue);
     parse_attribute("bareKingMove", v->bareKingMove);
@@ -292,6 +300,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("flagMove", v->flagMove);
     parse_attribute("checkCounting", v->checkCounting);
     parse_attribute("connectN", v->connectN);
+    parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
     // Report invalid options
     if (DoCheck)

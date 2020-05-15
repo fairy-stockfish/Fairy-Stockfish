@@ -872,7 +872,8 @@ namespace {
         v->mobilityRegion[BLACK][WAZIR] = black_castle;
         v->soldierPromotionRank = RANK_1;
         v->flyingGeneral = false;
-        v->bikjangValue = VALUE_MATE;
+        v->bikjangRule = true;
+        v->materialCounting = JANGGI_MATERIAL;
         v->diagonalLines = make_bitboard(SQ_D1, SQ_F1, SQ_E2, SQ_D3, SQ_F3,
                                          SQ_D8, SQ_F8, SQ_E9, SQ_D10, SQ_F10);
         v->kingPass = true;
@@ -883,13 +884,15 @@ namespace {
     // Traditional rules of Janggi, where bikjang is a draw
     Variant* janggi_traditional_variant() {
         Variant* v = janggi_variant();
-        v->bikjangValue = VALUE_DRAW;
+        v->bikjangRule = true;
+        v->materialCounting = NO_MATERIAL_COUNTING;
         return v;
     }
     // Casual rules of Janggi, where bikjang is not considered
     Variant* janggi_casual_variant() {
         Variant* v = janggi_variant();
-        v->bikjangValue = VALUE_NONE;
+        v->bikjangRule = false;
+        v->materialCounting = JANGGI_MATERIAL;
         return v;
     }
 #endif

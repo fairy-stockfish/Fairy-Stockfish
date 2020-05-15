@@ -274,6 +274,10 @@ enum CheckCount : int {
   CHECKS_0 = 0, CHECKS_NB = 11
 };
 
+enum MaterialCounting {
+  NO_MATERIAL_COUNTING, JANGGI_MATERIAL, UNWEIGHTED_MATERIAL
+};
+
 enum CountingRule {
   NO_COUNTING, MAKRUK_COUNTING, ASEAN_COUNTING
 };
@@ -700,7 +704,7 @@ inline bool is_gating(Move m) {
 }
 
 inline bool is_pass(Move m) {
-  return type_of(m) == SPECIAL || from_sq(m) == to_sq(m);
+  return type_of(m) == SPECIAL && from_sq(m) == to_sq(m);
 }
 
 constexpr Move make_move(Square from, Square to) {

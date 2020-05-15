@@ -103,7 +103,7 @@ struct Variant {
   Value checkmateValue = -VALUE_MATE;
   bool shogiPawnDropMateIllegal = false;
   bool shatarMateRule = false;
-  Value bikjangValue = VALUE_NONE;
+  bool bikjangRule = false;
   Value bareKingValue = VALUE_NONE;
   Value extinctionValue = VALUE_NONE;
   bool bareKingMove = false;
@@ -116,6 +116,7 @@ struct Variant {
   bool flagMove = false;
   bool checkCounting = false;
   int connectN = 0;
+  MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
 
   void add_piece(PieceType pt, char c, char c2 = ' ') {
