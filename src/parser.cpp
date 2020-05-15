@@ -143,6 +143,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     // piece types
     for (const auto& pieceInfo : pieceMap)
     {
+        // piece char
         const auto& keyValue = config.find(pieceInfo.second->name);
         if (keyValue != config.end() && !keyValue->second.empty())
         {
@@ -154,6 +155,14 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                     std::cerr << pieceInfo.second->name << " - Invalid letter: " << keyValue->second.at(0) << std::endl;
                 v->remove_piece(pieceInfo.first);
             }
+        }
+        // mobility region
+        std::string capitalizedPiece = pieceInfo.second->name;
+        capitalizedPiece[0] = toupper(capitalizedPiece[0]);
+        for (Color c : {WHITE, BLACK})
+        {
+            std::string color = c == WHITE ? "White" : "Black";
+            parse_attribute("mobilityRegion" + color + capitalizedPiece, v->mobilityRegion[c][pieceInfo.first]);
         }
     }
     parse_attribute("variantTemplate", v->variantTemplate);
