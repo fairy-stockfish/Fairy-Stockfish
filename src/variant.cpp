@@ -895,6 +895,13 @@ namespace {
         v->materialCounting = JANGGI_MATERIAL;
         return v;
     }
+    // Sanjangjanggi
+    // https://en.wikipedia.org/wiki/Janggi_variants#Sanjangjanggi
+    Variant* sanjangjanggi_variant() {
+        Variant* v = janggi_variant();
+        v->makpongRule = true;
+        return v;
+    }
 #endif
 
 } // namespace
@@ -981,6 +988,7 @@ void VariantMap::init() {
     add("janggi", janggi_variant());
     add("janggitraditional", janggi_traditional_variant());
     add("janggicasual", janggi_casual_variant());
+    add("sanjangjanggi", sanjangjanggi_variant());
 #endif
 }
 
