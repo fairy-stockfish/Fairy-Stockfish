@@ -854,7 +854,7 @@ namespace {
     // https://en.wikipedia.org/wiki/Janggi
     Variant* janggi_variant() {
         Variant* v = xiangqi_variant();
-        v->pieceToCharTable = "PN.R.AB....C.........Kpn.r.ab....c.........k";
+        v->pieceToCharTable = ".N.R.AB.P..C.........K.n.r.ab.p..c.........k";
         v->remove_piece(FERS);
         v->remove_piece(CANNON);
         v->remove_piece(ELEPHANT);

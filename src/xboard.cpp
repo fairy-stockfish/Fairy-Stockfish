@@ -236,7 +236,29 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   {
       std::string fen;
       std::getline(is >> std::ws, fen);
-      setboard(pos, states, fen);
+      // Check if setboard actually indicates a passing move
+      // to avoid unnecessarily clearing the move history
+      if (pos.king_pass())
+      {
+          StateInfo st;
+          Position p;
+          p.set(pos.variant(), fen, pos.is_chess960(), &st, pos.this_thread());
+          Move m;
+          std::string passMove = "pass";
+          if ((m = UCI::to_move(pos, passMove)) != MOVE_NONE)
+              do_move(pos, moveList, states, m);
+          // apply setboard if passing does not lead to a match
+          if (pos.key() != p.key())
+              setboard(pos, states, fen);
+      }
+      else
+          setboard(pos, states, fen);
+      // Winboard sends setboard after passing moves
+      if (pos.side_to_move() == playColor)
+      {
+          go(pos, limits, states);
+          moveAfterSearch = true;
+      }
   }
   else if (token == "cores")
   {
