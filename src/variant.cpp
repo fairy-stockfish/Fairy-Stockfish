@@ -852,6 +852,7 @@ namespace {
     }
     // Janggi (Korean chess)
     // https://en.wikipedia.org/wiki/Janggi
+    // Official tournament rules with bikjang and material counting.
     Variant* janggi_variant() {
         Variant* v = xiangqi_variant();
         v->pieceToCharTable = ".N.R.AB.P..C.........K.n.r.ab.p..c.........k";
@@ -888,11 +889,19 @@ namespace {
         v->materialCounting = NO_MATERIAL_COUNTING;
         return v;
     }
-    // Casual rules of Janggi, where bikjang is not considered
-    Variant* janggi_casual_variant() {
+    // Modern rules of Janggi, where bikjang is not considered, but material counting is.
+    // This is e.g. used on Kakao Janggi.
+    Variant* janggi_modern_variant() {
         Variant* v = janggi_variant();
         v->bikjangRule = false;
         v->materialCounting = JANGGI_MATERIAL;
+        return v;
+    }
+    // Casual rules of Janggi, where bikjang and material counting are not considered
+    Variant* janggi_casual_variant() {
+        Variant* v = janggi_variant();
+        v->bikjangRule = false;
+        v->materialCounting = NO_MATERIAL_COUNTING;
         return v;
     }
 #endif
@@ -980,6 +989,7 @@ void VariantMap::init() {
     add("supply", supply_variant());
     add("janggi", janggi_variant());
     add("janggitraditional", janggi_traditional_variant());
+    add("janggimodern", janggi_modern_variant());
     add("janggicasual", janggi_casual_variant());
 #endif
 }
