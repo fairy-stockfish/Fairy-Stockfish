@@ -474,6 +474,7 @@ namespace {
 
     // Analyse the safe enemy's checks which are possible on next move
     safe  = ~pos.pieces(Them);
+    if (!pos.check_counting() || pos.checks_remaining(Them) > 1)
     safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
 
     b1 = attacks_bb<ROOK  >(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
