@@ -276,9 +276,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("shogiPawnDropMateIllegal", v->shogiPawnDropMateIllegal);
     parse_attribute("shatarMateRule", v->shatarMateRule);
     parse_attribute("bikjangRule", v->bikjangRule);
-    parse_attribute("bareKingValue", v->bareKingValue);
     parse_attribute("extinctionValue", v->extinctionValue);
-    parse_attribute("bareKingMove", v->bareKingMove);
+    parse_attribute("extinctionClaim", v->extinctionClaim);
     // extinction piece types
     const auto& it_ext = config.find("extinctionPieceTypes");
     if (it_ext != config.end())

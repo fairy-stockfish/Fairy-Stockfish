@@ -152,9 +152,8 @@ public:
   int n_fold_rule() const;
   Value stalemate_value(int ply = 0) const;
   Value checkmate_value(int ply = 0) const;
-  Value bare_king_value(int ply = 0) const;
   Value extinction_value(int ply = 0) const;
-  bool bare_king_move() const;
+  bool extinction_claim() const;
   const std::set<PieceType>& extinction_piece_types() const;
   int extinction_piece_count() const;
   int extinction_opponent_piece_count() const;
@@ -661,19 +660,14 @@ inline Value Position::checkmate_value(int ply) const {
   return convert_mate_value(var->checkmateValue, ply);
 }
 
-inline Value Position::bare_king_value(int ply) const {
-  assert(var != nullptr);
-  return convert_mate_value(var->bareKingValue, ply);
-}
-
 inline Value Position::extinction_value(int ply) const {
   assert(var != nullptr);
   return convert_mate_value(var->extinctionValue, ply);
 }
 
-inline bool Position::bare_king_move() const {
+inline bool Position::extinction_claim() const {
   assert(var != nullptr);
-  return var->bareKingMove;
+  return var->extinctionClaim;
 }
 
 inline const std::set<PieceType>& Position::extinction_piece_types() const {

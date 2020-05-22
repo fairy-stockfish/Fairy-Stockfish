@@ -130,8 +130,11 @@ namespace {
         v->promotionPieceTypes = {FERS};
         v->doubleStep = false;
         v->castling = false;
-        v->bareKingValue = -VALUE_MATE;
-        v->bareKingMove = true;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionClaim = true;
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceCount = 1;
+        v->extinctionOpponentPieceCount = 2;
         v->stalemateValue = -VALUE_MATE;
         v->nMoveRule = 70;
         return v;
@@ -196,8 +199,9 @@ namespace {
         Variant* v = fairy_variant_base();
         v->checkmateValue = VALUE_MATE;
         v->stalemateValue = VALUE_MATE;
-        v->bareKingValue = VALUE_MATE;
-        v->bareKingMove = false;
+        v->extinctionValue = VALUE_MATE;
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceCount = 1;
         v->mustCapture = true;
         return v;
     }
@@ -559,7 +563,9 @@ namespace {
         v->promotionPieceTypes = {BERS};
         v->doubleStep = false;
         v->castling = false;
-        v->bareKingValue = VALUE_DRAW; // Robado
+        v->extinctionValue = VALUE_DRAW; // Robado
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceCount = 1;
         v->shatarMateRule = true;
         return v;
     }
@@ -755,8 +761,11 @@ namespace {
         v->promotionPieceTypes = {FERS};
         v->doubleStep = false;
         v->castling = false;
-        v->bareKingValue = -VALUE_MATE;
-        v->bareKingMove = true;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionClaim = true;
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceCount = 1;
+        v->extinctionOpponentPieceCount = 2;
         v->stalemateValue = -VALUE_MATE;
         return v;
     }

@@ -1896,28 +1896,13 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
 
-  // bare king rule
-  if (    bare_king_value() != VALUE_NONE
-      && !bare_king_move()
-      && !(count<ALL_PIECES>(sideToMove) - count<KING>(sideToMove)))
-  {
-      result = bare_king_value(ply);
-      return true;
-  }
-  if (    bare_king_value() != VALUE_NONE
-      &&  bare_king_move()
-      && !(count<ALL_PIECES>(~sideToMove) - count<KING>(~sideToMove)))
-  {
-      result = -bare_king_value(ply);
-      return true;
-  }
   // extinction
   if (extinction_value() != VALUE_NONE)
   {
       for (Color c : { WHITE, BLACK })
           for (PieceType pt : extinction_piece_types())
               if (   count_with_hand( c, pt) <= var->extinctionPieceCount
-                  && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount)
+                  && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount + (extinction_claim() && c == sideToMove))
               {
                   result = c == sideToMove ? extinction_value(ply) : -extinction_value(ply);
                   return true;

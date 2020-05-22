@@ -104,9 +104,8 @@ struct Variant {
   bool shogiPawnDropMateIllegal = false;
   bool shatarMateRule = false;
   bool bikjangRule = false;
-  Value bareKingValue = VALUE_NONE;
   Value extinctionValue = VALUE_NONE;
-  bool bareKingMove = false;
+  bool extinctionClaim = false;
   std::set<PieceType> extinctionPieceTypes = {};
   int extinctionPieceCount = 0;
   int extinctionOpponentPieceCount = 0;
