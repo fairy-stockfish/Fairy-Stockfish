@@ -1005,7 +1005,7 @@ namespace {
     Value eg = eg_value(score);
 
     // No initiative bonus for extinction variants
-    if (pos.extinction_value() != VALUE_NONE || pos.must_capture() || pos.captures_to_hand() || pos.connect_n())
+    if (pos.extinction_value() != VALUE_NONE || pos.captures_to_hand() || pos.connect_n())
       return SCORE_ZERO;
 
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
