@@ -771,6 +771,7 @@ namespace {
     }
     Variant* grand_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->add_piece(ARCHBISHOP, 'a');
