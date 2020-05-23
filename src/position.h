@@ -1085,6 +1085,7 @@ inline bool Position::bikjang() const {
 inline Value Position::material_counting_result() const {
   auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
   int materialCount;
+  Value result;
   switch (var->materialCounting)
   {
   case JANGGI_MATERIAL:
@@ -1095,15 +1096,18 @@ inline Value Position::material_counting_result() const {
                      + weigth_count(WAZIR, 3)
                      + weigth_count(SOLDIER, 2)
                      - 1;
-      return materialCount > 0 ? VALUE_MATE : -VALUE_MATE;
+      result = materialCount > 0 ? VALUE_MATE : -VALUE_MATE;
+      break;
   case UNWEIGHTED_MATERIAL:
-      return  count(WHITE, ALL_PIECES) > count(BLACK, ALL_PIECES) ?  VALUE_MATE
-            : count(WHITE, ALL_PIECES) < count(BLACK, ALL_PIECES) ? -VALUE_MATE
-                                                                  :  VALUE_DRAW;
+      result =  count(WHITE, ALL_PIECES) > count(BLACK, ALL_PIECES) ?  VALUE_MATE
+              : count(WHITE, ALL_PIECES) < count(BLACK, ALL_PIECES) ? -VALUE_MATE
+                                                                    :  VALUE_DRAW;
+      break;
   default:
       assert(false);
-      return VALUE_DRAW;
+      result = VALUE_DRAW;
   }
+  return sideToMove == WHITE ? result : -result;
 }
 
 inline void Position::add_to_hand(Piece pc) {

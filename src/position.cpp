@@ -1818,7 +1818,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
   // n-move rule
   if (n_move_rule() && st->rule50 > (2 * n_move_rule() - 1) && (!checkers() || MoveList<LEGAL>(*this).size()))
   {
-      result = VALUE_DRAW;
+      result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;
       return true;
   }
 
@@ -1848,6 +1848,8 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
                                               : var->perpetualCheckIllegal && perpetualUs ? -VALUE_MATE
                                               : var->nFoldValueAbsolute && sideToMove == BLACK ? -var->nFoldValue
                                               : var->nFoldValue, ply);
+                  if (result == VALUE_DRAW && var->materialCounting)
+                      result = convert_mate_value(material_counting_result(), ply);
                   return true;
               }
 
@@ -1949,9 +1951,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   // Check for bikjang rule (Janggi) and double passing
   if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
   {
-      result = var->materialCounting ? convert_mate_value(sideToMove == WHITE ?  material_counting_result()
-                                                                              : -material_counting_result(), ply)
-                                     : VALUE_DRAW;
+      result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;
       return true;
   }
   // Tsume mode: Assume that side with king wins when not in check
@@ -1992,7 +1992,7 @@ bool Position::has_game_cycle(int ply) const {
 
   int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
-  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal)
+  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal || var->materialCounting)
     return false;
 
   Key originalKey = st->key;
