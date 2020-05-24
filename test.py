@@ -124,7 +124,7 @@ variant_positions = {
 class TestPyffish(unittest.TestCase):
     def test_info(self):
         result = sf.info()
-        self.assertEqual(result[:15], "Fairy-Stockfish")
+        self.assertTrue(result.startswith("Fairy-Stockfish"))
 
     def test_set_option(self):
         result = sf.set_option("UCI_Variant", "capablanca")
