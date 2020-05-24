@@ -78,10 +78,25 @@ void on_variant_change(const Option &o) {
         {
             string suffix =   pt == PAWN && v->doubleStep     ? "ifmnD"
                             : pt == KING && v->cambodianMoves ? "ismN"
-                            : pt == FERS && v->cambodianMoves ? "ifnD"
+                            : pt == FERS && v->cambodianMoves ? "ifD"
                                                               : "";
+            // Janggi palace moves
+            if (v->diagonalLines)
+            {
+                PieceType pt2 = pt == KING ? v->kingType : pt;
+                if (pt2 == WAZIR)
+                    suffix += "F";
+                else if (pt2 == SOLDIER)
+                    suffix += "fF";
+                else if (pt2 == ROOK)
+                    suffix += "B";
+                else if (pt2 == JANGGI_CANNON)
+                    suffix += "pB";
+            }
+            // Castling
             if (pt == KING && v->castling)
                  suffix += "O" + std::to_string((v->castlingKingsideFile - v->castlingQueensideFile) / 2);
+            // Drop region
             if (v->pieceDrops)
             {
                 if (pt == PAWN && !v->firstRankPawnDrops)
@@ -161,7 +176,8 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
   {
       for (size_t idx = 0; idx < om.size(); ++idx)
           for (const auto& it : om)
-              if (it.second.idx == idx && it.first != "Protocol")
+              if (it.second.idx == idx && it.first != "Protocol" && it.first != "UCI_Variant"
+                                       && it.first != "Threads" && it.first != "Hash")
               {
                   const Option& o = it.second;
                   os << "\nfeature option=\"" << it.first << " -" << o.type;

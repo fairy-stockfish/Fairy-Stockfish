@@ -152,9 +152,8 @@ public:
   int n_fold_rule() const;
   Value stalemate_value(int ply = 0) const;
   Value checkmate_value(int ply = 0) const;
-  Value bare_king_value(int ply = 0) const;
   Value extinction_value(int ply = 0) const;
-  bool bare_king_move() const;
+  bool extinction_claim() const;
   const std::set<PieceType>& extinction_piece_types() const;
   int extinction_piece_count() const;
   int extinction_opponent_piece_count() const;
@@ -164,6 +163,7 @@ public:
   bool check_counting() const;
   int connect_n() const;
   CheckCount checks_remaining(Color c) const;
+  MaterialCounting material_counting() const;
   CountingRule counting_rule() const;
 
   // Variant-specific properties
@@ -256,6 +256,7 @@ public:
   bool is_game_end(Value& result, int ply = 0) const;
   bool is_optional_game_end(Value& result, int ply = 0, int countStarted = 0) const;
   bool is_immediate_game_end(Value& result, int ply = 0) const;
+  Value material_counting_result() const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
   int counting_limit() const;
@@ -659,19 +660,14 @@ inline Value Position::checkmate_value(int ply) const {
   return convert_mate_value(var->checkmateValue, ply);
 }
 
-inline Value Position::bare_king_value(int ply) const {
-  assert(var != nullptr);
-  return convert_mate_value(var->bareKingValue, ply);
-}
-
 inline Value Position::extinction_value(int ply) const {
   assert(var != nullptr);
   return convert_mate_value(var->extinctionValue, ply);
 }
 
-inline bool Position::bare_king_move() const {
+inline bool Position::extinction_claim() const {
   assert(var != nullptr);
-  return var->bareKingMove;
+  return var->extinctionClaim;
 }
 
 inline const std::set<PieceType>& Position::extinction_piece_types() const {
@@ -716,6 +712,11 @@ inline int Position::connect_n() const {
 
 inline CheckCount Position::checks_remaining(Color c) const {
   return st->checksRemaining[c];
+}
+
+inline MaterialCounting Position::material_counting() const {
+  assert(var != nullptr);
+  return var->materialCounting;
 }
 
 inline CountingRule Position::counting_rule() const {
@@ -1079,6 +1080,34 @@ inline int Position::count_with_hand(Color c, PieceType pt) const {
 
 inline bool Position::bikjang() const {
   return st->bikjang;
+}
+
+inline Value Position::material_counting_result() const {
+  auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
+  int materialCount;
+  Value result;
+  switch (var->materialCounting)
+  {
+  case JANGGI_MATERIAL:
+      materialCount =  weigth_count(ROOK, 13)
+                     + weigth_count(JANGGI_CANNON, 7)
+                     + weigth_count(HORSE, 5)
+                     + weigth_count(JANGGI_ELEPHANT, 3)
+                     + weigth_count(WAZIR, 3)
+                     + weigth_count(SOLDIER, 2)
+                     - 1;
+      result = materialCount > 0 ? VALUE_MATE : -VALUE_MATE;
+      break;
+  case UNWEIGHTED_MATERIAL:
+      result =  count(WHITE, ALL_PIECES) > count(BLACK, ALL_PIECES) ?  VALUE_MATE
+              : count(WHITE, ALL_PIECES) < count(BLACK, ALL_PIECES) ? -VALUE_MATE
+                                                                    :  VALUE_DRAW;
+      break;
+  default:
+      assert(false);
+      result = VALUE_DRAW;
+  }
+  return sideToMove == WHITE ? result : -result;
 }
 
 inline void Position::add_to_hand(Piece pc) {

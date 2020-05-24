@@ -108,12 +108,61 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       for (std::string v : variants.get_keys())
           if (v != "chess")
               vars += "," + v;
-      sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 name=0 sigint=0 ping=1 myname=Fairy-Stockfish variants=\""
+      sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 "
+                << "highlight=1 name=0 sigint=0 ping=1 myname=Fairy-Stockfish variants=\""
                 << vars << "\""
                 << Options << sync_endl;
       sync_cout << "feature done=1" << sync_endl;
   }
   else if (token == "accepted" || token == "rejected" || token == "result" || token == "?") {}
+  else if (token == "hover" || token == "put") {}
+  else if (token == "lift")
+  {
+      if (is >> token)
+      {
+          Bitboard promotions = 0, captures = 0, quiets = 0;
+          // Collect targets
+          for (const auto& m : MoveList<LEGAL>(pos))
+          {
+              Square from = from_sq(m), to = to_sq(m);
+              if (is_ok(from) && UCI::square(pos, from) == token)
+              {
+                  if (type_of(m) == PROMOTION)
+                      promotions |= to;
+                  else if (pos.capture(m))
+                      captures |= to;
+                  else
+                  {
+                      if (type_of(m) == CASTLING && !pos.is_chess960())
+                          to = make_square(to > from ? pos.castling_kingside_file()
+                                                     : pos.castling_queenside_file(), rank_of(from));
+                      quiets |= to;
+                  }
+              }
+          }
+          // Generate color FEN
+          int emptyCnt;
+          std::ostringstream ss;
+          for (Rank r = pos.max_rank(); r >= RANK_1; --r)
+          {
+              for (File f = FILE_A; f <= pos.max_file(); ++f)
+              {
+                  for (emptyCnt = 0; f <= pos.max_file() && !((promotions | captures | quiets) & make_square(f, r)); ++f)
+                      ++emptyCnt;
+
+                  if (emptyCnt)
+                      ss << emptyCnt;
+
+                  if (f <= pos.max_file())
+                      ss << (promotions & make_square(f, r) ? "M" : captures & make_square(f, r) ? "R" : "Y");
+              }
+
+              if (r > RANK_1)
+                  ss << '/';
+          }
+          sync_cout << "highlight " << ss.str() << sync_endl;
+      }
+  }
   else if (token == "ping")
   {
       if (!(is >> token))
@@ -187,7 +236,29 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   {
       std::string fen;
       std::getline(is >> std::ws, fen);
-      setboard(pos, states, fen);
+      // Check if setboard actually indicates a passing move
+      // to avoid unnecessarily clearing the move history
+      if (pos.king_pass())
+      {
+          StateInfo st;
+          Position p;
+          p.set(pos.variant(), fen, pos.is_chess960(), &st, pos.this_thread());
+          Move m;
+          std::string passMove = "pass";
+          if ((m = UCI::to_move(pos, passMove)) != MOVE_NONE)
+              do_move(pos, moveList, states, m);
+          // apply setboard if passing does not lead to a match
+          if (pos.key() != p.key())
+              setboard(pos, states, fen);
+      }
+      else
+          setboard(pos, states, fen);
+      // Winboard sends setboard after passing moves
+      if (pos.side_to_move() == playColor)
+      {
+          go(pos, limits, states);
+          moveAfterSearch = true;
+      }
   }
   else if (token == "cores")
   {

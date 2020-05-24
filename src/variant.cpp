@@ -130,8 +130,11 @@ namespace {
         v->promotionPieceTypes = {FERS};
         v->doubleStep = false;
         v->castling = false;
-        v->bareKingValue = -VALUE_MATE;
-        v->bareKingMove = true;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionClaim = true;
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceCount = 1;
+        v->extinctionOpponentPieceCount = 2;
         v->stalemateValue = -VALUE_MATE;
         v->nMoveRule = 70;
         return v;
@@ -196,8 +199,9 @@ namespace {
         Variant* v = fairy_variant_base();
         v->checkmateValue = VALUE_MATE;
         v->stalemateValue = VALUE_MATE;
-        v->bareKingValue = VALUE_MATE;
-        v->bareKingMove = false;
+        v->extinctionValue = VALUE_MATE;
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceCount = 1;
         v->mustCapture = true;
         return v;
     }
@@ -559,7 +563,9 @@ namespace {
         v->promotionPieceTypes = {BERS};
         v->doubleStep = false;
         v->castling = false;
-        v->bareKingValue = VALUE_DRAW; // Robado
+        v->extinctionValue = VALUE_DRAW; // Robado
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceCount = 1;
         v->shatarMateRule = true;
         return v;
     }
@@ -755,13 +761,17 @@ namespace {
         v->promotionPieceTypes = {FERS};
         v->doubleStep = false;
         v->castling = false;
-        v->bareKingValue = -VALUE_MATE;
-        v->bareKingMove = true;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionClaim = true;
+        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceCount = 1;
+        v->extinctionOpponentPieceCount = 2;
         v->stalemateValue = -VALUE_MATE;
         return v;
     }
     Variant* grand_variant() {
         Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->add_piece(ARCHBISHOP, 'a');
@@ -852,8 +862,10 @@ namespace {
     }
     // Janggi (Korean chess)
     // https://en.wikipedia.org/wiki/Janggi
+    // Official tournament rules with bikjang and material counting.
     Variant* janggi_variant() {
         Variant* v = xiangqi_variant();
+        v->pieceToCharTable = ".N.R.AB.P..C.........K.n.r.ab.p..c.........k";
         v->remove_piece(FERS);
         v->remove_piece(CANNON);
         v->remove_piece(ELEPHANT);
@@ -871,24 +883,35 @@ namespace {
         v->mobilityRegion[BLACK][WAZIR] = black_castle;
         v->soldierPromotionRank = RANK_1;
         v->flyingGeneral = false;
-        v->bikjangValue = VALUE_MATE;
+        v->bikjangRule = true;
+        v->materialCounting = JANGGI_MATERIAL;
         v->diagonalLines = make_bitboard(SQ_D1, SQ_F1, SQ_E2, SQ_D3, SQ_F3,
                                          SQ_D8, SQ_F8, SQ_E9, SQ_D10, SQ_F10);
         v->kingPass = true;
-        v->nFoldValue = -VALUE_MATE;
+        v->nFoldValue = VALUE_DRAW;
         v->perpetualCheckIllegal = true;
         return v;
     }
     // Traditional rules of Janggi, where bikjang is a draw
     Variant* janggi_traditional_variant() {
         Variant* v = janggi_variant();
-        v->bikjangValue = VALUE_DRAW;
+        v->bikjangRule = true;
+        v->materialCounting = NO_MATERIAL_COUNTING;
         return v;
     }
-    // Casual rules of Janggi, where bikjang is not considered
+    // Modern rules of Janggi, where bikjang is not considered, but material counting is.
+    // This is e.g. used on Kakao Janggi.
+    Variant* janggi_modern_variant() {
+        Variant* v = janggi_variant();
+        v->bikjangRule = false;
+        v->materialCounting = JANGGI_MATERIAL;
+        return v;
+    }
+    // Casual rules of Janggi, where bikjang and material counting are not considered
     Variant* janggi_casual_variant() {
         Variant* v = janggi_variant();
-        v->bikjangValue = VALUE_NONE;
+        v->bikjangRule = false;
+        v->materialCounting = NO_MATERIAL_COUNTING;
         return v;
     }
 #endif
@@ -976,6 +999,7 @@ void VariantMap::init() {
     add("supply", supply_variant());
     add("janggi", janggi_variant());
     add("janggitraditional", janggi_traditional_variant());
+    add("janggimodern", janggi_modern_variant());
     add("janggicasual", janggi_casual_variant());
 #endif
 }

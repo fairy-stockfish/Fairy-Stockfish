@@ -314,13 +314,17 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "e5f6=F")
 
         result = sf.get_san("shogi", SHOGI, "i3i4")
-        self.assertEqual(result, "P-1f")
+        self.assertEqual(result, "P-16")
 
         result = sf.get_san("shogi", SHOGI, "i3i4", False, sf.NOTATION_SHOGI_HOSKING)
         self.assertEqual(result, "P16")
 
+        result = sf.get_san("shogi", SHOGI, "f1e2", False, sf.NOTATION_SHOGI_HOSKING)
+        self.assertEqual(result, "G49-58")
         result = sf.get_san("shogi", SHOGI, "f1e2", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "G4i-5h")
+        result = sf.get_san("shogi", SHOGI, "f1e2", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
+        self.assertEqual(result, "G49-58")
 
         fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -"
         result = sf.get_san("shogi", fen, "b2h8", False, sf.NOTATION_SHOGI_HODGES)
@@ -331,6 +335,8 @@ class TestPyffish(unittest.TestCase):
         fen = "lnsgkg1nl/1r5s1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL[Bb] w "
         result = sf.get_san("shogi", fen, "B@g7", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "B*3c")
+        result = sf.get_san("shogi", fen, "B@g7", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
+        self.assertEqual(result, "B*33")
 
         fen = "lnsgkg1nl/1r4s+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL[B] w "
         result = sf.get_san("shogi", fen, "h8g7", False, sf.NOTATION_SHOGI_HODGES)
@@ -425,20 +431,22 @@ class TestPyffish(unittest.TestCase):
     def test_get_san_moves(self):
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
         SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]
-
         result = sf.get_san_moves("seirawan", SEIRAWAN, UCI_moves)
         self.assertEqual(result, SAN_moves)
 
         UCI_moves = ["c3c4", "g7g6", "b2h8"]
-        SAN_moves = ["P-7f", "P-3d", "Bx2b="]
-
+        SAN_moves = ["P-76", "P-34", "Bx22="]
         result = sf.get_san_moves("shogi", SHOGI, UCI_moves)
         self.assertEqual(result, SAN_moves)
 
         UCI_moves = ["h3e3", "h10g8", "h1g3", "c10e8", "a1a3", "i10h10"]
         SAN_moves = ["C2=5", "H8+7", "H2+3", "E3+5", "R9+2", "R9=8"]
-
         result = sf.get_san_moves("xiangqi", XIANGQI, UCI_moves, False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, SAN_moves)
+
+        UCI_moves = ["e2e4", "d7d5", "f1a6+", "d8d6"]
+        SAN_moves = ["e4", "d5", "Ba6=A", "Qd6"]
+        result = sf.get_san_moves("shogun", SHOGUN, UCI_moves)
         self.assertEqual(result, SAN_moves)
 
     def test_gives_check(self):
