@@ -183,16 +183,15 @@ void init(const Variant* v) {
       if (   v->extinctionValue == VALUE_MATE
           && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
           score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
-      else if (v->bareKingValue == VALUE_MATE)
-          score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
 
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
           File f = std::max(std::min(file_of(s), File(v->maxFile - file_of(s))), FILE_A);
           Rank r = rank_of(s);
           psq[ pc][ s] = score + (  pt == PAWN  ? PBonus[std::min(r, RANK_8)][std::min(file_of(s), FILE_H)]
-                                  : pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                  : pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
                                   : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                  : pt == HORSE ? Bonus[KNIGHT][std::min(r, RANK_8)][std::min(f, FILE_D)]
                                                 : make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - 8));
           if (pt == SOLDIER && r < v->soldierPromotionRank)
               psq[pc][s] -= score * (v->soldierPromotionRank - r) / (4 + f);

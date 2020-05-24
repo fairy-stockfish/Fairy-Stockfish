@@ -274,6 +274,10 @@ enum CheckCount : int {
   CHECKS_0 = 0, CHECKS_NB = 11
 };
 
+enum MaterialCounting {
+  NO_MATERIAL_COUNTING, JANGGI_MATERIAL, UNWEIGHTED_MATERIAL
+};
+
 enum CountingRule {
   NO_COUNTING, MAKRUK_COUNTING, ASEAN_COUNTING
 };
@@ -340,7 +344,7 @@ enum Value : int {
   CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
   JanggiCannonPieceValueMg = 800,   JanggiCannonPieceValueEg = 600,
   SoldierValueMg           = 200,   SoldierValueEg           = 270,
-  HorseValueMg             = 500,   HorseValueEg             = 800,
+  HorseValueMg             = 520,   HorseValueEg             = 800,
   ElephantValueMg          = 300,   ElephantValueEg          = 300,
   JanggiElephantValueMg    = 340,   JanggiElephantValueEg    = 350,
   BannerValueMg            = 3400,  BannerValueEg            = 3500,
@@ -700,7 +704,7 @@ inline bool is_gating(Move m) {
 }
 
 inline bool is_pass(Move m) {
-  return type_of(m) == SPECIAL || from_sq(m) == to_sq(m);
+  return type_of(m) == SPECIAL && from_sq(m) == to_sq(m);
 }
 
 constexpr Move make_move(Square from, Square to) {

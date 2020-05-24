@@ -474,6 +474,7 @@ namespace {
 
     // Analyse the safe enemy's checks which are possible on next move
     safe  = ~pos.pieces(Them);
+    if (!pos.check_counting() || pos.checks_remaining(Them) > 1)
     safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
 
     b1 = attacks_bb<ROOK  >(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
@@ -1004,7 +1005,7 @@ namespace {
     Value eg = eg_value(score);
 
     // No initiative bonus for extinction variants
-    if (pos.extinction_value() != VALUE_NONE || pos.must_capture() || pos.captures_to_hand() || pos.connect_n())
+    if (pos.extinction_value() != VALUE_NONE || pos.captures_to_hand() || pos.connect_n())
       return SCORE_ZERO;
 
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0

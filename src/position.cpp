@@ -499,7 +499,7 @@ void Position::set_check_info(StateInfo* si) const {
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, pt, ksq, pieces()) : Bitboard(0);
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
-  si->bikjang = var->bikjangValue != VALUE_NONE && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
+  si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
 }
 
 
@@ -1818,7 +1818,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
   // n-move rule
   if (n_move_rule() && st->rule50 > (2 * n_move_rule() - 1) && (!checkers() || MoveList<LEGAL>(*this).size()))
   {
-      result = VALUE_DRAW;
+      result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;
       return true;
   }
 
@@ -1848,6 +1848,8 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
                                               : var->perpetualCheckIllegal && perpetualUs ? -VALUE_MATE
                                               : var->nFoldValueAbsolute && sideToMove == BLACK ? -var->nFoldValue
                                               : var->nFoldValue, ply);
+                  if (result == VALUE_DRAW && var->materialCounting)
+                      result = convert_mate_value(material_counting_result(), ply);
                   return true;
               }
 
@@ -1896,28 +1898,13 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
 
-  // bare king rule
-  if (    bare_king_value() != VALUE_NONE
-      && !bare_king_move()
-      && !(count<ALL_PIECES>(sideToMove) - count<KING>(sideToMove)))
-  {
-      result = bare_king_value(ply);
-      return true;
-  }
-  if (    bare_king_value() != VALUE_NONE
-      &&  bare_king_move()
-      && !(count<ALL_PIECES>(~sideToMove) - count<KING>(~sideToMove)))
-  {
-      result = -bare_king_value(ply);
-      return true;
-  }
   // extinction
   if (extinction_value() != VALUE_NONE)
   {
       for (Color c : { WHITE, BLACK })
           for (PieceType pt : extinction_piece_types())
               if (   count_with_hand( c, pt) <= var->extinctionPieceCount
-                  && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount)
+                  && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount + (extinction_claim() && c == sideToMove))
               {
                   result = c == sideToMove ? extinction_value(ply) : -extinction_value(ply);
                   return true;
@@ -1961,21 +1948,10 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
       }
   }
-  // Check for bikjang rule (Janggi)
-  if (var->bikjangValue != VALUE_NONE && st->pliesFromNull > 0 && (   (st->bikjang && st->previous->bikjang)
-                                                                   || (st->pass && st->previous->pass)))
+  // Check for bikjang rule (Janggi) and double passing
+  if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
   {
-      // material counting
-      auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
-      int materialCount =  weigth_count(ROOK, 13)
-                         + weigth_count(JANGGI_CANNON, 7)
-                         + weigth_count(HORSE, 5)
-                         + weigth_count(JANGGI_ELEPHANT, 3)
-                         + weigth_count(WAZIR, 3)
-                         + weigth_count(SOLDIER, 2)
-                         - 1;
-      bool stmUpMaterial = (sideToMove == WHITE) == (materialCount > 0);
-      result = convert_mate_value(stmUpMaterial ? var->bikjangValue : -var->bikjangValue, ply);
+      result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;
       return true;
   }
   // Tsume mode: Assume that side with king wins when not in check
@@ -2016,7 +1992,7 @@ bool Position::has_game_cycle(int ply) const {
 
   int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
-  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal)
+  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal || var->materialCounting)
     return false;
 
   Key originalKey = st->key;

@@ -75,6 +75,13 @@ namespace {
         return value == "win" || value == "loss" || value == "draw" || value == "none";
     }
 
+    template <> bool set(const std::string& value, MaterialCounting& target) {
+        target =  value == "janggi"  ? JANGGI_MATERIAL
+                : value == "unweighted" ? UNWEIGHTED_MATERIAL
+                : NO_MATERIAL_COUNTING;
+        return value == "janggi" || value == "unweighted" || value == "none";
+    }
+
     template <> bool set(const std::string& value, CountingRule& target) {
         target =  value == "makruk"  ? MAKRUK_COUNTING
                 : value == "asean" ? ASEAN_COUNTING
@@ -107,6 +114,7 @@ template <class T> void VariantParser<DoCheck>::parse_attribute(const std::strin
                                   : std::is_same<T, File>() ? "File"
                                   : std::is_same<T, bool>() ? "bool"
                                   : std::is_same<T, Value>() ? "Value"
+                                  : std::is_same<T, MaterialCounting>() ? "MaterialCounting"
                                   : std::is_same<T, CountingRule>() ? "CountingRule"
                                   : std::is_same<T, Bitboard>() ? "Bitboard"
                                   : typeid(T).name();
@@ -143,6 +151,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     // piece types
     for (const auto& pieceInfo : pieceMap)
     {
+        // piece char
         const auto& keyValue = config.find(pieceInfo.second->name);
         if (keyValue != config.end() && !keyValue->second.empty())
         {
@@ -154,6 +163,14 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                     std::cerr << pieceInfo.second->name << " - Invalid letter: " << keyValue->second.at(0) << std::endl;
                 v->remove_piece(pieceInfo.first);
             }
+        }
+        // mobility region
+        std::string capitalizedPiece = pieceInfo.second->name;
+        capitalizedPiece[0] = toupper(capitalizedPiece[0]);
+        for (Color c : {WHITE, BLACK})
+        {
+            std::string color = c == WHITE ? "White" : "Black";
+            parse_attribute("mobilityRegion" + color + capitalizedPiece, v->mobilityRegion[c][pieceInfo.first]);
         }
     }
     parse_attribute("variantTemplate", v->variantTemplate);
@@ -258,10 +275,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("checkmateValue", v->checkmateValue);
     parse_attribute("shogiPawnDropMateIllegal", v->shogiPawnDropMateIllegal);
     parse_attribute("shatarMateRule", v->shatarMateRule);
-    parse_attribute("bikjangValue", v->bikjangValue);
-    parse_attribute("bareKingValue", v->bareKingValue);
+    parse_attribute("bikjangRule", v->bikjangRule);
     parse_attribute("extinctionValue", v->extinctionValue);
-    parse_attribute("bareKingMove", v->bareKingMove);
+    parse_attribute("extinctionClaim", v->extinctionClaim);
     // extinction piece types
     const auto& it_ext = config.find("extinctionPieceTypes");
     if (it_ext != config.end())
@@ -283,6 +299,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("flagMove", v->flagMove);
     parse_attribute("checkCounting", v->checkCounting);
     parse_attribute("connectN", v->connectN);
+    parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
     // Report invalid options
     if (DoCheck)

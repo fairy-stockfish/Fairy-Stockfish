@@ -78,7 +78,7 @@ void on_variant_change(const Option &o) {
         {
             string suffix =   pt == PAWN && v->doubleStep     ? "ifmnD"
                             : pt == KING && v->cambodianMoves ? "ismN"
-                            : pt == FERS && v->cambodianMoves ? "ifnD"
+                            : pt == FERS && v->cambodianMoves ? "ifD"
                                                               : "";
             // Janggi palace moves
             if (v->diagonalLines)
