@@ -1698,6 +1698,9 @@ bool Position::see_ge(Move m, Value threshold) const {
               && count<ALL_PIECES>(~sideToMove) == extinction_piece_count() + 1)))
       return extinction_value() < VALUE_ZERO;
 
+  if (must_capture())
+      return VALUE_ZERO >= threshold;
+
   int swap = PieceValue[MG][piece_on(to)] - threshold;
   if (swap < 0)
       return false;
