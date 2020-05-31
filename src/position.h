@@ -278,8 +278,8 @@ private:
 
   // Other helpers
   void put_piece(Piece pc, Square s, bool isPromoted = false, Piece unpromotedPc = NO_PIECE);
-  void remove_piece(Piece pc, Square s);
-  void move_piece(Piece pc, Square from, Square to);
+  void remove_piece(Square s);
+  void move_piece(Square from, Square to);
   template<bool Do>
   void do_castling(Color us, Square from, Square& to, Square& rfrom, Square& rto);
 
@@ -308,7 +308,7 @@ private:
   void add_to_hand(Piece pc);
   void remove_from_hand(Piece pc);
   void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
-  void undrop_piece(Piece pc_hand, Piece pc_drop, Square s);
+  void undrop_piece(Piece pc_hand, Square s);
 };
 
 namespace PSQT {
@@ -1027,12 +1027,13 @@ inline void Position::put_piece(Piece pc, Square s, bool isPromoted, Piece unpro
   unpromotedBoard[s] = unpromotedPc;
 }
 
-inline void Position::remove_piece(Piece pc, Square s) {
+inline void Position::remove_piece(Square s) {
 
   // WARNING: This is not a reversible operation. If we remove a piece in
   // do_move() and then replace it in undo_move() we will put it at the end of
   // the list and not in its original place, it means index[] and pieceList[]
   // are not invariant to a do_move() + undo_move() sequence.
+  Piece pc = board[s];
   byTypeBB[ALL_PIECES] ^= s;
   byTypeBB[type_of(pc)] ^= s;
   byColorBB[color_of(pc)] ^= s;
@@ -1047,10 +1048,11 @@ inline void Position::remove_piece(Piece pc, Square s) {
   unpromotedBoard[s] = NO_PIECE;
 }
 
-inline void Position::move_piece(Piece pc, Square from, Square to) {
+inline void Position::move_piece(Square from, Square to) {
 
   // index[from] is not updated and becomes stale. This works as long as index[]
   // is accessed just by known occupied squares.
+  Piece pc = board[from];
   Bitboard fromTo = square_bb(from) ^ to; // from == to needs to cancel out
   byTypeBB[ALL_PIECES] ^= fromTo;
   byTypeBB[type_of(pc)] ^= fromTo;
@@ -1128,8 +1130,8 @@ inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s) {
   remove_from_hand(pc_hand);
 }
 
-inline void Position::undrop_piece(Piece pc_hand, Piece pc_drop, Square s) {
-  remove_piece(pc_drop, s);
+inline void Position::undrop_piece(Piece pc_hand, Square s) {
+  remove_piece(s);
   board[s] = NO_PIECE;
   add_to_hand(pc_hand);
   assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]);

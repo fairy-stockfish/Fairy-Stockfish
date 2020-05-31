@@ -183,8 +183,8 @@ inline Bitboard board_size_bb(File f, Rank r) {
   return BoardSizeBB[f][r];
 }
 
-inline bool opposite_colors(Square s1, Square s2) {
-  return bool(DarkSquares & s1) != bool(DarkSquares & s2);
+constexpr bool opposite_colors(Square s1, Square s2) {
+  return (s1 + rank_of(s1) + s2 + rank_of(s2)) & 1;
 }
 
 
