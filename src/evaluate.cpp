@@ -156,7 +156,7 @@ namespace {
   constexpr Score ThreatByKing       = S( 24, 89);
   constexpr Score ThreatByPawnPush   = S( 48, 39);
   constexpr Score ThreatBySafePawn   = S(173, 94);
-  constexpr Score TrappedRook        = S( 52, 10);
+  constexpr Score TrappedRook        = S( 52, 30);
   constexpr Score WeakQueen          = S( 49, 15);
 
 #undef S
@@ -181,7 +181,7 @@ namespace {
     template<Color Us> Score space() const;
     template<Color Us> Score variant() const;
     ScaleFactor scale_factor(Value eg) const;
-    Score initiative(Score score) const;
+    Score initiative(Score score, Score materialScore) const;
 
     const Position& pos;
     Material::Entry* me;
@@ -684,11 +684,11 @@ namespace {
     }
 
     // Bonus for restricting their piece moves
+    // Greater bonus when landing square is occupied
     b =   attackedBy[Them][ALL_PIECES]
        & ~stronglyProtected
        &  attackedBy[Us][ALL_PIECES];
-
-    score += RestrictedPiece * popcount(b);
+    score += RestrictedPiece * (popcount(b) + popcount(b & pos.pieces()));
 
     // Protected or unattacked squares
     safe = ~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES];
@@ -1000,10 +1000,7 @@ namespace {
   // known attacking/defending status of the players.
 
   template<Tracing T>
-  Score Evaluation<T>::initiative(Score score) const {
-
-    Value mg = mg_value(score);
-    Value eg = eg_value(score);
+  Score Evaluation<T>::initiative(Score score, Score materialScore) const {
 
     // No initiative bonus for extinction variants
     if (pos.extinction_value() != VALUE_NONE || pos.captures_to_hand() || pos.connect_n())
@@ -1034,6 +1031,11 @@ namespace {
                     + 51 * !pos.non_pawn_material()
                     - 43 * almostUnwinnable
                     - 100 ;
+
+    // Give more importance to non-material score
+    score = (score * 2 - materialScore) / 2;
+    Value mg = mg_value(score);
+    Value eg = eg_value(score);
 
     // Now apply the bonus: note that we find the attacking side by extracting the
     // sign of the midgame or endgame values, and that we carefully cap the bonus
@@ -1107,6 +1109,9 @@ namespace {
     if (abs(v) > LazyThreshold + pos.non_pawn_material() / 64 && Options["UCI_Variant"] == "chess")
        return pos.side_to_move() == WHITE ? v : -v;
 
+    // Remember this score
+    Score materialScore = score;
+
     // Main evaluation begins here
 
     initialize<WHITE>();
@@ -1131,7 +1136,7 @@ namespace {
             + space<  WHITE>() - space<  BLACK>()
             + variant<WHITE>() - variant<BLACK>();
 
-    score += initiative(score);
+    score += initiative(score, materialScore);
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
     ScaleFactor sf = scale_factor(eg_value(score));
