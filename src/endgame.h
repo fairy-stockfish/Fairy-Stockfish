@@ -53,6 +53,7 @@ enum EndgameCode {
   KNFK,  // KNF vs K
   KNSFKR,  // KNSFKR vs K
   KSFK,  // KSF vs K
+  KSFKF,  // KSF vs KF
 
   SCALING_FUNCTIONS,
   KBPsK,   // KB and pawns vs K

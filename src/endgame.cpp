@@ -123,6 +123,7 @@ namespace Endgames {
     add<KNFK>("KNFK");
     add<KNSFKR>("KNSFKR");
     add<KSFK>("KSFK");
+    add<KSFKF>("KSFKF");
 
     add<KNPK>("KNPK");
     add<KNPKB>("KNPKB");
@@ -455,7 +456,7 @@ Value Endgame<KNFK>::operator()(const Position& pos) const {
   }
 
   Value result =  Value(PushClose[distance(winnerKSq, loserKSq)])
-                + PushToCorners[map_to_standard_board(pos, loserKSq)] / 10;
+                + (PushToCorners[map_to_standard_board(pos, loserKSq)] - 3000) / 10;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -491,6 +492,26 @@ Value Endgame<KSFK>::operator()(const Position& pos) const {
 
   Value result =  VALUE_KNOWN_WIN
                 + PushClose[distance(winnerKSq, loserKSq)]
+                + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+/// Mate with KSF vs KF.
+template<>
+Value Endgame<KSFKF>::operator()(const Position& pos) const {
+
+  assert(verify_material(pos, strongSide, SilverValueMg + FersValueMg, 0));
+  assert(verify_material(pos, weakSide, FersValueMg, 0));
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+  Square fersSq = pos.square<FERS>(weakSide);
+
+  Value result =  SilverValueEg
+                + PushClose[distance(winnerKSq, loserKSq)]
+                + PushAway[distance(fersSq, loserKSq)]
                 + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
 
   return strongSide == pos.side_to_move() ? result : -result;
