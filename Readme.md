@@ -15,7 +15,7 @@ You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockf
 
 ## Contributing
 
-If you appreciate this project, please consider to support it by [donating via paypal](https://paypal.me/FairyStockfish), by [contributing CPU time](https://github.com/ianfab/fishtest/wiki) to the framework for testing of code improvements, or by [contributing to the code](https://github.com/ianfab/Fairy-Stockfish/wiki/Contributing) or documentation.
+If you like this project, please support its development by [donating via paypal](https://paypal.me/FairyStockfish), by [contributing CPU time](https://github.com/ianfab/fishtest/wiki) to the framework for testing of code improvements, or by [contributing to the code](https://github.com/ianfab/Fairy-Stockfish/wiki/Contributing) or documentation. An [introduction to the code base](https://github.com/ianfab/Fairy-Stockfish/wiki/Understanding-the-code) can be found in the wiki.
 
 ## Supported games
 
@@ -60,6 +60,10 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 ## Help
 
 See the [Fairy-Stockfish Wiki](https://github.com/ianfab/Fairy-Stockfish/wiki) for more info, or if the required information is not available, open an [issue](https://github.com/ianfab/Fairy-Stockfish/issues).
+
+## Python binding
+
+On top of the C++ engine, this project also includes the python binding [pyffish](https://pypi.org/project/pyffish/), which can be used as a chess variant library in python, like in the [pychess server](https://github.com/gbtami/pychess-variants). Pyffish is a lightweight wrapper around Fairy-Stockfish, only adding a single [source file](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/pyffish.cpp). It supports move, SAN, and FEN generation, as well as checking of game end conditions.
 
 # Stockfish
 ## Overview
