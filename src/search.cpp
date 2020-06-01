@@ -909,7 +909,7 @@ namespace {
         && (ss-1)->statScore < 23397
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 32 * depth + 292 - improving * 30
+        &&  ss->staticEval >= beta - 32 * depth - 30 * improving + 120 * ttPv + 292
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (pos.pieces(~us) ^ pos.pieces(~us, PAWN))
@@ -1103,11 +1103,7 @@ moves_loop: // When in check, search starts from here
                   continue;
           }
           else if (!pos.see_ge(move, Value(-194 - 120 * pos.captures_to_hand()) * depth)) // (~25 Elo)
-          {
-              if (captureOrPromotion && captureCount < 32)
-                  capturesSearched[captureCount++] = move;
               continue;
-          }
       }
 
       // Step 14. Extensions (~75 Elo)
@@ -1200,7 +1196,7 @@ moves_loop: // When in check, search starts from here
       // Step 16. Reduced depth search (LMR, ~200 Elo). If the move fails high it will be
       // re-searched at full depth.
       if (    depth >= 3
-          &&  moveCount > 1 + rootNode + (rootNode && bestValue < alpha)
+          &&  moveCount > 1 + 2 * rootNode
           && (!rootNode || thisThread->best_move_count(move) == 0)
           && (  !captureOrPromotion
               || moveCountPruning

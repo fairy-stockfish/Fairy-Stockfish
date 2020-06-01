@@ -156,7 +156,7 @@ namespace {
   constexpr Score ThreatByKing       = S( 24, 89);
   constexpr Score ThreatByPawnPush   = S( 48, 39);
   constexpr Score ThreatBySafePawn   = S(173, 94);
-  constexpr Score TrappedRook        = S( 52, 30);
+  constexpr Score TrappedRook        = S( 52, 10);
   constexpr Score WeakQueen          = S( 49, 15);
 
 #undef S
@@ -181,7 +181,7 @@ namespace {
     template<Color Us> Score space() const;
     template<Color Us> Score variant() const;
     ScaleFactor scale_factor(Value eg) const;
-    Score initiative(Score score, Score materialScore) const;
+    Score initiative(Score score) const;
 
     const Position& pos;
     Material::Entry* me;
@@ -688,7 +688,7 @@ namespace {
     b =   attackedBy[Them][ALL_PIECES]
        & ~stronglyProtected
        &  attackedBy[Us][ALL_PIECES];
-    score += RestrictedPiece * (popcount(b) + popcount(b & pos.pieces()));
+    score += RestrictedPiece * popcount(b);
 
     // Protected or unattacked squares
     safe = ~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES];
@@ -1000,7 +1000,7 @@ namespace {
   // known attacking/defending status of the players.
 
   template<Tracing T>
-  Score Evaluation<T>::initiative(Score score, Score materialScore) const {
+  Score Evaluation<T>::initiative(Score score) const {
 
     // No initiative bonus for extinction variants
     if (pos.extinction_value() != VALUE_NONE || pos.captures_to_hand() || pos.connect_n())
@@ -1033,7 +1033,6 @@ namespace {
                     - 100 ;
 
     // Give more importance to non-material score
-    score = (score * 2 - materialScore) / 2;
     Value mg = mg_value(score);
     Value eg = eg_value(score);
 
@@ -1109,9 +1108,6 @@ namespace {
     if (abs(v) > LazyThreshold + pos.non_pawn_material() / 64 && Options["UCI_Variant"] == "chess")
        return pos.side_to_move() == WHITE ? v : -v;
 
-    // Remember this score
-    Score materialScore = score;
-
     // Main evaluation begins here
 
     initialize<WHITE>();
@@ -1136,7 +1132,7 @@ namespace {
             + space<  WHITE>() - space<  BLACK>()
             + variant<WHITE>() - variant<BLACK>();
 
-    score += initiative(score, materialScore);
+    score += initiative(score);
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
     ScaleFactor sf = scale_factor(eg_value(score));
