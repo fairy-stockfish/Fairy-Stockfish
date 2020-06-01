@@ -684,7 +684,6 @@ namespace {
     }
 
     // Bonus for restricting their piece moves
-    // Greater bonus when landing square is occupied
     b =   attackedBy[Them][ALL_PIECES]
        & ~stronglyProtected
        &  attackedBy[Us][ALL_PIECES];
@@ -1010,9 +1009,6 @@ namespace {
                      :  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
                       - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
 
-    bool infiltration =   (pos.count<KING>(WHITE) && rank_of(pos.square<KING>(WHITE)) > RANK_4)
-                       || (pos.count<KING>(BLACK) && rank_of(pos.square<KING>(BLACK)) < RANK_5);
-
     bool pawnsOnBothFlanks =   (pos.pieces(PAWN) & QueenSide)
                             && (pos.pieces(PAWN) & KingSide);
 
@@ -1021,18 +1017,20 @@ namespace {
                            && pos.stalemate_value() == VALUE_DRAW
                            && !pawnsOnBothFlanks;
 
+    bool infiltration =   (pos.count<KING>(WHITE) && rank_of(pos.square<KING>(WHITE)) > RANK_4)
+                       || (pos.count<KING>(BLACK) && rank_of(pos.square<KING>(BLACK)) < RANK_5);
+
     // Compute the initiative bonus for the attacking side
     int complexity =   9 * pe->passed_count()
                     + 11 * pos.count<PAWN>()
                     + 15 * pos.count<SOLDIER>()
                     +  9 * outflanking
-                    + 12 * infiltration
                     + 21 * pawnsOnBothFlanks
+                    + 24 * infiltration
                     + 51 * !pos.non_pawn_material()
                     - 43 * almostUnwinnable
-                    - 100 ;
+                    -110 ;
 
-    // Give more importance to non-material score
     Value mg = mg_value(score);
     Value eg = eg_value(score);
 

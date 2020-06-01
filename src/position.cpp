@@ -562,11 +562,13 @@ void Position::set_state(StateInfo* si) const {
 
 Position& Position::set(const string& code, Color c, StateInfo* si) {
 
-  assert(code.length() > 0 && code.length() < 8);
   assert(code[0] == 'K');
 
   string sides[] = { code.substr(code.find('K', 1)),      // Weak
-                     code.substr(0, code.find('K', 1)) }; // Strong
+                     code.substr(0, std::min(code.find('v'), code.find('K', 1))) }; // Strong
+
+  assert(sides[0].length() > 0 && sides[0].length() < 8);
+  assert(sides[1].length() > 0 && sides[1].length() < 8);
 
   std::transform(sides[c].begin(), sides[c].end(), sides[c].begin(), tolower);
 
@@ -1098,7 +1100,7 @@ bool Position::gives_check(Move m) const {
           if (attacks_bb(sideToMove, pt, to, occupied) & square<KING>(~sideToMove))
               return true;
       }
-      else if (st->checkSquares[pt] & to)
+      else if (check_squares(pt) & to)
           return true;
   }
 
@@ -1109,7 +1111,7 @@ bool Position::gives_check(Move m) const {
       janggiCannons ^= to;
 
   // Is there a discovered check?
-  if (  ((type_of(m) != DROP && (st->blockersForKing[~sideToMove] & from)) || pieces(sideToMove, CANNON, BANNER)
+  if (  ((type_of(m) != DROP && (blockers_for_king(~sideToMove) & from)) || pieces(sideToMove, CANNON, BANNER)
           || pieces(HORSE, ELEPHANT) || pieces(JANGGI_CANNON, JANGGI_ELEPHANT))
       && attackers_to(square<KING>(~sideToMove), (type_of(m) == DROP ? pieces() : pieces() ^ from) | to, sideToMove, janggiCannons))
       return true;
