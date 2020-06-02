@@ -78,8 +78,11 @@ namespace {
     template <> bool set(const std::string& value, MaterialCounting& target) {
         target =  value == "janggi"  ? JANGGI_MATERIAL
                 : value == "unweighted" ? UNWEIGHTED_MATERIAL
+                : value == "whitedrawodds" ? WHITE_DRAW_ODDS
+                : value == "blackdrawodds" ? BLACK_DRAW_ODDS
                 : NO_MATERIAL_COUNTING;
-        return value == "janggi" || value == "unweighted" || value == "none";
+        return   value == "janggi" || value == "unweighted"
+              || value == "whitedrawodds" || value == "blackdrawodds" || value == "none";
     }
 
     template <> bool set(const std::string& value, CountingRule& target) {

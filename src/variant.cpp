@@ -53,6 +53,13 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Armageddon Chess
+    // https://en.wikipedia.org/wiki/Fast_chess#Armageddon
+    Variant* armageddon_variant() {
+        Variant* v = fairy_variant_base();
+        v->materialCounting = BLACK_DRAW_ODDS;
+        return v;
+    }
     Variant* fairy_variant() {
         Variant* v = chess_variant();
         v->add_piece(SILVER, 's');
@@ -927,6 +934,7 @@ void VariantMap::init() {
     add("normal", chess_variant());
     add("fischerandom", chess960_variant());
     add("nocastle", nocastle_variant());
+    add("armageddon", armageddon_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("makpong", makpong_variant());

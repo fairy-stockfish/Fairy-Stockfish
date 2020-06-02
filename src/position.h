@@ -1105,6 +1105,12 @@ inline Value Position::material_counting_result() const {
               : count(WHITE, ALL_PIECES) < count(BLACK, ALL_PIECES) ? -VALUE_MATE
                                                                     :  VALUE_DRAW;
       break;
+  case WHITE_DRAW_ODDS:
+      result = VALUE_MATE;
+      break;
+  case BLACK_DRAW_ODDS:
+      result = -VALUE_MATE;
+      break;
   default:
       assert(false);
       result = VALUE_DRAW;
