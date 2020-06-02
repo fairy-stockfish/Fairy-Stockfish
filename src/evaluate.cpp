@@ -621,8 +621,9 @@ namespace {
     if (pos.must_capture())
     {
         // Penalties for possible captures
-        if (attackedBy[Us][ALL_PIECES] & pos.pieces(Them))
-            score -= make_score(1000, 1000) / popcount(attackedBy[Us][ALL_PIECES] & pos.pieces(Them));
+        Bitboard captures = attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
+        if (captures)
+            score -= make_score(2000, 2000) / (1 + popcount(captures & attackedBy[Them][ALL_PIECES] & ~attackedBy2[Us]));
 
         // Bonus if we threaten to force captures
         Bitboard moves = 0, piecebb = pos.pieces(Us);
