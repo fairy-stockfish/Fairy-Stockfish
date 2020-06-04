@@ -136,6 +136,7 @@ namespace {
 
   // KingProximity contains a penalty according to distance from king
   constexpr Score KingProximity = S(1, 3);
+  constexpr Score EndgameKingProximity = S(0, 10);
 
   // Assorted bonuses and penalties
   constexpr Score BishopPawns        = S(  3,  7);
@@ -343,6 +344,9 @@ namespace {
         // Penalty if the piece is far from the kings in drop variants
         if ((pos.captures_to_hand() || pos.two_boards()) && pos.count<KING>(Them) && pos.count<KING>(Us))
             score -= KingProximity * distance(s, pos.square<KING>(Us)) * distance(s, pos.square<KING>(Them));
+
+        else if (pos.count<KING>(Us) && (Pt == FERS || Pt == SILVER))
+            score -= EndgameKingProximity * (distance(s, pos.square<KING>(Us)) - 2);
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {
