@@ -124,6 +124,7 @@ namespace Endgames {
     add<KNSFKR>("KNSFKR");
     add<KSFK>("KSFK");
     add<KSFKF>("KSFKF");
+    add<KRKS>("KRKS");
 
     add<KNPK>("KNPK");
     add<KNPKB>("KNPKB");
@@ -514,6 +515,25 @@ Value Endgame<KSFKF>::operator()(const Position& pos) const {
                 + PushClose[distance(winnerKSq, loserKSq)]
                 + PushAway[distance(fersSq, loserKSq)]
                 + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+/// KR vs KS
+template<>
+Value Endgame<KRKS>::operator()(const Position& pos) const {
+
+  assert(verify_material(pos, strongSide, RookValueMg, 0));
+  assert(verify_material(pos, weakSide, SilverValueMg, 0));
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  Value result =  RookValueEg
+                - SilverValueEg
+                + PushToEdges[map_to_standard_board(pos, loserKSq)]
+                + PushClose[distance(winnerKSq, loserKSq)];
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
