@@ -130,6 +130,10 @@ void init(const Variant* v) {
       if (PieceValue[MG][pt] > PieceValue[MG][strongestPiece])
           strongestPiece = pt;
 
+  Value maxPromotion = VALUE_ZERO;
+  for (PieceType pt : v->promotionPieceTypes)
+      maxPromotion = std::max(maxPromotion, PieceValue[EG][pt]);
+
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
       Piece pc = make_piece(WHITE, pt);
@@ -138,6 +142,10 @@ void init(const Variant* v) {
       PieceValue[EG][~pc] = PieceValue[EG][pc];
 
       Score score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
+
+      // Consider promotion types in pawn score
+      if (pt == PAWN)
+          score -= make_score(0, (QueenValueEg - maxPromotion) / 100);
 
       // Scale slider piece values with board size
       const PieceInfo* pi = pieceMap.find(pt)->second;
