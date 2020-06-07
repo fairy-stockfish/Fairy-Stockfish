@@ -151,6 +151,8 @@ void init(const Variant* v) {
       const PieceInfo* pi = pieceMap.find(pt)->second;
       bool isSlider = pi->sliderQuiet.size() || pi->sliderCapture.size() || pi->hopperQuiet.size() || pi->hopperCapture.size();
       bool isPawn = !isSlider && pi->stepsQuiet.size() && !std::any_of(pi->stepsQuiet.begin(), pi->stepsQuiet.end(), [](Direction d) { return d < SOUTH / 2; });
+      bool isSlowLeaper = !isSlider && !std::any_of(pi->stepsQuiet.begin(), pi->stepsQuiet.end(), [](Direction d) { return dist(d) > 1; });
+
       if (isSlider)
       {
           constexpr int lc = 5;
@@ -204,7 +206,7 @@ void init(const Variant* v) {
                                   : pt == HORSE ? Bonus[KNIGHT][std::min(r, RANK_8)][std::min(f, FILE_D)]
                                   : isSlider    ? make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile - 1)
                                   : isPawn      ? make_score(5, 5) * (2 * f - v->maxFile)
-                                                : make_score(10, 10) * (f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile / 2));
+                                                : make_score(10, 10) * (1 + isSlowLeaper) * (f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile / 2));
           if (pt == SOLDIER && r < v->soldierPromotionRank)
               psq[pc][s] -= score * (v->soldierPromotionRank - r) / (4 + f);
           psq[~pc][rank_of(s) <= v->maxRank ? relative_square(BLACK, s, v->maxRank) : s] = -psq[pc][s];
