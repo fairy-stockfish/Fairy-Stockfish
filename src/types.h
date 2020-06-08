@@ -322,7 +322,7 @@ enum Value : int {
   RookValueMg   = 1276,  RookValueEg   = 1380,
   QueenValueMg  = 2538,  QueenValueEg  = 2682,
   FersValueMg              = 420,   FersValueEg              = 450,
-  AlfilValueMg             = 330,   AlfilValueEg             = 300,
+  AlfilValueMg             = 350,   AlfilValueEg             = 330,
   FersAlfilValueMg         = 700,   FersAlfilValueEg         = 650,
   SilverValueMg            = 630,   SilverValueEg            = 630,
   AiwokValueMg             = 2300,  AiwokValueEg             = 2700,
