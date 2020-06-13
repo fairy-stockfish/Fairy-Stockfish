@@ -942,7 +942,7 @@ namespace {
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
                                     | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
                 ctfPieces |= attacks & ~(pos.pieces(Us, PAWN) | attackedBy[Them][ALL_PIECES]);
-                onHold |= attacks & ~((pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | attackedBy[Them][ALL_PIECES])) | attackedBy2[Them]);
+                onHold |= attacks & ~((pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | attackedBy[Them][ALL_PIECES])) | attackedBy2[Them] | (pawn_attacks_bb<Them>(pos.pieces(Them, PAWN) & pe->pawn_attacks(Them))));
                 onHold2 |= attacks;
             }
         }
