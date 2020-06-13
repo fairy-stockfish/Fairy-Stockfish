@@ -972,7 +972,7 @@ namespace {
                                         1000000 / (500 + PieceValue[EG][pt])) / (denom * denom)
                             * (pos.extinction_value() / VALUE_MATE);
             }
-            else if (pos.extinction_value() == VALUE_MATE && !pos.count<KING>(Us))
+            else if (pos.extinction_value() == VALUE_MATE)
                 score += make_score(5000, pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
     }
 
