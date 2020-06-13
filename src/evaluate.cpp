@@ -924,6 +924,10 @@ namespace {
         Bitboard onHold = 0;
         Bitboard onHold2 = 0;
         Bitboard processed = 0;
+        Bitboard blocked = pos.pieces(Us, PAWN) | attackedBy[Them][ALL_PIECES];
+        Bitboard doubleBlocked =  attackedBy2[Them]
+                                | (pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | attackedBy[Them][ALL_PIECES]))
+                                | (pawn_attacks_bb<Them>(pos.pieces(Them, PAWN) & pe->pawn_attacks(Them)));
         // Traverse all paths of the CTF pieces to the CTF targets.
         // Put squares that are attacked or occupied on hold for one iteration.
         for (int dist = 0; (ctfPieces || onHold || onHold2) && (ctfTargets & ~processed); dist++)
@@ -941,8 +945,8 @@ namespace {
                 Square s = pop_lsb(&current);
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
                                     | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
-                ctfPieces |= attacks & ~(pos.pieces(Us, PAWN) | attackedBy[Them][ALL_PIECES]);
-                onHold |= attacks & ~((pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | attackedBy[Them][ALL_PIECES])) | attackedBy2[Them] | (pawn_attacks_bb<Them>(pos.pieces(Them, PAWN) & pe->pawn_attacks(Them))));
+                ctfPieces |= attacks & ~blocked;
+                onHold |= attacks & ~doubleBlocked;
                 onHold2 |= attacks;
             }
         }
