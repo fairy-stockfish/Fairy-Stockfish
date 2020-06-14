@@ -253,9 +253,10 @@ public:
   bool is_chess960() const;
   Thread* this_thread() const;
   bool is_immediate_game_end() const;
-  bool is_game_end(Value& result, int ply = 0) const;
-  bool is_optional_game_end(Value& result, int ply = 0, int countStarted = 0) const;
   bool is_immediate_game_end(Value& result, int ply = 0) const;
+  bool is_optional_game_end() const;
+  bool is_optional_game_end(Value& result, int ply = 0, int countStarted = 0) const;
+  bool is_game_end(Value& result, int ply = 0) const;
   Value material_counting_result() const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
@@ -727,6 +728,11 @@ inline CountingRule Position::counting_rule() const {
 inline bool Position::is_immediate_game_end() const {
   Value result;
   return is_immediate_game_end(result);
+}
+
+inline bool Position::is_optional_game_end() const {
+  Value result;
+  return is_optional_game_end(result);
 }
 
 inline bool Position::is_game_end(Value& result, int ply) const {

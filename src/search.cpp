@@ -229,7 +229,7 @@ void MainThread::search() {
   Time.init(rootPos, Limits, us, rootPos.game_ply());
   TT.new_search();
 
-  if (rootMoves.empty())
+  if (rootMoves.empty() || (Options["Protocol"] == "xboard" && rootPos.is_optional_game_end()))
   {
       rootMoves.emplace_back(MOVE_NONE);
       Value variantResult;
@@ -237,10 +237,14 @@ void MainThread::search() {
                     : rootPos.checkers()                 ? rootPos.checkmate_value()
                                                          : rootPos.stalemate_value();
       if (Options["Protocol"] == "xboard")
+      {
+          // rotate MOVE_NONE to front (for optional game end)
+          std::rotate(rootMoves.rbegin(), rootMoves.rbegin() + 1, rootMoves.rend());
           sync_cout << (  result == VALUE_DRAW ? "1/2-1/2 {Draw}"
                         : (rootPos.side_to_move() == BLACK ? -result : result) == VALUE_MATE ? "1-0 {White wins}"
                         : "0-1 {Black wins}")
                     << sync_endl;
+      }
       else
       sync_cout << "info depth 0 score "
                 << UCI::value(result)
