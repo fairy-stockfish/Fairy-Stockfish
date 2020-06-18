@@ -965,7 +965,6 @@ namespace {
     // much above beta, we can (almost) safely prune the previous move.
     if (   !PvNode
         &&  depth >= 5
-        &&  (pos.pieces() ^ pos.pieces(CLOBBER_PIECE))
         &&  abs(beta) < VALUE_TB_WIN_IN_MAX_PLY)
     {
         Value raisedBeta = std::min(beta + (189 + 20 * !!pos.capture_the_flag_piece()) * (1 + pos.check_counting() + (pos.extinction_value() != VALUE_NONE)) - 45 * improving, VALUE_INFINITE);
@@ -1559,10 +1558,6 @@ moves_loop: // When in check, search starts from here
       captureOrPromotion = pos.capture_or_promotion(move);
 
       moveCount++;
-
-      // Avoid qsearch explosion for clobber
-      if (type_of(pos.moved_piece(move)) == CLOBBER_PIECE && bestValue > VALUE_MATED_IN_MAX_PLY)
-          continue;
 
       // Futility pruning
       if (   !inCheck
