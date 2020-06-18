@@ -918,7 +918,6 @@ namespace {
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (pos.pieces(~us) ^ pos.pieces(~us, PAWN))
-        && (pos.pieces() ^ pos.pieces(BREAKTHROUGH_PIECE) ^ pos.pieces(CLOBBER_PIECE))
         && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
     {
         assert(eval - beta >= 0);
