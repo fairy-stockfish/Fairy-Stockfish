@@ -903,7 +903,7 @@ namespace {
         &&  depth < 6
         && !(   pos.extinction_value() == -VALUE_MATE
              && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
-        && (pos.checking_permitted() || !pos.capture_the_flag_piece())
+        && !(pos.capture_the_flag_piece() && !pos.checking_permitted())
         &&  eval - futility_margin(depth, improving) * (1 + pos.check_counting()) >= beta
         &&  eval < VALUE_KNOWN_WIN) // Do not return unproven wins
         return eval;
@@ -917,7 +917,7 @@ namespace {
         &&  ss->staticEval >= beta - 32 * depth - 30 * improving + 120 * ttPv + 292
         && !excludedMove
         &&  pos.non_pawn_material(us)
-        && (pos.pieces(~us) ^ pos.pieces(~us, PAWN))
+        &&  pos.count<ALL_PIECES>(~us) != pos.count<PAWN>(~us)
         && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
     {
         assert(eval - beta >= 0);
@@ -1071,7 +1071,7 @@ moves_loop: // When in check, search starts from here
 
       // Step 13. Pruning at shallow depth (~200 Elo)
       if (  !rootNode
-          && (pos.non_pawn_material(us) || !(pos.pieces(us) ^ pos.pieces(us, PAWN)))
+          && (pos.non_pawn_material(us) || pos.count<ALL_PIECES>(us) == pos.count<PAWN>(us))
           && bestValue > VALUE_TB_LOSS_IN_MAX_PLY)
       {
           // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
@@ -1080,7 +1080,7 @@ moves_loop: // When in check, search starts from here
 
           if (   !captureOrPromotion
               && !givesCheck
-              && (!pos.must_capture() || !pos.attackers_to(to_sq(move), ~us)))
+              && !(pos.must_capture() && pos.attackers_to(to_sq(move), ~us)))
           {
               // Reduced depth of the next LMR search
               int lmrDepth = std::max(newDepth - reduction(improving, depth, moveCount), 0);
