@@ -78,6 +78,7 @@ variant_positions = {
         "k7/b1b5/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KBB same color
         "kb6/8/8/8/8/8/8/K1B6 w - - 0 1": (True, True),  # KB vs KB same color
         "kb6/8/8/8/8/8/8/KB7 w - - 0 1": (False, False),  # KB vs KB opp color
+        "8/8/8/8/8/6KN/8/6nk w - - 0 1": (False, False),  # KN vs KN
     },
     "seirawan": {
         "k7/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # K vs K

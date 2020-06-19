@@ -285,41 +285,35 @@ const std::string move_to_san(Position& pos, Move m, Notation n) {
 
 bool hasInsufficientMaterial(Color c, const Position& pos) {
 
-    if (   pos.captures_to_hand() || pos.count_in_hand(c, ALL_PIECES)
+    // Other win rules
+    if (   pos.captures_to_hand()
+        || pos.count_in_hand(c, ALL_PIECES)
+        || pos.extinction_value() != VALUE_NONE
         || (pos.capture_the_flag_piece() && pos.count(c, pos.capture_the_flag_piece())))
         return false;
 
-    for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER })
-        if (pos.count(c, pt) || (pos.count(c, PAWN) && pos.promotion_piece_types().find(pt) != pos.promotion_piece_types().end()))
+    // Restricted pieces
+    Bitboard restricted = pos.pieces(~c, KING);
+    for (PieceType pt : pos.piece_types())
+        if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)))
+            restricted |= pos.pieces(c, pt);
+
+    // Mating pieces
+    for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR })
+        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, PAWN) && pos.promotion_piece_types().find(pt) != pos.promotion_piece_types().end()))
             return false;
 
-    // To avoid false positives, treat pawn + anything as sufficient mating material.
-    // This is too conservative for South-East Asian variants.
-    if (pos.count(c, PAWN) && pos.count<ALL_PIECES>() >= 4)
+    // Color-bound pieces
+    Bitboard colorbound = 0, unbound;
+    for (PieceType pt : { BISHOP, FERS, FERS_ALFIL, ALFIL, ELEPHANT })
+        colorbound |= pos.pieces(pt) & ~restricted;
+    unbound = pos.pieces() ^ restricted ^ colorbound;
+    if ((colorbound & pos.pieces(c)) && (((DarkSquares & colorbound) && (~DarkSquares & colorbound)) || unbound))
         return false;
 
-    if (pos.count(c, KNIGHT) >= 2 || (pos.count(c, KNIGHT) && (pos.count(c, BISHOP) || pos.count(c, FERS) || pos.count(c, FERS_ALFIL))))
+    // Unbound pieces require one helper piece of either color
+    if ((pos.pieces(c) & unbound) && (popcount(pos.pieces() ^ restricted) >= 2 || pos.stalemate_value() != VALUE_DRAW))
         return false;
-
-    // Check for opposite colored color-bound pieces
-    if (   (pos.count(c, BISHOP) || pos.count(c, FERS_ALFIL))
-        && (DarkSquares & pos.pieces(BISHOP, FERS_ALFIL)) && (~DarkSquares & pos.pieces(BISHOP, FERS_ALFIL)))
-        return false;
-
-    if (pos.count(c, FERS) && (DarkSquares & pos.pieces(FERS)) && (~DarkSquares & pos.pieces(FERS)))
-        return false;
-
-    if (pos.pieces(c, CANNON, JANGGI_CANNON) && (pos.count(c, ALL_PIECES) > 2 || pos.count(~c, ALL_PIECES) > 1))
-        return false;
-
-    if (pos.count(c, JANGGI_ELEPHANT) >= 2)
-        return false;
-
-    // Pieces sufficient for stalemate (Xiangqi)
-    if (pos.stalemate_value() != VALUE_DRAW)
-        for (PieceType pt : { HORSE, SOLDIER, JANGGI_ELEPHANT })
-            if (pos.count(c, pt))
-                return false;
 
     return true;
 }
