@@ -1236,7 +1236,7 @@ moves_loop: // When in check, search starts from here
           if (singularLMR)
               r -= 2;
 
-          if (!captureOrPromotion && !(pos.must_capture() && MoveList<CAPTURES>(pos).size()))
+          if (!captureOrPromotion)
           {
               // Increase reduction if ttMove is a capture (~5 Elo)
               if (ttCapture)
