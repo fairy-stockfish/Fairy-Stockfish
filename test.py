@@ -382,15 +382,23 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "15=6")
 
-        result = sf.get_san("janggi", JANGGI, "b1c3", False, sf.NOTATION_JANGGI)
-        self.assertEqual(result, "H02-83")
-
         fen = "1rb1ka2r/4a4/2ncb1nc1/p1p1p1p1p/9/2P6/P3PNP1P/2N1C2C1/9/R1BAKAB1R w - - 1 7"
         result = sf.get_san("xiangqi", fen, "c3e2")
         self.assertEqual(result, "Hce2")
 
         result = sf.get_san("xiangqi", fen, "c3d5")
         self.assertEqual(result, "Hd5")
+
+        result = sf.get_san("janggi", JANGGI, "b1c3", False, sf.NOTATION_JANGGI)
+        self.assertEqual(result, "H02-83")
+
+        fen = "1b1aa2b1/5k3/3ncn3/1pp1pp3/5r2p/9/P1PPB1PPB/2N1CCN1c/9/R2AKAR2 w - - 19 17"
+        result = sf.get_san("janggi", fen, "d1e2", False, sf.NOTATION_SAN)
+        self.assertEqual(result, "Ade2")
+
+        fen = "1Pbcka3/3nNn1c1/N2CaC3/1pB6/9/9/5P3/9/4K4/9 w - - 0 23"
+        result = sf.get_san("janggi", fen, "f8f10", False, sf.NOTATION_SAN)
+        self.assertEqual(result, "Cfxf10")
 
         fen = "rnsm1s1r/4n1k1/1ppppppp/p7/2PPP3/PP3PPP/4N2R/RNSKMS2 b - - 1 5"
         result = sf.get_san("makruk", fen, "f8f7")

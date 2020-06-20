@@ -169,18 +169,16 @@ Disambiguation disambiguation_level(const Position& pos, Move m, Notation n) {
 
     // A disambiguation occurs if we have more then one piece of type 'pt'
     // that can reach 'to' with a legal move.
-    Bitboard others, b;
-    others = b = ((pos.capture(m) ? attacks_bb(~us, pt, to, AttackRiderTypes[pt] & ASYMMETRICAL_RIDERS ? Bitboard(0) : pos.pieces())
-                                  : moves_bb(  ~us, pt, to, MoveRiderTypes[pt] & ASYMMETRICAL_RIDERS ? Bitboard(0) : pos.pieces()))
-                & pos.pieces(us, pt)) & ~square_bb(from);
+    Bitboard b = pos.pieces(us, pt) ^ from;
+    Bitboard others = 0;
 
     while (b)
     {
         Square s = pop_lsb(&b);
-        if (   !pos.pseudo_legal(make_move(s, to))
-            || !pos.legal(make_move(s, to))
-            || (is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
-            others ^= s;
+        if (   pos.pseudo_legal(make_move(s, to))
+            && pos.legal(make_move(s, to))
+            && !(is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
+            others |= s;
     }
 
     if (!others)
