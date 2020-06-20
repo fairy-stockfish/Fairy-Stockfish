@@ -927,6 +927,7 @@ namespace {
         Bitboard blocked = pos.pieces(Us, PAWN) | attackedBy[Them][ALL_PIECES];
         Bitboard doubleBlocked =  attackedBy2[Them]
                                 | (pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | attackedBy[Them][ALL_PIECES]))
+                                | (pos.pieces(Them) & pe->pawn_attacks(Them))
                                 | (pawn_attacks_bb<Them>(pos.pieces(Them, PAWN) & pe->pawn_attacks(Them)));
         Bitboard inaccessible = pos.pieces(Us, PAWN) & shift<Down>(pos.pieces(Them, PAWN));
         // Traverse all paths of the CTF pieces to the CTF targets.
