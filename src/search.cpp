@@ -1100,7 +1100,7 @@ moves_loop: // When in check, search starts from here
                   && !inCheck
                   && !(   pos.extinction_value() == -VALUE_MATE
                        && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
-                  && ss->staticEval + 235 + 172 * lmrDepth <= alpha
+                  && ss->staticEval + (235 + 172 * lmrDepth) * (1 + pos.check_counting()) <= alpha
                   &&  thisThread->mainHistory[us][from_to(move)]
                     + (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
                     + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
