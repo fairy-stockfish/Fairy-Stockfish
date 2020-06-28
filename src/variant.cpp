@@ -177,8 +177,8 @@ namespace {
     Variant* kingofthehill_variant() {
         Variant* v = fairy_variant_base();
         v->flagPiece = KING;
-        v->whiteFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
-        v->blackFlag = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
+        v->whiteFlag = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
+        v->blackFlag = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
         v->flagMove = false;
         return v;
     }
@@ -619,14 +619,8 @@ namespace {
         v->add_piece(CANNON, 'c');
         v->add_piece(SOLDIER, 'p');
         v->startFen = "rcnkncr/p1ppp1p/7/7/7/P1PPP1P/RCNKNCR w - - 0 1";
-        Bitboard white_castle = make_bitboard(SQ_C1, SQ_D1, SQ_E1,
-                                              SQ_C2, SQ_D2, SQ_E2,
-                                              SQ_C3, SQ_D3, SQ_E3);
-        Bitboard black_castle = make_bitboard(SQ_C5, SQ_D5, SQ_E5,
-                                              SQ_C6, SQ_D6, SQ_E6,
-                                              SQ_C7, SQ_D7, SQ_E7);
-        v->mobilityRegion[WHITE][KING] = white_castle;
-        v->mobilityRegion[BLACK][KING] = black_castle;
+        v->mobilityRegion[WHITE][KING] = (Rank1BB | Rank2BB | Rank3BB) & (FileCBB | FileDBB | FileEBB);
+        v->mobilityRegion[BLACK][KING] = (Rank5BB | Rank6BB | Rank7BB) & (FileCBB | FileDBB | FileEBB);
         v->kingType = WAZIR;
         v->promotionPieceTypes = {};
         v->doubleStep = false;
@@ -830,16 +824,10 @@ namespace {
         v->add_piece(ELEPHANT, 'b', 'e');
         v->add_piece(FERS, 'a');
         v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-        Bitboard white_castle = make_bitboard(SQ_D1, SQ_E1, SQ_F1,
-                                              SQ_D2, SQ_E2, SQ_F2,
-                                              SQ_D3, SQ_E3, SQ_F3);
-        Bitboard black_castle = make_bitboard(SQ_D8, SQ_E8, SQ_F8,
-                                              SQ_D9, SQ_E9, SQ_F9,
-                                              SQ_D10, SQ_E10, SQ_F10);
-        v->mobilityRegion[WHITE][KING] = white_castle;
-        v->mobilityRegion[BLACK][KING] = black_castle;
-        v->mobilityRegion[WHITE][FERS] = white_castle;
-        v->mobilityRegion[BLACK][FERS] = black_castle;
+        v->mobilityRegion[WHITE][KING] = (Rank1BB | Rank2BB | Rank3BB) & (FileDBB | FileEBB | FileFBB);
+        v->mobilityRegion[BLACK][KING] = (Rank8BB | Rank9BB | Rank10BB) & (FileDBB | FileEBB | FileFBB);
+        v->mobilityRegion[WHITE][FERS] = v->mobilityRegion[WHITE][KING];
+        v->mobilityRegion[BLACK][FERS] = v->mobilityRegion[BLACK][KING];
         v->mobilityRegion[WHITE][ELEPHANT] = Rank1BB | Rank2BB | Rank3BB | Rank4BB | Rank5BB;
         v->mobilityRegion[BLACK][ELEPHANT] = Rank6BB | Rank7BB | Rank8BB | Rank9BB | Rank10BB;
         v->soldierPromotionRank = RANK_6;
