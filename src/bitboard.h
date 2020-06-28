@@ -149,6 +149,13 @@ extern Magic HorseMagics[SQUARE_NB];
 extern Magic ElephantMagics[SQUARE_NB];
 extern Magic JanggiElephantMagics[SQUARE_NB];
 
+constexpr Bitboard make_bitboard() { return 0; }
+
+template<typename ...Squares>
+constexpr Bitboard make_bitboard(Square s, Squares... squares) {
+  return (Bitboard(1) << s) | make_bitboard(squares...);
+}
+
 inline Bitboard square_bb(Square s) {
   assert(s >= SQ_A1 && s <= SQ_MAX);
   return SquareBB[s];
@@ -208,17 +215,7 @@ inline Bitboard file_bb(Square s) {
 }
 
 
-/// make_bitboard() returns a bitboard from a list of squares
-
-constexpr Bitboard make_bitboard() { return 0; }
-
-template<typename ...Squares>
-constexpr Bitboard make_bitboard(Square s, Squares... squares) {
-  return (Bitboard(1) << s) | make_bitboard(squares...);
-}
-
-
-/// shift() moves a bitboard one step along direction D
+/// shift() moves a bitboard one or two steps as specified by the direction D
 
 template<Direction D>
 constexpr Bitboard shift(Bitboard b) {

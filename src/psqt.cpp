@@ -24,23 +24,6 @@
 #include "piece.h"
 #include "variant.h"
 
-Value PieceValue[PHASE_NB][PIECE_NB] = {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg,
-    FersValueMg, AlfilValueMg, FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg,
-    ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg, BiskniValueMg, KnirooValueMg, RookniValueMg,
-    ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, DragonHorseValueMg,
-    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg,
-    CannonPieceValueMg, JanggiCannonPieceValueMg, SoldierValueMg, HorseValueMg, ElephantValueMg, JanggiElephantValueMg, BannerValueMg,
-    WazirValueMg, CommonerValueMg, CentaurValueMg },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg,
-    FersValueEg, AlfilValueEg, FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg,
-    ArchbishopValueMg, ChancellorValueEg, AmazonValueEg, KnibisValueMg, BiskniValueMg, KnirooValueEg, RookniValueEg,
-    ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, DragonHorseValueEg,
-    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg,
-    CannonPieceValueEg, JanggiCannonPieceValueEg, SoldierValueEg, HorseValueEg, ElephantValueEg, JanggiElephantValueEg, BannerValueEg,
-    WazirValueEg, CommonerValueEg, CentaurValueEg }
-};
-
 namespace PSQT {
 
 #define S(mg, eg) make_score(mg, eg)
@@ -137,9 +120,6 @@ void init(const Variant* v) {
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
       Piece pc = make_piece(WHITE, pt);
-
-      PieceValue[MG][~pc] = PieceValue[MG][pc];
-      PieceValue[EG][~pc] = PieceValue[EG][pc];
 
       Score score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
 
