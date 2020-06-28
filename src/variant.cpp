@@ -880,14 +880,8 @@ namespace {
         v->add_piece(JANGGI_CANNON, 'c');
         v->add_piece(JANGGI_ELEPHANT, 'b', 'e');
         v->startFen = "rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1";
-        Bitboard white_castle = make_bitboard(SQ_D1, SQ_E1, SQ_F1,
-                                              SQ_D2, SQ_E2, SQ_F2,
-                                              SQ_D3, SQ_E3, SQ_F3);
-        Bitboard black_castle = make_bitboard(SQ_D8, SQ_E8, SQ_F8,
-                                              SQ_D9, SQ_E9, SQ_F9,
-                                              SQ_D10, SQ_E10, SQ_F10);
-        v->mobilityRegion[WHITE][WAZIR] = white_castle;
-        v->mobilityRegion[BLACK][WAZIR] = black_castle;
+        v->mobilityRegion[WHITE][WAZIR] = v->mobilityRegion[WHITE][KING];
+        v->mobilityRegion[BLACK][WAZIR] = v->mobilityRegion[BLACK][KING];
         v->soldierPromotionRank = RANK_1;
         v->flyingGeneral = false;
         v->bikjangRule = true;
