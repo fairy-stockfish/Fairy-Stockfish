@@ -647,12 +647,12 @@ constexpr Color operator~(Color c) {
   return Color(c ^ BLACK); // Toggle color
 }
 
-constexpr Square operator~(Square s) {
-#ifdef LARGEBOARDS
-  return Square(s - FILE_NB * (s / FILE_NB * 2 - RANK_MAX)); // Vertical flip SQ_A1 -> SQ_A10
-#else
-  return Square(s ^ SQ_A8); // Vertical flip SQ_A1 -> SQ_A8
-#endif
+constexpr Square flip_rank(Square s, Rank maxRank = RANK_8) {
+  return Square(s + NORTH * (maxRank - 2 * (s / NORTH)));
+}
+
+constexpr Square flip_file(Square s, File maxFile = FILE_H) {
+  return Square(s + maxFile - 2 * (s % NORTH));
 }
 
 constexpr Piece operator~(Piece pc) {

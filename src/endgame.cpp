@@ -87,9 +87,9 @@ namespace {
     assert(pos.count<PAWN>(strongSide) == 1);
 
     if (file_of(pos.square<PAWN>(strongSide)) > pos.max_file() / 2)
-        sq = Square(sq + pos.max_file() - 2 * file_of(sq)); // Mirror SQ_H1 -> SQ_A1
+        sq = flip_file(sq, pos.max_file());
 
-    return relative_square(strongSide, sq, pos.max_rank());
+    return strongSide == WHITE ? sq : flip_rank(sq, pos.max_rank());
   }
 
   // Map the square to an 8x8 board
