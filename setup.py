@@ -4,6 +4,7 @@ from setuptools import setup, Extension
 from glob import glob
 import platform
 import io
+import os
 
 
 args = ["-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-flto", "-std=c++11"]
@@ -24,9 +25,16 @@ CLASSIFIERS = [
 with io.open("Readme.md", "r", encoding="utf8") as fh:
     long_description = fh.read().strip()
 
+sources = glob("src/*.cpp") + glob("src/syzygy/*.cpp")
+ffish_source_file = os.path.normcase("src/ffishjs.cpp")
+try:
+    sources.remove(ffish_source_file)
+except ValueError:
+    print(f"ffish_source_file {ffish_source_file} was not found in sources {sources}.")
+
 pyffish_module = Extension(
     "pyffish",
-    sources=glob("src/*.cpp") + glob("src/syzygy/*.cpp"),
+    sources=sources,
     extra_compile_args=args)
 
 setup(name="pyffish", version="0.0.50",
