@@ -71,7 +71,7 @@ The python binding [pyffish](https://pypi.org/project/pyffish/) authored by [@gb
 
 ### Javascript
 
-The javascript binding ffish.js authored by [@QueensGambit](https://github.com/QueensGambit) is implemented in [pyffishjs.cpp](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/pyffish.cpp). The compilation/binding to javascript is done using emscripten, see the [readme](https://github.com/ianfab/Fairy-Stockfish/tree/master/tests/js). 
+The javascript binding ffish.js authored by [@QueensGambit](https://github.com/QueensGambit) is implemented in [ffishjs.cpp](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/ffishjs.cpp). The compilation/binding to javascript is done using emscripten, see the [readme](https://github.com/ianfab/Fairy-Stockfish/tree/master/tests/js). 
 
 # Stockfish
 ## Overview
