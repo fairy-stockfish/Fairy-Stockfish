@@ -61,9 +61,17 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 
 See the [Fairy-Stockfish Wiki](https://github.com/ianfab/Fairy-Stockfish/wiki) for more info, or if the required information is not available, open an [issue](https://github.com/ianfab/Fairy-Stockfish/issues).
 
-## Python binding
+## Bindings
 
-On top of the C++ engine, this project also includes the python binding [pyffish](https://pypi.org/project/pyffish/), which can be used as a chess variant library in python, like in the [pychess server](https://github.com/gbtami/pychess-variants). Pyffish is a lightweight wrapper around Fairy-Stockfish, only adding a single [source file](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/pyffish.cpp). It supports move, SAN, and FEN generation, as well as checking of game end conditions.
+Besides the C++ engine, this project also includes bindings for other programming languages in order to be able to use it as a library for chess variants. They support move, SAN, and FEN generation, as well as checking of game end conditions. Since they are using the C++ code, the bindings are very performant compared to libraries directly written in the respective target language.  
+
+### Python
+
+The python binding [pyffish](https://pypi.org/project/pyffish/) authored by [@gbtami](https://github.com/gbtami) is implemented in [pyffish.cpp](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/pyffish.cpp). It supports move, SAN, and FEN generation, as well as checking of game end conditions. It is e.g. used in the backend for the [pychess server](https://github.com/gbtami/pychess-variants).
+
+### Javascript
+
+The javascript binding ffish.js authored by [@QueensGambit](https://github.com/QueensGambit) is implemented in [pyffishjs.cpp](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/pyffish.cpp). The compilation/binding to javascript is done using emscripten, see the [readme](https://github.com/ianfab/Fairy-Stockfish/tree/master/tests/js). 
 
 # Stockfish
 ## Overview
