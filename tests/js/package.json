@@ -1,0 +1,22 @@
+{
+  "name": "ffish_test",
+  "version": "1.0.0",
+  "description": "Testing server for ffish.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Fabian Fichter, Johannes Czech",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "chess": "^0.4.3",
+    "chess.js": "^0.11.0",
+    "crazyhouse.js": "0.0.8",
+    "express": "^4.17.1",
+    "performance": "^1.4.0"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^8.0.1"
+  }
+}

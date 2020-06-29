@@ -32,7 +32,7 @@ init:
 before_build:
   - ps: |
       # Get sources
-      $src = get-childitem -Path *.cpp -Recurse -Exclude pyffish.cpp | select -ExpandProperty FullName
+      $src = get-childitem -Path *.cpp -Recurse -Exclude pyffish.cpp,ffishjs.cpp | select -ExpandProperty FullName
       $src = $src -join ' '
       $src = $src.Replace("\", "/")
 
