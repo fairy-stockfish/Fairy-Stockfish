@@ -111,7 +111,7 @@ namespace {
       S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
       S(106,184), S(109,191), S(113,206), S(116,212) }
   };
-  constexpr Score MaxMobility  = S(250, 250);
+  constexpr Score MaxMobility  = S(150, 200);
   constexpr Score DropMobility = S(10, 10);
 
   // RookOnFile[semiopen/open] contains bonuses for each rook when there is
@@ -329,7 +329,7 @@ namespace {
         if (Pt <= QUEEN)
             mobility[Us] += MobilityBonus[Pt - 2][mob];
         else
-            mobility[Us] += MaxMobility * (mob - 1) / (8 + mob);
+            mobility[Us] += MaxMobility * (mob - 2) / (8 + mob);
 
         // Piece promotion bonus
         if (pos.promoted_piece_type(Pt) != NO_PIECE_TYPE)
