@@ -453,6 +453,8 @@ namespace {
         if (pos.promoted_piece_type(pt) != NO_PIECE_TYPE && pos.drop_promoted())
             score += make_score(std::max(PieceValue[MG][pos.promoted_piece_type(pt)] - PieceValue[MG][pt], VALUE_ZERO),
                                 std::max(PieceValue[EG][pos.promoted_piece_type(pt)] - PieceValue[EG][pt], VALUE_ZERO)) / 4 * pos.count_in_hand(Us, pt);
+        if (pos.enclosing_drop())
+            mobility[Us] += make_score(500, 500) * popcount(b);
     }
 
     return score;
