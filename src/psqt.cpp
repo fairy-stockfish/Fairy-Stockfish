@@ -189,6 +189,11 @@ void init(const Variant* v) {
                                                 : make_score(10, 10) * (1 + isSlowLeaper) * (f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile / 2));
           if (pt == SOLDIER && r < v->soldierPromotionRank)
               psq[pc][s] -= score * (v->soldierPromotionRank - r) / (4 + f);
+          if (v->enclosingDrop)
+          {
+              if (f == FILE_A && (r == RANK_1 || r == v->maxRank))
+                  psq[pc][s] += make_score(1000, 1000);
+          }
           psq[~pc][rank_of(s) <= v->maxRank ? flip_rank(s, v->maxRank) : s] = -psq[pc][s];
       }
       // pieces in pocket
