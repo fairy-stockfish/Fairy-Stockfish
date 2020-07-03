@@ -1005,6 +1005,29 @@ namespace {
         }
     }
 
+    // Potential piece flips
+    if (pos.flip_enclosed_pieces())
+    {
+        // Stable
+        Bitboard corners = pos.pieces(Us) & (FileABB | file_bb(pos.max_file())) & (Rank1BB | rank_bb(pos.max_rank()));
+        Bitboard stable = 0;
+        while (corners)
+            stable |= attacks_bb(Us, ROOK, pop_lsb(&corners), ~pos.pieces(~Us)) & pos.pieces(Us);
+        score += make_score(300, 300) * popcount(stable);
+
+        // Unstable
+        Bitboard unstable = 0;
+        Bitboard drops = pos.drop_region(Them, IMMOBILE_PIECE);
+        while (drops)
+        {
+            Square s = pop_lsb(&drops);
+            Bitboard b = attacks_bb(Them, QUEEN, s, ~pos.pieces(Us)) & ~PseudoAttacks[Them][KING][s] & pos.pieces(Them);
+            while(b)
+                unstable |= between_bb(s, pop_lsb(&b));
+        }
+        score -= make_score(200, 200) * popcount(unstable);
+    }
+
     if (T)
         Trace::add(VARIANT, Us, score);
 
