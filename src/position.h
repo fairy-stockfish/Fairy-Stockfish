@@ -60,6 +60,7 @@ struct StateInfo {
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
+  Bitboard   flippedPieces;
   bool       capturedpromoted;
   bool       shak;
   bool       bikjang;
@@ -132,6 +133,7 @@ public:
   bool captures_to_hand() const;
   bool first_rank_pawn_drops() const;
   bool drop_on_top() const;
+  bool enclosing_drop() const;
   Bitboard drop_region(Color c) const;
   Bitboard drop_region(Color c, PieceType pt) const;
   bool sittuyin_rook_drop() const;
@@ -143,10 +145,11 @@ public:
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
-  bool king_pass() const;
-  bool king_pass_on_stalemate() const;
+  bool pass() const;
+  bool pass_on_stalemate() const;
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
+  bool flip_enclosed_pieces() const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -508,6 +511,11 @@ inline bool Position::drop_on_top() const {
   return var->dropOnTop;
 }
 
+inline bool Position::enclosing_drop() const {
+  assert(var != nullptr);
+  return var->enclosingDrop;
+}
+
 inline Bitboard Position::drop_region(Color c) const {
   assert(var != nullptr);
   return c == WHITE ? var->whiteDropRegion : var->blackDropRegion;
@@ -535,6 +543,29 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   // Sittuyin rook drops
   if (pt == ROOK && sittuyin_rook_drop())
       b &= rank_bb(relative_rank(c, RANK_1, max_rank()));
+
+  // Filter out squares where the drop does not enclose at least one opponent's piece
+  if (enclosing_drop())
+  {
+      // Reversi start
+      if (var->enclosingDropStart & ~pieces())
+          b &= var->enclosingDropStart;
+      else
+      {
+          Bitboard theirs = pieces(~c);
+          b &=  shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
+              | shift<NORTH_EAST>(theirs) | shift<SOUTH_WEST>(theirs)
+              | shift<EAST      >(theirs) | shift<WEST      >(theirs)
+              | shift<SOUTH_EAST>(theirs) | shift<NORTH_WEST>(theirs);
+          Bitboard b2 = b;
+          while (b2)
+          {
+              Square s = pop_lsb(&b2);
+              if (!(attacks_bb(c, QUEEN, s, board_bb() & ~pieces(~c)) & ~PseudoAttacks[c][KING][s] & pieces(c)))
+                  b ^= s;
+          }
+      }
+  }
 
   return b;
 }
@@ -584,14 +615,14 @@ inline Bitboard Position::diagonal_lines() const {
   return var->diagonalLines;
 }
 
-inline bool Position::king_pass() const {
+inline bool Position::pass() const {
   assert(var != nullptr);
-  return var->kingPass || var->kingPassOnStalemate;
+  return var->pass || var->passOnStalemate;
 }
 
-inline bool Position::king_pass_on_stalemate() const {
+inline bool Position::pass_on_stalemate() const {
   assert(var != nullptr);
-  return var->kingPassOnStalemate;
+  return var->passOnStalemate;
 }
 
 inline Bitboard Position::promoted_soldiers(Color c) const {
@@ -612,6 +643,11 @@ inline int Position::n_move_rule() const {
 inline int Position::n_fold_rule() const {
   assert(var != nullptr);
   return var->nFoldRule;
+}
+
+inline bool Position::flip_enclosed_pieces() const {
+  assert(var != nullptr);
+  return var->flipEnclosedPieces;
 }
 
 inline Value Position::stalemate_value(int ply) const {

@@ -876,7 +876,7 @@ namespace {
         v->materialCounting = JANGGI_MATERIAL;
         v->diagonalLines = make_bitboard(SQ_D1, SQ_F1, SQ_E2, SQ_D3, SQ_F3,
                                          SQ_D8, SQ_F8, SQ_E9, SQ_D10, SQ_F10);
-        v->kingPass = true;
+        v->pass = true;
         v->nFoldValue = VALUE_DRAW;
         v->perpetualCheckIllegal = true;
         return v;
