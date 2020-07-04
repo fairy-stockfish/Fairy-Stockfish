@@ -1011,15 +1011,14 @@ namespace {
         // Stable pieces
         Bitboard edges = (FileABB | file_bb(pos.max_file()) | Rank1BB | rank_bb(pos.max_rank())) & pos.board_bb();
         Bitboard edgePieces = pos.pieces(Us) & edges;
-        Bitboard stable = 0;
         while (edgePieces)
         {
-            Square s = pop_lsb(&edgePieces);
-            Bitboard connectedEdge = attacks_bb(Us, ROOK, s, ~(pos.pieces() & edges)) & edges;
-            if (!(connectedEdge & ~pos.pieces()) || !more_than_one(connectedEdge & ~pos.pieces(Us)))
-                stable |= s;
+            Bitboard connectedEdge = attacks_bb(Us, ROOK, pop_lsb(&edgePieces), ~(pos.pieces(Us) & edges)) & edges;
+            if (!more_than_one(connectedEdge & ~pos.pieces(Us)))
+                score += make_score(300, 300);
+            else if (!(connectedEdge & ~pos.pieces()))
+                score += make_score(200, 200);
         }
-        score += make_score(300, 300) * popcount(stable);
 
         // Unstable
         Bitboard unstable = 0;
