@@ -133,13 +133,12 @@ public:
 /// the program was compiled) or "Stockfish <Version>", depending on whether
 /// Version is empty.
 
-const string engine_info(bool to_uci) {
-
+const string engine_version() {
   const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
   string month, day, year;
   stringstream ss, date(__DATE__); // From compiler, format is "Sep 21 2008"
 
-  ss << "Fairy-Stockfish " << Version << setfill('0');
+  ss << Version << setfill('0');
 
   if (Version.empty())
   {
@@ -152,8 +151,16 @@ const string engine_info(bool to_uci) {
 #endif
 
   ss << (Is64Bit ? " 64" : "")
-     << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
-     << (to_uci  ? "\nid author ": " by ")
+     << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""));
+
+  return ss.str();
+}
+
+const string engine_info(bool to_uci) {
+  stringstream ss;
+
+  ss << "Fairy-Stockfish " << engine_version();
+  ss << (to_uci  ? "\nid author ": " by ")
      << "Fabian Fichter";
 
   return ss.str();
