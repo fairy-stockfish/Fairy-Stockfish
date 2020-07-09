@@ -15,7 +15,7 @@ You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockf
 
 ## Contributing
 
-If you appreciate this project, please consider to support it by [donating via paypal](https://paypal.me/FairyStockfish), by [contributing CPU time](https://github.com/ianfab/fishtest/wiki) to the framework for testing of code improvements, or by [contributing to the code](https://github.com/ianfab/Fairy-Stockfish/wiki/Contributing) or documentation.
+If you like this project, please support its development by [donating via paypal](https://paypal.me/FairyStockfish), by [contributing CPU time](https://github.com/ianfab/fishtest/wiki) to the framework for testing of code improvements, or by [contributing to the code](https://github.com/ianfab/Fairy-Stockfish/wiki/Contributing) or documentation. An [introduction to the code base](https://github.com/ianfab/Fairy-Stockfish/wiki/Understanding-the-code) can be found in the wiki.
 
 ## Supported games
 
@@ -60,6 +60,24 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 ## Help
 
 See the [Fairy-Stockfish Wiki](https://github.com/ianfab/Fairy-Stockfish/wiki) for more info, or if the required information is not available, open an [issue](https://github.com/ianfab/Fairy-Stockfish/issues).
+
+## Bindings
+
+Besides the C++ engine, this project also includes bindings for other programming languages in order to be able to use it as a library for chess variants. They support move, SAN, and FEN generation, as well as checking of game end conditions for all variants supported by Fairy-Stockfish. Since the bindings are using the C++ code, they are very performant compared to libraries directly written in the respective target language.  
+
+### Python
+
+The python binding [pyffish](https://pypi.org/project/pyffish/) contributed by [@gbtami](https://github.com/gbtami) is implemented in [pyffish.cpp](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/pyffish.cpp). It is e.g. used in the backend for the [pychess server](https://github.com/gbtami/pychess-variants).
+
+### Javascript
+
+The javascript binding ffish.js contributed by [@QueensGambit](https://github.com/QueensGambit) is implemented in [ffishjs.cpp](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/ffishjs.cpp). The compilation/binding to javascript is done using emscripten, see the [readme](https://github.com/ianfab/Fairy-Stockfish/tree/master/tests/js).
+
+## Ports
+
+### WASM
+
+A port of Fairy-Stockfish to WebAssembly is maintained at https://github.com/ianfab/stockfish.wasm.
 
 # Stockfish
 ## Overview

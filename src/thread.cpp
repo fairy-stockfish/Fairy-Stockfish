@@ -54,7 +54,7 @@ Thread::~Thread() {
 
 /// Thread::bestMoveCount(Move move) return best move counter for the given root move
 
-int Thread::best_move_count(Move move) {
+int Thread::best_move_count(Move move) const {
 
   auto rm = std::find(rootMoves.begin() + pvIdx,
                       rootMoves.begin() + pvLast, move);
@@ -68,17 +68,17 @@ void Thread::clear() {
 
   counterMoves.fill(MOVE_NONE);
   mainHistory.fill(0);
+  lowPlyHistory.fill(0);
   captureHistory.fill(0);
 
   for (bool inCheck : { false, true })
-    for (StatsType c : { NoCaptures, Captures })
-      for (auto& to : continuationHistory[inCheck][c])
-        for (auto& h : to)
-          h->fill(0);
-
-  for (bool inCheck : { false, true })
-    for (StatsType c : { NoCaptures, Captures })
-      continuationHistory[inCheck][c][NO_PIECE][0]->fill(Search::CounterMovePruneThreshold - 1);
+      for (StatsType c : { NoCaptures, Captures })
+      {
+          for (auto& to : continuationHistory[inCheck][c])
+                for (auto& h : to)
+                      h->fill(0);
+          continuationHistory[inCheck][c][NO_PIECE][0]->fill(Search::CounterMovePruneThreshold - 1);
+      }
 }
 
 /// Thread::start_searching() wakes up the thread that will start the search
@@ -212,6 +212,7 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
       th->rootDepth = th->completedDepth = 0;
       th->rootMoves = rootMoves;
       th->rootPos.set(pos.variant(), pos.fen(), pos.is_chess960(), &setupStates->back(), th);
+      th->lowPlyHistory.fill(0);
   }
 
   setupStates->back() = tmp;

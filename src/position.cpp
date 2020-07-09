@@ -562,11 +562,13 @@ void Position::set_state(StateInfo* si) const {
 
 Position& Position::set(const string& code, Color c, StateInfo* si) {
 
-  assert(code.length() > 0 && code.length() < 8);
   assert(code[0] == 'K');
 
   string sides[] = { code.substr(code.find('K', 1)),      // Weak
-                     code.substr(0, code.find('K', 1)) }; // Strong
+                     code.substr(0, std::min(code.find('v'), code.find('K', 1))) }; // Strong
+
+  assert(sides[0].length() > 0 && sides[0].length() < 8);
+  assert(sides[1].length() > 0 && sides[1].length() < 8);
 
   std::transform(sides[c].begin(), sides[c].end(), sides[c].begin(), tolower);
 
@@ -891,7 +893,7 @@ bool Position::legal(Move m) const {
       return false;
 
   // Illegal king passing move
-  if (king_pass_on_stalemate() && is_pass(m) && !checkers())
+  if (pass_on_stalemate() && is_pass(m) && !checkers())
   {
       for (const auto& move : MoveList<NON_EVASIONS>(*this))
           if (!is_pass(move) && legal(move))
@@ -1098,7 +1100,7 @@ bool Position::gives_check(Move m) const {
           if (attacks_bb(sideToMove, pt, to, occupied) & square<KING>(~sideToMove))
               return true;
       }
-      else if (st->checkSquares[pt] & to)
+      else if (check_squares(pt) & to)
           return true;
   }
 
@@ -1109,7 +1111,7 @@ bool Position::gives_check(Move m) const {
       janggiCannons ^= to;
 
   // Is there a discovered check?
-  if (  ((type_of(m) != DROP && (st->blockersForKing[~sideToMove] & from)) || pieces(sideToMove, CANNON, BANNER)
+  if (  ((type_of(m) != DROP && (blockers_for_king(~sideToMove) & from)) || pieces(sideToMove, CANNON, BANNER)
           || pieces(HORSE, ELEPHANT) || pieces(JANGGI_CANNON, JANGGI_ELEPHANT))
       && attackers_to(square<KING>(~sideToMove), (type_of(m) == DROP ? pieces() : pieces() ^ from) | to, sideToMove, janggiCannons))
       return true;
@@ -1211,7 +1213,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
   if (to == from)
   {
-      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && king_pass()));
+      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && pass()));
       captured = NO_PIECE;
   }
   st->capturedpromoted = is_promoted(to);
@@ -1254,8 +1256,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               assert(relative_rank(~us, to, max_rank()) == Rank(double_step_rank() + 1));
               assert(piece_on(to) == NO_PIECE);
               assert(piece_on(capsq) == make_piece(them, PAWN));
-
-              board[capsq] = NO_PIECE; // Not done by remove_piece()
           }
 
           st->pawnKey ^= Zobrist::psq[captured][capsq];
@@ -1266,7 +1266,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Update board and piece lists
       bool capturedPromoted = is_promoted(capsq);
       Piece unpromotedCaptured = unpromoted_piece_on(capsq);
-      remove_piece(captured, capsq);
+      remove_piece(capsq);
+      if (type_of(m) == ENPASSANT)
+          board[capsq] = NO_PIECE;
       if (captures_to_hand())
       {
           Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
@@ -1337,9 +1339,38 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
                   set_castling_right(us, to);
           }
       }
+      // Flip enclosed pieces
+      if (flip_enclosed_pieces())
+      {
+          st->flippedPieces = 0;
+          // Find end of rows to be flipped
+          Bitboard b = attacks_bb(us, QUEEN, to, board_bb() & ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
+          while(b)
+              st->flippedPieces |= between_bb(to, pop_lsb(&b));
+          // Flip pieces
+          Bitboard to_flip = st->flippedPieces;
+          while(to_flip)
+          {
+              Square s = pop_lsb(&to_flip);
+              Piece flipped = piece_on(s);
+              Piece resulting = ~flipped;
+
+              // remove opponent's piece
+              remove_piece(s);
+              k ^= Zobrist::psq[flipped][s];
+              st->materialKey ^= Zobrist::psq[flipped][pieceCount[flipped]];
+              st->nonPawnMaterial[them] -= PieceValue[MG][flipped];
+
+              // add our piece
+              put_piece(resulting, s);
+              k ^= Zobrist::psq[resulting][s];
+              st->materialKey ^= Zobrist::psq[resulting][pieceCount[resulting]-1];
+              st->nonPawnMaterial[us] += PieceValue[MG][resulting];
+          }
+      }
   }
   else if (type_of(m) != CASTLING)
-      move_piece(pc, from, to);
+      move_piece(from, to);
 
   // If the moving piece is a pawn do some special extra work
   if (type_of(pc) == PAWN)
@@ -1360,7 +1391,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           assert(relative_rank(us, to, max_rank()) >= promotion_rank() || sittuyin_promotion());
           assert(type_of(promotion) >= KNIGHT && type_of(promotion) < KING);
 
-          remove_piece(pc, to);
+          remove_piece(to);
           put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
 
           // Update hash keys
@@ -1383,7 +1414,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       Piece promotion = make_piece(us, promoted_piece_type(type_of(pc)));
 
-      remove_piece(pc, to);
+      remove_piece(to);
       put_piece(promotion, to, true, pc);
 
       // Update hash keys
@@ -1398,7 +1429,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       Piece demotion = unpromoted_piece_on(to);
 
-      remove_piece(pc, to);
+      remove_piece(to);
       put_piece(demotion, to);
 
       // Update hash keys
@@ -1496,14 +1527,14 @@ void Position::undo_move(Move m) {
 
   assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
          || (type_of(m) == PROMOTION && sittuyin_promotion())
-         || (is_pass(m) && king_pass()));
+         || (is_pass(m) && pass()));
   assert(type_of(st->capturedPiece) != KING);
 
   // Remove gated piece
   if (is_gating(m))
   {
       Piece gating_piece = make_piece(us, gating_type(m));
-      remove_piece(gating_piece, gating_square(m));
+      remove_piece(gating_square(m));
       add_to_hand(gating_piece);
       st->gatesBB[us] |= gating_square(m);
   }
@@ -1514,20 +1545,20 @@ void Position::undo_move(Move m) {
       assert(type_of(pc) == promotion_type(m));
       assert(type_of(pc) >= KNIGHT && type_of(pc) < KING);
 
-      remove_piece(pc, to);
+      remove_piece(to);
       pc = make_piece(us, PAWN);
       put_piece(pc, to);
   }
   else if (type_of(m) == PIECE_PROMOTION)
   {
       Piece unpromotedPiece = unpromoted_piece_on(to);
-      remove_piece(pc, to);
+      remove_piece(to);
       pc = unpromotedPiece;
       put_piece(pc, to);
   }
   else if (type_of(m) == PIECE_DEMOTION)
   {
-      remove_piece(pc, to);
+      remove_piece(to);
       Piece unpromotedPc = pc;
       pc = make_piece(us, promoted_piece_type(type_of(pc)));
       put_piece(pc, to, true, unpromotedPc);
@@ -1541,9 +1572,23 @@ void Position::undo_move(Move m) {
   else
   {
       if (type_of(m) == DROP)
-          undrop_piece(make_piece(us, in_hand_piece_type(m)), pc, to); // Remove the dropped piece
+      {
+          if (flip_enclosed_pieces())
+          {
+              // Flip pieces
+              Bitboard to_flip = st->flippedPieces;
+              while(to_flip)
+              {
+                  Square s = pop_lsb(&to_flip);
+                  Piece resulting = ~piece_on(s);
+                  remove_piece(s);
+                  put_piece(resulting, s);
+              }
+          }
+          undrop_piece(make_piece(us, in_hand_piece_type(m)), to); // Remove the dropped piece
+      }
       else
-          move_piece(pc, to, from); // Put the piece back at the source square
+          move_piece(to, from); // Put the piece back at the source square
 
       if (st->capturedPiece)
       {
@@ -1589,8 +1634,8 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   // Remove both pieces first since squares could overlap in Chess960
   Piece castlingKingPiece = piece_on(Do ? from : to);
   Piece castlingRookPiece = piece_on(Do ? rfrom : rto);
-  remove_piece(castlingKingPiece, Do ? from : to);
-  remove_piece(castlingRookPiece, Do ? rfrom : rto);
+  remove_piece(Do ? from : to);
+  remove_piece(Do ? rfrom : rto);
   board[Do ? from : to] = board[Do ? rfrom : rto] = NO_PIECE; // Since remove_piece doesn't do it for us
   put_piece(castlingKingPiece, Do ? to : from);
   put_piece(castlingRookPiece, Do ? rto : rfrom);
@@ -1697,6 +1742,9 @@ bool Position::see_ge(Move m, Value threshold) const {
           || (   extinction_piece_types().find(ALL_PIECES) != extinction_piece_types().end()
               && count<ALL_PIECES>(~sideToMove) == extinction_piece_count() + 1)))
       return extinction_value() < VALUE_ZERO;
+
+  if (must_capture() || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
+      return VALUE_ZERO >= threshold;
 
   int swap = PieceValue[MG][piece_on(to)] - threshold;
   if (swap < 0)

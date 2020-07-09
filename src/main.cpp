@@ -21,12 +21,12 @@
 #include <iostream>
 
 #include "bitboard.h"
+#include "endgame.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
-#include "endgame.h"
 #include "piece.h"
 #include "variant.h"
 #include "syzygy/tbprobe.h"

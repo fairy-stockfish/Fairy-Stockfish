@@ -20,6 +20,7 @@
 #include <string>
 
 #include "evaluate.h"
+#include "misc.h"
 #include "partner.h"
 #include "search.h"
 #include "thread.h"
@@ -109,8 +110,8 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           if (v != "chess")
               vars += "," + v;
       sync_cout << "feature setboard=1 usermove=1 time=1 memory=1 smp=1 colors=0 draw=0 "
-                << "highlight=1 name=0 sigint=0 ping=1 myname=Fairy-Stockfish variants=\""
-                << vars << "\""
+                << "highlight=1 name=0 sigint=0 ping=1 myname=\""
+                << engine_info(false, true) << "\" " << "variants=\"" << vars << "\""
                 << Options << sync_endl;
       sync_cout << "feature done=1" << sync_endl;
   }
@@ -238,7 +239,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       std::getline(is >> std::ws, fen);
       // Check if setboard actually indicates a passing move
       // to avoid unnecessarily clearing the move history
-      if (pos.king_pass())
+      if (pos.pass())
       {
           StateInfo st;
           Position p;

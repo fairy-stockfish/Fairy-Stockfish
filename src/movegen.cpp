@@ -87,7 +87,6 @@ namespace {
   template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
-    // Compute some compile time parameters relative to the white side
     constexpr Color     Them     = (Us == WHITE ? BLACK      : WHITE);
     constexpr Direction Up       = pawn_push(Us);
     constexpr Direction Down     = -pawn_push(Us);
@@ -343,7 +342,7 @@ namespace {
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(&b));
 
         // Passing move by king
-        if (pos.king_pass())
+        if (pos.pass())
             *moveList++ = make<SPECIAL>(ksq, ksq);
 
         if (Type != CAPTURES && pos.can_castle(CastlingRights(OO | OOO)))
@@ -355,6 +354,9 @@ namespace {
                 moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, ksq, pos.castling_rook_square(OOO));
         }
     }
+    // Workaround for passing: Execute a non-move with any piece
+    else if (pos.pass() && !pos.count<KING>(Us) && pos.pieces(Us))
+        *moveList++ = make<SPECIAL>(lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
 
     // Castling with non-king piece
     if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(CastlingRights(OO | OOO)))
@@ -469,7 +471,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   Bitboard sliders = pos.checkers();
 
   // Passing move by king in bikjang
-  if (pos.bikjang() && pos.king_pass())
+  if (pos.bikjang() && pos.pass())
       *moveList++ = make<SPECIAL>(ksq, ksq);
 
   // Consider all evasion moves for special pieces

@@ -78,8 +78,11 @@ namespace {
     template <> bool set(const std::string& value, MaterialCounting& target) {
         target =  value == "janggi"  ? JANGGI_MATERIAL
                 : value == "unweighted" ? UNWEIGHTED_MATERIAL
+                : value == "whitedrawodds" ? WHITE_DRAW_ODDS
+                : value == "blackdrawodds" ? BLACK_DRAW_ODDS
                 : NO_MATERIAL_COUNTING;
-        return value == "janggi" || value == "unweighted" || value == "none";
+        return   value == "janggi" || value == "unweighted"
+              || value == "whitedrawodds" || value == "blackdrawodds" || value == "none";
     }
 
     template <> bool set(const std::string& value, CountingRule& target) {
@@ -249,6 +252,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("firstRankPawnDrops", v->firstRankPawnDrops);
     parse_attribute("promotionZonePawnDrops", v->promotionZonePawnDrops);
     parse_attribute("dropOnTop", v->dropOnTop);
+    parse_attribute("enclosingDrop", v->enclosingDrop);
+    parse_attribute("enclosingDropStart", v->enclosingDropStart);
     parse_attribute("whiteDropRegion", v->whiteDropRegion);
     parse_attribute("blackDropRegion", v->blackDropRegion);
     parse_attribute("sittuyinRookDrop", v->sittuyinRookDrop);
@@ -260,11 +265,12 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("seirawanGating", v->seirawanGating);
     parse_attribute("cambodianMoves", v->cambodianMoves);
     parse_attribute("diagonalLines", v->diagonalLines);
-    parse_attribute("kingPass", v->kingPass);
-    parse_attribute("kingPassOnStalemate", v->kingPassOnStalemate);
+    parse_attribute("pass", v->pass);
+    parse_attribute("passOnStalemate", v->passOnStalemate);
     parse_attribute("makpongRule", v->makpongRule);
     parse_attribute("flyingGeneral", v->flyingGeneral);
     parse_attribute("soldierPromotionRank", v->soldierPromotionRank);
+    parse_attribute("flipEnclosedPieces", v->flipEnclosedPieces);
     // game end
     parse_attribute("nMoveRule", v->nMoveRule);
     parse_attribute("nFoldRule", v->nFoldRule);
@@ -272,6 +278,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("nFoldValueAbsolute", v->nFoldValueAbsolute);
     parse_attribute("perpetualCheckIllegal", v->perpetualCheckIllegal);
     parse_attribute("stalemateValue", v->stalemateValue);
+    parse_attribute("stalematePieceCount", v->stalematePieceCount);
     parse_attribute("checkmateValue", v->checkmateValue);
     parse_attribute("shogiPawnDropMateIllegal", v->shogiPawnDropMateIllegal);
     parse_attribute("shatarMateRule", v->shatarMateRule);

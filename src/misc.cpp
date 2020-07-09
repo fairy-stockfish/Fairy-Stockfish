@@ -47,6 +47,11 @@ typedef bool(*fun3_t)(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY);
 #include <sstream>
 #include <vector>
 
+#if defined(__linux__) && !defined(__ANDROID__)
+#include <stdlib.h>
+#include <sys/mman.h>
+#endif
+
 #include "misc.h"
 #include "thread.h"
 
@@ -56,7 +61,7 @@ namespace {
 
 /// Version number. If Version is left empty, then compile date in the format
 /// DD-MM-YY and show in engine_info.
-const string Version = "11.1";
+const string Version = "";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -128,7 +133,7 @@ public:
 /// the program was compiled) or "Stockfish <Version>", depending on whether
 /// Version is empty.
 
-const string engine_info(bool to_uci) {
+const string engine_info(bool to_uci, bool to_xboard) {
 
   const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
   string month, day, year;
@@ -147,9 +152,11 @@ const string engine_info(bool to_uci) {
 #endif
 
   ss << (Is64Bit ? " 64" : "")
-     << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
-     << (to_uci  ? "\nid author ": " by ")
-     << "Fabian Fichter";
+     << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""));
+
+  if (!to_xboard)
+    ss << (to_uci  ? "\nid author ": " by ")
+       << "Fabian Fichter";
 
   return ss.str();
 }
@@ -159,9 +166,9 @@ const string engine_info(bool to_uci) {
 
 const std::string compiler_info() {
 
-  #define STRINGIFY2(x) #x
-  #define STRINGIFY(x) STRINGIFY2(x)
-  #define VER_STRING(major, minor, patch) STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
+  #define stringify2(x) #x
+  #define stringify(x) stringify2(x)
+  #define make_version_string(major, minor, patch) stringify(major) "." stringify(minor) "." stringify(patch)
 
 /// Predefined macros hell:
 ///
@@ -175,26 +182,26 @@ const std::string compiler_info() {
 
   #ifdef __clang__
      compiler += "clang++ ";
-     compiler += VER_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
+     compiler += make_version_string(__clang_major__, __clang_minor__, __clang_patchlevel__);
   #elif __INTEL_COMPILER
      compiler += "Intel compiler ";
      compiler += "(version ";
-     compiler += STRINGIFY(__INTEL_COMPILER) " update " STRINGIFY(__INTEL_COMPILER_UPDATE);
+     compiler += stringify(__INTEL_COMPILER) " update " stringify(__INTEL_COMPILER_UPDATE);
      compiler += ")";
   #elif _MSC_VER
      compiler += "MSVC ";
      compiler += "(version ";
-     compiler += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
+     compiler += stringify(_MSC_FULL_VER) "." stringify(_MSC_BUILD);
      compiler += ")";
   #elif __GNUC__
      compiler += "g++ (GNUC) ";
-     compiler += VER_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+     compiler += make_version_string(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
   #else
      compiler += "Unknown compiler ";
      compiler += "(unknown version)";
   #endif
 
-  #if defined(__APPLE__) 
+  #if defined(__APPLE__)
      compiler += " on Apple";
   #elif defined(__CYGWIN__)
      compiler += " on Cygwin";
@@ -291,6 +298,35 @@ void prefetch(void* addr) {
 }
 
 #endif
+
+
+/// aligned_ttmem_alloc will return suitably aligned memory, and if possible use large pages.
+/// The returned pointer is the aligned one, while the mem argument is the one that needs to be passed to free.
+/// With c++17 some of this functionality can be simplified.
+#if defined(__linux__) && !defined(__ANDROID__)
+
+void* aligned_ttmem_alloc(size_t allocSize, void*& mem) {
+
+  constexpr size_t alignment = 2 * 1024 * 1024; // assumed 2MB page sizes
+  size_t size = ((allocSize + alignment - 1) / alignment) * alignment; // multiple of alignment
+  mem = aligned_alloc(alignment, size);
+  madvise(mem, allocSize, MADV_HUGEPAGE);
+  return mem;
+}
+
+#else
+
+void* aligned_ttmem_alloc(size_t allocSize, void*& mem) {
+
+  constexpr size_t alignment = 64; // assumed cache line size
+  size_t size = allocSize + alignment - 1; // allocate some extra space
+  mem = malloc(size);
+  void* ret = reinterpret_cast<void*>((uintptr_t(mem) + alignment - 1) & ~uintptr_t(alignment - 1));
+  return ret;
+}
+
+#endif
+
 
 namespace WinProcGroup {
 

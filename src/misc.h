@@ -29,10 +29,11 @@
 
 #include "types.h"
 
-const std::string engine_info(bool to_uci = false);
+const std::string engine_info(bool to_uci = false, bool to_xboard = false);
 const std::string compiler_info();
 void prefetch(void* addr);
 void start_logger(const std::string& fname);
+void* aligned_ttmem_alloc(size_t size, void*& mem);
 
 void dbg_hit_on(bool b);
 void dbg_hit_on(bool c, bool b);
