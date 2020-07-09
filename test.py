@@ -123,6 +123,10 @@ variant_positions = {
 
 
 class TestPyffish(unittest.TestCase):
+    def test_version(self):
+        result = sf.version()
+        self.assertEqual(result, (0, 0, 51))
+
     def test_info(self):
         result = sf.info()
         self.assertTrue(result.startswith("Fairy-Stockfish"))
