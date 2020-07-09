@@ -49,6 +49,10 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
     return;
 }
 
+extern "C" PyObject* pyffish_version(PyObject* self) {
+    return Py_BuildValue("(iii)", 0, 0, 51);
+}
+
 extern "C" PyObject* pyffish_info(PyObject* self) {
     return Py_BuildValue("s", engine_info().c_str());
 }
@@ -286,6 +290,7 @@ extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *a
 
 
 static PyMethodDef PyFFishMethods[] = {
+    {"version", (PyCFunction)pyffish_version, METH_NOARGS, "Get package version."},
     {"info", (PyCFunction)pyffish_info, METH_NOARGS, "Get Stockfish version info."},
     {"set_option", (PyCFunction)pyffish_setOption, METH_VARARGS, "Set UCI option."},
     {"start_fen", (PyCFunction)pyffish_startFen, METH_VARARGS, "Get starting position FEN."},
