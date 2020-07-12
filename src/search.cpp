@@ -1566,8 +1566,9 @@ moves_loop: // When in check, search starts from here
       // Futility pruning
       if (   !inCheck
           && !givesCheck
-          && !(   pos.extinction_value() == -VALUE_MATE
-               && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
+          && !(   pos.extinction_value() != VALUE_NONE
+               && pos.piece_on(to_sq(move))
+               && pos.extinction_piece_types().find(type_of(pos.piece_on(to_sq(move)))) != pos.extinction_piece_types().end())
           &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.advanced_pawn_push(move))
       {
