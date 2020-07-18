@@ -216,7 +216,7 @@ Score Entry::evaluate_shelter(const Position& pos, Square ksq) {
 
   Score bonus = make_score(5, 5);
 
-  File center = clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1));
+  File center = Utility::clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1));
   for (File f = File(center - 1); f <= File(center + 1); ++f)
   {
       b = ourPawns & file_bb(f);

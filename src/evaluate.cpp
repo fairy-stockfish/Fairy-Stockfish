@@ -266,8 +266,8 @@ namespace {
         kingRing[Us] = Bitboard(0);
     else
     {
-        Square s = make_square(clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1)),
-                               clamp(rank_of(ksq), RANK_2, Rank(pos.max_rank() - 1)));
+        Square s = make_square(Utility::clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1)),
+                               Utility::clamp(rank_of(ksq), RANK_2, Rank(pos.max_rank() - 1)));
         kingRing[Us] = PseudoAttacks[Us][KING][s] | s;
     }
 
