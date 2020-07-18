@@ -125,6 +125,8 @@ namespace {
                 || (   stoppers == blocked && r >= RANK_5
                     && (shift<Up>(support) & ~(theirPawns | doubleAttackThem)));
 
+        passed &= !(forward_file_bb(Us, s) & ourPawns);
+
         // Passed pawns will be properly scored later in evaluation when we have
         // full attack info.
         if (passed && is_ok(s + Up) && (r < pos.promotion_rank() || !pos.mandatory_pawn_promotion()))
