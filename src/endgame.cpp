@@ -67,9 +67,9 @@ namespace {
     100, 90, 80, 70, 70, 80, 90, 100
   };
 
-  // Tables used to drive a piece towards or away from another piece
-  constexpr int PushClose[FILE_NB] = { 0, 0, 100, 80, 60, 40, 20, 10 };
-  constexpr int PushAway [FILE_NB] = { 0, 5, 20, 40, 60, 80, 90, 100 };
+  // Drive a piece close to or away from another piece
+  inline int push_close(Square s1, Square s2) { return 140 - 20 * distance(s1, s2); }
+  inline int push_away(Square s1, Square s2) { return 120 - push_close(s1, s2); }
 
   // Pawn Rank based scaling factors used in KRPPKRP endgame
   constexpr int KRPPKRPScaleFactors[RANK_NB] = { 0, 9, 10, 14, 21, 44, 0, 0 };
@@ -158,7 +158,7 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
   Value result =  pos.non_pawn_material(strongSide)
                 + pos.count<PAWN>(strongSide) * PawnValueEg
                 + PushToEdges[map_to_standard_board(pos, loserKSq)]
-                + PushClose[distance(winnerKSq, loserKSq)];
+                + push_close(winnerKSq, loserKSq);
 
   if (   pos.count<QUEEN>(strongSide)
       || pos.count<ROOK>(strongSide)
@@ -194,7 +194,7 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
   // to drive to opposite corners (A8/H1).
 
   Value result =  VALUE_KNOWN_WIN
-                + PushClose[distance(winnerKSq, loserKSq)]
+                + push_close(winnerKSq, loserKSq)
                 + PushToCorners[map_to_standard_board(pos, relative_square(opposite_colors(bishopSq, SQ_A1) ? BLACK : WHITE, loserKSq, pos.max_rank()))];
 
   assert(abs(result) < VALUE_TB_WIN_IN_MAX_PLY);
@@ -304,7 +304,7 @@ Value Endgame<KRKN>::operator()(const Position& pos) const {
 
   Square bksq = pos.square<KING>(weakSide);
   Square bnsq = pos.square<KNIGHT>(weakSide);
-  Value result = Value(PushToEdges[map_to_standard_board(pos, bksq)] + PushAway[distance(bksq, bnsq)]);
+  Value result = Value(PushToEdges[map_to_standard_board(pos, bksq)] + push_away(bksq, bnsq));
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
@@ -323,7 +323,7 @@ Value Endgame<KQKP>::operator()(const Position& pos) const {
   Square loserKSq = pos.square<KING>(weakSide);
   Square pawnSq = pos.square<PAWN>(weakSide);
 
-  Value result = Value(PushClose[distance(winnerKSq, loserKSq)]);
+  Value result = Value(push_close(winnerKSq, loserKSq));
 
   if (   relative_rank(weakSide, pawnSq) != RANK_7
       || distance(loserKSq, pawnSq) != 1
@@ -350,7 +350,7 @@ Value Endgame<KQKR>::operator()(const Position& pos) const {
   Value result =  QueenValueEg
                 - RookValueEg
                 + PushToEdges[map_to_standard_board(pos, loserKSq)]
-                + PushClose[distance(winnerKSq, loserKSq)];
+                + push_close(winnerKSq, loserKSq);
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -388,7 +388,7 @@ Value Endgame<KFsPsK>::operator()(const Position& pos) const {
   Value result =  pos.non_pawn_material(strongSide)
                 + pos.count<PAWN>(strongSide) * PawnValueEg
                 + PushToEdges[map_to_standard_board(pos, loserKSq)]
-                + PushClose[distance(winnerKSq, loserKSq)];
+                + push_close(winnerKSq, loserKSq);
 
   if (   pos.count<FERS>(strongSide) >= 3
       && ( DarkSquares & pos.pieces(strongSide, FERS))
@@ -429,7 +429,7 @@ Value Endgame<KNSK>::operator()(const Position& pos) const {
   Square loserKSq = pos.square<KING>(weakSide);
 
   Value result =  VALUE_KNOWN_WIN
-                + PushClose[distance(winnerKSq, loserKSq)]
+                + push_close(winnerKSq, loserKSq)
                 + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
 
   return strongSide == pos.side_to_move() ? result : -result;
@@ -457,7 +457,7 @@ Value Endgame<KNFK>::operator()(const Position& pos) const {
       loserKSq  = relative_square(BLACK, loserKSq, pos.max_rank());
   }
 
-  Value result =  Value(PushClose[distance(winnerKSq, loserKSq)])
+  Value result =  Value(push_close(winnerKSq, loserKSq))
                 + (PushToCorners[map_to_standard_board(pos, loserKSq)] - 3000) / 10;
 
   return strongSide == pos.side_to_move() ? result : -result;
@@ -475,7 +475,7 @@ Value Endgame<KNSFKR>::operator()(const Position& pos) const {
   Square loserKSq = pos.square<KING>(weakSide);
 
   Value result =  KnightValueEg + SilverValueEg + FersValueEg - RookValueEg
-                + PushClose[distance(winnerKSq, loserKSq)]
+                + push_close(winnerKSq, loserKSq)
                 + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
 
   return strongSide == pos.side_to_move() ? result : -result;
@@ -493,7 +493,7 @@ Value Endgame<KSFK>::operator()(const Position& pos) const {
   Square loserKSq = pos.square<KING>(weakSide);
 
   Value result =  VALUE_KNOWN_WIN
-                + PushClose[distance(winnerKSq, loserKSq)]
+                + push_close(winnerKSq, loserKSq)
                 + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
 
   return strongSide == pos.side_to_move() ? result : -result;
@@ -512,8 +512,8 @@ Value Endgame<KSFKF>::operator()(const Position& pos) const {
   Square fersSq = pos.square<FERS>(weakSide);
 
   Value result =  SilverValueEg
-                + PushClose[distance(winnerKSq, loserKSq)]
-                + PushAway[distance(fersSq, loserKSq)]
+                + push_close(winnerKSq, loserKSq)
+                + push_away(fersSq, loserKSq)
                 + PushToOpposingSideEdges[map_to_standard_board(pos, relative_square(strongSide, loserKSq, pos.max_rank()))];
 
   return strongSide == pos.side_to_move() ? result : -result;
@@ -533,7 +533,7 @@ Value Endgame<KRKS>::operator()(const Position& pos) const {
   Value result =  RookValueEg
                 - SilverValueEg
                 + PushToEdges[map_to_standard_board(pos, loserKSq)]
-                + PushClose[distance(winnerKSq, loserKSq)];
+                + push_close(winnerKSq, loserKSq);
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
