@@ -352,6 +352,8 @@ template<> inline int distance<File>(Square x, Square y) { return std::abs(file_
 template<> inline int distance<Rank>(Square x, Square y) { return std::abs(rank_of(x) - rank_of(y)); }
 template<> inline int distance<Square>(Square x, Square y) { return SquareDistance[x][y]; }
 
+inline File edge_distance(File f, File maxFile = FILE_H) { return std::min(f, File(maxFile - f)); }
+inline Rank edge_distance(Rank r, Rank maxRank = RANK_8) { return std::min(r, Rank(maxRank - r)); }
 
 
 template<RiderType R>

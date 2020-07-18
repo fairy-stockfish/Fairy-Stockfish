@@ -820,7 +820,7 @@ namespace {
             || (pos.pieces(PAWN) & (s + Up)))
             bonus = bonus / 2;
 
-        score += bonus - PassedFile * std::min(file_of(s), File(pos.max_file() - file_of(s)));
+        score += bonus - PassedFile * edge_distance(file_of(s), pos.max_file());
     }
 
     // Scale by maximum promotion piece value
