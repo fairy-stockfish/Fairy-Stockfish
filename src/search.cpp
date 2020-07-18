@@ -1102,10 +1102,9 @@ moves_loop: // When in check, search starts from here
                   && !(   pos.extinction_value() == -VALUE_MATE
                        && pos.extinction_piece_types().find(ALL_PIECES) == pos.extinction_piece_types().end())
                   && ss->staticEval + (235 + 172 * lmrDepth) * (1 + pos.check_counting()) <= alpha
-                  &&  thisThread->mainHistory[us][from_to(move)]
-                    + (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
+                  &&  (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
                     + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
-                    + (*contHist[3])[history_slot(movedPiece)][to_sq(move)] < 25000)
+                    + (*contHist[3])[history_slot(movedPiece)][to_sq(move)] < 27400)
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
@@ -1259,13 +1258,6 @@ moves_loop: // When in check, search starts from here
                              + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
                              + (*contHist[3])[history_slot(movedPiece)][to_sq(move)]
                              - 4926;
-
-              // Reset statScore to zero if negative and most stats shows >= 0
-              if (    ss->statScore < 0
-                  && (*contHist[0])[history_slot(movedPiece)][to_sq(move)] >= 0
-                  && (*contHist[1])[history_slot(movedPiece)][to_sq(move)] >= 0
-                  && thisThread->mainHistory[us][from_to(move)] >= 0)
-                  ss->statScore = 0;
 
               // Decrease/increase reduction by comparing opponent's stat score (~10 Elo)
               if (ss->statScore >= -102 && (ss-1)->statScore < -114)
