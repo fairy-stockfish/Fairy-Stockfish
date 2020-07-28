@@ -47,12 +47,13 @@ namespace {
 
   // setboard() is called when engine receives the "setboard" XBoard command.
 
-  void setboard(Position& pos, StateListPtr& states, std::string fen = "") {
+  void setboard(Position& pos, std::deque<Move>& moveList, StateListPtr& states, std::string fen = "") {
 
     if (fen.empty())
         fen = variants.find(Options["UCI_Variant"])->second->startFen;
 
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
+    moveList.clear();
     pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), Threads.main());
   }
 
@@ -173,7 +174,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   else if (token == "new")
   {
       Search::clear();
-      setboard(pos, states);
+      setboard(pos, moveList, states);
       // play second by default
       playColor = ~pos.side_to_move();
       Threads.sit = false;
@@ -183,7 +184,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   {
       if (is >> token)
           Options["UCI_Variant"] = token;
-      setboard(pos, states);
+      setboard(pos, moveList, states);
   }
   else if (token == "force")
       playColor = COLOR_NB;
@@ -250,10 +251,10 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
               do_move(pos, moveList, states, m);
           // apply setboard if passing does not lead to a match
           if (pos.key() != p.key())
-              setboard(pos, states, fen);
+              setboard(pos, moveList, states, fen);
       }
       else
-          setboard(pos, states, fen);
+          setboard(pos, moveList, states, fen);
       // Winboard sends setboard after passing moves
       if (pos.side_to_move() == playColor)
       {
@@ -348,7 +349,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
               std::transform(black_holdings.begin(), black_holdings.end(), black_holdings.begin(), ::tolower);
               fen = pos.fen(false, false, 0, white_holdings + black_holdings);
           }
-          setboard(pos, states, fen);
+          setboard(pos, moveList, states, fen);
       }
       // restart search
       if (moveAfterSearch)
