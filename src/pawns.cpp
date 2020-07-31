@@ -125,6 +125,8 @@ namespace {
                 || (   stoppers == blocked && r >= RANK_5
                     && (shift<Up>(support) & ~(theirPawns | doubleAttackThem)));
 
+        passed &= !(forward_file_bb(Us, s) & ourPawns);
+
         // Passed pawns will be properly scored later in evaluation when we have
         // full attack info.
         if (passed && is_ok(s + Up) && (r < pos.promotion_rank() || !pos.mandatory_pawn_promotion()))
@@ -216,7 +218,7 @@ Score Entry::evaluate_shelter(const Position& pos, Square ksq) {
 
   Score bonus = make_score(5, 5);
 
-  File center = clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1));
+  File center = Utility::clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1));
   for (File f = File(center - 1); f <= File(center + 1); ++f)
   {
       b = ourPawns & file_bb(f);
@@ -225,7 +227,7 @@ Score Entry::evaluate_shelter(const Position& pos, Square ksq) {
       b = theirPawns & file_bb(f);
       int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : 0;
 
-      int d = std::min(std::min(f, File(pos.max_file() - f)), FILE_D);
+      int d = std::min(edge_distance(f, pos.max_file()), FILE_D);
       bonus += make_score(ShelterStrength[d][ourRank], 0) * (1 + (pos.captures_to_hand() && ourRank <= RANK_2)
                                                                + (pos.check_counting() && d == 0 && ourRank == RANK_2));
 

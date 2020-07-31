@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include "types.h"
+#include "bitboard.h"
 #include "piece.h"
 #include "variant.h"
 
@@ -178,7 +179,7 @@ void init(const Variant* v) {
 
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
-          File f = std::max(std::min(file_of(s), File(v->maxFile - file_of(s))), FILE_A);
+          File f = std::max(edge_distance(file_of(s), v->maxFile), FILE_A);
           Rank r = rank_of(s);
           psq[ pc][ s] = score + (  pt == PAWN  ? PBonus[std::min(r, RANK_8)][std::min(file_of(s), FILE_H)]
                                   : pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
