@@ -76,7 +76,7 @@ struct Variant {
   bool firstRankPawnDrops = false;
   bool promotionZonePawnDrops = false;
   bool dropOnTop = false;
-  bool enclosingDrop = false;
+  EnclosingRule enclosingDrop = NO_ENCLOSING;
   Bitboard enclosingDropStart = 0;
   Bitboard whiteDropRegion = AllSquares;
   Bitboard blackDropRegion = AllSquares;
@@ -94,7 +94,7 @@ struct Variant {
   bool makpongRule = false;
   bool flyingGeneral = false;
   Rank soldierPromotionRank = RANK_1;
-  bool flipEnclosedPieces = false;
+  EnclosingRule flipEnclosedPieces = NO_ENCLOSING;
   // game end
   int nMoveRule = 50;
   int nFoldRule = 3;

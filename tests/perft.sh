@@ -62,6 +62,8 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp sittuyin "fen 8/6s1/5P2/3n4/pR2K2S/1P6/1k4p1/8[] w - - 1 50" 4 268869 > /dev/null
   expect perft.exp seirawan startpos 5 27639803 > /dev/null
   expect perft.exp seirawan "fen reb1k2r/ppppqppp/2nb1n2/4p3/4P3/N1P2N2/PB1PQPPP/RE2KBHR[h] b KQkqc - 3 7" 5 31463761 > /dev/null
+  expect perft.exp ataxx startpos 4 155888 > /dev/null
+  expect perft.exp ataxx "fen 7/7/7/7/ppppppp/ppppppp/PPPPPPP[PPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppp] w 0 1" 5 452980 > /dev/null
 fi
 
 # large-board variants

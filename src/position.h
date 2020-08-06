@@ -133,7 +133,7 @@ public:
   bool captures_to_hand() const;
   bool first_rank_pawn_drops() const;
   bool drop_on_top() const;
-  bool enclosing_drop() const;
+  EnclosingRule enclosing_drop() const;
   Bitboard drop_region(Color c) const;
   Bitboard drop_region(Color c, PieceType pt) const;
   bool sittuyin_rook_drop() const;
@@ -149,7 +149,7 @@ public:
   bool pass_on_stalemate() const;
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
-  bool flip_enclosed_pieces() const;
+  EnclosingRule flip_enclosed_pieces() const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -511,7 +511,7 @@ inline bool Position::drop_on_top() const {
   return var->dropOnTop;
 }
 
-inline bool Position::enclosing_drop() const {
+inline EnclosingRule Position::enclosing_drop() const {
   assert(var != nullptr);
   return var->enclosingDrop;
 }
@@ -552,17 +552,29 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
           b &= var->enclosingDropStart;
       else
       {
-          Bitboard theirs = pieces(~c);
-          b &=  shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
-              | shift<NORTH_EAST>(theirs) | shift<SOUTH_WEST>(theirs)
-              | shift<EAST      >(theirs) | shift<WEST      >(theirs)
-              | shift<SOUTH_EAST>(theirs) | shift<NORTH_WEST>(theirs);
-          Bitboard b2 = b;
-          while (b2)
+          if (enclosing_drop() == REVERSI)
           {
-              Square s = pop_lsb(&b2);
-              if (!(attacks_bb(c, QUEEN, s, board_bb() & ~pieces(~c)) & ~PseudoAttacks[c][KING][s] & pieces(c)))
-                  b ^= s;
+              Bitboard theirs = pieces(~c);
+              b &=  shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
+                  | shift<NORTH_EAST>(theirs) | shift<SOUTH_WEST>(theirs)
+                  | shift<EAST      >(theirs) | shift<WEST      >(theirs)
+                  | shift<SOUTH_EAST>(theirs) | shift<NORTH_WEST>(theirs);
+              Bitboard b2 = b;
+              while (b2)
+              {
+                  Square s = pop_lsb(&b2);
+                  if (!(attacks_bb(c, QUEEN, s, board_bb() & ~pieces(~c)) & ~PseudoAttacks[c][KING][s] & pieces(c)))
+                      b ^= s;
+              }
+          }
+          else
+          {
+              assert(enclosing_drop() == ATAXX);
+              Bitboard ours = pieces(c);
+              b &=  shift<NORTH     >(ours) | shift<SOUTH     >(ours)
+                  | shift<NORTH_EAST>(ours) | shift<SOUTH_WEST>(ours)
+                  | shift<EAST      >(ours) | shift<WEST      >(ours)
+                  | shift<SOUTH_EAST>(ours) | shift<NORTH_WEST>(ours);
           }
       }
   }
@@ -645,7 +657,7 @@ inline int Position::n_fold_rule() const {
   return var->nFoldRule;
 }
 
-inline bool Position::flip_enclosed_pieces() const {
+inline EnclosingRule Position::flip_enclosed_pieces() const {
   assert(var != nullptr);
   return var->flipEnclosedPieces;
 }
