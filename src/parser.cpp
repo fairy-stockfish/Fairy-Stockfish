@@ -92,6 +92,13 @@ namespace {
         return value == "makruk" || value == "asean" || value == "none";
     }
 
+    template <> bool set(const std::string& value, EnclosingRule& target) {
+        target =  value == "reversi"  ? REVERSI
+                : value == "ataxx" ? ATAXX
+                : NO_ENCLOSING;
+        return value == "reversi" || value == "ataxx" || value == "none";
+    }
+
     template <> bool set(const std::string& value, Bitboard& target) {
         char file;
         int rank;
