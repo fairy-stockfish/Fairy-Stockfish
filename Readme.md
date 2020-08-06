@@ -54,6 +54,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Dobutsu shogi](https://en.wikipedia.org/wiki/Dōbutsu_shōgi), [Goro goro shogi](https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi#Variation)
 
 ### Related games
+- [Ataxx](https://en.wikipedia.org/wiki/Ataxx)
 - [Breakthrough](https://en.wikipedia.org/wiki/Breakthrough_(board_game))
 - [Clobber](https://en.wikipedia.org/wiki/Clobber)
 
