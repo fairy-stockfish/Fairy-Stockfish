@@ -281,13 +281,6 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections);
 #endif
 
-  // Helper returning the target bitboard of a step from a square
-  auto landing_square_bb = [&](Square s, int step)
-  {
-      Square to = Square(s + step);
-      return is_ok(to) && distance(s, to) < 4 ? square_bb(to) : Bitboard(0);
-  };
-
   for (Color c : { WHITE, BLACK })
       for (PieceType pt = PAWN; pt <= KING; ++pt)
       {
@@ -297,15 +290,15 @@ void Bitboards::init() {
           {
               for (Direction d : pi->stepsCapture)
               {
-                  PseudoAttacks[c][pt][s] |= landing_square_bb(s, c == WHITE ? d : -d);
+                  PseudoAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
                   if (!pi->lameLeaper)
-                      LeaperAttacks[c][pt][s] |= landing_square_bb(s, c == WHITE ? d : -d);
+                      LeaperAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
               }
               for (Direction d : pi->stepsQuiet)
               {
-                  PseudoMoves[c][pt][s] |= landing_square_bb(s, c == WHITE ? d : -d);
+                  PseudoMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
                   if (!pi->lameLeaper)
-                      LeaperMoves[c][pt][s] |= landing_square_bb(s, c == WHITE ? d : -d);
+                      LeaperMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
               }
               PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->sliderCapture, s, 0, c);
               PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->hopperCapture, s, 0, c);

@@ -157,7 +157,7 @@ constexpr Bitboard make_bitboard(Square s, Squares... squares) {
 }
 
 inline Bitboard square_bb(Square s) {
-  assert(s >= SQ_A1 && s <= SQ_MAX);
+  assert(is_ok(s));
   return SquareBB[s];
 }
 
@@ -177,7 +177,7 @@ inline Bitboard  operator&(Square s, Bitboard b) { return b & s; }
 inline Bitboard  operator|(Square s, Bitboard b) { return b | s; }
 inline Bitboard  operator^(Square s, Bitboard b) { return b ^ s; }
 
-inline Bitboard  operator|(Square s, Square s2) { return square_bb(s) | square_bb(s2); }
+inline Bitboard  operator|(Square s, Square s2) { return square_bb(s) | s2; }
 
 constexpr bool more_than_one(Bitboard b) {
   return b & (b - 1);
@@ -292,8 +292,8 @@ inline Bitboard between_bb(Square s1, Square s2, PieceType pt) {
 /// forward_ranks_bb(BLACK, SQ_D3) will return the 16 squares on ranks 1 and 2.
 
 inline Bitboard forward_ranks_bb(Color c, Square s) {
-  return c == WHITE ? (AllSquares ^ Rank1BB) << FILE_NB * (rank_of(s) - RANK_1)
-                    : (AllSquares ^ rank_bb(RANK_MAX)) >> FILE_NB * (RANK_MAX - rank_of(s));
+  return c == WHITE ? (AllSquares ^ Rank1BB) << FILE_NB * relative_rank(WHITE, s, RANK_MAX)
+                    : (AllSquares ^ rank_bb(RANK_MAX)) >> FILE_NB * relative_rank(BLACK, s, RANK_MAX);
 }
 
 inline Bitboard forward_ranks_bb(Color c, Rank r) {
@@ -352,9 +352,16 @@ template<> inline int distance<File>(Square x, Square y) { return std::abs(file_
 template<> inline int distance<Rank>(Square x, Square y) { return std::abs(rank_of(x) - rank_of(y)); }
 template<> inline int distance<Square>(Square x, Square y) { return SquareDistance[x][y]; }
 
-inline File edge_distance(File f, File maxFile = FILE_H) { return std::min(f, File(maxFile - f)); }
-inline Rank edge_distance(Rank r, Rank maxRank = RANK_8) { return std::min(r, Rank(maxRank - r)); }
+inline int edge_distance(File f, File maxFile = FILE_H) { return std::min(f, File(maxFile - f)); }
+inline int edge_distance(Rank r, Rank maxRank = RANK_8) { return std::min(r, Rank(maxRank - r)); }
 
+/// Return the target square bitboard if we do not step off the board, empty otherwise
+
+inline Bitboard safe_destination(Square s, int step)
+{
+    Square to = Square(s + step);
+    return is_ok(to) && distance(s, to) <= 3 ? square_bb(to) : Bitboard(0);
+}
 
 template<RiderType R>
 inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
