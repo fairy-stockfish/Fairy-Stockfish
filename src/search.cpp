@@ -980,8 +980,12 @@ namespace {
         MovePicker mp(pos, ttMove, raisedBeta - ss->staticEval, &captureHistory);
         int probCutCount = 0;
 
-        while (  (move = mp.next_move()) != MOVE_NONE
-               && probCutCount < 2 + 2 * cutNode)
+        while (   (move = mp.next_move()) != MOVE_NONE
+               && probCutCount < 2 + 2 * cutNode
+               && !(   move == ttMove
+                    && (tte->bound() & BOUND_LOWER)
+                    && tte->depth() >= depth - 4
+                    && ttValue < raisedBeta))
             if (move != excludedMove && pos.legal(move))
             {
                 assert(pos.capture_or_promotion(move));
@@ -1187,6 +1191,12 @@ moves_loop: // When in check, search starts from here
       // Castling extension
       if (type_of(move) == CASTLING)
           extension = 1;
+
+      // Late irreversible move extension
+      if (   move == ttMove
+          && pos.rule50_count() > 80
+          && (captureOrPromotion || type_of(movedPiece) == PAWN))
+          extension = 2;
 
       // Losing chess capture extension
       else if (    pos.must_capture()
@@ -1477,7 +1487,7 @@ moves_loop: // When in check, search starts from here
     Move ttMove, move, bestMove;
     Depth ttDepth;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
-    bool ttHit, pvHit, inCheck, givesCheck, captureOrPromotion, evasionPrunable;
+    bool ttHit, pvHit, inCheck, givesCheck, captureOrPromotion;
     int moveCount;
 
     if (PvNode)
@@ -1612,14 +1622,8 @@ moves_loop: // When in check, search starts from here
           }
       }
 
-      // Detect non-capture evasions that are candidates to be pruned
-      evasionPrunable =    inCheck
-                       &&  (depth != 0 || moveCount > 2)
-                       &&  bestValue > VALUE_TB_LOSS_IN_MAX_PLY
-                       && !pos.capture(move);
-
       // Don't search moves with negative SEE values
-      if (  (!inCheck || evasionPrunable) && !pos.see_ge(move))
+      if (  !inCheck && !pos.see_ge(move))
           continue;
 
       // Speculative prefetch as early as possible

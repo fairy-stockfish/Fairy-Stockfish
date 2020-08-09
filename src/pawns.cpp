@@ -86,6 +86,7 @@ namespace {
     e->passedPawns[Us] = 0;
     e->kingSquares[Us] = SQ_NONE;
     e->pawnAttacks[Us] = e->pawnAttacksSpan[Us] = pawn_attacks_bb<Us>(ourPawns);
+    e->blockedCount[Us] = 0;
 
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
@@ -105,6 +106,8 @@ namespace {
         phalanx    = neighbours & rank_bb(s);
         support    = r > RANK_1 ? neighbours & rank_bb(s - Up) : Bitboard(0);
 
+        e->blockedCount[Us] += blocked || more_than_one(leverPush);
+
         // A pawn is backward when it is behind all pawns of the same color on
         // the adjacent files and cannot safely advance.
         backward =   is_ok(s + Up)
@@ -119,6 +122,7 @@ namespace {
         // (a) there is no stoppers except some levers
         // (b) the only stoppers are the leverPush, but we outnumber them
         // (c) there is only one front stopper which can be levered.
+        //     (Refined in Evaluation::passed)
         passed =   !(stoppers ^ lever)
                 || (   !(stoppers ^ leverPush)
                     && popcount(phalanx) >= popcount(leverPush))
@@ -135,7 +139,7 @@ namespace {
         // Score this pawn
         if ((support | phalanx) && (r < pos.promotion_rank() || !pos.mandatory_pawn_promotion()))
         {
-            int v =  Connected[r] * (2 + bool(phalanx) - bool(opposed)) * (r == RANK_2 && pos.captures_to_hand() ? 3 : 1)
+            int v =  Connected[r] * (4 + 2 * bool(phalanx) - 2 * bool(opposed) - bool(blocked)) / 2 * (r == RANK_2 && pos.captures_to_hand() ? 3 : 1)
                    + 21 * popcount(support);
             if (r >= RANK_4 && pos.count<PAWN>(Us) > popcount(pos.board_bb()) / 4)
                 v = popcount(support | phalanx) * 50 / (opposed ? 2 : 1);
