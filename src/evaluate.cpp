@@ -507,16 +507,17 @@ namespace {
                         & ~(b1 & attackedBy[Them][ROOK]);
 
             if (queenChecks)
-                kingDanger += QueenSafeCheck;
+                kingDanger += more_than_one(queenChecks) ? QueenSafeCheck * 3/2
+                                                         : QueenSafeCheck;
             break;
         case ROOK:
         case BISHOP:
         case KNIGHT:
             knightChecks = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(Them, pt) & pos.board_bb();
             if (knightChecks & safe)
-                kingDanger +=  pt == ROOK   ? RookSafeCheck
+                kingDanger += (pt == ROOK   ? RookSafeCheck
                              : pt == BISHOP ? BishopSafeCheck
-                                            : KnightSafeCheck;
+                                            : KnightSafeCheck) * (more_than_one(knightChecks & safe) ? 3 : 2) / 2;
             else
                 unsafeChecks |= knightChecks;
             break;
@@ -536,7 +537,7 @@ namespace {
         default:
             otherChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & get_attacks(Them, pt) & pos.board_bb();
             if (otherChecks & safe)
-                kingDanger += OtherSafeCheck;
+                kingDanger += OtherSafeCheck * (more_than_one(otherChecks & safe) ? 3 : 2) / 2;
             else
                 unsafeChecks |= otherChecks;
         }
@@ -1119,11 +1120,16 @@ namespace {
     // If scale is not already specific, scale down the endgame via general heuristics
     if (sf == SCALE_FACTOR_NORMAL && !pos.captures_to_hand())
     {
-        if (   pos.opposite_bishops()
-            && pos.non_pawn_material() == 2 * BishopValueMg)
-            sf = 22;
+        if (pos.opposite_bishops())
+        {
+            if (   pos.non_pawn_material(WHITE) == BishopValueMg
+                && pos.non_pawn_material(BLACK) == BishopValueMg)
+                sf = 22;
+            else
+                sf = 22 + 3 * pos.count<ALL_PIECES>(strongSide);
+        }
         else
-            sf = std::min(sf, 36 + (pos.opposite_bishops() ? 2 : 7) * (pos.count<PAWN>(strongSide) + pos.count<SOLDIER>(strongSide)));
+            sf = std::min(sf, 36 + 7 * (pos.count<PAWN>(strongSide) + pos.count<SOLDIER>(strongSide)));
 
         sf = std::max(0, sf - (pos.rule50_count() - 12) / 4);
     }
