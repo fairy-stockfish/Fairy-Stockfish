@@ -282,6 +282,10 @@ enum CountingRule {
   NO_COUNTING, MAKRUK_COUNTING, ASEAN_COUNTING
 };
 
+enum EnclosingRule {
+  NO_ENCLOSING, REVERSI, ATAXX
+};
+
 enum Phase {
   PHASE_ENDGAME,
   PHASE_MIDGAME = 128,
@@ -312,11 +316,11 @@ enum Value : int {
   VALUE_NONE      = 32002,
 
   VALUE_TB_WIN_IN_MAX_PLY  =  VALUE_MATE - 2 * MAX_PLY,
-  VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
+  VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY,
   VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - MAX_PLY,
-  VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + MAX_PLY,
+  VALUE_MATED_IN_MAX_PLY = -VALUE_MATE_IN_MAX_PLY,
 
-  PawnValueMg   = 128,   PawnValueEg   = 213,
+  PawnValueMg   = 124,   PawnValueEg   = 206,
   KnightValueMg = 781,   KnightValueEg = 854,
   BishopValueMg = 825,   BishopValueEg = 915,
   RookValueMg   = 1276,  RookValueEg   = 1380,
@@ -343,6 +347,7 @@ enum Value : int {
   ClobberPieceValueMg      = 300,   ClobberPieceValueEg      = 300,
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
   ImmobilePieceValueMg     = 50,    ImmobilePieceValueEg     = 50,
+  AtaxxPieceValueMg        = 100,   AtaxxPieceValueEg        = 100,
   CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
   JanggiCannonPieceValueMg = 800,   JanggiCannonPieceValueEg = 600,
   SoldierValueMg           = 200,   SoldierValueEg           = 270,
@@ -365,7 +370,7 @@ enum PieceType {
   FERS, MET = FERS, ALFIL, FERS_ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
   ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI, KNIROO, ROOKNI,
   SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, DRAGON_HORSE,
-  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, JANGGI_CANNON,
+  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, ATAXX_PIECE, CANNON, JANGGI_CANNON,
   SOLDIER, HORSE, ELEPHANT, JANGGI_ELEPHANT, BANNER,
   WAZIR, COMMONER, CENTAUR, KING,
   ALL_PIECES = 0,
@@ -402,9 +407,9 @@ constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
     FersValueMg, AlfilValueMg, FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg,
     ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg, BiskniValueMg, KnirooValueMg, RookniValueMg,
     ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, DragonHorseValueMg,
-    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg,
+    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, AtaxxPieceValueMg,
     CannonPieceValueMg, JanggiCannonPieceValueMg, SoldierValueMg, HorseValueMg, ElephantValueMg, JanggiElephantValueMg, BannerValueMg,
-    WazirValueMg, CommonerValueMg, CentaurValueMg, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    WazirValueMg, CommonerValueMg, CentaurValueMg, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
@@ -414,9 +419,9 @@ constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
     FersValueMg, AlfilValueMg, FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg,
     ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg, BiskniValueMg, KnirooValueMg, RookniValueMg,
     ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, DragonHorseValueMg,
-    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg,
+    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, AtaxxPieceValueMg,
     CannonPieceValueMg, JanggiCannonPieceValueMg, SoldierValueMg, HorseValueMg, ElephantValueMg, JanggiElephantValueMg, BannerValueMg,
-    WazirValueMg, CommonerValueMg, CentaurValueMg, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    WazirValueMg, CommonerValueMg, CentaurValueMg, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
@@ -426,9 +431,9 @@ constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
     FersValueEg, AlfilValueEg, FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg,
     ArchbishopValueMg, ChancellorValueEg, AmazonValueEg, KnibisValueMg, BiskniValueMg, KnirooValueEg, RookniValueEg,
     ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, DragonHorseValueEg,
-    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg,
+    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, AtaxxPieceValueEg,
     CannonPieceValueEg, JanggiCannonPieceValueEg, SoldierValueEg, HorseValueEg, ElephantValueEg, JanggiElephantValueEg, BannerValueEg,
-    WazirValueEg, CommonerValueEg, CentaurValueEg, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    WazirValueEg, CommonerValueEg, CentaurValueEg, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
@@ -438,9 +443,9 @@ constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
     FersValueEg, AlfilValueEg, FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg,
     ArchbishopValueMg, ChancellorValueEg, AmazonValueEg, KnibisValueMg, BiskniValueMg, KnirooValueEg, RookniValueEg,
     ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, DragonHorseValueEg,
-    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg,
+    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, AtaxxPieceValueEg,
     CannonPieceValueEg, JanggiCannonPieceValueEg, SoldierValueEg, HorseValueEg, ElephantValueEg, JanggiElephantValueEg, BannerValueEg,
-    WazirValueEg, CommonerValueEg, CentaurValueEg, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    WazirValueEg, CommonerValueEg, CentaurValueEg, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
@@ -640,7 +645,7 @@ inline Score operator*(Score s, int i) {
 
 /// Multiplication of a Score by a boolean
 inline Score operator*(Score s, bool b) {
-  return Score(int(s) * int(b));
+  return b ? s : SCORE_ZERO;
 }
 
 constexpr Color operator~(Color c) {
@@ -798,3 +803,5 @@ inline int dist(Direction d) {
 }
 
 #endif // #ifndef TYPES_H_INCLUDED
+
+#include "tune.h" // Global visibility to tuning setup

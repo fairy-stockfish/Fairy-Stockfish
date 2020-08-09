@@ -290,6 +290,15 @@ namespace {
       p->name = "immobile";
       return p;
   }
+  PieceInfo* ataxx_piece() {
+      PieceInfo* p = new PieceInfo();
+      p->name = "ataxx";
+      p->betza = "mDNA";
+      p->stepsQuiet = {2 * NORTH_WEST, 2 * NORTH + WEST, 2 * NORTH, 2 * NORTH + EAST, 2 * NORTH_EAST,
+                       NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * WEST, 2 * EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
+                       2 * SOUTH_WEST, 2 * SOUTH + WEST, 2 * SOUTH, 2 * SOUTH + EAST, 2 * SOUTH_EAST};
+      return p;
+  }
   PieceInfo* cannon_piece() {
       PieceInfo* p = new PieceInfo();
       p->name = "cannon";
@@ -393,6 +402,7 @@ void PieceMap::init() {
   add(CLOBBER_PIECE, clobber_piece());
   add(BREAKTHROUGH_PIECE, breakthrough_piece());
   add(IMMOBILE_PIECE, immobile_piece());
+  add(ATAXX_PIECE, ataxx_piece());
   add(CANNON, cannon_piece());
   add(JANGGI_CANNON, janggi_cannon_piece());
   add(SOLDIER, soldier_piece());

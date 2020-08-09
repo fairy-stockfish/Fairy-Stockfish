@@ -606,6 +606,27 @@ namespace {
         v->blackFlag = Rank1BB;
         return v;
     }
+    Variant* ataxx_variant() {
+        Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "P.................p.................";
+        v->maxRank = RANK_7;
+        v->maxFile = FILE_G;
+        v->reset_pieces();
+        v->add_piece(ATAXX_PIECE, 'p');
+        v->startFen = "P5p/7/7/7/7/7/p5P[PPPPPPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppppppp] w 0 1";
+        v->promotionPieceTypes = {};
+        v->pieceDrops = true;
+        v->doubleStep = false;
+        v->castling = false;
+        v->immobilityIllegal = false;
+        v->stalemateValue = -VALUE_MATE;
+        v->stalematePieceCount = true;
+        v->passOnStalemate = true;
+        v->enclosingDrop = ATAXX;
+        v->flipEnclosedPieces = ATAXX;
+        v->materialCounting = UNWEIGHTED_MATERIAL;
+        return v;
+    }
     Variant* minixiangqi_variant() {
         Variant* v = fairy_variant_base();
         v->variantTemplate = "xiangqi";
@@ -967,6 +988,7 @@ void VariantMap::init() {
     add("shatar", shatar_variant());
     add("clobber", clobber_variant());
     add("breakthrough", breakthrough_variant());
+    add("ataxx", ataxx_variant());
     add("minixiangqi", minixiangqi_variant());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());

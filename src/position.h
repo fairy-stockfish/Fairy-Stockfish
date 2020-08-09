@@ -133,7 +133,7 @@ public:
   bool captures_to_hand() const;
   bool first_rank_pawn_drops() const;
   bool drop_on_top() const;
-  bool enclosing_drop() const;
+  EnclosingRule enclosing_drop() const;
   Bitboard drop_region(Color c) const;
   Bitboard drop_region(Color c, PieceType pt) const;
   bool sittuyin_rook_drop() const;
@@ -149,7 +149,7 @@ public:
   bool pass_on_stalemate() const;
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
-  bool flip_enclosed_pieces() const;
+  EnclosingRule flip_enclosed_pieces() const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -175,8 +175,7 @@ public:
   bool bikjang() const;
 
   // Position representation
-  Bitboard pieces() const;
-  Bitboard pieces(PieceType pt) const;
+  Bitboard pieces(PieceType pt = ALL_PIECES) const;
   Bitboard pieces(PieceType pt1, PieceType pt2) const;
   Bitboard pieces(Color c) const;
   Bitboard pieces(Color c, PieceType pt) const;
@@ -511,7 +510,7 @@ inline bool Position::drop_on_top() const {
   return var->dropOnTop;
 }
 
-inline bool Position::enclosing_drop() const {
+inline EnclosingRule Position::enclosing_drop() const {
   assert(var != nullptr);
   return var->enclosingDrop;
 }
@@ -552,17 +551,29 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
           b &= var->enclosingDropStart;
       else
       {
-          Bitboard theirs = pieces(~c);
-          b &=  shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
-              | shift<NORTH_EAST>(theirs) | shift<SOUTH_WEST>(theirs)
-              | shift<EAST      >(theirs) | shift<WEST      >(theirs)
-              | shift<SOUTH_EAST>(theirs) | shift<NORTH_WEST>(theirs);
-          Bitboard b2 = b;
-          while (b2)
+          if (enclosing_drop() == REVERSI)
           {
-              Square s = pop_lsb(&b2);
-              if (!(attacks_bb(c, QUEEN, s, board_bb() & ~pieces(~c)) & ~PseudoAttacks[c][KING][s] & pieces(c)))
-                  b ^= s;
+              Bitboard theirs = pieces(~c);
+              b &=  shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
+                  | shift<NORTH_EAST>(theirs) | shift<SOUTH_WEST>(theirs)
+                  | shift<EAST      >(theirs) | shift<WEST      >(theirs)
+                  | shift<SOUTH_EAST>(theirs) | shift<NORTH_WEST>(theirs);
+              Bitboard b2 = b;
+              while (b2)
+              {
+                  Square s = pop_lsb(&b2);
+                  if (!(attacks_bb(c, QUEEN, s, board_bb() & ~pieces(~c)) & ~PseudoAttacks[c][KING][s] & pieces(c)))
+                      b ^= s;
+              }
+          }
+          else
+          {
+              assert(enclosing_drop() == ATAXX);
+              Bitboard ours = pieces(c);
+              b &=  shift<NORTH     >(ours) | shift<SOUTH     >(ours)
+                  | shift<NORTH_EAST>(ours) | shift<SOUTH_WEST>(ours)
+                  | shift<EAST      >(ours) | shift<WEST      >(ours)
+                  | shift<SOUTH_EAST>(ours) | shift<NORTH_WEST>(ours);
           }
       }
   }
@@ -645,7 +656,7 @@ inline int Position::n_fold_rule() const {
   return var->nFoldRule;
 }
 
-inline bool Position::flip_enclosed_pieces() const {
+inline EnclosingRule Position::flip_enclosed_pieces() const {
   assert(var != nullptr);
   return var->flipEnclosedPieces;
 }
@@ -779,12 +790,13 @@ inline Color Position::side_to_move() const {
   return sideToMove;
 }
 
-inline bool Position::empty(Square s) const {
-  return board[s] == NO_PIECE;
+inline Piece Position::piece_on(Square s) const {
+  assert(is_ok(s));
+  return board[s];
 }
 
-inline Piece Position::piece_on(Square s) const {
-  return board[s];
+inline bool Position::empty(Square s) const {
+  return piece_on(s) == NO_PIECE;
 }
 
 inline Piece Position::unpromoted_piece_on(Square s) const {
@@ -794,11 +806,7 @@ inline Piece Position::unpromoted_piece_on(Square s) const {
 inline Piece Position::moved_piece(Move m) const {
   if (type_of(m) == DROP)
       return make_piece(sideToMove, dropped_piece_type(m));
-  return board[from_sq(m)];
-}
-
-inline Bitboard Position::pieces() const {
-  return byTypeBB[ALL_PIECES];
+  return piece_on(from_sq(m));
 }
 
 inline Bitboard Position::pieces(PieceType pt) const {
@@ -806,7 +814,7 @@ inline Bitboard Position::pieces(PieceType pt) const {
 }
 
 inline Bitboard Position::pieces(PieceType pt1, PieceType pt2) const {
-  return byTypeBB[pt1] | byTypeBB[pt2];
+  return pieces(pt1) | pieces(pt2);
 }
 
 inline Bitboard Position::pieces(Color c) const {
@@ -814,15 +822,15 @@ inline Bitboard Position::pieces(Color c) const {
 }
 
 inline Bitboard Position::pieces(Color c, PieceType pt) const {
-  return byColorBB[c] & byTypeBB[pt];
+  return pieces(c) & pieces(pt);
 }
 
 inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
-  return byColorBB[c] & (byTypeBB[pt1] | byTypeBB[pt2]);
+  return pieces(c) & (pieces(pt1) | pieces(pt2));
 }
 
 inline Bitboard Position::major_pieces(Color c) const {
-  return byColorBB[c] & (byTypeBB[QUEEN] | byTypeBB[AIWOK] | byTypeBB[ARCHBISHOP] | byTypeBB[CHANCELLOR] | byTypeBB[AMAZON]);
+  return pieces(c) & (pieces(QUEEN) | pieces(AIWOK) | pieces(ARCHBISHOP) | pieces(CHANCELLOR) | pieces(AMAZON));
 }
 
 inline int Position::count(Color c, PieceType pt) const {
@@ -834,7 +842,7 @@ template<PieceType Pt> inline int Position::count(Color c) const {
 }
 
 template<PieceType Pt> inline int Position::count() const {
-  return pieceCount[make_piece(WHITE, Pt)] + pieceCount[make_piece(BLACK, Pt)];
+  return count<Pt>(WHITE) + count<Pt>(BLACK);
 }
 
 template<PieceType Pt> inline const Square* Position::squares(Color c) const {
@@ -847,7 +855,7 @@ inline const Square* Position::squares(Color c, PieceType pt) const {
 
 template<PieceType Pt> inline Square Position::square(Color c) const {
   assert(pieceCount[make_piece(c, Pt)] == 1);
-  return pieceList[make_piece(c, Pt)][0];
+  return squares<Pt>(c)[0];
 }
 
 inline Square Position::ep_square() const {
@@ -868,13 +876,13 @@ inline bool Position::can_castle(CastlingRights cr) const {
 }
 
 inline int Position::castling_rights(Color c) const {
-  return st->castlingRights & (c == WHITE ? WHITE_CASTLING : BLACK_CASTLING);
+  return c & CastlingRights(st->castlingRights);
 }
 
 inline bool Position::castling_impeded(CastlingRights cr) const {
   assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
 
-  return byTypeBB[ALL_PIECES] & castlingPath[cr];
+  return pieces() & castlingPath[cr];
 }
 
 inline Square Position::castling_rook_square(CastlingRights cr) const {
@@ -945,7 +953,7 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
 }
 
 inline Bitboard Position::attackers_to(Square s) const {
-  return attackers_to(s, byTypeBB[ALL_PIECES]);
+  return attackers_to(s, pieces());
 }
 
 inline Bitboard Position::attackers_to(Square s, Color c) const {
@@ -1006,7 +1014,7 @@ inline Value Position::non_pawn_material(Color c) const {
 }
 
 inline Value Position::non_pawn_material() const {
-  return st->nonPawnMaterial[WHITE] + st->nonPawnMaterial[BLACK];
+  return non_pawn_material(WHITE) + non_pawn_material(BLACK);
 }
 
 inline int Position::game_ply() const {
@@ -1022,8 +1030,8 @@ inline int Position::rule50_count() const {
 }
 
 inline bool Position::opposite_bishops() const {
-  return   pieceCount[make_piece(WHITE, BISHOP)] == 1
-        && pieceCount[make_piece(BLACK, BISHOP)] == 1
+  return   count<BISHOP>(WHITE) == 1
+        && count<BISHOP>(BLACK) == 1
         && opposite_colors(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 

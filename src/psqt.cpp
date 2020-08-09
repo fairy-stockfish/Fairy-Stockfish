@@ -179,7 +179,7 @@ void init(const Variant* v) {
 
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
-          File f = std::max(edge_distance(file_of(s), v->maxFile), FILE_A);
+          File f = std::max(File(edge_distance(file_of(s), v->maxFile)), FILE_A);
           Rank r = rank_of(s);
           psq[ pc][ s] = score + (  pt == PAWN  ? PBonus[std::min(r, RANK_8)][std::min(file_of(s), FILE_H)]
                                   : pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
@@ -190,7 +190,7 @@ void init(const Variant* v) {
                                                 : make_score(10, 10) * (1 + isSlowLeaper) * (f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile / 2));
           if (pt == SOLDIER && r < v->soldierPromotionRank)
               psq[pc][s] -= score * (v->soldierPromotionRank - r) / (4 + f);
-          if (v->enclosingDrop)
+          if (v->enclosingDrop == REVERSI)
           {
               if (f == FILE_A && (r == RANK_1 || r == v->maxRank))
                   psq[pc][s] += make_score(1000, 1000);

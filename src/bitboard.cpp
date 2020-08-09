@@ -290,25 +290,15 @@ void Bitboards::init() {
           {
               for (Direction d : pi->stepsCapture)
               {
-                  Square to = s + Direction(c == WHITE ? d : -d);
-
-                  if (is_ok(to) && distance(s, to) < 4)
-                  {
-                      PseudoAttacks[c][pt][s] |= to;
-                      if (!pi->lameLeaper)
-                          LeaperAttacks[c][pt][s] |= to;
-                  }
+                  PseudoAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
+                  if (!pi->lameLeaper)
+                      LeaperAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
               }
               for (Direction d : pi->stepsQuiet)
               {
-                  Square to = s + Direction(c == WHITE ? d : -d);
-
-                  if (is_ok(to) && distance(s, to) < 4)
-                  {
-                      PseudoMoves[c][pt][s] |= to;
-                      if (!pi->lameLeaper)
-                          LeaperMoves[c][pt][s] |= to;
-                  }
+                  PseudoMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
+                  if (!pi->lameLeaper)
+                      LeaperMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
               }
               PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->sliderCapture, s, 0, c);
               PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->hopperCapture, s, 0, c);

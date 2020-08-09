@@ -87,7 +87,7 @@ namespace {
   template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
-    constexpr Color     Them     = (Us == WHITE ? BLACK      : WHITE);
+    constexpr Color     Them     = ~Us;
     constexpr Direction Up       = pawn_push(Us);
     constexpr Direction Down     = -pawn_push(Us);
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
@@ -425,15 +425,12 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
   assert(!pos.checkers());
 
   Color us = pos.side_to_move();
-  Bitboard dc = pos.blockers_for_king(~us) & pos.pieces(us);
+  Bitboard dc = pos.blockers_for_king(~us) & pos.pieces(us) & ~pos.pieces(PAWN);
 
   while (dc)
   {
      Square from = pop_lsb(&dc);
      PieceType pt = type_of(pos.piece_on(from));
-
-     if (pt == PAWN)
-         continue; // Will be generated together with direct checks
 
      Bitboard b = pos.moves_from(us, pt, from) & ~pos.pieces();
 

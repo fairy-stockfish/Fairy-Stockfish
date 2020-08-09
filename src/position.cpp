@@ -481,7 +481,7 @@ void Position::set_castling_right(Color c, Square rfrom) {
   Square rto = kto + (cr & KING_SIDE ? WEST : EAST);
 
   castlingPath[cr] =   (between_bb(rfrom, rto) | between_bb(kfrom, kto) | rto | kto)
-                    & ~(square_bb(kfrom) | rfrom);
+                    & ~(kfrom | rfrom);
 }
 
 
@@ -1164,7 +1164,7 @@ bool Position::gives_check(Move m) const {
   case CASTLING:
   {
       Square kfrom = from;
-      Square rfrom = to; // Castling is encoded as 'King captures the rook'
+      Square rfrom = to; // Castling is encoded as 'king captures the rook'
       Square kto = make_square(rfrom > kfrom ? castling_kingside_file() : castling_queenside_file(), castling_rank(sideToMove));
       Square rto = kto + (rfrom > kfrom ? WEST : EAST);
 
@@ -1314,6 +1314,45 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->castlingRights &= ~cr;
   }
 
+  // Flip enclosed pieces
+  st->flippedPieces = 0;
+  if (flip_enclosed_pieces() && !is_pass(m))
+  {
+      // Find end of rows to be flipped
+      if (flip_enclosed_pieces() == REVERSI)
+      {
+          Bitboard b = attacks_bb(us, QUEEN, to, board_bb() & ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
+          while(b)
+              st->flippedPieces |= between_bb(to, pop_lsb(&b));
+      }
+      else
+      {
+          assert(flip_enclosed_pieces() == ATAXX);
+          st->flippedPieces = PseudoAttacks[us][KING][to] & pieces(~us);
+      }
+
+      // Flip pieces
+      Bitboard to_flip = st->flippedPieces;
+      while(to_flip)
+      {
+          Square s = pop_lsb(&to_flip);
+          Piece flipped = piece_on(s);
+          Piece resulting = ~flipped;
+
+          // remove opponent's piece
+          remove_piece(s);
+          k ^= Zobrist::psq[flipped][s];
+          st->materialKey ^= Zobrist::psq[flipped][pieceCount[flipped]];
+          st->nonPawnMaterial[them] -= PieceValue[MG][flipped];
+
+          // add our piece
+          put_piece(resulting, s);
+          k ^= Zobrist::psq[resulting][s];
+          st->materialKey ^= Zobrist::psq[resulting][pieceCount[resulting]-1];
+          st->nonPawnMaterial[us] += PieceValue[MG][resulting];
+      }
+  }
+
   // Move the piece. The tricky Chess960 castling is handled earlier
   if (type_of(m) == DROP)
   {
@@ -1337,35 +1376,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               if (   (file_of(to) == FILE_A || file_of(to) == max_file())
                   && piece_on(make_square(FILE_E, castling_rank(us))) == make_piece(us, KING))
                   set_castling_right(us, to);
-          }
-      }
-      // Flip enclosed pieces
-      if (flip_enclosed_pieces())
-      {
-          st->flippedPieces = 0;
-          // Find end of rows to be flipped
-          Bitboard b = attacks_bb(us, QUEEN, to, board_bb() & ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
-          while(b)
-              st->flippedPieces |= between_bb(to, pop_lsb(&b));
-          // Flip pieces
-          Bitboard to_flip = st->flippedPieces;
-          while(to_flip)
-          {
-              Square s = pop_lsb(&to_flip);
-              Piece flipped = piece_on(s);
-              Piece resulting = ~flipped;
-
-              // remove opponent's piece
-              remove_piece(s);
-              k ^= Zobrist::psq[flipped][s];
-              st->materialKey ^= Zobrist::psq[flipped][pieceCount[flipped]];
-              st->nonPawnMaterial[them] -= PieceValue[MG][flipped];
-
-              // add our piece
-              put_piece(resulting, s);
-              k ^= Zobrist::psq[resulting][s];
-              st->materialKey ^= Zobrist::psq[resulting][pieceCount[resulting]-1];
-              st->nonPawnMaterial[us] += PieceValue[MG][resulting];
           }
       }
   }
@@ -1572,21 +1582,7 @@ void Position::undo_move(Move m) {
   else
   {
       if (type_of(m) == DROP)
-      {
-          if (flip_enclosed_pieces())
-          {
-              // Flip pieces
-              Bitboard to_flip = st->flippedPieces;
-              while(to_flip)
-              {
-                  Square s = pop_lsb(&to_flip);
-                  Piece resulting = ~piece_on(s);
-                  remove_piece(s);
-                  put_piece(resulting, s);
-              }
-          }
           undrop_piece(make_piece(us, in_hand_piece_type(m)), to); // Remove the dropped piece
-      }
       else
           move_piece(to, from); // Put the piece back at the source square
 
@@ -1610,6 +1606,19 @@ void Position::undo_move(Move m) {
               remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
                                                                                                    : make_piece(~color_of(st->capturedPiece), PAWN))
                                                                     : ~st->capturedPiece);
+      }
+  }
+
+  if (flip_enclosed_pieces())
+  {
+      // Flip pieces
+      Bitboard to_flip = st->flippedPieces;
+      while(to_flip)
+      {
+          Square s = pop_lsb(&to_flip);
+          Piece resulting = ~piece_on(s);
+          remove_piece(s);
+          put_piece(resulting, s);
       }
   }
 
