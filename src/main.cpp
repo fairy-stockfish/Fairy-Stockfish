@@ -42,6 +42,7 @@ int main(int argc, char* argv[]) {
   pieceMap.init();
   variants.init();
   UCI::init(Options);
+  Tune::init();
   PSQT::init(variants.find(Options["UCI_Variant"])->second);
   Bitboards::init();
   Position::init();
