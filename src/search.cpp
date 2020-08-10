@@ -1119,7 +1119,7 @@ moves_loop: // When in check, search starts from here
               if (!pos.see_ge(move, Value(-(32 - std::min(lmrDepth, 18) + 10 * !!pos.capture_the_flag_piece()) * lmrDepth * lmrDepth)))
                   continue;
           }
-          else
+          else if (!pos.must_capture())
           {
               // Capture history based pruning when the move doesn't give check
               if (   !givesCheck
