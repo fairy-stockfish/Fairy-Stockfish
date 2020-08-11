@@ -29,58 +29,10 @@
 
 TimeManagement Time; // Our global time management object
 
-namespace {
-
-  enum TimeType { OptimumTime, MaxTime };
-
-  constexpr int MoveHorizon   = 50;   // Plan time management at most this many moves ahead
-  constexpr double MaxRatio   = 7.3;  // When in trouble, we can step over reserved time with this ratio
-  constexpr double StealRatio = 0.34; // However we must not steal time from remaining moves over this ratio
-
-
-  // move_importance() is a skew-logistic function based on naive statistical
-  // analysis of "how many games are still undecided after n half-moves". Game
-  // is considered "undecided" as long as neither side has >275cp advantage.
-  // Data was extracted from the CCRL game database with some simple filtering criteria.
-
-  double move_importance(const Position& pos, int ply) {
-
-    constexpr double XScale = 6.85;
-    double XShift = (pos.max_rank() + 1) * (pos.max_file() + 1) / (1 + pos.must_capture()) + 0.5;
-    constexpr double Skew   = 0.171;
-
-    return pow((1 + exp((ply - XShift) / XScale)), -Skew) + DBL_MIN; // Ensure non-zero
-  }
-
-  template<TimeType T>
-  TimePoint remaining(const Position& pos, TimePoint myTime, int movesToGo, int ply, TimePoint slowMover) {
-
-    constexpr double TMaxRatio   = (T == OptimumTime ? 1.0 : MaxRatio);
-    constexpr double TStealRatio = (T == OptimumTime ? 0.0 : StealRatio);
-
-    double moveImportance = (move_importance(pos, ply) * slowMover) / 100.0;
-    double otherMovesImportance = 0.0;
-
-    for (int i = 1; i < movesToGo; ++i)
-        otherMovesImportance += move_importance(pos, ply + 2 * i);
-
-    double ratio1 = (TMaxRatio * moveImportance) / (TMaxRatio * moveImportance + otherMovesImportance);
-    double ratio2 = (moveImportance + TStealRatio * otherMovesImportance) / (moveImportance + otherMovesImportance);
-
-    return TimePoint(myTime * std::min(ratio1, ratio2)); // Intel C++ asks for an explicit cast
-  }
-
-} // namespace
-
-
-/// init() is called at the beginning of the search and calculates the allowed
-/// thinking time out of the time control and current game ply. We support four
-/// different kinds of time controls, passed in 'limits':
-///
-///  inc == 0 && movestogo == 0 means: x basetime  [sudden death!]
-///  inc == 0 && movestogo != 0 means: x moves in y minutes
-///  inc >  0 && movestogo == 0 means: x basetime + z increment
-///  inc >  0 && movestogo != 0 means: x moves in y minutes + z increment
+/// init() is called at the beginning of the search and calculates the bounds
+/// of time allowed for the current game ply.  We currently support:
+//      1) x basetime (+z increment)
+//      2) x moves in y seconds (+z increment)
 
 void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color us, int ply) {
 
@@ -88,7 +40,10 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
   TimePoint moveOverhead    = Options["Move Overhead"];
   TimePoint slowMover       = Options["Slow Mover"];
   TimePoint npmsec          = Options["nodestime"];
-  TimePoint hypMyTime;
+
+  // opt_scale is a percentage of available time to use for the current move.
+  // max_scale is a multiplier applied to optimumTime.
+  double opt_scale, max_scale;
 
   // If we have to play in 'nodes as time' mode, then convert from time
   // to nodes, and use resulting values in time management formulas.
@@ -106,41 +61,52 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
   }
 
   startTime = limits.startTime;
-  optimumTime = maximumTime = std::max(limits.time[us], minThinkingTime);
 
-  const int maxMTG = limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon;
+  //Maximum move horizon of 50 moves
+  int mtg = limits.movestogo ? std::min(limits.movestogo, 50) : 50;
 
-  // We calculate optimum time usage for different hypothetical "moves to go" values
-  // and choose the minimum of calculated search time values. Usually the greatest
-  // hypMTG gives the minimum values.
-  for (int hypMTG = 1; hypMTG <= maxMTG; ++hypMTG)
+  // Make sure timeLeft is > 0 since we may use it as a divisor
+  TimePoint timeLeft =  std::max(TimePoint(1),
+      limits.time[us] + limits.inc[us] * (mtg - 1) - moveOverhead * (2 + mtg));
+
+  // Adjust time management for four-player variants
+  if (pos.two_boards())
   {
-      // Calculate thinking time for hypothetical "moves to go"-value
-      hypMyTime =  limits.time[us]
-                 + limits.inc[us] * (hypMTG - 1)
-                 - moveOverhead * (2 + std::min(hypMTG, 40));
-
-      // Adjust time management for four-player variants
-      if (pos.two_boards())
+      if (Partner.partnerDead && Partner.opptime)
+          timeLeft -= Partner.opptime * 10;
+      else
       {
-          if (Partner.partnerDead && Partner.opptime)
-              hypMyTime -= Partner.opptime * 10;
-          else
-          {
-              hypMyTime = std::min(hypMyTime, 5000 + std::min(std::abs(limits.time[us] - Partner.opptime * 10), TimePoint(Partner.opptime * 10)));
-              if (Partner.fast || Partner.partnerDead)
-                  hypMyTime /= 4;
-          }
+          timeLeft = std::min(timeLeft, 5000 + std::min(std::abs(limits.time[us] - Partner.opptime * 10), TimePoint(Partner.opptime * 10)));
+          if (Partner.fast || Partner.partnerDead)
+              timeLeft /= 4;
       }
-
-      hypMyTime = std::max(hypMyTime, TimePoint(0));
-
-      TimePoint t1 = minThinkingTime + remaining<OptimumTime>(pos, hypMyTime, hypMTG, ply, slowMover);
-      TimePoint t2 = minThinkingTime + remaining<MaxTime    >(pos, hypMyTime, hypMTG, ply, slowMover);
-
-      optimumTime = std::min(t1, optimumTime);
-      maximumTime = std::min(t2, maximumTime);
   }
+
+  // A user may scale time usage by setting UCI option "Slow Mover"
+  // Default is 100 and changing this value will probably lose elo.
+  timeLeft = slowMover * timeLeft / 100;
+
+  // x basetime (+ z increment)
+  // If there is a healthy increment, timeLeft can exceed actual available
+  // game time for the current move, so also cap to 20% of available game time.
+  if (limits.movestogo == 0)
+  {
+      opt_scale = std::min(0.008 + std::pow(ply + 3.0, 0.5) / 250.0,
+                           0.2 * limits.time[us] / double(timeLeft));
+      max_scale = 4 + std::min(36, ply) / 12.0;
+  }
+
+  // x moves in y seconds (+ z increment)
+  else
+  {
+      opt_scale = std::min((0.8 + ply / 128.0) / mtg,
+                            0.8 * limits.time[us] / double(timeLeft));
+      max_scale = std::min(6.3, 1.5 + 0.11 * mtg);
+  }
+
+  // Never use more than 80% of the available time for this move
+  optimumTime = std::max<int>(minThinkingTime, opt_scale * timeLeft);
+  maximumTime = std::min(0.8 * limits.time[us] - moveOverhead, max_scale * optimumTime);
 
   if (Options["Ponder"])
       optimumTime += optimumTime / 4;
