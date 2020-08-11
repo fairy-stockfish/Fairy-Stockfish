@@ -51,6 +51,7 @@
 #pragma warning(disable: 4146) // Unary minus operator applied to unsigned type
 #pragma warning(disable: 4800) // Forcing value to bool 'true' or 'false'
 #pragma comment(linker, "/STACK:8000000") // Use 8 MB stack size for MSVC
+#pragma comment(lib, "advapi32.lib") // Fix linker error
 #endif
 
 /// Predefined macros hell:
