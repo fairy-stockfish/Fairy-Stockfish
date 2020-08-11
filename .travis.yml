@@ -61,6 +61,8 @@ script:
 
   #
   # Check perft and reproducible search
+  - export CXXFLAGS="-Werror"
+  - make clean && make -j2 ARCH=x86-64 build
   - ../tests/protocol.sh
   - ../tests/perft.sh
   - ../tests/reprosearch.sh
