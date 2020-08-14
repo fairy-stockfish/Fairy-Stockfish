@@ -102,7 +102,7 @@ namespace {
     { S(-60,-78), S(-20,-17), S(  2, 23), S(  3, 39), S(  3, 70), S( 11, 99), // Rook
       S( 22,103), S( 31,121), S( 40,134), S( 40,139), S( 41,158), S( 48,164),
       S( 57,168), S( 57,169), S( 62,172) },
-    { S(-34,-36), S(-15,-21), S(-10, -1), S(-10, 22), S( 20, 41), S( 23, 56), // Queen
+    { S(-30,-48), S(-12,-30), S( -8, -7), S( -9, 19), S( 20, 40), S( 23, 55), // Queen
       S( 23, 59), S( 35, 75), S( 38, 78), S( 53, 96), S( 64, 96), S( 65,100),
       S( 65,121), S( 66,127), S( 67,131), S( 67,133), S( 72,136), S( 72,141),
       S( 77,147), S( 79,150), S( 93,151), S(108,168), S(108,168), S(108,171),
@@ -152,6 +152,7 @@ namespace {
   constexpr Score PassedFile          = S( 11,  8);
   constexpr Score PawnlessFlank       = S( 17, 95);
   constexpr Score RestrictedPiece     = S(  7,  7);
+  constexpr Score RookOnKingRing      = S( 16,  0);
   constexpr Score RookOnQueenFile     = S(  5,  9);
   constexpr Score SliderOnQueen       = S( 59, 18);
   constexpr Score ThreatByKing        = S( 24, 89);
@@ -321,6 +322,8 @@ namespace {
             kingAttackersWeight[Us] += KingAttackWeights[std::min(int(Pt), QUEEN + 1)];
             kingAttacksCount[Us] += popcount(b & attackedBy[Them][KING]);
         }
+        else if (Pt == ROOK && (file_bb(s) & kingRing[Them]))
+            score += RookOnKingRing;
 
         if (Pt > QUEEN)
              b = (b & pos.pieces()) | (pos.moves_from(Us, Pt, s) & ~pos.pieces() & pos.board_bb());
