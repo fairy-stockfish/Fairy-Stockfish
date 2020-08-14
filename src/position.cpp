@@ -1052,7 +1052,7 @@ bool Position::pseudo_legal(const Move m) const {
   // Evasions generator already takes care to avoid some kind of illegal moves
   // and legal() relies on this. We therefore have to take care that the same
   // kind of moves are filtered out here.
-  if (checkers() && !(checkers() & (pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT) | pieces(JANGGI_CANNON, JANGGI_ELEPHANT))))
+  if (checkers() && !(checkers() & non_sliding_riders()))
   {
       if (type_of(pc) != KING)
       {

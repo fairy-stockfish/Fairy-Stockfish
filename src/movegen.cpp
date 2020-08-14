@@ -333,7 +333,7 @@ namespace {
             break;
         case EVASIONS:
         {
-            if (pos.checkers() & (pos.pieces(CANNON, BANNER) | pos.pieces(HORSE, ELEPHANT) | pos.pieces(JANGGI_CANNON, JANGGI_ELEPHANT)))
+            if (pos.checkers() & pos.non_sliding_riders())
             {
                 target = ~pos.pieces(Us);
                 break;
@@ -490,7 +490,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       *moveList++ = make<SPECIAL>(ksq, ksq);
 
   // Consider all evasion moves for special pieces
-  if (sliders & (pos.pieces(CANNON, BANNER) | pos.pieces(HORSE, ELEPHANT) | pos.pieces(JANGGI_CANNON, JANGGI_ELEPHANT)))
+  if (sliders & pos.non_sliding_riders())
   {
       Bitboard target = pos.board_bb() & ~pos.pieces(us);
       Bitboard b = (  (pos.attacks_from(us, KING, ksq) & pos.pieces())

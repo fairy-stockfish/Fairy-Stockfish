@@ -181,6 +181,7 @@ public:
   Bitboard pieces(Color c, PieceType pt) const;
   Bitboard pieces(Color c, PieceType pt1, PieceType pt2) const;
   Bitboard major_pieces(Color c) const;
+  Bitboard non_sliding_riders() const;
   Piece piece_on(Square s) const;
   Piece unpromoted_piece_on(Square s) const;
   Square ep_square() const;
@@ -831,6 +832,10 @@ inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
 
 inline Bitboard Position::major_pieces(Color c) const {
   return pieces(c) & (pieces(QUEEN) | pieces(AIWOK) | pieces(ARCHBISHOP) | pieces(CHANCELLOR) | pieces(AMAZON));
+}
+
+inline Bitboard Position::non_sliding_riders() const {
+  return pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT) | pieces(JANGGI_CANNON, JANGGI_ELEPHANT);
 }
 
 inline int Position::count(Color c, PieceType pt) const {
