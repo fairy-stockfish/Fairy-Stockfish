@@ -318,8 +318,40 @@ namespace {
 
 
   template<Color Us, GenType Type>
-  ExtMove* generate_all(const Position& pos, ExtMove* moveList, Bitboard target) {
+  ExtMove* generate_all(const Position& pos, ExtMove* moveList) {
     constexpr bool Checks = Type == QUIET_CHECKS; // Reduce template instantations
+    Bitboard target;
+
+    switch (Type)
+    {
+        case CAPTURES:
+            target =  pos.pieces(~Us);
+            break;
+        case QUIETS:
+        case QUIET_CHECKS:
+            target = ~pos.pieces();
+            break;
+        case EVASIONS:
+        {
+            if (pos.checkers() & (pos.pieces(CANNON, BANNER) | pos.pieces(HORSE, ELEPHANT) | pos.pieces(JANGGI_CANNON, JANGGI_ELEPHANT)))
+            {
+                target = ~pos.pieces(Us);
+                break;
+            }
+            Square checksq = lsb(pos.checkers());
+            target = between_bb(pos.square<KING>(Us), checksq) | checksq;
+            // Leaper attacks can not be blocked
+            if (LeaperAttacks[~Us][type_of(pos.piece_on(checksq))][checksq] & pos.square<KING>(Us))
+                target = square_bb(checksq);
+            break;
+        }
+        case NON_EVASIONS:
+            target = ~pos.pieces(Us);
+            break;
+        default:
+            static_assert(true, "Unsupported type in generate_all()");
+    }
+    target &= pos.board_bb();
 
     moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
     for (PieceType pt : pos.piece_types())
@@ -402,13 +434,8 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
 
   Color us = pos.side_to_move();
 
-  Bitboard target =  Type == CAPTURES     ?  pos.pieces(~us)
-                   : Type == QUIETS       ? ~pos.pieces()
-                   : Type == NON_EVASIONS ? ~pos.pieces(us) : Bitboard(0);
-  target &= pos.board_bb();
-
-  return us == WHITE ? generate_all<WHITE, Type>(pos, moveList, target)
-                     : generate_all<BLACK, Type>(pos, moveList, target);
+  return us == WHITE ? generate_all<WHITE, Type>(pos, moveList)
+                     : generate_all<BLACK, Type>(pos, moveList);
 }
 
 // Explicit template instantiations
@@ -441,8 +468,8 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
          moveList = make_move_and_gating<NORMAL>(pos, moveList, us, from, pop_lsb(&b));
   }
 
-  return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces() & pos.board_bb())
-                     : generate_all<BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces() & pos.board_bb());
+  return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList)
+                     : generate_all<BLACK, QUIET_CHECKS>(pos, moveList);
 }
 
 
@@ -470,8 +497,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
                     | (pos.moves_from(us, KING, ksq) & ~pos.pieces())) & target;
       while (b)
           moveList = make_move_and_gating<NORMAL>(pos, moveList, us, ksq, pop_lsb(&b));
-      return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList, target)
-                         : generate_all<BLACK, EVASIONS>(pos, moveList, target);
+      return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList)
+                         : generate_all<BLACK, EVASIONS>(pos, moveList);
   }
 
   // Find all the squares attacked by slider checkers. We will remove them from
@@ -493,14 +520,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       return moveList; // Double check, only a king move can save the day
 
   // Generate blocking evasions or captures of the checking piece
-  Square checksq = lsb(pos.checkers());
-  Bitboard target = between_bb(checksq, ksq) | checksq;
-  // Leaper attacks can not be blocked
-  if (LeaperAttacks[~us][type_of(pos.piece_on(checksq))][checksq] & ksq)
-      target = SquareBB[checksq];
-
-  return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList, target)
-                     : generate_all<BLACK, EVASIONS>(pos, moveList, target);
+  return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList)
+                     : generate_all<BLACK, EVASIONS>(pos, moveList);
 }
 
 
