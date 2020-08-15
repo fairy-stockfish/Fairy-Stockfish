@@ -299,6 +299,13 @@ namespace {
                        2 * SOUTH_WEST, 2 * SOUTH + WEST, 2 * SOUTH, 2 * SOUTH + EAST, 2 * SOUTH_EAST};
       return p;
   }
+  PieceInfo* quiet_queen_piece() {
+      PieceInfo* p = queen_piece();
+      p->name = "quietQueen";
+      p->betza = "mQ";
+      p->sliderCapture = {};
+      return p;
+  }
   PieceInfo* cannon_piece() {
       PieceInfo* p = new PieceInfo();
       p->name = "cannon";
@@ -403,6 +410,7 @@ void PieceMap::init() {
   add(BREAKTHROUGH_PIECE, breakthrough_piece());
   add(IMMOBILE_PIECE, immobile_piece());
   add(ATAXX_PIECE, ataxx_piece());
+  add(QUIET_QUEEN, quiet_queen_piece());
   add(CANNON, cannon_piece());
   add(JANGGI_CANNON, janggi_cannon_piece());
   add(SOLDIER, soldier_piece());

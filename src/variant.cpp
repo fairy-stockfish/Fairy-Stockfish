@@ -837,6 +837,21 @@ namespace {
                       "pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP w 0 1";
         return v;
     }
+    // Game of the Amazons
+    // https://en.wikipedia.org/wiki/Game_of_the_Amazons
+    Variant* amazons_variant() {
+        Variant* v = fairy_variant_base();
+        v->pieceToCharTable = "P...Q.................p...q.................";
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_J;
+        v->reset_pieces();
+        v->add_piece(QUIET_QUEEN, 'q');
+        v->add_piece(IMMOBILE_PIECE, 'p');
+        v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppppppppppppppppp] w - - 0 1";
+        v->stalemateValue = -VALUE_MATE;
+        v->arrowGating = true;
+        return v;
+    }
     Variant* xiangqi_variant() {
         Variant* v = minixiangqi_variant();
         v->pieceToCharTable = "PN.R.AB..K.C..........pn.r.ab..k.c..........";
@@ -1006,6 +1021,7 @@ void VariantMap::init() {
     add("grand", grand_variant());
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
+    add("amazons", amazons_variant());
     add("xiangqi", xiangqi_variant());
     add("manchu", manchu_variant());
     add("supply", supply_variant());
