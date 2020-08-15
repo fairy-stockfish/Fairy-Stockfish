@@ -81,6 +81,7 @@ if [[ $1 == "largeboard" ]]; then
   expect perft.exp janggi startpos 4 1065277 > /dev/null
   expect perft.exp janggi "fen 1n1kaabn1/cr2N4/5C1c1/p1pNp3p/9/9/P1PbP1P1P/3r1p3/4A4/R1BA1KB1R b - - 0 1" 4 76763 > /dev/null
   expect perft.exp janggi "fen 1Pbcka3/3nNn1c1/N2CaC3/1pB6/9/9/5P3/9/4K4/9 w - - 0 23" 4 151202 > /dev/null
+  expect perft.exp amazons startpos 1 2176 > /dev/null
 fi
 
 rm perft.exp

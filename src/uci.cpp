@@ -409,7 +409,11 @@ string UCI::move(const Position& pos, Move m) {
   else if (type_of(m) == PIECE_DEMOTION)
       move += '-';
   else if (is_gating(m))
+  {
       move += pos.piece_to_char()[make_piece(BLACK, gating_type(m))];
+      if (gating_square(m) != from)
+          move += UCI::square(pos, gating_square(m));
+  }
 
   return move;
 }

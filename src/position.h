@@ -142,6 +142,7 @@ public:
   bool shogi_doubled_pawn() const;
   bool immobility_illegal() const;
   bool gating() const;
+  bool arrow_gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
@@ -610,6 +611,11 @@ inline bool Position::immobility_illegal() const {
 inline bool Position::gating() const {
   assert(var != nullptr);
   return var->gating;
+}
+
+inline bool Position::arrow_gating() const {
+  assert(var != nullptr);
+  return var->arrowGating;
 }
 
 inline bool Position::seirawan_gating() const {

@@ -28,6 +28,19 @@ namespace {
   template<MoveType T>
   ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to) {
 
+    // Arrow gating moves
+    if (pos.arrow_gating())
+    {
+        for (PieceType pt_gating : pos.piece_types())
+            if (pos.count_in_hand(us, pt_gating))
+            {
+                Bitboard b = pos.drop_region(us, pt_gating) & moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from) & ~(pos.pieces() ^ from);
+                while (b)
+                    *moveList++ = make_gating<T>(from, to, pt_gating, pop_lsb(&b));
+            }
+        return moveList;
+    }
+
     *moveList++ = make<T>(from, to);
 
     // Gating moves
