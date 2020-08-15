@@ -1545,6 +1545,7 @@ void Position::undo_move(Move m) {
   {
       Piece gating_piece = make_piece(us, gating_type(m));
       remove_piece(gating_square(m));
+      board[gating_square(m)] = NO_PIECE;
       add_to_hand(gating_piece);
       st->gatesBB[us] |= gating_square(m);
   }
