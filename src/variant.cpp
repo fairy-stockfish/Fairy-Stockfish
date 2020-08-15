@@ -837,6 +837,7 @@ namespace {
                       "pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP w 0 1";
         return v;
     }
+#ifdef ALLVARS
     // Game of the Amazons
     // https://en.wikipedia.org/wiki/Game_of_the_Amazons
     Variant* amazons_variant() {
@@ -852,6 +853,7 @@ namespace {
         v->arrowGating = true;
         return v;
     }
+#endif
     Variant* xiangqi_variant() {
         Variant* v = minixiangqi_variant();
         v->pieceToCharTable = "PN.R.AB..K.C..........pn.r.ab..k.c..........";
@@ -1021,7 +1023,9 @@ void VariantMap::init() {
     add("grand", grand_variant());
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
+#ifdef ALLVARS
     add("amazons", amazons_variant());
+#endif
     add("xiangqi", xiangqi_variant());
     add("manchu", manchu_variant());
     add("supply", supply_variant());

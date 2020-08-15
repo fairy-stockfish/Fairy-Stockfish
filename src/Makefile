@@ -75,6 +75,7 @@ endif
 
 ### 2.1. General and architecture defaults
 largeboards = no
+all = no
 precomputedmagics = yes
 optimize = yes
 debug = no
@@ -165,6 +166,11 @@ ifneq ($(largeboards),no)
 	ifeq ($(precomputedmagics),yes)
 		CXXFLAGS += -DPRECOMPUTED_MAGICS
 	endif
+endif
+
+# Enable all variants, even heavyweight ones like amazons
+ifneq ($(all),no)
+	CXXFLAGS += -DALLVARS
 endif
 
 ifeq ($(COMP),)
@@ -426,9 +432,13 @@ help:
 	@echo "make build ARCH=x86-64 COMP=clang"
 	@echo "make profile-build ARCH=x86-64-bmi2 COMP=gcc COMPCXX=g++-4.8"
 	@echo ""
-	@echo "Version for large boards (only GCC and mingw, 64-bit required): "
+	@echo "Version for large boards: "
 	@echo ""
 	@echo "make build ARCH=x86-64 COMP=gcc largeboards=yes"
+	@echo ""
+	@echo "Include all variants: "
+	@echo ""
+	@echo "make build ARCH=x86-64 largeboards=yes all=yes"
 	@echo ""
 
 
