@@ -698,7 +698,7 @@ namespace {
     }
     Variant* janus_variant() {
         Variant* v = chess_variant();
-        v->pieceToCharTable = "PNBRQ............J...Kpnbrq............J...k";
+        v->pieceToCharTable = "PNBRQ............J...Kpnbrq............j...k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
         v->castlingKingsideFile = FILE_I;
