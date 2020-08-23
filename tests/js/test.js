@@ -198,3 +198,9 @@ describe('board.isGameOver()', function () {
     chai.expect(board.isGameOver()).to.equal(true);
   });
 });
+
+describe('ffish.info()', function () {
+  it("it returns the version of the Fairy-Stockfish binary", () => {
+    chai.expect(ffish.info()).to.be.a('string');
+  });
+});

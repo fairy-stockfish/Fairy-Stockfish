@@ -206,10 +206,16 @@ private:
   }
 };
 
+// returns the version of the Fairy-Stockfish binary
+std::string info() {
+   return engine_info();
+}
+
 bool Board::sfInitialized = false;
 
 // binding code
 EMSCRIPTEN_BINDINGS(ffish_js) {
+  function("info", &info);
   class_<Board>("Board")
     .constructor<>()
     .constructor<std::string>()
