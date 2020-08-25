@@ -140,8 +140,8 @@ namespace {
 
         if (Type == QUIET_CHECKS && pos.count<KING>(Them))
         {
-            b1 &= pos.attacks_from<PAWN>(ksq, Them);
-            b2 &= pos.attacks_from<PAWN>(ksq, Them);
+            b1 &= pawn_attacks_bb(Them, ksq);
+            b2 &= pawn_attacks_bb(Them, ksq);
 
             // Add pawn pushes which give discovered check. This is possible only
             // if the pawn is not on the same file as the enemy king, because we
@@ -252,7 +252,7 @@ namespace {
             if (Type == EVASIONS && !(target & (pos.ep_square() - Up)))
                 return moveList;
 
-            b1 = pawnsNotOn7 & pos.attacks_from<PAWN>(pos.ep_square(), Them);
+            b1 = pawnsNotOn7 & pawn_attacks_bb(Them, pos.ep_square());
 
             assert(b1);
 
@@ -475,7 +475,7 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
      Bitboard b = pos.moves_from(us, pt, from) & ~pos.pieces();
 
      if (pt == KING && pos.king_type() == KING)
-         b &= ~PseudoAttacks[~us][QUEEN][pos.square<KING>(~us)];
+         b &= ~attacks_bb<QUEEN>(pos.square<KING>(~us));
 
      while (b)
          moveList = make_move_and_gating<NORMAL>(pos, moveList, us, from, pop_lsb(&b));

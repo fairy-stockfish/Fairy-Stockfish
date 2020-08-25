@@ -249,6 +249,12 @@ constexpr Bitboard pawn_attacks_bb(Bitboard b) {
                     : shift<SOUTH_WEST>(b) | shift<SOUTH_EAST>(b);
 }
 
+inline Bitboard pawn_attacks_bb(Color c, Square s) {
+
+  assert(is_ok(s));
+  return PseudoAttacks[c][PAWN][s];
+}
+
 
 /// pawn_double_attacks_bb() returns the squares doubly attacked by pawns of the
 /// given color from the squares in the given bitboard.
@@ -379,16 +385,35 @@ inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
   return m.attacks[m.index(occupied)];
 }
 
-/// attacks_bb() returns a bitboard representing all the squares attacked by a
-/// piece of type Pt (bishop or rook) placed on 's'.
+/// attacks_bb(Square) returns the pseudo attacks of the give piece type
+/// assuming an empty board.
+
+template<PieceType Pt>
+inline Bitboard attacks_bb(Square s) {
+
+  assert((Pt != PAWN) && (is_ok(s)));
+
+  return PseudoAttacks[WHITE][Pt][s];
+}
+
+/// attacks_bb(Square, Bitboard) returns the attacks by the given piece
+/// assuming the board is occupied according to the passed Bitboard.
+/// Sliding piece attacks do not continue passed an occupied square.
 
 template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
-  assert(Pt == BISHOP || Pt == ROOK);
-  return Pt == BISHOP ? rider_attacks_bb<RIDER_BISHOP>(s, occupied)
-                      : rider_attacks_bb<RIDER_ROOK_H>(s, occupied) | rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
+  assert((Pt != PAWN) && (is_ok(s)));
+
+  switch (Pt)
+  {
+  case BISHOP: return rider_attacks_bb<RIDER_BISHOP>(s, occupied);
+  case ROOK  : return rider_attacks_bb<RIDER_ROOK_H>(s, occupied) | rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
+  case QUEEN : return attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
+  default    : return PseudoAttacks[WHITE][Pt][s];
+  }
 }
+
 
 inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperAttacks[c][pt][s];
@@ -410,6 +435,7 @@ inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
       b |= rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s, occupied);
   return b & PseudoAttacks[c][pt][s];
 }
+
 
 inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperMoves[c][pt][s];

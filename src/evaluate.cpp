@@ -254,7 +254,7 @@ namespace {
                                | shift<WEST>(pos.promoted_soldiers(Them)));
 
     // Initialize attackedBy[] for king and pawns
-    attackedBy[Us][KING] = pos.count<KING>(Us) ? pos.attacks_from<KING>(ksq, Us) : Bitboard(0);
+    attackedBy[Us][KING] = pos.count<KING>(Us) ? pos.attacks_from(Us, KING, ksq) : Bitboard(0);
     attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
     attackedBy[Us][SHOGI_PAWN] = shift<Up>(pos.pieces(Us, SHOGI_PAWN));
     attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN] | attackedBy[Us][SHOGI_PAWN];
@@ -270,7 +270,7 @@ namespace {
     {
         Square s = make_square(Utility::clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1)),
                                Utility::clamp(rank_of(ksq), RANK_2, Rank(pos.max_rank() - 1)));
-        kingRing[Us] = PseudoAttacks[Us][KING][s] | s;
+        kingRing[Us] = attacks_bb<KING>(s) | s;
     }
 
     kingAttackersCount[Them] = popcount(kingRing[Us] & pe->pawn_attacks(Them));
@@ -307,7 +307,7 @@ namespace {
                          : pos.attacks_from(Us, Pt, s);
 
         // Restrict mobility to actual squares of board
-        b &= pos.board_bb();
+        b &= pos.board_bb(Us, Pt);
 
         if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];
@@ -385,7 +385,7 @@ namespace {
                                      * (!(attackedBy[Us][PAWN] & s) + popcount(blocked & CenterFiles));
 
                 // Penalty for all enemy pawns x-rayed
-                score -= BishopXRayPawns * popcount(PseudoAttacks[Us][BISHOP][s] & pos.pieces(Them, PAWN));
+                score -= BishopXRayPawns * popcount(attacks_bb<BISHOP>(s) & pos.pieces(Them, PAWN));
 
                 // Bonus for bishop on a long diagonal which can "see" both center squares
                 if (more_than_one(attacks_bb<BISHOP>(s, pos.pieces(PAWN)) & Center))
@@ -739,12 +739,12 @@ namespace {
         Square s = pos.square<QUEEN>(Them);
         safe = mobilityArea[Us] & ~stronglyProtected;
 
-        b = attackedBy[Us][KNIGHT] & pos.attacks_from<KNIGHT>(s, Us);
+        b = attackedBy[Us][KNIGHT] & attacks_bb<KNIGHT>(s);
 
         score += KnightOnQueen * popcount(b & safe);
 
-        b =  (attackedBy[Us][BISHOP] & pos.attacks_from<BISHOP>(s, Us))
-           | (attackedBy[Us][ROOK  ] & pos.attacks_from<ROOK  >(s, Us));
+        b =  (attackedBy[Us][BISHOP] & attacks_bb<BISHOP>(s, pos.pieces()))
+           | (attackedBy[Us][ROOK  ] & attacks_bb<ROOK  >(s, pos.pieces()));
 
         score += SliderOnQueen * popcount(b & safe & attackedBy2[Us]);
     }

@@ -215,7 +215,6 @@ public:
   Bitboard attackers_to(Square s, Bitboard occupied, Color c) const;
   Bitboard attackers_to(Square s, Bitboard occupied, Color c, Bitboard janggiCannons) const;
   Bitboard attacks_from(Color c, PieceType pt, Square s) const;
-  template<PieceType> Bitboard attacks_from(Square s, Color c) const;
   Bitboard moves_from(Color c, PieceType pt, Square s) const;
   Bitboard slider_blockers(Bitboard sliders, Square s, Bitboard& pinners, Color c) const;
 
@@ -900,11 +899,6 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
   assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
 
   return castlingRookSquare[cr];
-}
-
-template<PieceType Pt>
-inline Bitboard Position::attacks_from(Square s, Color c) const {
-  return attacks_from(c, Pt, s);
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
