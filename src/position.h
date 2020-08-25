@@ -142,6 +142,7 @@ public:
   bool shogi_doubled_pawn() const;
   bool immobility_illegal() const;
   bool gating() const;
+  bool arrow_gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
@@ -181,6 +182,7 @@ public:
   Bitboard pieces(Color c, PieceType pt) const;
   Bitboard pieces(Color c, PieceType pt1, PieceType pt2) const;
   Bitboard major_pieces(Color c) const;
+  Bitboard non_sliding_riders() const;
   Piece piece_on(Square s) const;
   Piece unpromoted_piece_on(Square s) const;
   Square ep_square() const;
@@ -195,7 +197,7 @@ public:
   bool is_on_semiopen_file(Color c, Square s) const;
 
   // Castling
-  int castling_rights(Color c) const;
+  CastlingRights castling_rights(Color c) const;
   bool can_castle(CastlingRights cr) const;
   bool castling_impeded(CastlingRights cr) const;
   Square castling_rook_square(CastlingRights cr) const;
@@ -611,6 +613,11 @@ inline bool Position::gating() const {
   return var->gating;
 }
 
+inline bool Position::arrow_gating() const {
+  assert(var != nullptr);
+  return var->arrowGating;
+}
+
 inline bool Position::seirawan_gating() const {
   assert(var != nullptr);
   return var->seirawanGating;
@@ -833,6 +840,10 @@ inline Bitboard Position::major_pieces(Color c) const {
   return pieces(c) & (pieces(QUEEN) | pieces(AIWOK) | pieces(ARCHBISHOP) | pieces(CHANCELLOR) | pieces(AMAZON));
 }
 
+inline Bitboard Position::non_sliding_riders() const {
+  return pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT) | pieces(JANGGI_CANNON, JANGGI_ELEPHANT);
+}
+
 inline int Position::count(Color c, PieceType pt) const {
   return pieceCount[make_piece(c, pt)];
 }
@@ -875,7 +886,7 @@ inline bool Position::can_castle(CastlingRights cr) const {
   return st->castlingRights & cr;
 }
 
-inline int Position::castling_rights(Color c) const {
+inline CastlingRights Position::castling_rights(Color c) const {
   return c & CastlingRights(st->castlingRights);
 }
 
@@ -1065,8 +1076,7 @@ inline Thread* Position::this_thread() const {
 inline void Position::put_piece(Piece pc, Square s, bool isPromoted, Piece unpromotedPc) {
 
   board[s] = pc;
-  byTypeBB[ALL_PIECES] |= s;
-  byTypeBB[type_of(pc)] |= s;
+  byTypeBB[ALL_PIECES] |= byTypeBB[type_of(pc)] |= s;
   byColorBB[color_of(pc)] |= s;
   index[s] = pieceCount[pc]++;
   pieceList[pc][index[s]] = s;

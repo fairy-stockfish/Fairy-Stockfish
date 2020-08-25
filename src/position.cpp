@@ -72,7 +72,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
               os << " *";
           else
               os << "  ";
-          if (pos.piece_drops() || pos.seirawan_gating())
+          if (pos.piece_drops() || pos.seirawan_gating() || pos.arrow_gating())
           {
               os << " [";
               for (PieceType pt = KING; pt >= PAWN; --pt)
@@ -546,7 +546,7 @@ void Position::set_state(StateInfo* si) const {
           for (int cnt = 0; cnt < pieceCount[pc]; ++cnt)
               si->materialKey ^= Zobrist::psq[pc][cnt];
 
-          if (piece_drops() || seirawan_gating())
+          if (piece_drops() || seirawan_gating() || arrow_gating())
               si->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
       }
 
@@ -637,7 +637,7 @@ const string Position::fen(bool sfen, bool showPromoted, int countStarted, std::
   }
 
   // pieces in hand
-  if (piece_drops() || seirawan_gating())
+  if (piece_drops() || seirawan_gating() || arrow_gating())
   {
       ss << '[';
       if (holdings != "-")
@@ -1001,7 +1001,7 @@ bool Position::pseudo_legal(const Move m) const {
                 || (drop_promoted() && type_of(pc) == promoted_piece_type(in_hand_piece_type(m))));
 
   // Use a slower but simpler function for uncommon cases
-  if (type_of(m) != NORMAL || is_gating(m))
+  if (type_of(m) != NORMAL || is_gating(m) || arrow_gating())
       return MoveList<LEGAL>(*this).contains(m);
 
   // Handle the case where a mandatory piece promotion/demotion is not taken
@@ -1052,7 +1052,7 @@ bool Position::pseudo_legal(const Move m) const {
   // Evasions generator already takes care to avoid some kind of illegal moves
   // and legal() relies on this. We therefore have to take care that the same
   // kind of moves are filtered out here.
-  if (checkers() & ~(pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT) | pieces(JANGGI_CANNON, JANGGI_ELEPHANT)))
+  if (checkers() && !(checkers() & non_sliding_riders()))
   {
       if (type_of(pc) != KING)
       {
@@ -1545,6 +1545,7 @@ void Position::undo_move(Move m) {
   {
       Piece gating_piece = make_piece(us, gating_type(m));
       remove_piece(gating_square(m));
+      board[gating_square(m)] = NO_PIECE;
       add_to_hand(gating_piece);
       st->gatesBB[us] |= gating_square(m);
   }

@@ -32,13 +32,13 @@ namespace {
   #define S(mg, eg) make_score(mg, eg)
 
   // Pawn penalties
-  constexpr Score Backward        = S( 9, 24);
-  constexpr Score BlockedStorm    = S(82, 82);
-  constexpr Score Doubled         = S(11, 56);
-  constexpr Score DoubledIsolated = S(15, 57);
-  constexpr Score Isolated        = S( 5, 15);
-  constexpr Score WeakLever       = S( 0, 56);
-  constexpr Score WeakUnopposed   = S(13, 27);
+  constexpr Score Backward      = S( 9, 24);
+  constexpr Score Doubled       = S(11, 56);
+  constexpr Score Isolated      = S( 5, 15);
+  constexpr Score WeakLever     = S( 0, 56);
+  constexpr Score WeakUnopposed = S(13, 27);
+
+  constexpr Score BlockedStorm[RANK_NB]  = {S( 0, 0), S( 0, 0), S( 76, 78), S(-10, 15), S(-7, 10), S(-4, 6), S(-1, 2)};
 
   // Connected pawn bonus
   constexpr int Connected[RANK_NB] = { 0, 7, 8, 12, 29, 48, 86 };
@@ -87,6 +87,7 @@ namespace {
     e->passedPawns[Us] = 0;
     e->kingSquares[Us] = SQ_NONE;
     e->pawnAttacks[Us] = e->pawnAttacksSpan[Us] = pawn_attacks_bb<Us>(ourPawns);
+    e->blockedCount += popcount(shift<Up>(ourPawns) & (theirPawns | doubleAttackThem));
 
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
@@ -105,8 +106,6 @@ namespace {
         neighbours = ourPawns   & adjacent_files_bb(s);
         phalanx    = neighbours & rank_bb(s);
         support    = r > RANK_1 ? neighbours & rank_bb(s - Up) : Bitboard(0);
-
-        e->blockedCount += blocked || more_than_one(leverPush);
 
         // A pawn is backward when it is behind all pawns of the same color on
         // the adjacent files and cannot safely advance.
@@ -155,7 +154,7 @@ namespace {
             if (   (ourPawns & forward_file_bb(Them, s))
                 && popcount(opposed) == 1
                 && !(theirPawns & adjacent_files_bb(s)))
-                score -= DoubledIsolated * (1 + 2 * pos.must_capture());
+                score -= Doubled * (1 + 2 * pos.must_capture());
         }
 
         else if (backward)
@@ -225,7 +224,7 @@ Score Entry::evaluate_shelter(const Position& pos, Square ksq) {
   constexpr Color Them = ~Us;
 
   Bitboard b = pos.pieces(PAWN, SHOGI_PAWN) & ~forward_ranks_bb(Them, ksq);
-  Bitboard ourPawns = b & pos.pieces(Us);
+  Bitboard ourPawns = b & pos.pieces(Us) & ~pawnAttacks[Them];
   Bitboard theirPawns = b & pos.pieces(Them);
 
   Score bonus = make_score(5, 5);
@@ -239,12 +238,12 @@ Score Entry::evaluate_shelter(const Position& pos, Square ksq) {
       b = theirPawns & file_bb(f);
       int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b), pos.max_rank()) : 0;
 
-      File d = std::min(File(edge_distance(f, pos.max_file())), FILE_D);
+      int d = std::min(File(edge_distance(f, pos.max_file())), FILE_D);
       bonus += make_score(ShelterStrength[d][ourRank], 0) * (1 + (pos.captures_to_hand() && ourRank <= RANK_2)
                                                                + (pos.check_counting() && d == 0 && ourRank == RANK_2));
 
       if (ourRank && (ourRank == theirRank - 1))
-          bonus -= BlockedStorm * int(theirRank == RANK_3);
+          bonus -= BlockedStorm[theirRank];
       else
           bonus -= make_score(UnblockedStorm[d][theirRank], 0);
   }

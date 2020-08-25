@@ -86,6 +86,7 @@ struct Variant {
   bool shogiDoubledPawn = true;
   bool immobilityIllegal = false;
   bool gating = false;
+  bool arrowGating = false;
   bool seirawanGating = false;
   bool cambodianMoves = false;
   Bitboard diagonalLines = 0;
