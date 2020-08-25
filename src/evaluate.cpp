@@ -132,7 +132,7 @@ namespace {
   };
 
   // KingProximity contains a penalty according to distance from king
-  constexpr Score KingProximity = S(1, 3);
+  constexpr Score KingProximity = S(2, 4);
   constexpr Score EndgameKingProximity = S(0, 10);
 
   // Assorted bonuses and penalties
