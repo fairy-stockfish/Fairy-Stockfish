@@ -18,7 +18,9 @@ npm install ffish
 cd Fairy-Stockfish/src
 ```
 ```bash
-emcc -O3 --bind ffishjs.cpp \
+emcc -O3 --bind -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 \
+ -s WASM_MEM_MAX=2147483648 -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
+ffishjs.cpp \
 benchmark.cpp \
 bitbase.cpp \
 bitboard.cpp \
@@ -46,6 +48,13 @@ xboard.cpp \
 -o ../tests/js/ffish.js
 ```
 
+If you want to disable variants with a board greater than 8x8,
+ you can remove the flags `-s TOTAL_MEMORY=67108864 -s
+  ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648
+   -DLARGEBOARDS` ``-DPRECOMPUTED_MAGICS`.
+
+The pre-compiled wasm binary is built with `-DLARGEBOARDS`.
+
 ## Examples
 
 Load the API in JavaScript:
@@ -54,11 +63,13 @@ Load the API in JavaScript:
 const ffish = require('ffish');
 ```
 
-Create a new variant board from its default starting position:
+Create a new variant board from its default starting position.
+The even `onRuntimeInitialized` ensures that the wasm file was properly loaded.
 
 ```javascript
-// create new board with starting position
-let board = new ffish.Board("chess");
+ffish['onRuntimeInitialized'] = () => {
+  let board = new ffish.Board("chess");
+}
 ```
 
 Set a custom fen position:
@@ -66,11 +77,9 @@ Set a custom fen position:
 board.setFen("rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3");
 ```
 
-Initialize a board with a custom FEN:
+Alternatively, you can initialize a board with a custom FEN directly:
 ```javascript
-board = new ffish.Board("crazyhouse", "rnb1kb1r/ppp2ppp/4pn2/8/3P4/2N2Q2/PPP2PPP/R1B1KB1R/QPnp b KQkq - 0 6");
-// create a new board object for a given fen
-let board2 = new ffish.Board("crazyhouse", );
+let board2 = new ffish.Board("crazyhouse", "rnb1kb1r/ppp2ppp/4pn2/8/3P4/2N2Q2/PPP2PPP/R1B1KB1R/QPnp b KQkq - 0 6");
 ```
 
 Add a new move:
@@ -84,10 +93,17 @@ let legalMoves = board.legalMoves().split(" ");
 let legalMovesSan = board.legalMovesSan().split(" ");
 
 for (var i = 0; i < legalMovesSan.length; i++) {
-    console.log(`${i}: ${legalMoves[i]}, ${legalMoves
+    console.log(`${i}: ${legalMoves[i]}, ${legalMoves})
+}
 ```
 
-For examples for every function see [test.js](./test.js).
+For examples for every function see [test.js](https://github.com/ianfab/Fairy-Stockfish/blob/master/tests/js/test.js).
+
+Unfortunately, it is impossible for Emscripten to call the destructors on C++ object.
+Therefore, you need to call `.delete()` to free the heap memory of an object.
+```javascript
+board.delete();
+```
 
 ## Instructions to run the tests
 ```bash
@@ -112,7 +128,9 @@ Some environments such as [vue-js](https://vuejs.org/) may require the library t
 cd Fairy-Stockfish/src
 ```
 ```bash
-emcc -O3 --bind \
+emcc -O3 -DLARGEBOARDS --bind \
+-s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 \
+-s WASM_MEM_MAX=2147483648 -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
 -s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0 \
 ffishjs.cpp \
 benchmark.cpp \
