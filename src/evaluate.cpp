@@ -616,9 +616,10 @@ namespace {
     if (pos.king_type() == WAZIR)
         score += make_score(0, mg_value(score) / 2);
 
-    // For drop games, king danger is independent of game phase
+    // For drop games, king danger is independent of game phase, but dependent on material density
     if (pos.captures_to_hand() || pos.two_boards())
-        score = make_score(mg_value(score), mg_value(score)) * 2 / (2 + 16 / pos.max_rank() * !pos.shogi_doubled_pawn());
+        score = make_score(mg_value(score) * me->material_density() / 11000,
+                           mg_value(score) * me->material_density() / 11000);
 
     if (T)
         Trace::add(KING, Us, score);
