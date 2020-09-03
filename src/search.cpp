@@ -252,14 +252,8 @@ void MainThread::search() {
   }
   else
   {
-      for (Thread* th : Threads)
-      {
-          th->bestMoveChanges = 0;
-          if (th != this)
-              th->start_searching();
-      }
-
-      Thread::search(); // Let's start searching!
+      Threads.start_searching(); // start non-main threads
+      Thread::search();          // main thread start searching
   }
 
   if (rootPos.two_boards() && !Threads.abort && Options["Protocol"] == "xboard")
@@ -282,9 +276,7 @@ void MainThread::search() {
   Threads.stop = true;
 
   // Wait until all threads have finished
-  for (Thread* th : Threads)
-      if (th != this)
-          th->wait_for_search_finished();
+  Threads.wait_for_search_finished();
 
   // When playing in 'nodes as time' mode, subtract the searched nodes from
   // the available ones before exiting.
@@ -293,37 +285,11 @@ void MainThread::search() {
 
   bestThread = this;
 
-  // Check if there are threads with a better score than main thread
-  if (    int(Options["MultiPV"]) == 1
-      && !Limits.depth
-      && !(Skill(Options["Skill Level"]).enabled() || int(Options["UCI_LimitStrength"]))
-      &&  rootMoves[0].pv[0] != MOVE_NONE)
-  {
-      std::map<Move, int64_t> votes;
-      Value minScore = this->rootMoves[0].score;
-
-      // Find minimum score
-      for (Thread* th: Threads)
-          minScore = std::min(minScore, th->rootMoves[0].score);
-
-      // Vote according to score and depth, and select the best thread
-      for (Thread* th : Threads)
-      {
-          votes[th->rootMoves[0].pv[0]] +=
-              (th->rootMoves[0].score - minScore + 14) * int(th->completedDepth);
-
-          if (abs(bestThread->rootMoves[0].score) >= VALUE_TB_WIN_IN_MAX_PLY)
-          {
-              // Make sure we pick the shortest mate / TB conversion or stave off mate the longest
-              if (th->rootMoves[0].score > bestThread->rootMoves[0].score)
-                  bestThread = th;
-          }
-          else if (   th->rootMoves[0].score >= VALUE_TB_WIN_IN_MAX_PLY
-                   || (   th->rootMoves[0].score > VALUE_TB_LOSS_IN_MAX_PLY
-                       && votes[th->rootMoves[0].pv[0]] > votes[bestThread->rootMoves[0].pv[0]]))
-              bestThread = th;
-      }
-  }
+  if (int(Options["MultiPV"]) == 1 &&
+      !Limits.depth &&
+      !(Skill(Options["Skill Level"]).enabled() || int(Options["UCI_LimitStrength"])) &&
+      rootMoves[0].pv[0] != MOVE_NONE)
+      bestThread = Threads.get_best_thread();
 
   bestPreviousScore = bestThread->rootMoves[0].score;
 
