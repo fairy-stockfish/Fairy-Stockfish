@@ -586,6 +586,9 @@ void Thread::search() {
           }
           double bestMoveInstability = 1 + totBestMoveChanges / Threads.size();
 
+          double totalTime = rootMoves.size() == 1 ? 0 :
+                             Time.optimum() * fallingEval * reduction * bestMoveInstability;
+
           if (completedDepth >= 8 && rootPos.two_boards() && Options["Protocol"] == "xboard")
           {
               if (Limits.time[us])
@@ -614,9 +617,8 @@ void Thread::search() {
               }
           }
 
-          // Stop the search if we have only one legal move, or if available time elapsed
-          if (   rootMoves.size() == 1
-              || Time.elapsed() > Time.optimum() * fallingEval * reduction * bestMoveInstability)
+          // Stop the search if we have exceeded the totalTime, at least 1ms search.
+          if (Time.elapsed() > totalTime)
           {
               // If we are allowed to ponder do not stop the search now but
               // keep pondering until the GUI sends "ponderhit" or "stop".
@@ -627,7 +629,7 @@ void Thread::search() {
           }
           else if (   Threads.increaseDepth
                    && !mainThread->ponder
-                   && Time.elapsed() > Time.optimum() * fallingEval * reduction * bestMoveInstability * 0.6)
+                   && Time.elapsed() > totalTime * 0.6)
                    Threads.increaseDepth = false;
           else
                    Threads.increaseDepth = true;
@@ -688,7 +690,8 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue;
     bool ttHit, ttPv, formerPv, givesCheck, improving, didLMR, priorCapture;
-    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, ttCapture, singularLMR;
+    bool captureOrPromotion, doFullDepthSearch, moveCountPruning,
+         ttCapture, singularQuietLMR;
     Piece movedPiece;
     int moveCount, captureCount, quietCount;
 
@@ -1042,10 +1045,10 @@ moves_loop: // When in check, search starts from here
                                       contHist,
                                       countermove,
                                       ss->killers,
-                                      depth > 12 ? ss->ply : MAX_PLY);
+                                      ss->ply);
 
     value = bestValue;
-    singularLMR = moveCountPruning = false;
+    singularQuietLMR = moveCountPruning = false;
     ttCapture = ttMove && pos.capture_or_promotion(ttMove);
 
     // Mark this node as being searched
@@ -1133,6 +1136,7 @@ moves_loop: // When in check, search starts from here
               // Futility pruning for captures
               if (   !givesCheck
                   && lmrDepth < 6
+                  && !(PvNode && abs(bestValue) < 2)
                   && !ss->inCheck
                   && ss->staticEval + 270 + 384 * lmrDepth + PieceValue[MG][type_of(pos.piece_on(to_sq(move)))] <= alpha)
                   continue;
@@ -1169,7 +1173,7 @@ moves_loop: // When in check, search starts from here
           if (value < singularBeta)
           {
               extension = 1;
-              singularLMR = true;
+              singularQuietLMR = !ttCapture;
           }
 
           // Multi-cut pruning
@@ -1282,7 +1286,7 @@ moves_loop: // When in check, search starts from here
               r--;
 
           // Decrease reduction if ttMove has been singularly extended (~3 Elo)
-          if (singularLMR)
+          if (singularQuietLMR)
               r -= 1 + formerPv;
 
           if (!captureOrPromotion)

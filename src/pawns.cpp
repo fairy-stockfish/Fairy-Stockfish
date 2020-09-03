@@ -148,13 +148,13 @@ namespace {
 
         else if (!neighbours)
         {
-            score -=   Isolated * (1 + 2 * pos.must_capture())
-                     + WeakUnopposed * !opposed;
-
-            if (   (ourPawns & forward_file_bb(Them, s))
-                && popcount(opposed) == 1
+            if (     opposed
+                &&  (ourPawns & forward_file_bb(Them, s))
                 && !(theirPawns & adjacent_files_bb(s)))
                 score -= Doubled * (1 + 2 * pos.must_capture());
+            else
+                score -=   Isolated * (1 + 2 * pos.must_capture())
+                         + WeakUnopposed * !opposed;
         }
 
         else if (backward)
