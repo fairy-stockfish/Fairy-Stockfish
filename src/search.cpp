@@ -1084,7 +1084,8 @@ moves_loop: // When in check, search starts from here
                   && ss->staticEval + (235 + 172 * lmrDepth) * (1 + pos.check_counting()) <= alpha
                   &&  (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
                     + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
-                    + (*contHist[3])[history_slot(movedPiece)][to_sq(move)] < 27400)
+                    + (*contHist[3])[history_slot(movedPiece)][to_sq(move)]
+                    + (*contHist[5])[history_slot(movedPiece)][to_sq(move)] / 2 < 31400)
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)

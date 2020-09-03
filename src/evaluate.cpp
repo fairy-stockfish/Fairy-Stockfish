@@ -1104,7 +1104,6 @@ namespace {
                     + 24 * infiltration
                     + 51 * !pos.non_pawn_material()
                     - 43 * almostUnwinnable
-                    -  2 * pos.rule50_count()
                     -110 ;
     }
 
@@ -1226,8 +1225,17 @@ namespace {
         Trace::add(MOBILITY, mobility[WHITE], mobility[BLACK]);
     }
 
+    // Evaluation grain
+    v = (v / 16) * 16;
+
     // Side to move point of view
-    return (pos.side_to_move() == WHITE ? v : -v) + Eval::tempo_value(pos);
+    v = (pos.side_to_move() == WHITE ? v : -v) + Eval::tempo_value(pos);
+
+    // Damp down the evaluation linearly when shuffling
+    if (pos.n_move_rule())
+        v = v * (2 * pos.n_move_rule() - pos.rule50_count()) / (2 * pos.n_move_rule());
+
+    return v;
   }
 
 } // namespace
