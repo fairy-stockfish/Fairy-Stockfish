@@ -467,6 +467,10 @@ namespace {
                                 std::max(PieceValue[EG][pos.promoted_piece_type(pt)] - PieceValue[EG][pt], VALUE_ZERO)) / 4 * pos.count_in_hand(Us, pt);
         if (pos.enclosing_drop())
             mobility[Us] += make_score(500, 500) * popcount(b);
+
+        // Reduce score if there is a deficit of gates
+        if (pos.seirawan_gating() && !pos.piece_drops() && pos.count_in_hand(Us, ALL_PIECES) > popcount(pos.gates(Us)))
+            score -= make_score(200, 900) / pos.count_in_hand(Us, ALL_PIECES) * (pos.count_in_hand(Us, ALL_PIECES) - popcount(pos.gates(Us)));
     }
 
     return score;
