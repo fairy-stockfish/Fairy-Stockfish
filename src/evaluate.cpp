@@ -893,7 +893,7 @@ namespace {
 
     bool pawnsOnly = !(pos.pieces(Us) ^ pos.pieces(Us, PAWN));
 
-    if (pos.non_pawn_material() < SpaceThreshold && !pos.captures_to_hand() && !pawnsOnly)
+    if (pos.non_pawn_material() < SpaceThreshold && !pos.captures_to_hand() && !pawnsOnly && pos.double_step_enabled())
         return SCORE_ZERO;
 
     constexpr Color Them     = ~Us;
