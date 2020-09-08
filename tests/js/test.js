@@ -8,7 +8,7 @@ before(() => {
   });
 });
 
-describe('Constructor: no parameter ', function () {
+describe('Board()', function () {
   it("it creates a chess board from the default position", () => {
     const board = new ffish.Board();
     chai.expect(board.fen()).to.equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -17,7 +17,7 @@ describe('Constructor: no parameter ', function () {
   });
 });
 
-describe('Constructor: variant parameter ', function () {
+describe('Board(uciVariant) ', function () {
   it("it creates a board object from a given UCI-variant", () => {
     const board = new ffish.Board("chess");
     chai.expect(board.fen()).to.equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -26,7 +26,7 @@ describe('Constructor: variant parameter ', function () {
   });
 });
 
-describe('Constructor: variant parameter with large board', function () {
+describe('Board(uciVariant) with large board', function () {
   it("it creates a large-board object from a given UCI-variant", () => {
     const board = new ffish.Board("xiangqi");
     chai.expect(board.fen()).to.equal("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1");
@@ -35,7 +35,7 @@ describe('Constructor: variant parameter with large board', function () {
   });
 });
 
-describe('Constructor: variant parameter + fen ', function () {
+describe('Board(uciVariant, fen) ', function () {
   it("it creates a board object for a given UCI-variant with a given FEN", () => {
     const board = new ffish.Board("crazyhouse", "rnbqkb1r/pp3ppp/5p2/2pp4/8/5N2/PPPP1PPP/RNBQKB1R/Np w KQkq - 0 5");
     chai.expect(board.fen()).to.equal("rnbqkb1r/pp3ppp/5p2/2pp4/8/5N2/PPPP1PPP/RNBQKB1R[Np] w KQkq - 0 5");
@@ -44,7 +44,7 @@ describe('Constructor: variant parameter + fen ', function () {
   });
 });
 
-describe('Constructor: variant parameter + fen + is960', function () {
+describe('Board(uciVariant, fen, is960)', function () {
   it("it creates a board object for a given UCI-variant with a given FEN and is960 identifier", () => {
     const board = new ffish.Board("chess", "rnknb1rq/pp2ppbp/3p2p1/2p5/4PP2/2N1N1P1/PPPP3P/R1K1BBRQ b KQkq - 1 5", true);
     chai.expect(board.fen()).to.equal("rnknb1rq/pp2ppbp/3p2p1/2p5/4PP2/2N1N1P1/PPPP3P/R1K1BBRQ b GAga - 1 5");
@@ -87,7 +87,7 @@ describe('board.numberLegalMoves()', function () {
   });
 });
 
-describe('board.push()', function () {
+describe('board.push(uciMove)', function () {
   it("it pushes a move in uci notation to the board", () => {
     let board = new ffish.Board();
     board.push("e2e4");
@@ -156,7 +156,7 @@ describe('board.fen()', function () {
   });
 });
 
-describe('board.setFen()', function () {
+describe('board.setFen(fen)', function () {
   it("it sets a custom position via fen", () => {
     let board = new ffish.Board();
     board.setFen("r1bqkbnr/ppp2ppp/2np4/1B6/3NP3/8/PPP2PPP/RNBQK2R b KQkq - 0 5");
@@ -174,12 +174,72 @@ describe('board.sanMove()', function () {
   });
 });
 
+describe('board.sanMove(ffish.Notation)', function () {
+  it("it converts an uci move into san using a given notation", () => {
+    const board = new ffish.Board();
+    chai.expect(board.sanMove("g1f3", ffish.Notation.DEFAULT)).to.equal("Nf3");
+    chai.expect(board.sanMove("g1f3", ffish.Notation.SAN)).to.equal("Nf3");
+    chai.expect(board.sanMove("g1f3", ffish.Notation.LAN)).to.equal("Ng1-f3");
+    chai.expect(board.sanMove("g1f3", ffish.Notation.SHOGI_HOSKING)).to.equal("N36");
+    chai.expect(board.sanMove("g1f3", ffish.Notation.SHOGI_HODGES)).to.equal("N-3f");
+    chai.expect(board.sanMove("g1f3", ffish.Notation.SHOGI_HODGES_NUMBER)).to.equal("N-36");
+    chai.expect(board.sanMove("g1f3", ffish.Notation.JANGGI)).to.equal("N87-66");
+    chai.expect(board.sanMove("g1f3", ffish.Notation.XIANGQI_WXF)).to.equal("N2+3");
+    board.delete();
+  });
+});
+
+describe('board.variationSan(uciMoves)', function () {
+  it("it converts a list of uci moves into san notation. The board will not changed by this method.", () => {
+    let board = new ffish.Board();
+    board.push("e2e4")
+    const sanMoves = board.variationSan("e7e5 g1f3 b8c6 f1c4");
+    chai.expect(sanMoves).to.equal("1...e5 2. Nf3 Nc6 3. Bc4");
+    board.delete();
+  });
+});
+
+describe('board.variationSan(uciMoves, notation)', function () {
+  it("it converts a list of uci moves into san notation given a notation format", () => {
+    let board = new ffish.Board();
+    board.push("e2e4")
+    const sanMoves = board.variationSan("e7e5 g1f3 b8c6 f1c4", ffish.Notation.LAN);
+    chai.expect(sanMoves).to.equal("1...e7-e5 2. Ng1-f3 Nb8-c6 3. Bf1-c4");
+    board.delete();
+  });
+});
+
+describe('board.variationSan(uciMoves, notation, moveNumbers)', function () {
+  it("it converts a list of uci moves into san notation given a notation format and optionally disabling move numbers", () => {
+    let board = new ffish.Board();
+    board.push("e2e4")
+    const sanMoves = board.variationSan("e7e5 g1f3 b8c6 f1c4", ffish.Notation.SAN, false);
+    chai.expect(sanMoves).to.equal("e5 Nf3 Nc6 Bc4");
+    board.delete();
+  });
+});
+
 describe('board.turn()', function () {
   it("it returns the side to move", () => {
     let board = new ffish.Board();
     chai.expect(board.turn()).to.equal(true);
     board.push("e2e4");
     chai.expect(board.turn()).to.equal(false);
+    board.delete();
+  });
+});
+
+describe('board.fullmoveNumber()', function () {
+  it("it returns the move number starting with 1 and is increment after each move of the 2nd player", () => {
+    let board = new ffish.Board();
+    chai.expect(board.fullmoveNumber()).to.equal(1);
+    board.push("e2e4");
+    chai.expect(board.fullmoveNumber()).to.equal(1);
+    board.push("e7e5");
+    board.push("g1f3");
+    board.push("g8f6");
+    board.push("f3e5");
+    chai.expect(board.fullmoveNumber()).to.equal(3);
     board.delete();
   });
 });
@@ -226,8 +286,52 @@ describe('board.isGameOver()', function () {
   });
 });
 
+describe('board.isCheck()', function () {
+  it("it checks if a player is in check", () => {
+    let board = new ffish.Board();
+    chai.expect(board.isCheck()).to.equal(false);
+    board.setFen("rnbqkb1r/pppp1Bpp/5n2/4p3/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 0 3");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.setFen("r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4");
+    board.pushSan("Qxf7#");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.delete();
+  });
+});
+
+describe('board.isBikjang()', function () {
+  it("it checks if a player is in bikjang (only relevant for janggi)", () => {
+    let board = new ffish.Board("janggi");
+    chai.expect(board.isBikjang()).to.equal(false);
+    board.setFen("rnba1abnr/4k4/1c5c1/p1p3p1p/9/9/P1P3P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1");
+    chai.expect(board.isBikjang()).to.equal(true);
+    board.delete();
+  });
+});
+
 describe('ffish.info()', function () {
   it("it returns the version of the Fairy-Stockfish binary", () => {
     chai.expect(ffish.info()).to.be.a('string');
+  });
+});
+
+describe('ffish.setOption(name, value)', function () {
+  it("it sets a string uci option value pair", () => {
+    ffish.setOption("VariantPath", "variants.ini");
+    chai.expect(true).to.equal(true);
+  });
+});
+
+describe('ffish.setOptionInt(name, value)', function () {
+  it("it sets a int uci option value pair", () => {
+    ffish.setOptionInt("Threads", 4);
+    chai.expect(true).to.equal(true);
+  });
+});
+
+describe('ffish.setOptionBool(name, value)', function () {
+  it("it sets a boolean uci option value pair", () => {
+    ffish.setOptionBool("Ponder", true);
+    chai.expect(true).to.equal(true);
   });
 });

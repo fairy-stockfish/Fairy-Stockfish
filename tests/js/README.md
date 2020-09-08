@@ -1,67 +1,59 @@
-# ffish.js
+<h2 align="center">ffish.js</h2>
 
-A high performance WebAssembly chess variant library based on _Fairy-Stockfish_.
+<p align="center">
+<a href="https://img.shields.io/badge/-ffish.js-green"><img src="https://img.shields.io/badge/-ffish.js-green" alt="Package"></a>
+<a href="https://npmcharts.com/compare/ffish?minimal=true"><img src="https://img.shields.io/npm/dm/ffish.svg?sanitize=true" alt="Downloads"></a>
+<a href="https://www.npmjs.com/package/ffish"><img src="https://img.shields.io/npm/v/ffish.svg?sanitize=true" alt="Version"></a>
+</p>
 
-It is built using emscripten/Embind from C++ source code.
+<p align="center">
+<a href="https://img.shields.io/badge/-ffish--es6.js-green"><img src="https://img.shields.io/badge/-ffish--es6.js-green" alt="Package-ES6"></a>
+<a href="https://npmcharts.com/compare/ffish-es6?minimal=true"><img src="https://img.shields.io/npm/dm/ffish-es6.svg?sanitize=true" alt="Downloads-ES6"></a>
+<a href="https://www.npmjs.com/package/ffish-es6"><img src="https://img.shields.io/npm/v/ffish-es6.svg?sanitize=true" alt="Version-ES6"></a>
+</p>
 
-* https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html
+
+The package **ffish.js** is a high performance WebAssembly chess variant library based on [_Fairy-Stockfish_](https://github.com/ianfab/Fairy-Stockfish).
+
+It is available as a [standard module](https://www.npmjs.com/package/ffish) and as an [ES6 module](https://www.npmjs.com/package/ffish-es6).
 
 ## Install instructions
+
+### Standard module
 
 ```bash
 npm install ffish
 ```
 
-## Build instuctions
-
+### ES6 module
 ```bash
-cd Fairy-Stockfish/src
+npm install ffish-es6
 ```
-```bash
-emcc -O3 --bind -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 \
- -s WASM_MEM_MAX=2147483648 -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
-ffishjs.cpp \
-benchmark.cpp \
-bitbase.cpp \
-bitboard.cpp \
-endgame.cpp \
-evaluate.cpp \
-material.cpp \
-misc.cpp \
-movegen.cpp \
-movepick.cpp \
-parser.cpp \
-partner.cpp \
-pawns.cpp \
-piece.cpp \
-position.cpp \
-psqt.cpp \
-search.cpp \
-thread.cpp \
-timeman.cpp \
-tt.cpp \
-uci.cpp \
-syzygy/tbprobe.cpp \
-ucioption.cpp \
-variant.cpp \
-xboard.cpp \
--o ../tests/js/ffish.js
-```
-
-If you want to disable variants with a board greater than 8x8,
- you can remove the flags `-s TOTAL_MEMORY=67108864 -s
-  ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648
-   -DLARGEBOARDS` ``-DPRECOMPUTED_MAGICS`.
-
-The pre-compiled wasm binary is built with `-DLARGEBOARDS`.
 
 ## Examples
 
 Load the API in JavaScript:
 
+### Standard module
+
 ```javascript
 const ffish = require('ffish');
 ```
+
+### ES6 module
+
+```javascript
+import Module from 'ffish';
+let ffish = null;
+
+new Module().then(loadedModule => {
+    ffish = loadedModule;
+    console.log(`initialized ${ffish} ${loadedModule}`);
+    }
+});
+```
+
+### Board object
 
 Create a new variant board from its default starting position.
 The even `onRuntimeInitialized` ensures that the wasm file was properly loaded.
@@ -105,21 +97,58 @@ Therefore, you need to call `.delete()` to free the heap memory of an object.
 board.delete();
 ```
 
-## Instructions to run the tests
+
+## Build instuctions
+
+It is built using emscripten/Embind from C++ source code.
+
+* https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html
+
+
+If you want to disable variants with a board greater than 8x8,
+ you can remove the flags `-s TOTAL_MEMORY=67108864 -s
+  ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648
+   -DLARGEBOARDS -DPRECOMPUTED_MAGICS`.
+
+The pre-compiled wasm binary is built with `-DLARGEBOARDS`.
+
+### Compile as standard module
+
 ```bash
-npm install
-npm test
+cd Fairy-Stockfish/src
+```
+```bash
+emcc -O3 --bind -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 \
+ -s WASM_MEM_MAX=2147483648 -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
+ffishjs.cpp \
+benchmark.cpp \
+bitbase.cpp \
+bitboard.cpp \
+endgame.cpp \
+evaluate.cpp \
+material.cpp \
+misc.cpp \
+movegen.cpp \
+movepick.cpp \
+parser.cpp \
+partner.cpp \
+pawns.cpp \
+piece.cpp \
+position.cpp \
+psqt.cpp \
+search.cpp \
+thread.cpp \
+timeman.cpp \
+tt.cpp \
+uci.cpp \
+syzygy/tbprobe.cpp \
+ucioption.cpp \
+variant.cpp \
+xboard.cpp \
+-o ../tests/js/ffish.js
 ```
 
-## Instructions to run the example server
-```bash
-npm install
-```
-```bash
-node index.js
-```
-
-## Compile as ES6/ES2015 module
+### Compile as ES6/ES2015 module
 
 Some environments such as [vue-js](https://vuejs.org/) may require the library to be exported
   as a ES6/ES2015 module.
@@ -160,17 +189,18 @@ xboard.cpp \
 -o ../tests/js/ffish.js
 ```
 
-Later the module can be imported as follows:
+Reference: [emscripten/#10114](https://github.com/emscripten-core/emscripten/issues/10114)
 
-```javascript
-import Module from './ffish.js';
-let ffish = null;
-
-new Module().then(loadedModule => {
-    ffish = loadedModule;
-    console.log(`initialized ${ffish} ${loadedModule}`);
-    }
-});
-
+## Instructions to run the tests
+```bash
+npm install
+npm test
 ```
-References: [emscripten/#10114](https://github.com/emscripten-core/emscripten/issues/10114)
+
+## Instructions to run the example server
+```bash
+npm install
+```
+```bash
+node index.js
+```
