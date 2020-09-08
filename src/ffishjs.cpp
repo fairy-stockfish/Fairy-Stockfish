@@ -20,6 +20,7 @@
 #include <emscripten/bind.h>
 #include <vector>
 #include <string>
+#include <sstream>
 
 #include "misc.h"
 #include "types.h"
@@ -39,7 +40,7 @@
 using namespace emscripten;
 
 
-void initializeStockfish(std::string& uciVariant) {
+void initialize_stockfish(std::string& uciVariant) {
   pieceMap.init();
   variants.init();
   UCI::init(Options);
@@ -57,20 +58,21 @@ private:
   Position pos;
   Thread* thread;
   std::vector<Move> moveStack;
- static bool sfInitialized;
   bool is960;
 
 public:
+  static bool sfInitialized;
+
   Board():
     Board("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" , false) {
   }
 
-  Board(std::string uciVariant) {
-    init(uciVariant, "", is960);
+  Board(std::string uciVariant):
+    Board(uciVariant, "", false) {
   }
 
   Board(std::string uciVariant, std::string fen):
-    Board(uciVariant, fen , false) {
+    Board(uciVariant, fen, false) {
   }
 
   Board(std::string uciVariant, std::string fen, bool is960) {
@@ -81,12 +83,12 @@ public:
     std::string moves = "";
     bool first = true;
     for (const ExtMove& move : MoveList<LEGAL>(this->pos)) {
-        if (first) {
-          moves = UCI::move(this->pos, move);
-          first = false;
-        }
-        else
-          moves += " "  + UCI::move(this->pos, move);
+      if (first) {
+        moves = UCI::move(this->pos, move);
+        first = false;
+      }
+      else
+        moves += " "  + UCI::move(this->pos, move);
     }
     return moves;
   }
@@ -95,17 +97,17 @@ public:
     std::string movesSan = "";
     bool first = true;
     for (const ExtMove& move : MoveList<LEGAL>(this->pos)) {
-        if (first) {
-          movesSan = move_to_san(this->pos, move, NOTATION_SAN);
-          first = false;
-        }
-        else
-          movesSan += " "  + move_to_san(this->pos, move, NOTATION_SAN);
+      if (first) {
+        movesSan = move_to_san(this->pos, move, NOTATION_SAN);
+        first = false;
+      }
+      else
+        movesSan += " "  + move_to_san(this->pos, move, NOTATION_SAN);
     }
     return movesSan;
   }
 
-  int number_legal_moves() {
+  int number_legal_moves() const {
     return MoveList<LEGAL>(pos).size();
   }
 
@@ -115,18 +117,17 @@ public:
 
   // TODO: This is a naive implementation which compares all legal SAN moves with the requested string.
   // If the SAN move wasn't found the position remains unchanged. Alternatively, implement a direct conversion.
-   void push_san(std::string sanMove) {
-     Move foundMove = MOVE_NONE;
-     for (const ExtMove& move : MoveList<LEGAL>(pos)) {
-        if (sanMove == move_to_san(this->pos, move, NOTATION_SAN)) {
-          foundMove = move;
-          break;
-        }
-     }
-     if (foundMove != MOVE_NONE)
-        do_move(foundMove);
-   }
-
+  void push_san(std::string sanMove) {
+    Move foundMove = MOVE_NONE;
+    for (const ExtMove& move : MoveList<LEGAL>(pos)) {
+      if (sanMove == move_to_san(this->pos, move, NOTATION_SAN)) {
+        foundMove = move;
+        break;
+      }
+    }
+    if (foundMove != MOVE_NONE)
+      do_move(foundMove);
+  }
 
   void pop() {
     pos.undo_move(this->moveStack.back());
@@ -134,17 +135,17 @@ public:
     states->pop_back();
   }
 
-   void reset() {
-     set_fen(v->startFen);
-   }
+  void reset() {
+    set_fen(v->startFen);
+  }
 
-   bool is_960() {
-     return is960;
-   }
+  bool is_960() const {
+    return is960;
+  }
 
-   std::string fen() const {
-     return this->pos.fen();
-   }
+  std::string fen() const {
+    return this->pos.fen();
+  }
 
   void set_fen(std::string fen) {
     resetStates();
@@ -157,24 +158,84 @@ public:
     return move_to_san(this->pos, UCI::to_move(this->pos, uciMove), NOTATION_SAN);
   }
 
+  std::string san_move(std::string uciMove, Notation notation) {
+    return move_to_san(this->pos, UCI::to_move(this->pos, uciMove), Notation(notation));
+  }
+  std::string variation_san(std::string uciMoves) {
+    return variation_san(uciMoves, NOTATION_SAN, true);
+  }
+
+  std::string variation_san(std::string uciMoves, Notation notation) {
+    return variation_san(uciMoves, notation, true);
+  }
+
+  std::string variation_san(std::string uciMoves, Notation notation, bool moveNumbers) {
+    std::stringstream ss(uciMoves);
+    StateListPtr tempStates;
+    std::vector<Move> moves;
+    std::string variationSan = "";
+    std::string uciMove;
+    bool first = true;
+
+    while (std::getline(ss, uciMove, ' ')) {
+      moves.emplace_back(UCI::to_move(this->pos, uciMove));
+      if (first) {
+        first = false;
+        if (moveNumbers) {
+          variationSan = std::to_string(fullmove_number());
+          if (pos.side_to_move() == WHITE)
+            variationSan += ". ";
+          else
+            variationSan += "...";
+        }
+        variationSan += move_to_san(this->pos, moves.back(), Notation(notation));
+      }
+      else {
+        if (moveNumbers && pos.side_to_move() == WHITE)
+          variationSan += " " + std::to_string(fullmove_number()) + ".";
+        variationSan += " " + move_to_san(this->pos, moves.back(), Notation(notation));
+      }
+      states->emplace_back();
+      pos.do_move(moves.back(), states->back());
+    }
+
+    // recover initial state
+    for(auto rIt = std::rbegin(moves); rIt != std::rend(moves); ++rIt) {
+      pos.undo_move(*rIt);
+    }
+
+    return variationSan;
+  }
+
   // returns true for WHITE and false for BLACK
-  bool turn() {
+  bool turn() const {
     return !pos.side_to_move();
   }
 
-  int halfmove_clock() {
+  int fullmove_number() const {
+    return pos.game_ply() / 2 + 1;
+  }
+
+  int halfmove_clock() const {
     return pos.rule50_count();
   }
 
-  int game_ply() {
+  int game_ply() const {
     return pos.game_ply();
   }
 
-  bool is_game_over() {
-    for (const ExtMove& move : MoveList<LEGAL>(pos)) {
-        return false;
-    }
+  bool is_game_over() const {
+    for (const ExtMove& move: MoveList<LEGAL>(pos))
+      return false;
     return true;
+  }
+
+  bool is_check() const {
+    return pos.checkers();
+  }
+
+  bool is_bikjang() const {
+    return pos.bikjang();
   }
 
   // TODO: return board in ascii notation
@@ -193,14 +254,14 @@ private:
   }
 
   void init(std::string& uciVariant, std::string fen, bool is960) {
-   if (!Board::sfInitialized) {
-        initializeStockfish(uciVariant);
-       Board::sfInitialized = true;
-   }
+    if (!Board::sfInitialized) {
+      initialize_stockfish(uciVariant);
+      Board::sfInitialized = true;
+    }
     this->v = variants.find(uciVariant)->second;
     this->resetStates();
     if (fen == "")
-      fen = v->startFen;
+    fen = v->startFen;
     this->pos.set(this->v, fen, is960, &this->states->back(), this->thread);
     this->is960 = is960;
   }
@@ -208,14 +269,19 @@ private:
 
 // returns the version of the Fairy-Stockfish binary
 std::string info() {
-   return engine_info();
+  return engine_info();
 }
 
 bool Board::sfInitialized = false;
 
+template <typename T>
+void set_option(std::string name, T value) {
+  Options[name] = value;
+  Board::sfInitialized = false;
+}
+
 // binding code
 EMSCRIPTEN_BINDINGS(ffish_js) {
-  function("info", &info);
   class_<Board>("Board")
     .constructor<>()
     .constructor<std::string>()
@@ -231,11 +297,32 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("is960", &Board::is_960)
     .function("fen", &Board::fen)
     .function("setFen", &Board::set_fen)
-    .function("sanMove", &Board::san_move)
+    .function("sanMove", select_overload<std::string(std::string)>(&Board::san_move))
+    .function("sanMove", select_overload<std::string(std::string, Notation)>(&Board::san_move))
+    .function("variationSan", select_overload<std::string(std::string)>(&Board::variation_san))
+    .function("variationSan", select_overload<std::string(std::string, Notation)>(&Board::variation_san))
+    .function("variationSan", select_overload<std::string(std::string, Notation, bool)>(&Board::variation_san))
     .function("turn", &Board::turn)
+    .function("fullmoveNumber", &Board::fullmove_number)
     .function("halfmoveClock", &Board::halfmove_clock)
     .function("gamePly", &Board::game_ply)
-    .function("isGameOver", &Board::is_game_over);
-    // TODO: enable to string conversion method
-    // .class_function("getStringFromInstance", &Board::get_string_from_instance);
+    .function("isGameOver", &Board::is_game_over)
+    .function("isCheck", &Board::is_check)
+    .function("isBikjang", &Board::is_bikjang);
+  // usage: e.g. ffish.Notation.DEFAULT
+  enum_<Notation>("Notation")
+    .value("DEFAULT", NOTATION_DEFAULT)
+    .value("SAN", NOTATION_SAN)
+    .value("LAN", NOTATION_LAN)
+    .value("SHOGI_HOSKING", NOTATION_SHOGI_HOSKING)
+    .value("SHOGI_HODGES", NOTATION_SHOGI_HODGES)
+    .value("SHOGI_HODGES_NUMBER", NOTATION_SHOGI_HODGES_NUMBER)
+    .value("JANGGI", NOTATION_JANGGI)
+    .value("XIANGQI_WXF", NOTATION_XIANGQI_WXF);
+  function("info", &info);
+  function("setOption", &set_option<std::string>);
+  function("setOptionInt", &set_option<int>);
+  function("setOptionBool", &set_option<bool>);
+  // TODO: enable to string conversion method
+  // .class_function("getStringFromInstance", &Board::get_string_from_instance);
 }
