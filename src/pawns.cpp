@@ -100,8 +100,8 @@ namespace {
         opposed    = theirPawns & forward_file_bb(Us, s);
         blocked    = is_ok(s + Up) ? theirPawns & (s + Up) : Bitboard(0);
         stoppers   = theirPawns & passed_pawn_span(Us, s);
-        lever      = theirPawns & PseudoAttacks[Us][PAWN][s];
-        leverPush  = relative_rank(Them, s, pos.max_rank()) > RANK_1 ? theirPawns & PseudoAttacks[Us][PAWN][s + Up] : Bitboard(0);
+        lever      = theirPawns & pawn_attacks_bb(Us, s);
+        leverPush  = relative_rank(Them, s, pos.max_rank()) > RANK_1 ? theirPawns & pawn_attacks_bb(Us, s + Up) : Bitboard(0);
         doubled    = r > RANK_1 ? ourPawns & (s - Up) : Bitboard(0);
         neighbours = ourPawns   & adjacent_files_bb(s);
         phalanx    = neighbours & rank_bb(s);
@@ -148,13 +148,13 @@ namespace {
 
         else if (!neighbours)
         {
-            score -=   Isolated * (1 + 2 * pos.must_capture())
-                     + WeakUnopposed * !opposed;
-
-            if (   (ourPawns & forward_file_bb(Them, s))
-                && popcount(opposed) == 1
+            if (     opposed
+                &&  (ourPawns & forward_file_bb(Them, s))
                 && !(theirPawns & adjacent_files_bb(s)))
                 score -= Doubled * (1 + 2 * pos.must_capture());
+            else
+                score -=   Isolated * (1 + 2 * pos.must_capture())
+                         + WeakUnopposed * !opposed;
         }
 
         else if (backward)
@@ -277,7 +277,7 @@ Score Entry::do_king_safety(const Position& pos) {
   Bitboard pawns = pos.pieces(Us, PAWN);
   int minPawnDist = 6;
 
-  if (pawns & PseudoAttacks[Us][KING][ksq])
+  if (pawns & attacks_bb<KING>(ksq))
       minPawnDist = 1;
   else while (pawns)
       minPawnDist = std::min(minPawnDist, distance(ksq, pop_lsb(&pawns)));

@@ -927,11 +927,12 @@ namespace {
         return v;
     }
     // Modern rules of Janggi, where bikjang is not considered, but material counting is.
-    // This is e.g. used on Kakao Janggi.
+    // The repetition rules are also adjusted for better compatibility with Kakao Janggi.
     Variant* janggi_modern_variant() {
         Variant* v = janggi_variant();
         v->bikjangRule = false;
         v->materialCounting = JANGGI_MATERIAL;
+        v->nFoldValue = -VALUE_MATE;
         return v;
     }
     // Casual rules of Janggi, where bikjang and material counting are not considered
