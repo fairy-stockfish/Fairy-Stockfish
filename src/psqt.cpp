@@ -19,11 +19,13 @@
 */
 
 #include <algorithm>
+#include <sstream>
 
 #include "types.h"
 #include "bitboard.h"
 #include "piece.h"
 #include "variant.h"
+#include "misc.h"
 
 namespace PSQT {
 
@@ -177,12 +179,25 @@ void init(const Variant* v) {
           && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
           score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
 
+      // Determine pawn rank
+      std::istringstream ss(v->startFen);
+      unsigned char token;
+      Rank rc = v->maxRank;
+      Rank pawnRank = RANK_2;
+      while ((ss >> token) && !isspace(token))
+      {
+          if (token == '/')
+              --rc;
+          else if (token == v->pieceToChar[PAWN] || token == v->pieceToChar[SHOGI_PAWN])
+              pawnRank = rc;
+      }
+
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
           File f = std::max(File(edge_distance(file_of(s), v->maxFile)), FILE_A);
           Rank r = rank_of(s);
           psq[ pc][ s] = score + (  pt == PAWN  ? PBonus[std::min(r, RANK_8)][std::min(file_of(s), FILE_H)]
-                                  : pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
+                                  : pt == KING  ? KingBonus[Utility::clamp(Rank(r - pawnRank + 1), RANK_1, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
                                   : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)]
                                   : pt == HORSE ? Bonus[KNIGHT][std::min(r, RANK_8)][std::min(f, FILE_D)]
                                   : isSlider    ? make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile - 1)
