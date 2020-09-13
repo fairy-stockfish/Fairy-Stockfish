@@ -40,7 +40,6 @@
 
 #include <cassert>
 #include <cctype>
-#include <climits>
 #include <cstdint>
 #include <cstdlib>
 #include <algorithm>
@@ -465,7 +464,6 @@ static_assert(   PieceValue[MG][PIECE_TYPE_NB + 1] == PawnValueMg
 typedef int Depth;
 
 enum : int {
-
   DEPTH_QS_CHECKS     =  0,
   DEPTH_QS_NO_CHECKS  = -1,
   DEPTH_QS_RECAPTURES = -5,
@@ -578,11 +576,11 @@ inline T& operator&= (T& d1, T d2) { return (T&)((int&)d1 &= (int)d2); }  \
 inline T& operator^= (T& d1, T d2) { return (T&)((int&)d1 ^= (int)d2); }
 
 #define ENABLE_BASE_OPERATORS_ON(T)                                \
-constexpr T operator+(T d1, T d2) { return T(int(d1) + int(d2)); } \
-constexpr T operator-(T d1, T d2) { return T(int(d1) - int(d2)); } \
+constexpr T operator+(T d1, int d2) { return T(int(d1) + d2); } \
+constexpr T operator-(T d1, int d2) { return T(int(d1) - d2); } \
 constexpr T operator-(T d) { return T(-int(d)); }                  \
-inline T& operator+=(T& d1, T d2) { return d1 = d1 + d2; }         \
-inline T& operator-=(T& d1, T d2) { return d1 = d1 - d2; }
+inline T& operator+=(T& d1, int d2) { return d1 = d1 + d2; }         \
+inline T& operator-=(T& d1, int d2) { return d1 = d1 - d2; }
 
 #define ENABLE_INCR_OPERATORS_ON(T)                                \
 inline T& operator++(T& d) { return d = T(int(d) + 1); }           \
@@ -601,7 +599,6 @@ ENABLE_FULL_OPERATORS_ON(Value)
 ENABLE_FULL_OPERATORS_ON(Direction)
 
 ENABLE_INCR_OPERATORS_ON(PieceType)
-ENABLE_INCR_OPERATORS_ON(Piece)
 ENABLE_INCR_OPERATORS_ON(Square)
 ENABLE_INCR_OPERATORS_ON(File)
 ENABLE_INCR_OPERATORS_ON(Rank)
@@ -615,12 +612,6 @@ ENABLE_BIT_OPERATORS_ON(RiderType)
 #undef ENABLE_INCR_OPERATORS_ON
 #undef ENABLE_BASE_OPERATORS_ON
 #undef ENABLE_BIT_OPERATORS_ON
-
-/// Additional operators to add integers to a Value
-constexpr Value operator+(Value v, int i) { return Value(int(v) + i); }
-constexpr Value operator-(Value v, int i) { return Value(int(v) - i); }
-inline Value& operator+=(Value& v, int i) { return v = v + i; }
-inline Value& operator-=(Value& v, int i) { return v = v - i; }
 
 /// Additional operators to add a Direction to a Square
 constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d)); }
@@ -804,8 +795,8 @@ inline bool is_ok(Move m) {
 }
 
 inline int dist(Direction d) {
-  return std::abs(d % NORTH) < NORTH / 2 ? std::max(std::abs(d / NORTH), std::abs(d % NORTH))
-      : std::max(std::abs(d / NORTH) + 1, NORTH - std::abs(d % NORTH));
+  return std::abs(d % NORTH) < NORTH / 2 ? std::max(std::abs(d / NORTH), int(std::abs(d % NORTH)))
+      : std::max(std::abs(d / NORTH) + 1, int(NORTH - std::abs(d % NORTH)));
 }
 
 #endif // #ifndef TYPES_H_INCLUDED
