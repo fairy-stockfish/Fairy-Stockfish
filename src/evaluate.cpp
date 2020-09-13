@@ -1236,7 +1236,11 @@ namespace {
 
     // Damp down the evaluation linearly when shuffling
     if (pos.n_move_rule())
+    {
         v = v * (2 * pos.n_move_rule() - pos.rule50_count()) / (2 * pos.n_move_rule());
+        if (pos.material_counting())
+            v += pos.material_counting_result() / (10 * std::max(2 * pos.n_move_rule() - pos.rule50_count(), 1));
+    }
 
     return v;
   }
