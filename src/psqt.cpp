@@ -213,7 +213,7 @@ void init(const Variant* v) {
           psq[~pc][rank_of(s) <= v->maxRank ? flip_rank(s, v->maxRank) : s] = -psq[pc][s];
       }
       // pieces in pocket
-      psq[ pc][SQ_NONE] = score + make_score(35, 10) * (1 + !(isSlider || pt == SHOGI_PAWN));
+      psq[ pc][SQ_NONE] = score + make_score(35, 10) * (1 + !isSlider);
       psq[~pc][SQ_NONE] = -psq[pc][SQ_NONE];
   }
 }
