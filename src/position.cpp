@@ -1004,8 +1004,15 @@ bool Position::pseudo_legal(const Move m) const {
                 || (drop_promoted() && type_of(pc) == promoted_piece_type(in_hand_piece_type(m))));
 
   // Use a slower but simpler function for uncommon cases
-  if (type_of(m) != NORMAL || is_gating(m) || arrow_gating())
+  if (type_of(m) != NORMAL || arrow_gating())
       return MoveList<LEGAL>(*this).contains(m);
+
+  // Gating move
+  if (is_gating(m)
+      && (   !seirawan_gating()
+          || !count_in_hand(us, gating_type(m))
+          || !(gates(us) & drop_region(us, gating_type(m)) & from))) // Castling is already handled above
+          return false;
 
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
