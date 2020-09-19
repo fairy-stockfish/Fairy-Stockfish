@@ -36,7 +36,6 @@ TimeManagement Time; // Our global time management object
 
 void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color us, int ply) {
 
-  TimePoint minThinkingTime = TimePoint(Options["Minimum Thinking Time"]);
   TimePoint moveOverhead    = TimePoint(Options["Move Overhead"]);
   TimePoint slowMover       = TimePoint(Options["Slow Mover"]);
   TimePoint npmsec          = TimePoint(Options["nodestime"]);
@@ -105,7 +104,7 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
   }
 
   // Never use more than 80% of the available time for this move
-  optimumTime = std::max(minThinkingTime, TimePoint(opt_scale * timeLeft));
+  optimumTime = TimePoint(opt_scale * timeLeft);
   maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, max_scale * optimumTime));
 
   if (Options["Ponder"])
