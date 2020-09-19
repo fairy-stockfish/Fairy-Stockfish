@@ -799,6 +799,11 @@ inline int dist(Direction d) {
       : std::max(std::abs(d / NORTH) + 1, int(NORTH - std::abs(d % NORTH)));
 }
 
+/// Based on a congruential pseudo random number generator
+constexpr Key make_key(uint64_t seed) {
+  return seed * 6364136223846793005ULL + 1442695040888963407ULL;
+}
+
 #endif // #ifndef TYPES_H_INCLUDED
 
 #include "tune.h" // Global visibility to tuning setup
