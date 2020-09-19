@@ -649,16 +649,16 @@ constexpr Color operator~(Color c) {
   return Color(c ^ BLACK); // Toggle color
 }
 
-constexpr Square flip_rank(Square s, Rank maxRank = RANK_8) {
+constexpr Square flip_rank(Square s, Rank maxRank = RANK_8) { // Swap A1 <-> A8
   return Square(s + NORTH * (maxRank - 2 * (s / NORTH)));
 }
 
-constexpr Square flip_file(Square s, File maxFile = FILE_H) {
+constexpr Square flip_file(Square s, File maxFile = FILE_H) { // Swap A1 <-> H1
   return Square(s + maxFile - 2 * (s % NORTH));
 }
 
 constexpr Piece operator~(Piece pc) {
-  return Piece(pc ^ PIECE_TYPE_NB); // Swap color of piece BLACK KNIGHT -> WHITE KNIGHT
+  return Piece(pc ^ PIECE_TYPE_NB);  // Swap color of piece B_KNIGHT <-> W_KNIGHT
 }
 
 constexpr CastlingRights operator&(Color c, CastlingRights cr) {

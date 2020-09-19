@@ -137,8 +137,7 @@ Move cuckooMove[8192];
 #endif
 
 
-/// Position::init() initializes at startup the various arrays used to compute
-/// hash keys.
+/// Position::init() initializes at startup the various arrays used to compute hash keys
 
 void Position::init() {
 
