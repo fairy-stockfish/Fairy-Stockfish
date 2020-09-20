@@ -228,9 +228,9 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
    4) En passant target square (in algebraic notation). If there's no en passant
       target square, this is "-". If a pawn has just made a 2-square move, this
-      is the position "behind" the pawn. This is recorded only if there is a pawn
-      in position to make an en passant capture, and if there really is a pawn
-      that might have advanced two squares.
+      is the position "behind" the pawn. Following X-FEN standard, this is recorded only
+      if there is a pawn in position to make an en passant capture, and if there really
+      is a pawn that might have advanced two squares.
 
    5) Halfmove clock. This is the number of halfmoves since the last pawn advance
       or capture. This is used to determine if a draw can be claimed under the
@@ -372,14 +372,22 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       if (counting_rule() && isdigit(ss.peek()))
           ss >> st->countingLimit;
 
-      // 4. En passant square. Ignore if no pawn capture is possible
+      // 4. En passant square.
+      // Ignore if square is invalid or not on side to move relative rank 6.
       else if (   ((ss >> col) && (col >= 'a' && col <= 'a' + max_file()))
                && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
       {
           st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
-          if (   !(attackers_to(st->epSquare) & pieces(sideToMove, PAWN))
-              || !(pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove))))
+          // En passant square will be considered only if
+          // a) side to move have a pawn threatening epSquare
+          // b) there is an enemy pawn in front of epSquare
+          // c) there is no piece on epSquare or behind epSquare
+          bool enpassant;
+          enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
+                  && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
+                  && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))));
+          if (!enpassant)
               st->epSquare = SQ_NONE;
       }
   }
