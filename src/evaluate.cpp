@@ -81,13 +81,11 @@ namespace {
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 81, 52, 44, 10, 40 };
 
-  // Penalties for enemy's safe checks
-  constexpr int QueenSafeCheck  = 772;
-  constexpr int RookSafeCheck   = 1084;
-  constexpr int BishopSafeCheck = 645;
-  constexpr int KnightSafeCheck = 792;
-
-  constexpr int OtherSafeCheck  = 600;
+  // SafeCheck[PieceType][single/multiple] contains safe check bonus by piece type,
+  // higher if multiple safe checks are possible for that piece type.
+  constexpr int SafeCheck[][2] = {
+      {}, {600, 600}, {792, 1283}, {645, 967}, {1084, 1897}, {772, 1119}, {600, 900}
+  };
 
 #define S(mg, eg) make_score(mg, eg)
 
@@ -111,6 +109,18 @@ namespace {
   constexpr Score MaxMobility  = S(150, 200);
   constexpr Score DropMobility = S(10, 10);
 
+  // KingProtector[knight/bishop] contains penalty for each distance unit to own king
+  constexpr Score KingProtector[] = { S(8, 9), S(6, 9) };
+
+  // Outpost[knight/bishop] contains bonuses for each knight or bishop occupying a
+  // pawn protected square on rank 4 to 6 which is also safe from a pawn attack.
+  constexpr Score Outpost[] = { S(56, 36), S(30, 23) };
+
+  // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
+  constexpr Score PassedRank[RANK_NB] = {
+    S(0, 0), S(10, 28), S(17, 33), S(15, 41), S(62, 72), S(168, 177), S(276, 260)
+  };
+
   // RookOnFile[semiopen/open] contains bonuses for each rook when there is
   // no (friendly) pawn on the rook file.
   constexpr Score RookOnFile[] = { S(19, 7), S(48, 29) };
@@ -126,27 +136,14 @@ namespace {
     S(0, 0), S(3, 46), S(37, 68), S(42, 60), S(0, 38), S(58, 41)
   };
 
-  // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
-  constexpr Score PassedRank[RANK_NB] = {
-    S(0, 0), S(10, 28), S(17, 33), S(15, 41), S(62, 72), S(168, 177), S(276, 260)
-  };
-
-  // KingProximity contains a penalty according to distance from king
-  constexpr Score KingProximity = S(2, 4);
-  constexpr Score EndgameKingProximity = S(0, 10);
-
   // Assorted bonuses and penalties
-  constexpr Score BishopKingProtector = S(  6,  9);
   constexpr Score BishopOnKingRing    = S( 24,  0);
-  constexpr Score BishopOutpost       = S( 30, 23);
   constexpr Score BishopPawns         = S(  3,  7);
   constexpr Score BishopXRayPawns     = S(  4,  5);
   constexpr Score CorneredBishop      = S( 50, 50);
   constexpr Score FlankAttacks        = S(  8,  0);
   constexpr Score Hanging             = S( 69, 36);
-  constexpr Score KnightKingProtector = S(  8,  9);
   constexpr Score KnightOnQueen       = S( 16, 11);
-  constexpr Score KnightOutpost       = S( 56, 36);
   constexpr Score LongDiagonalBishop  = S( 45,  0);
   constexpr Score MinorBehindPawn     = S( 18,  3);
   constexpr Score PassedFile          = S( 11,  8);
@@ -164,6 +161,13 @@ namespace {
   constexpr Score WeakQueenProtection = S( 14,  0);
   constexpr Score WeakQueen           = S( 56, 15);
 
+
+  // Variant and fairy piece bonuses
+  constexpr Score KingProximity        = S(2, 4);
+  constexpr Score EndgameKingProximity = S(0, 10);
+  constexpr Score ConnectedSoldier     = S(20, 20);
+
+  constexpr int VirtualCheck = 600;
 
 #undef S
 
@@ -323,7 +327,7 @@ namespace {
         if (b & kingRing[Them])
         {
             kingAttackersCount[Us]++;
-            kingAttackersWeight[Us] += KingAttackWeights[std::min(int(Pt), QUEEN + 1)];
+            kingAttackersWeight[Us] += KingAttackWeights[std::min(Pt, FAIRY_PIECES)];
             kingAttacksCount[Us] += popcount(b & attackedBy[Them][KING]);
         }
 
@@ -365,14 +369,14 @@ namespace {
             score -= EndgameKingProximity * (distance(s, pos.square<KING>(Us)) - 2);
 
         if (Pt == SOLDIER && (pos.pieces(Us, SOLDIER) & rank_bb(s) & adjacent_files_bb(s)))
-            score += make_score(20, 20);
+            score += ConnectedSoldier;
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {
             // Bonus if piece is on an outpost square or can reach one
             bb = OutpostRanks & attackedBy[Us][PAWN] & ~pe->pawn_attacks_span(Them);
             if (bb & s)
-                score += (Pt == KNIGHT) ? KnightOutpost : BishopOutpost;
+                score += Outpost[Pt == BISHOP];
             else if (Pt == KNIGHT && bb & b & ~pos.pieces(Us))
                 score += ReachableOutpost;
 
@@ -382,8 +386,7 @@ namespace {
 
             // Penalty if the piece is far from the king
             if (pos.count<KING>(Us))
-            score -= (Pt == KNIGHT ? KnightKingProtector
-                                   : BishopKingProtector) * distance(pos.square<KING>(Us), s);
+            score -= KingProtector[Pt == BISHOP] * distance(pos.square<KING>(Us), s);
 
             if (Pt == BISHOP)
             {
@@ -468,7 +471,7 @@ namespace {
         if ((b & kingRing[Them]) && pt != SHOGI_PAWN)
         {
             kingAttackersCountInHand[Us] += pos.count_in_hand(Us, pt);
-            kingAttackersWeightInHand[Us] += KingAttackWeights[std::min(int(pt), QUEEN + 1)] * pos.count_in_hand(Us, pt);
+            kingAttackersWeightInHand[Us] += KingAttackWeights[std::min(pt, FAIRY_PIECES)] * pos.count_in_hand(Us, pt);
             kingAttacksCount[Us] += popcount(b & attackedBy[Them][KING]);
         }
         Bitboard theirHalf = pos.board_bb() & ~forward_ranks_bb(Them, relative_rank(Them, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
@@ -541,17 +544,14 @@ namespace {
                         & ~(b1 & attackedBy[Them][ROOK]);
 
             if (queenChecks)
-                kingDanger += more_than_one(queenChecks) ? QueenSafeCheck * 145/100
-                                                         : QueenSafeCheck;
+                kingDanger += SafeCheck[QUEEN][more_than_one(queenChecks)];
             break;
         case ROOK:
         case BISHOP:
         case KNIGHT:
             knightChecks = attacks_bb(Us, pt, ksq, pos.pieces() ^ pos.pieces(Us, QUEEN)) & get_attacks(Them, pt) & pos.board_bb();
             if (knightChecks & safe)
-                kingDanger +=  pt == ROOK   ? RookSafeCheck * (more_than_one(knightChecks & safe) ? 175 : 100) / 100
-                             : pt == BISHOP ? BishopSafeCheck * (more_than_one(knightChecks & safe) ? 150 : 100) / 100
-                                            : KnightSafeCheck * (more_than_one(knightChecks & safe) ? 162 : 100) / 100;
+                kingDanger += SafeCheck[pt][more_than_one(knightChecks & safe)];
             else
                 unsafeChecks |= knightChecks;
             break;
@@ -560,7 +560,7 @@ namespace {
             {
                 pawnChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & ~pos.pieces() & pos.board_bb();
                 if (pawnChecks & safe)
-                    kingDanger += OtherSafeCheck;
+                    kingDanger += SafeCheck[PAWN][more_than_one(pawnChecks & safe)];
                 else
                     unsafeChecks |= pawnChecks;
             }
@@ -571,7 +571,7 @@ namespace {
         default:
             otherChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & get_attacks(Them, pt) & pos.board_bb();
             if (otherChecks & safe)
-                kingDanger += OtherSafeCheck * (more_than_one(otherChecks & safe) ? 3 : 2) / 2;
+                kingDanger += SafeCheck[FAIRY_PIECES][more_than_one(otherChecks & safe)];
             else
                 unsafeChecks |= otherChecks;
         }
@@ -583,7 +583,7 @@ namespace {
         for (PieceType pt : pos.piece_types())
             if (!pos.count_in_hand(Them, pt) && (attacks_bb(Us, pt, ksq, pos.pieces()) & safe & pos.drop_region(Them, pt) & ~pos.pieces()))
             {
-                kingDanger += OtherSafeCheck * 500 / (500 + PieceValue[MG][pt]);
+                kingDanger += VirtualCheck * 500 / (500 + PieceValue[MG][pt]);
                 // Presumably a mate threat
                 if (!(attackedBy[Us][KING] & ~(attackedBy[Them][ALL_PIECES] | pos.pieces(Us))))
                     kingDanger += 2000;
@@ -602,7 +602,7 @@ namespace {
     b2 = b1 & attackedBy2[Them];
     b3 = attackedBy[Us][ALL_PIECES] & kingFlank & Camp;
 
-    int kingFlankAttack = popcount(b1) + popcount(b2);
+    int kingFlankAttack  = popcount(b1) + popcount(b2);
     int kingFlankDefense = popcount(b3);
 
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
