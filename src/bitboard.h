@@ -178,7 +178,7 @@ inline Bitboard  operator&(Square s, Bitboard b) { return b & s; }
 inline Bitboard  operator|(Square s, Bitboard b) { return b | s; }
 inline Bitboard  operator^(Square s, Bitboard b) { return b ^ s; }
 
-inline Bitboard  operator|(Square s, Square s2) { return square_bb(s) | s2; }
+inline Bitboard  operator|(Square s1, Square s2) { return square_bb(s1) | s2; }
 
 constexpr bool more_than_one(Bitboard b) {
   return b & (b - 1);
@@ -199,19 +199,19 @@ constexpr bool opposite_colors(Square s1, Square s2) {
 /// rank_bb() and file_bb() return a bitboard representing all the squares on
 /// the given file or rank.
 
-inline Bitboard rank_bb(Rank r) {
+constexpr Bitboard rank_bb(Rank r) {
   return Rank1BB << (FILE_NB * r);
 }
 
-inline Bitboard rank_bb(Square s) {
+constexpr Bitboard rank_bb(Square s) {
   return rank_bb(rank_of(s));
 }
 
-inline Bitboard file_bb(File f) {
+constexpr Bitboard file_bb(File f) {
   return FileABB << f;
 }
 
-inline Bitboard file_bb(Square s) {
+constexpr Bitboard file_bb(Square s) {
   return file_bb(file_of(s));
 }
 
@@ -268,16 +268,16 @@ constexpr Bitboard pawn_double_attacks_bb(Bitboard b) {
 
 
 /// adjacent_files_bb() returns a bitboard representing all the squares on the
-/// adjacent files of the given one.
+/// adjacent files of a given square.
 
-inline Bitboard adjacent_files_bb(Square s) {
+constexpr Bitboard adjacent_files_bb(Square s) {
   return shift<EAST>(file_bb(s)) | shift<WEST>(file_bb(s));
 }
 
 
-/// line_bb(Square, Square) returns a bitboard representing an entire line,
-/// from board edge to board edge, that intersects the given squares. If the
-/// given squares are not on a same file/rank/diagonal, returns 0. For instance,
+/// line_bb() returns a bitboard representing an entire line (from board edge
+/// to board edge) that intersects the two given squares. If the given squares
+/// are not on a same file/rank/diagonal, the function returns 0. For instance,
 /// line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
 
 inline Bitboard line_bb(Square s1, Square s2) {
@@ -288,8 +288,8 @@ inline Bitboard line_bb(Square s1, Square s2) {
 
 
 /// between_bb() returns a bitboard representing squares that are linearly
-/// between the given squares (excluding the given squares). If the given
-/// squares are not on a same file/rank/diagonal, return 0. For instance,
+/// between the two given squares (excluding the given squares). If the given
+/// squares are not on a same file/rank/diagonal, we return 0. For instance,
 /// between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5 and E6.
 
 inline Bitboard between_bb(Square s1, Square s2) {
@@ -312,12 +312,12 @@ inline Bitboard between_bb(Square s1, Square s2, PieceType pt) {
 /// in front of the given one, from the point of view of the given color. For instance,
 /// forward_ranks_bb(BLACK, SQ_D3) will return the 16 squares on ranks 1 and 2.
 
-inline Bitboard forward_ranks_bb(Color c, Square s) {
+constexpr Bitboard forward_ranks_bb(Color c, Square s) {
   return c == WHITE ? (AllSquares ^ Rank1BB) << FILE_NB * relative_rank(WHITE, s, RANK_MAX)
                     : (AllSquares ^ rank_bb(RANK_MAX)) >> FILE_NB * relative_rank(BLACK, s, RANK_MAX);
 }
 
-inline Bitboard forward_ranks_bb(Color c, Rank r) {
+constexpr Bitboard forward_ranks_bb(Color c, Rank r) {
   return c == WHITE ? (AllSquares ^ Rank1BB) << FILE_NB * (r - RANK_1)
                     : (AllSquares ^ rank_bb(RANK_MAX)) >> FILE_NB * (RANK_MAX - r);
 }
@@ -335,7 +335,7 @@ inline Bitboard promotion_zone_bb(Color c, Rank r, Rank maxRank) {
 /// forward_file_bb() returns a bitboard representing all the squares along the
 /// line in front of the given one, from the point of view of the given color.
 
-inline Bitboard forward_file_bb(Color c, Square s) {
+constexpr Bitboard forward_file_bb(Color c, Square s) {
   return forward_ranks_bb(c, s) & file_bb(s);
 }
 
@@ -344,7 +344,7 @@ inline Bitboard forward_file_bb(Color c, Square s) {
 /// be attacked by a pawn of the given color when it moves along its file, starting
 /// from the given square.
 
-inline Bitboard pawn_attack_span(Color c, Square s) {
+constexpr Bitboard pawn_attack_span(Color c, Square s) {
   return forward_ranks_bb(c, s) & adjacent_files_bb(s);
 }
 
@@ -352,7 +352,7 @@ inline Bitboard pawn_attack_span(Color c, Square s) {
 /// passed_pawn_span() returns a bitboard which can be used to test if a pawn of
 /// the given color and on the given square is a passed pawn.
 
-inline Bitboard passed_pawn_span(Color c, Square s) {
+constexpr Bitboard passed_pawn_span(Color c, Square s) {
   return pawn_attack_span(c, s) | forward_file_bb(c, s);
 }
 
