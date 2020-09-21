@@ -221,17 +221,22 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       {
           is >> num;
           limits.movetime = num * 1000;
+          limits.time[WHITE] = limits.time[BLACK] = 0;
       }
       // Note: time/otim are in centi-, not milliseconds
       else if (token == "time")
       {
           is >> num;
-          limits.time[playColor != COLOR_NB ? playColor : pos.side_to_move()] = num * 10;
+          Color us = playColor != COLOR_NB ? playColor : pos.side_to_move();
+          if (limits.time[us])
+              limits.time[us] = num * 10;
       }
       else if (token == "otim")
       {
           is >> num;
-          limits.time[playColor != COLOR_NB ? ~playColor : ~pos.side_to_move()] = num * 10;
+          Color them = playColor != COLOR_NB ? ~playColor : ~pos.side_to_move();
+          if (limits.time[them])
+              limits.time[them] = num * 10;
       }
   }
   else if (token == "setboard")
