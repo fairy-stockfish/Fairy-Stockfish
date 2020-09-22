@@ -1132,6 +1132,7 @@ namespace {
     complexity =       9 * pe->passed_count()
                     + 12 * pos.count<PAWN>()
                     + 15 * pos.count<SOLDIER>()
+                    + 20 * pos.count<FERS>()
                     +  9 * outflanking
                     + 21 * pawnsOnBothFlanks
                     + 24 * infiltration

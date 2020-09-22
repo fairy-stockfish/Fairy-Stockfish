@@ -228,11 +228,11 @@ Entry* probe(const Position& pos) {
   // drawish scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
   if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
       e->factor[WHITE] = uint8_t(npm_w <  RookValueMg && pos.count<ALL_PIECES>(WHITE) <= 2 ? SCALE_FACTOR_DRAW :
-                                 npm_b <= BishopValueMg && pos.count<ALL_PIECES>(WHITE) <= 3 ? 4 : 14);
+                                 npm_b <= BishopValueMg && pos.count<ALL_PIECES>(WHITE) <= 3 ? 4 : 14 + 20 * pos.count<FERS>(WHITE));
 
   if (!pos.count<PAWN>(BLACK) && npm_b - npm_w <= BishopValueMg)
       e->factor[BLACK] = uint8_t(npm_b <  RookValueMg && pos.count<ALL_PIECES>(BLACK) <= 2 ? SCALE_FACTOR_DRAW :
-                                 npm_w <= BishopValueMg && pos.count<ALL_PIECES>(BLACK) <= 3 ? 4 : 14);
+                                 npm_w <= BishopValueMg && pos.count<ALL_PIECES>(BLACK) <= 3 ? 4 : 14 + 20 * pos.count<FERS>(BLACK));
   }
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
