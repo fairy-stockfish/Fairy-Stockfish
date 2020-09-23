@@ -151,12 +151,14 @@ Currently, Stockfish has the following UCI options:
     If enabled by UCI_LimitStrength, aim for an engine strength of the given Elo.
     This Elo rating has been calibrated at a time control of 60s+0.6s and anchored to CCRL 40/4.
 
+  * #### UCI_ShowWDL
+    If enabled, show approximate WDL statistics as part of the engine output.
+    These WDL numbers model expected game outcomes for a given evaluation and
+    game ply for engine self-play at fishtest LTC conditions (60+0.6s per game).
+
   * #### Move Overhead
     Assume a time delay of x ms due to network and GUI overheads. This is useful to
     avoid losses on time in those cases.
-
-  * #### Minimum Thinking Time
-    Search for at least x ms per move.
 
   * #### Slow Mover
     Lower values will make Stockfish take less time in games, higher values will

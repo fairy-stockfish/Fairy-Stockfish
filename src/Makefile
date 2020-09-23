@@ -54,7 +54,7 @@ endif
 ### Section 2. High-level Configuration
 ### ==========================================================================
 #
-# flag                --- Comp switch --- Description
+# flag                --- Comp switch      --- Description
 # ----------------------------------------------------------------------------
 #
 # debug = yes/no      --- -DNDEBUG         --- Enable/Disable debug mode
@@ -80,43 +80,42 @@ precomputedmagics = yes
 optimize = yes
 debug = no
 sanitize = no
-bits = 32
+bits = 64
 prefetch = no
 popcnt = no
 sse = no
 pext = no
 
 ### 2.2 Architecture specific
-
 ifeq ($(ARCH),general-32)
 	arch = any
+	bits = 32
 endif
 
 ifeq ($(ARCH),x86-32-old)
 	arch = i386
+	bits = 32
 endif
 
 ifeq ($(ARCH),x86-32)
 	arch = i386
+	bits = 32
 	prefetch = yes
 	sse = yes
 endif
 
 ifeq ($(ARCH),general-64)
 	arch = any
-	bits = 64
 endif
 
 ifeq ($(ARCH),x86-64)
 	arch = x86_64
-	bits = 64
 	prefetch = yes
 	sse = yes
 endif
 
 ifeq ($(ARCH),x86-64-modern)
 	arch = x86_64
-	bits = 64
 	prefetch = yes
 	popcnt = yes
 	sse = yes
@@ -124,7 +123,6 @@ endif
 
 ifeq ($(ARCH),x86-64-bmi2)
 	arch = x86_64
-	bits = 64
 	prefetch = yes
 	popcnt = yes
 	sse = yes
@@ -135,26 +133,31 @@ endif
 ifeq ($(ARCH),armv7)
 	arch = armv7
 	prefetch = yes
+	bits = 32
+endif
+
+ifeq ($(ARCH),armv8)
+	arch = armv8-a
+	prefetch = yes
+	popcnt = yes
 endif
 
 ifeq ($(ARCH),ppc-32)
 	arch = ppc
+	bits = 32
 endif
 
 ifeq ($(ARCH),ppc-64)
 	arch = ppc64
-	bits = 64
 	popcnt = yes
 	prefetch = yes
 endif
 
-
 ### ==========================================================================
-### Section 3. Low-level configuration
+### Section 3. Low-level Configuration
 ### ==========================================================================
 
 ### 3.1 Selecting compiler (default = gcc)
-
 CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -std=c++11 $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
 LDFLAGS += $(EXTRALDFLAGS)
@@ -185,7 +188,7 @@ ifeq ($(COMP),gcc)
 		CXXFLAGS += -pedantic
 	endif
 
-	ifeq ($(ARCH),armv7)
+	ifeq ($(ARCH),$(filter $(ARCH),armv7 armv8))
 		ifeq ($(OS),Android)
 			CXXFLAGS += -m$(bits)
 			LDFLAGS += -m$(bits)
@@ -242,7 +245,7 @@ ifeq ($(COMP),clang)
 	endif
 	endif
 
-	ifeq ($(ARCH),armv7)
+	ifeq ($(ARCH),$(filter $(ARCH),armv7 armv8))
 		ifeq ($(OS),Android)
 			CXXFLAGS += -m$(bits)
 			LDFLAGS += -m$(bits)
@@ -340,7 +343,7 @@ endif
 
 ### 3.6 popcnt
 ifeq ($(popcnt),yes)
-	ifeq ($(arch),ppc64)
+	ifeq ($(arch),$(filter $(arch),ppc64 armv8-a))
 		CXXFLAGS += -DUSE_POPCNT
 	else ifeq ($(comp),icc)
 		CXXFLAGS += -msse3 -DUSE_POPCNT
@@ -357,7 +360,7 @@ ifeq ($(pext),yes)
 	endif
 endif
 
-### 3.8 Link Time Optimization, it works since gcc 4.5 but not on mingw under Windows.
+### 3.8 Link Time Optimization
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
@@ -367,6 +370,9 @@ ifeq ($(debug), no)
 		LDFLAGS += $(CXXFLAGS)
 	endif
 
+# To use LTO and static linking on windows, the tool chain requires a recent gcc:
+# gcc version 10.1 in msys2 or TDM-GCC version 9.2 are know to work, older might not.
+# So, only enable it for a cross from Linux by default.
 	ifeq ($(comp),mingw)
 	ifeq ($(KERNEL),Linux)
 		CXXFLAGS += -flto
@@ -383,9 +389,8 @@ ifeq ($(OS), Android)
 	LDFLAGS += -fPIE -pie
 endif
 
-
 ### ==========================================================================
-### Section 4. Public targets
+### Section 4. Public Targets
 ### ==========================================================================
 
 help:
@@ -412,6 +417,7 @@ help:
 	@echo "ppc-64                  > PPC 64-bit"
 	@echo "ppc-32                  > PPC 32-bit"
 	@echo "armv7                   > ARMv7 32-bit"
+	@echo "armv8                   > ARMv8 64-bit"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "general-32              > unspecified 32-bit"
 	@echo ""
@@ -490,7 +496,7 @@ default:
 	help
 
 ### ==========================================================================
-### Section 5. Private targets
+### Section 5. Private Targets
 ### ==========================================================================
 
 all: $(EXE) .depend
@@ -521,7 +527,8 @@ config-sanity:
 	@test "$(sanitize)" = "undefined" || test "$(sanitize)" = "thread" || test "$(sanitize)" = "address" || test "$(sanitize)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
 	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
-	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "armv7"
+	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || \
+	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8-a"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
@@ -572,4 +579,3 @@ icc-profile-use:
 	-@$(CXX) $(DEPENDFLAGS) -MM $(SRCS) > $@ 2> /dev/null
 
 -include .depend
-

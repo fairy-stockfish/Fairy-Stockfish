@@ -40,7 +40,6 @@
 
 #include <cassert>
 #include <cctype>
-#include <climits>
 #include <cstdint>
 #include <cstdlib>
 #include <algorithm>
@@ -335,7 +334,7 @@ enum Value : int {
   FersAlfilValueMg         = 700,   FersAlfilValueEg         = 650,
   SilverValueMg            = 630,   SilverValueEg            = 630,
   AiwokValueMg             = 2300,  AiwokValueEg             = 2700,
-  BersValueMg              = 2000,  BersValueEg              = 2000,
+  BersValueMg              = 1900,  BersValueEg              = 2000,
   ArchbishopValueMg        = 2200,  ArchbishopValueEg        = 2200,
   ChancellorValueMg        = 2300,  ChancellorValueEg        = 2600,
   AmazonValueMg            = 2700,  AmazonValueEg            = 2850,
@@ -344,10 +343,10 @@ enum Value : int {
   KnirooValueMg            = 1050,  KnirooValueEg            = 1250,
   RookniValueMg            = 800,   RookniValueEg            = 950,
   ShogiPawnValueMg         =  90,   ShogiPawnValueEg         = 100,
-  LanceValueMg             = 350,   LanceValueEg             = 250,
-  ShogiKnightValueMg       = 350,   ShogiKnightValueEg       = 300,
+  LanceValueMg             = 360,   LanceValueEg             = 250,
+  ShogiKnightValueMg       = 360,   ShogiKnightValueEg       = 300,
   EuroShogiKnightValueMg   = 400,   EuroShogiKnightValueEg   = 400,
-  GoldValueMg              = 640,   GoldValueEg              = 640,
+  GoldValueMg              = 660,   GoldValueEg              = 640,
   DragonHorseValueMg       = 1500,  DragonHorseValueEg       = 1500,
   ClobberPieceValueMg      = 300,   ClobberPieceValueEg      = 300,
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
@@ -380,6 +379,7 @@ enum PieceType {
   SOLDIER, HORSE, ELEPHANT, JANGGI_ELEPHANT, BANNER,
   WAZIR, COMMONER, CENTAUR, KING,
   ALL_PIECES = 0,
+  FAIRY_PIECES = FERS,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS
 };
@@ -465,7 +465,6 @@ static_assert(   PieceValue[MG][PIECE_TYPE_NB + 1] == PawnValueMg
 typedef int Depth;
 
 enum : int {
-
   DEPTH_QS_CHECKS     =  0,
   DEPTH_QS_NO_CHECKS  = -1,
   DEPTH_QS_RECAPTURES = -5,
@@ -578,11 +577,11 @@ inline T& operator&= (T& d1, T d2) { return (T&)((int&)d1 &= (int)d2); }  \
 inline T& operator^= (T& d1, T d2) { return (T&)((int&)d1 ^= (int)d2); }
 
 #define ENABLE_BASE_OPERATORS_ON(T)                                \
-constexpr T operator+(T d1, T d2) { return T(int(d1) + int(d2)); } \
-constexpr T operator-(T d1, T d2) { return T(int(d1) - int(d2)); } \
+constexpr T operator+(T d1, int d2) { return T(int(d1) + d2); } \
+constexpr T operator-(T d1, int d2) { return T(int(d1) - d2); } \
 constexpr T operator-(T d) { return T(-int(d)); }                  \
-inline T& operator+=(T& d1, T d2) { return d1 = d1 + d2; }         \
-inline T& operator-=(T& d1, T d2) { return d1 = d1 - d2; }
+inline T& operator+=(T& d1, int d2) { return d1 = d1 + d2; }         \
+inline T& operator-=(T& d1, int d2) { return d1 = d1 - d2; }
 
 #define ENABLE_INCR_OPERATORS_ON(T)                                \
 inline T& operator++(T& d) { return d = T(int(d) + 1); }           \
@@ -601,7 +600,6 @@ ENABLE_FULL_OPERATORS_ON(Value)
 ENABLE_FULL_OPERATORS_ON(Direction)
 
 ENABLE_INCR_OPERATORS_ON(PieceType)
-ENABLE_INCR_OPERATORS_ON(Piece)
 ENABLE_INCR_OPERATORS_ON(Square)
 ENABLE_INCR_OPERATORS_ON(File)
 ENABLE_INCR_OPERATORS_ON(Rank)
@@ -615,12 +613,6 @@ ENABLE_BIT_OPERATORS_ON(RiderType)
 #undef ENABLE_INCR_OPERATORS_ON
 #undef ENABLE_BASE_OPERATORS_ON
 #undef ENABLE_BIT_OPERATORS_ON
-
-/// Additional operators to add integers to a Value
-constexpr Value operator+(Value v, int i) { return Value(int(v) + i); }
-constexpr Value operator-(Value v, int i) { return Value(int(v) - i); }
-inline Value& operator+=(Value& v, int i) { return v = v + i; }
-inline Value& operator-=(Value& v, int i) { return v = v - i; }
 
 /// Additional operators to add a Direction to a Square
 constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d)); }
@@ -658,16 +650,16 @@ constexpr Color operator~(Color c) {
   return Color(c ^ BLACK); // Toggle color
 }
 
-constexpr Square flip_rank(Square s, Rank maxRank = RANK_8) {
+constexpr Square flip_rank(Square s, Rank maxRank = RANK_8) { // Swap A1 <-> A8
   return Square(s + NORTH * (maxRank - 2 * (s / NORTH)));
 }
 
-constexpr Square flip_file(Square s, File maxFile = FILE_H) {
+constexpr Square flip_file(Square s, File maxFile = FILE_H) { // Swap A1 <-> H1
   return Square(s + maxFile - 2 * (s % NORTH));
 }
 
 constexpr Piece operator~(Piece pc) {
-  return Piece(pc ^ PIECE_TYPE_NB); // Swap color of piece BLACK KNIGHT -> WHITE KNIGHT
+  return Piece(pc ^ PIECE_TYPE_NB);  // Swap color of piece B_KNIGHT <-> W_KNIGHT
 }
 
 constexpr CastlingRights operator&(Color c, CastlingRights cr) {
@@ -804,8 +796,13 @@ inline bool is_ok(Move m) {
 }
 
 inline int dist(Direction d) {
-  return std::abs(d % NORTH) < NORTH / 2 ? std::max(std::abs(d / NORTH), std::abs(d % NORTH))
-      : std::max(std::abs(d / NORTH) + 1, NORTH - std::abs(d % NORTH));
+  return std::abs(d % NORTH) < NORTH / 2 ? std::max(std::abs(d / NORTH), int(std::abs(d % NORTH)))
+      : std::max(std::abs(d / NORTH) + 1, int(NORTH - std::abs(d % NORTH)));
+}
+
+/// Based on a congruential pseudo random number generator
+constexpr Key make_key(uint64_t seed) {
+  return seed * 6364136223846793005ULL + 1442695040888963407ULL;
 }
 
 #endif // #ifndef TYPES_H_INCLUDED

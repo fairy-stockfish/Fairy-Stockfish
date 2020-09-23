@@ -19,11 +19,13 @@
 */
 
 #include <algorithm>
+#include <sstream>
 
 #include "types.h"
 #include "bitboard.h"
 #include "piece.h"
 #include "variant.h"
+#include "misc.h"
 
 namespace PSQT {
 
@@ -95,7 +97,7 @@ constexpr Score PBonus[RANK_NB][FILE_NB] =
    { S(  3,-10), S(  3, -6), S( 10, 10), S( 19,  0), S( 16, 14), S( 19,  7), S(  7, -5), S( -5,-19) },
    { S( -9,-10), S(-15,-10), S( 11,-10), S( 15,  4), S( 32,  4), S( 22,  3), S(  5, -6), S(-22, -4) },
    { S( -4,  6), S(-23, -2), S(  6, -8), S( 20, -4), S( 40,-13), S( 17,-12), S(  4,-10), S( -8, -9) },
-   { S( 13,  9), S(  0,  4), S(-13,  3), S(  1,-12), S( 11,-12), S( -2, -6), S(-13, 13), S(  5,  8) },
+   { S( 13, 10), S(  0,  5), S(-13,  4), S(  1, -5), S( 11, -5), S( -2, -5), S(-13, 14), S(  5,  9) },
    { S(  5, 28), S(-12, 20), S( -7, 21), S( 22, 28), S( -8, 30), S( -5,  7), S(-15,  6), S( -8, 13) },
    { S( -7,  0), S(  7,-11), S( -3, 12), S(-13, 21), S(  5, 25), S(-16, 19), S( 10,  4), S( -8,  7) }
   };
@@ -104,9 +106,9 @@ constexpr Score PBonus[RANK_NB][FILE_NB] =
 
 Score psq[PIECE_NB][SQUARE_NB + 1];
 
-// init() initializes piece-square tables: the white halves of the tables are
-// copied from Bonus[] adding the piece value, then the black halves of the
-// tables are initialized by flipping and changing the sign of the white scores.
+// PSQT::init() initializes piece-square tables: the white halves of the tables are
+// copied from Bonus[] and PBonus[], adding the piece value, then the black halves of
+// the tables are initialized by flipping and changing the sign of the white scores.
 void init(const Variant* v) {
 
   PieceType strongestPiece = NO_PIECE_TYPE;
@@ -177,17 +179,30 @@ void init(const Variant* v) {
           && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
           score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
 
+      // Determine pawn rank
+      std::istringstream ss(v->startFen);
+      unsigned char token;
+      Rank rc = v->maxRank;
+      Rank pawnRank = RANK_2;
+      while ((ss >> token) && !isspace(token))
+      {
+          if (token == '/')
+              --rc;
+          else if (token == v->pieceToChar[PAWN] || token == v->pieceToChar[SHOGI_PAWN])
+              pawnRank = rc;
+      }
+
       for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       {
           File f = std::max(File(edge_distance(file_of(s), v->maxFile)), FILE_A);
           Rank r = rank_of(s);
-          psq[ pc][ s] = score + (  pt == PAWN  ? PBonus[std::min(r, RANK_8)][std::min(file_of(s), FILE_H)]
-                                  : pt == KING  ? KingBonus[std::min(r, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
-                                  : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)]
-                                  : pt == HORSE ? Bonus[KNIGHT][std::min(r, RANK_8)][std::min(f, FILE_D)]
-                                  : isSlider    ? make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile - 1)
-                                  : isPawn      ? make_score(5, 5) * (2 * f - v->maxFile)
-                                                : make_score(10, 10) * (1 + isSlowLeaper) * (f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile / 2));
+          psq[ pc][s] = score + (  pt == PAWN  ? PBonus[std::min(r, RANK_8)][std::min(file_of(s), FILE_H)]
+                                 : pt == KING  ? KingBonus[Utility::clamp(Rank(r - pawnRank + 1), RANK_1, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
+                                 : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                 : pt == HORSE ? Bonus[KNIGHT][std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                 : isSlider    ? make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile - 1)
+                                 : isPawn      ? make_score(5, 5) * (2 * f - v->maxFile)
+                                               : make_score(10, 10) * (1 + isSlowLeaper) * (f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile / 2));
           if (pt == SOLDIER && r < v->soldierPromotionRank)
               psq[pc][s] -= score * (v->soldierPromotionRank - r) / (4 + f);
           if (v->enclosingDrop == REVERSI)
@@ -198,7 +213,7 @@ void init(const Variant* v) {
           psq[~pc][rank_of(s) <= v->maxRank ? flip_rank(s, v->maxRank) : s] = -psq[pc][s];
       }
       // pieces in pocket
-      psq[ pc][SQ_NONE] = score + make_score(45, 10);
+      psq[ pc][SQ_NONE] = score + make_score(35, 10) * (1 + !isSlider);
       psq[~pc][SQ_NONE] = -psq[pc][SQ_NONE];
   }
 }

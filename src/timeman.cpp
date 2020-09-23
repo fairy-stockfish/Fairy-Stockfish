@@ -29,14 +29,14 @@
 
 TimeManagement Time; // Our global time management object
 
-/// init() is called at the beginning of the search and calculates the bounds
-/// of time allowed for the current game ply.  We currently support:
-//      1) x basetime (+z increment)
-//      2) x moves in y seconds (+z increment)
+
+/// TimeManagement::init() is called at the beginning of the search and calculates
+/// the bounds of time allowed for the current game ply. We currently support:
+//      1) x basetime (+ z increment)
+//      2) x moves in y seconds (+ z increment)
 
 void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color us, int ply) {
 
-  TimePoint minThinkingTime = TimePoint(Options["Minimum Thinking Time"]);
   TimePoint moveOverhead    = TimePoint(Options["Move Overhead"]);
   TimePoint slowMover       = TimePoint(Options["Slow Mover"]);
   TimePoint npmsec          = TimePoint(Options["nodestime"]);
@@ -62,7 +62,7 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
 
   startTime = limits.startTime;
 
-  //Maximum move horizon of 50 moves
+  // Maximum move horizon of 50 moves
   int mtg = limits.movestogo ? std::min(limits.movestogo, 50) : 50;
 
   // Make sure timeLeft is > 0 since we may use it as a divisor
@@ -93,7 +93,7 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
   {
       opt_scale = std::min(0.008 + std::pow(ply + 3.0, 0.5) / 250.0,
                            0.2 * limits.time[us] / double(timeLeft));
-      max_scale = 4 + std::min(36, ply) / 12.0;
+      max_scale = std::min(7.0, 4.0 + ply / 12.0);
   }
 
   // x moves in y seconds (+ z increment)
@@ -105,7 +105,7 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
   }
 
   // Never use more than 80% of the available time for this move
-  optimumTime = std::max(minThinkingTime, TimePoint(opt_scale * timeLeft));
+  optimumTime = TimePoint(opt_scale * timeLeft);
   maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, max_scale * optimumTime));
 
   if (Options["Ponder"])
