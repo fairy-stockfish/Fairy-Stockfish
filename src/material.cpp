@@ -73,7 +73,7 @@ namespace {
 
   bool is_KXK(const Position& pos, Color us) {
     return  !more_than_one(pos.pieces(~us))
-          && pos.non_pawn_material(us) >= RookValueMg;
+          && pos.non_pawn_material(us) >= std::min(RookValueMg, 2 * SilverValueMg);
   }
 
   bool is_KBPsK(const Position& pos, Color us) {
