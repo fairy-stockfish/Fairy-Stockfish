@@ -1038,18 +1038,10 @@ void VariantMap::init() {
 }
 
 
-/// VariantMap::parse reads variants from an INI-style configuration file.
+/// VariantMap::parse_istream reads variants from an INI-style configuration input stream.
 
 template <bool DoCheck>
-void VariantMap::parse(std::string path) {
-    if (path.empty() || path == "<empty>")
-        return;
-    std::ifstream file(path);
-    if (!file.is_open())
-    {
-        std::cerr << "Unable to open file " << path << std::endl;
-        return;
-    }
+void VariantMap::parse_istream(std::istream& file) {
     std::string variant, variant_template, key, value, input;
     while (file.peek() != '[' && std::getline(file, input)) {}
 
@@ -1092,13 +1084,28 @@ void VariantMap::parse(std::string path) {
                 delete v;
         }
     }
-    file.close();
     // Clean up temporary variants
     for (std::string tempVar : varsToErase)
     {
         delete variants[tempVar];
         variants.erase(tempVar);
     }
+}
+
+/// VariantMap::parse reads variants from an INI-style configuration file.
+
+template <bool DoCheck>
+void VariantMap::parse(std::string path) {
+    if (path.empty() || path == "<empty>")
+        return;
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        std::cerr << "Unable to open file " << path << std::endl;
+        return;
+    }
+    parse_istream<DoCheck>(file);
+    file.close();
 }
 
 template void VariantMap::parse<true>(std::string path);
