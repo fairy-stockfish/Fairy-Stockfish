@@ -15,7 +15,7 @@
 
 The package **ffish.js** is a high performance WebAssembly chess variant library based on [_Fairy-Stockfish_](https://github.com/ianfab/Fairy-Stockfish).
 
-It is available as a [standard module](https://www.npmjs.com/package/ffish) and as an [ES6 module](https://www.npmjs.com/package/ffish-es6).
+It is available as a [standard module](https://www.npmjs.com/package/ffish), as an [ES6 module](https://www.npmjs.com/package/ffish-es6) and aims to have a syntax similar to [python-chess](https://python-chess.readthedocs.io/en/latest/index.html).
 
 ## Install instructions
 
@@ -43,7 +43,7 @@ const ffish = require('ffish');
 ### ES6 module
 
 ```javascript
-import Module from 'ffish';
+import Module from 'ffish-es6';
 let ffish = null;
 
 new Module().then(loadedModule => {
@@ -53,10 +53,44 @@ new Module().then(loadedModule => {
 });
 ```
 
+### Available variants
+
+Show all available variants supported by _Fairy-Stockfish_ and **ffish.js**.
+
+```javascript
+ffish.variants()
+```
+```
+>> 3check 5check ai-wok almost amazon antichess armageddon asean ataxx breakthrough bughouse cambodian\
+capablanca capahouse caparandom centaur chancellor chess chessgi chigorin clobber clobber10 codrus courier\
+crazyhouse dobutsu embassy euroshogi extinction fairy fischerandom gardner giveaway gorogoro gothic grand\
+hoppelpoppel horde janggi janggicasual janggimodern janggitraditional janus jesonmor judkins karouk kinglet\
+kingofthehill knightmate koedem kyotoshogi loop losalamos losers makpong makruk manchu micro mini minishogi\
+minixiangqi modern newzealand nocastle normal placement pocketknight racingkings seirawan shako shatar\
+shatranj shogi shouse sittuyin suicide supply threekings xiangqi
+```
+
+## Custom variants
+
+Fairy-Stockfish also allows defining custom variants by loading a configuration file.
+See e.g. the confiugration for connect4, tictactoe or janggihouse in [variants.ini](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/variants.ini).
+```javascript
+fs = require('fs');
+let configFilePath = './variants.ini';
+ fs.readFile(configFilePath, 'utf8', function (err,data) {
+   if (err) {
+     return console.log(err);
+   }
+   ffish.loadVariantConfig(data)
+   let board = new ffish.Board("tictactoe");
+   board.delete();
+ });
+```
+
 ### Board object
 
 Create a new variant board from its default starting position.
-The even `onRuntimeInitialized` ensures that the wasm file was properly loaded.
+The event `onRuntimeInitialized` ensures that the wasm file was properly loaded.
 
 ```javascript
 ffish['onRuntimeInitialized'] = () => {
@@ -89,14 +123,41 @@ for (var i = 0; i < legalMovesSan.length; i++) {
 }
 ```
 
-For examples for every function see [test.js](https://github.com/ianfab/Fairy-Stockfish/blob/master/tests/js/test.js).
-
 Unfortunately, it is impossible for Emscripten to call the destructors on C++ object.
 Therefore, you need to call `.delete()` to free the heap memory of an object.
 ```javascript
 board.delete();
 ```
 
+## PGN parsing
+
+Read a string from a file and parse it as a single PGN game.
+
+```javascript
+fs = require('fs');
+let pgnFilePath = "data/pgn/kasparov-deep-blue-1997.pgn"
+
+fs.readFile(pgnFilePath, 'utf8', function (err,data) {
+  if (err) {
+    return console.log(err);
+  }
+  game = ffish.readGamePGN(data);
+  console.log(game.headerKeys());
+  console.log(game.headers("White"));
+  console.log(game.mainlineMoves())
+
+  let board = new ffish.Board(game.headers("Variant").toLowerCase());
+  board.pushMoves(game.mainlineMoves());
+
+  let finalFen = board.fen();
+  board.delete();
+  game.delete();
+}
+```
+
+## Remaining features
+
+For an example of each available function see [test.js](https://github.com/ianfab/Fairy-Stockfish/blob/master/tests/js/test.js).
 
 ## Build instuctions
 
@@ -112,14 +173,19 @@ If you want to disable variants with a board greater than 8x8,
 
 The pre-compiled wasm binary is built with `-DLARGEBOARDS`.
 
+It is recommended to set `-s ASSERTIONS=1 -s SAFE_HEAP=1` before running tests.
+
+
 ### Compile as standard module
 
 ```bash
 cd Fairy-Stockfish/src
 ```
 ```bash
-emcc -O3 --bind -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 \
- -s WASM_MEM_MAX=2147483648 -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
+emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNO_THREADS \
+ -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648 \
+ -s ASSERTIONS=0 -s SAFE_HEAP=0 \
+ -DNO_THREADS -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
 ffishjs.cpp \
 benchmark.cpp \
 bitbase.cpp \
@@ -157,10 +223,10 @@ Some environments such as [vue-js](https://vuejs.org/) may require the library t
 cd Fairy-Stockfish/src
 ```
 ```bash
-emcc -O3 -DLARGEBOARDS --bind \
--s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 \
--s WASM_MEM_MAX=2147483648 -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
--s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0 \
+emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNO_THREADS \
+ -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648 \
+ -s ASSERTIONS=0 -s SAFE_HEAP=0 \
+ -s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0 \
 ffishjs.cpp \
 benchmark.cpp \
 bitbase.cpp \

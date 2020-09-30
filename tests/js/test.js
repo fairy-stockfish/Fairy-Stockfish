@@ -1,10 +1,28 @@
 before(() => {
   chai = require('chai');
   return new Promise((resolve) => {
+    pgnDir = __dirname + '/../pgn/';
+    srcDir = __dirname + '/../../src/';
     ffish = require('./ffish.js');
     ffish['onRuntimeInitialized'] = () => {
       resolve();
     }
+  });
+});
+
+describe('ffish.loadVariantConfig(config)', function () {
+  it("it loads a custom variant configuration from a string", () => {
+    fs = require('fs');
+    let configFilePath = srcDir + 'variants.ini';
+     fs.readFile(configFilePath, 'utf8', function (err,data) {
+       if (err) {
+         return console.log(err);
+       }
+       ffish.loadVariantConfig(data)
+       let board = new ffish.Board("tictactoe");
+       chai.expect(board.fen()).to.equal("3/3/3[PPPPPpppp] w - - 0 1");
+       board.delete();
+     });
   });
 });
 
@@ -98,12 +116,23 @@ describe('board.push(uciMove)', function () {
   });
 });
 
-describe('board.pushSan()', function () {
+describe('board.pushSan(sanMove)', function () {
   it("it pushes a move in san notation to the board", () => {
     let board = new ffish.Board();
     board.pushSan("e4");
     board.pushSan("e5");
     board.pushSan("Nf3");
+    chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
+    board.delete();
+  });
+});
+
+describe('board.pushSan(sanMove, notation)', function () {
+  it("it pushes a move in san notation to the board", () => {
+    let board = new ffish.Board();
+    board.pushSan("e4", ffish.Notation.SAN);
+    board.pushSan("e5", ffish.Notation.SAN);
+    board.pushSan("Nf3", ffish.Notation.SAN);
     chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
     board.delete();
   });
@@ -309,6 +338,48 @@ describe('board.isBikjang()', function () {
   });
 });
 
+describe('board.moveStack()', function () {
+  it("it returns the move stack in UCI notation", () => {
+    let board = new ffish.Board();
+    chai.expect(board.isBikjang()).to.equal(false);
+    board.push("e2e4");
+    board.push("e7e5");
+    board.push("g1f3");
+    chai.expect(board.moveStack()).to.equal("e2e4 e7e5 g1f3");
+    board.setFen("r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4");
+    board.pushSan("Qxf7#");
+    chai.expect(board.moveStack()).to.equal("h5f7");
+    board.delete();
+  });
+});
+
+describe('board.pushMoves(uciMoves)', function () {
+  it("it pushes multiple uci moves on the board, passed as a string with ' ' as delimiter", () => {
+    let board = new ffish.Board();
+    board.pushMoves("e2e4 e7e5 g1f3");
+    chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
+    board.delete();
+  });
+});
+
+describe('board.pushSanMoves(sanMoves)', function () {
+  it("it pushes multiple san moves on the board, passed as a string with ' ' as delimiter", () => {
+    let board = new ffish.Board();
+    board.pushSanMoves("e4 e5 Nf3");
+    chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
+    board.delete();
+  });
+});
+
+describe('board.pushSanMoves(sanMoves, notation)', function () {
+  it("it pushes multiple san moves on the board, passed as a string with ' ' as delimiter", () => {
+    let board = new ffish.Board();
+    board.pushSanMoves("e4 e5 Nf3", ffish.Notation.SAN);
+    chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
+    board.delete();
+  });
+});
+
 describe('ffish.info()', function () {
   it("it returns the version of the Fairy-Stockfish binary", () => {
     chai.expect(ffish.info()).to.be.a('string');
@@ -333,5 +404,94 @@ describe('ffish.setOptionBool(name, value)', function () {
   it("it sets a boolean uci option value pair", () => {
     ffish.setOptionBool("Ponder", true);
     chai.expect(true).to.equal(true);
+  });
+});
+
+describe('ffish.readGamePGN(pgn)', function () {
+  it("it reads a pgn string and returns a game object", () => {
+     fs = require('fs');
+     let pgnFiles = ['deep_blue_kasparov_1997.pgn', 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn', 'c60_ruy_lopez.pgn']
+     let expectedFens = ["1r6/5kp1/RqQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 b - - 14 45",
+                         "3r2kr/2pb1Q2/4ppp1/3pN2p/1P1P4/3PbP2/P1P3PP/6NK[PPqrrbbnn] b - - 1 37",
+                         "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"]
+
+     for (let idx = 0; idx < pgnFiles.length; ++idx) {
+     let pgnFilePath = pgnDir + pgnFiles[idx];
+
+     fs.readFile(pgnFilePath, 'utf8', function (err,data) {
+       if (err) {
+         return console.log(err);
+       }
+       let game = ffish.readGamePGN(data);
+
+       let board = new ffish.Board(game.headers("Variant").toLowerCase());
+       board.pushMoves(game.mainlineMoves());
+       chai.expect(board.fen()).to.equal(expectedFens[idx]);
+       board.delete();
+       game.delete();
+     });
+         }
+  });
+});
+
+describe('game.headerKeys()', function () {
+  it("it returns all available header keys of the loaded game", () => {
+     fs = require('fs');
+     let pgnFile = 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn'
+     let pgnFilePath = pgnDir + pgnFile;
+
+     fs.readFile(pgnFilePath, 'utf8', function (err,data) {
+       if (err) {
+         return console.log(err);
+       }
+       let game = ffish.readGamePGN(data);
+       chai.expect(game.headerKeys()).to.equal('Annotator Termination Variant ECO WhiteTitle BlackRatingDiff UTCTime Result WhiteElo Black UTCDate TimeControl BlackElo Event WhiteRatingDiff BlackTitle White Date Opening Site');
+       game.delete();
+     });
+  });
+});
+
+
+describe('game.headers(key)', function () {
+  it("it returns the value for a given header key of a loaded game", () => {
+     fs = require('fs');
+     let pgnFile = 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn';
+     let pgnFilePath = pgnDir + pgnFile;
+
+     fs.readFile(pgnFilePath, 'utf8', function (err,data) {
+       if (err) {
+         return console.log(err);
+       }
+       let game = ffish.readGamePGN(data);
+       chai.expect(game.headers("White")).to.equal("JannLee");
+       chai.expect(game.headers("Black")).to.equal("CrazyAra");
+       chai.expect(game.headers("Variant")).to.equal("Crazyhouse");
+       game.delete();
+     });
+  });
+});
+
+describe('game.mainlineMoves()', function () {
+  it("it returns the mainline of the loaded game in UCI notation", () => {
+     fs = require('fs');
+     let pgnFile = 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn';
+     let pgnFilePath = pgnDir + pgnFile;
+
+     fs.readFile(pgnFilePath, 'utf8', function (err,data) {
+       if (err) {
+         return console.log(err);
+       }
+       let game = ffish.readGamePGN(data);
+       chai.expect(game.mainlineMoves()).to.equal('e2e4 b8c6 b1c3 g8f6 d2d4 d7d5 e4e5 f6e4 f1b5 a7a6 b5c6 b7c6 g1e2 c8f5 e1g1 e7e6 f2f3 e4c3 b2c3 h7h5 N@e3 N@h4 N@a5 B@d7 e3f5 h4f5 B@b7 N@e3 a5c6 e3d1 c6d8 a8d8 f1d1 Q@b5 b7a6 b5a6 P@d3 N@e3 c1e3 f5e3 P@d6 e3d1 a1d1 B@e3 g1h1 f8d6 e5d6 a6d6 B@b4 d6b4 c3b4 P@f2 Q@f1 R@g1 f1g1 f2g1q d1g1 P@f2 N@g6 f2g1q e2g1 Q@e7 Q@d6 f7g6 d6e7 e8e7 R@f7 e7f7 N@e5 f7g8 N@f6 g7f6 Q@f7');
+       game.delete();
+     });
+  });
+});
+
+describe('ffish.variants()', function () {
+  it("it returns all currently available variants", () => {
+    chai.expect(ffish.variants().includes("chess")).to.equal(true);
+    chai.expect(ffish.variants().includes("crazyhouse")).to.equal(true);
+    chai.expect(ffish.variants().includes("janggi")).to.equal(true);
   });
 });

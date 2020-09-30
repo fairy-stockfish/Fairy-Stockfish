@@ -21,6 +21,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include<iostream>
 
 #include "misc.h"
 #include "types.h"
@@ -40,15 +41,15 @@
 using namespace emscripten;
 
 
-void initialize_stockfish(std::string& uciVariant) {
+void initialize_stockfish() {
   pieceMap.init();
   variants.init();
   UCI::init(Options);
-  PSQT::init(variants.find(uciVariant)->second);
   Bitboards::init();
   Position::init();
   Bitbases::init();
 }
+
 
 class Board {
   // note: we can't use references for strings here due to conversion to JavaScript
@@ -115,18 +116,25 @@ public:
     do_move(UCI::to_move(this->pos, uciMove));
   }
 
+  bool push_san(std::string sanMove) {
+    return push_san(sanMove, NOTATION_SAN);
+  }
+
   // TODO: This is a naive implementation which compares all legal SAN moves with the requested string.
   // If the SAN move wasn't found the position remains unchanged. Alternatively, implement a direct conversion.
-  void push_san(std::string sanMove) {
+  bool push_san(std::string sanMove, Notation notation) {
     Move foundMove = MOVE_NONE;
     for (const ExtMove& move : MoveList<LEGAL>(pos)) {
-      if (sanMove == move_to_san(this->pos, move, NOTATION_SAN)) {
+      if (sanMove == move_to_san(this->pos, move, notation)) {
         foundMove = move;
         break;
       }
     }
-    if (foundMove != MOVE_NONE)
+    if (foundMove != MOVE_NONE) {
       do_move(foundMove);
+      return true;
+    }
+    return false;
   }
 
   void pop() {
@@ -159,7 +167,7 @@ public:
   }
 
   std::string san_move(std::string uciMove, Notation notation) {
-    return move_to_san(this->pos, UCI::to_move(this->pos, uciMove), Notation(notation));
+    return move_to_san(this->pos, UCI::to_move(this->pos, uciMove), notation);
   }
   std::string variation_san(std::string uciMoves) {
     return variation_san(uciMoves, NOTATION_SAN, true);
@@ -238,6 +246,37 @@ public:
     return pos.bikjang();
   }
 
+  std::string move_stack() const {
+    if (moveStack.size() == 0) {
+        return "";
+    }
+    std::string moves = UCI::move(pos, moveStack[0]);
+    for(auto it = std::begin(moveStack)+1; it != std::end(moveStack); ++it) {
+      moves += " " + UCI::move(pos, *it);
+    }
+    return moves;
+  }
+
+  void push_moves(std::string uciMoves) {
+      std::stringstream ss(uciMoves);
+      std::string uciMove;
+      while (std::getline(ss, uciMove, ' ')) {
+          push(uciMove);
+      }
+  }
+
+  void push_san_moves(std::string sanMoves) {
+      return push_san_moves(sanMoves, NOTATION_SAN);
+  }
+
+  void push_san_moves(std::string sanMoves, Notation notation) {
+      std::stringstream ss(sanMoves);
+      std::string sanMove;
+      while (std::getline(ss, sanMove, ' ')) {
+          push_san(sanMove, notation);
+      }
+  }
+
   // TODO: return board in ascii notation
   // static std::string get_string_from_instance(const Board& board) {
   // }
@@ -253,32 +292,202 @@ private:
     this->moveStack.emplace_back(move);
   }
 
-  void init(std::string& uciVariant, std::string fen, bool is960) {
+  void init(std::string uciVariant, std::string fen, bool is960) {
     if (!Board::sfInitialized) {
-      initialize_stockfish(uciVariant);
+      initialize_stockfish();
       Board::sfInitialized = true;
     }
+    if (uciVariant == "")
+      uciVariant = "chess";
     this->v = variants.find(uciVariant)->second;
     this->resetStates();
     if (fen == "")
-    fen = v->startFen;
+      fen = v->startFen;
     this->pos.set(this->v, fen, is960, &this->states->back(), this->thread);
     this->is960 = is960;
   }
 };
+
+bool Board::sfInitialized = false;
+
+namespace ffish {
 
 // returns the version of the Fairy-Stockfish binary
 std::string info() {
   return engine_info();
 }
 
-bool Board::sfInitialized = false;
-
 template <typename T>
 void set_option(std::string name, T value) {
   Options[name] = value;
   Board::sfInitialized = false;
 }
+
+std::string available_variants() {
+    bool first = true;
+    std::string availableVariants = "";
+    for (std::string variant : variants.get_keys()) {
+        if (first) {
+            first = false;
+            availableVariants = variant;
+        }
+        else
+            availableVariants += " " + variant;
+    }
+    return availableVariants;
+}
+
+void load_variant_config(std::string variantInitContent) {
+    std::stringstream ss(variantInitContent);
+    if (!Board::sfInitialized)
+        initialize_stockfish();
+    variants.parse_istream<false>(ss);
+    Options["UCI_Variant"].set_combo(variants.get_keys());
+    Board::sfInitialized = true;
+}
+}
+
+class Game {
+    private:
+        std::unordered_map<std::string, std::string> header;
+        std::unique_ptr<Board> board;
+        std::string variant = "chess";
+        std::string fen = ""; // start pos
+        bool is960 = false;
+        bool parsedGame = false;
+    public:
+        std::string header_keys() {
+            std::string keys = "";
+            bool first = true;
+            for (auto it = header.begin(); it != header.end(); ++it) {
+                if (first) {
+                    keys = it->first;
+                    first = false;
+                }
+                else
+                    keys += " " + it->first;
+            }
+            return keys;
+        }
+
+        std::string headers(std::string item) {
+            auto it = header.find(item);
+            if (it == header.end())
+                return "";
+            return it->second;
+        }
+
+        std::string mainline_moves() {
+            if (!parsedGame)
+                return "";
+            return board->move_stack();
+        }
+
+    friend Game read_game_pgn(std::string);
+};
+
+
+Game read_game_pgn(std::string pgn) {
+    Game game;
+    size_t lineStart = 0;
+    bool headersParsed = false;
+
+    while(true) {
+        size_t lineEnd = pgn.find('\n', lineStart);
+
+        if (lineEnd == std::string::npos)
+            lineEnd = pgn.size();
+
+        if (!headersParsed && pgn[lineStart] == '[') {
+            // parse header
+            // look for item
+            size_t headerKeyStart = lineStart+1;
+            size_t headerKeyEnd = pgn.find(' ', lineStart);
+            size_t headerItemStart = headerKeyEnd+2;
+            size_t headerItemEnd = pgn.find(']', headerKeyEnd)-1;
+
+            // put item into list
+            game.header[pgn.substr(headerKeyStart, headerKeyEnd-headerKeyStart)] = pgn.substr(headerItemStart, headerItemEnd-headerItemStart);
+        }
+        else {
+            if (!headersParsed) {
+                headersParsed = true;
+                auto it = game.header.find("Variant");
+                if (it != game.header.end()) {
+                    game.variant = it->second;
+                    std::transform(game.variant.begin(), game.variant.end(), game.variant.begin(),
+                              [](unsigned char c){ return std::tolower(c); });
+                    game.is960 = it->second.find("960") != std::string::npos;
+                }
+
+                it = game.header.find("FEN");
+                if (it != game.header.end())
+                    game.fen = it->second;
+
+                game.board = std::make_unique<Board>(game.variant, game.fen, game.is960);
+                game.parsedGame = true;
+            }
+
+            // game line
+            size_t curIdx = lineStart;
+            while (curIdx <= lineEnd) {
+                if (pgn[curIdx] == '*')
+                    return game;
+
+                while (pgn[curIdx] == '{') {
+                    // skip comment
+                    curIdx = pgn.find('}', curIdx);
+                    if (curIdx == std::string::npos) {
+                        std::cerr << "Missing '}' for move comment while reading pgn." << std::endl;
+                        return game;
+                    }
+                    curIdx += 2;
+                }
+                while (pgn[curIdx] == '(') {
+                    // skip comment
+                    curIdx = pgn.find(')', curIdx);
+                    if (curIdx == std::string::npos) {
+                        std::cerr << "Missing ')' for move comment while reading pgn." << std::endl;
+                        return game;
+                    }
+                    curIdx += 2;
+                }
+
+                if (pgn[curIdx] >= '0' && pgn[curIdx] <= '9') {
+                    // we are at a move number -> look for next point
+                    curIdx = pgn.find('.', curIdx);
+                    if (curIdx == std::string::npos)
+                        break;
+                    ++curIdx;
+                    // increment if we're at a space
+                    while (curIdx < pgn.size() && pgn[curIdx] == ' ')
+                        ++curIdx;
+                    // increment if we're at a point
+                    while (curIdx < pgn.size() && pgn[curIdx] == '.')
+                        ++curIdx;
+                }
+                // extract sanMove
+                size_t sanMoveEnd = std::min(pgn.find(' ', curIdx), lineEnd);
+                if (sanMoveEnd > curIdx) {
+                    std::string sanMove = pgn.substr(curIdx, sanMoveEnd-curIdx);
+                    // clean possible ? and ! from string
+                    size_t annotationChar1 = sanMove.find('?');
+                    size_t annotationChar2 = sanMove.find('!');
+                    if (annotationChar1 != std::string::npos || annotationChar2 != std::string::npos)
+                        sanMove = sanMove.substr(0, std::min(annotationChar1, annotationChar2));
+                    game.board->push_san(sanMove);
+                }
+                curIdx = sanMoveEnd+1;
+            }
+        }
+        lineStart = lineEnd+1;
+
+        if (lineStart >= pgn.size())
+            return game;
+    }
+    return game;
+}
+
 
 // binding code
 EMSCRIPTEN_BINDINGS(ffish_js) {
@@ -291,7 +500,8 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("legalMovesSan", &Board::legal_moves_san)
     .function("numberLegalMoves", &Board::number_legal_moves)
     .function("push", &Board::push)
-    .function("pushSan", &Board::push_san)
+    .function("pushSan", select_overload<bool(std::string)>(&Board::push_san))
+    .function("pushSan", select_overload<bool(std::string, Notation)>(&Board::push_san))
     .function("pop", &Board::pop)
     .function("reset", &Board::reset)
     .function("is960", &Board::is_960)
@@ -308,7 +518,15 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("gamePly", &Board::game_ply)
     .function("isGameOver", &Board::is_game_over)
     .function("isCheck", &Board::is_check)
-    .function("isBikjang", &Board::is_bikjang);
+    .function("isBikjang", &Board::is_bikjang)
+    .function("moveStack", &Board::move_stack)
+    .function("pushMoves", &Board::push_moves)
+    .function("pushSanMoves", select_overload<void(std::string)>(&Board::push_san_moves))
+    .function("pushSanMoves", select_overload<void(std::string, Notation)>(&Board::push_san_moves));
+  class_<Game>("Game")
+    .function("headerKeys", &Game::header_keys)
+    .function("headers", &Game::headers)
+    .function("mainlineMoves", &Game::mainline_moves);
   // usage: e.g. ffish.Notation.DEFAULT
   enum_<Notation>("Notation")
     .value("DEFAULT", NOTATION_DEFAULT)
@@ -319,10 +537,13 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .value("SHOGI_HODGES_NUMBER", NOTATION_SHOGI_HODGES_NUMBER)
     .value("JANGGI", NOTATION_JANGGI)
     .value("XIANGQI_WXF", NOTATION_XIANGQI_WXF);
-  function("info", &info);
-  function("setOption", &set_option<std::string>);
-  function("setOptionInt", &set_option<int>);
-  function("setOptionBool", &set_option<bool>);
+  function("info", &ffish::info);
+  function("setOption", &ffish::set_option<std::string>);
+  function("setOptionInt", &ffish::set_option<int>);
+  function("setOptionBool", &ffish::set_option<bool>);
+  function("readGamePGN", &read_game_pgn);
+  function("variants", &ffish::available_variants);
+  function("loadVariantConfig", &ffish::load_variant_config);
   // TODO: enable to string conversion method
   // .class_function("getStringFromInstance", &Board::get_string_from_instance);
 }
