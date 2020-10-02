@@ -258,6 +258,7 @@ namespace {
         mobilityArea[Us] = AllSquares;
     else
         mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them)
+                               | (pos.pieces(Us, SHOGI_PAWN) & shift<Down>(pos.pieces(Us)))
                                | shift<Down>(pos.pieces(Them, SHOGI_PAWN, SOLDIER))
                                | shift<EAST>(pos.promoted_soldiers(Them))
                                | shift<WEST>(pos.promoted_soldiers(Them)));
