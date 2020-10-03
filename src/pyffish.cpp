@@ -4,6 +4,7 @@
 */
 
 #include <Python.h>
+#include <sstream>
 
 #include "misc.h"
 #include "types.h"
@@ -70,6 +71,17 @@ extern "C" PyObject* pyffish_setOption(PyObject* self, PyObject *args) {
         PyErr_SetString(PyExc_ValueError, (std::string("No such option ") + name + "'").c_str());
         return NULL;
     }
+    Py_RETURN_NONE;
+}
+
+// INPUT variant config
+extern "C" PyObject* pyffish_loadVariantConfig(PyObject* self, PyObject *args) {
+    const char *config;
+    if (!PyArg_ParseTuple(args, "s", &config))
+        return NULL;
+    std::stringstream ss(config);
+    variants.parse_istream<false>(ss);
+    Options["UCI_Variant"].set_combo(variants.get_keys());
     Py_RETURN_NONE;
 }
 
@@ -293,6 +305,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"version", (PyCFunction)pyffish_version, METH_NOARGS, "Get package version."},
     {"info", (PyCFunction)pyffish_info, METH_NOARGS, "Get Stockfish version info."},
     {"set_option", (PyCFunction)pyffish_setOption, METH_VARARGS, "Set UCI option."},
+    {"load_variant_config", (PyCFunction)pyffish_loadVariantConfig, METH_VARARGS, "Load variant configuration."},
     {"start_fen", (PyCFunction)pyffish_startFen, METH_VARARGS, "Get starting position FEN."},
     {"two_boards", (PyCFunction)pyffish_twoBoards, METH_VARARGS, "Checks whether the variant is played on two boards."},
     {"get_san", (PyCFunction)pyffish_getSAN, METH_VARARGS, "Get SAN move from given FEN and UCI move."},
