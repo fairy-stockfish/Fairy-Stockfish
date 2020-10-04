@@ -379,6 +379,16 @@ namespace {
       delete p2;
       return p;
   }
+  PieceInfo* nightrider_piece() {
+      PieceInfo* p = new PieceInfo();
+      p->name = "nightrider";
+      p->betza = "NN";
+      p->sliderQuiet = {2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
+                       NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST };
+      p->sliderCapture = {2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
+                         NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST };
+      return p;
+  }
 }
 
 void PieceMap::init() {
@@ -422,6 +432,7 @@ void PieceMap::init() {
   add(COMMONER, commoner_piece());
   add(CENTAUR, centaur_piece());
   add(KING, king_piece());
+  add(NIGHTRIDER, nightrider_piece());
 }
 
 void PieceMap::add(PieceType pt, const PieceInfo* p) {
