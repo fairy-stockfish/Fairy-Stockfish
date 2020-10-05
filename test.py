@@ -61,8 +61,7 @@ whiteFlag = *8
 blackFlag = *1
 """
 
-print(ini_text, file=open("variants.ini", "w"))
-sf.set_option("VariantPath", "variants.ini")
+sf.load_variant_config(ini_text)
 
 
 variant_positions = {

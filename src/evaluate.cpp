@@ -258,6 +258,7 @@ namespace {
         mobilityArea[Us] = AllSquares;
     else
         mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them)
+                               | (pos.pieces(Us, SHOGI_PAWN) & shift<Down>(pos.pieces(Us)))
                                | shift<Down>(pos.pieces(Them, SHOGI_PAWN, SOLDIER))
                                | shift<EAST>(pos.promoted_soldiers(Them))
                                | shift<WEST>(pos.promoted_soldiers(Them)));
@@ -352,9 +353,10 @@ namespace {
         // Piece promotion bonus
         if (pos.promoted_piece_type(Pt) != NO_PIECE_TYPE)
         {
-            if (promotion_zone_bb(Us, pos.promotion_rank(), pos.max_rank()) & (b | s))
+            Bitboard zone = promotion_zone_bb(Us, pos.promotion_rank(), pos.max_rank());
+            if (zone & (b | s))
                 score += make_score(PieceValue[MG][pos.promoted_piece_type(Pt)] - PieceValue[MG][Pt],
-                                    PieceValue[EG][pos.promoted_piece_type(Pt)] - PieceValue[EG][Pt]) / 10;
+                                    PieceValue[EG][pos.promoted_piece_type(Pt)] - PieceValue[EG][Pt]) / (zone & s && b ? 6 : 12);
         }
         else if (pos.piece_demotion() && pos.unpromoted_piece_on(s))
             score -= make_score(PieceValue[MG][Pt] - PieceValue[MG][pos.unpromoted_piece_on(s)],
