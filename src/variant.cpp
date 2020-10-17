@@ -129,6 +129,7 @@ namespace {
     Variant* shatranj_variant() {
         Variant* v = fairy_variant_base();
         v->variantTemplate = "shatranj";
+        v->pieceToCharTable = "PN.R.QB....Kpn.r.qb....k";
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(ALFIL, 'b');
@@ -144,6 +145,15 @@ namespace {
         v->extinctionOpponentPieceCount = 2;
         v->stalemateValue = -VALUE_MATE;
         v->nMoveRule = 70;
+        return v;
+    }
+    // Chaturanga
+    // https://en.wikipedia.org/wiki/Chaturanga
+    // Rules as used on chess.com
+    Variant* chaturanga_variant() {
+        Variant* v = shatranj_variant();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        v->extinctionValue = VALUE_NONE;
         return v;
     }
     Variant* amazon_variant() {
@@ -964,6 +974,7 @@ void VariantMap::init() {
     add("asean", asean_variant());
     add("ai-wok", aiwok_variant());
     add("shatranj", shatranj_variant());
+    add("chaturanga", chaturanga_variant());
     add("amazon", amazon_variant());
     add("hoppelpoppel", hoppelpoppel_variant());
     add("newzealand", newzealand_variant());
