@@ -241,7 +241,7 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 Option::Option(const char* v, OnChange f) : type("string"), min(0), max(0), on_change(f)
 { defaultValue = currentValue = v; }
 
-Option::Option(const char* v, const std::vector<std::string>& variants, OnChange f) : type("combo"), min(0), max(0), comboValues(variants), on_change(f)
+Option::Option(const char* v, const std::vector<std::string>& values, OnChange f) : type("combo"), min(0), max(0), comboValues(values), on_change(f)
 { defaultValue = currentValue = v; }
 
 Option::Option(bool v, OnChange f) : type("check"), min(0), max(0), on_change(f)
