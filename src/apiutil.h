@@ -15,6 +15,14 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <vector>
+#include <string>
+#include <sstream>
+#include <cctype>
+
+#include "types.h"
+#include "variant.h"
+#include <iostream>
 
 namespace PSQT {
   void init(const Variant* v);
@@ -307,4 +315,209 @@ bool hasInsufficientMaterial(Color c, const Position& pos) {
         return false;
 
     return true;
+}
+
+enum FEN_VALIDATION : int {
+  FEN_MISSING_SPACE_DELIM = -12,
+  FEN_INVALID_NB_PARTS = -11,
+  FEN_INVALID_CHAR = -10,
+  FEN_FILE_SIZE_MISMATCH = -9,
+  FEN_INVALID_NUMBER_OF_RANKS = -8,
+  FEN_INVALID_POCKET_INFO = -7,
+  FEN_INVALID_SIDE_TO_MOVE = -6,
+  FEN_INVALID_CASTLING_INFO = -5,
+  FEN_INVALID_EN_PASSANT_SQ = -4,
+  FEN_INVALID_CHECK_COUNTER = -3,
+  FEN_INVALID_HALF_MOVE_COUNTER = -2,
+  FEN_INVALID_MOVE_COUTNER = -1,
+  FEN_EMPTY = 0,
+  FEN_OK = 1
+};
+
+
+FEN_VALIDATION validate_fen(const std::string& fen, const Variant* v) {
+
+  // 0) Layout
+  // check for empty fen
+  if (fen.size() == 0) {
+    std::cerr << "Fen is empty." << std::endl;
+    return FEN_EMPTY;
+  }
+
+  // check for space
+  if (fen.find(' ') == std::string::npos) {
+    std::cerr << "Fen misses space as delimiter." << std::endl;
+    return FEN_MISSING_SPACE_DELIM;
+  }
+
+  std::vector<std::string> fenParts;
+  std::vector<std::string> starFenParts;
+  std::stringstream ss(fen);
+  std::stringstream ss2(v->startFen);
+
+  std::string curPart;
+  while (std::getline(ss, curPart, ' '))
+    fenParts.emplace_back(curPart);
+  while (std::getline(ss2, curPart, ' '))
+    starFenParts.emplace_back(curPart);
+  const unsigned int nbFenParts = starFenParts.size();
+
+  // check for number of parts
+  if (fenParts.size() != nbFenParts) {
+    std::cerr << "Invalid number of fen parts. Expected: " << nbFenParts << " Actual: " << fenParts.size() << std::endl;
+    return FEN_INVALID_NB_PARTS;
+  }
+
+  // 1) Part
+  // check for valid characters
+  for (char c : fenParts[0])
+    if (!isdigit(c) && v->startFen.find(c) == std::string::npos) {
+      std::cerr << "Invalid piece character: '" << c << "'." << std::endl;
+      return FEN_INVALID_CHAR;
+    }
+
+  // check for number of ranks
+  int nbRanks = RANK_1;
+  for (; nbRanks <= v->maxRank; ++nbRanks);
+  // check for number of files
+  int nbFiles = FILE_A;
+  for (; nbFiles <= v->maxFile; ++nbFiles);
+
+  int nbProcessedRanks = 1;  // start with 1 and increment after delimeter
+  int curRankWidth = 0;
+  char prevChar = '?';
+  for (char c : fenParts[0]) {
+    if (isdigit(c)) {
+      curRankWidth += c - '0';
+      // if previous digit exists we have a dual digit
+      if (isdigit(prevChar))
+        curRankWidth += 9;
+    }
+    else if (c == '/') {
+      ++nbProcessedRanks;
+      if (curRankWidth != nbFiles) {
+        std::cerr << "curRankWidth != nbFiles: " << curRankWidth << " != " << nbFiles << std::endl;
+        return FEN_FILE_SIZE_MISMATCH;
+     }
+      curRankWidth = 0;
+    }
+    else if (c == '+') {
+        // ignore '+' symbols in fen (e.g. kyotoshogi_variant)
+    }
+    else  // normal piece
+      ++curRankWidth;
+    prevChar = c;
+  }
+  if (v->pieceDrops) { // pockets can either be defined by [] or /
+    if (nbProcessedRanks != nbRanks && nbProcessedRanks-1 != nbRanks) {
+      std::cerr << "Invalid number of ranks. Expected: " << nbRanks << " Actual: " << nbProcessedRanks << std::endl;
+      return FEN_INVALID_NUMBER_OF_RANKS;
+    }
+  }
+  else {
+    if (nbProcessedRanks != nbRanks) {
+      std::cerr << "Invalid number of ranks. Expected: " << nbRanks << " Actual: " << nbProcessedRanks << std::endl;
+      return FEN_INVALID_NUMBER_OF_RANKS;
+    }
+  }
+
+  // check for pocket
+  if (v->pieceDrops) {
+    if (nbProcessedRanks-1 == nbRanks) {
+      // look for last '/'
+      for (auto it = fenParts[0].rbegin(); it != fenParts[0].rend(); ++it) {
+        if (*it == '/')
+          break;
+        if (*it != '-') {
+          if (v->pieceToChar.find(*it) == std::string::npos) {
+            std::cerr << "Invalid pocket piece: '" << *it << "'." << std::endl;
+            return FEN_INVALID_POCKET_INFO;
+          }
+        }
+      }
+    }
+    else {  // pocket is defined as [ and ]
+      if (*(fenParts[0].end()-1) != ']') {
+        std::cerr << "Pocket specification does not end with ']'." << std::endl;
+        return FEN_INVALID_POCKET_INFO;
+      }
+      // look for first '['
+      for (auto it = fenParts[0].rbegin()+1; it != fenParts[0].rend(); ++it) {
+        if (*it == '[')
+          break;
+        if (*it != '-')
+          if (v->pieceToChar.find(*it) == std::string::npos) {
+              std::cerr << "Invalid pocket piece: '" << *it << "'." << std::endl;
+            return FEN_INVALID_POCKET_INFO;
+          }
+      }
+    }
+  }
+
+  // 2) Part
+  // check side to move char
+  if (fenParts[1][0] != 'w' && fenParts[1][0] != 'b') {
+    std::cerr << "Invalid side to move specification: '" << fenParts[1][0] << "'." << std::endl;
+    return FEN_INVALID_SIDE_TO_MOVE;
+  }
+
+  // 3) Part
+  // check castling rights (exclude seirawan_variant because it has different castling specification)
+  if (v->castling && !v->seirawanGating) {
+    for (char c : fenParts[2])
+      if (c != '-')
+        if (c != 'k' && c != 'K' && c != 'Q' && c != 'q') {
+          std::cerr << "Invalid castling specification: '" << c << "'." << std::endl;
+          return FEN_INVALID_CASTLING_INFO;
+        }
+  }
+
+  // 4) Part
+  // check en-passant square
+  if (v->castling) {
+    const char firstChar = fenParts[3][0];
+    if (firstChar != '-') {
+      if (fenParts[3].size() != 2) {
+        std::cerr << "Invalid en-passant square. Expects 2 characters. Actual: '" << fenParts[3].size() << " characters." << std::endl;
+        return FEN_INVALID_EN_PASSANT_SQ;
+      }
+      if (isdigit(firstChar)) {
+        std::cerr << "Invalid en-passant square. Expects 1st character to be a digit." << std::endl;
+        return FEN_INVALID_EN_PASSANT_SQ;
+      }
+      const char secondChar = fenParts[3][1];
+      if (!isdigit(secondChar)) {
+        std::cerr << "Invalid en-passant square. Expects 2nd character to be a non-digit." << std::endl;
+        return FEN_INVALID_EN_PASSANT_SQ;
+      }
+    }
+  }
+
+  // 5) Part
+  // check checkCounting (the karouk_variant doesn't feature a checkCounter within the FEN because the first check wins)
+  if (v->checkCounting && !v->cambodianMoves)
+    for (char c : fenParts[nbFenParts-3])
+      if (c != '+')
+        if (!isdigit(c)) {
+          std::cerr << "Invalid check counting character: '" << c << "'." << std::endl;
+          return FEN_INVALID_CHECK_COUNTER;
+        }
+
+  // 6) Part
+  // check half move counter
+  for (char c : fenParts[nbFenParts-2])
+    if (!isdigit(c)) {
+       std::cerr << "Invalid half move counter: '" << c << "'." << std::endl;
+      return FEN_INVALID_HALF_MOVE_COUNTER;
+    }
+
+  // 7) Part
+  // check move counter
+  for (char c : fenParts[nbFenParts-1])
+    if (!isdigit(c)) {
+      std::cerr << "Invalid move counter: '" << c << "'." << std::endl;
+      return FEN_INVALID_MOVE_COUTNER;
+    }
+
+  return FEN_OK;
 }
