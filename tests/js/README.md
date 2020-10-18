@@ -182,7 +182,7 @@ It is recommended to set `-s ASSERTIONS=1 -s SAFE_HEAP=1` before running tests.
 cd Fairy-Stockfish/src
 ```
 ```bash
-emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNO_THREADS \
+emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNNUE_EMBEDDING_OFF -DNO_THREADS \
  -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648 \
  -s ASSERTIONS=0 -s SAFE_HEAP=0 \
  -DNO_THREADS -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
@@ -207,10 +207,12 @@ thread.cpp \
 timeman.cpp \
 tt.cpp \
 uci.cpp \
-syzygy/tbprobe.cpp \
 ucioption.cpp \
 variant.cpp \
 xboard.cpp \
+nnue/*.cpp \
+nnue/features/*.cpp \
+syzygy/*.cpp \
 -o ../tests/js/ffish.js
 ```
 
@@ -223,7 +225,7 @@ Some environments such as [vue-js](https://vuejs.org/) may require the library t
 cd Fairy-Stockfish/src
 ```
 ```bash
-emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNO_THREADS \
+emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNNUE_EMBEDDING_OFF -DNO_THREADS \
  -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648 \
  -s ASSERTIONS=0 -s SAFE_HEAP=0 \
  -s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0 \
@@ -248,10 +250,12 @@ thread.cpp \
 timeman.cpp \
 tt.cpp \
 uci.cpp \
-syzygy/tbprobe.cpp \
 ucioption.cpp \
 variant.cpp \
 xboard.cpp \
+nnue/*.cpp \
+nnue/features/*.cpp \
+syzygy/*.cpp \
 -o ../tests/js/ffish.js
 ```
 

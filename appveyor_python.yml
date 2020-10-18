@@ -1,5 +1,6 @@
+image:
+  - Visual Studio 2019
 environment:
-
   matrix:
     - PYTHON: "C:\\Python36-x64"
     - PYTHON: "C:\\Python37-x64"

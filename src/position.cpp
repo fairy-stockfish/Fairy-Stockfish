@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -1209,6 +1207,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (st->countingLimit)
       ++st->countingPly;
 
+  // Used by NNUE
+  st->accumulator.computed_accumulation = false;
+  auto& dp = st->dirtyPiece;
+  dp.dirty_num = 1;
+
   Color us = sideToMove;
   Color them = ~us;
   Square from = from_sq(m);
@@ -1266,6 +1269,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       }
       else
           st->nonPawnMaterial[them] -= PieceValue[MG][captured];
+
+      if (Eval::useNNUE)
+      {
+          dp.dirty_num = 2;  // 1 piece moved, 1 piece captured
+          dp.piece[1] = captured;
+          dp.from[1] = capsq;
+          dp.to[1] = SQ_NONE;
+      }
 
       // Update board and piece lists
       bool capturedPromoted = is_promoted(capsq);
@@ -1361,6 +1372,15 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Move the piece. The tricky Chess960 castling is handled earlier
   if (type_of(m) == DROP)
   {
+      if (Eval::useNNUE)
+      {
+          // Add drop piece
+          dp.piece[dp.dirty_num] = pc;
+          dp.from[dp.dirty_num] = SQ_NONE;
+          dp.to[dp.dirty_num] = to;
+          dp.dirty_num++;
+      }
+
       drop_piece(make_piece(us, in_hand_piece_type(m)), pc, to);
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
       if (type_of(pc) != PAWN)
@@ -1385,7 +1405,16 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       }
   }
   else if (type_of(m) != CASTLING)
+  {
+      if (Eval::useNNUE)
+      {
+          dp.piece[0] = pc;
+          dp.from[0] = from;
+          dp.to[0] = to;
+      }
+
       move_piece(from, to);
+  }
 
   // If the moving piece is a pawn do some special extra work
   if (type_of(pc) == PAWN)
@@ -1408,6 +1437,16 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           remove_piece(to);
           put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
+
+          if (Eval::useNNUE)
+          {
+              // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
+              dp.to[0] = SQ_NONE;
+              dp.piece[dp.dirty_num] = promotion;
+              dp.from[dp.dirty_num] = SQ_NONE;
+              dp.to[dp.dirty_num] = to;
+              dp.dirty_num++;
+          }
 
           // Update hash keys
           k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
@@ -1432,6 +1471,16 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       remove_piece(to);
       put_piece(promotion, to, true, pc);
 
+      if (Eval::useNNUE)
+      {
+          // Promoting piece to SQ_NONE, promoted piece from SQ_NONE
+          dp.to[0] = SQ_NONE;
+          dp.piece[dp.dirty_num] = promotion;
+          dp.from[dp.dirty_num] = SQ_NONE;
+          dp.to[dp.dirty_num] = to;
+          dp.dirty_num++;
+      }
+
       // Update hash keys
       k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
       st->materialKey ^=  Zobrist::psq[promotion][pieceCount[promotion]-1]
@@ -1446,6 +1495,16 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       remove_piece(to);
       put_piece(demotion, to);
+
+      if (Eval::useNNUE)
+      {
+          // Demoting piece to SQ_NONE, demoted piece from SQ_NONE
+          dp.to[0] = SQ_NONE;
+          dp.piece[dp.dirty_num] = demotion;
+          dp.from[dp.dirty_num] = SQ_NONE;
+          dp.to[dp.dirty_num] = to;
+          dp.dirty_num++;
+      }
 
       // Update hash keys
       k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[demotion][to];
@@ -1464,8 +1523,19 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       Square gate = gating_square(m);
       Piece gating_piece = make_piece(us, gating_type(m));
+
       put_piece(gating_piece, gate);
       remove_from_hand(gating_piece);
+
+      if (Eval::useNNUE)
+      {
+          // Add gating piece
+          dp.piece[dp.dirty_num] = gating_piece;
+          dp.from[dp.dirty_num] = SQ_NONE;
+          dp.to[dp.dirty_num] = gate;
+          dp.dirty_num++;
+      }
+
       st->gatesBB[us] ^= gate;
       k ^= Zobrist::psq[gating_piece][gate];
       st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece]];
@@ -1646,9 +1716,22 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   to = make_square(kingSide ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
   rto = to + (kingSide ? WEST : EAST);
 
-  // Remove both pieces first since squares could overlap in Chess960
   Piece castlingKingPiece = piece_on(Do ? from : to);
   Piece castlingRookPiece = piece_on(Do ? rfrom : rto);
+
+  if (Do && Eval::useNNUE)
+  {
+      auto& dp = st->dirtyPiece;
+      dp.piece[0] = castlingKingPiece;
+      dp.from[0] = from;
+      dp.to[0] = to;
+      dp.piece[1] = castlingRookPiece;
+      dp.from[1] = rfrom;
+      dp.to[1] = rto;
+      dp.dirty_num = 2;
+  }
+
+  // Remove both pieces first since squares could overlap in Chess960
   remove_piece(Do ? from : to);
   remove_piece(Do ? rfrom : rto);
   board[Do ? from : to] = board[Do ? rfrom : rto] = NO_PIECE; // Since remove_piece doesn't do it for us
@@ -1665,7 +1748,13 @@ void Position::do_null_move(StateInfo& newSt) {
   assert(!checkers());
   assert(&newSt != st);
 
-  std::memcpy(&newSt, st, sizeof(StateInfo));
+  if (Eval::useNNUE)
+  {
+      std::memcpy(&newSt, st, sizeof(StateInfo));
+  }
+  else
+      std::memcpy(&newSt, st, offsetof(StateInfo, accumulator));
+
   newSt.previous = st;
   st = &newSt;
 
@@ -1799,8 +1888,8 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       // Don't allow pinned pieces to attack (except the king) as long as
       // there are pinners on their original square.
-      if (st->pinners[~stm] & occupied)
-          stmAttackers &= ~st->blockersForKing[stm];
+      if (pinners(~stm) & occupied)
+          stmAttackers &= ~blockers_for_king(stm);
 
       if (!stmAttackers)
           break;

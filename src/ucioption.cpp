@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,6 +22,7 @@
 #include <sstream>
 #include <iostream>
 
+#include "evaluate.h"
 #include "misc.h"
 #include "piece.h"
 #include "search.h"
@@ -56,8 +55,15 @@ void on_hash_size(const Option& o) { TT.resize(size_t(o)); }
 void on_logger(const Option& o) { start_logger(o); }
 void on_threads(const Option& o) { Threads.set(size_t(o)); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
+
+void on_use_NNUE(const Option& ) { Eval::NNUE::init(); }
+void on_eval_file(const Option& ) { Eval::NNUE::init(); }
+
 void on_variant_path(const Option& o) { variants.parse<false>(o); Options["UCI_Variant"].set_combo(variants.get_keys()); }
 void on_variant_change(const Option &o) {
+    // Re-initialize NNUE
+    Eval::NNUE::init();
+
     const Variant* v = variants.find(o)->second;
     PSQT::init(v);
     // Do not send setup command for known variants
@@ -161,6 +167,12 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
+#ifdef USE_NNUE
+  o["Use NNUE"]              << Option(true, on_use_NNUE);
+#else
+  o["Use NNUE"]              << Option(false, on_use_NNUE);
+#endif
+  o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
   o["TsumeMode"]             << Option(false);
   o["VariantPath"]           << Option("<empty>", on_variant_path);
 }

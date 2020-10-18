@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,8 +26,11 @@
 #include <functional>
 
 #include "bitboard.h"
+#include "evaluate.h"
 #include "types.h"
 #include "variant.h"
+
+#include "nnue/nnue_accumulator.h"
 
 
 /// StateInfo struct stores information needed to restore a Position object to
@@ -66,6 +67,10 @@ struct StateInfo {
   bool       bikjang;
   bool       pass;
   int        repetition;
+
+  // Used by NNUE
+  Eval::NNUE::Accumulator accumulator;
+  DirtyPiece dirtyPiece;
 };
 
 
@@ -207,6 +212,7 @@ public:
   Bitboard checkers() const;
   Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
+  Bitboard pinners(Color c) const;
   bool is_discovery_check_on_king(Color c, Move m) const;
 
   // Attacks to/from a given square
@@ -274,6 +280,9 @@ public:
   // Position consistency check, for debugging
   bool pos_is_ok() const;
   void flip();
+
+  // Used by NNUE
+  StateInfo* state() const;
 
 private:
   // Initialization helpers (used while setting up a position)
@@ -978,6 +987,10 @@ inline Bitboard Position::blockers_for_king(Color c) const {
   return st->blockersForKing[c];
 }
 
+inline Bitboard Position::pinners(Color c) const {
+  return st->pinners[c];
+}
+
 inline Bitboard Position::check_squares(PieceType pt) const {
   return st->checkSquares[pt];
 }
@@ -1126,6 +1139,13 @@ inline void Position::move_piece(Square from, Square to) {
 inline void Position::do_move(Move m, StateInfo& newSt) {
   do_move(m, newSt, gives_check(m));
 }
+
+inline StateInfo* Position::state() const {
+
+  return st;
+}
+
+// Variant-specific
 
 inline int Position::count_in_hand(Color c, PieceType pt) const {
   return pieceCountInHand[c][pt];

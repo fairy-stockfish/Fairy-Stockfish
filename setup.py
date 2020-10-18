@@ -7,10 +7,12 @@ import io
 import os
 
 
-args = ["-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-flto", "-std=c++11"]
+if platform.python_compiler().startswith("MSC"):
+    args = ["/std:c++17"]
+else:
+    args = ["-std=c++17", "-flto", "-Wno-date-time"]
 
-if not platform.python_compiler().startswith("MSC"):
-    args.append("-Wno-date-time")
+args.extend(["-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-DNNUE_EMBEDDING_OFF"])
 
 if "64bit" in platform.architecture():
     args.append("-DIS_64BIT")
@@ -22,10 +24,10 @@ CLASSIFIERS = [
     "Operating System :: OS Independent",
 ]
 
-with io.open("Readme.md", "r", encoding="utf8") as fh:
+with io.open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read().strip()
 
-sources = glob("src/*.cpp") + glob("src/syzygy/*.cpp")
+sources = glob("src/*.cpp") + glob("src/syzygy/*.cpp") + glob("src/nnue/*.cpp") + glob("src/nnue/features/*.cpp")
 ffish_source_file = os.path.normcase("src/ffishjs.cpp")
 try:
     sources.remove(ffish_source_file)
