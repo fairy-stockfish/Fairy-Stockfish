@@ -30,7 +30,7 @@
 
 namespace Eval::NNUE {
 
-  constexpr uint32_t kpp_board_index[PIECE_NB][COLOR_NB] = {
+  const uint32_t kpp_board_index[PIECE_NB][COLOR_NB] = {
    // convention: W - us, B - them
    // viewed from other side, W and B are reversed
       { PS_NONE,     PS_NONE     },
@@ -162,10 +162,6 @@ namespace Eval::NNUE {
       { PS_NONE,     PS_NONE     },
       { PS_NONE,     PS_NONE     },
   };
-  static_assert(kpp_board_index[make_piece(WHITE, PAWN)][WHITE] == PS_W_PAWN);
-  static_assert(kpp_board_index[make_piece(WHITE, KING)][WHITE] == PS_W_KING);
-  static_assert(kpp_board_index[make_piece(BLACK, PAWN)][WHITE] == PS_B_PAWN);
-  static_assert(kpp_board_index[make_piece(BLACK, KING)][WHITE] == PS_B_KING);
 
   // Input feature converter
   LargePagePtr<FeatureTransformer> feature_transformer;
