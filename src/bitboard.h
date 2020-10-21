@@ -111,6 +111,8 @@ extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard BoardSizeBB[FILE_NB][RANK_NB];
 extern RiderType AttackRiderTypes[PIECE_TYPE_NB];
 extern RiderType MoveRiderTypes[PIECE_TYPE_NB];
+extern NonSlidingHopperType AttackNonSlidingHopperTypes[PIECE_TYPE_NB];
+extern NonSlidingHopperType MoveNonSlidingHopperTypes[PIECE_TYPE_NB];
 
 #ifdef LARGEBOARDS
 int popcount(Bitboard b); // required for 128 bit pext
@@ -148,6 +150,10 @@ extern Magic CannonMagicsV[SQUARE_NB];
 extern Magic HorseMagics[SQUARE_NB];
 extern Magic ElephantMagics[SQUARE_NB];
 extern Magic JanggiElephantMagics[SQUARE_NB];
+
+extern Magic NSHMagicsH[SQUARE_NB];
+extern Magic NSHMagicsV[SQUARE_NB];
+extern Magic NSHMagicsD[SQUARE_NB]; 
 
 constexpr Bitboard make_bitboard() { return 0; }
 
@@ -402,6 +408,16 @@ inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
   return m.attacks[m.index(occupied)];
 }
 
+template <NonSlidingHopperType R>
+inline Bitboard hopper_attacks_bb(Square s, Bitboard occupied)
+{
+
+  assert(R == HORIZONTAL || R == VERTICAL || R == DIAGONALS);
+  const Magic &m = R == HORIZONTAL ? NSHMagicsH[s]
+                                     : R == VERTICAL ? NSHMagicsV[s]
+                                                     : NSHMagicsD[s];
+  return m.attacks[m.index(occupied)];
+}
 
 /// attacks_bb(Square) returns the pseudo attacks of the give piece type
 /// assuming an empty board.
@@ -452,6 +468,12 @@ inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
       b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied);
   if (AttackRiderTypes[pt] & RIDER_JANGGI_ELEPHANT)
       b |= rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s, occupied);
+  if (AttackNonSlidingHopperTypes[pt] & HORIZONTAL)
+    b |= hopper_attacks_bb<HORIZONTAL>(s, occupied);
+  if (AttackNonSlidingHopperTypes[pt] & VERTICAL)
+    b |= hopper_attacks_bb<VERTICAL>(s, occupied);
+  if (AttackNonSlidingHopperTypes[pt] & DIAGONALS)
+    b |= hopper_attacks_bb<DIAGONALS>(s, occupied);
   return b & PseudoAttacks[c][pt][s];
 }
 
@@ -474,6 +496,12 @@ inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
       b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied);
   if (MoveRiderTypes[pt] & RIDER_JANGGI_ELEPHANT)
       b |= rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s, occupied);
+  if (MoveNonSlidingHopperTypes[pt] & HORIZONTAL)
+    b |= hopper_attacks_bb<HORIZONTAL>(s, occupied);
+  if (MoveNonSlidingHopperTypes[pt] & VERTICAL)
+    b |= hopper_attacks_bb<VERTICAL>(s, occupied);
+  if (MoveNonSlidingHopperTypes[pt] & DIAGONALS)
+    b |= hopper_attacks_bb<DIAGONALS>(s, occupied);
   return b & PseudoMoves[c][pt][s];
 }
 

@@ -379,6 +379,14 @@ namespace {
       delete p2;
       return p;
   }
+  PieceInfo* grasshopper_piece() {
+      PieceInfo* p = new PieceInfo();
+      p->name = "grasshopper";
+      p->betza = "gQ";
+      p->nonSlidingHopperQuiet = {NORTH, EAST, SOUTH, WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
+      p->nonSlidingHopperCapture = {NORTH, EAST, SOUTH, WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
+      return p;
+  }
 }
 
 void PieceMap::init() {
@@ -421,6 +429,7 @@ void PieceMap::init() {
   add(WAZIR, wazir_piece());
   add(COMMONER, commoner_piece());
   add(CENTAUR, centaur_piece());
+  add(GRASSHOPPER, grasshopper_piece());
   add(KING, king_piece());
 }
 

@@ -841,7 +841,7 @@ inline Bitboard Position::major_pieces(Color c) const {
 }
 
 inline Bitboard Position::non_sliding_riders() const {
-  return pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT) | pieces(JANGGI_CANNON, JANGGI_ELEPHANT);
+  return pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT) | pieces(JANGGI_CANNON, JANGGI_ELEPHANT) | pieces(GRASSHOPPER);
 }
 
 inline int Position::count(Color c, PieceType pt) const {

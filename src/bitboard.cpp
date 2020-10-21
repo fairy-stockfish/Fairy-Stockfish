@@ -38,6 +38,8 @@ Bitboard LeaperMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard BoardSizeBB[FILE_NB][RANK_NB];
 RiderType AttackRiderTypes[PIECE_TYPE_NB];
 RiderType MoveRiderTypes[PIECE_TYPE_NB];
+NonSlidingHopperType AttackNonSlidingHopperTypes[PIECE_TYPE_NB];
+NonSlidingHopperType MoveNonSlidingHopperTypes[PIECE_TYPE_NB];
 
 Magic RookMagicsH[SQUARE_NB];
 Magic RookMagicsV[SQUARE_NB];
@@ -48,10 +50,15 @@ Magic HorseMagics[SQUARE_NB];
 Magic ElephantMagics[SQUARE_NB];
 Magic JanggiElephantMagics[SQUARE_NB];
 
+// NSH = Non Sliding Hopper
+Magic NSHMagicsH[SQUARE_NB]; // Horizontal
+Magic NSHMagicsV[SQUARE_NB]; // Vertical
+Magic NSHMagicsD[SQUARE_NB]; // Diagonals
+
 namespace {
 
 #ifdef LARGEBOARDS
-  Bitboard RookTableH[0x11800];  // To store horizontalrook attacks
+  Bitboard RookTableH[0x11800];  // To store horizontal rook attacks
   Bitboard RookTableV[0x4800];  // To store vertical rook attacks
   Bitboard BishopTable[0x33C00]; // To store bishop attacks
   Bitboard CannonTableH[0x11800];  // To store horizontal cannon attacks
@@ -59,6 +66,9 @@ namespace {
   Bitboard HorseTable[0x500];  // To store horse attacks
   Bitboard ElephantTable[0x400];  // To store elephant attacks
   Bitboard JanggiElephantTable[0x1C000];  // To store janggi elephant attacks
+  Bitboard NSHTableH[0x11800];  // To store horizontal NSH attacks
+  Bitboard NSHTableV[0x4800];  // To store vertical NSH attacks
+  Bitboard NSHTableD[0x33C00];  // To store diagonals NSH attacks
 #else
   Bitboard RookTableH[0xA00];  // To store horizontal rook attacks
   Bitboard RookTableV[0xA00];  // To store vertical rook attacks
@@ -68,9 +78,12 @@ namespace {
   Bitboard HorseTable[0x240];  // To store horse attacks
   Bitboard ElephantTable[0x1A0];  // To store elephant attacks
   Bitboard JanggiElephantTable[0x5C00];  // To store janggi elephant attacks
+  Bitboard NSHTableH[0xA00];  // To store horizontal NSH attacks
+  Bitboard NSHTableV[0xA00];  // To store vertical NSH attacks
+  Bitboard NSHTableD[0x1480];  // To store diagonals NSH attacks
 #endif
 
-  enum MovementType { RIDER, HOPPER, LAME_LEAPER };
+  enum MovementType { RIDER, HOPPER, NON_SLIDING_HOPPER, LAME_LEAPER };
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
@@ -92,12 +105,15 @@ namespace {
              is_ok(s) && distance(s, s - (c == WHITE ? d : -d)) == 1;
              s += (c == WHITE ? d : -d))
         {
-            if (MT != HOPPER || hurdle)
+            if ((MT != HOPPER && MT != NON_SLIDING_HOPPER) || hurdle) {
                 attack |= s;
+                if (MT == NON_SLIDING_HOPPER)
+                    break;
+            }    
 
             if (occupied & s)
             {
-                if (MT == HOPPER && !hurdle)
+                if ((MT == HOPPER || MT == NON_SLIDING_HOPPER) && !hurdle)
                     hurdle = true;
                 else
                     break;
@@ -188,7 +204,7 @@ void Bitboards::init() {
                                                       SOUTH + 2 * SOUTH_WEST, WEST + 2 * SOUTH_WEST,
                                                       WEST  + 2 * NORTH_WEST, NORTH + 2 * NORTH_WEST };
 
-  // Initialize rider types
+  // Initialize rider types and non-sliding-hopper types
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
       const PieceInfo* pi = pieceMap.find(pt)->second;
@@ -246,6 +262,24 @@ void Bitboards::init() {
           if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               MoveRiderTypes[pt] |= RIDER_CANNON_V;
       }
+      for (Direction d : pi->nonSlidingHopperCapture)
+      {
+          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
+              AttackNonSlidingHopperTypes[pt] |= DIAGONALS;
+          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
+              AttackNonSlidingHopperTypes[pt] |= HORIZONTAL;
+          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
+              AttackNonSlidingHopperTypes[pt] |= VERTICAL;
+      }
+      for (Direction d : pi->nonSlidingHopperQuiet)
+      {
+          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
+              MoveNonSlidingHopperTypes[pt] |= DIAGONALS;
+          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
+              MoveNonSlidingHopperTypes[pt] |= HORIZONTAL;
+          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
+              MoveNonSlidingHopperTypes[pt] |= VERTICAL;
+      }
   }
 
   for (unsigned i = 0; i < (1 << 16); ++i)
@@ -271,6 +305,9 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections, HorseMagicInit);
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections, ElephantMagicInit);
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections, JanggiElephantMagicInit);
+  init_magics<NON_SLIDING_HOPPER>(NSHTableH, NSHMagicsH, RookDirectionsH, NSHMagicHInit);
+  init_magics<NON_SLIDING_HOPPER>(NSHTableV, NSHMagicsV, RookDirectionsV, NSHMagicVInit);
+  init_magics<NON_SLIDING_HOPPER>(NSHTableD, NSHMagicsD, BishopDirections, NSHMagicDInit);
 #else
   init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH);
   init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV);
@@ -280,6 +317,9 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections);
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections);
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections);
+  init_magics<NON_SLIDING_HOPPER>(NSHTableH, NSHMagicsH, RookDirectionsH);
+  init_magics<NON_SLIDING_HOPPER>(NSHTableV, NSHMagicsV, RookDirectionsV);
+  init_magics<NON_SLIDING_HOPPER>(NSHTableD, NSHMagicsD, BishopDirections);
 #endif
 
   for (Color c : { WHITE, BLACK })
@@ -303,8 +343,10 @@ void Bitboards::init() {
               }
               PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->sliderCapture, s, 0, c);
               PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->hopperCapture, s, 0, c);
+              PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->nonSlidingHopperCapture, s, 0, c);
               PseudoMoves[c][pt][s] |= sliding_attack<RIDER>(pi->sliderQuiet, s, 0, c);
               PseudoMoves[c][pt][s] |= sliding_attack<RIDER>(pi->hopperQuiet, s, 0, c);
+              PseudoMoves[c][pt][s] |= sliding_attack<RIDER>(pi->nonSlidingHopperQuiet, s, 0, c);
           }
       }
 
@@ -361,7 +403,7 @@ namespace {
         // the number of 1s of the mask. Hence we deduce the size of the shift to
         // apply to the 64 or 32 bits word to get the index.
         Magic& m = magics[s];
-        m.mask  = (MT == LAME_LEAPER ? lame_leaper_path(directions, s) : sliding_attack<MT == HOPPER ? RIDER : MT>(directions, s, 0)) & ~edges;
+        m.mask  = (MT == LAME_LEAPER ? lame_leaper_path(directions, s) : sliding_attack<MT == HOPPER || MT == NON_SLIDING_HOPPER ? RIDER : MT>(directions, s, 0)) & ~edges;
 #ifdef LARGEBOARDS
         m.shift = 128 - popcount(m.mask);
 #else

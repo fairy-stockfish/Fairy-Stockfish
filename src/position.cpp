@@ -723,8 +723,8 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
       Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
       if (b)
       {
-          // Consider asymmetrical moves (e.g., horse)
-          if (AttackRiderTypes[pt] & ASYMMETRICAL_RIDERS)
+          // Consider asymmetrical moves (e.g., horse or nsh)
+          if ((AttackRiderTypes[pt] & ASYMMETRICAL_RIDERS) || AttackNonSlidingHopperTypes[pt])
           {
               Bitboard asymmetricals = PseudoAttacks[~c][pt][s] & pieces(c, pt);
               while (asymmetricals)
@@ -769,13 +769,13 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
       if (board_bb(c, pt) & s)
       {
           PieceType move_pt = pt == KING ? king_type() : pt;
-          // Consider asymmetrical move of horse
-          if (AttackRiderTypes[move_pt] & ASYMMETRICAL_RIDERS)
+          // Consider asymmetrical move of horse or non-sliding-hoppers
+          if ((AttackRiderTypes[move_pt] & ASYMMETRICAL_RIDERS) || AttackNonSlidingHopperTypes[pt])
           {
-              Bitboard horses = PseudoAttacks[~c][move_pt][s] & pieces(c, pt);
-              while (horses)
+              Bitboard asymmetricals = PseudoAttacks[~c][move_pt][s] & pieces(c, pt);
+              while (asymmetricals)
               {
-                  Square s2 = pop_lsb(&horses);
+                  Square s2 = pop_lsb(&asymmetricals);
                   if (attacks_bb(c, move_pt, s2, occupied) & s)
                       b |= s2;
               }
@@ -1096,7 +1096,7 @@ bool Position::gives_check(Move m) const {
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION)
   {
       PieceType pt = type_of(moved_piece(m));
-      if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
+      if ((AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS)) || AttackNonSlidingHopperTypes[pt])
       {
           Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
           if (attacks_bb(sideToMove, pt, to, occupied) & square<KING>(~sideToMove))
@@ -1114,7 +1114,7 @@ bool Position::gives_check(Move m) const {
 
   // Is there a discovered check?
   if (  ((type_of(m) != DROP && (blockers_for_king(~sideToMove) & from)) || pieces(sideToMove, CANNON, BANNER)
-          || pieces(HORSE, ELEPHANT) || pieces(JANGGI_CANNON, JANGGI_ELEPHANT))
+          || pieces(HORSE, ELEPHANT) || pieces(JANGGI_CANNON, JANGGI_ELEPHANT) || pieces(GRASSHOPPER))
       && attackers_to(square<KING>(~sideToMove), (type_of(m) == DROP ? pieces() : pieces() ^ from) | to, sideToMove, janggiCannons))
       return true;
 
