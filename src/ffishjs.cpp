@@ -58,6 +58,12 @@ inline void save_pop_back(std::string& s) {
   }
 }
 
+const Variant* get_variant(const std::string& uciVariant) {
+  if (uciVariant.size() == 0)
+    return variants.find("chess")->second;
+  return variants.find(uciVariant)->second;
+}
+
 class Board {
   // note: we can't use references for strings here due to conversion to JavaScript
 private:
@@ -310,9 +316,7 @@ private:
       initialize_stockfish();
       Board::sfInitialized = true;
     }
-    if (uciVariant == "")
-      uciVariant = "chess";
-    this->v = variants.find(uciVariant)->second;
+    v = get_variant(uciVariant);
     this->resetStates();
     if (fen == "")
       fen = v->startFen;
@@ -324,7 +328,6 @@ private:
 bool Board::sfInitialized = false;
 
 namespace ffish {
-
   // returns the version of the Fairy-Stockfish binary
   std::string info() {
     return engine_info();
@@ -356,13 +359,13 @@ namespace ffish {
   }
 
   std::string starting_fen(std::string uciVariant) {
-    const Variant* v = variants.find(uciVariant)->second;
+    const Variant* v = get_variant(uciVariant);
     return v->startFen;
   }
 
   int validate_fen(std::string fen, std::string uciVariant) {
-    const Variant* v = variants.find(uciVariant)->second;
-    return validate_fen(fen, v);
+    const Variant* v = get_variant(uciVariant);
+    return fen::validate_fen(fen, v);
   }
 
   int validate_fen(std::string fen) {

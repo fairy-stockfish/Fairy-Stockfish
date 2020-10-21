@@ -609,6 +609,7 @@ namespace {
         v->startFen = "pppppppp/pppppppp/8/8/8/8/PPPPPPPP/PPPPPPPP w 0 1";
         v->promotionPieceTypes = {};
         v->firstRankDoubleSteps = false;
+        v->doubleStep = false;
         v->castling = false;
         v->stalemateValue = -VALUE_MATE;
         v->flagPiece = BREAKTHROUGH_PIECE;

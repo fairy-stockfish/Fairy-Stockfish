@@ -451,13 +451,17 @@ describe('ffish.validateFen(fen, uciVariant)', function () {
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[]wKQkq-3+301", "3check-crazyhouse")).to.equal(-12);
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-11);
       chai.expect(ffish.validateFen("rnbqkbnr/ppppXppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-10);
-      chai.expect(ffish.validateFen("rnbqkbnr/ppppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-9);
+      chai.expect(ffish.validateFen("rnbqkbnr/pppppKpp/8/8/8/8/PPPPPPPP/RNBQ1BNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-9);
+      chai.expect(ffish.validateFen("rnbqkbnr/ppppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-8);
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-8);
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[77] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-7);
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] o KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-6);
-      chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KLkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-5);
+      chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w K6kq - 3+3 0 1", "3check-crazyhouse")).to.equal(-5);
+      chai.expect(ffish.validateFen("rnbq1bnr/pppkpppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-5);
+      chai.expect(ffish.validateFen("rnbqkbn1/pppppppr/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-5);
+      chai.expect(ffish.validateFen("rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/RB w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-5);
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq ss 3+3 0 1", "3check-crazyhouse")).to.equal(-4);
-      chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - O+3 0 1", "3check-crazyhouse")).to.equal(-3);
+      chai.expect(ffish.validateFen("rnbqkknr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-3);
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 x 1", "3check-crazyhouse")).to.equal(-2);
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 -13", "3check-crazyhouse")).to.equal(-1);
       chai.expect(ffish.validateFen("", "chess")).to.equal(0);
@@ -481,8 +485,13 @@ describe('ffish.readGamePGN(pgn)', function () {
        }
        let game = ffish.readGamePGN(data);
 
-       let board = new ffish.Board(game.headers("Variant").toLowerCase());
-       board.pushMoves(game.mainlineMoves());
+       const variant = game.headers("Variant").toLowerCase();
+       let board = new ffish.Board(variant);
+       const mainlineMoves = game.mainlineMoves().split(" ");
+       for (let idx2 = 0; idx2 < mainlineMoves.length; ++idx2) {
+           board.push(mainlineMoves[idx2]);
+           chai.expect(ffish.validateFen(board.fen(), variant)).to.equal(1);
+       }
        chai.expect(board.fen()).to.equal(expectedFens[idx]);
        board.delete();
        game.delete();

@@ -102,7 +102,7 @@ ffish['onRuntimeInitialized'] = () => {
 Set a custom fen position including fen valdiation:
 ```javascript
 fen = "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3";
-if (ffish.valdiateFen(fen)) {
+if (ffish.valdiateFen(fen) == 1) {  // ffish.valdiateFen(fen) can return different error codes, it returns 1 for FEN_OK
     board.setFen(fen);
 }
 else {
@@ -154,7 +154,10 @@ fs.readFile(pgnFilePath, 'utf8', function (err,data) {
   console.log(game.mainlineMoves())
 
   let board = new ffish.Board(game.headers("Variant").toLowerCase());
-  board.pushMoves(game.mainlineMoves());
+  for (let idx = 0; idx < mainlineMoves.length; ++idx) {
+      board.push(mainlineMoves[idx]);
+  }
+  // or use board.pushMoves(game.mainlineMoves()); to push all moves at once
 
   let finalFen = board.fen();
   board.delete();
@@ -191,7 +194,7 @@ cd Fairy-Stockfish/src
 ```bash
 emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNNUE_EMBEDDING_OFF -DNO_THREADS \
  -s TOTAL_MEMORY=32MB -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1GB \
- -s ASSERTIONS=0 -s SAFE_HEAP=0 -std=c++17 \
+ -s ASSERTIONS=0 -s SAFE_HEAP=0 -std=c++17 -Wall \
  -DNO_THREADS -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
 ffishjs.cpp \
 benchmark.cpp \
@@ -234,7 +237,7 @@ cd Fairy-Stockfish/src
 ```bash
 emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNNUE_EMBEDDING_OFF -DNO_THREADS \
  -s TOTAL_MEMORY=32MB -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1GB \
- -s ASSERTIONS=0 -s SAFE_HEAP=0 -std=c++17 \
+ -s ASSERTIONS=0 -s SAFE_HEAP=0 -std=c++17 -Wall \
  -s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0 \
 ffishjs.cpp \
 benchmark.cpp \
