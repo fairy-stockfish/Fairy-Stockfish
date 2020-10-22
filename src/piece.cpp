@@ -179,44 +179,44 @@ namespace {
       PieceInfo* p = bishop_piece();
       p->name = "knibis";
       p->betza = "mNcB";
+      p->sliderQuiet.clear();
       PieceInfo* p2 = knight_piece();
+      p2->stepsCapture.clear();
       p->merge(p2);
       delete p2;
-      p->stepsCapture = {};
-      p->sliderQuiet = {};
       return p;
   }
   PieceInfo* biskni_piece() {
       PieceInfo* p = bishop_piece();
       p->name = "biskni";
       p->betza = "mBcN";
+      p->sliderCapture.clear();
       PieceInfo* p2 = knight_piece();
+      p2->stepsQuiet.clear();
       p->merge(p2);
       delete p2;
-      p->stepsQuiet = {};
-      p->sliderCapture = {};
       return p;
   }
   PieceInfo* kniroo_piece() {
       PieceInfo* p = rook_piece();
       p->name = "kniroo";
       p->betza = "mNcR";
+      p->sliderQuiet.clear();
       PieceInfo* p2 = knight_piece();
+      p2->stepsCapture.clear();
       p->merge(p2);
       delete p2;
-      p->stepsCapture = {};
-      p->sliderQuiet = {};
       return p;
   }
   PieceInfo* rookni_piece() {
       PieceInfo* p = rook_piece();
       p->name = "rookni";
       p->betza = "mRcN";
+      p->sliderCapture.clear();
       PieceInfo* p2 = knight_piece();
+      p2->stepsQuiet.clear();
       p->merge(p2);
       delete p2;
-      p->stepsQuiet = {};
-      p->sliderCapture = {};
       return p;
   }
   PieceInfo* shogi_pawn_piece() {
@@ -274,7 +274,7 @@ namespace {
       PieceInfo* p = wazir_piece();
       p->name = "clobber";
       p->betza = "cW";
-      p->stepsQuiet = {};
+      p->stepsQuiet.clear();
       return p;
   }
   PieceInfo* breakthrough_piece() {
@@ -303,7 +303,7 @@ namespace {
       PieceInfo* p = queen_piece();
       p->name = "quietQueen";
       p->betza = "mQ";
-      p->sliderCapture = {};
+      p->sliderCapture.clear();
       return p;
   }
   PieceInfo* cannon_piece() {

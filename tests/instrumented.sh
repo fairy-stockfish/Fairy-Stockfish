@@ -20,7 +20,7 @@ case $1 in
   --valgrind-thread)
     echo "valgrind-thread testing started"
     prefix=''
-    exeprefix='valgrind --error-exitcode=42'
+    exeprefix='valgrind --fair-sched=try --error-exitcode=42'
     postfix='1>/dev/null'
     threads="2"
   ;;
@@ -80,7 +80,7 @@ done
 
 # more general testing, following an uci protocol exchange
 cat << EOF > game.exp
- set timeout 60
+ set timeout 240
  spawn $exeprefix ./stockfish
 
  send "uci\n"

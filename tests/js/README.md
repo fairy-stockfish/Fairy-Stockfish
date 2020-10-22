@@ -73,7 +73,8 @@ shatranj shogi shouse sittuyin suicide supply threekings xiangqi
 ## Custom variants
 
 Fairy-Stockfish also allows defining custom variants by loading a configuration file.
-See e.g. the confiugration for connect4, tictactoe or janggihouse in [variants.ini](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/variants.ini).
+
+See e.g. the configuration for **connect4**, **tictactoe** or **janggihouse** in [variants.ini](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/variants.ini).
 ```javascript
 fs = require('fs');
 let configFilePath = './variants.ini';
@@ -98,9 +99,15 @@ ffish['onRuntimeInitialized'] = () => {
 }
 ```
 
-Set a custom fen position:
+Set a custom fen position including fen valdiation:
 ```javascript
-board.setFen("rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3");
+fen = "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3";
+if (ffish.valdiateFen(fen) == 1) {  // ffish.valdiateFen(fen) can return different error codes, it returns 1 for FEN_OK
+    board.setFen(fen);
+}
+else {
+    console.error(`Fen couldn't be parsed.`);
+}
 ```
 
 Alternatively, you can initialize a board with a custom FEN directly:
@@ -119,11 +126,11 @@ let legalMoves = board.legalMoves().split(" ");
 let legalMovesSan = board.legalMovesSan().split(" ");
 
 for (var i = 0; i < legalMovesSan.length; i++) {
-    console.log(`${i}: ${legalMoves[i]}, ${legalMoves})
+    console.log(`${i}: ${legalMoves[i]}, ${legalMovesSan[i]}`)
 }
 ```
 
-Unfortunately, it is impossible for Emscripten to call the destructors on C++ object.
+Unfortunately, it is impossible for Emscripten to call the destructor on C++ objects.
 Therefore, you need to call `.delete()` to free the heap memory of an object.
 ```javascript
 board.delete();
@@ -147,7 +154,10 @@ fs.readFile(pgnFilePath, 'utf8', function (err,data) {
   console.log(game.mainlineMoves())
 
   let board = new ffish.Board(game.headers("Variant").toLowerCase());
-  board.pushMoves(game.mainlineMoves());
+  for (let idx = 0; idx < mainlineMoves.length; ++idx) {
+      board.push(mainlineMoves[idx]);
+  }
+  // or use board.pushMoves(game.mainlineMoves()); to push all moves at once
 
   let finalFen = board.fen();
   board.delete();
@@ -182,9 +192,9 @@ It is recommended to set `-s ASSERTIONS=1 -s SAFE_HEAP=1` before running tests.
 cd Fairy-Stockfish/src
 ```
 ```bash
-emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNO_THREADS \
- -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648 \
- -s ASSERTIONS=0 -s SAFE_HEAP=0 \
+emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNNUE_EMBEDDING_OFF -DNO_THREADS \
+ -s TOTAL_MEMORY=32MB -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1GB \
+ -s ASSERTIONS=0 -s SAFE_HEAP=0 -std=c++17 -Wall \
  -DNO_THREADS -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
 ffishjs.cpp \
 benchmark.cpp \
@@ -207,10 +217,12 @@ thread.cpp \
 timeman.cpp \
 tt.cpp \
 uci.cpp \
-syzygy/tbprobe.cpp \
 ucioption.cpp \
 variant.cpp \
 xboard.cpp \
+nnue/*.cpp \
+nnue/features/*.cpp \
+syzygy/*.cpp \
 -o ../tests/js/ffish.js
 ```
 
@@ -223,9 +235,9 @@ Some environments such as [vue-js](https://vuejs.org/) may require the library t
 cd Fairy-Stockfish/src
 ```
 ```bash
-emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNO_THREADS \
- -s TOTAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648 \
- -s ASSERTIONS=0 -s SAFE_HEAP=0 \
+emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNNUE_EMBEDDING_OFF -DNO_THREADS \
+ -s TOTAL_MEMORY=32MB -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1GB \
+ -s ASSERTIONS=0 -s SAFE_HEAP=0 -std=c++17 -Wall \
  -s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0 \
 ffishjs.cpp \
 benchmark.cpp \
@@ -248,10 +260,12 @@ thread.cpp \
 timeman.cpp \
 tt.cpp \
 uci.cpp \
-syzygy/tbprobe.cpp \
 ucioption.cpp \
 variant.cpp \
 xboard.cpp \
+nnue/*.cpp \
+nnue/features/*.cpp \
+syzygy/*.cpp \
 -o ../tests/js/ffish.js
 ```
 
