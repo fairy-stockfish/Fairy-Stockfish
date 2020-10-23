@@ -1147,6 +1147,16 @@ namespace {
             }
             else if (pos.extinction_value() == VALUE_MATE)
                 score += make_score(pos.non_pawn_material(Us), pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
+            else if (pos.count<PAWN>(Us) == pos.count<ALL_PIECES>(Us))
+            {
+                // Pawns easy to stop/capture
+                int l = 0, m = 0, r = popcount(pos.pieces(Us, PAWN) & file_bb(FILE_A));
+                for (File f = FILE_A; f <= pos.max_file(); ++f)
+                {
+                    l = m; m = r; r = popcount(pos.pieces(Us, PAWN) & shift<EAST>(file_bb(f)));
+                    score -= make_score(30, 30) * m / (1 + l * r);
+                }
+            }
     }
 
     // Connect-n
