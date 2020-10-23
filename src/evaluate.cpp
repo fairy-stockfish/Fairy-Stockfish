@@ -1157,6 +1157,21 @@ namespace {
                     score -= make_score(30, 30) * m / (1 + l * r);
                 }
             }
+            else if (pos.count<PAWN>(Them) == pos.count<ALL_PIECES>(Them) && pos.pieces(Us, ROOK, QUEEN))
+            {
+                // Add a bonus according to how close we are to breaking through the pawn wall
+                int dist = 8;
+                if ((attackedBy[Us][QUEEN] | attackedBy[Us][ROOK]) & rank_bb(relative_rank(Us, pos.max_rank(), pos.max_rank())))
+                    dist = 0;
+                else for (File f = FILE_A; f <= pos.max_file(); ++f)
+                {
+                    int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
+                    int pawnsl = std::min(popcount(pos.pieces(Them, PAWN) & shift<WEST>(file_bb(f))), pawns);
+                    int pawnsr = std::min(popcount(pos.pieces(Them, PAWN) & shift<EAST>(file_bb(f))), pawns);
+                    dist = std::min(dist, pawnsl + pawnsr);
+                }
+                score += make_score(50, 50) * pos.count<PAWN>(Them) / (1 + dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
+            }
     }
 
     // Connect-n
