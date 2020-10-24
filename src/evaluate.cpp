@@ -1154,7 +1154,7 @@ namespace {
                 for (File f = FILE_A; f <= pos.max_file(); ++f)
                 {
                     l = m; m = r; r = popcount(pos.pieces(Us, PAWN) & shift<EAST>(file_bb(f)));
-                    score -= make_score(30, 30) * m / (1 + l * r);
+                    score -= make_score(40, 40) * m / (1 + l * r);
                 }
             }
             else if (pos.count<PAWN>(Them) == pos.count<ALL_PIECES>(Them) && pos.pieces(Us, ROOK, QUEEN))
@@ -1170,7 +1170,7 @@ namespace {
                     int pawnsr = std::min(popcount(pos.pieces(Them, PAWN) & shift<EAST>(file_bb(f))), pawns);
                     dist = std::min(dist, pawnsl + pawnsr);
                 }
-                score += make_score(50, 50) * pos.count<PAWN>(Them) / (1 + dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
+                score += make_score(60, 60) * pos.count<PAWN>(Them) / (1 + dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
             }
     }
 
