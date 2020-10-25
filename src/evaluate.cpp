@@ -1249,7 +1249,7 @@ namespace {
     // No initiative bonus for extinction variants
     int complexity = 0;
     bool pawnsOnBothFlanks = true;
-    if (pos.extinction_value() == VALUE_NONE && !pos.captures_to_hand() && !pos.connect_n())
+    if (pos.extinction_value() == VALUE_NONE && !pos.captures_to_hand() && !pos.connect_n() && !pos.material_counting())
     {
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
                      :  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
@@ -1294,7 +1294,7 @@ namespace {
     int sf = me->scale_factor(pos, strongSide);
 
     // If scale factor is not already specific, scale down via general heuristics
-    if (sf == SCALE_FACTOR_NORMAL && !pos.captures_to_hand())
+    if (sf == SCALE_FACTOR_NORMAL && !pos.captures_to_hand() && !pos.material_counting())
     {
         if (pos.opposite_bishops())
         {
