@@ -1059,7 +1059,7 @@ namespace {
 
     if (pawnsOnly)
     {
-        safe = behind & ~attackedBy[Them][ALL_PIECES];
+        safe = pos.board_bb() & ((attackedBy2[Us] & ~attackedBy2[Them]) | (attackedBy[Us][PAWN] & ~pos.pieces(Us, PAWN)));
         behind = 0;
     }
     int bonus = popcount(safe) + popcount(behind & safe & ~attackedBy[Them][ALL_PIECES]);
