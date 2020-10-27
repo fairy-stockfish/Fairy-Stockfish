@@ -1198,6 +1198,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   std::memcpy(static_cast<void*>(&newSt), static_cast<void*>(st), offsetof(StateInfo, key));
   newSt.previous = st;
   st = &newSt;
+  st->move = m;
 
   // Increment ply counters. In particular, rule50 will be reset to zero later on
   // in case of a capture or a pawn move.
@@ -1985,16 +1986,42 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
           int cnt = 0;
           bool perpetualThem = st->checkersBB && stp->checkersBB;
           bool perpetualUs = st->previous->checkersBB && stp->previous->checkersBB;
+          int moveRepetition = var->moveRepetitionIllegal
+                               && type_of(st->move) == NORMAL
+                               && (board_bb(~side_to_move(), type_of(piece_on(to_sq(st->move)))) & board_bb(side_to_move(), KING))
+                               ? (stp->move == reverse_move(st->move) ? 2 : is_pass(stp->move) ? 1 : 0) : 0;
 
           for (int i = 4; i <= end; i += 2)
           {
+              // Janggi repetition rule
+              if (moveRepetition > 0)
+              {
+                  if (moveRepetition < 4)
+                  {
+                      if (stp->previous->previous->move == reverse_move((moveRepetition == 1 ? st : stp)->move))
+                          moveRepetition++;
+                      else
+                          moveRepetition = 0;
+                  }
+                  else
+                  {
+                      assert(moveRepetition == 4);
+                      if (!stp->previous->previous->capturedPiece && from_sq(stp->move) == to_sq(stp->previous->previous->move))
+                      {
+                          result = VALUE_MATE;
+                          return true;
+                      }
+                      else
+                          moveRepetition = 0;
+                  }
+              }
               stp = stp->previous->previous;
               perpetualThem &= bool(stp->checkersBB);
 
               // Return a draw score if a position repeats once earlier but strictly
               // after the root, or repeats twice before or at the root.
               if (   stp->key == st->key
-                  && ++cnt + 1 == (ply > i ? 2 : n_fold_rule()))
+                  && ++cnt + 1 == (ply > i && !var->moveRepetitionIllegal ? 2 : n_fold_rule()))
               {
                   result = convert_mate_value(  var->perpetualCheckIllegal && perpetualThem ? VALUE_MATE
                                               : var->perpetualCheckIllegal && perpetualUs ? -VALUE_MATE
@@ -2144,7 +2171,7 @@ bool Position::has_game_cycle(int ply) const {
 
   int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
-  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal || var->materialCounting)
+  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal || var->materialCounting || var->moveRepetitionIllegal)
     return false;
 
   Key originalKey = st->key;

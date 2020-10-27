@@ -66,6 +66,7 @@ struct StateInfo {
   bool       shak;
   bool       bikjang;
   bool       pass;
+  Move       move;
   int        repetition;
 
   // Used by NNUE

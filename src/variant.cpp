@@ -943,7 +943,8 @@ namespace {
         Variant* v = janggi_variant();
         v->bikjangRule = false;
         v->materialCounting = JANGGI_MATERIAL;
-        v->nFoldValue = -VALUE_MATE;
+        v->moveRepetitionIllegal = true;
+        v->nFoldRule = 4; // avoid nFold being triggered before move repetition
         return v;
     }
     // Casual rules of Janggi, where bikjang and material counting are not considered

@@ -285,6 +285,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("nFoldValue", v->nFoldValue);
     parse_attribute("nFoldValueAbsolute", v->nFoldValueAbsolute);
     parse_attribute("perpetualCheckIllegal", v->perpetualCheckIllegal);
+    parse_attribute("moveRepetitionIllegal", v->moveRepetitionIllegal);
     parse_attribute("stalemateValue", v->stalemateValue);
     parse_attribute("stalematePieceCount", v->stalematePieceCount);
     parse_attribute("checkmateValue", v->checkmateValue);
