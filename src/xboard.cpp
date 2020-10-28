@@ -251,7 +251,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           Position p;
           p.set(pos.variant(), fen, pos.is_chess960(), &st, pos.this_thread());
           Move m;
-          std::string passMove = "pass";
+          std::string passMove = "@@@@";
           if ((m = UCI::to_move(pos, passMove)) != MOVE_NONE)
               do_move(pos, moveList, states, m);
           // apply setboard if passing does not lead to a match
