@@ -375,8 +375,12 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   else
   {
       // process move string
+      bool isMove = false;
       if (token == "usermove")
+      {
           is >> token;
+          isMove = true;
+      }
       if (Options["UCI_AnalyseMode"])
       {
           Threads.stop = true;
@@ -386,7 +390,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
       if ((m = UCI::to_move(pos, token)) != MOVE_NONE)
           do_move(pos, moveList, states, m);
       else
-          sync_cout << "Error (unknown command): " << token << sync_endl;
+          sync_cout << (isMove ? "Illegal move: " : "Error (unknown command): ") << token << sync_endl;
       if (Options["UCI_AnalyseMode"])
           go(pos, analysisLimits, states);
       else if (pos.side_to_move() == playColor)
