@@ -909,6 +909,7 @@ namespace {
     // Official tournament rules with bikjang and material counting.
     Variant* janggi_variant() {
         Variant* v = xiangqi_variant();
+        v->variantTemplate = "janggi";
         v->pieceToCharTable = ".N.R.AB.P..C.........K.n.r.ab.p..c.........k";
         v->remove_piece(FERS);
         v->remove_piece(CANNON);

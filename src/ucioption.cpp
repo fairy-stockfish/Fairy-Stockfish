@@ -72,6 +72,18 @@ void on_variant_change(const Option &o) {
     int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0;
     if (Options["Protocol"] == "xboard")
     {
+        // Overwrite setup command for Janggi variants
+        auto itJanggi = variants.find("janggi");
+        if (   itJanggi != variants.end()
+            && v->variantTemplate == itJanggi->second->variantTemplate
+            && v->startFen == itJanggi->second->startFen
+            && v->pieceToCharTable == itJanggi->second->pieceToCharTable)
+        {
+            sync_cout << "setup (PH.R.AE..K.C.ph.r.ae..k.c.) 9x10+0_janggi "
+                      << "rhea1aehr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RHEA1AEHR w - - 0 1"
+                      << sync_endl;
+            return;
+        }
         // Send setup command
         sync_cout << "setup (" << v->pieceToCharTable << ") "
                   << v->maxFile + 1 << "x" << v->maxRank + 1
