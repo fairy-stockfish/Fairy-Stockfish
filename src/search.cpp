@@ -34,6 +34,7 @@
 #include "timeman.h"
 #include "tt.h"
 #include "uci.h"
+#include "xboard.h"
 #include "syzygy/tbprobe.h"
 
 namespace Search {
@@ -302,8 +303,19 @@ void MainThread::search() {
   if (Options["Protocol"] == "xboard")
   {
       // Send move only when not in analyze mode and not at game end
-      if (!Options["UCI_AnalyseMode"] && rootMoves[0].pv[0] != MOVE_NONE && !Threads.abort.exchange(true))
-          sync_cout << "move " << UCI::move(rootPos, bestThread->rootMoves[0].pv[0]) << sync_endl;
+      if (!Limits.infinite && !ponder && rootMoves[0].pv[0] != MOVE_NONE && !Threads.abort.exchange(true))
+      {
+          Move bestMove = bestThread->rootMoves[0].pv[0];
+          sync_cout << "move " << UCI::move(rootPos, bestMove) << sync_endl;
+          if (XBoard::stateMachine->moveAfterSearch)
+          {
+              XBoard::stateMachine->do_move(bestMove);
+              XBoard::stateMachine->moveAfterSearch = false;
+              if (Options["Ponder"] && (   bestThread->rootMoves[0].pv.size() > 1
+                                        || bestThread->rootMoves[0].extract_ponder_from_tt(rootPos)))
+                  XBoard::stateMachine->ponderMove = bestThread->rootMoves[0].pv[1];
+          }
+      }
       return;
   }
 
