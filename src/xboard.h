@@ -19,6 +19,7 @@
 #ifndef XBOARD_H_INCLUDED
 #define XBOARD_H_INCLUDED
 
+#include <algorithm>
 #include <sstream>
 #include <string>
 
@@ -32,19 +33,34 @@ namespace XBoard {
 
 class StateMachine {
 public:
-  StateMachine() {
+  StateMachine(Position& uciPos, StateListPtr& uciPosStates) : pos(uciPos), states(uciPosStates) {
     moveList = std::deque<Move>();
     moveAfterSearch = false;
     playColor = COLOR_NB;
+    ponderMove = MOVE_NONE;
+    ponderHighlight = "";
   }
-  void process_command(Position& pos, std::string token, std::istringstream& is, StateListPtr& states);
+  void go(Search::LimitsType searchLimits, bool ponder = false);
+  void ponder();
+  void stop(bool abort = true);
+  void setboard(std::string fen = "");
+  void do_move(Move m);
+  void undo_move();
+  std::string highlight(std::string square);
+  void process_command(std::string token, std::istringstream& is);
+  bool moveAfterSearch;
+  Move ponderMove;
 
 private:
+  Position& pos;
+  StateListPtr& states;
   std::deque<Move> moveList;
   Search::LimitsType limits;
-  bool moveAfterSearch;
   Color playColor;
+  std::string ponderHighlight;
 };
+
+extern StateMachine* stateMachine;
 
 } // namespace XBoard
 

@@ -36,18 +36,53 @@ namespace {
     return limits;
   }();
 
+} // namespace
+
+namespace XBoard {
+
+  StateMachine* stateMachine = nullptr;
+
   // go() starts the search for game play, analysis, or perft.
 
-  void go(Position& pos, Search::LimitsType limits, StateListPtr& states) {
+  void StateMachine::go(Search::LimitsType searchLimits, bool ponder) {
 
-    limits.startTime = now(); // As early as possible!
+    searchLimits.startTime = now(); // As early as possible!
 
-    Threads.start_thinking(pos, states, limits, false);
+    Threads.start_thinking(pos, states, searchLimits, ponder);
+  }
+
+  // ponder() starts a ponder search
+
+  void StateMachine::ponder() {
+
+    sync_cout << "Hint: " << UCI::move(pos, ponderMove) << sync_endl;
+    ponderHighlight = highlight(UCI::square(pos, from_sq(ponderMove)));
+    do_move(ponderMove);
+    ponderMove = MOVE_NONE;
+    go(limits, true);
+  }
+
+  // stop() stops an ongoing search (if any)
+  // and does not print/apply a move if aborted
+
+  void StateMachine::stop(bool abort) {
+
+    if (abort)
+        Threads.abort = true;
+    Threads.stop = true;
+    Threads.main()->wait_for_search_finished();
+    // Ensure that current position does not get out of sync with GUI
+    if (Threads.main()->ponder)
+    {
+        assert(moveList.size());
+        undo_move();
+        Threads.main()->ponder = false;
+    }
   }
 
   // setboard() is called when engine receives the "setboard" XBoard command.
 
-  void setboard(Position& pos, std::deque<Move>& moveList, StateListPtr& states, std::string fen = "") {
+  void StateMachine::setboard(std::string fen) {
 
     if (fen.empty())
         fen = variants.find(Options["UCI_Variant"])->second->startFen;
@@ -59,7 +94,7 @@ namespace {
 
   // do_move() is called when engine needs to apply a move when using XBoard protocol.
 
-  void do_move(Position& pos, std::deque<Move>& moveList, StateListPtr& states, Move m) {
+  void StateMachine::do_move(Move m) {
 
     // transfer states back
     if (Threads.setupStates.get())
@@ -74,7 +109,7 @@ namespace {
 
   // undo_move() is called when the engine receives the undo command in XBoard protocol.
 
-  void undo_move(Position& pos, std::deque<Move>& moveList, StateListPtr& states) {
+  void StateMachine::undo_move() {
 
     // transfer states back
     if (Threads.setupStates.get())
@@ -85,25 +120,53 @@ namespace {
     moveList.pop_back();
   }
 
-} // namespace
+  std::string StateMachine::highlight(std::string square) {
+    Bitboard promotions = 0, captures = 0, quiets = 0;
+    // Collect targets
+    for (const auto& m : MoveList<LEGAL>(pos))
+    {
+        Square from = from_sq(m), to = to_sq(m);
+        if (is_ok(from) && UCI::square(pos, from) == square && !is_pass(m))
+        {
+            if (type_of(m) == PROMOTION)
+                promotions |= to;
+            else if (pos.capture(m))
+                captures |= to;
+            else
+            {
+                if (type_of(m) == CASTLING && !pos.is_chess960())
+                    to = make_square(to > from ? pos.castling_kingside_file()
+                                                : pos.castling_queenside_file(), rank_of(from));
+                quiets |= to;
+            }
+        }
+    }
+    // Generate color FEN
+    int emptyCnt;
+    std::ostringstream ss;
+    for (Rank r = pos.max_rank(); r >= RANK_1; --r)
+    {
+        for (File f = FILE_A; f <= pos.max_file(); ++f)
+        {
+            for (emptyCnt = 0; f <= pos.max_file() && !((promotions | captures | quiets) & make_square(f, r)); ++f)
+                ++emptyCnt;
 
-namespace XBoard {
+            if (emptyCnt)
+                ss << emptyCnt;
+
+            if (f <= pos.max_file())
+                ss << (promotions & make_square(f, r) ? "M" : captures & make_square(f, r) ? "R" : "Y");
+        }
+
+        if (r > RANK_1)
+            ss << '/';
+    }
+    return ss.str();
+  }
 
 /// StateMachine::process_command() processes commands of the XBoard protocol.
 
-void StateMachine::process_command(Position& pos, std::string token, std::istringstream& is, StateListPtr& states) {
-  if (moveAfterSearch && token != "ptell")
-  {
-      // abort search in bughouse when receiving "holding" command
-      bool doMove = token != "holding" || Threads.abort.exchange(true);
-      Threads.stop = true;
-      Threads.main()->wait_for_search_finished();
-      if (doMove)
-      {
-          do_move(pos, moveList, states, Threads.main()->bestThread->rootMoves[0].pv[0]);
-          moveAfterSearch = false;
-      }
-  }
+void StateMachine::process_command(std::string token, std::istringstream& is) {
   if (token == "protover")
   {
       std::string vars = "chess";
@@ -116,53 +179,39 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
                 << Options << sync_endl;
       sync_cout << "feature done=1" << sync_endl;
   }
-  else if (token == "accepted" || token == "rejected" || token == "result" || token == "?") {}
+  else if (token == "accepted" || token == "rejected") {}
   else if (token == "hover" || token == "put") {}
   else if (token == "lift")
   {
       if (is >> token)
       {
-          Bitboard promotions = 0, captures = 0, quiets = 0;
-          // Collect targets
-          for (const auto& m : MoveList<LEGAL>(pos))
+          if (Threads.main()->ponder)
           {
-              Square from = from_sq(m), to = to_sq(m);
-              if (is_ok(from) && UCI::square(pos, from) == token && !is_pass(m))
+              if (token == UCI::square(pos, from_sq(moveList.back())))
+                  sync_cout << "highlight " << ponderHighlight << sync_endl;
+              else
               {
-                  if (type_of(m) == PROMOTION)
-                      promotions |= to;
-                  else if (pos.capture(m))
-                      captures |= to;
-                  else
+                  Move currentPonderMove = moveList.back();
+                  stop();
+                  sync_cout << "highlight " << highlight(token) << sync_endl;
+                  // Restart ponder search with random guess
+                  auto moves = MoveList<LEGAL>(pos);
+                  std::vector<Move> filteredMoves;
+                  copy_if(moves.begin(), moves.end(), back_inserter(filteredMoves), [&](const Move m) {
+                    return is_ok(from_sq(m)) && UCI::square(pos, from_sq(m)) == token;
+                  });
+                  if (filteredMoves.size())
                   {
-                      if (type_of(m) == CASTLING && !pos.is_chess960())
-                          to = make_square(to > from ? pos.castling_kingside_file()
-                                                     : pos.castling_queenside_file(), rank_of(from));
-                      quiets |= to;
+                      static PRNG rng(now());
+                      ponderMove = filteredMoves.at(rng.rand<unsigned>() % filteredMoves.size());
                   }
+                  else
+                      ponderMove = currentPonderMove;
+                  ponder();
               }
           }
-          // Generate color FEN
-          int emptyCnt;
-          std::ostringstream ss;
-          for (Rank r = pos.max_rank(); r >= RANK_1; --r)
-          {
-              for (File f = FILE_A; f <= pos.max_file(); ++f)
-              {
-                  for (emptyCnt = 0; f <= pos.max_file() && !((promotions | captures | quiets) & make_square(f, r)); ++f)
-                      ++emptyCnt;
-
-                  if (emptyCnt)
-                      ss << emptyCnt;
-
-                  if (f <= pos.max_file())
-                      ss << (promotions & make_square(f, r) ? "M" : captures & make_square(f, r) ? "R" : "Y");
-              }
-
-              if (r > RANK_1)
-                  ss << '/';
-          }
-          sync_cout << "highlight " << ss.str() << sync_endl;
+          else
+              sync_cout << "highlight " << highlight(token) << sync_endl;
       }
   }
   else if (token == "ping")
@@ -173,8 +222,9 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   }
   else if (token == "new")
   {
+      stop();
       Search::clear();
-      setboard(pos, moveList, states);
+      setboard();
       // play second by default
       playColor = ~pos.side_to_move();
       Threads.sit = false;
@@ -182,16 +232,26 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   }
   else if (token == "variant")
   {
+      stop();
       if (is >> token)
           Options["UCI_Variant"] = token;
-      setboard(pos, moveList, states);
+      setboard();
   }
-  else if (token == "force")
+  else if (token == "force" || token == "result")
+  {
+      stop();
       playColor = COLOR_NB;
+  }
+  else if (token == "?")
+  {
+      if (!Threads.main()->ponder)
+          stop(false);
+  }
   else if (token == "go")
   {
+      stop();
       playColor = pos.side_to_move();
-      go(pos, limits, states);
+      go(limits);
       moveAfterSearch = true;
   }
   else if (token == "level" || token == "st" || token == "sd" || token == "time" || token == "otim")
@@ -241,6 +301,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   }
   else if (token == "setboard")
   {
+      stop();
       std::string fen;
       std::getline(is >> std::ws, fen);
       // Check if setboard actually indicates a passing move
@@ -253,27 +314,29 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           Move m;
           std::string passMove = "@@@@";
           if ((m = UCI::to_move(pos, passMove)) != MOVE_NONE)
-              do_move(pos, moveList, states, m);
+              do_move(m);
           // apply setboard if passing does not lead to a match
           if (pos.key() != p.key())
-              setboard(pos, moveList, states, fen);
+              setboard(fen);
       }
       else
-          setboard(pos, moveList, states, fen);
+          setboard(fen);
       // Winboard sends setboard after passing moves
       if (pos.side_to_move() == playColor)
       {
-          go(pos, limits, states);
+          go(limits);
           moveAfterSearch = true;
       }
   }
   else if (token == "cores")
   {
+      stop();
       if (is >> token)
           Options["Threads"] = token;
   }
   else if (token == "memory")
   {
+      stop();
       if (is >> token)
           Options["Hash"] = token;
   }
@@ -294,27 +357,23 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   }
   else if (token == "analyze")
   {
+      stop();
       Options["UCI_AnalyseMode"] = std::string("true");
-      go(pos, analysisLimits, states);
+      go(analysisLimits);
   }
   else if (token == "exit")
   {
-      Threads.stop = true;
-      Threads.main()->wait_for_search_finished();
+      stop();
       Options["UCI_AnalyseMode"] = std::string("false");
   }
   else if (token == "undo")
   {
+      stop();
       if (moveList.size())
       {
+          undo_move();
           if (Options["UCI_AnalyseMode"])
-          {
-              Threads.stop = true;
-              Threads.main()->wait_for_search_finished();
-          }
-          undo_move(pos, moveList, states);
-          if (Options["UCI_AnalyseMode"])
-              go(pos, analysisLimits, states);
+              go(analysisLimits);
       }
   }
   // Bughouse commands
@@ -324,18 +383,20 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   {
       Partner.parse_ptell(is, pos);
       // play move requested by partner
+      // Partner.moveRequested can only be set if search was successfully aborted
       if (moveAfterSearch && Partner.moveRequested)
       {
-          Threads.stop = true;
-          Threads.main()->wait_for_search_finished();
+          assert(Threads.abort);
+          stop();
           sync_cout << "move " << UCI::move(pos, Partner.moveRequested) << sync_endl;
-          do_move(pos, moveList, states, Partner.moveRequested);
+          do_move(Partner.moveRequested);
           moveAfterSearch = false;
           Partner.moveRequested = MOVE_NONE;
       }
   }
   else if (token == "holding")
   {
+      stop();
       // holding [<white>] [<black>] <color><piece>
       std::string white_holdings, black_holdings;
       if (   std::getline(is, token, '[') && std::getline(is, white_holdings, ']')
@@ -354,18 +415,19 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
               std::transform(black_holdings.begin(), black_holdings.end(), black_holdings.begin(), ::tolower);
               fen = pos.fen(false, false, 0, white_holdings + black_holdings);
           }
-          setboard(pos, moveList, states, fen);
+          setboard(fen);
       }
       // restart search
       if (moveAfterSearch)
-          go(pos, limits, states);
+          go(limits);
   }
   // Additional custom non-XBoard commands
   else if (token == "perft")
   {
+      stop();
       Search::LimitsType perft_limits;
       is >> perft_limits.perft;
-      go(pos, perft_limits, states);
+      go(perft_limits);
   }
   else if (token == "d")
       sync_cout << pos << sync_endl;
@@ -374,29 +436,42 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
   // Move strings and unknown commands
   else
   {
-      // process move string
       bool isMove = false;
+
       if (token == "usermove")
       {
           is >> token;
           isMove = true;
       }
-      if (Options["UCI_AnalyseMode"])
+
+      // Handle pondering
+      if (Threads.main()->ponder)
       {
-          Threads.stop = true;
-          Threads.main()->wait_for_search_finished();
+          assert(moveList.size());
+          if (token == UCI::move(pos, moveList.back()))
+          {
+              // ponderhit
+              moveAfterSearch = true;
+              Threads.main()->ponder = false;
+              return;
+          }
       }
+      stop(false);
+
+      // Apply move
       Move m;
       if ((m = UCI::to_move(pos, token)) != MOVE_NONE)
-          do_move(pos, moveList, states, m);
+          do_move(m);
       else
           sync_cout << (isMove ? "Illegal move: " : "Error (unknown command): ") << token << sync_endl;
+
+      // Restart search if applicable
       if (Options["UCI_AnalyseMode"])
-          go(pos, analysisLimits, states);
+          go(analysisLimits);
       else if (pos.side_to_move() == playColor)
       {
-          go(pos, limits, states);
           moveAfterSearch = true;
+          go(limits);
       }
   }
 }

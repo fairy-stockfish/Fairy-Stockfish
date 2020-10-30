@@ -113,6 +113,7 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
                 ptell<HUMAN>("sorry, not possible");
         }
         else
+            // Move immediately on request
             Threads.stop = true;
     }
     else if (token == "fast")
