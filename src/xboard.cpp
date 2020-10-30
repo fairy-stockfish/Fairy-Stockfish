@@ -127,7 +127,7 @@ void StateMachine::process_command(Position& pos, std::string token, std::istrin
           for (const auto& m : MoveList<LEGAL>(pos))
           {
               Square from = from_sq(m), to = to_sq(m);
-              if (is_ok(from) && UCI::square(pos, from) == token)
+              if (is_ok(from) && UCI::square(pos, from) == token && !is_pass(m))
               {
                   if (type_of(m) == PROMOTION)
                       promotions |= to;
