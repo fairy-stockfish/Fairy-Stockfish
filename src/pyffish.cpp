@@ -300,6 +300,16 @@ extern "C" PyObject* pyffish_hasInsufficientMaterial(PyObject* self, PyObject *a
     return Py_BuildValue("(OO)", wInsufficient ? Py_True : Py_False, bInsufficient ? Py_True : Py_False);
 }
 
+// INPUT variant, fen
+extern "C" PyObject* pyffish_validateFen(PyObject* self, PyObject *args) {
+    const char *fen, *variant;
+    if (!PyArg_ParseTuple(args, "ss", &fen, &variant)) {
+        return NULL;
+    }
+
+    return Py_BuildValue("i", fen::validate_fen(std::string(fen), variants.find(std::string(variant))->second));
+}
+
 
 static PyMethodDef PyFFishMethods[] = {
     {"version", (PyCFunction)pyffish_version, METH_NOARGS, "Get package version."},
@@ -317,6 +327,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"is_immediate_game_end", (PyCFunction)pyffish_isImmediateGameEnd, METH_VARARGS, "Get result from given FEN if variant rules ends the game."},
     {"is_optional_game_end", (PyCFunction)pyffish_isOptionalGameEnd, METH_VARARGS, "Get result from given FEN it rules enable game end by player."},
     {"has_insufficient_material", (PyCFunction)pyffish_hasInsufficientMaterial, METH_VARARGS, "Checks for insufficient material."},
+    {"validate_fen", (PyCFunction)pyffish_validateFen, METH_VARARGS, "Validate an input FEN."},
     {NULL, NULL, 0, NULL},  // sentinel
 };
 

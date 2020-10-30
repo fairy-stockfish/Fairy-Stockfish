@@ -500,6 +500,11 @@ class TestPyffish(unittest.TestCase):
                 result = sf.has_insufficient_material(variant, fen, [])
                 self.assertEqual(result, expected_result, "{}: {}".format(variant, fen))
 
+    def test_validate_fen(self):
+        for variant, positions in variant_positions.items():
+            for fen in positions:
+                self.assertTrue(sf.validate_fen(fen, variant) == 1, "{}: {}".format(variant, fen))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
