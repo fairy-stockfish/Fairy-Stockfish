@@ -1202,7 +1202,7 @@ moves_loop: // When in check, search starts from here
       // Losing chess capture extension
       else if (    pos.must_capture()
                &&  pos.capture(move)
-               &&  MoveList<CAPTURES>(pos).size() == 1)
+               &&  (ss->inCheck || MoveList<CAPTURES>(pos).size() == 1))
           extension = 1;
 
       // Add extension to new depth
@@ -1230,7 +1230,7 @@ moves_loop: // When in check, search starts from here
               || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha
               || cutNode
               || thisThread->ttHitAverage < 427 * TtHitAverageResolution * TtHitAverageWindow / 1024)
-          && !(pos.must_capture() && MoveList<CAPTURES>(pos).size()))
+          && !(pos.must_capture() && (givesCheck || MoveList<CAPTURES>(pos).size())))
       {
           Depth r = reduction(improving, depth, moveCount);
 
