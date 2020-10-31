@@ -1991,6 +1991,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
           bool perpetualUs = st->previous->checkersBB && stp->previous->checkersBB;
           int moveRepetition = var->moveRepetitionIllegal
                                && type_of(st->move) == NORMAL
+                               && !st->previous->checkersBB && !stp->previous->checkersBB
                                && (board_bb(~side_to_move(), type_of(piece_on(to_sq(st->move)))) & board_bb(side_to_move(), KING))
                                ? (stp->move == reverse_move(st->move) ? 2 : is_pass(stp->move) ? 1 : 0) : 0;
 
@@ -1999,7 +2000,9 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
               // Janggi repetition rule
               if (moveRepetition > 0)
               {
-                  if (moveRepetition < 4)
+                  if (i + 1 <= end && stp->previous->previous->previous->checkersBB)
+                      moveRepetition = 0;
+                  else if (moveRepetition < 4)
                   {
                       if (stp->previous->previous->move == reverse_move((moveRepetition == 1 ? st : stp)->move))
                           moveRepetition++;
