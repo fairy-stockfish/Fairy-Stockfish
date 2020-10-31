@@ -25,7 +25,11 @@ namespace Eval::NNUE::Features {
 
   // Orient a square according to perspective (rotates by 180 for black)
   inline Square orient(Color perspective, Square s) {
+#ifdef LARGEBOARDS
+    return Square(int(rank_of(s) * 8 + file_of(s)) ^ (bool(perspective) * 63));
+#else
     return Square(int(s) ^ (bool(perspective) * 63));
+#endif
   }
 
   // Find the index of the feature quantity from the king position and PieceSquare

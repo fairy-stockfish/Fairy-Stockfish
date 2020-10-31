@@ -75,8 +75,7 @@ namespace Eval {
 
     useNNUE = Options["Use NNUE"]
              && (   eval_file.find(string(Options["UCI_Variant"])) != string::npos
-                 || (Options["UCI_Variant"] == "chess" && eval_file.rfind("nn-", 0) != string::npos)) // restrict NNUE usage to corresponding variant
-             && RANK_MAX == RANK_8; // TODO: fix for large boards
+                 || (Options["UCI_Variant"] == "chess" && eval_file.rfind("nn-", 0) != string::npos)); // restrict NNUE usage to corresponding variant
     if (!useNNUE)
         return;
 

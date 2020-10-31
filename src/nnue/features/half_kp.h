@@ -39,7 +39,7 @@ namespace Eval::NNUE::Features {
         0x5D69D5B9u ^ (AssociatedKing == Side::kFriend);
     // Number of feature dimensions
     static constexpr IndexType kDimensions =
-        static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(PS_END);
+        static_cast<IndexType>(SQUARE_NB_CHESS) * static_cast<IndexType>(PS_END);
     // Maximum number of simultaneously active features
     static constexpr IndexType kMaxActiveDimensions = 30; // Kings don't count
     // Trigger for full calculation instead of difference calculation
