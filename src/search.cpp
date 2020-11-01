@@ -447,7 +447,7 @@ void Thread::search() {
           // Start with a small aspiration window and, in the case of a fail
           // high/low, re-search with a bigger window until we don't fail
           // high/low anymore.
-          int failedHighCnt = 0;
+          failedHighCnt = 0;
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
@@ -623,6 +623,7 @@ namespace {
 
     constexpr bool PvNode = NT == PV;
     const bool rootNode = PvNode && ss->ply == 0;
+    const Depth maxNextDepth = rootNode ? depth : depth + 1;
 
     // Check if we have an upcoming move which draws by repetition, or
     // if the opponent had an alternative move earlier to this position.
@@ -893,7 +894,7 @@ namespace {
         && (ss-1)->statScore < 22977
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 30 * depth - 28 * improving + 84 * ss->ttPv + 182
+        &&  ss->staticEval >= beta - 30 * depth - 28 * improving + 84 * ss->ttPv + 182 + 200 * (!pos.double_step_enabled() && pos.piece_to_char()[PAWN] != ' ')
         && !excludedMove
         &&  pos.non_pawn_material(us)
         &&  pos.count<ALL_PIECES>(~us) != pos.count<PAWN>(~us)
@@ -903,7 +904,7 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = (982 - 150 * !pos.checking_permitted() + 85 * depth) / 256 + std::min(int(eval - beta) / 192, 3);
+        Depth R = (982 - 200 * pos.must_capture() - 150 * !pos.checking_permitted() + 85 * depth) / 256 + std::min(int(eval - beta) / 192, 3);
 
         ss->currentMove = MOVE_NULL;
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
@@ -1201,7 +1202,7 @@ moves_loop: // When in check, search starts from here
       // Losing chess capture extension
       else if (    pos.must_capture()
                &&  pos.capture(move)
-               &&  MoveList<CAPTURES>(pos).size() == 1)
+               &&  (ss->inCheck || MoveList<CAPTURES>(pos).size() == 1))
           extension = 1;
 
       // Add extension to new depth
@@ -1229,7 +1230,7 @@ moves_loop: // When in check, search starts from here
               || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha
               || cutNode
               || thisThread->ttHitAverage < 427 * TtHitAverageResolution * TtHitAverageWindow / 1024)
-          && !(pos.must_capture() && MoveList<CAPTURES>(pos).size()))
+          && !(pos.must_capture() && (givesCheck || MoveList<CAPTURES>(pos).size())))
       {
           Depth r = reduction(improving, depth, moveCount);
 
@@ -1261,6 +1262,9 @@ moves_loop: // When in check, search starts from here
               // Increase reduction if ttMove is a capture (~5 Elo)
               if (ttCapture)
                   r++;
+
+              // Increase reduction at root if failing high
+              r += rootNode ? thisThread->failedHighCnt * thisThread->failedHighCnt * moveCount / 512 : 0;
 
               // Increase reduction for cut nodes (~10 Elo)
               if (cutNode)
@@ -1341,7 +1345,8 @@ moves_loop: // When in check, search starts from here
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
-          value = -search<PV>(pos, ss+1, -beta, -alpha, newDepth, false);
+          value = -search<PV>(pos, ss+1, -beta, -alpha,
+                              std::min(maxNextDepth, newDepth), false);
       }
 
       // Step 18. Undo move

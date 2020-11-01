@@ -443,7 +443,7 @@ string UCI::move(const Position& pos, Move m) {
       return "0000";
 
   if (is_pass(m) && Options["Protocol"] == "xboard")
-      return "pass";
+      return "@@@@";
 
   if (is_gating(m) && gating_square(m) == to)
       from = to_sq(m), to = from_sq(m);

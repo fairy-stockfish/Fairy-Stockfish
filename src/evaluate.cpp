@@ -75,8 +75,7 @@ namespace Eval {
 
     useNNUE = Options["Use NNUE"]
              && (   eval_file.find(string(Options["UCI_Variant"])) != string::npos
-                 || (Options["UCI_Variant"] == "chess" && eval_file.rfind("nn-", 0) != string::npos)) // restrict NNUE usage to corresponding variant
-             && RANK_MAX == RANK_8; // TODO: fix for large boards
+                 || (Options["UCI_Variant"] == "chess" && eval_file.rfind("nn-", 0) != string::npos)); // restrict NNUE usage to corresponding variant
     if (!useNNUE)
         return;
 
@@ -228,6 +227,12 @@ namespace {
   constexpr Score MaxMobility  = S(150, 200);
   constexpr Score DropMobility = S(10, 10);
 
+  // BishopPawns[distance from edge] contains a file-dependent penalty for pawns on
+  // squares of the same color as our bishop.
+  constexpr Score BishopPawns[int(FILE_NB) / 2] = {
+    S(3, 8), S(3, 9), S(1, 8), S(3, 7)
+  };
+
   // KingProtector[knight/bishop] contains penalty for each distance unit to own king
   constexpr Score KingProtector[] = { S(8, 9), S(6, 9) };
 
@@ -258,7 +263,6 @@ namespace {
   // Assorted bonuses and penalties
   constexpr Score BadOutpost          = S( -7, 36);
   constexpr Score BishopOnKingRing    = S( 24,  0);
-  constexpr Score BishopPawns         = S(  3,  7);
   constexpr Score BishopXRayPawns     = S(  4,  5);
   constexpr Score CorneredBishop      = S( 50, 50);
   constexpr Score FlankAttacks        = S(  8,  0);
@@ -524,7 +528,7 @@ namespace {
                 // when the bishop is outside the pawn chain.
                 Bitboard blocked = pos.pieces(Us, PAWN) & shift<Down>(pos.pieces());
 
-                score -= BishopPawns * pos.pawns_on_same_color_squares(Us, s)
+                score -= BishopPawns[edge_distance(file_of(s))] * pos.pawns_on_same_color_squares(Us, s)
                                      * (!(attackedBy[Us][PAWN] & s) + popcount(blocked & CenterFiles));
 
                 // Penalty for all enemy pawns x-rayed
@@ -1059,7 +1063,7 @@ namespace {
 
     if (pawnsOnly)
     {
-        safe = behind & ~attackedBy[Them][ALL_PIECES];
+        safe = pos.board_bb() & ((attackedBy2[Us] & ~attackedBy2[Them]) | (attackedBy[Us][PAWN] & ~pos.pieces(Us, PAWN)));
         behind = 0;
     }
     int bonus = popcount(safe) + popcount(behind & safe & ~attackedBy[Them][ALL_PIECES]);
@@ -1147,6 +1151,31 @@ namespace {
             }
             else if (pos.extinction_value() == VALUE_MATE)
                 score += make_score(pos.non_pawn_material(Us), pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
+            else if (pos.count<PAWN>(Us) == pos.count<ALL_PIECES>(Us))
+            {
+                // Pawns easy to stop/capture
+                int l = 0, m = 0, r = popcount(pos.pieces(Us, PAWN) & file_bb(FILE_A));
+                for (File f = FILE_A; f <= pos.max_file(); ++f)
+                {
+                    l = m; m = r; r = popcount(pos.pieces(Us, PAWN) & shift<EAST>(file_bb(f)));
+                    score -= make_score(40, 40) * m / (1 + l * r);
+                }
+            }
+            else if (pos.count<PAWN>(Them) == pos.count<ALL_PIECES>(Them) && pos.pieces(Us, ROOK, QUEEN))
+            {
+                // Add a bonus according to how close we are to breaking through the pawn wall
+                int dist = 8;
+                if ((attackedBy[Us][QUEEN] | attackedBy[Us][ROOK]) & rank_bb(relative_rank(Us, pos.max_rank(), pos.max_rank())))
+                    dist = 0;
+                else for (File f = FILE_A; f <= pos.max_file(); ++f)
+                {
+                    int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
+                    int pawnsl = std::min(popcount(pos.pieces(Them, PAWN) & shift<WEST>(file_bb(f))), pawns);
+                    int pawnsr = std::min(popcount(pos.pieces(Them, PAWN) & shift<EAST>(file_bb(f))), pawns);
+                    dist = std::min(dist, pawnsl + pawnsr);
+                }
+                score += make_score(60, 60) * pos.count<PAWN>(Them) / (1 + dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
+            }
     }
 
     // Connect-n
@@ -1224,7 +1253,7 @@ namespace {
     // No initiative bonus for extinction variants
     int complexity = 0;
     bool pawnsOnBothFlanks = true;
-    if (pos.extinction_value() == VALUE_NONE && !pos.captures_to_hand() && !pos.connect_n())
+    if (pos.extinction_value() == VALUE_NONE && !pos.captures_to_hand() && !pos.connect_n() && !pos.material_counting())
     {
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
                      :  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
@@ -1269,7 +1298,7 @@ namespace {
     int sf = me->scale_factor(pos, strongSide);
 
     // If scale factor is not already specific, scale down via general heuristics
-    if (sf == SCALE_FACTOR_NORMAL && !pos.captures_to_hand())
+    if (sf == SCALE_FACTOR_NORMAL && !pos.captures_to_hand() && !pos.material_counting())
     {
         if (pos.opposite_bishops())
         {
@@ -1291,7 +1320,7 @@ namespace {
                                                         : pos.count<BISHOP>(WHITE) + pos.count<KNIGHT>(WHITE));
         else
             sf = std::min(sf, 36 + 7 * (pos.count<PAWN>(strongSide) + pos.count<SOLDIER>(strongSide))) - 4 * !pawnsOnBothFlanks;
-      
+
         sf -= 4 * !pawnsOnBothFlanks;
     }
 

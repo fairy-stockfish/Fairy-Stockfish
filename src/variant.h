@@ -102,6 +102,7 @@ struct Variant {
   Value nFoldValue = VALUE_DRAW;
   bool nFoldValueAbsolute = false;
   bool perpetualCheckIllegal = false;
+  bool moveRepetitionIllegal = false;
   Value stalemateValue = VALUE_DRAW;
   bool stalematePieceCount = false; // multiply stalemate value by sign(count(~stm) - count(stm))
   Value checkmateValue = -VALUE_MATE;

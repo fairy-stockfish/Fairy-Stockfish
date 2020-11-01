@@ -909,6 +909,7 @@ namespace {
     // Official tournament rules with bikjang and material counting.
     Variant* janggi_variant() {
         Variant* v = xiangqi_variant();
+        v->variantTemplate = "janggi";
         v->pieceToCharTable = ".N.R.AB.P..C.........K.n.r.ab.p..c.........k";
         v->remove_piece(FERS);
         v->remove_piece(CANNON);
@@ -943,7 +944,8 @@ namespace {
         Variant* v = janggi_variant();
         v->bikjangRule = false;
         v->materialCounting = JANGGI_MATERIAL;
-        v->nFoldValue = -VALUE_MATE;
+        v->moveRepetitionIllegal = true;
+        v->nFoldRule = 4; // avoid nFold being triggered before move repetition
         return v;
     }
     // Casual rules of Janggi, where bikjang and material counting are not considered
