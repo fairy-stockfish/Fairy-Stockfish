@@ -827,3 +827,4 @@ FenValidation validate_fen(const std::string& fen, const Variant* v) {
     return FEN_OK;
 }
 }
+
