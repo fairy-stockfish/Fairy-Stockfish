@@ -151,7 +151,7 @@ fs.readFile(pgnFilePath, 'utf8', function (err,data) {
   game = ffish.readGamePGN(data);
   console.log(game.headerKeys());
   console.log(game.headers("White"));
-  console.log(game.mainlineMoves())
+  const mainlineMoves = game.mainlineMoves().split(" ");
 
   let board = new ffish.Board(game.headers("Variant").toLowerCase());
   for (let idx = 0; idx < mainlineMoves.length; ++idx) {
@@ -268,6 +268,8 @@ nnue/features/*.cpp \
 syzygy/*.cpp \
 -o ../tests/js/ffish.js
 ```
+
+Make sure that the wasm file is in the `public` directory.
 
 Reference: [emscripten/#10114](https://github.com/emscripten-core/emscripten/issues/10114)
 

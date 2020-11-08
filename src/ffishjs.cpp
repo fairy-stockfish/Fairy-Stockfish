@@ -425,8 +425,8 @@ Game read_game_pgn(std::string pgn) {
       // look for item
       size_t headerKeyStart = lineStart+1;
       size_t headerKeyEnd = pgn.find(' ', lineStart);
-      size_t headerItemStart = headerKeyEnd+2;
-      size_t headerItemEnd = pgn.find(']', headerKeyEnd)-1;
+      size_t headerItemStart = pgn.find('"', headerKeyEnd)+1;
+      size_t headerItemEnd = pgn.find('"', headerItemStart);
 
       // put item into list
       game.header[pgn.substr(headerKeyStart, headerKeyEnd-headerKeyStart)] = pgn.substr(headerItemStart, headerItemEnd-headerItemStart);
