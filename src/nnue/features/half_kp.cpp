@@ -24,20 +24,20 @@
 namespace Eval::NNUE::Features {
 
   // Orient a square according to perspective (rotates by 180 for black)
-  inline Square orient(Color perspective, Square s) {
+  inline Square orient(const Position& pos, Color perspective, Square s) {
 #ifdef LARGEBOARDS
-    return Square(int(rank_of(s) * 8 + file_of(s)) ^ (bool(perspective) * 63));
+    return Square(int(rank_of(s) * 8 + file_of(s)) ^ (!(pos.capture_the_flag(BLACK) & Rank8BB) * bool(perspective) * 63));
 #else
-    return Square(int(s) ^ (bool(perspective) * 63));
+    return Square(int(s) ^ (!(pos.capture_the_flag(BLACK) & Rank8BB) * bool(perspective) * 63));
 #endif
   }
 
   // Find the index of the feature quantity from the king position and PieceSquare
   template <Side AssociatedKing>
   inline IndexType HalfKP<AssociatedKing>::MakeIndex(
-      Color perspective, Square s, Piece pc, Square ksq) {
+      const Position& pos, Color perspective, Square s, Piece pc, Square ksq) {
 
-    return IndexType(orient(perspective, s) + kpp_board_index[pc][perspective] + PS_END * ksq);
+    return IndexType(orient(pos, perspective, s) + kpp_board_index[pc][perspective] + PS_END * ksq);
   }
 
   // Get a list of indices for active features
@@ -45,11 +45,11 @@ namespace Eval::NNUE::Features {
   void HalfKP<AssociatedKing>::AppendActiveIndices(
       const Position& pos, Color perspective, IndexList* active) {
 
-    Square ksq = orient(perspective, pos.square<KING>(perspective));
+    Square ksq = orient(pos, perspective, pos.square<KING>(perspective));
     Bitboard bb = pos.pieces() & ~pos.pieces(KING);
     while (bb) {
       Square s = pop_lsb(&bb);
-      active->push_back(MakeIndex(perspective, s, pos.piece_on(s), ksq));
+      active->push_back(MakeIndex(pos, perspective, s, pos.piece_on(s), ksq));
     }
   }
 
@@ -59,14 +59,14 @@ namespace Eval::NNUE::Features {
       const Position& pos, const DirtyPiece& dp, Color perspective,
       IndexList* removed, IndexList* added) {
 
-    Square ksq = orient(perspective, pos.square<KING>(perspective));
+    Square ksq = orient(pos, perspective, pos.square<KING>(perspective));
     for (int i = 0; i < dp.dirty_num; ++i) {
       Piece pc = dp.piece[i];
       if (type_of(pc) == KING) continue;
       if (dp.from[i] != SQ_NONE)
-        removed->push_back(MakeIndex(perspective, dp.from[i], pc, ksq));
+        removed->push_back(MakeIndex(pos, perspective, dp.from[i], pc, ksq));
       if (dp.to[i] != SQ_NONE)
-        added->push_back(MakeIndex(perspective, dp.to[i], pc, ksq));
+        added->push_back(MakeIndex(pos, perspective, dp.to[i], pc, ksq));
     }
   }
 

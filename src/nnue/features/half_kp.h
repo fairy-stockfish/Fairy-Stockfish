@@ -55,7 +55,7 @@ namespace Eval::NNUE::Features {
 
    private:
     // Index of a feature for a given king position and another piece on some square
-    static IndexType MakeIndex(Color perspective, Square s, Piece pc, Square sq_k);
+    static IndexType MakeIndex(const Position& pos, Color perspective, Square s, Piece pc, Square sq_k);
   };
 
 }  // namespace Eval::NNUE::Features
