@@ -88,11 +88,14 @@ namespace Eval {
     constexpr char SepChar = ';';
 #endif
     while (getline(ss, eval_file, SepChar))
-        if (eval_file.rfind(variant, 0) != string::npos || (variant == "chess" && eval_file.rfind("nn-", 0) != string::npos))
+    {
+        string basename = eval_file.substr(eval_file.find_last_of("\\/") + 1);
+        if (basename.rfind(variant, 0) != string::npos || (variant == "chess" && basename.rfind("nn-", 0) != string::npos))
         {
             useNNUE = true;
             break;
         }
+    }
     if (!useNNUE)
         return;
 
