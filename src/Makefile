@@ -320,9 +320,7 @@ ifneq ($(largeboards),no)
 endif
 
 # Embed and enable NNUE
-ifeq ($(nnue),yes)
-	CXXFLAGS += -DUSE_NNUE
-else
+ifeq ($(nnue),no)
 	CXXFLAGS += -DNNUE_EMBEDDING_OFF
 endif
 
