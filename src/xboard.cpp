@@ -322,7 +322,9 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
       else
           setboard(fen);
       // Winboard sends setboard after passing moves
-      if (pos.side_to_move() == playColor)
+      if (Options["UCI_AnalyseMode"])
+          go(analysisLimits);
+      else if (pos.side_to_move() == playColor)
       {
           go(limits);
           moveAfterSearch = true;
