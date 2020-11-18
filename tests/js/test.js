@@ -196,7 +196,7 @@ describe('board.setFen(fen)', function () {
   });
 });
 
-describe('board.sanMove()', function () {
+describe('board.sanMove(uciMove)', function () {
   it("it converts an uci move into san", () => {
     const board = new ffish.Board();
     const san = board.sanMove("g1f3");
@@ -471,10 +471,11 @@ describe('ffish.validateFen(fen, uciVariant)', function () {
 describe('ffish.readGamePGN(pgn)', function () {
   it("it reads a pgn string and returns a game object", () => {
      fs = require('fs');
-     let pgnFiles = ['deep_blue_kasparov_1997.pgn', 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn', 'c60_ruy_lopez.pgn']
+     let pgnFiles = ['deep_blue_kasparov_1997.pgn', 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn', 'c60_ruy_lopez.pgn', 'pychess-variants_zJxHRVm1.pgn']
      let expectedFens = ["1r6/5kp1/RqQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 b - - 14 45",
                          "3r2kr/2pb1Q2/4ppp1/3pN2p/1P1P4/3PbP2/P1P3PP/6NK[PPqrrbbnn] b - - 1 37",
-                         "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"]
+                         "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+                         "r1bQkb1r/ppp1pppp/2P5/2n2q2/8/2N2N2/PPP2PPP/R1BEKB1R[Hh] b KQACEFHkqacefh - 0 8"]
 
      for (let idx = 0; idx < pgnFiles.length; ++idx) {
      let pgnFilePath = pgnDir + pgnFiles[idx];
@@ -521,7 +522,7 @@ describe('game.headerKeys()', function () {
 describe('game.headers(key)', function () {
   it("it returns the value for a given header key of a loaded game", () => {
      fs = require('fs');
-     let pgnFile = 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn';
+     let pgnFile = 'pychess-variants_zJxHRVm1.pgn';
      let pgnFilePath = pgnDir + pgnFile;
 
      fs.readFile(pgnFilePath, 'utf8', function (err,data) {
@@ -529,9 +530,11 @@ describe('game.headers(key)', function () {
          return console.log(err);
        }
        let game = ffish.readGamePGN(data);
-       chai.expect(game.headers("White")).to.equal("JannLee");
-       chai.expect(game.headers("Black")).to.equal("CrazyAra");
-       chai.expect(game.headers("Variant")).to.equal("Crazyhouse");
+       chai.expect(game.headers("White")).to.equal("catask");
+       chai.expect(game.headers("Black")).to.equal("Fairy-Stockfish");
+       chai.expect(game.headers("Variant")).to.equal("Seirawan");
+       chai.expect(game.headers("FEN")).to.equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1");
+
        game.delete();
      });
   });

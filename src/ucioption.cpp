@@ -179,12 +179,12 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
-#ifdef USE_NNUE
   o["Use NNUE"]              << Option(true, on_use_NNUE);
-#else
-  o["Use NNUE"]              << Option(false, on_use_NNUE);
-#endif
+#ifndef NNUE_EMBEDDING_OFF
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
+#else
+  o["EvalFile"]              << Option("<empty>", on_eval_file);
+#endif
   o["TsumeMode"]             << Option(false);
   o["VariantPath"]           << Option("<empty>", on_variant_path);
 }

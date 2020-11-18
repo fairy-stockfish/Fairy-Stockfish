@@ -71,11 +71,31 @@ namespace Eval {
 
   void NNUE::init() {
 
+    useNNUE = Options["Use NNUE"];
+    if (!useNNUE)
+        return;
+
     string eval_file = string(Options["EvalFile"]);
 
-    useNNUE = Options["Use NNUE"]
-             && (   eval_file.find(string(Options["UCI_Variant"])) != string::npos
-                 || (Options["UCI_Variant"] == "chess" && eval_file.rfind("nn-", 0) != string::npos)); // restrict NNUE usage to corresponding variant
+    // Restrict NNUE usage to corresponding variant
+    // Support multiple variant networks separated by semicolon(Windows)/colon(Unix)
+    stringstream ss(eval_file);
+    string variant = string(Options["UCI_Variant"]);
+    useNNUE = false;
+#ifndef _WIN32
+    constexpr char SepChar = ':';
+#else
+    constexpr char SepChar = ';';
+#endif
+    while (getline(ss, eval_file, SepChar))
+    {
+        string basename = eval_file.substr(eval_file.find_last_of("\\/") + 1);
+        if (basename.rfind(variant, 0) != string::npos || (variant == "chess" && basename.rfind("nn-", 0) != string::npos))
+        {
+            useNNUE = true;
+            break;
+        }
+    }
     if (!useNNUE)
         return;
 
@@ -119,7 +139,7 @@ namespace Eval {
 
     string eval_file = string(Options["EvalFile"]);
 
-    if (useNNUE && eval_file_loaded != eval_file)
+    if (useNNUE && eval_file.find(eval_file_loaded) == string::npos)
     {
         UCI::OptionsMap defaults;
         UCI::init(defaults);
@@ -140,7 +160,7 @@ namespace Eval {
     }
 
     if (useNNUE)
-        sync_cout << "info string NNUE evaluation using " << eval_file << " enabled" << sync_endl;
+        sync_cout << "info string NNUE evaluation using " << eval_file_loaded << " enabled" << sync_endl;
     else
         sync_cout << "info string classical evaluation enabled" << sync_endl;
   }

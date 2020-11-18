@@ -99,6 +99,8 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
       && !pos.can_castle(ANY_CASTLING))
   {
       StateInfo st;
+      ASSERT_ALIGNED(&st, Eval::NNUE::kCacheLineSize);
+
       Position p;
       p.set(pos.variant(), pos.fen(), pos.is_chess960(), &st, pos.this_thread());
       Tablebases::ProbeState s1, s2;
@@ -935,6 +937,11 @@ bool Position::legal(Move m) const {
       for (Square s = to; s != from; s += step)
           if (attackers_to(s, ~us))
               return false;
+
+      // Will the gate be blocked by king or rook?
+      Square rto = to + (to_sq(m) > from_sq(m) ? WEST : EAST);
+      if (is_gating(m) && (gating_square(m) == to || gating_square(m) == rto))
+          return false;
 
       // In case of Chess960, verify that when moving the castling rook we do
       // not discover some hidden checker.
@@ -2339,6 +2346,8 @@ bool Position::pos_is_ok() const {
               assert(0 && "pos_is_ok: Bitboards");
 
   StateInfo si = *st;
+  ASSERT_ALIGNED(&si, Eval::NNUE::kCacheLineSize);
+
   set_state(&si);
   if (std::memcmp(&si, st, sizeof(StateInfo)))
       assert(0 && "pos_is_ok: State");

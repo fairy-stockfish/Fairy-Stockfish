@@ -278,7 +278,7 @@ void UCI::loop(int argc, char* argv[]) {
       cmd += std::string(argv[i]) + " ";
 
   // XBoard state machine
-  XBoard::StateMachine xboardStateMachine;
+  XBoard::stateMachine = new XBoard::StateMachine(pos, states);
   // UCCI banmoves state
   std::vector<Move> banmoves = {};
 
@@ -316,7 +316,7 @@ void UCI::loop(int argc, char* argv[]) {
       }
 
       else if (Options["Protocol"] == "xboard")
-          xboardStateMachine.process_command(pos, token, is, states);
+          XBoard::stateMachine->process_command(token, is);
 
       else if (token == "setoption")  setoption(is);
       // UCCI-specific banmoves command

@@ -55,6 +55,7 @@ public:
     pthread_create(&thread, attr, start_routine<T>, new P(obj, fun));
   }
   void join() { pthread_join(thread, NULL); }
+  void detach() { pthread_detach(thread); }
 };
 
 #else // Default case: use STL classes

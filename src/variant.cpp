@@ -946,6 +946,7 @@ namespace {
         v->materialCounting = JANGGI_MATERIAL;
         v->moveRepetitionIllegal = true;
         v->nFoldRule = 4; // avoid nFold being triggered before move repetition
+        v->nMoveRule = 100; // avoid adjudication before reaching 200 half-moves
         return v;
     }
     // Casual rules of Janggi, where bikjang and material counting are not considered
