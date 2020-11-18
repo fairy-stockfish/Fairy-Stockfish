@@ -39,7 +39,7 @@ pyffish_module = Extension(
     sources=sources,
     extra_compile_args=args)
 
-setup(name="pyffish", version="0.0.51",
+setup(name="pyffish", version="0.0.52",
       description="Fairy-Stockfish Python wrapper",
       long_description=long_description,
       long_description_content_type="text/markdown",
