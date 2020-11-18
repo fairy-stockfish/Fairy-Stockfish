@@ -938,6 +938,11 @@ bool Position::legal(Move m) const {
           if (attackers_to(s, ~us))
               return false;
 
+      // Will the gate be blocked by king or rook?
+      Square rto = to + (to_sq(m) > from_sq(m) ? WEST : EAST);
+      if (is_gating(m) && (gating_square(m) == to || gating_square(m) == rto))
+          return false;
+
       // In case of Chess960, verify that when moving the castling rook we do
       // not discover some hidden checker.
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
