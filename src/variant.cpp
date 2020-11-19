@@ -278,10 +278,13 @@ namespace {
         v->extinctionPieceCount = 2;
         return v;
     }
+    // Horde chess
+    // https://en.wikipedia.org/wiki/Dunsany%27s_chess#Horde_chess
     Variant* horde_variant() {
         Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
-        v->firstRankDoubleSteps = true;
+        v->doubleStepRankMin = RANK_1;
+        v->enPassantRegion = Rank3BB | Rank6BB; // exclude en passant on second rank
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {ALL_PIECES};
         return v;
@@ -608,7 +611,6 @@ namespace {
         v->add_piece(BREAKTHROUGH_PIECE, 'p');
         v->startFen = "pppppppp/pppppppp/8/8/8/8/PPPPPPPP/PPPPPPPP w 0 1";
         v->promotionPieceTypes = {};
-        v->firstRankDoubleSteps = false;
         v->doubleStep = false;
         v->castling = false;
         v->stalemateValue = -VALUE_MATE;
@@ -821,6 +823,7 @@ namespace {
         v->mandatoryPawnPromotion = false;
         v->immobilityIllegal = true;
         v->doubleStepRank = RANK_3;
+        v->doubleStepRankMin = RANK_3;
         v->castling = false;
         return v;
     }
@@ -838,6 +841,7 @@ namespace {
         v->castlingQueensideFile = FILE_D;
         v->castlingRank = RANK_2;
         v->doubleStepRank = RANK_3;
+        v->doubleStepRankMin = RANK_3;
         return v;
     }
     Variant* clobber10_variant() {

@@ -122,8 +122,8 @@ public:
   bool piece_demotion() const;
   bool endgame_eval() const;
   bool double_step_enabled() const;
-  Rank double_step_rank() const;
-  bool first_rank_double_steps() const;
+  Rank double_step_rank_max() const;
+  Rank double_step_rank_min() const;
   bool castling_enabled() const;
   bool castling_dropped_piece() const;
   File castling_kingside_file() const;
@@ -432,14 +432,14 @@ inline bool Position::double_step_enabled() const {
   return var->doubleStep;
 }
 
-inline Rank Position::double_step_rank() const {
+inline Rank Position::double_step_rank_max() const {
   assert(var != nullptr);
   return var->doubleStepRank;
 }
 
-inline bool Position::first_rank_double_steps() const {
+inline Rank Position::double_step_rank_min() const {
   assert(var != nullptr);
-  return var->firstRankDoubleSteps;
+  return var->doubleStepRankMin;
 }
 
 inline bool Position::castling_enabled() const {
@@ -542,7 +542,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   if (pt == PAWN)
   {
       if (!var->promotionZonePawnDrops)
-          b &= ~promotion_zone_bb(c, promotion_rank(), max_rank());
+          b &= ~zone_bb(c, promotion_rank(), max_rank());
       if (!first_rank_pawn_drops())
           b &= ~rank_bb(relative_rank(c, RANK_1, max_rank()));
   }
@@ -655,7 +655,7 @@ inline bool Position::pass_on_stalemate() const {
 
 inline Bitboard Position::promoted_soldiers(Color c) const {
   assert(var != nullptr);
-  return pieces(c, SOLDIER) & promotion_zone_bb(c, var->soldierPromotionRank, max_rank());
+  return pieces(c, SOLDIER) & zone_bb(c, var->soldierPromotionRank, max_rank());
 }
 
 inline bool Position::makpong() const {
@@ -1005,8 +1005,9 @@ inline bool Position::pawn_passed(Color c, Square s) const {
 }
 
 inline bool Position::advanced_pawn_push(Move m) const {
-  return   type_of(moved_piece(m)) == PAWN
-        && relative_rank(sideToMove, to_sq(m), max_rank()) > (max_rank() + 1) / 2;
+  return  (   type_of(moved_piece(m)) == PAWN
+           && relative_rank(sideToMove, to_sq(m), max_rank()) > (max_rank() + 1) / 2)
+        || type_of(m) == ENPASSANT;
 }
 
 inline int Position::pawns_on_same_color_squares(Color c, Square s) const {

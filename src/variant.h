@@ -57,7 +57,8 @@ struct Variant {
   bool endgameEval = false;
   bool doubleStep = true;
   Rank doubleStepRank = RANK_2;
-  bool firstRankDoubleSteps = false;
+  Rank doubleStepRankMin = RANK_2;
+  Bitboard enPassantRegion = AllSquares;
   bool castling = true;
   bool castlingDroppedPiece = false;
   File castlingKingsideFile = FILE_G;

@@ -1016,7 +1016,7 @@ bool Position::pseudo_legal(const Move m) const {
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
       && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)
-      && (promotion_zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to))
+      && (zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to))
       && (!piece_promotion_on_capture() || capture(m)))
       return false;
 
@@ -1044,8 +1044,8 @@ bool Position::pseudo_legal(const Move m) const {
       if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to) // Not a capture
           && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
-               && (rank_of(from) == relative_rank(us, double_step_rank(), max_rank())
-                   || (first_rank_double_steps() && rank_of(from) == relative_rank(us, RANK_1, max_rank())))
+               && (   relative_rank(us, from, max_rank()) <= double_step_rank_max()
+                   && relative_rank(us, from, max_rank()) >= double_step_rank_min())
                && empty(to)
                && empty(to - pawn_push(us))
                && double_step_enabled()))
@@ -1271,7 +1271,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
               assert(pc == make_piece(us, PAWN));
               assert(to == st->epSquare);
-              assert(relative_rank(~us, to, max_rank()) == Rank(double_step_rank() + 1));
+              assert((var->enPassantRegion & to)
+                      && relative_rank(~us, to, max_rank()) <= Rank(double_step_rank_max() + 1)
+                      && relative_rank(~us, to, max_rank()) > double_step_rank_min());
               assert(piece_on(to) == NO_PIECE);
               assert(piece_on(capsq) == make_piece(them, PAWN));
           }
@@ -1432,7 +1434,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       // Set en-passant square if the moved pawn can be captured
       if (   std::abs(int(to) - int(from)) == 2 * NORTH
-          && relative_rank(us, rank_of(from), max_rank()) == double_step_rank()
+          && (var->enPassantRegion & (to - pawn_push(us)))
           && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN)))
       {
           st->epSquare = to - pawn_push(us);
@@ -1683,7 +1685,7 @@ void Position::undo_move(Move m) {
 
               assert(type_of(pc) == PAWN);
               assert(to == st->previous->epSquare);
-              assert(relative_rank(~us, to, max_rank()) == Rank(double_step_rank() + 1));
+              assert(relative_rank(~us, to, max_rank()) <= Rank(double_step_rank_max() + 1));
               assert(piece_on(capsq) == NO_PIECE);
               assert(st->capturedPiece == make_piece(~us, PAWN));
           }
@@ -2320,7 +2322,7 @@ bool Position::pos_is_ok() const {
       || (count<KING>(WHITE) && piece_on(square<KING>(WHITE)) != make_piece(WHITE, KING))
       || (count<KING>(BLACK) && piece_on(square<KING>(BLACK)) != make_piece(BLACK, KING))
       || (   ep_square() != SQ_NONE
-          && relative_rank(~sideToMove, ep_square(), max_rank()) != Rank(double_step_rank() + 1)))
+          && relative_rank(~sideToMove, ep_square(), max_rank()) > Rank(double_step_rank_max() + 1)))
       assert(0 && "pos_is_ok: Default");
 
   if (Fast)
