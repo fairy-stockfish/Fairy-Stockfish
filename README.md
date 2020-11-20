@@ -65,7 +65,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 
 ## Help
 
-See the [Fairy-Stockfish Wiki](https://github.com/ianfab/Fairy-Stockfish/wiki) for more info, or if the required information is not available, open an [issue](https://github.com/ianfab/Fairy-Stockfish/issues).
+See the [Fairy-Stockfish Wiki](https://github.com/ianfab/Fairy-Stockfish/wiki) for more info, or if the required information is not available, open an [issue](https://github.com/ianfab/Fairy-Stockfish/issues) or join our [discord server](https://discord.gg/FYUGgmCFB4).
 
 ## Bindings
 
