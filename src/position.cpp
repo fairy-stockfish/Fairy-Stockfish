@@ -1388,10 +1388,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (Eval::useNNUE)
       {
           // Add drop piece
-          dp.piece[dp.dirty_num] = pc;
-          dp.from[dp.dirty_num] = SQ_NONE;
-          dp.to[dp.dirty_num] = to;
-          dp.dirty_num++;
+          dp.piece[0] = pc;
+          dp.from[0] = SQ_NONE;
+          dp.to[0] = to;
       }
 
       drop_piece(make_piece(us, in_hand_piece_type(m)), pc, to);
@@ -1433,7 +1432,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (type_of(pc) == PAWN)
   {
       // Set en-passant square if the moved pawn can be captured
-      if (   std::abs(int(to) - int(from)) == 2 * NORTH
+      if (   type_of(m) != DROP
+          && std::abs(int(to) - int(from)) == 2 * NORTH
           && (var->enPassantRegion & (to - pawn_push(us)))
           && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN)))
       {
