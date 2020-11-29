@@ -29,6 +29,7 @@
 #include "evaluate.h"
 #include "types.h"
 #include "variant.h"
+#include "movegen.h"
 
 #include "nnue/nnue_accumulator.h"
 
@@ -62,6 +63,7 @@ struct StateInfo {
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
   Bitboard   flippedPieces;
+  OptBool    legalCapture;
   bool       capturedpromoted;
   bool       shak;
   bool       bikjang;
@@ -134,6 +136,7 @@ public:
   bool checking_permitted() const;
   bool drop_checks() const;
   bool must_capture() const;
+  bool has_capture() const;
   bool must_drop() const;
   bool piece_drops() const;
   bool drop_loop() const;
@@ -490,6 +493,10 @@ inline bool Position::drop_checks() const {
 inline bool Position::must_capture() const {
   assert(var != nullptr);
   return var->mustCapture;
+}
+
+inline bool Position::has_capture() const {
+  return st->legalCapture == VALUE_TRUE || (st->legalCapture == NO_VALUE && MoveList<CAPTURES>(*this).size());
 }
 
 inline bool Position::must_drop() const {

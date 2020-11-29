@@ -504,6 +504,7 @@ void Position::set_check_info(StateInfo* si) const {
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
+  si->legalCapture = NO_VALUE;
 }
 
 
@@ -842,20 +843,30 @@ bool Position::legal(Move m) const {
       return false;
 
   // Illegal quiet moves
-  if (must_capture() && !capture(m))
+  if (must_capture() && !capture(m) && st->legalCapture != VALUE_FALSE)
   {
+      // Check for cached value
+      if (st->legalCapture == VALUE_TRUE)
+          return false;
       if (checkers())
       {
           for (const auto& mevasion : MoveList<EVASIONS>(*this))
               if (capture(mevasion) && legal(mevasion))
+              {
+                  st->legalCapture = VALUE_TRUE;
                   return false;
+              }
       }
       else
       {
           for (const auto& mcap : MoveList<CAPTURES>(*this))
               if (capture(mcap) && legal(mcap))
+              {
+                  st->legalCapture = VALUE_TRUE;
                   return false;
+              }
       }
+      st->legalCapture = VALUE_FALSE;
   }
 
   // Illegal non-drop moves
