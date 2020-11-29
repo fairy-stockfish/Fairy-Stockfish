@@ -767,6 +767,16 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 
 Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard janggiCannons) const {
 
+  // Use a faster version for variants with standard chess pieces
+  if (!var->isFairy && !var->isRestricted)
+  {
+      return  (pawn_attacks_bb(~c, s)          & pieces(c, PAWN))
+            | (attacks_bb<KNIGHT>(s)           & pieces(c, KNIGHT))
+            | (attacks_bb<  ROOK>(s, occupied) & pieces(c, ROOK, QUEEN))
+            | (attacks_bb<BISHOP>(s, occupied) & pieces(c, BISHOP, QUEEN))
+            | (attacks_bb<KING>(s)             & pieces(c, KING));
+  }
+
   Bitboard b = 0;
   for (PieceType pt : piece_types())
       if (board_bb(c, pt) & s)
