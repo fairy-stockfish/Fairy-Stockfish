@@ -54,7 +54,8 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp euroshogi startpos 5 9451149 > /dev/null
   expect perft.exp minishogi startpos 5 533203 > /dev/null
   expect perft.exp kyotoshogi startpos 5 225903 > /dev/null
-  expect perft.exp horde startpos 6 5396554 > /dev/null
+  expect perft.exp horde startpos 5 265223 > /dev/null
+  expect perft.exp horde "fen 4k3/7r/8/P7/2p1n2P/3p2P1/1P3P2/PPP1PPP1 w - - 0 1" 4 128809 > /dev/null
   expect perft.exp placement startpos 4 1597696 > /dev/null
   expect perft.exp sittuyin startpos 3 580096 > /dev/null
   expect perft.exp sittuyin "fen 8/8/6R1/s3r3/P5R1/1KP3p1/1F2kr2/8[] b - - 0 72" 4 652686 > /dev/null

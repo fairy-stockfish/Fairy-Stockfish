@@ -895,7 +895,7 @@ namespace {
                : ss->staticEval > (ss-2)->staticEval;
 
     // Skip early pruning in case of mandatory capture
-    if (pos.must_capture() && MoveList<CAPTURES>(pos).size())
+    if (pos.must_capture() && pos.has_capture())
         goto moves_loop;
 
     // Step 8. Futility pruning: child node (~50 Elo)
@@ -1250,7 +1250,7 @@ moves_loop: // When in check, search starts from here
               || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha
               || cutNode
               || thisThread->ttHitAverage < 427 * TtHitAverageResolution * TtHitAverageWindow / 1024)
-          && !(pos.must_capture() && (givesCheck || MoveList<CAPTURES>(pos).size())))
+          && !(pos.must_capture() && (givesCheck || pos.has_capture())))
       {
           Depth r = reduction(improving, depth, moveCount);
 

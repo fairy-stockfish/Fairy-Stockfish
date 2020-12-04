@@ -57,7 +57,8 @@ struct Variant {
   bool endgameEval = false;
   bool doubleStep = true;
   Rank doubleStepRank = RANK_2;
-  bool firstRankDoubleSteps = false;
+  Rank doubleStepRankMin = RANK_2;
+  Bitboard enPassantRegion = AllSquares;
   bool castling = true;
   bool castlingDroppedPiece = false;
   File castlingKingsideFile = FILE_G;
@@ -123,6 +124,10 @@ struct Variant {
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
 
+  // Derived properties
+  bool isFairy = true;
+  bool isRestricted = true;
+
   void add_piece(PieceType pt, char c, char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
       pieceToChar[make_piece(BLACK, pt)] = tolower(c);
@@ -143,6 +148,16 @@ struct Variant {
       pieceToChar = std::string(PIECE_NB, ' ');
       pieceToCharSynonyms = std::string(PIECE_NB, ' ');
       pieceTypes.clear();
+  }
+
+  // Pre-calculate derived properties
+  Variant* conclude() {
+      isFairy = std::any_of(pieceTypes.begin(), pieceTypes.end(), [](PieceType pt) { return pt >= FAIRY_PIECES && pt < KING; });
+      isRestricted = std::any_of(pieceTypes.begin(), pieceTypes.end(),
+                                 [this](PieceType pt) {
+                                     return mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt];
+                                 });
+      return this;
   }
 };
 

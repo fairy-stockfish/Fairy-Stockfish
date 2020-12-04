@@ -294,6 +294,10 @@ enum EnclosingRule {
   NO_ENCLOSING, REVERSI, ATAXX
 };
 
+enum OptBool {
+  NO_VALUE, VALUE_FALSE, VALUE_TRUE
+};
+
 enum Phase {
   PHASE_ENDGAME,
   PHASE_MIDGAME = 128,
