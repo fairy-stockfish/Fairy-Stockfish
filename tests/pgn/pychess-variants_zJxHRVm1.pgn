@@ -1,0 +1,15 @@
+[Event "PyChess casual game"]
+[Site "https://www.pychess.org/zJxHRVm1"]
+[Date "2020.05.28"]
+[Round "-"]
+[White "catask"]
+[Black "Fairy-Stockfish"]
+[Result "1-0"]
+[TimeControl "300+3"]
+[WhiteElo "1500?"]
+[BlackElo "1500?"]
+[Variant "Seirawan"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1"]
+[SetUp "1"]
+
+1. e4 d5 2. exd5 Qxd5/E 3. Nc3 Qf5 4. d4 Nf6 5. Nf3 Nc6 6. d5 Ne4 7. dxc6 Nc5 8. Qxd8/E# 1-0

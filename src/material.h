@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,10 +39,11 @@ struct Entry {
 
   Score imbalance() const { return make_score(value, value); }
   Phase game_phase() const { return gamePhase; }
+  int material_density() const { return materialDensity; }
   bool specialized_eval_exists() const { return evaluationFunction != nullptr; }
   Value evaluate(const Position& pos) const { return (*evaluationFunction)(pos); }
 
-  // scale_factor takes a position and a color as input and returns a scale factor
+  // scale_factor() takes a position and a color as input and returns a scale factor
   // for the given color. We have to provide the position in addition to the color
   // because the scale factor may also be a function which should be applied to
   // the position. For instance, in KBP vs K endgames, the scaling function looks
@@ -62,6 +61,7 @@ struct Entry {
   int16_t value;
   uint8_t factor[COLOR_NB];
   Phase gamePhase;
+  int materialDensity;
 };
 
 typedef HashTable<Entry, 8192> Table;

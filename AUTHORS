@@ -1,10 +1,17 @@
-# List of authors for Stockfish, as of January 7, 2020
+# List of authors for Stockfish, as of August 4, 2020
 
+# Founders of the Stockfish project and fishtest infrastructure
 Tord Romstad (romstad)
 Marco Costalba (mcostalba)
 Joona Kiiski (zamar)
 Gary Linscott (glinscott)
 
+# Authors and inventors of NNUE, training, NNUE port
+Yu Nasu (ynasu87)
+Motohiro Isozaki (yaneurao)
+Hisayori Noda (nodchip)
+
+# all other authors of the code in alphabetical order
 Aditya (absimaldata)
 Adrian Petrescu (apetresc)
 Ajith Chandy Jose (ajithcj)
@@ -12,6 +19,7 @@ Alain Savard (Rocky640)
 Alayan Feh (Alayan-stk-2)
 Alexander Kure
 Alexander Pagel (Lolligerhans)
+Alfredo Menezes (lonfom169)
 Ali AlZhrani (Cooffe)
 Andrew Grant (AndyGrant)
 Andrey Neporada (nepal)
@@ -29,27 +37,34 @@ Bryan Cross (crossbr)
 candirufish
 Chess13234
 Chris Cain (ceebo)
+Dale Weiler (graphitemaster)
 Dan Schmidt (dfannius)
 Daniel Axtens (daxtens)
 Daniel Dugovic (ddugovic)
-Dariusz Orzechowski
+Dariusz Orzechowski (dorzechowski)
 David Zar
 Daylen Yang (daylen)
 DiscanX
+Dominik Schlösser (domschl)
 double-beep
 Eduardo Cáceres (eduherminio)
 Eelco de Groot (KingDefender)
 Elvin Liu (solarlight2)
 erbsenzaehler
 Ernesto Gatti
+Linmiao Xu (linrock)
 Fabian Beuke (madnight)
 Fabian Fichter (ianfab)
+Fanael Linithien (Fanael)
 fanon
 Fauzi Akram Dabat (FauziAkram)
 Felix Wittmann
 gamander
+Gary Heckman (gheckman)
+George Sobala (gsobala)
 gguliash
 Gian-Carlo Pascutto (gcp)
+Deshawn Mohan-Smith (GoldenRare)
 Gontran Lemaire (gonlem)
 Goodkov Vasiliy Aleksandrovich (goodkov)
 Gregor Cramer
@@ -69,8 +84,9 @@ Jean Gauthier (OuaisBla)
 Jean-Francois Romang (jromang)
 Jekaa
 Jerry Donald Watson (jerrydonaldwatson)
+jjoshua2
 Jonathan Calovski (Mysseno)
-Jonathan Dumale (SFisGOD)
+Jonathan Buladas Dumale (SFisGOD)
 Joost VandeVondele (vondele)
 Jörg Oster (joergoster)
 Joseph Ellis (jhellis3)
@@ -113,6 +129,9 @@ Nick Pelling (nickpelling)
 Nicklas Persson (NicklasPersson)
 Niklas Fiekas (niklasf)
 Nikolay Kostov (NikolayIT)
+Nguyen Pham (nguyenpham)
+Norman Schmidt (FireFather)
+notruck
 Ondrej Mosnáček (WOnder93)
 Oskar Werkelin Ahlin
 Pablo Vazquez
@@ -122,6 +141,8 @@ Pasquale Pigazzini (ppigazzini)
 Patrick Jansen (mibere)
 pellanda
 Peter Zsifkovits (CoffeeOne)
+Praveen Kumar Tummala (praveentml)
+Rahul Dsilva (silversolver1)
 Ralph Stößer (Ralph Stoesser)
 Raminder Singh
 renouve
@@ -130,14 +151,17 @@ Richard Lloyd
 Rodrigo Exterckötter Tjäder
 Ron Britvich (Britvich)
 Ronald de Man (syzygy1, syzygy)
+rqs
 Ryan Schmitt
 Ryan Takker
 Sami Kiminki (skiminki)
 Sebastian Buchwald (UniQP)
 Sergei Antonov (saproj)
 Sergei Ivanov (svivanov72)
+Sergio Vieri (sergiovieri)
 sf-x
 Shane Booth (shane31)
+Shawn Varghese (xXH4CKST3RXx)
 Stefan Geschwentner (locutus2)
 Stefano Cardanobile (Stefano80)
 Steinar Gunderson (sesse)
@@ -147,17 +171,17 @@ thaspel
 theo77186
 Tom Truscott
 Tom Vijlbrief (tomtor)
+Tomasz Sobczyk (Sopel97)
 Torsten Franz (torfranz, tfranzer)
 Tracey Emery (basepr1me)
+tttak
+Unai Corzo (unaiic)
 Uri Blass (uriblass)
 Vince Negri (cuddlestmonkey)
+zz4032
 
 
 # Additionally, we acknowledge the authors and maintainers of fishtest,
 # an amazing and essential framework for the development of Stockfish!
 #
 # https://github.com/glinscott/fishtest/blob/master/AUTHORS
-
-
-
-

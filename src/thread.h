@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -56,7 +54,6 @@ public:
   void idle_loop();
   void start_searching();
   void wait_for_search_finished();
-  int best_move_count(Move move);
 
   Pawns::Table pawnsTable;
   Material::Table materialTable;
@@ -67,13 +64,16 @@ public:
   std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
 
   Position rootPos;
+  StateInfo rootState;
   Search::RootMoves rootMoves;
   Depth rootDepth, completedDepth;
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
+  LowPlyHistory lowPlyHistory;
   CapturePieceToHistory captureHistory;
   ContinuationHistory continuationHistory[2][2];
   Score contempt;
+  int failedHighCnt;
 };
 
 
@@ -87,7 +87,7 @@ struct MainThread : public Thread {
   void check_time();
 
   double previousTimeReduction;
-  Value previousScore;
+  Value bestPreviousScore;
   Value iterValue[4];
   int callsCnt;
   bool stopOnPonderhit;
@@ -109,6 +109,9 @@ struct ThreadPool : public std::vector<Thread*> {
   MainThread* main()        const { return static_cast<MainThread*>(front()); }
   uint64_t nodes_searched() const { return accumulate(&Thread::nodes); }
   uint64_t tb_hits()        const { return accumulate(&Thread::tbHits); }
+  Thread* get_best_thread() const;
+  void start_searching();
+  void wait_for_search_finished() const;
 
   std::atomic_bool stop, increaseDepth;
   std::atomic_bool abort, sit;

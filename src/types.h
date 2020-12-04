@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,7 +38,6 @@
 
 #include <cassert>
 #include <cctype>
-#include <climits>
 #include <cstdint>
 #include <cstdlib>
 #include <algorithm>
@@ -51,6 +48,7 @@
 #pragma warning(disable: 4146) // Unary minus operator applied to unsigned type
 #pragma warning(disable: 4800) // Forcing value to bool 'true' or 'false'
 #pragma comment(linker, "/STACK:8000000") // Use 8 MB stack size for MSVC
+#pragma comment(lib, "advapi32.lib") // Fix linker error
 #endif
 
 /// Predefined macros hell:
@@ -60,6 +58,12 @@
 /// _MSC_VER           Compiler is MSVC or Intel on Windows
 /// _WIN32             Building on Windows (any)
 /// _WIN64             Building on Windows 64 bit
+
+#if defined(__GNUC__ ) && (__GNUC__ < 9 || (__GNUC__ == 9 && __GNUC_MINOR__ <= 2)) && defined(_WIN32) && !defined(__clang__)
+#define ALIGNAS_ON_STACK_VARIABLES_BROKEN
+#endif
+
+#define ASSERT_ALIGNED(ptr, alignment) assert(reinterpret_cast<uintptr_t>(ptr) % alignment == 0)
 
 #if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
 #  include <intrin.h> // Microsoft header for _BitScanForward64()
@@ -217,7 +221,11 @@ typedef uint64_t Bitboard;
 constexpr int SQUARE_BITS = 6;
 #endif
 
+#ifdef ALLVARS
+constexpr int MAX_MOVES = 4096;
+#else
 constexpr int MAX_MOVES = 1024;
+#endif
 constexpr int MAX_PLY   = 246;
 
 /// A move needs 16 bits to be stored
@@ -275,11 +283,15 @@ enum CheckCount : int {
 };
 
 enum MaterialCounting {
-  NO_MATERIAL_COUNTING, JANGGI_MATERIAL, UNWEIGHTED_MATERIAL
+  NO_MATERIAL_COUNTING, JANGGI_MATERIAL, UNWEIGHTED_MATERIAL, WHITE_DRAW_ODDS, BLACK_DRAW_ODDS
 };
 
 enum CountingRule {
   NO_COUNTING, MAKRUK_COUNTING, ASEAN_COUNTING
+};
+
+enum EnclosingRule {
+  NO_ENCLOSING, REVERSI, ATAXX
 };
 
 enum Phase {
@@ -311,20 +323,22 @@ enum Value : int {
   VALUE_INFINITE  = 32001,
   VALUE_NONE      = 32002,
 
-  VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - 2 * MAX_PLY,
-  VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
+  VALUE_TB_WIN_IN_MAX_PLY  =  VALUE_MATE - 2 * MAX_PLY,
+  VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY,
+  VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - MAX_PLY,
+  VALUE_MATED_IN_MAX_PLY = -VALUE_MATE_IN_MAX_PLY,
 
-  PawnValueMg   = 128,   PawnValueEg   = 213,
+  PawnValueMg   = 126,   PawnValueEg   = 208,
   KnightValueMg = 781,   KnightValueEg = 854,
   BishopValueMg = 825,   BishopValueEg = 915,
   RookValueMg   = 1276,  RookValueEg   = 1380,
   QueenValueMg  = 2538,  QueenValueEg  = 2682,
   FersValueMg              = 420,   FersValueEg              = 450,
-  AlfilValueMg             = 330,   AlfilValueEg             = 300,
+  AlfilValueMg             = 350,   AlfilValueEg             = 330,
   FersAlfilValueMg         = 700,   FersAlfilValueEg         = 650,
   SilverValueMg            = 630,   SilverValueEg            = 630,
   AiwokValueMg             = 2300,  AiwokValueEg             = 2700,
-  BersValueMg              = 2000,  BersValueEg              = 2000,
+  BersValueMg              = 1900,  BersValueEg              = 2000,
   ArchbishopValueMg        = 2200,  ArchbishopValueEg        = 2200,
   ChancellorValueMg        = 2300,  ChancellorValueEg        = 2600,
   AmazonValueMg            = 2700,  AmazonValueEg            = 2850,
@@ -333,14 +347,16 @@ enum Value : int {
   KnirooValueMg            = 1050,  KnirooValueEg            = 1250,
   RookniValueMg            = 800,   RookniValueEg            = 950,
   ShogiPawnValueMg         =  90,   ShogiPawnValueEg         = 100,
-  LanceValueMg             = 350,   LanceValueEg             = 250,
-  ShogiKnightValueMg       = 350,   ShogiKnightValueEg       = 300,
+  LanceValueMg             = 360,   LanceValueEg             = 250,
+  ShogiKnightValueMg       = 360,   ShogiKnightValueEg       = 300,
   EuroShogiKnightValueMg   = 400,   EuroShogiKnightValueEg   = 400,
-  GoldValueMg              = 640,   GoldValueEg              = 640,
+  GoldValueMg              = 660,   GoldValueEg              = 640,
   DragonHorseValueMg       = 1500,  DragonHorseValueEg       = 1500,
   ClobberPieceValueMg      = 300,   ClobberPieceValueEg      = 300,
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
-  ImmobilePieceValueMg     = 100,   ImmobilePieceValueEg     = 100,
+  ImmobilePieceValueMg     = 50,    ImmobilePieceValueEg     = 50,
+  AtaxxPieceValueMg        = 100,   AtaxxPieceValueEg        = 100,
+  QuietQueenPieceValueMg   = 400,   QuietQueenPieceValueEg   = 400,
   CannonPieceValueMg       = 800,   CannonPieceValueEg       = 700,
   JanggiCannonPieceValueMg = 800,   JanggiCannonPieceValueEg = 600,
   SoldierValueMg           = 200,   SoldierValueEg           = 270,
@@ -351,6 +367,7 @@ enum Value : int {
   WazirValueMg             = 400,   WazirValueEg             = 350,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
   CentaurValueMg           = 1800,  CentaurValueEg           = 1900,
+  Tempo = 28,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
@@ -362,10 +379,11 @@ enum PieceType {
   FERS, MET = FERS, ALFIL, FERS_ALFIL, SILVER, KHON = SILVER, AIWOK, BERS, DRAGON = BERS,
   ARCHBISHOP, CHANCELLOR, AMAZON, KNIBIS, BISKNI, KNIROO, ROOKNI,
   SHOGI_PAWN, LANCE, SHOGI_KNIGHT, EUROSHOGI_KNIGHT, GOLD, DRAGON_HORSE,
-  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, JANGGI_CANNON,
+  CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, ATAXX_PIECE, QUIET_QUEEN, CANNON, JANGGI_CANNON,
   SOLDIER, HORSE, ELEPHANT, JANGGI_ELEPHANT, BANNER,
   WAZIR, COMMONER, CENTAUR, KING,
   ALL_PIECES = 0,
+  FAIRY_PIECES = FERS,
 
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS
 };
@@ -394,18 +412,70 @@ enum RiderType {
   ASYMMETRICAL_RIDERS = RIDER_HORSE | RIDER_JANGGI_ELEPHANT,
 };
 
-extern Value PieceValue[PHASE_NB][PIECE_NB];
+constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg,
+    FersValueMg, AlfilValueMg, FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg,
+    ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg, BiskniValueMg, KnirooValueMg, RookniValueMg,
+    ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, DragonHorseValueMg,
+    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, AtaxxPieceValueMg, QuietQueenPieceValueMg,
+    CannonPieceValueMg, JanggiCannonPieceValueMg, SoldierValueMg, HorseValueMg, ElephantValueMg, JanggiElephantValueMg, BannerValueMg,
+    WazirValueMg, CommonerValueMg, CentaurValueMg, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg,
+    FersValueMg, AlfilValueMg, FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg,
+    ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg, BiskniValueMg, KnirooValueMg, RookniValueMg,
+    ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg, DragonHorseValueMg,
+    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, AtaxxPieceValueMg, QuietQueenPieceValueMg,
+    CannonPieceValueMg, JanggiCannonPieceValueMg, SoldierValueMg, HorseValueMg, ElephantValueMg, JanggiElephantValueMg, BannerValueMg,
+    WazirValueMg, CommonerValueMg, CentaurValueMg, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg,
+    FersValueEg, AlfilValueEg, FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg,
+    ArchbishopValueMg, ChancellorValueEg, AmazonValueEg, KnibisValueMg, BiskniValueMg, KnirooValueEg, RookniValueEg,
+    ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, DragonHorseValueEg,
+    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, AtaxxPieceValueEg, QuietQueenPieceValueEg,
+    CannonPieceValueEg, JanggiCannonPieceValueEg, SoldierValueEg, HorseValueEg, ElephantValueEg, JanggiElephantValueEg, BannerValueEg,
+    WazirValueEg, CommonerValueEg, CentaurValueEg, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg,
+    FersValueEg, AlfilValueEg, FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg,
+    ArchbishopValueMg, ChancellorValueEg, AmazonValueEg, KnibisValueMg, BiskniValueMg, KnirooValueEg, RookniValueEg,
+    ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg, DragonHorseValueEg,
+    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, AtaxxPieceValueEg, QuietQueenPieceValueEg,
+    CannonPieceValueEg, JanggiCannonPieceValueEg, SoldierValueEg, HorseValueEg, ElephantValueEg, JanggiElephantValueEg, BannerValueEg,
+    WazirValueEg, CommonerValueEg, CentaurValueEg, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO }
+};
+
+static_assert(   PieceValue[MG][PIECE_TYPE_NB + 1] == PawnValueMg
+              && PieceValue[EG][PIECE_TYPE_NB + 1] == PawnValueEg, "PieceValue array broken");
 
 typedef int Depth;
 
 enum : int {
-
   DEPTH_QS_CHECKS     =  0,
   DEPTH_QS_NO_CHECKS  = -1,
   DEPTH_QS_RECAPTURES = -5,
 
   DEPTH_NONE   = -6,
-  DEPTH_OFFSET = DEPTH_NONE,
+
+  DEPTH_OFFSET = -7 // value used only for TT entry occupancy check
 };
 
 enum Square : int {
@@ -432,6 +502,7 @@ enum Square : int {
 #endif
   SQ_NONE,
 
+  SQUARE_ZERO = 0,
 #ifdef LARGEBOARDS
   SQUARE_NB = 120,
   SQUARE_BIT_MASK = 127,
@@ -439,7 +510,8 @@ enum Square : int {
   SQUARE_NB = 64,
   SQUARE_BIT_MASK = 63,
 #endif
-  SQ_MAX = SQUARE_NB - 1
+  SQ_MAX = SQUARE_NB - 1,
+  SQUARE_NB_CHESS = 64
 };
 
 enum Direction : int {
@@ -478,6 +550,21 @@ enum Rank : int {
   RANK_MAX = RANK_NB - 1
 };
 
+// Keep track of what a move changes on the board (used by NNUE)
+struct DirtyPiece {
+
+  // Number of changed pieces
+  int dirty_num;
+
+  // Max 3 pieces can change in one move. A promotion with capture moves
+  // both the pawn and the captured piece to SQ_NONE and the piece promoted
+  // to from SQ_NONE to the capture square.
+  Piece piece[3];
+
+  // From and to squares, which may be SQ_NONE
+  Square from[3];
+  Square to[3];
+};
 
 /// Score enum stores a middlegame and an endgame value in a single integer (enum).
 /// The least significant 16 bits are used to store the middlegame value and the
@@ -512,11 +599,11 @@ inline T& operator&= (T& d1, T d2) { return (T&)((int&)d1 &= (int)d2); }  \
 inline T& operator^= (T& d1, T d2) { return (T&)((int&)d1 ^= (int)d2); }
 
 #define ENABLE_BASE_OPERATORS_ON(T)                                \
-constexpr T operator+(T d1, T d2) { return T(int(d1) + int(d2)); } \
-constexpr T operator-(T d1, T d2) { return T(int(d1) - int(d2)); } \
+constexpr T operator+(T d1, int d2) { return T(int(d1) + d2); }    \
+constexpr T operator-(T d1, int d2) { return T(int(d1) - d2); }    \
 constexpr T operator-(T d) { return T(-int(d)); }                  \
-inline T& operator+=(T& d1, T d2) { return d1 = d1 + d2; }         \
-inline T& operator-=(T& d1, T d2) { return d1 = d1 - d2; }
+inline T& operator+=(T& d1, int d2) { return d1 = d1 + d2; }       \
+inline T& operator-=(T& d1, int d2) { return d1 = d1 - d2; }
 
 #define ENABLE_INCR_OPERATORS_ON(T)                                \
 inline T& operator++(T& d) { return d = T(int(d) + 1); }           \
@@ -534,8 +621,8 @@ inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
 ENABLE_FULL_OPERATORS_ON(Value)
 ENABLE_FULL_OPERATORS_ON(Direction)
 
-ENABLE_INCR_OPERATORS_ON(PieceType)
 ENABLE_INCR_OPERATORS_ON(Piece)
+ENABLE_INCR_OPERATORS_ON(PieceType)
 ENABLE_INCR_OPERATORS_ON(Square)
 ENABLE_INCR_OPERATORS_ON(File)
 ENABLE_INCR_OPERATORS_ON(Rank)
@@ -549,12 +636,6 @@ ENABLE_BIT_OPERATORS_ON(RiderType)
 #undef ENABLE_INCR_OPERATORS_ON
 #undef ENABLE_BASE_OPERATORS_ON
 #undef ENABLE_BIT_OPERATORS_ON
-
-/// Additional operators to add integers to a Value
-constexpr Value operator+(Value v, int i) { return Value(int(v) + i); }
-constexpr Value operator-(Value v, int i) { return Value(int(v) - i); }
-inline Value& operator+=(Value& v, int i) { return v = v + i; }
-inline Value& operator-=(Value& v, int i) { return v = v - i; }
 
 /// Additional operators to add a Direction to a Square
 constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d)); }
@@ -585,27 +666,23 @@ inline Score operator*(Score s, int i) {
 
 /// Multiplication of a Score by a boolean
 inline Score operator*(Score s, bool b) {
-  return Score(int(s) * int(b));
+  return b ? s : SCORE_ZERO;
 }
 
 constexpr Color operator~(Color c) {
   return Color(c ^ BLACK); // Toggle color
 }
 
-constexpr Square operator~(Square s) {
-#ifdef LARGEBOARDS
-  return Square(s - FILE_NB * (s / FILE_NB * 2 - RANK_MAX)); // Vertical flip SQ_A1 -> SQ_A10
-#else
-  return Square(s ^ SQ_A8); // Vertical flip SQ_A1 -> SQ_A8
-#endif
+constexpr Square flip_rank(Square s, Rank maxRank = RANK_8) { // Swap A1 <-> A8
+  return Square(s + NORTH * (maxRank - 2 * (s / NORTH)));
+}
+
+constexpr Square flip_file(Square s, File maxFile = FILE_H) { // Swap A1 <-> H1
+  return Square(s + maxFile - 2 * (s % NORTH));
 }
 
 constexpr Piece operator~(Piece pc) {
-  return Piece(pc ^ PIECE_TYPE_NB); // Swap color of piece BLACK KNIGHT -> WHITE KNIGHT
-}
-
-inline File map_to_queenside(File f) {
-  return std::min(f, File(FILE_H - f)); // Map files ABCDEFGH to files ABCDDCBA
+  return Piece(pc ^ PIECE_TYPE_NB);  // Swap color of piece B_KNIGHT <-> W_KNIGHT
 }
 
 constexpr CastlingRights operator&(Color c, CastlingRights cr) {
@@ -742,8 +819,15 @@ inline bool is_ok(Move m) {
 }
 
 inline int dist(Direction d) {
-  return std::abs(d % NORTH) < NORTH / 2 ? std::max(std::abs(d / NORTH), std::abs(d % NORTH))
-      : std::max(std::abs(d / NORTH) + 1, NORTH - std::abs(d % NORTH));
+  return std::abs(d % NORTH) < NORTH / 2 ? std::max(std::abs(d / NORTH), int(std::abs(d % NORTH)))
+      : std::max(std::abs(d / NORTH) + 1, int(NORTH - std::abs(d % NORTH)));
+}
+
+/// Based on a congruential pseudo random number generator
+constexpr Key make_key(uint64_t seed) {
+  return seed * 6364136223846793005ULL + 1442695040888963407ULL;
 }
 
 #endif // #ifndef TYPES_H_INCLUDED
+
+#include "tune.h" // Global visibility to tuning setup

@@ -4,12 +4,15 @@ from setuptools import setup, Extension
 from glob import glob
 import platform
 import io
+import os
 
 
-args = ["-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-flto", "-std=c++11"]
+if platform.python_compiler().startswith("MSC"):
+    args = ["/std:c++17"]
+else:
+    args = ["-std=c++17", "-flto", "-Wno-date-time"]
 
-if not platform.python_compiler().startswith("MSC"):
-    args.append("-Wno-date-time")
+args.extend(["-DLARGEBOARDS", "-DPRECOMPUTED_MAGICS", "-DNNUE_EMBEDDING_OFF"])
 
 if "64bit" in platform.architecture():
     args.append("-DIS_64BIT")
@@ -21,15 +24,22 @@ CLASSIFIERS = [
     "Operating System :: OS Independent",
 ]
 
-with io.open("Readme.md", "r", encoding="utf8") as fh:
+with io.open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read().strip()
+
+sources = glob("src/*.cpp") + glob("src/syzygy/*.cpp") + glob("src/nnue/*.cpp") + glob("src/nnue/features/*.cpp")
+ffish_source_file = os.path.normcase("src/ffishjs.cpp")
+try:
+    sources.remove(ffish_source_file)
+except ValueError:
+    print(f"ffish_source_file {ffish_source_file} was not found in sources {sources}.")
 
 pyffish_module = Extension(
     "pyffish",
-    sources=glob("src/*.cpp") + glob("src/syzygy/*.cpp"),
+    sources=sources,
     extra_compile_args=args)
 
-setup(name="pyffish", version="0.0.50",
+setup(name="pyffish", version="0.0.52",
       description="Fairy-Stockfish Python wrapper",
       long_description=long_description,
       long_description_content_type="text/markdown",

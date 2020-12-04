@@ -62,6 +62,8 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp sittuyin "fen 8/6s1/5P2/3n4/pR2K2S/1P6/1k4p1/8[] w - - 1 50" 4 268869 > /dev/null
   expect perft.exp seirawan startpos 5 27639803 > /dev/null
   expect perft.exp seirawan "fen reb1k2r/ppppqppp/2nb1n2/4p3/4P3/N1P2N2/PB1PQPPP/RE2KBHR[h] b KQkqc - 3 7" 5 31463761 > /dev/null
+  expect perft.exp ataxx startpos 4 155888 > /dev/null
+  expect perft.exp ataxx "fen 7/7/7/7/ppppppp/ppppppp/PPPPPPP[PPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppp] w 0 1" 5 452980 > /dev/null
 fi
 
 # large-board variants
@@ -79,6 +81,7 @@ if [[ $1 == "largeboard" ]]; then
   expect perft.exp janggi startpos 4 1065277 > /dev/null
   expect perft.exp janggi "fen 1n1kaabn1/cr2N4/5C1c1/p1pNp3p/9/9/P1PbP1P1P/3r1p3/4A4/R1BA1KB1R b - - 0 1" 4 76763 > /dev/null
   expect perft.exp janggi "fen 1Pbcka3/3nNn1c1/N2CaC3/1pB6/9/9/5P3/9/4K4/9 w - - 0 23" 4 151202 > /dev/null
+  expect perft.exp amazons startpos 1 2176 > /dev/null
 fi
 
 rm perft.exp

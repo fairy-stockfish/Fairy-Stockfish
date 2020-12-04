@@ -179,44 +179,44 @@ namespace {
       PieceInfo* p = bishop_piece();
       p->name = "knibis";
       p->betza = "mNcB";
+      p->sliderQuiet.clear();
       PieceInfo* p2 = knight_piece();
+      p2->stepsCapture.clear();
       p->merge(p2);
       delete p2;
-      p->stepsCapture = {};
-      p->sliderQuiet = {};
       return p;
   }
   PieceInfo* biskni_piece() {
       PieceInfo* p = bishop_piece();
       p->name = "biskni";
       p->betza = "mBcN";
+      p->sliderCapture.clear();
       PieceInfo* p2 = knight_piece();
+      p2->stepsQuiet.clear();
       p->merge(p2);
       delete p2;
-      p->stepsQuiet = {};
-      p->sliderCapture = {};
       return p;
   }
   PieceInfo* kniroo_piece() {
       PieceInfo* p = rook_piece();
       p->name = "kniroo";
       p->betza = "mNcR";
+      p->sliderQuiet.clear();
       PieceInfo* p2 = knight_piece();
+      p2->stepsCapture.clear();
       p->merge(p2);
       delete p2;
-      p->stepsCapture = {};
-      p->sliderQuiet = {};
       return p;
   }
   PieceInfo* rookni_piece() {
       PieceInfo* p = rook_piece();
       p->name = "rookni";
       p->betza = "mRcN";
+      p->sliderCapture.clear();
       PieceInfo* p2 = knight_piece();
+      p2->stepsQuiet.clear();
       p->merge(p2);
       delete p2;
-      p->stepsQuiet = {};
-      p->sliderCapture = {};
       return p;
   }
   PieceInfo* shogi_pawn_piece() {
@@ -274,7 +274,7 @@ namespace {
       PieceInfo* p = wazir_piece();
       p->name = "clobber";
       p->betza = "cW";
-      p->stepsQuiet = {};
+      p->stepsQuiet.clear();
       return p;
   }
   PieceInfo* breakthrough_piece() {
@@ -288,6 +288,22 @@ namespace {
   PieceInfo* immobile_piece() {
       PieceInfo* p = new PieceInfo();
       p->name = "immobile";
+      return p;
+  }
+  PieceInfo* ataxx_piece() {
+      PieceInfo* p = new PieceInfo();
+      p->name = "ataxx";
+      p->betza = "mDNA";
+      p->stepsQuiet = {2 * NORTH_WEST, 2 * NORTH + WEST, 2 * NORTH, 2 * NORTH + EAST, 2 * NORTH_EAST,
+                       NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * WEST, 2 * EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
+                       2 * SOUTH_WEST, 2 * SOUTH + WEST, 2 * SOUTH, 2 * SOUTH + EAST, 2 * SOUTH_EAST};
+      return p;
+  }
+  PieceInfo* quiet_queen_piece() {
+      PieceInfo* p = queen_piece();
+      p->name = "quietQueen";
+      p->betza = "mQ";
+      p->sliderCapture.clear();
       return p;
   }
   PieceInfo* cannon_piece() {
@@ -393,6 +409,8 @@ void PieceMap::init() {
   add(CLOBBER_PIECE, clobber_piece());
   add(BREAKTHROUGH_PIECE, breakthrough_piece());
   add(IMMOBILE_PIECE, immobile_piece());
+  add(ATAXX_PIECE, ataxx_piece());
+  add(QUIET_QUEEN, quiet_queen_piece());
   add(CANNON, cannon_piece());
   add(JANGGI_CANNON, janggi_cannon_piece());
   add(SOLDIER, soldier_piece());

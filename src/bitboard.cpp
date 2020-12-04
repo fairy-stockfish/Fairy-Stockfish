@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -148,6 +146,16 @@ namespace {
     }
     return b;
   }
+
+}
+
+
+/// safe_destination() returns the bitboard of target square for the given step
+/// from the given square. If the step is off the board, returns empty bitboard.
+
+inline Bitboard safe_destination(Square s, int step) {
+    Square to = Square(s + step);
+    return is_ok(to) && distance(s, to) <= 3 ? square_bb(to) : Bitboard(0);
 }
 
 
@@ -163,8 +171,9 @@ const std::string Bitboards::pretty(Bitboard b) {
       for (File f = FILE_A; f <= FILE_MAX; ++f)
           s += b & make_square(f, r) ? "| X " : "|   ";
 
-      s += "|\n+---+---+---+---+---+---+---+---+---+---+---+---+\n";
+      s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+---+---+---+---+\n";
   }
+  s += "  a   b   c   d   e   f   g   h   i   j   k\n";
 
   return s;
 }
@@ -248,7 +257,7 @@ void Bitboards::init() {
   }
 
   for (unsigned i = 0; i < (1 << 16); ++i)
-      PopCnt16[i] = std::bitset<16>(i).count();
+      PopCnt16[i] = uint8_t(std::bitset<16>(i).count());
 
   for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       SquareBB[s] = make_bitboard(s);
@@ -290,25 +299,15 @@ void Bitboards::init() {
           {
               for (Direction d : pi->stepsCapture)
               {
-                  Square to = s + Direction(c == WHITE ? d : -d);
-
-                  if (is_ok(to) && distance(s, to) < 4)
-                  {
-                      PseudoAttacks[c][pt][s] |= to;
-                      if (!pi->lameLeaper)
-                          LeaperAttacks[c][pt][s] |= to;
-                  }
+                  PseudoAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
+                  if (!pi->lameLeaper)
+                      LeaperAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
               }
               for (Direction d : pi->stepsQuiet)
               {
-                  Square to = s + Direction(c == WHITE ? d : -d);
-
-                  if (is_ok(to) && distance(s, to) < 4)
-                  {
-                      PseudoMoves[c][pt][s] |= to;
-                      if (!pi->lameLeaper)
-                          LeaperMoves[c][pt][s] |= to;
-                  }
+                  PseudoMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
+                  if (!pi->lameLeaper)
+                      LeaperMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
               }
               PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->sliderCapture, s, 0, c);
               PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->hopperCapture, s, 0, c);

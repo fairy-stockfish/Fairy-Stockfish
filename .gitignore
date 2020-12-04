@@ -1,3 +1,8 @@
 stockfish
 *.o
 .depend
+tests/js/node_modules
+ffish.js
+*.wasm
+*.nnue
+*.exe
