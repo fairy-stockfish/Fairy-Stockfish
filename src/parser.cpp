@@ -240,7 +240,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("endgameEval", v->endgameEval);
     parse_attribute("doubleStep", v->doubleStep);
     parse_attribute("doubleStepRank", v->doubleStepRank);
-    parse_attribute("firstRankDoubleSteps", v->firstRankDoubleSteps);
+    parse_attribute("doubleStepRankMin", v->doubleStepRankMin);
+    parse_attribute("enPassantRegion", v->enPassantRegion);
     parse_attribute("castling", v->castling);
     parse_attribute("castlingDroppedPiece", v->castlingDroppedPiece);
     parse_attribute("castlingKingsideFile", v->castlingKingsideFile);

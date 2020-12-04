@@ -278,10 +278,13 @@ namespace {
         v->extinctionPieceCount = 2;
         return v;
     }
+    // Horde chess
+    // https://en.wikipedia.org/wiki/Dunsany%27s_chess#Horde_chess
     Variant* horde_variant() {
         Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
-        v->firstRankDoubleSteps = true;
+        v->doubleStepRankMin = RANK_1;
+        v->enPassantRegion = Rank3BB | Rank6BB; // exclude en passant on second rank
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {ALL_PIECES};
         return v;
@@ -608,7 +611,6 @@ namespace {
         v->add_piece(BREAKTHROUGH_PIECE, 'p');
         v->startFen = "pppppppp/pppppppp/8/8/8/8/PPPPPPPP/PPPPPPPP w 0 1";
         v->promotionPieceTypes = {};
-        v->firstRankDoubleSteps = false;
         v->doubleStep = false;
         v->castling = false;
         v->stalemateValue = -VALUE_MATE;
@@ -821,6 +823,7 @@ namespace {
         v->mandatoryPawnPromotion = false;
         v->immobilityIllegal = true;
         v->doubleStepRank = RANK_3;
+        v->doubleStepRankMin = RANK_3;
         v->castling = false;
         return v;
     }
@@ -838,6 +841,7 @@ namespace {
         v->castlingQueensideFile = FILE_D;
         v->castlingRank = RANK_2;
         v->doubleStepRank = RANK_3;
+        v->doubleStepRankMin = RANK_3;
         return v;
     }
     Variant* clobber10_variant() {
@@ -965,90 +969,90 @@ namespace {
 
 void VariantMap::init() {
     // Add to UCI_Variant option
-    add("chess", chess_variant());
-    add("normal", chess_variant());
-    add("fischerandom", chess960_variant());
-    add("nocastle", nocastle_variant());
-    add("armageddon", armageddon_variant());
-    add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
-    add("makruk", makruk_variant());
-    add("makpong", makpong_variant());
-    add("cambodian", cambodian_variant());
-    add("karouk", karouk_variant());
-    add("asean", asean_variant());
-    add("ai-wok", aiwok_variant());
-    add("shatranj", shatranj_variant());
-    add("chaturanga", chaturanga_variant());
-    add("amazon", amazon_variant());
-    add("hoppelpoppel", hoppelpoppel_variant());
-    add("newzealand", newzealand_variant());
-    add("kingofthehill", kingofthehill_variant());
-    add("racingkings", racingkings_variant());
-    add("knightmate", knightmate_variant());
-    add("losers", losers_variant());
-    add("giveaway", giveaway_variant());
-    add("antichess", antichess_variant());
-    add("suicide", suicide_variant());
-    add("codrus", codrus_variant());
-    add("extinction", extinction_variant());
-    add("kinglet", kinglet_variant());
-    add("threekings", threekings_variant());
-    add("horde", horde_variant());
-    add("3check", threecheck_variant());
-    add("5check", fivecheck_variant());
-    add("crazyhouse", crazyhouse_variant());
-    add("loop", loop_variant());
-    add("chessgi", chessgi_variant());
-    add("bughouse", bughouse_variant());
-    add("koedem", koedem_variant());
-    add("pocketknight", pocketknight_variant());
-    add("placement", placement_variant());
-    add("sittuyin", sittuyin_variant());
-    add("seirawan", seirawan_variant());
-    add("shouse", shouse_variant());
-    add("minishogi", minishogi_variant());
-    add("mini", minishogi_variant());
-    add("kyotoshogi", kyotoshogi_variant());
-    add("micro", microshogi_variant());
-    add("dobutsu", dobutsu_variant());
-    add("gorogoro", gorogoroshogi_variant());
-    add("judkins", judkinsshogi_variant());
-    add("euroshogi", euroshogi_variant());
-    add("losalamos", losalamos_variant());
-    add("gardner", gardner_variant());
-    add("almost", almost_variant());
-    add("chigorin", chigorin_variant());
-    add("shatar", shatar_variant());
-    add("clobber", clobber_variant());
-    add("breakthrough", breakthrough_variant());
-    add("ataxx", ataxx_variant());
-    add("minixiangqi", minixiangqi_variant());
+    add("chess", chess_variant()->conclude());
+    add("normal", chess_variant()->conclude());
+    add("fischerandom", chess960_variant()->conclude());
+    add("nocastle", nocastle_variant()->conclude());
+    add("armageddon", armageddon_variant()->conclude());
+    add("fairy", fairy_variant()->conclude()); // fairy variant used for endgame code initialization
+    add("makruk", makruk_variant()->conclude());
+    add("makpong", makpong_variant()->conclude());
+    add("cambodian", cambodian_variant()->conclude());
+    add("karouk", karouk_variant()->conclude());
+    add("asean", asean_variant()->conclude());
+    add("ai-wok", aiwok_variant()->conclude());
+    add("shatranj", shatranj_variant()->conclude());
+    add("chaturanga", chaturanga_variant()->conclude());
+    add("amazon", amazon_variant()->conclude());
+    add("hoppelpoppel", hoppelpoppel_variant()->conclude());
+    add("newzealand", newzealand_variant()->conclude());
+    add("kingofthehill", kingofthehill_variant()->conclude());
+    add("racingkings", racingkings_variant()->conclude());
+    add("knightmate", knightmate_variant()->conclude());
+    add("losers", losers_variant()->conclude());
+    add("giveaway", giveaway_variant()->conclude());
+    add("antichess", antichess_variant()->conclude());
+    add("suicide", suicide_variant()->conclude());
+    add("codrus", codrus_variant()->conclude());
+    add("extinction", extinction_variant()->conclude());
+    add("kinglet", kinglet_variant()->conclude());
+    add("threekings", threekings_variant()->conclude());
+    add("horde", horde_variant()->conclude());
+    add("3check", threecheck_variant()->conclude());
+    add("5check", fivecheck_variant()->conclude());
+    add("crazyhouse", crazyhouse_variant()->conclude());
+    add("loop", loop_variant()->conclude());
+    add("chessgi", chessgi_variant()->conclude());
+    add("bughouse", bughouse_variant()->conclude());
+    add("koedem", koedem_variant()->conclude());
+    add("pocketknight", pocketknight_variant()->conclude());
+    add("placement", placement_variant()->conclude());
+    add("sittuyin", sittuyin_variant()->conclude());
+    add("seirawan", seirawan_variant()->conclude());
+    add("shouse", shouse_variant()->conclude());
+    add("minishogi", minishogi_variant()->conclude());
+    add("mini", minishogi_variant()->conclude());
+    add("kyotoshogi", kyotoshogi_variant()->conclude());
+    add("micro", microshogi_variant()->conclude());
+    add("dobutsu", dobutsu_variant()->conclude());
+    add("gorogoro", gorogoroshogi_variant()->conclude());
+    add("judkins", judkinsshogi_variant()->conclude());
+    add("euroshogi", euroshogi_variant()->conclude());
+    add("losalamos", losalamos_variant()->conclude());
+    add("gardner", gardner_variant()->conclude());
+    add("almost", almost_variant()->conclude());
+    add("chigorin", chigorin_variant()->conclude());
+    add("shatar", shatar_variant()->conclude());
+    add("clobber", clobber_variant()->conclude());
+    add("breakthrough", breakthrough_variant()->conclude());
+    add("ataxx", ataxx_variant()->conclude());
+    add("minixiangqi", minixiangqi_variant()->conclude());
 #ifdef LARGEBOARDS
-    add("shogi", shogi_variant());
-    add("capablanca", capablanca_variant());
-    add("capahouse", capahouse_variant());
-    add("caparandom", caparandom_variant());
-    add("gothic", gothic_variant());
-    add("janus", janus_variant());
-    add("modern", modern_variant());
-    add("chancellor", chancellor_variant());
-    add("embassy", embassy_variant());
-    add("centaur", centaur_variant());
-    add("jesonmor", jesonmor_variant());
-    add("courier", courier_variant());
-    add("grand", grand_variant());
-    add("shako", shako_variant());
-    add("clobber10", clobber10_variant());
+    add("shogi", shogi_variant()->conclude());
+    add("capablanca", capablanca_variant()->conclude());
+    add("capahouse", capahouse_variant()->conclude());
+    add("caparandom", caparandom_variant()->conclude());
+    add("gothic", gothic_variant()->conclude());
+    add("janus", janus_variant()->conclude());
+    add("modern", modern_variant()->conclude());
+    add("chancellor", chancellor_variant()->conclude());
+    add("embassy", embassy_variant()->conclude());
+    add("centaur", centaur_variant()->conclude());
+    add("jesonmor", jesonmor_variant()->conclude());
+    add("courier", courier_variant()->conclude());
+    add("grand", grand_variant()->conclude());
+    add("shako", shako_variant()->conclude());
+    add("clobber10", clobber10_variant()->conclude());
 #ifdef ALLVARS
-    add("amazons", amazons_variant());
+    add("amazons", amazons_variant()->conclude());
 #endif
-    add("xiangqi", xiangqi_variant());
-    add("manchu", manchu_variant());
-    add("supply", supply_variant());
-    add("janggi", janggi_variant());
-    add("janggitraditional", janggi_traditional_variant());
-    add("janggimodern", janggi_modern_variant());
-    add("janggicasual", janggi_casual_variant());
+    add("xiangqi", xiangqi_variant()->conclude());
+    add("manchu", manchu_variant()->conclude());
+    add("supply", supply_variant()->conclude());
+    add("janggi", janggi_variant()->conclude());
+    add("janggitraditional", janggi_traditional_variant()->conclude());
+    add("janggimodern", janggi_modern_variant()->conclude());
+    add("janggicasual", janggi_casual_variant()->conclude());
 #endif
 }
 
@@ -1089,7 +1093,7 @@ void VariantMap::parse_istream(std::istream& file) {
                                                    : VariantParser<DoCheck>(attribs).parse();
             if (v->maxFile <= FILE_MAX && v->maxRank <= RANK_MAX)
             {
-                add(variant, v);
+                add(variant, v->conclude());
                 // In order to allow inheritance, we need to temporarily add configured variants
                 // even when only checking them, but we remove them later after parsing is finished.
                 if (DoCheck)

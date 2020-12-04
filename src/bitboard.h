@@ -321,11 +321,11 @@ constexpr Bitboard forward_ranks_bb(Color c, Rank r) {
 }
 
 
-/// promotion_zone_bb() returns a bitboard representing the squares on all the ranks
+/// zone_bb() returns a bitboard representing the squares on all the ranks
 /// in front of and on the given relative rank, from the point of view of the given color.
-/// For instance, promotion_zone_bb(BLACK, RANK_7) will return the 16 squares on ranks 1 and 2.
+/// For instance, zone_bb(BLACK, RANK_7) will return the 16 squares on ranks 1 and 2.
 
-inline Bitboard promotion_zone_bb(Color c, Rank r, Rank maxRank) {
+inline Bitboard zone_bb(Color c, Rank r, Rank maxRank) {
   return forward_ranks_bb(c, relative_rank(c, r, maxRank)) | rank_bb(relative_rank(c, r, maxRank));
 }
 
