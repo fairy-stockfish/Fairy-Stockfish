@@ -1881,7 +1881,7 @@ bool Position::see_ge(Move m, Value threshold) const {
               && count<ALL_PIECES>(~sideToMove) == extinction_piece_count() + 1)))
       return extinction_value() < VALUE_ZERO;
 
-  if (must_capture() || !checking_permitted() || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
+  if (must_capture() || !checking_permitted() || is_gating(m) || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
       return VALUE_ZERO >= threshold;
 
   int swap = PieceValue[MG][piece_on(to)] - threshold;
@@ -1990,7 +1990,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       else // KING
            // If we "capture" with the king but opponent still has attackers,
            // reverse the result.
-          return (attackers & ~pieces(stm)) || (is_gating(m) && ~stm == sideToMove && (attacks_from(stm, gating_type(m), from) & to)) ? res ^ 1 : res;
+          return (attackers & ~pieces(stm)) ? res ^ 1 : res;
   }
 
   return bool(res);
