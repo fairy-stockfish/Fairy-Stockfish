@@ -46,6 +46,9 @@ Magic HorseMagics[SQUARE_NB];
 Magic ElephantMagics[SQUARE_NB];
 Magic JanggiElephantMagics[SQUARE_NB];
 
+Magic* magics[] = {BishopMagics, RookMagicsH, RookMagicsV, CannonMagicsH, CannonMagicsV,
+                   HorseMagics, ElephantMagics, JanggiElephantMagics};
+
 namespace {
 
 #ifdef LARGEBOARDS
