@@ -425,44 +425,50 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
 inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperAttacks[c][pt][s];
-  if (AttackRiderTypes[pt] & RIDER_BISHOP)
-      b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_ROOK_H)
-      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_ROOK_V)
-      b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_CANNON_H)
-      b |= rider_attacks_bb<RIDER_CANNON_H>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_CANNON_V)
-      b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_HORSE)
-      b |= rider_attacks_bb<RIDER_HORSE>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_ELEPHANT)
-      b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_JANGGI_ELEPHANT)
-      b |= rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s, occupied);
+  if (AttackRiderTypes[pt])
+  {
+      if (AttackRiderTypes[pt] & RIDER_BISHOP)
+          b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
+      if (AttackRiderTypes[pt] & RIDER_ROOK_H)
+          b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
+      if (AttackRiderTypes[pt] & RIDER_ROOK_V)
+          b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
+      if (AttackRiderTypes[pt] & RIDER_CANNON_H)
+          b |= rider_attacks_bb<RIDER_CANNON_H>(s, occupied);
+      if (AttackRiderTypes[pt] & RIDER_CANNON_V)
+          b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
+      if (AttackRiderTypes[pt] & RIDER_HORSE)
+          b |= rider_attacks_bb<RIDER_HORSE>(s, occupied);
+      if (AttackRiderTypes[pt] & RIDER_ELEPHANT)
+          b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied);
+      if (AttackRiderTypes[pt] & RIDER_JANGGI_ELEPHANT)
+          b |= rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s, occupied);
+  }
   return b & PseudoAttacks[c][pt][s];
 }
 
 
 inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperMoves[c][pt][s];
-  if (MoveRiderTypes[pt] & RIDER_BISHOP)
-      b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_ROOK_H)
-      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_ROOK_V)
-      b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_CANNON_H)
-      b |= rider_attacks_bb<RIDER_CANNON_H>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_CANNON_V)
-      b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_HORSE)
-      b |= rider_attacks_bb<RIDER_HORSE>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_ELEPHANT)
-      b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_JANGGI_ELEPHANT)
-      b |= rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s, occupied);
+  if (MoveRiderTypes[pt])
+  {
+      if (MoveRiderTypes[pt] & RIDER_BISHOP)
+          b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
+      if (MoveRiderTypes[pt] & RIDER_ROOK_H)
+          b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
+      if (MoveRiderTypes[pt] & RIDER_ROOK_V)
+          b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
+      if (MoveRiderTypes[pt] & RIDER_CANNON_H)
+          b |= rider_attacks_bb<RIDER_CANNON_H>(s, occupied);
+      if (MoveRiderTypes[pt] & RIDER_CANNON_V)
+          b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
+      if (MoveRiderTypes[pt] & RIDER_HORSE)
+          b |= rider_attacks_bb<RIDER_HORSE>(s, occupied);
+      if (MoveRiderTypes[pt] & RIDER_ELEPHANT)
+          b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied);
+      if (MoveRiderTypes[pt] & RIDER_JANGGI_ELEPHANT)
+          b |= rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s, occupied);
+  }
   return b & PseudoMoves[c][pt][s];
 }
 
