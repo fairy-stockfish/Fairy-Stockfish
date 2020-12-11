@@ -457,6 +457,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   }
 
   chess960 = isChess960 || v->chess960;
+  tsumeMode = Options["TsumeMode"];
   thisThread = th;
   set_state(st);
   st->accumulator.state[WHITE] = Eval::NNUE::INIT;
@@ -2170,7 +2171,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       return true;
   }
   // Tsume mode: Assume that side with king wins when not in check
-  if (!count<KING>(~sideToMove) && count<KING>(sideToMove) && !checkers() && Options["TsumeMode"])
+  if (tsumeMode && !count<KING>(~sideToMove) && count<KING>(sideToMove) && !checkers())
   {
       result = mate_in(ply);
       return true;
