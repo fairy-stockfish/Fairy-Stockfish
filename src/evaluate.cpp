@@ -1185,8 +1185,9 @@ namespace {
             {
                 // Add a bonus according to how close we are to breaking through the pawn wall
                 int dist = 8;
-                if ((attackedBy[Us][QUEEN] | attackedBy[Us][ROOK]) & rank_bb(relative_rank(Us, pos.max_rank(), pos.max_rank())))
-                    dist = 0;
+                Bitboard breakthroughs = attackedBy[Us][ALL_PIECES] & rank_bb(relative_rank(Us, pos.max_rank(), pos.max_rank()));
+                if (breakthroughs)
+                    dist = attackedBy[Us][QUEEN] & breakthroughs ? 0 : 1;
                 else for (File f = FILE_A; f <= pos.max_file(); ++f)
                 {
                     int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
