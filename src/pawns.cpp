@@ -71,6 +71,10 @@ namespace {
   constexpr Score KingOnFile[2][2] = {{ S(-19,12), S(-6, 7)  },
                                      {  S(  0, 2), S( 6,-5) }};
 
+
+  // Variant bonuses
+  constexpr int HordeConnected[RANK_NB] = { 0, 0, 0, 50, 50, 85, 50 };
+
   #undef S
   #undef V
 
@@ -155,7 +159,7 @@ namespace {
             int v =  Connected[r] * (2 + bool(phalanx) - bool(opposed)) * (r == RANK_2 && pos.captures_to_hand() ? 3 : 1)
                    + 22 * popcount(support);
             if (r >= RANK_4 && pos.count<PAWN>(Us) > popcount(pos.board_bb()) / 4)
-                v = popcount(support | phalanx) * 50 / (opposed ? 2 : 1);
+                v = popcount(support | phalanx) * HordeConnected[r] / (opposed ? 2 : 1);
 
             score += make_score(v, v * (r - 2) / 4);
         }
