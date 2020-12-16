@@ -73,7 +73,8 @@ namespace {
 
 
   // Variant bonuses
-  constexpr int HordeConnected[RANK_NB] = { 0, 0, 0, 50, 50, 85, 50 };
+  constexpr int HordeConnected[2][RANK_NB] = {{   5, 10,  20, 55, 55, 100, 80 },
+                                              { -10,  5, -10,  5, 25,  40, 30 }};
 
   #undef S
   #undef V
@@ -158,8 +159,8 @@ namespace {
         {
             int v =  Connected[r] * (2 + bool(phalanx) - bool(opposed)) * (r == RANK_2 && pos.captures_to_hand() ? 3 : 1)
                    + 22 * popcount(support);
-            if (r >= RANK_4 && pos.count<PAWN>(Us) > popcount(pos.board_bb()) / 4)
-                v = popcount(support | phalanx) * HordeConnected[r] / (opposed ? 2 : 1);
+            if (pos.count<PAWN>(Us) > popcount(pos.board_bb()) / 4)
+                v = popcount(support | phalanx) * HordeConnected[bool(opposed)][r];
 
             score += make_score(v, v * (r - 2) / 4);
         }
