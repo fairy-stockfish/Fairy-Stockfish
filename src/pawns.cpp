@@ -191,22 +191,6 @@ namespace {
     if (pos.count<ALL_PIECES>(Us) == pos.count<PAWN>(Us))
         score = score * 2;
 
-    const Square* pl_shogi = pos.squares<SHOGI_PAWN>(Us);
-
-    ourPawns   = pos.pieces(Us,   SHOGI_PAWN);
-    theirPawns = pos.pieces(Them, SHOGI_PAWN);
-
-    // Loop through all shogi pawns of the current color and score each one
-    while ((s = *pl_shogi++) != SQ_NONE)
-    {
-        assert(pos.piece_on(s) == make_piece(Us, SHOGI_PAWN));
-
-        neighbours = ourPawns & adjacent_files_bb(s);
-
-        if (!neighbours)
-            score -= Isolated / 2;
-    }
-
     return score;
   }
 
