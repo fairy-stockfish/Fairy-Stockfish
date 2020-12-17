@@ -210,11 +210,11 @@ using namespace Trace;
 namespace {
 
   // Threshold for lazy and space evaluation
-  constexpr Value LazyThreshold1 =  Value(1400);
-  constexpr Value LazyThreshold2 =  Value(1300);
-  constexpr Value SpaceThreshold = Value(12222);
-  constexpr Value NNUEThreshold1 =   Value(550);
-  constexpr Value NNUEThreshold2 =   Value(150);
+  constexpr Value LazyThreshold1 =  Value(1565);
+  constexpr Value LazyThreshold2 =  Value(1102);
+  constexpr Value SpaceThreshold = Value(11551);
+  constexpr Value NNUEThreshold1 =   Value(682);
+  constexpr Value NNUEThreshold2 =   Value(176);
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 81, 52, 44, 10, 40 };
@@ -1072,12 +1072,11 @@ namespace {
 
     // Find the available squares for our pieces inside the area defined by SpaceMask
     Bitboard safe =   SpaceMask
-                   & ~pos.pieces(Us, PAWN, SHOGI_PAWN)
-                   & ~attackedBy[Them][PAWN]
-                   & ~attackedBy[Them][SHOGI_PAWN];
+                   & ~pos.pieces(Us, PAWN)
+                   & ~attackedBy[Them][PAWN];
 
     // Find all squares which are at most three squares behind some friendly pawn
-    Bitboard behind = pos.pieces(Us, PAWN, SHOGI_PAWN);
+    Bitboard behind = pos.pieces(Us, PAWN);
     behind |= shift<Down>(behind);
     behind |= shift<Down+Down>(behind);
 
@@ -1178,15 +1177,16 @@ namespace {
                 for (File f = FILE_A; f <= pos.max_file(); ++f)
                 {
                     l = m; m = r; r = popcount(pos.pieces(Us, PAWN) & shift<EAST>(file_bb(f)));
-                    score -= make_score(40, 40) * m / (1 + l * r);
+                    score -= make_score(70, 70) * m / (1 + l * r);
                 }
             }
             else if (pos.count<PAWN>(Them) == pos.count<ALL_PIECES>(Them) && pos.pieces(Us, ROOK, QUEEN))
             {
                 // Add a bonus according to how close we are to breaking through the pawn wall
                 int dist = 8;
-                if ((attackedBy[Us][QUEEN] | attackedBy[Us][ROOK]) & rank_bb(relative_rank(Us, pos.max_rank(), pos.max_rank())))
-                    dist = 0;
+                Bitboard breakthroughs = attackedBy[Us][ALL_PIECES] & rank_bb(relative_rank(Us, pos.max_rank(), pos.max_rank()));
+                if (breakthroughs)
+                    dist = attackedBy[Us][QUEEN] & breakthroughs ? 0 : 1;
                 else for (File f = FILE_A; f <= pos.max_file(); ++f)
                 {
                     int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
@@ -1469,7 +1469,7 @@ Value Eval::evaluate(const Position& pos) {
   {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&](){
-         int mat = pos.non_pawn_material() + PieceValue[MG][PAWN] * pos.count<PAWN>();
+         int mat = pos.non_pawn_material() + PawnValueMg * pos.count<PAWN>();
          return NNUE::evaluate(pos) * (720 + mat / 32) / 1024 + Tempo;
       };
 
@@ -1480,16 +1480,18 @@ Value Eval::evaluate(const Position& pos) {
       bool  largePsq = psq * 16 > (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50 && !pure;
       bool  classical = largePsq || (psq > PawnValueMg / 4 && !(pos.this_thread()->nodes & 0xB) && !pure);
 
-      v = classical ? Evaluation<NO_TRACE>(pos).value() : adjusted_NNUE();
+      bool strongClassical = pos.non_pawn_material() < 2 * RookValueMg && pos.count<PAWN>() < 2;
+
+      v = classical || strongClassical ? Evaluation<NO_TRACE>(pos).value() : adjusted_NNUE();
 
       // If the classical eval is small and imbalance large, use NNUE nevertheless.
       // For the case of opposite colored bishops, switch to NNUE eval with
       // small probability if the classical eval is less than the threshold.
-      if (   largePsq
-          && (abs(v) * 16 < NNUEThreshold2 * r50
-          || (   pos.opposite_bishops()
-              && abs(v) * 16 < (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50
-              && !(pos.this_thread()->nodes & 0xB))))
+      if (   largePsq && !strongClassical
+          && (   abs(v) * 16 < NNUEThreshold2 * r50
+              || (   pos.opposite_bishops()
+                  && abs(v) * 16 < (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50
+                  && !(pos.this_thread()->nodes & 0xB))))
           v = adjusted_NNUE();
   }
 

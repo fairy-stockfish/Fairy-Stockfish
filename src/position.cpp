@@ -457,6 +457,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   }
 
   chess960 = isChess960 || v->chess960;
+  tsumeMode = Options["TsumeMode"];
   thisThread = th;
   set_state(st);
   st->accumulator.state[WHITE] = Eval::NNUE::INIT;
@@ -1881,7 +1882,7 @@ bool Position::see_ge(Move m, Value threshold) const {
               && count<ALL_PIECES>(~sideToMove) == extinction_piece_count() + 1)))
       return extinction_value() < VALUE_ZERO;
 
-  if (must_capture() || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
+  if (must_capture() || !checking_permitted() || is_gating(m) || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
       return VALUE_ZERO >= threshold;
 
   int swap = PieceValue[MG][piece_on(to)] - threshold;
@@ -1990,7 +1991,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       else // KING
            // If we "capture" with the king but opponent still has attackers,
            // reverse the result.
-          return (attackers & ~pieces(stm)) || (is_gating(m) && ~stm == sideToMove && (attacks_from(stm, gating_type(m), from) & to)) ? res ^ 1 : res;
+          return (attackers & ~pieces(stm)) ? res ^ 1 : res;
   }
 
   return bool(res);
@@ -2170,7 +2171,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       return true;
   }
   // Tsume mode: Assume that side with king wins when not in check
-  if (!count<KING>(~sideToMove) && count<KING>(sideToMove) && !checkers() && Options["TsumeMode"])
+  if (tsumeMode && !count<KING>(~sideToMove) && count<KING>(sideToMove) && !checkers())
   {
       result = mate_in(ply);
       return true;

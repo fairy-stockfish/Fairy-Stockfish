@@ -147,6 +147,8 @@ extern Magic HorseMagics[SQUARE_NB];
 extern Magic ElephantMagics[SQUARE_NB];
 extern Magic JanggiElephantMagics[SQUARE_NB];
 
+extern Magic* magics[];
+
 constexpr Bitboard make_bitboard() { return 0; }
 
 template<typename ...Squares>
@@ -391,6 +393,16 @@ inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
   return m.attacks[m.index(occupied)];
 }
 
+inline Square lsb(Bitboard b);
+
+inline Bitboard rider_attacks_bb(RiderType R, Square s, Bitboard occupied) {
+
+  assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V || R == RIDER_CANNON_H || R == RIDER_CANNON_V
+         || R == RIDER_HORSE || R == RIDER_ELEPHANT || R == RIDER_JANGGI_ELEPHANT);
+  const Magic& m = magics[lsb(R)][s]; // re-use Bitboard lsb for riders
+  return m.attacks[m.index(occupied)];
+}
+
 
 /// attacks_bb(Square) returns the pseudo attacks of the give piece type
 /// assuming an empty board.
@@ -422,47 +434,29 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
   }
 }
 
+/// pop_rider() finds and clears a rider in a (hybrid) rider type
+
+inline RiderType pop_rider(RiderType* r) {
+  assert(*r);
+  const RiderType r2 = *r & ~(*r - 1);
+  *r &= *r - 1;
+  return r2;
+}
 
 inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperAttacks[c][pt][s];
-  if (AttackRiderTypes[pt] & RIDER_BISHOP)
-      b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_ROOK_H)
-      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_ROOK_V)
-      b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_CANNON_H)
-      b |= rider_attacks_bb<RIDER_CANNON_H>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_CANNON_V)
-      b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_HORSE)
-      b |= rider_attacks_bb<RIDER_HORSE>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_ELEPHANT)
-      b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied);
-  if (AttackRiderTypes[pt] & RIDER_JANGGI_ELEPHANT)
-      b |= rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s, occupied);
+  RiderType r = AttackRiderTypes[pt];
+  while (r)
+      b |= rider_attacks_bb(pop_rider(&r), s, occupied);
   return b & PseudoAttacks[c][pt][s];
 }
 
 
 inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperMoves[c][pt][s];
-  if (MoveRiderTypes[pt] & RIDER_BISHOP)
-      b |= rider_attacks_bb<RIDER_BISHOP>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_ROOK_H)
-      b |= rider_attacks_bb<RIDER_ROOK_H>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_ROOK_V)
-      b |= rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_CANNON_H)
-      b |= rider_attacks_bb<RIDER_CANNON_H>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_CANNON_V)
-      b |= rider_attacks_bb<RIDER_CANNON_V>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_HORSE)
-      b |= rider_attacks_bb<RIDER_HORSE>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_ELEPHANT)
-      b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied);
-  if (MoveRiderTypes[pt] & RIDER_JANGGI_ELEPHANT)
-      b |= rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s, occupied);
+  RiderType r = MoveRiderTypes[pt];
+  while (r)
+      b |= rider_attacks_bb(pop_rider(&r), s, occupied);
   return b & PseudoMoves[c][pt][s];
 }
 

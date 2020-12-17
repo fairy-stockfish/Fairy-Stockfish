@@ -71,6 +71,11 @@ namespace {
   constexpr Score KingOnFile[2][2] = {{ S(-19,12), S(-6, 7)  },
                                      {  S(  0, 2), S( 6,-5) }};
 
+
+  // Variant bonuses
+  constexpr int HordeConnected[2][RANK_NB] = {{   5, 10,  20, 55, 55, 100, 80 },
+                                              { -10,  5, -10,  5, 25,  40, 30 }};
+
   #undef S
   #undef V
 
@@ -154,8 +159,8 @@ namespace {
         {
             int v =  Connected[r] * (2 + bool(phalanx) - bool(opposed)) * (r == RANK_2 && pos.captures_to_hand() ? 3 : 1)
                    + 22 * popcount(support);
-            if (r >= RANK_4 && pos.count<PAWN>(Us) > popcount(pos.board_bb()) / 4)
-                v = popcount(support | phalanx) * 50 / (opposed ? 2 : 1);
+            if (pos.count<PAWN>(Us) > popcount(pos.board_bb()) / 4)
+                v = popcount(support | phalanx) * HordeConnected[bool(opposed)][r];
 
             score += make_score(v, v * (r - 2) / 4);
         }
@@ -179,29 +184,13 @@ namespace {
             score -=  Doubled * doubled
                     + WeakLever * more_than_one(lever);
 
-        if (blocked && r > RANK_4)
-            score += BlockedPawn[r-4];
+        if (blocked && r >= RANK_5)
+            score += BlockedPawn[r - RANK_5];
     }
 
     // Double pawn evaluation if there are no non-pawn pieces
     if (pos.count<ALL_PIECES>(Us) == pos.count<PAWN>(Us))
         score = score * 2;
-
-    const Square* pl_shogi = pos.squares<SHOGI_PAWN>(Us);
-
-    ourPawns   = pos.pieces(Us,   SHOGI_PAWN);
-    theirPawns = pos.pieces(Them, SHOGI_PAWN);
-
-    // Loop through all shogi pawns of the current color and score each one
-    while ((s = *pl_shogi++) != SQ_NONE)
-    {
-        assert(pos.piece_on(s) == make_piece(Us, SHOGI_PAWN));
-
-        neighbours = ourPawns & adjacent_files_bb(s);
-
-        if (!neighbours)
-            score -= Isolated / 2;
-    }
 
     return score;
   }

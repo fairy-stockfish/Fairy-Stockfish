@@ -320,6 +320,7 @@ private:
 
   // variant-specific
   const Variant* var;
+  bool tsumeMode;
   bool chess960;
   int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
   Bitboard promotedPieces;
