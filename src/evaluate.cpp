@@ -1189,7 +1189,7 @@ namespace {
                     dist = attackedBy[Us][QUEEN] & breakthroughs ? 0 : 1;
                 else for (File f = FILE_A; f <= pos.max_file(); ++f)
                     dist = std::min(dist, popcount(pos.pieces(PAWN) & file_bb(f)));
-                score += make_score(70, 70) * pos.count<PAWN>(Them) / (1 + dist * (dist + 1)) / (pos.pieces(Us, QUEEN) ? 2 : 4);
+                score += make_score(70, 70) * pos.count<PAWN>(Them) / (1 + dist * dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
             }
     }
 
