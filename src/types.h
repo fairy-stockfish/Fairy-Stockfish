@@ -353,7 +353,7 @@ enum Value : int {
   ShogiPawnValueMg         =  90,   ShogiPawnValueEg         = 100,
   LanceValueMg             = 400,   LanceValueEg             = 240,
   ShogiKnightValueMg       = 420,   ShogiKnightValueEg       = 290,
-  EuroShogiKnightValueMg   = 400,   EuroShogiKnightValueEg   = 400,
+  EuroShogiKnightValueMg   = 500,   EuroShogiKnightValueEg   = 400,
   GoldValueMg              = 720,   GoldValueEg              = 700,
   DragonHorseValueMg       = 1550,  DragonHorseValueEg       = 1550,
   ClobberPieceValueMg      = 300,   ClobberPieceValueEg      = 300,
