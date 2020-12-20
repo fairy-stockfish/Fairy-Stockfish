@@ -244,11 +244,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   size_t idx;
   std::istringstream ss(fenStr);
 
-  std::memset(static_cast<void*>(this), 0, sizeof(Position));
-  std::memset(static_cast<void*>(si), 0, sizeof(StateInfo));
-  std::fill_n(&pieceList[0][0], sizeof(pieceList) / sizeof(Square), SQ_NONE);
-  var = v;
+  std::memset(this, 0, sizeof(Position));
+  std::memset(si, 0, sizeof(StateInfo));
   st = si;
+
+  var = v;
 
   ss >> std::noskipws;
 
@@ -2383,10 +2383,6 @@ bool Position::pos_is_ok() const {
           if (   pieceCount[pc] != popcount(pieces(c, pt))
               || pieceCount[pc] != std::count(board, board + SQUARE_NB, pc))
               assert(0 && "pos_is_ok: Pieces");
-
-          for (int i = 0; i < pieceCount[pc]; ++i)
-              if (board[pieceList[pc][i]] != pc || index[pieceList[pc][i]] != i)
-                  assert(0 && "pos_is_ok: Index");
       }
 
   for (Color c : { WHITE, BLACK })

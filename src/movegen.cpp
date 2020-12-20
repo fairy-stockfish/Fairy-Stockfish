@@ -267,10 +267,11 @@ namespace {
 
     assert(pt != KING && pt != PAWN);
 
-    const Square* pl = pos.squares(Us, pt);
+    Bitboard bb = pos.pieces(Us, pt);
 
-    for (Square from = *pl; from != SQ_NONE; from = *++pl)
-    {
+    while (bb) {
+        Square from = pop_lsb(&bb);
+
         // Avoid generating discovered checks twice
         if (Checks && (pos.blockers_for_king(~Us) & from))
             continue;

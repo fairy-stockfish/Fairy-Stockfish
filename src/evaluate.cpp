@@ -442,15 +442,15 @@ namespace {
     constexpr Direction Down = -pawn_push(Us);
     constexpr Bitboard OutpostRanks = (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
                                                    : Rank5BB | Rank4BB | Rank3BB);
-    const Square* pl = pos.squares(Us, Pt);
-
+    Bitboard b1 = pos.pieces(Us, Pt);
     Bitboard b, bb;
     Score score = SCORE_ZERO;
 
     attackedBy[Us][Pt] = 0;
 
-    for (Square s = *pl; s != SQ_NONE; s = *++pl)
-    {
+    while (b1) {
+        Square s = pop_lsb(&b1);
+
         // Find attacked squares, including x-ray attacks for bishops and rooks
         b = Pt == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(QUEEN))
           : Pt ==   ROOK && !pos.diagonal_lines() ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(QUEEN) ^ pos.pieces(Us, ROOK))
@@ -1036,14 +1036,13 @@ namespace {
                        eg_value(score) * int(maxEg - PawnValueEg) / (QueenValueEg - PawnValueEg));
 
     // Score passed shogi pawns
-    const Square* pl = pos.squares(Us, SHOGI_PAWN);
-    Square s;
-
     PieceType pt = pos.promoted_piece_type(SHOGI_PAWN);
     if (pt != NO_PIECE_TYPE)
     {
-        while ((s = *pl++) != SQ_NONE)
+        b = pos.pieces(Us, SHOGI_PAWN);
+        while (b)
         {
+            Square s = pop_lsb(&b);
             if ((pos.pieces(Them, SHOGI_PAWN) & forward_file_bb(Us, s)) || relative_rank(Us, s, pos.max_rank()) == pos.max_rank())
                 continue;
 
