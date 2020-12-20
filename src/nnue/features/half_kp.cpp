@@ -34,12 +34,9 @@ namespace Eval::NNUE::Features {
                                  : flip_rank(flip_file(s, pos.max_file()), pos.max_rank()));
   }
 
-  // Find the index of the feature quantity from the king position and PieceSquare
-  template <Side AssociatedKing>
-  inline IndexType HalfKP<AssociatedKing>::MakeIndex(
-      const Position& pos, Color perspective, Square s, Piece pc, Square ksq) {
-
-    return IndexType(orient(pos, perspective, s) + kpp_board_index[pc][perspective] + PS_END * ksq);
+  // Index of a feature for a given king position and another piece on some square
+  inline IndexType make_index(const Position& pos, Color perspective, Square s, Piece pc, Square ksq) {
+    return IndexType(orient(pos, perspective, s) + kpp_board_index[perspective][pc] + PS_END * ksq);
   }
 
   // Get a list of indices for active features
@@ -51,7 +48,7 @@ namespace Eval::NNUE::Features {
     Bitboard bb = pos.pieces() & ~pos.pieces(KING);
     while (bb) {
       Square s = pop_lsb(&bb);
-      active->push_back(MakeIndex(pos, perspective, s, pos.piece_on(s), ksq));
+      active->push_back(make_index(pos, perspective, s, pos.piece_on(s), ksq));
     }
   }
 
@@ -66,9 +63,9 @@ namespace Eval::NNUE::Features {
       Piece pc = dp.piece[i];
       if (type_of(pc) == KING) continue;
       if (dp.from[i] != SQ_NONE)
-        removed->push_back(MakeIndex(pos, perspective, dp.from[i], pc, ksq));
+        removed->push_back(make_index(pos, perspective, dp.from[i], pc, ksq));
       if (dp.to[i] != SQ_NONE)
-        added->push_back(MakeIndex(pos, perspective, dp.to[i], pc, ksq));
+        added->push_back(make_index(pos, perspective, dp.to[i], pc, ksq));
     }
   }
 
