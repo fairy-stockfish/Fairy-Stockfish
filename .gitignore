@@ -1,8 +1,20 @@
 stockfish
 *.o
 .depend
+*.nnue
+*.exe
+tests/syzygy
+
+# ffishjs
 tests/js/node_modules
 ffish.js
 *.wasm
-*.nnue
-*.exe
+
+# pyffish
+venv
+*.so
+pyffish.egg-info
+
+# IDEs
+.vscode
+.idea
