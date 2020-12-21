@@ -139,7 +139,7 @@ void init(const Variant* v) {
           constexpr int lc = 5;
           constexpr int rm = 5;
           constexpr int r0 = rm + RANK_8;
-          int r1 = rm + (v->maxRank + v->maxFile) / 2;
+          int r1 = rm + (v->maxRank + v->maxFile - 2 * v->capturesToHand) / 2;
           int leaper = pi->stepsQuiet.size() + pi->stepsCapture.size();
           int slider = pi->sliderQuiet.size() + pi->sliderCapture.size() + pi->hopperQuiet.size() + pi->hopperCapture.size();
           score = make_score(mg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider),
