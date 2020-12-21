@@ -422,7 +422,7 @@ namespace {
         kingRing[Us] = attacks_bb<KING>(s) | s;
     }
 
-    kingAttackersCount[Them] = popcount(kingRing[Us] & pe->pawn_attacks(Them));
+    kingAttackersCount[Them] = popcount(kingRing[Us] & (pe->pawn_attacks(Them) | shift<Down>(pos.pieces(Them, SHOGI_PAWN))));
     kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
     kingAttackersCountInHand[Them] = kingAttackersWeightInHand[Them] = 0;
 
