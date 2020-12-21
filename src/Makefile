@@ -85,7 +85,7 @@ endif
 # at the end of the line for flag values.
 
 ### 2.1. General and architecture defaults
-largeboards = no
+largeboards = yes
 all = no
 precomputedmagics = yes
 nnue = no
