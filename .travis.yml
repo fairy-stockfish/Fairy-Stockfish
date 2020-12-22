@@ -1,6 +1,11 @@
 language: cpp
 dist: bionic
 
+branches:
+  only:
+  - master
+  - travis
+
 matrix:
   include:
     - os: linux
