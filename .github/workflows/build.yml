@@ -1,0 +1,27 @@
+name: build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install
+        run: sudo apt install mingw-w64
+
+      - name: make
+        run: cd src && make -j build ARCH=x86-64 COMP=mingw
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: fairy-stockfish_x86-64.exe
+          path: src/stockfish.exe
