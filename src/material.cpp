@@ -103,7 +103,7 @@ namespace {
     // Second-degree polynomial material imbalance, by Tord Romstad
     for (int pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
     {
-        if (!pieceCount[Us][pt1] || (pos.extinction_value() == VALUE_MATE && pt1 != KNIGHT))
+        if (!pieceCount[Us][pt1])
             continue;
 
         int v = QuadraticOurs[pt1][pt1] * pieceCount[Us][pt1];
@@ -116,7 +116,7 @@ namespace {
     }
 
     if (pos.must_capture())
-        bonus += bonus + 2 * QuadraticOurs[KNIGHT][PAWN] * pieceCount[Us][KNIGHT] * pieceCount[Us][PAWN];
+        bonus += 3 * QuadraticOurs[KNIGHT][PAWN] * pieceCount[Us][KNIGHT] * pieceCount[Us][PAWN];
     else if (pos.check_counting())
         bonus -= 2 * QuadraticOurs[PAWN][PAWN] * pieceCount[Us][PAWN] * pieceCount[Us][PAWN];
 
