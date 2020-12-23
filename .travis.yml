@@ -52,7 +52,7 @@ script:
   - make clean && make -j2 ARCH=x86-64 largeboards=yes all=yes debug=yes build && ../tests/perft.sh largeboard
   - ./stockfish bench xiangqi > /dev/null 2>&1
   - ./stockfish bench shogi > /dev/null 2>&1
-  #- ./stockfish bench capablanca > /dev/null 2>&1
+  - ./stockfish bench capablanca > /dev/null 2>&1
   - ./stockfish bench sittuyin > /dev/null 2>&1
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make clean && make -j2 ARCH=x86-32 largeboards=yes all=yes debug=yes build && ../tests/perft.sh largeboard; fi
 

@@ -402,7 +402,7 @@ enum Piece {
   PIECE_NB = 2 * PIECE_TYPE_NB
 };
 
-enum RiderType {
+enum RiderType : int {
   NO_RIDER = 0,
   RIDER_BISHOP = 1 << 0,
   RIDER_ROOK_H = 1 << 1,
