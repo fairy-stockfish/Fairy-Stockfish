@@ -109,13 +109,18 @@ namespace {
         int v = QuadraticOurs[pt1][pt1] * pieceCount[Us][pt1];
 
         for (int pt2 = NO_PIECE_TYPE; pt2 < pt1; ++pt2)
-            v +=  QuadraticOurs[pt1][pt2] * pieceCount[Us][pt2] * (pos.must_capture() && pt1 == KNIGHT && pt2 == PAWN ? 2 : pos.check_counting() && pt1 <= BISHOP ? 0 : 1)
+            v +=  QuadraticOurs[pt1][pt2] * pieceCount[Us][pt2]
                 + QuadraticTheirs[pt1][pt2] * pieceCount[Them][pt2];
 
         bonus += pieceCount[Us][pt1] * v;
     }
 
-    return bonus * (1 + pos.must_capture());
+    if (pos.must_capture())
+        bonus += bonus + 2 * QuadraticOurs[KNIGHT][PAWN] * pieceCount[Us][KNIGHT] * pieceCount[Us][PAWN];
+    else if (pos.check_counting())
+        bonus -= 2 * QuadraticOurs[PAWN][PAWN] * pieceCount[Us][PAWN] * pieceCount[Us][PAWN];
+
+    return bonus;
   }
 
 } // namespace
