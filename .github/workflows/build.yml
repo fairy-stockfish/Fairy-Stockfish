@@ -6,11 +6,9 @@ on:
   pull_request:
     branches: [ master ]
 
-  workflow_dispatch:
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v2
@@ -18,10 +16,13 @@ jobs:
       - name: install
         run: sudo apt install mingw-w64
 
-      - name: make
-        run: cd src && make -j build ARCH=x86-64 COMP=mingw
+      - name: make default
+        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64 EXE=fairy-stockfish_x86-64.exe && strip fairy-stockfish_x86-64.exe
+
+      - name: make largeboards
+        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64 EXE=fairy-stockfish-largeboards_x86-64.exe largeboards=yes && strip fairy-stockfish-largeboards_x86-64.exe
 
       - uses: actions/upload-artifact@v2
         with:
-          name: fairy-stockfish_x86-64.exe
-          path: src/stockfish.exe
+          name: fairy-stockfish
+          path: src/fairy-stockfish*.exe
