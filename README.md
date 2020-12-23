@@ -63,6 +63,8 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Ataxx](https://en.wikipedia.org/wiki/Ataxx)
 - [Breakthrough](https://en.wikipedia.org/wiki/Breakthrough_(board_game))
 - [Clobber](https://en.wikipedia.org/wiki/Clobber)
+- [Cfour](https://en.wikipedia.org/wiki/Connect_Four), [Tic-tac-toe](https://en.wikipedia.org/wiki/Tic-tac-toe)
+- [Flipersi](https://en.wikipedia.org/wiki/Reversi), [Flipello](https://en.wikipedia.org/wiki/Reversi#Othello)
 
 ## Help
 
