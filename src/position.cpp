@@ -2128,19 +2128,36 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   }
   // capture the flag
   if (   capture_the_flag_piece()
-      && !flag_move()
-      && (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())))
-  {
-      result = mated_in(ply);
-      return true;
-  }
-  if (   capture_the_flag_piece()
       && flag_move()
       && (capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece())))
   {
       result =  (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))
               && sideToMove == WHITE ? VALUE_DRAW : mate_in(ply);
       return true;
+  }
+  if (   capture_the_flag_piece()
+      && (!flag_move() || capture_the_flag_piece() == KING)
+      && (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())))
+  {
+      bool gameEnd = true;
+      // Check whether king can move to CTF zone
+      if (   flag_move() && sideToMove == BLACK && !checkers() && count<KING>(sideToMove)
+          && (capture_the_flag(sideToMove) & attacks_from(sideToMove, KING, square<KING>(sideToMove))))
+      {
+          assert(capture_the_flag_piece() == KING);
+          gameEnd = true;
+          for (const auto& m : MoveList<NON_EVASIONS>(*this))
+              if (type_of(moved_piece(m)) == KING && (capture_the_flag(sideToMove) & to_sq(m)) && legal(m))
+              {
+                  gameEnd = false;
+                  break;
+              }
+      }
+      if (gameEnd)
+      {
+          result = mated_in(ply);
+          return true;
+      }
   }
   // nCheck
   if (check_counting() && checks_remaining(~sideToMove) == 0)
