@@ -116,7 +116,11 @@ namespace {
     }
 
     if (pos.must_capture())
-        bonus += 3 * QuadraticOurs[KNIGHT][PAWN] * pieceCount[Us][KNIGHT] * pieceCount[Us][PAWN];
+        bonus +=  (make_score(mg_value(QuadraticOurs[PAWN][PAWN]), 0) * pieceCount[Us][PAWN]
+                   + 3 * QuadraticOurs[KNIGHT][PAWN] * pieceCount[Us][KNIGHT]
+                   + QuadraticOurs[QUEEN][PAWN] * pieceCount[Us][QUEEN]) * pieceCount[Us][PAWN]
+                + make_score( mg_value(QuadraticOurs[KNIGHT][KNIGHT]),
+                             -eg_value(QuadraticOurs[KNIGHT][KNIGHT])) * pieceCount[Us][KNIGHT] * pieceCount[Us][KNIGHT];
     else if (pos.check_counting())
         bonus -= 2 * QuadraticOurs[PAWN][PAWN] * pieceCount[Us][PAWN] * pieceCount[Us][PAWN];
 
