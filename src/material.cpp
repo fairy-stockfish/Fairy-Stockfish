@@ -123,6 +123,8 @@ namespace {
                              -eg_value(QuadraticOurs[KNIGHT][KNIGHT])) * pieceCount[Us][KNIGHT] * pieceCount[Us][KNIGHT];
     else if (pos.check_counting())
         bonus -= 2 * QuadraticOurs[PAWN][PAWN] * pieceCount[Us][PAWN] * pieceCount[Us][PAWN];
+    else if (pos.captures_to_hand())
+        bonus -= bonus / 10;
 
     return bonus;
   }
