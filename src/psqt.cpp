@@ -169,6 +169,7 @@ void init(const Variant* v) {
           score = make_score(mg_value(score) * (40000 + mg_value(score)) / 41000,
                              eg_value(score) * (30000 + eg_value(score)) / 31000);
       else if (   v->extinctionValue == -VALUE_MATE
+               && v->extinctionPieceCount == 0
                && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
           score += make_score(0, std::max(KnightValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
       else if (pt == strongestPiece)
