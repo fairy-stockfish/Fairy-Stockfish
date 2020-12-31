@@ -173,8 +173,7 @@ void init(const Variant* v) {
                                   std::max(QueenValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
 
       // For antichess variants, use negative piece values
-      if (   v->extinctionValue == VALUE_MATE
-          && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
+      if (v->extinctionValue == VALUE_MATE)
           score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
 
       // Determine pawn rank
