@@ -304,7 +304,7 @@ namespace {
 
 
   // Variant and fairy piece bonuses
-  constexpr Score KingProximity        = S(2, 4);
+  constexpr Score KingProximity        = S(2, 6);
   constexpr Score EndgameKingProximity = S(0, 10);
   constexpr Score ConnectedSoldier     = S(20, 20);
 
