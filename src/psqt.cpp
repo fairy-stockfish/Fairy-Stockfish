@@ -25,6 +25,9 @@
 #include "variant.h"
 #include "misc.h"
 
+Value EvalPieceValue[PHASE_NB][PIECE_NB];
+Value CapturePieceValue[PHASE_NB][PIECE_NB];
+
 namespace PSQT {
 
 #define S(mg, eg) make_score(mg, eg)
@@ -157,8 +160,8 @@ void init(const Variant* v) {
 
       // For drop variants, halve the piece values
       if (v->capturesToHand)
-          score = make_score(mg_value(score) * 3500 / (7000 + mg_value(score)),
-                             eg_value(score) * 3500 / (7000 + eg_value(score)));
+          score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
+                             eg_value(score) * 7000 / (7000 + eg_value(score)));
       else if (!v->checking)
           score = make_score(mg_value(score) * 2000 / (3500 + mg_value(score)),
                              eg_value(score) * 2200 / (3500 + eg_value(score)));
@@ -176,9 +179,18 @@ void init(const Variant* v) {
               score += make_score(std::max(QueenValueMg - PieceValue[MG][pt], VALUE_ZERO) / 20,
                                   std::max(QueenValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
 
+      CapturePieceValue[MG][pc] = CapturePieceValue[MG][~pc] = mg_value(score);
+      CapturePieceValue[EG][pc] = CapturePieceValue[EG][~pc] = eg_value(score);
+
       // For antichess variants, use negative piece values
       if (v->extinctionValue == VALUE_MATE)
           score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
+
+      if (v->capturesToHand)
+          score = score / 2;
+
+      EvalPieceValue[MG][pc] = EvalPieceValue[MG][~pc] = mg_value(score);
+      EvalPieceValue[EG][pc] = EvalPieceValue[EG][~pc] = eg_value(score);
 
       // Determine pawn rank
       std::istringstream ss(v->startFen);
