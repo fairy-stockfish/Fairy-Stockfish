@@ -885,7 +885,7 @@ inline Bitboard Position::gates(Color c) const {
 }
 
 inline bool Position::is_on_semiopen_file(Color c, Square s) const {
-  return !(pieces(c, PAWN, SHOGI_PAWN) & file_bb(s));
+  return !((pieces(c, PAWN) | pieces(c, SHOGI_PAWN, SOLDIER)) & file_bb(s));
 }
 
 inline bool Position::can_castle(CastlingRights cr) const {
