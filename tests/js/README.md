@@ -61,31 +61,13 @@ Show all available variants supported by _Fairy-Stockfish_ and **ffish.js**.
 ffish.variants()
 ```
 ```
->> 3check 5check ai-wok almost amazon antichess armageddon asean ataxx breakthrough bughouse cambodian\
+3check 5check ai-wok almost amazon antichess armageddon asean ataxx breakthrough bughouse cambodian\
 capablanca capahouse caparandom centaur chancellor chess chessgi chigorin clobber clobber10 codrus courier\
 crazyhouse dobutsu embassy euroshogi extinction fairy fischerandom gardner giveaway gorogoro gothic grand\
 hoppelpoppel horde janggi janggicasual janggimodern janggitraditional janus jesonmor judkins karouk kinglet\
 kingofthehill knightmate koedem kyotoshogi loop losalamos losers makpong makruk manchu micro mini minishogi\
 minixiangqi modern newzealand nocastle normal placement pocketknight racingkings seirawan shako shatar\
 shatranj shogi shouse sittuyin suicide supply threekings xiangqi
-```
-
-## Custom variants
-
-Fairy-Stockfish also allows defining custom variants by loading a configuration file.
-
-See e.g. the configuration for **connect4**, **tictactoe** or **janggihouse** in [variants.ini](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/variants.ini).
-```javascript
-fs = require('fs');
-let configFilePath = './variants.ini';
- fs.readFile(configFilePath, 'utf8', function (err,data) {
-   if (err) {
-     return console.log(err);
-   }
-   ffish.loadVariantConfig(data)
-   let board = new ffish.Board("tictactoe");
-   board.delete();
- });
 ```
 
 ### Board object
@@ -112,8 +94,61 @@ else {
 
 Alternatively, you can initialize a board with a custom FEN directly:
 ```javascript
-let board2 = new ffish.Board("crazyhouse", "rnb1kb1r/ppp2ppp/4pn2/8/3P4/2N2Q2/PPP2PPP/R1B1KB1R/QPnp b KQkq - 0 6");
+let board2 = new ffish.Board("chess", "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3");
 ```
+
+### ASCII board
+
+You can show an ASCII representation of the board using the `toString()` method
+
+```javascript
+let board = new ffish.Board("chess", "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3");
+console.log(board.toString())
+```
+```
+r n b . k b n r
+p p p . p p p p
+. . . . . . . .
+. . . q . . . .
+. . . . . . . .
+. . . . . . . .
+P P P P . P P P
+R N B Q K B N R
+```
+
+or a more detailed representation using `.toVerboseString()`.
+
+```javascript
+let board = new ffish.Board("chess", "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3");
+console.log(board.toVerboseString())
+```
+```
++---+---+---+---+---+---+---+---+
+| r | n | b |   | k | b | n | r |8
++---+---+---+---+---+---+---+---+
+| p | p | p |   | p | p | p | p |7
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |6
++---+---+---+---+---+---+---+---+
+|   |   |   | q |   |   |   |   |5
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |4
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |3
++---+---+---+---+---+---+---+---+
+| P | P | P | P |   | P | P | P |2
++---+---+---+---+---+---+---+---+
+| R | N | B | Q | K | B | N | R |1 *
++---+---+---+---+---+---+---+---+
+  a   b   c   d   e   f   g   h
+
+Fen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3
+Sfen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR b - 5
+Key: AE7D48F19DB356CD
+Checkers:
+```
+
+## Move generation and application
 
 Add a new move:
 ```javascript
@@ -129,6 +164,8 @@ for (var i = 0; i < legalMovesSan.length; i++) {
     console.log(`${i}: ${legalMoves[i]}, ${legalMovesSan[i]}`)
 }
 ```
+
+## Memory management
 
 Unfortunately, it is impossible for Emscripten to call the destructor on C++ objects.
 Therefore, you need to call `.delete()` to free the heap memory of an object.
@@ -163,6 +200,24 @@ fs.readFile(pgnFilePath, 'utf8', function (err,data) {
   board.delete();
   game.delete();
 }
+```
+
+## Custom variants
+
+Fairy-Stockfish also allows defining custom variants by loading a configuration file.
+
+See e.g. the configuration for **connect4**, **tictactoe** or **janggihouse** in [variants.ini](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/variants.ini).
+```javascript
+fs = require('fs');
+let configFilePath = './variants.ini';
+ fs.readFile(configFilePath, 'utf8', function (err,data) {
+   if (err) {
+     return console.log(err);
+   }
+   ffish.loadVariantConfig(data)
+   let board = new ffish.Board("tictactoe");
+   board.delete();
+ });
 ```
 
 ## Remaining features
