@@ -2397,11 +2397,11 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (must_capture() || !checking_permitted() || is_gating(m) || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
       return VALUE_ZERO >= threshold;
 
-  int swap = PieceValue[MG][piece_on(to)] - threshold;
+  int swap = CapturePieceValue[MG][piece_on(to)] - threshold;
   if (swap < 0)
       return false;
 
-  swap = PieceValue[MG][moved_piece(m)] - swap;
+  swap = CapturePieceValue[MG][moved_piece(m)] - swap;
   if (swap <= 0)
       return true;
 
@@ -2451,7 +2451,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       // the bitboard 'attackers' any X-ray attackers behind it.
       if ((bb = stmAttackers & pieces(PAWN)))
       {
-          if ((swap = PawnValueMg - swap) < res)
+          if ((swap = CapturePieceValue[MG][PAWN] - swap) < res)
               break;
 
           occupied ^= least_significant_square_bb(bb);
@@ -2460,7 +2460,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(KNIGHT)))
       {
-          if ((swap = KnightValueMg - swap) < res)
+          if ((swap = CapturePieceValue[MG][KNIGHT] - swap) < res)
               break;
 
           occupied ^= least_significant_square_bb(bb);
@@ -2468,7 +2468,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(BISHOP)))
       {
-          if ((swap = BishopValueMg - swap) < res)
+          if ((swap = CapturePieceValue[MG][BISHOP] - swap) < res)
               break;
 
           occupied ^= least_significant_square_bb(bb);
@@ -2477,7 +2477,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(ROOK)))
       {
-          if ((swap = RookValueMg - swap) < res)
+          if ((swap = CapturePieceValue[MG][ROOK] - swap) < res)
               break;
 
           occupied ^= least_significant_square_bb(bb);
@@ -2486,7 +2486,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(QUEEN)))
       {
-          if ((swap = QueenValueMg - swap) < res)
+          if ((swap = CapturePieceValue[MG][QUEEN] - swap) < res)
               break;
 
           occupied ^= least_significant_square_bb(bb);
@@ -2498,7 +2498,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       // pick next piece without considering value
       else if ((bb = stmAttackers & ~pieces(KING)))
       {
-          if ((swap = PieceValue[MG][piece_on(lsb(bb))] - swap) < res)
+          if ((swap = CapturePieceValue[MG][piece_on(lsb(bb))] - swap) < res)
               break;
 
           occupied ^= lsb(bb);
