@@ -1,0 +1,137 @@
+[Event "RLP-Open R7"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "1.2"]
+[White "Syrov, Arkadi"]
+[Black "Dgebuadze, Alexandre"]
+[Result "0-1"]
+[ECO "B31"]
+[WhiteElo "2291"]
+[BlackElo "2508"]
+[Annotator "Syrov, Arkadi"]
+[PlyCount "86"]
+
+1. e4 {[%emt 0:00:01]} c5 {[%emt 0:00:21] keine völlige Überraschung, da ich
+gesehen habe, dass er schon c5 gespielt hat, aber nur gegen Morra. Ich hatte
+hauptsächlich mit Französisch gerechnet.} 2. Nf3 {[%emt 0:00:05]} Nc6 {
+[%emt 0:00:04]} 3. Bb5 {[%emt 0:00:04]} g6 {[%emt 0:00:09]} 4. Bxc6 {[%emt 0:
+00:05]} bxc6 {[%emt 0:00:07]} 5. O-O {[%emt 0:00:05]} Bg7 {[%emt 0:00:16]} 6.
+Re1 {[%emt 0:00:05] jetzt begann er lange zu denken, was ich nicht erwartet
+habe. Bis hierher habe ich gefühlt 10 Partien in der Datenbank.} d5 {[%emt 0:
+21:13] das ist nicht die Hauptvariante. Während ich herumlief und auf seinen
+Zug wartete, habe ich versucht mich an die Theorie nach Sh6 c3 zu erinnern.
+Von d5 wusste ich nichts, also reagierte ich Standardmäßig.} 7. d3 {[%emt 0:
+02:47]} Bg4 {[%emt 0:01:22]} 8. Nbd2 {[%emt 0:03:46] Im nachhinein ist das
+eine schlechte Entscheidung. Ich hätte gleich h3 spielen sollen. Ich wollte
+auf f3 mit dem Springer schlagen und habe mich selbst ausgetrixt, denn er
+bekommt eine neue Option.} (8. h3 Bxf3 9. Qxf3 $14 {sollte etwas besser sein.})
+8... Nf6 {[%emt 0:03:45]} 9. e5 {[%emt 0:05:32]} (9. h3 {wäre glaube ich
+immer noch besser gewesen und dann wieder mit der Dame auf f3 schlagen. Aber
+ich habe die ganze Idee mit Le6 nicht betrachtet.}) 9... Nd7 {[%emt 0:02:01]}
+10. h3 {[%emt 0:00:14]} Be6 {[%emt 0:09:32]} 11. c4 $2 {[%emt 0:17:01] die
+Standardidee um die Doppelbauern festzulegen.} (11. Ng5 $1 {war meine
+Alternative. Ich habe es wegen:} Nxe5 {nicht gespielt.} (11... Nf8 {war der
+Plan meines Gegners, was auch sinnvoll aussieht. Aber konkret hat Weiß eine
+starke Antwort (Natürlich habe ich alles folgende nicht gesehen):} 12. Nb3 $1
+h6 13. Nxe6 Nxe6 14. Be3 Bxe5 (14... Qb6 15. f4 $14 {[%csl Gc5][%cal Gd1f3,
+Gf3f2]} a5 (15... O-O 16. Qf3 a5 17. Qf2 d4 18. Bc1 $16 {ist einfach traurig
+für Schwarz}) 16. Qf3 a4 17. Nxc5 $1 Nxc5 18. Qf2 Nxd3 19. cxd3 Qb5 20. Bc5 e6
+(20... Qxd3 $2 21. Bxe7 $3 Kxe7 22. Qc5+ $18) 21. d4 $14 {[%csl Gc6]}) 15. Nxc5
+Nxc5 16. Bxc5 Bf6 17. Qd2 $1 $14 {Schwarz kann nicht rochieren, da h6 hängt
+und es ist klar, dass Weiß einen kleinen Vorteil haben sollte.}) 12. f4 Nd7
+13. Nxe6 (13. Rxe6 fxe6 14. Nxe6 Qb6 15. Nxg7+ Kf7 {schien auch nicht
+funktionieren. Ich habe keine Figuren, die im Angriff sind.}) 13... fxe6 14.
+Rxe6 O-O {und ich wusste nicht was das soll. Denn der Bauer auf f4 ist Schwach,
+ich dachte während der Partie, dass Weiß hier schlechter steht. Was
+anscheinend eine riesige Fehleinschätzung ist. Denn nach} (14... Rc8 15. Nf3
+c4 {soll Schwarz probieren, aber es ist immer noch besser für Weiß} 16. dxc4
+Nc5 17. Re1 $14) 15. Nf3 {hängt c6 und e7 und nach} Rc8 (15... Qc7 16. Rxe7
+Rae8 17. Qe2 Rxe7 18. Qxe7 $16 {ist einfach ein Bauer}) 16. Qe1 Bf6 17. f5 $1 {
+hat Schwarz riesige Probleme.}) (11. d4 {habe ich auch kurz überlegt, aber
+ich habe nicht ganz verstanden, was das mir bringt, außer die Stellung zu
+öffnen, was meinem Gegner zugute kommen sollte.}) (11. b3 {war auch eine
+Möglichkeit an der ich überlegt habe und dann ohne c4 spielen. Oder in einem
+besseren Moment c4 spielen. Vielleicht wäre das eine bessere Möglichkeit.}) (
+11. Qe2 h6 12. b3 {[%cal Ga2a4] und ohne c4 spielen sieht auch sehr gut aus.})
+11... h6 {[%emt 0:07:58] ein logischer Zug um Sg5 aus der Stellung zu nehmen.
+Und manchmal wird g5 zur Idee.} 12. Qe2 {[%emt 0:00:48] sah logisch aus, um c4
+zu decken, den e5 zu decken und dann meinen Problemspringer auf d2 zu
+überführen.} Qb6 {[%emt 0:02:13] ein etwas mysteriöser Zug. Die Idee ist
+wahrscheinlich in manchen Varianten Db4 zu haben und b2 im Visier zu behalten.
+Ich war hier ehrlich gesagt etwas verloren und wusste nicht wirklich was ich
+als nächstes machen sollte und begann etwas kreativ zu werden, bis ich alle
+meine Ideen selbst wiederlegt habe.} 13. Nb1 {[%emt 0:13:59][%cal Gb1c3,Gb2b3,
+Gc3a4] wenn ich noch einen Zug machen darf, steht Schwarz glaube ich ganz
+schlecht, aber den gibt mir Schwarz natürlich nicht.} (13. a4 a5 14. Ra3 {
+war eine sau komische Idee, die ich hatte um den c5 unter Druck zu setzen,
+aber ich war mir über die Bewertung der Schlussstellung nicht sicher.} Nb8 {
+ich glaube Schwarz sollte das schwache b4 Feld ausnutzen.} 15. Rb3 Qa7 {
+hier steht die Dame dachte ich am besten} (15... Qc7 16. Rc3 Na6 17. b3 Nb4 18.
+Ba3 {habe ich vielleicht motive mit nimmt auf d5 und d4, da die Dame auf c7 in
+der Turmlinie steht.}) 16. Rc3 Na6 17. b3 Nb4 18. Ba3 O-O {ich kann den c5
+nicht noch mehr angreifen, da nach Tec1 d4 kommt und ich weiß nicht, was ich
+weiter machen soll.}) (13. b3 a5 {hat mir nicht gefallen, da ich entweder a4
+spielen muss, oder a4 zulassen muss. In beiden fällen hat mir die Perspektive
+nicht gefallen, da entweder b4 sehr schwach wird und Sb4 und Lf5 kommen, oder
+all dass und der b3 wird schwach. (Bzw a2, wenn ich nicht auf b3 mit dem
+Bauern nehme).}) (13. Nf1 {ich wusste nicht, wohin der Springer von hier gehen
+will.}) (13. Nb3 {ich dachte das läuft einfach in a5 und a4 mit Tempo.}) 13...
+a5 {[%emt 0:00:21] sonst käme Sc3 und auf a5 dann, b3 oder Sa4.} 14. Bf4 {
+[%emt 0:07:12] wieder war ich etwas verloren und hatte keine Ahnung wie ich
+meine Figuren hinstellen soll. Es ist klar, dass er a4 im nächsten Zug machen
+wird und was ich mache ist mir ein Rätsel.} a4 {[%emt 0:02:34]} 15. Na3 {
+[%emt 0:02:47] ich habe wirklich keine Ahnung was hier richtig ist und was
+nicht.} g5 {[%emt 0:03:33]} 16. Bg3 {[%emt 0:03:12]} O-O {[%emt 0:09:10]} (
+16... g4 17. hxg4 Bxg4 18. Rab1 {[%cal Ge2e3] ich dachte nicht, dass es so
+viel für Schwarz bringt.}) 17. Rab1 {[%emt 0:00:59] um b2 zu decken, damit
+sich die Dame bewegen kann. Vielleicht wäre h4 sofort richtig gewesen!?} Rfe8
+{[%emt 0:02:02]} (17... Bf5 $1 {gefolgt von e6 sieht stark aus} 18. Nc2 e6 19.
+Ne3 Bg6 $15) 18. h4 {[%emt 0:01:14]} f6 {[%emt 0:04:19]} (18... g4 19. Nh2 h5
+20. f3 {hier war ich ziemlich optimistisch gute Chancen zu haben.}) {Hier habe
+ich überlegt, dass ich eigentlich nichts machen will. Ich will glaube ich
+alles so lassen wie es ist. Aber ich konnte einfach keinen Zug finden, der
+irgendwie sinnvoll ist. Im nachhinein sieht Sc2 gut aus.} 19. hxg5 {[%emt 0:05:
+39] ich glaube das ist der Verlustzug. Ich wollte einfach hg, hg einschieben,
+und dann weiterschauen. Aber das hat ein Problem...} (19. Nc2 {und die
+Stellung ist noch spielbar}) 19... fxg5 {[%emt 0:01:10] nachdem dieser Zug kam,
+verstand ich, dass ich in riesigen Problemen stecke. Es kommt einfach Tf8-f5
+und was mache ich?} 20. Nh2 {[%emt 0:00:59] ich wollte dem Lg4 und Tf8-Motiv
+aus dem Weg gehen. Und vielleicht Dh5. Ich wollte noch viellecht f4 spielen um
+etwas Gegenspiel zu bekommen.} (20. Nc2 {hätte ich spielen sollen} Rf8 21.
+Red1 Bg4 22. e6 Bxf3 23. gxf3 Nf6 24. f4 gxf4 25. Bxf4 Qd8 $15 {[%cal Gd8e8,
+Ge8h5] aber das soll Schwarz noch finden.}) 20... Rf8 {[%emt 0:00:51]} 21. Qe3
+{[%emt 0:06:01]} Rf5 {[%emt 0:02:37]} 22. f4 {[%emt 0:00:14] sonst fliegt e5
+ersatzlos und damit auch meine Stellung, dachte ich. Wenn ich es nicht mache,
+geht es noch halbwegs, laut dem Blechheinie} (22. Nc2 $15) 22... Raf8 {[%emt 0:
+01:40]} 23. fxg5 {[%emt 0:01:14] auch glaube ich ohne wirklich sinnvolle
+Alternative} Rxg5 {[%emt 0:00:26]} 24. Bf4 {[%emt 0:00:42]} Rg6 {[%emt 0:07:46]
+} (24... Rxf4 25. Qxf4 Bxe5 26. Qh4 {und ich dachte ich hätte noch
+gegenchancen.}) (24... Bxe5 {war eine Idee, die ich gar nicht gesehen habe.
+Aber ich habe noch eine Möglichkeit eine völlige Chaos-Stellung zu erreichen:
+} 25. Bxg5 Bd4 26. Qxd4 cxd4 27. Bxe7 {und was hier abgeht, weiß nur
+Stockfish.}) 25. Nf3 {[%emt 0:03:59] ich glaube das verliert forciert.} (25.
+Re2 {ist vielleicht der Zug um weiterzuspielen. Jetzt kann ich vielleicht den
+Turm nach f1 stellen und ich glaube ich verliere nichts sofort.}) 25... d4 {
+[%emt 0:01:46]} (25... Rg4 26. Bh2 d4 27. Qe2 {ist glaube ich noch spielbar})
+26. Qd2 {[%emt 0:01:38]} Qb4 {[%emt 0:02:22]} (26... Rg4 27. Re4 (27. Bxh6 $2
+Rxf3 28. Bxg7 Kxg7 $19) 27... Bf5 28. Nh2 {wäre dachte ich noch spielbar} Rg6
+29. Re2 Qb4 {ist aber auch traurig und laut dem PC gewonnen}) 27. Qc1 {[%emt 0:
+03:50] das Endspiel ist hoffnungslos.} Rg4 {[%emt 0:00:40]} 28. Nc2 {[%emt 0:
+00:51]} (28. Bd2 Qb8 29. Nh2 Rg6 {war so traurig, dass ich es gleich verworfen
+habe und lieber eine Qualle gegeben habe. Leider muss er sie nicht sofort
+nehmen}) 28... Qb6 {[%emt 0:01:06]} 29. Re4 {[%emt 0:00:42]} Bf5 {[%emt 0:00:
+08]} 30. Nh2 {[%emt 0:00:06]} Rg6 {[%emt 0:00:57]} 31. Qe1 {[%emt 0:00:46]} Qd8
+{[%emt 0:02:31] der Rest ist eigentlich nicht mehr interessant. Ich glaube
+nicht, dass ich danach noch irgendeine Chance habe.} (31... Bxe4 32. Qxe4 {
+ist vielleicht noch nicht ganz klar, da der schwarze Turm auf g6 etwas in der
+Luft rumhängt.}) 32. b3 {[%emt 0:01:17]} Bxe4 {[%emt 0:01:05]} 33. Qxe4 {
+[%emt 0:00:03]} Re6 {[%emt 0:01:13]} 34. Nf3 {[%emt 0:00:18]} Qe8 {[%emt 0:00:
+31]} 35. g3 {[%emt 0:01:23]} Qh5 {[%emt 0:01:00]} 36. Re1 {[%emt 0:02:55]} axb3
+{[%emt 0:00:17]} 37. axb3 {[%emt 0:00:04]} Qg4 {[%emt 0:02:41]} 38. Re2 {
+[%emt 0:04:05]} Nf6 {[%emt 0:02:39] noch eine schöne letzte ressource.} 39.
+Nh2 {[%emt 0:00:38]} Nxe4 {[%emt 0:00:55]} 40. Nxg4 {[%emt 0:00:04]} Nc3 {
+[%emt 0:00:11]} 41. Rh2 {[%emt 0:02:24]} Rg6 {[%emt 0:00:10]} 42. Nxh6+ {
+[%emt 0:00:15]} Bxh6 {[%emt 0:00:10]} 43. Rxh6 {[%emt 0:00:04]} Ne2+ {[%emt 0:
+00:06] Zwei Fehler: 1: Sg5 falsch eingeschätzt. Und 2: hg fg übersehen.} 0-1
+
+

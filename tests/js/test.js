@@ -395,6 +395,28 @@ describe('board.pocket(turn)', function () {
   });
 });
 
+describe('board.toString()', function () {
+  it("it returns a compact string representation of the board.", () => {
+    const board = new ffish.Board("chess", "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3");
+    chai.expect(board.toString()).to.equal("r n b . k b n r\np p p . p p p p\n. . . . . . . .\n. . . q . . . .\n. . . . . . . .\n. . . . . . . .\nP P P P . P P P\nR N B Q K B N R");
+    board.delete();
+    const board2 = new ffish.Board("xiangqi");
+    chai.expect(board2.toString()).to.equal("r n b a k a b n r\n. . . . . . . . .\n. c . . . . . c .\np . p . p . p . p\n. . . . . . . . .\n. . . . . . . . .\nP . P . P . P . P\n. C . . . . . C .\n. . . . . . . . .\nR N B A K A B N R");
+    board2.delete();
+  });
+});
+
+describe('board.toVerboseString()', function () {
+  it("it returns a verbose string representation of the board.", () => {
+    const board = new ffish.Board("chess", "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3");
+    chai.expect(board.toVerboseString()).to.equal("\n +---+---+---+---+---+---+---+---+\n | r | n | b |   | k | b | n | r |8  \n +---+---+---+---+---+---+---+---+\n | p | p | p |   | p | p | p | p |7\n +---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |6\n +---+---+---+---+---+---+---+---+\n |   |   |   | q |   |   |   |   |5\n +---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |4\n +---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |3\n +---+---+---+---+---+---+---+---+\n | P | P | P | P |   | P | P | P |2\n +---+---+---+---+---+---+---+---+\n | R | N | B | Q | K | B | N | R |1 *\n +---+---+---+---+---+---+---+---+\n   a   b   c   d   e   f   g   h\n\nFen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3\nSfen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR b - 5\nKey: AE7D48F19DB356CD\nCheckers: ")
+    board.delete();
+    const board2 = new ffish.Board("xiangqi");
+    chai.expect(board2.toVerboseString()).to.equal("\n +---+---+---+---+---+---+---+---+---+\n | r | n | b | a | k | a | b | n | r |10  \n +---+---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |   |9\n +---+---+---+---+---+---+---+---+---+\n |   | c |   |   |   |   |   | c |   |8\n +---+---+---+---+---+---+---+---+---+\n | p |   | p |   | p |   | p |   | p |7\n +---+---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |   |6\n +---+---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |   |5\n +---+---+---+---+---+---+---+---+---+\n | P |   | P |   | P |   | P |   | P |4\n +---+---+---+---+---+---+---+---+---+\n |   | C |   |   |   |   |   | C |   |3\n +---+---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |   |2\n +---+---+---+---+---+---+---+---+---+\n | R | N | B | A | K | A | B | N | R |1 *\n +---+---+---+---+---+---+---+---+---+\n   a   b   c   d   e   f   g   h   i\n\nFen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1\nSfen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR b - 1\nKey: 1FBADA178B89E4C3\nCheckers: ");
+    board2.delete();
+  });
+});
+
 describe('ffish.info()', function () {
   it("it returns the version of the Fairy-Stockfish binary", () => {
     chai.expect(ffish.info()).to.be.a('string');
@@ -471,11 +493,13 @@ describe('ffish.validateFen(fen, uciVariant)', function () {
 describe('ffish.readGamePGN(pgn)', function () {
   it("it reads a pgn string and returns a game object", () => {
      fs = require('fs');
-     let pgnFiles = ['deep_blue_kasparov_1997.pgn', 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn', 'c60_ruy_lopez.pgn', 'pychess-variants_zJxHRVm1.pgn']
+     let pgnFiles = ['deep_blue_kasparov_1997.pgn', 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn', 'c60_ruy_lopez.pgn', 'pychess-variants_zJxHRVm1.pgn', 'Syrov - Dgebuadze.pgn']
+
      let expectedFens = ["1r6/5kp1/RqQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 b - - 14 45",
                          "3r2kr/2pb1Q2/4ppp1/3pN2p/1P1P4/3PbP2/P1P3PP/6NK[PPqrrbbnn] b - - 1 37",
                          "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
-                         "r1bQkb1r/ppp1pppp/2P5/2n2q2/8/2N2N2/PPP2PPP/R1BEKB1R[Hh] b KQACEFHkqacefh - 0 8"]
+                         "r1bQkb1r/ppp1pppp/2P5/2n2q2/8/2N2N2/PPP2PPP/R1BEKB1R[Hh] b KQACEFHkqacefh - 0 8",
+                         "5rk1/4p3/2p3rR/2p1P3/2Pp1B2/1P1P2P1/2N1n3/6K1 w - - 1 44"]
 
      for (let idx = 0; idx < pgnFiles.length; ++idx) {
      let pgnFilePath = pgnDir + pgnFiles[idx];

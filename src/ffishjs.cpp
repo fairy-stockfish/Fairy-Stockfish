@@ -59,7 +59,7 @@ inline void save_pop_back(std::string& s) {
 }
 
 const Variant* get_variant(const std::string& uciVariant) {
-  if (uciVariant.size() == 0)
+  if (uciVariant.size() == 0 || uciVariant == "Standard" || uciVariant == "standard")
     return variants.find("chess")->second;
   return variants.find(uciVariant)->second;
 }
@@ -296,9 +296,32 @@ public:
     return pocket;
   }
 
-  // TODO: return board in ascii notation
-  // static std::string get_string_from_instance(const Board& board) {
-  // }
+  std::string to_string() {
+    std::string stringBoard;
+    for (Rank r = pos.max_rank(); r >= RANK_1; --r) {
+      for (File f = FILE_A; f <= pos.max_file(); ++f) {
+        if (f != FILE_A)
+          stringBoard += " ";
+        const Piece p = pos.piece_on(make_square(f, r));
+        switch(p) {
+        case NO_PIECE:
+          stringBoard += '.';
+          break;
+        default:
+          stringBoard += pos.piece_to_char()[p];
+        }
+      }
+      if (r != RANK_1)
+        stringBoard += "\n";
+    }
+    return stringBoard;
+  }
+
+  std::string to_verbose_string() {
+    std::stringstream ss;
+    operator<<(ss, pos);
+    return ss.str();
+  }
 
 private:
   void resetStates() {
@@ -409,6 +432,20 @@ public:
 };
 
 
+bool skip_comment(const std::string& pgn, size_t& curIdx, size_t& lineEnd) {
+    if (pgn[curIdx] == '{') {
+      // skip comment
+      curIdx = pgn.find('}', curIdx);
+      if (curIdx == std::string::npos) {
+        std::cerr << "Missing '}' for move comment while reading pgn." << std::endl;
+        return false;
+      }
+      if (curIdx > lineEnd)
+        lineEnd = pgn.find('\n', curIdx);
+    }
+    return true;
+}
+
 Game read_game_pgn(std::string pgn) {
   Game game;
   size_t lineStart = 0;
@@ -418,7 +455,7 @@ Game read_game_pgn(std::string pgn) {
     size_t lineEnd = pgn.find('\n', lineStart);
 
     if (lineEnd == std::string::npos)
-    lineEnd = pgn.size();
+      lineEnd = pgn.size();
 
     if (!headersParsed && pgn[lineStart] == '[') {
       // parse header
@@ -444,7 +481,7 @@ Game read_game_pgn(std::string pgn) {
 
         it = game.header.find("FEN");
         if (it != game.header.end())
-        game.fen = it->second;
+          game.fen = it->second;
 
         game.board = std::make_unique<Board>(game.variant, game.fen, game.is960);
         game.parsedGame = true;
@@ -454,39 +491,50 @@ Game read_game_pgn(std::string pgn) {
       size_t curIdx = lineStart;
       while (curIdx <= lineEnd) {
         if (pgn[curIdx] == '*')
-        return game;
+          return game;
 
-        while (pgn[curIdx] == '{') {
-          // skip comment
-          curIdx = pgn.find('}', curIdx);
-          if (curIdx == std::string::npos) {
-            std::cerr << "Missing '}' for move comment while reading pgn." << std::endl;
-            return game;
-          }
-          curIdx += 2;
+        if (!skip_comment(pgn, curIdx, lineEnd))
+          return game;
+
+        // Movetext RAV (Recursive Annotation Variation)
+        size_t openedRAV = 0;
+        if (pgn[curIdx] == '(') {
+          openedRAV = 1;
+          ++curIdx;
         }
-        while (pgn[curIdx] == '(') {
-          // skip comment
-          curIdx = pgn.find(')', curIdx);
-          if (curIdx == std::string::npos) {
-            std::cerr << "Missing ')' for move comment while reading pgn." << std::endl;
-            return game;
+        while (openedRAV != 0) {
+          switch (pgn[curIdx]) {
+            case '(':
+              ++openedRAV;
+              break;
+            case ')':
+              --openedRAV;
+              break;
+            case '{':
+              if (!skip_comment(pgn, curIdx, lineEnd))
+                return game;
+            default: ;  // pass
           }
-          curIdx += 2;
+          ++curIdx;
+        }
+
+        if (pgn[curIdx] == '$') {
+          // we are at a glyph
+          curIdx = pgn.find(' ', curIdx);
         }
 
         if (pgn[curIdx] >= '0' && pgn[curIdx] <= '9') {
           // we are at a move number -> look for next point
           curIdx = pgn.find('.', curIdx);
           if (curIdx == std::string::npos)
-          break;
+            break;
           ++curIdx;
           // increment if we're at a space
           while (curIdx < pgn.size() && pgn[curIdx] == ' ')
-          ++curIdx;
+            ++curIdx;
           // increment if we're at a point
           while (curIdx < pgn.size() && pgn[curIdx] == '.')
-          ++curIdx;
+            ++curIdx;
         }
         // extract sanMove
         size_t sanMoveEnd = std::min(pgn.find(' ', curIdx), lineEnd);
@@ -496,7 +544,7 @@ Game read_game_pgn(std::string pgn) {
           size_t annotationChar1 = sanMove.find('?');
           size_t annotationChar2 = sanMove.find('!');
           if (annotationChar1 != std::string::npos || annotationChar2 != std::string::npos)
-          sanMove = sanMove.substr(0, std::min(annotationChar1, annotationChar2));
+            sanMove = sanMove.substr(0, std::min(annotationChar1, annotationChar2));
           game.board->push_san(sanMove);
         }
         curIdx = sanMoveEnd+1;
@@ -505,7 +553,7 @@ Game read_game_pgn(std::string pgn) {
     lineStart = lineEnd+1;
 
     if (lineStart >= pgn.size())
-    return game;
+      return game;
   }
   return game;
 }
@@ -545,7 +593,9 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("pushMoves", &Board::push_moves)
     .function("pushSanMoves", select_overload<void(std::string)>(&Board::push_san_moves))
     .function("pushSanMoves", select_overload<void(std::string, Notation)>(&Board::push_san_moves))
-    .function("pocket", &Board::pocket);
+    .function("pocket", &Board::pocket)
+    .function("toString", &Board::to_string)
+    .function("toVerboseString", &Board::to_verbose_string);
   class_<Game>("Game")
     .function("headerKeys", &Game::header_keys)
     .function("headers", &Game::headers)
