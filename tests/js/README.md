@@ -232,53 +232,18 @@ It is built using emscripten/Embind from C++ source code.
 
 
 If you want to disable variants with a board greater than 8x8,
- you can remove the flags `-s TOTAL_MEMORY=67108864 -s
-  ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=2147483648
-   -DLARGEBOARDS -DPRECOMPUTED_MAGICS`.
+ you can add the flag `largeboards=no`.
 
-The pre-compiled wasm binary is built with `-DLARGEBOARDS`.
+The pre-compiled wasm binary is built with `largeboards=yes`.
 
-It is recommended to set `-s ASSERTIONS=1 -s SAFE_HEAP=1` before running tests.
+It is recommended to set `debug=yes` before running tests.
 
 
 ### Compile as standard module
 
 ```bash
-cd Fairy-Stockfish/src
-```
-```bash
-emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNNUE_EMBEDDING_OFF -DNO_THREADS \
- -s TOTAL_MEMORY=32MB -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1GB \
- -s ASSERTIONS=0 -s SAFE_HEAP=0 -std=c++17 -Wall \
- -DNO_THREADS -DLARGEBOARDS -DPRECOMPUTED_MAGICS \
-ffishjs.cpp \
-benchmark.cpp \
-bitbase.cpp \
-bitboard.cpp \
-endgame.cpp \
-evaluate.cpp \
-material.cpp \
-misc.cpp \
-movegen.cpp \
-movepick.cpp \
-parser.cpp \
-partner.cpp \
-pawns.cpp \
-piece.cpp \
-position.cpp \
-psqt.cpp \
-search.cpp \
-thread.cpp \
-timeman.cpp \
-tt.cpp \
-uci.cpp \
-ucioption.cpp \
-variant.cpp \
-xboard.cpp \
-nnue/*.cpp \
-nnue/features/*.cpp \
-syzygy/*.cpp \
--o ../tests/js/ffish.js
+cd src
+make -f Makefile_js build
 ```
 
 ### Compile as ES6/ES2015 module
@@ -287,41 +252,8 @@ Some environments such as [vue-js](https://vuejs.org/) may require the library t
   as a ES6/ES2015 module.
 
 ```bash
-cd Fairy-Stockfish/src
-```
-```bash
-emcc -O3 --bind -DLARGEBOARDS -DPRECOMPUTED_MAGICS -DNNUE_EMBEDDING_OFF -DNO_THREADS \
- -s TOTAL_MEMORY=32MB -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1GB \
- -s ASSERTIONS=0 -s SAFE_HEAP=0 -std=c++17 -Wall \
- -s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0 \
-ffishjs.cpp \
-benchmark.cpp \
-bitbase.cpp \
-bitboard.cpp \
-endgame.cpp \
-evaluate.cpp \
-material.cpp \
-misc.cpp \
-movegen.cpp \
-movepick.cpp \
-parser.cpp \
-partner.cpp \
-pawns.cpp \
-piece.cpp \
-position.cpp \
-psqt.cpp \
-search.cpp \
-thread.cpp \
-timeman.cpp \
-tt.cpp \
-uci.cpp \
-ucioption.cpp \
-variant.cpp \
-xboard.cpp \
-nnue/*.cpp \
-nnue/features/*.cpp \
-syzygy/*.cpp \
--o ../tests/js/ffish.js
+cd src
+make -f Makefile_js build es6=yes
 ```
 
 Make sure that the wasm file is in the `public` directory.

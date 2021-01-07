@@ -1,0 +1,61 @@
+# ffish.js, a JavaScript chess variant library derived from Fairy-Stockfish
+# Copyright (C) 2020 Fabian Fichter, Johannes Czech
+#
+# ffish.js is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# ffish.js is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+EXE = ../tests/js/ffish.js
+
+SRCS = ffishjs.cpp benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp \
+	material.cpp misc.cpp movegen.cpp movepick.cpp pawns.cpp position.cpp psqt.cpp \
+	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
+	nnue/evaluate_nnue.cpp nnue/features/half_kp.cpp \
+	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp
+
+CXX=emcc
+CXXFLAGS += --bind -DNNUE_EMBEDDING_OFF -DNO_THREADS -std=c++17 -Wall
+
+largeboards = yes
+optimize = yes
+debug = no
+
+### Debugging
+ifeq ($(debug),no)
+	CXXFLAGS += -DNDEBUG -s ASSERTIONS=0 -s SAFE_HEAP=0
+else
+	CXXFLAGS += -g -s ASSERTIONS=1 -s SAFE_HEAP=1
+endif
+
+### Optimization
+ifeq ($(optimize),yes)
+	CXXFLAGS += -O3
+endif
+
+# Compile version with support for large board variants
+# Use precomputed magics by default
+ifneq ($(largeboards),no)
+	CXXFLAGS += -DLARGEBOARDS -DPRECOMPUTED_MAGICS -s TOTAL_MEMORY=32MB -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1GB
+endif
+
+### Compile as ES6/ES2015 module
+ifeq ($(es6),yes)
+	CXXFLAGS += -s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0
+endif
+
+objclean:
+	@rm -f $(EXE) *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
+
+clean: objclean
+
+build:
+	$(CXX) $(CXXFLAGS) $(SRCS) -o $(EXE)
