@@ -81,7 +81,7 @@ describe('board.legalMoves()', function () {
         ' P@d5 P@f5 P@g5 P@h5 P@a6 P@b6 P@d6 P@e6 P@f6 P@g6 P@h6 P@e7 Q@b1 Q@d1 Q@f1 Q@e2 Q@a3 Q@b3 Q@d3 Q@e3 Q@f3 ' +
         'Q@g3 Q@h3 Q@a4 Q@b4 Q@c4 Q@d4 Q@f4 Q@g4 Q@h4 Q@a5 Q@b5 Q@d5 Q@f5 Q@g5 Q@h5 Q@a6 Q@b6 Q@d6 Q@e6 Q@f6 Q@g6' +
         ' Q@h6 Q@e7 Q@b8 Q@d8 Q@e8 Q@f8 e1d1 e1f1 e1e2';
-    chai.expect(board.legalMoves()).to.equal(expectedMoves);
+    chai.expect(board.legalMoves().split(' ').sort().join()).to.equal(expectedMoves.split(' ').sort().join());
     board.delete();
   });
 });
@@ -94,7 +94,7 @@ describe('board.legalMovesSan()', function () {
         ' P@d6 P@e6+ P@f6 P@g6+ P@h6 P@e7 Q@b1 Q@d1 Q@f1 Q@e2 Q@a3 Q@b3+ Q@d3 Q@e3 Q@f3+ Q@g3 Q@h3 Q@a4 Q@b4 Q@c4+' +
         ' Q@d4 Q@f4+ Q@g4 Q@h4 Q@a5 Q@b5 Q@d5+ Q@f5+ Q@g5 Q@h5+ Q@a6 Q@b6 Q@d6 Q@e6+ Q@f6+ Q@g6+ Q@h6 Q@e7+ Q@b8' +
         ' Q@d8 Q@e8+ Q@f8+ Kd1 Kf1 Ke2';
-    chai.expect(board.legalMovesSan()).to.equal(expectedMoves);
+    chai.expect(board.legalMovesSan().split(' ').sort().join()).to.equal(expectedMoves.split(' ').sort().join());
     board.delete();
   });
 });
@@ -398,10 +398,26 @@ describe('board.pocket(turn)', function () {
 describe('board.toString()', function () {
   it("it returns a compact string representation of the board.", () => {
     const board = new ffish.Board("chess", "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3");
-    chai.expect(board.toString()).to.equal("r n b . k b n r\np p p . p p p p\n. . . . . . . .\n. . . q . . . .\n. . . . . . . .\n. . . . . . . .\nP P P P . P P P\nR N B Q K B N R");
+    chai.expect(board.toString()).to.equal("r n b . k b n r\n" +
+                                           "p p p . p p p p\n" +
+                                           ". . . . . . . .\n" +
+                                           ". . . q . . . .\n" +
+                                           ". . . . . . . .\n" +
+                                           ". . . . . . . .\n" +
+                                           "P P P P . P P P\n" +
+                                           "R N B Q K B N R");
     board.delete();
     const board2 = new ffish.Board("xiangqi");
-    chai.expect(board2.toString()).to.equal("r n b a k a b n r\n. . . . . . . . .\n. c . . . . . c .\np . p . p . p . p\n. . . . . . . . .\n. . . . . . . . .\nP . P . P . P . P\n. C . . . . . C .\n. . . . . . . . .\nR N B A K A B N R");
+    chai.expect(board2.toString()).to.equal("r n b a k a b n r\n" +
+                                            ". . . . . . . . .\n" +
+                                            ". c . . . . . c .\n" +
+                                            "p . p . p . p . p\n" +
+                                            ". . . . . . . . .\n" +
+                                            ". . . . . . . . .\n" +
+                                            "P . P . P . P . P\n" +
+                                            ". C . . . . . C .\n" +
+                                            ". . . . . . . . .\n" +
+                                            "R N B A K A B N R");
     board2.delete();
   });
 });
@@ -409,10 +425,54 @@ describe('board.toString()', function () {
 describe('board.toVerboseString()', function () {
   it("it returns a verbose string representation of the board.", () => {
     const board = new ffish.Board("chess", "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3");
-    chai.expect(board.toVerboseString()).to.equal("\n +---+---+---+---+---+---+---+---+\n | r | n | b |   | k | b | n | r |8  \n +---+---+---+---+---+---+---+---+\n | p | p | p |   | p | p | p | p |7\n +---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |6\n +---+---+---+---+---+---+---+---+\n |   |   |   | q |   |   |   |   |5\n +---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |4\n +---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |3\n +---+---+---+---+---+---+---+---+\n | P | P | P | P |   | P | P | P |2\n +---+---+---+---+---+---+---+---+\n | R | N | B | Q | K | B | N | R |1 *\n +---+---+---+---+---+---+---+---+\n   a   b   c   d   e   f   g   h\n\nFen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3\nSfen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR b - 5\nKey: AE7D48F19DB356CD\nCheckers: ")
+    chai.expect(board.toVerboseString()).to.equal("\n +---+---+---+---+---+---+---+---+\n" +
+                                                  " | r | n | b |   | k | b | n | r |8  \n" +
+                                                  " +---+---+---+---+---+---+---+---+\n" +
+                                                  " | p | p | p |   | p | p | p | p |7\n" +
+                                                  " +---+---+---+---+---+---+---+---+\n" +
+                                                  " |   |   |   |   |   |   |   |   |6\n" +
+                                                  " +---+---+---+---+---+---+---+---+\n" +
+                                                  " |   |   |   | q |   |   |   |   |5\n" +
+                                                  " +---+---+---+---+---+---+---+---+\n" +
+                                                  " |   |   |   |   |   |   |   |   |4\n" +
+                                                  " +---+---+---+---+---+---+---+---+\n" +
+                                                  " |   |   |   |   |   |   |   |   |3\n" +
+                                                  " +---+---+---+---+---+---+---+---+\n" +
+                                                  " | P | P | P | P |   | P | P | P |2\n" +
+                                                  " +---+---+---+---+---+---+---+---+\n" +
+                                                  " | R | N | B | Q | K | B | N | R |1 *\n" +
+                                                  " +---+---+---+---+---+---+---+---+\n" +
+                                                  "   a   b   c   d   e   f   g   h\n\n" +
+                                                  "Fen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3\n" +
+                                                  "Sfen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR b - 5\n" +
+                                                  "Key: AE7D48F19DB356CD\nCheckers: ")
     board.delete();
     const board2 = new ffish.Board("xiangqi");
-    chai.expect(board2.toVerboseString()).to.equal("\n +---+---+---+---+---+---+---+---+---+\n | r | n | b | a | k | a | b | n | r |10  \n +---+---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |   |9\n +---+---+---+---+---+---+---+---+---+\n |   | c |   |   |   |   |   | c |   |8\n +---+---+---+---+---+---+---+---+---+\n | p |   | p |   | p |   | p |   | p |7\n +---+---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |   |6\n +---+---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |   |5\n +---+---+---+---+---+---+---+---+---+\n | P |   | P |   | P |   | P |   | P |4\n +---+---+---+---+---+---+---+---+---+\n |   | C |   |   |   |   |   | C |   |3\n +---+---+---+---+---+---+---+---+---+\n |   |   |   |   |   |   |   |   |   |2\n +---+---+---+---+---+---+---+---+---+\n | R | N | B | A | K | A | B | N | R |1 *\n +---+---+---+---+---+---+---+---+---+\n   a   b   c   d   e   f   g   h   i\n\nFen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1\nSfen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR b - 1\nKey: 1FBADA178B89E4C3\nCheckers: ");
+    chai.expect(board2.toVerboseString()).to.equal("\n +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " | r | n | b | a | k | a | b | n | r |10  \n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " |   |   |   |   |   |   |   |   |   |9\n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " |   | c |   |   |   |   |   | c |   |8\n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " | p |   | p |   | p |   | p |   | p |7\n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " |   |   |   |   |   |   |   |   |   |6\n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " |   |   |   |   |   |   |   |   |   |5\n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " | P |   | P |   | P |   | P |   | P |4\n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " |   | C |   |   |   |   |   | C |   |3\n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " |   |   |   |   |   |   |   |   |   |2\n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   " | R | N | B | A | K | A | B | N | R |1 *\n" +
+                                                   " +---+---+---+---+---+---+---+---+---+\n" +
+                                                   "   a   b   c   d   e   f   g   h   i\n\n" +
+                                                   "Fen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1\n" +
+                                                   "Sfen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR b - 1\n" +
+                                                   "Key: 1FBADA178B89E4C3\nCheckers: ");
     board2.delete();
   });
 });

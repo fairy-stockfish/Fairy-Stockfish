@@ -516,6 +516,8 @@ Game read_game_pgn(std::string pgn) {
             default: ;  // pass
           }
           ++curIdx;
+          if (curIdx > lineEnd)
+            lineEnd = pgn.find('\n', curIdx);
         }
 
         if (pgn[curIdx] == '$') {
