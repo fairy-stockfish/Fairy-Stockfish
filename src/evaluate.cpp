@@ -725,6 +725,16 @@ namespace {
             }
             break;
         case SHOGI_PAWN:
+            if (pos.promoted_piece_type(pt))
+            {
+                otherChecks = attacks_bb(Us, pos.promoted_piece_type(pt), ksq, pos.pieces()) & attackedBy[Them][pt]
+                                 & zone_bb(Them, pos.promotion_rank(), pos.max_rank()) & pos.board_bb();
+                if (otherChecks & safe)
+                    kingDanger += SafeCheck[FAIRY_PIECES][more_than_one(otherChecks & safe)];
+                else
+                    unsafeChecks |= otherChecks;
+            }
+            break;
         case KING:
             break;
         default:
