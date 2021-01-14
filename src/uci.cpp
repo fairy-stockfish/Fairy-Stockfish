@@ -112,7 +112,9 @@ namespace {
 
     if (Options.count(name))
         Options[name] = value;
-    else if (Options["Protocol"] == "ucci" && (std::replace(name.begin(), name.end(), '_', ' '), Options.count(name)))
+    // UCI dialects do not allow spaces
+    else if (   (Options["Protocol"] == "ucci" || Options["Protocol"] == "usi")
+             && (std::replace(name.begin(), name.end(), '_', ' '), Options.count(name)))
         Options[name] = value;
     else
         sync_cout << "No such option: " << name << sync_endl;
