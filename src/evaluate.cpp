@@ -1042,11 +1042,11 @@ namespace {
     Value maxMg = VALUE_ZERO, maxEg = VALUE_ZERO;
     for (PieceType pt : pos.promotion_piece_types())
     {
-        maxMg = std::max(maxMg, EvalPieceValue[MG][pt]);
-        maxEg = std::max(maxEg, EvalPieceValue[EG][pt]);
+        maxMg = std::max(maxMg, PieceValue[MG][pt]);
+        maxEg = std::max(maxEg, PieceValue[EG][pt]);
     }
-    score = make_score(mg_value(score) * int(maxMg - EvalPieceValue[MG][PAWN]) / (QueenValueMg - PawnValueMg),
-                       eg_value(score) * int(maxEg - EvalPieceValue[EG][PAWN]) / (QueenValueEg - PawnValueEg));
+    score = make_score(mg_value(score) * int(maxMg - PieceValue[MG][PAWN]) / (QueenValueMg - PawnValueMg),
+                       eg_value(score) * int(maxEg - PieceValue[EG][PAWN]) / (QueenValueEg - PawnValueEg));
 
     // Score passed shogi pawns
     PieceType pt = pos.promoted_piece_type(SHOGI_PAWN);
