@@ -49,7 +49,9 @@ script:
   - make clean && make -j2 ARCH=x86-64 nnue=yes debug=yes build && ./stockfish bench > /dev/null 2>&1
 
   # Check perft of large-board version
-  - make clean && make -j2 ARCH=x86-64 largeboards=yes all=yes debug=yes build && ../tests/perft.sh largeboard
+  - make clean && make -j2 ARCH=x86-64 largeboards=yes all=yes debug=yes build
+  - ../tests/perft.sh largeboard
+  - ../tests/protocol.sh
   - ./stockfish bench xiangqi > /dev/null 2>&1
   - ./stockfish bench shogi > /dev/null 2>&1
   - ./stockfish bench capablanca > /dev/null 2>&1
@@ -96,7 +98,6 @@ script:
   - make clean && make -j2 ARCH=x86-64-modern build
   - ../tests/perft.sh
   - ../tests/reprosearch.sh
-  - ../tests/protocol.sh
 
   #
   # Valgrind

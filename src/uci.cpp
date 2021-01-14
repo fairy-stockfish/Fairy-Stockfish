@@ -307,11 +307,17 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "uci" || token == "usi" || token == "ucci" || token == "xboard")
       {
           Options["Protocol"].set_default(token);
-          string defaultVariant = string(  token == "usi"  ? "shogi"
+          string defaultVariant = string(
+#ifdef LARGEBOARDS
+                                           token == "usi"  ? "shogi"
                                          : token == "ucci" ? "xiangqi"
+#else
+                                           token == "usi"  ? "minishogi"
+                                         : token == "ucci" ? "minixiangqi"
+#endif
                                                            : "chess");
           Options["UCI_Variant"].set_default(defaultVariant);
-          if (token != "xboard")
+          if (token == "uci" || token == "usi" || token == "ucci")
               sync_cout << "id name " << engine_info(true)
                           << "\n" << Options
                           << "\n" << token << "ok"  << sync_endl;
@@ -339,6 +345,19 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "compiler") sync_cout << compiler_info() << sync_endl;
       else if (token == "load")     { load(is); argc = 1; } // continue reading stdin
       else if (token == "check")    check(is);
+      // UCI-Cyclone omits the "position" keyword
+      else if (token == "fen" || token == "startpos")
+      {
+#ifdef LARGEBOARDS
+          if (Options["Protocol"] == "uci" && Options["UCI_Variant"] == "chess")
+          {
+              Options["Protocol"].set_default("ucicyclone");
+              Options["UCI_Variant"].set_default("xiangqi");
+          }
+#endif
+          is.seekg(0);
+          position(pos, is, states);
+      }
       else
           sync_cout << "Unknown command: " << cmd << sync_endl;
 
@@ -404,7 +423,7 @@ std::string UCI::square(const Position& pos, Square s) {
                                   : std::string{ char('0' + (pos.max_file() - file_of(s) + 1) / 10),
                                                  char('0' + (pos.max_file() - file_of(s) + 1) % 10),
                                                  char('a' + pos.max_rank() - rank_of(s)) };
-  else if ((Options["Protocol"] == "xboard" || Options["Protocol"] == "ucci") && pos.max_rank() == RANK_10)
+  else if (pos.max_rank() == RANK_10 && Options["Protocol"] != "uci")
       return std::string{ char('a' + file_of(s)), char('0' + rank_of(s)) };
   else
       return rank_of(s) < RANK_10 ? std::string{ char('a' + file_of(s)), char('1' + (rank_of(s) % 10)) }
