@@ -50,6 +50,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [King of the Hill](https://en.wikipedia.org/wiki/King_of_the_Hill_(chess)), [Racing Kings](https://en.wikipedia.org/wiki/V._R._Parton#Racing_Kings)
 - [Three-check](https://en.wikipedia.org/wiki/Three-check_chess), Five-check
 - [Los Alamos](https://en.wikipedia.org/wiki/Los_Alamos_chess)
+- [Atomic](https://en.wikipedia.org/wiki/Atomic_chess) (non-standard rules)
 - [Horde](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess)
 - [Knightmate](https://www.chessvariants.com/diffobjective.dir/knightmate.html)
 

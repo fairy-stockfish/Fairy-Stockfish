@@ -54,6 +54,7 @@ struct Variant {
   bool mandatoryPawnPromotion = true;
   bool mandatoryPiecePromotion = false;
   bool pieceDemotion = false;
+  bool blastOnCapture = false;
   bool endgameEval = false;
   bool doubleStep = true;
   Rank doubleStepRank = RANK_2;
@@ -112,6 +113,7 @@ struct Variant {
   bool bikjangRule = false;
   Value extinctionValue = VALUE_NONE;
   bool extinctionClaim = false;
+  bool extinctionPseudoRoyal = false; // TODO: implementation incomplete
   std::set<PieceType> extinctionPieceTypes = {};
   int extinctionPieceCount = 0;
   int extinctionOpponentPieceCount = 0;

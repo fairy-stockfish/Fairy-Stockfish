@@ -857,12 +857,31 @@ namespace {
     if (pos.extinction_value() == -VALUE_MATE)
     {
         Bitboard bExt = attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
-        while (bExt)
+        for (PieceType pt : pos.extinction_piece_types())
         {
-            PieceType pt = type_of(pos.piece_on(pop_lsb(&bExt)));
+            if (pt == ALL_PIECES)
+                continue;
             int denom = std::max(pos.count_with_hand(Them, pt) - pos.extinction_piece_count(), 1);
-            if (pos.extinction_piece_types().find(pt) != pos.extinction_piece_types().end())
-                score += make_score(1000, 1000) / (denom * denom);
+            // Explosion threats
+            if (pos.blast_on_capture())
+            {
+                int evasions = popcount(((attackedBy[Them][pt] & ~pos.pieces(Them)) | pos.pieces(Them, pt)) & ~attackedBy[Us][ALL_PIECES]) * denom;
+                int attacks = popcount((attackedBy[Them][pt] | pos.pieces(Them, pt)) & attackedBy[Us][ALL_PIECES]);
+                int explosions = 0;
+
+                Bitboard bExtBlast = bExt & (attackedBy2[Us] | ~attackedBy[Us][pt]);
+                while (bExtBlast)
+                {
+                    Square s = pop_lsb(&bExtBlast);
+                    if (((attacks_bb<KING>(s) | s) & pos.pieces(Them, pt)) && !(attacks_bb<KING>(s) & pos.pieces(Us, pt)))
+                        explosions++;
+                }
+                int danger = 20 * attacks / (evasions + 1) + 40 * explosions;
+                score += make_score(danger * (100 + danger), 0);
+            }
+            else
+                // Direct extinction threats
+                score += make_score(1000, 1000) / (denom * denom) * popcount(bExt & pos.pieces(Them, pt));
         }
     }
 

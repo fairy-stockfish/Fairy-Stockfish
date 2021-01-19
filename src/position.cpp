@@ -948,7 +948,7 @@ bool Position::legal(Move m) const {
   if (type_of(m) == CASTLING)
   {
       // Non-royal pieces can not be impeded from castling
-      if (type_of(piece_on(from)) != KING)
+      if (type_of(piece_on(from)) != KING && !var->extinctionPseudoRoyal)
           return true;
 
       // After castling, the rook and king final positions are the same in
@@ -959,6 +959,10 @@ bool Position::legal(Move m) const {
       for (Square s = to; s != from; s += step)
           if (attackers_to(s, ~us))
               return false;
+
+      // TODO: need to consider touching kings
+      if (var->extinctionPseudoRoyal && attackers_to(from, ~us))
+          return false;
 
       // Will the gate be blocked by king or rook?
       Square rto = to + (to_sq(m) > from_sq(m) ? WEST : EAST);
@@ -1590,6 +1594,59 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->gatesBB[us] = 0;
   }
 
+  // Remove the blast pieces
+  if (captured && blast_on_capture())
+  {
+      std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
+      st->demotedBycatch = st->promotedBycatch = 0;
+      Bitboard blast = (attacks_bb<KING>(to) & (pieces() ^ pieces(PAWN))) | to;
+      while (blast)
+      {
+          Square bsq = pop_lsb(&blast);
+          Piece bpc = piece_on(bsq);
+          Color bc = color_of(bpc);
+          if (type_of(bpc) != PAWN)
+              st->nonPawnMaterial[bc] -= PieceValue[MG][bpc];
+
+          // Update board and piece lists
+          // In order to not have to store the values of both board and unpromotedBoard,
+          // demote promoted pieces, but keep promoted pawns as promoted,
+          // and store demotion/promotion bitboards to disambiguate the piece state
+          bool capturedPromoted = is_promoted(bsq);
+          Piece unpromotedCaptured = unpromoted_piece_on(bsq);
+          st->unpromotedBycatch[bsq] = unpromotedCaptured ? unpromotedCaptured : bpc;
+          if (unpromotedCaptured)
+              st->demotedBycatch |= bsq;
+          else if (capturedPromoted)
+              st->promotedBycatch |= bsq;
+          remove_piece(bsq);
+          board[bsq] = NO_PIECE;
+          if (captures_to_hand())
+          {
+              Piece pieceToHand = !capturedPromoted || drop_loop() ? ~bpc
+                                 : unpromotedCaptured ? ~unpromotedCaptured
+                                                      : make_piece(~color_of(bpc), PAWN);
+              add_to_hand(pieceToHand);
+              k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
+                  ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
+          }
+
+          // Update material hash key
+          k ^= Zobrist::psq[bpc][bsq];
+          st->materialKey ^= Zobrist::psq[bpc][pieceCount[bpc]];
+          if (type_of(bpc) == PAWN)
+              st->pawnKey ^= Zobrist::psq[bpc][bsq];
+
+          // Update castling rights if needed
+          if (st->castlingRights && castlingRightsMask[bsq])
+          {
+              int cr = castlingRightsMask[bsq];
+              k ^= Zobrist::castling[st->castlingRights & cr];
+              st->castlingRights &= ~cr;
+          }
+      }
+  }
+
   // Update the key with the final value
   st->key = k;
   // Calculate checkers bitboard (if move gives check)
@@ -1649,6 +1706,29 @@ void Position::undo_move(Move m) {
          || (type_of(m) == PROMOTION && sittuyin_promotion())
          || (is_pass(m) && pass()));
   assert(type_of(st->capturedPiece) != KING);
+
+  // Add the blast pieces
+  if (st->capturedPiece && blast_on_capture())
+  {
+      Bitboard blast = attacks_bb<KING>(to) | to;
+      while (blast)
+      {
+          Square bsq = pop_lsb(&blast);
+          Piece unpromotedBpc = st->unpromotedBycatch[bsq];
+          Piece bpc = st->demotedBycatch & bsq ? make_piece(color_of(unpromotedBpc), promoted_piece_type(type_of(unpromotedBpc)))
+                                               : unpromotedBpc;
+          bool isPromoted = (st->promotedBycatch | st->demotedBycatch) & bsq;
+
+          // Update board and piece lists
+          if (bpc)
+          {
+              put_piece(bpc, bsq, isPromoted, st->demotedBycatch & bsq ? unpromotedBpc : NO_PIECE);
+              if (captures_to_hand())
+                  remove_from_hand(!drop_loop() && (st->promotedBycatch & bsq) ? make_piece(~color_of(unpromotedBpc), PAWN)
+                                                                               : ~unpromotedBpc);
+          }
+      }
+  }
 
   // Remove gated piece
   if (is_gating(m))
@@ -1856,6 +1936,53 @@ Key Position::key_after(Move m) const {
 }
 
 
+Value Position::blast_see(Move m) const {
+  assert(is_ok(m));
+
+  Square from = from_sq(m);
+  Square to = to_sq(m);
+  Color us = color_of(moved_piece(m));
+  Bitboard fromto = type_of(m) == DROP ? square_bb(to) : from | to;
+  Bitboard blast = ((attacks_bb<KING>(to) & ~pieces(PAWN)) | fromto) & pieces();
+
+  Value result = VALUE_ZERO;
+
+  // Add the least valuable attacker for quiet moves
+  if (!capture(m))
+  {
+      Bitboard attackers = attackers_to(to, pieces() ^ fromto, ~us);
+      Value minAttacker = VALUE_INFINITE;
+
+      while (attackers)
+      {
+          Square s = pop_lsb(&attackers);
+          if (extinction_piece_types().find(type_of(piece_on(s))) == extinction_piece_types().end())
+              minAttacker = std::min(minAttacker, blast & s ? VALUE_ZERO : PieceValue[MG][piece_on(s)]);
+      }
+
+      if (minAttacker == VALUE_INFINITE)
+          return VALUE_ZERO;
+
+      result += minAttacker;
+      if (type_of(m) == DROP)
+          result -= PieceValue[MG][dropped_piece_type(m)];
+  }
+
+  // Sum up blast piece values
+  while (blast)
+  {
+      Piece bpc = piece_on(pop_lsb(&blast));
+      if (extinction_piece_types().find(type_of(bpc)) != extinction_piece_types().end())
+          return color_of(bpc) == us ?  extinction_value()
+                        : capture(m) ? -extinction_value()
+                                     : VALUE_ZERO;
+      result += color_of(bpc) == us ? -PieceValue[MG][bpc] : PieceValue[MG][bpc];
+  }
+
+  return capture(m) || must_capture() ? result - 1 : std::min(result, VALUE_ZERO);
+}
+
+
 /// Position::see_ge (Static Exchange Evaluation Greater or Equal) tests if the
 /// SEE value of move is greater or equal to the given threshold. We'll use an
 /// algorithm similar to alpha-beta pruning with a null window.
@@ -1869,9 +1996,14 @@ bool Position::see_ge(Move m, Value threshold) const {
       return VALUE_ZERO >= threshold;
 
   Square from = from_sq(m), to = to_sq(m);
+
   // nCheck
   if (check_counting() && color_of(moved_piece(m)) == sideToMove && gives_check(m))
       return true;
+
+  // Atomic explosion SEE
+  if (blast_on_capture())
+      return blast_see(m) >= threshold;
 
   // Extinction
   if (   extinction_value() != VALUE_NONE
@@ -1882,6 +2014,7 @@ bool Position::see_ge(Move m, Value threshold) const {
               && count<ALL_PIECES>(~sideToMove) == extinction_piece_count() + 1)))
       return extinction_value() < VALUE_ZERO;
 
+  // Do not evaluate SEE if value would be unreliable
   if (must_capture() || !checking_permitted() || is_gating(m) || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
       return VALUE_ZERO >= threshold;
 
@@ -2117,7 +2250,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   // extinction
   if (extinction_value() != VALUE_NONE)
   {
-      for (Color c : { WHITE, BLACK })
+      for (Color c : { ~sideToMove, sideToMove })
           for (PieceType pt : extinction_piece_types())
               if (   count_with_hand( c, pt) <= var->extinctionPieceCount
                   && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount + (extinction_claim() && c == sideToMove))
