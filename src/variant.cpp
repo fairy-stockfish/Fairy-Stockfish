@@ -289,6 +289,26 @@ namespace {
         v->extinctionPieceTypes = {ALL_PIECES};
         return v;
     }
+    // Atomic chess without checks (ICC rules)
+    // https://www.chessclub.com/help/atomic
+    Variant* nocheckatomic_variant() {
+        Variant* v = fairy_variant_base();
+        v->variantTemplate = "atomic";
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->blastOnCapture = true;
+        return v;
+    }
+    // Atomic chess
+    // https://en.wikipedia.org/wiki/Atomic_chess
+    Variant* atomic_variant() {
+        Variant* v = nocheckatomic_variant();
+        // TODO: castling, check(-mate), stalemate are not yet properly implemented
+        v->extinctionPseudoRoyal = true;
+        return v;
+    }
     Variant* threecheck_variant() {
         Variant* v = fairy_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
@@ -998,6 +1018,8 @@ void VariantMap::init() {
     add("kinglet", kinglet_variant()->conclude());
     add("threekings", threekings_variant()->conclude());
     add("horde", horde_variant()->conclude());
+    add("nocheckatomic", nocheckatomic_variant()->conclude());
+    add("atomic", atomic_variant()->conclude());
     add("3check", threecheck_variant()->conclude());
     add("5check", fivecheck_variant()->conclude());
     add("crazyhouse", crazyhouse_variant()->conclude());

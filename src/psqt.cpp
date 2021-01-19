@@ -129,7 +129,11 @@ void init(const Variant* v) {
 
       // Consider promotion types in pawn score
       if (pt == PAWN)
+      {
           score -= make_score(0, (QueenValueEg - maxPromotion) / 100);
+          if (v->blastOnCapture)
+              score += score;
+      }
 
       // Scale slider piece values with board size
       const PieceInfo* pi = pieceMap.find(pt)->second;
@@ -166,6 +170,9 @@ void init(const Variant* v) {
           score = make_score(mg_value(score) * 2000 / (3500 + mg_value(score)),
                              eg_value(score) * 2200 / (3500 + eg_value(score)));
       else if (v->twoBoards)
+          score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
+                             eg_value(score) * 7000 / (7000 + eg_value(score)));
+      else if (v->blastOnCapture)
           score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
                              eg_value(score) * 7000 / (7000 + eg_value(score)));
       else if (v->checkCounting)

@@ -237,6 +237,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("mandatoryPawnPromotion", v->mandatoryPawnPromotion);
     parse_attribute("mandatoryPiecePromotion", v->mandatoryPiecePromotion);
     parse_attribute("pieceDemotion", v->pieceDemotion);
+    parse_attribute("blastOnCapture", v->blastOnCapture);
     parse_attribute("endgameEval", v->endgameEval);
     parse_attribute("doubleStep", v->doubleStep);
     parse_attribute("doubleStepRank", v->doubleStepRank);
@@ -365,6 +366,18 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                     std::cerr << "pieceToCharTable - Missing piece type: " << ptu << std::endl;
             }
         }
+
+        // Check for limitations
+
+        // Options incompatible with royal kings
+        if (v->pieceTypes.find(KING) != v->pieceTypes.end())
+        {
+            if (v->blastOnCapture)
+                std::cerr << "Can not use kings with blastOnCapture" << std::endl;
+            if (v->flipEnclosedPieces)
+                std::cerr << "Can not use kings with flipEnclosedPieces" << std::endl;
+        }
+
     }
     return v;
 }

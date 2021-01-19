@@ -58,6 +58,9 @@ struct StateInfo {
   Bitboard   checkersBB;
   Piece      capturedPiece;
   Piece      unpromotedCapturedPiece;
+  Piece      unpromotedBycatch[SQUARE_NB];
+  Bitboard   promotedBycatch;
+  Bitboard   demotedBycatch;
   StateInfo* previous;
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinners[COLOR_NB];
@@ -122,6 +125,7 @@ public:
   bool mandatory_pawn_promotion() const;
   bool mandatory_piece_promotion() const;
   bool piece_demotion() const;
+  bool blast_on_capture() const;
   bool endgame_eval() const;
   bool double_step_enabled() const;
   Rank double_step_rank_max() const;
@@ -251,6 +255,7 @@ public:
   void undo_null_move();
 
   // Static Exchange Evaluation
+  Value blast_see(Move m) const;
   bool see_ge(Move m, Value threshold = VALUE_ZERO) const;
 
   // Accessing hash keys
@@ -420,6 +425,11 @@ inline bool Position::mandatory_piece_promotion() const {
 inline bool Position::piece_demotion() const {
   assert(var != nullptr);
   return var->pieceDemotion;
+}
+
+inline bool Position::blast_on_capture() const {
+  assert(var != nullptr);
+  return var->blastOnCapture;
 }
 
 inline bool Position::endgame_eval() const {
