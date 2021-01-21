@@ -121,6 +121,8 @@ namespace {
                    + QuadraticOurs[QUEEN][PAWN] * pieceCount[Us][QUEEN]) * pieceCount[Us][PAWN]
                 + make_score( mg_value(QuadraticOurs[KNIGHT][KNIGHT]),
                              -eg_value(QuadraticOurs[KNIGHT][KNIGHT])) * pieceCount[Us][KNIGHT] * pieceCount[Us][KNIGHT];
+    else if (pos.blast_on_capture())
+        bonus -= make_score(mg_value(QuadraticOurs[KNIGHT][PAWN]) * pieceCount[Us][KNIGHT] * pieceCount[Us][PAWN] / 2, 0);
     else if (pos.check_counting())
         bonus -= 2 * QuadraticOurs[PAWN][PAWN] * pieceCount[Us][PAWN] * pieceCount[Us][PAWN];
     else if (pos.captures_to_hand())
