@@ -173,6 +173,7 @@ public:
   Value extinction_value(int ply = 0) const;
   bool extinction_claim() const;
   const std::set<PieceType>& extinction_piece_types() const;
+  bool extinction_single_piece() const;
   int extinction_piece_count() const;
   int extinction_opponent_piece_count() const;
   PieceType capture_the_flag_piece() const;
@@ -752,6 +753,14 @@ inline bool Position::extinction_claim() const {
 inline const std::set<PieceType>& Position::extinction_piece_types() const {
   assert(var != nullptr);
   return var->extinctionPieceTypes;
+}
+
+inline bool Position::extinction_single_piece() const {
+  assert(var != nullptr);
+  return   var->extinctionValue == -VALUE_MATE
+        && std::any_of(var->extinctionPieceTypes.begin(),
+                       var->extinctionPieceTypes.end(),
+                       [](PieceType pt) { return pt != ALL_PIECES; });
 }
 
 inline int Position::extinction_piece_count() const {
