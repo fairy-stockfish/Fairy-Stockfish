@@ -977,7 +977,7 @@ namespace {
         }
     }
 
-    probCutBeta = beta + (183 + 20 * !!pos.capture_the_flag_piece() + 50 * pos.captures_to_hand()) * (1 + pos.check_counting() + (pos.extinction_value() != VALUE_NONE)) - 49 * improving;
+    probCutBeta = beta + (183 + 20 * !!pos.capture_the_flag_piece() + 50 * pos.captures_to_hand()) * (1 + pos.check_counting() + pos.extinction_single_piece()) - 49 * improving;
 
     // Step 10. ProbCut (~10 Elo)
     // If we have a good enough capture and a reduced search returns a value
