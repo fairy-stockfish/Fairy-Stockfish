@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,12 +37,13 @@
 #include "incbin/incbin.h"
 
 
-// Macro to embed the default NNUE file data in the engine binary (using incbin.h, by Dale Weiler).
+// Macro to embed the default efficiently updatable neural network (NNUE) file
+// data in the engine binary (using incbin.h, by Dale Weiler).
 // This macro invocation will declare the following three variables
 //     const unsigned char        gEmbeddedNNUEData[];  // a pointer to the embedded data
 //     const unsigned char *const gEmbeddedNNUEEnd;     // a marker to the end
 //     const unsigned int         gEmbeddedNNUESize;    // the size of the embedded file
-// Note that this does not work in Microsof Visual Studio.
+// Note that this does not work in Microsoft Visual Studio.
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
   INCBIN(EmbeddedNNUE, EvalFileDefaultName);
 #else
@@ -61,9 +62,9 @@ namespace Eval {
   bool useNNUE;
   string eval_file_loaded = "None";
 
-  /// NNUE::init() tries to load a nnue network at startup time, or when the engine
+  /// NNUE::init() tries to load a NNUE network at startup time, or when the engine
   /// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
-  /// The name of the nnue network is always retrieved from the EvalFile option.
+  /// The name of the NNUE network is always retrieved from the EvalFile option.
   /// We search the given network in three locations: internally (the default
   /// network may be embedded in the binary), in the active working directory and
   /// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY
@@ -250,7 +251,7 @@ namespace {
   // BishopPawns[distance from edge] contains a file-dependent penalty for pawns on
   // squares of the same color as our bishop.
   constexpr Score BishopPawns[int(FILE_NB) / 2] = {
-    S(3, 8), S(3, 9), S(1, 8), S(3, 7)
+    S(3, 8), S(3, 9), S(2, 8), S(3, 8)
   };
 
   // KingProtector[knight/bishop] contains penalty for each distance unit to own king
@@ -258,7 +259,7 @@ namespace {
 
   // Outpost[knight/bishop] contains bonuses for each knight or bishop occupying a
   // pawn protected square on rank 4 to 6 which is also safe from a pawn attack.
-  constexpr Score Outpost[] = { S(56, 34), S(31, 23) };
+  constexpr Score Outpost[] = { S(57, 38), S(31, 24) };
 
   // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
   constexpr Score PassedRank[RANK_NB] = {
@@ -280,7 +281,7 @@ namespace {
   };
 
   // Assorted bonuses and penalties
-  constexpr Score BadOutpost          = S( -7, 36);
+  constexpr Score UncontestedOutpost  = S(  1, 10);
   constexpr Score BishopOnKingRing    = S( 24,  0);
   constexpr Score BishopXRayPawns     = S(  4,  5);
   constexpr Score CorneredBishop      = S( 50, 50);
@@ -520,7 +521,7 @@ namespace {
         if (Pt == BISHOP || Pt == KNIGHT)
         {
             // Bonus if the piece is on an outpost square or can reach one
-            // Reduced bonus for knights (BadOutpost) if few relevant targets
+            // Bonus for knights (UncontestedOutpost) if few relevant targets
             bb = OutpostRanks & (attackedBy[Us][PAWN] | shift<Down>(pos.pieces(PAWN)))
                               & ~pe->pawn_attacks_span(Them);
             Bitboard targets = pos.pieces(Them) & ~pos.pieces(PAWN);
@@ -529,7 +530,7 @@ namespace {
                 && bb & s & ~CenterFiles // on a side outpost
                 && !(b & targets)        // no relevant attacks
                 && (!more_than_one(targets & (s & QueenSide ? QueenSide : KingSide))))
-                score += BadOutpost;
+                score += UncontestedOutpost * popcount(pos.pieces(PAWN) & (s & QueenSide ? QueenSide : KingSide));
             else if (bb & s)
                 score += Outpost[Pt == BISHOP];
             else if (Pt == KNIGHT && bb & b & ~pos.pieces(Us))
@@ -610,7 +611,7 @@ namespace {
                 score -= WeakQueen;
         }
     }
-    if (T)
+    if constexpr (T)
         Trace::add(Pt, Us, score);
 
     return score;
@@ -813,7 +814,7 @@ namespace {
         score = make_score(mg_value(score) * me->material_density() / 11000,
                            mg_value(score) * me->material_density() / 11000);
 
-    if (T)
+    if constexpr (T)
         Trace::add(KING, Us, score);
 
     return score;
@@ -966,7 +967,7 @@ namespace {
         score += SliderOnQueen * popcount(b & safe & attackedBy2[Us]) * (1 + queenImbalance);
     }
 
-    if (T)
+    if constexpr (T)
         Trace::add(THREAT, Us, score);
 
     return score;
@@ -1039,11 +1040,13 @@ namespace {
                     unsafeSquares &= attackedBy[Them][ALL_PIECES] | pos.pieces(Them);
 
                 // If there are no enemy pieces or attacks on passed pawn span, assign a big bonus.
+                // Or if there is some, but they are all attacked by our pawns, assign a bit smaller bonus.
                 // Otherwise assign a smaller bonus if the path to queen is not attacked
                 // and even smaller bonus if it is attacked but block square is not.
-                int k = !unsafeSquares                    ? 35 :
-                        !(unsafeSquares & squaresToQueen) ? 20 :
-                        !(unsafeSquares & blockSq)        ?  9 :
+                int k = !unsafeSquares                    ? 36 :
+                !(unsafeSquares & ~attackedBy[Us][PAWN])  ? 30 :
+                        !(unsafeSquares & squaresToQueen) ? 17 :
+                        !(unsafeSquares & blockSq)        ?  7 :
                                                              0 ;
 
                 // Assign a larger bonus if the block square is defended
@@ -1085,7 +1088,7 @@ namespace {
         }
     }
 
-    if (T)
+    if constexpr (T)
         Trace::add(PASSED, Us, score);
 
     return score;
@@ -1137,7 +1140,7 @@ namespace {
     if (pos.capture_the_flag(Us))
         score += make_score(200, 200) * popcount(behind & safe & pos.capture_the_flag(Us));
 
-    if (T)
+    if constexpr (T)
         Trace::add(SPACE, Us, score);
 
     return score;
@@ -1318,7 +1321,7 @@ namespace {
     {
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
                      :  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
-                      - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
+                    + int(rank_of(pos.square<KING>(WHITE)) - rank_of(pos.square<KING>(BLACK)));
 
         pawnsOnBothFlanks =   (pos.pieces(PAWN) & QueenSide)
                             && (pos.pieces(PAWN) & KingSide);
@@ -1402,7 +1405,7 @@ namespace {
        + eg * int(PHASE_MIDGAME - me->game_phase()) * ScaleFactor(sf) / SCALE_FACTOR_NORMAL;
     v /= PHASE_MIDGAME;
 
-    if (T)
+    if constexpr (T)
     {
         Trace::add(WINNABLE, make_score(u, eg * ScaleFactor(sf) / SCALE_FACTOR_NORMAL - eg_value(score)));
         Trace::add(TOTAL, make_score(mg, eg * ScaleFactor(sf) / SCALE_FACTOR_NORMAL));
@@ -1483,7 +1486,7 @@ make_v:
     Value v = winnable(score);
 
     // In case of tracing add all remaining individual evaluation terms
-    if (T)
+    if constexpr (T)
     {
         Trace::add(IMBALANCE, me->imbalance());
         Trace::add(PAWN, pe->pawn_score(WHITE), pe->pawn_score(BLACK));
@@ -1522,7 +1525,7 @@ Value Eval::evaluate(const Position& pos) {
   {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&](){
-         int mat = pos.non_pawn_material() + PawnValueMg * pos.count<PAWN>();
+         int mat = pos.non_pawn_material() + 2 * PawnValueMg * pos.count<PAWN>();
          int v2 = VALUE_ZERO;
          if (pos.check_counting())
          {
@@ -1530,7 +1533,7 @@ Value Eval::evaluate(const Position& pos) {
              v2 =  mat / (30 * pos.checks_remaining( us))
                  - mat / (30 * pos.checks_remaining(~us));
          }
-         return NNUE::evaluate(pos) * (679 + mat / 32) / 1024 + Tempo + v2;
+         return NNUE::evaluate(pos) * (641 + mat / 32 - 4 * pos.rule50_count()) / 1024 + Tempo + v2;
       };
 
       // If there is PSQ imbalance use classical eval, with small probability if it is small

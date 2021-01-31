@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,15 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+#include "psqt.h"
+
 #include <algorithm>
 #include <sstream>
 
-#include "types.h"
 #include "bitboard.h"
+#include "types.h"
+
 #include "piece.h"
 #include "variant.h"
 #include "misc.h"
@@ -28,14 +32,15 @@
 Value EvalPieceValue[PHASE_NB][PIECE_NB];
 Value CapturePieceValue[PHASE_NB][PIECE_NB];
 
-namespace PSQT {
 
-#define S(mg, eg) make_score(mg, eg)
 
-// Bonus[PieceType][Square / 2] contains Piece-Square scores. For each piece
-// type on a given square a (middlegame, endgame) score pair is assigned. Table
-// is defined for files A..D and white side: it is symmetric for black side and
-// second half of the files.
+namespace
+{
+
+auto constexpr S = make_score;
+
+// 'Bonus' contains Piece-Square parameters.
+// Scores are explicit for files A to D, implicitly mirrored for E to H.
 constexpr Score Bonus[PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
   { },
   { },
@@ -50,14 +55,14 @@ constexpr Score Bonus[PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
    { S(-201,-100), S(-83,-88), S(-56,-56), S(-26,-17) }
   },
   { // Bishop
-   { S(-53,-57), S( -5,-30), S( -8,-37), S(-23,-12) },
-   { S(-15,-37), S(  8,-13), S( 19,-17), S(  4,  1) },
-   { S( -7,-16), S( 21, -1), S( -5, -2), S( 17, 10) },
-   { S( -5,-20), S( 11, -6), S( 25,  0), S( 39, 17) },
-   { S(-12,-17), S( 29, -1), S( 22,-14), S( 31, 15) },
-   { S(-16,-30), S(  6,  6), S(  1,  4), S( 11,  6) },
-   { S(-17,-31), S(-14,-20), S(  5, -1), S(  0,  1) },
-   { S(-48,-46), S(  1,-42), S(-14,-37), S(-23,-24) }
+   { S(-37,-40), S(-4 ,-21), S( -6,-26), S(-16, -8) },
+   { S(-11,-26), S(  6, -9), S( 13,-12), S(  3,  1) },
+   { S(-5 ,-11), S( 15, -1), S( -4, -1), S( 12,  7) },
+   { S(-4 ,-14), S(  8, -4), S( 18,  0), S( 27, 12) },
+   { S(-8 ,-12), S( 20, -1), S( 15,-10), S( 22, 11) },
+   { S(-11,-21), S(  4,  4), S(  1,  3), S(  8,  4) },
+   { S(-12,-22), S(-10,-14), S(  4, -1), S(  0,  1) },
+   { S(-34,-32), S(  1,-29), S(-10,-26), S(-16,-17) }
   },
   { // Rook
    { S(-31, -9), S(-20,-13), S(-14,-10), S(-5, -9) },
@@ -103,7 +108,11 @@ constexpr Score PBonus[RANK_NB][FILE_NB] =
    { S( -7,  0), S(  7,-11), S( -3, 12), S(-13, 21), S(  5, 25), S(-16, 19), S( 10,  4), S( -8,  7) }
   };
 
-#undef S
+} // namespace
+
+
+namespace PSQT
+{
 
 Score psq[PIECE_NB][SQUARE_NB + 1];
 

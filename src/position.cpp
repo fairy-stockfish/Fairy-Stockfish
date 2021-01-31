@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -929,7 +929,7 @@ bool Position::legal(Move m) const {
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
-  if (type_of(m) == ENPASSANT)
+  if (type_of(m) == EN_PASSANT)
   {
       Square ksq = count<KING>(us) ? square<KING>(us) : SQ_NONE;
       Square capsq = to - pawn_push(us);
@@ -1188,7 +1188,7 @@ bool Position::gives_check(Move m) const {
   // of direct checks and ordinary discovered check, so the only case we
   // need to handle is the unusual case of a discovered check through
   // the captured pawn.
-  case ENPASSANT:
+  case EN_PASSANT:
   {
       Square capsq = make_square(file_of(to), rank_of(from));
       Bitboard b = (pieces() ^ from ^ capsq) | to;
@@ -1253,7 +1253,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Square from = from_sq(m);
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
-  Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
+  Piece captured = type_of(m) == EN_PASSANT ? make_piece(them, PAWN) : piece_on(to);
   if (to == from)
   {
       assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && pass()));
@@ -1290,7 +1290,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // update non-pawn material.
       if (type_of(captured) == PAWN)
       {
-          if (type_of(m) == ENPASSANT)
+          if (type_of(m) == EN_PASSANT)
           {
               capsq -= pawn_push(us);
 
@@ -1320,7 +1320,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       bool capturedPromoted = is_promoted(capsq);
       Piece unpromotedCaptured = unpromoted_piece_on(capsq);
       remove_piece(capsq);
-      if (type_of(m) == ENPASSANT)
+
+      if (type_of(m) == EN_PASSANT)
           board[capsq] = NO_PIECE;
       if (captures_to_hand())
       {
@@ -1456,7 +1457,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // If the moving piece is a pawn do some special extra work
   if (type_of(pc) == PAWN)
   {
-      // Set en-passant square if the moved pawn can be captured
+      // Set en passant square if the moved pawn can be captured
       if (   type_of(m) != DROP
           && std::abs(int(to) - int(from)) == 2 * NORTH
           && (var->enPassantRegion & (to - pawn_push(us)))
@@ -1780,7 +1781,7 @@ void Position::undo_move(Move m) {
       {
           Square capsq = to;
 
-          if (type_of(m) == ENPASSANT)
+          if (type_of(m) == EN_PASSANT)
           {
               capsq -= pawn_push(us);
 
@@ -1879,7 +1880,7 @@ void Position::do_null_move(StateInfo& newSt) {
   }
 
   st->key ^= Zobrist::side;
-  prefetch(TT.first_entry(st->key));
+  prefetch(TT.first_entry(key()));
 
   ++st->rule50;
   st->pliesFromNull = 0;
@@ -1904,7 +1905,7 @@ void Position::undo_null_move() {
 
 /// Position::key_after() computes the new hash key after the given move. Needed
 /// for speculative prefetch. It doesn't recognize special moves like castling,
-/// en-passant and promotions.
+/// en passant and promotions.
 
 Key Position::key_after(Move m) const {
 
@@ -1990,7 +1991,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
   assert(is_ok(m));
 
-  // Only deal with normal moves, assume others pass a simple see
+  // Only deal with normal moves, assume others pass a simple SEE
   if (type_of(m) != NORMAL && type_of(m) != DROP && type_of(m) != PIECE_PROMOTION)
       return VALUE_ZERO >= threshold;
 
