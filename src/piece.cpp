@@ -110,6 +110,14 @@ namespace {
       p->stepsCapture = {2 * SOUTH_WEST, 2 * SOUTH_EAST, 2 * NORTH_WEST, 2 * NORTH_EAST};
       return p;
   }
+  PieceInfo* dabbaba_piece() {
+      PieceInfo* p = new PieceInfo();
+      p->name = "dabbaba";
+      p->betza = "D";
+      p->stepsQuiet = {2 * SOUTH, 2 * WEST, 2 * EAST, 2 * NORTH};
+      p->stepsCapture = {2 * SOUTH, 2 * WEST, 2 * EAST, 2 * NORTH};
+      return p;
+  }
   PieceInfo* fers_alfil_piece() {
       PieceInfo* p = fers_piece();
       p->name = "fersAlfil";
@@ -419,6 +427,7 @@ void PieceMap::init() {
   add(JANGGI_ELEPHANT, janggi_elephant_piece());
   add(BANNER, banner_piece());
   add(WAZIR, wazir_piece());
+  add(DABBABA, dabbaba_piece());
   add(COMMONER, commoner_piece());
   add(CENTAUR, centaur_piece());
   add(KING, king_piece());
