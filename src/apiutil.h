@@ -692,6 +692,19 @@ bool no_king_piece_in_pockets(const std::array<std::string, 2>& pockets) {
     return pockets[WHITE].find('k') == std::string::npos && pockets[BLACK].find('k') == std::string::npos;
 }
 
+Validation check_digit_field(const std::string& field)
+{
+    if (field.size() == 1 && field[0] == '-') {
+        return OK;
+    }
+    for (char c : field)
+        if (!isdigit(c)) {
+            return NOK;
+        }
+    return OK;
+}
+
+
 FenValidation validate_fen(const std::string& fen, const Variant* v) {
 
     const std::string validSpecialCharacters = "/+~[]-";
@@ -712,9 +725,12 @@ FenValidation validate_fen(const std::string& fen, const Variant* v) {
     std::vector<std::string> starFenParts = get_fen_parts(v->startFen, ' ');
     const unsigned int nbFenParts = starFenParts.size();
 
-    // check for number of parts
-    if (fenParts.size() != nbFenParts) {
-        std::cerr << "Invalid number of fen parts. Expected: " << nbFenParts << " Actual: " << fenParts.size() << std::endl;
+    // check for number of parts (also up to two additional "-" for non-existing no-progress counter or castling rights)
+    const unsigned int maxNumberFenParts = 7U;
+    const unsigned int topThreshold = std::min(nbFenParts + 2, maxNumberFenParts);
+    if (fenParts.size() < nbFenParts || fenParts.size() > topThreshold) {
+        std::cerr << "Invalid number of fen parts. Expected: >= " << nbFenParts << " and <= " << topThreshold
+                  << " Actual: " << fenParts.size() << std::endl;
         return FEN_INVALID_NB_PARTS;
     }
 
@@ -810,21 +826,18 @@ FenValidation validate_fen(const std::string& fen, const Variant* v) {
 
     // 6) Part
     // check half move counter
-    for (char c : fenParts[nbFenParts-2])
-        if (!isdigit(c)) {
-            std::cerr << "Invalid half move counter: '" << c << "'." << std::endl;
-            return FEN_INVALID_HALF_MOVE_COUNTER;
-        }
+    if (!check_digit_field(fenParts[fenParts.size()-2])) {
+        std::cerr << "Invalid half move counter: '" << fenParts[fenParts.size()-2] << "'." << std::endl;
+        return FEN_INVALID_HALF_MOVE_COUNTER;
+    }
 
     // 7) Part
     // check move counter
-    for (char c : fenParts[nbFenParts-1])
-        if (!isdigit(c)) {
-            std::cerr << "Invalid move counter: '" << c << "'." << std::endl;
-            return FEN_INVALID_MOVE_COUNTER;
-        }
+    if (!check_digit_field(fenParts[fenParts.size()-1])) {
+        std::cerr << "Invalid move counter: '" << fenParts[fenParts.size()-1] << "'." << std::endl;
+        return FEN_INVALID_MOVE_COUNTER;
+    }
 
     return FEN_OK;
 }
 }
-

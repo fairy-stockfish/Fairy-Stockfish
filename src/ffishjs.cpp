@@ -64,6 +64,17 @@ const Variant* get_variant(const std::string& uciVariant) {
   return variants.find(uciVariant)->second;
 }
 
+template <bool isUCI>
+inline bool is_move_none(Move move, const std::string& strMove, const Position& pos) {
+  if (move == MOVE_NONE) {
+    std::cerr << "The given ";
+    isUCI ? std::cerr << "uciMove" : std::cerr << "sanMove";
+    std::cerr << " '" << strMove << "' for position '" << pos.fen() << "' is invalid." << std::endl;
+    return true;
+  }
+  return false;
+}
+
 class Board {
   // note: we can't use references for strings here due to conversion to JavaScript
 private:
@@ -117,8 +128,12 @@ public:
     return MoveList<LEGAL>(pos).size();
   }
 
-  void push(std::string uciMove) {
-    do_move(UCI::to_move(this->pos, uciMove));
+  bool push(std::string uciMove) {
+    const Move move = UCI::to_move(this->pos, uciMove);
+    if (is_move_none<true>(move, uciMove, pos))
+      return false;
+    do_move(move);
+    return true;
   }
 
   bool push_san(std::string sanMove) {
@@ -135,11 +150,10 @@ public:
         break;
       }
     }
-    if (foundMove != MOVE_NONE) {
-      do_move(foundMove);
-      return true;
-    }
-    return false;
+    if (is_move_none<false>(foundMove, sanMove, pos))
+      return false;
+    do_move(foundMove);
+    return true;
   }
 
   void pop() {
@@ -168,12 +182,16 @@ public:
 
   // note: const identifier for pos not possible due to move_to_san()
   std::string san_move(std::string uciMove) {
-    return move_to_san(this->pos, UCI::to_move(this->pos, uciMove), NOTATION_SAN);
+    return san_move(uciMove, NOTATION_SAN);
   }
 
   std::string san_move(std::string uciMove, Notation notation) {
+    const Move move = UCI::to_move(this->pos, uciMove);
+    if (is_move_none<true>(move, uciMove, pos))
+      return "";
     return move_to_san(this->pos, UCI::to_move(this->pos, uciMove), notation);
   }
+
   std::string variation_san(std::string uciMoves) {
     return variation_san(uciMoves, NOTATION_SAN, true);
   }
@@ -191,6 +209,9 @@ public:
     bool first = true;
 
     while (std::getline(ss, uciMove, ' ')) {
+      const Move move = UCI::to_move(this->pos, uciMove);
+      if (is_move_none<true>(move, uciMove, pos))
+        return "";
       moves.emplace_back(UCI::to_move(this->pos, uciMove));
       if (first) {
         first = false;
@@ -323,6 +344,16 @@ public:
     return ss.str();
   }
 
+  std::string variant() {
+    // Iterate through the variants map
+    for (auto it = variants.begin(); it != variants.end(); ++it)
+      if (it->second == v)
+        return it->first;
+
+    std::cerr << "Current variant is not registered." << std::endl;
+    return "unknown";
+  }
+
 private:
   void resetStates() {
     this->states = StateListPtr(new std::deque<StateInfo>(1));
@@ -433,17 +464,14 @@ public:
 
 
 bool skip_comment(const std::string& pgn, size_t& curIdx, size_t& lineEnd) {
-    if (pgn[curIdx] == '{') {
-      // skip comment
-      curIdx = pgn.find('}', curIdx);
-      if (curIdx == std::string::npos) {
-        std::cerr << "Missing '}' for move comment while reading pgn." << std::endl;
-        return false;
-      }
-      if (curIdx > lineEnd)
-        lineEnd = pgn.find('\n', curIdx);
-    }
-    return true;
+  curIdx = pgn.find('}', curIdx);
+  if (curIdx == std::string::npos) {
+    std::cerr << "Missing '}' for move comment while reading pgn." << std::endl;
+    return false;
+  }
+  if (curIdx > lineEnd)
+    lineEnd = pgn.find('\n', curIdx);
+  return true;
 }
 
 Game read_game_pgn(std::string pgn) {
@@ -493,8 +521,11 @@ Game read_game_pgn(std::string pgn) {
         if (pgn[curIdx] == '*')
           return game;
 
-        if (!skip_comment(pgn, curIdx, lineEnd))
-          return game;
+        if (pgn[curIdx] == '{') {
+          if (!skip_comment(pgn, curIdx, lineEnd))
+            return game;
+          ++curIdx;
+        }
 
         // Movetext RAV (Recursive Annotation Variation)
         size_t openedRAV = 0;
@@ -547,6 +578,7 @@ Game read_game_pgn(std::string pgn) {
           size_t annotationChar2 = sanMove.find('!');
           if (annotationChar1 != std::string::npos || annotationChar2 != std::string::npos)
             sanMove = sanMove.substr(0, std::min(annotationChar1, annotationChar2));
+          std::cout << sanMove << " ";
           game.board->push_san(sanMove);
         }
         curIdx = sanMoveEnd+1;
@@ -597,7 +629,8 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("pushSanMoves", select_overload<void(std::string, Notation)>(&Board::push_san_moves))
     .function("pocket", &Board::pocket)
     .function("toString", &Board::to_string)
-    .function("toVerboseString", &Board::to_verbose_string);
+    .function("toVerboseString", &Board::to_verbose_string)
+    .function("variant", &Board::variant);
   class_<Game>("Game")
     .function("headerKeys", &Game::header_keys)
     .function("headers", &Game::headers)
