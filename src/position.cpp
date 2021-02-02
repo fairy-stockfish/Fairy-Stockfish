@@ -1957,7 +1957,7 @@ Value Position::blast_see(Move m) const {
       {
           Square s = pop_lsb(&attackers);
           if (extinction_piece_types().find(type_of(piece_on(s))) == extinction_piece_types().end())
-              minAttacker = std::min(minAttacker, blast & s ? VALUE_ZERO : PieceValue[MG][piece_on(s)]);
+              minAttacker = std::min(minAttacker, blast & s ? VALUE_ZERO : CapturePieceValue[MG][piece_on(s)]);
       }
 
       if (minAttacker == VALUE_INFINITE)
@@ -1965,7 +1965,7 @@ Value Position::blast_see(Move m) const {
 
       result += minAttacker;
       if (type_of(m) == DROP)
-          result -= PieceValue[MG][dropped_piece_type(m)];
+          result -= CapturePieceValue[MG][dropped_piece_type(m)];
   }
 
   // Sum up blast piece values
@@ -1976,7 +1976,7 @@ Value Position::blast_see(Move m) const {
           return color_of(bpc) == us ?  extinction_value()
                         : capture(m) ? -extinction_value()
                                      : VALUE_ZERO;
-      result += color_of(bpc) == us ? -PieceValue[MG][bpc] : PieceValue[MG][bpc];
+      result += color_of(bpc) == us ? -CapturePieceValue[MG][bpc] : CapturePieceValue[MG][bpc];
   }
 
   return capture(m) || must_capture() ? result - 1 : std::min(result, VALUE_ZERO);
