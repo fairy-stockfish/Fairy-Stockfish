@@ -114,6 +114,8 @@ describe('board.push(uciMove)', function () {
     board.push("e7e5");
     board.push("g1f3");
     chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
+    chai.expect(board.push("q2q7")).to.equal(false);
+    chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
     board.delete();
   });
 });
@@ -124,6 +126,8 @@ describe('board.pushSan(sanMove)', function () {
     board.pushSan("e4");
     board.pushSan("e5");
     board.pushSan("Nf3");
+    chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
+    chai.expect(board.pushSan("Nf3")).to.equal(false);
     chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
     board.delete();
   });
@@ -226,6 +230,8 @@ describe('board.variationSan(uciMoves)', function () {
     board.push("e2e4")
     const sanMoves = board.variationSan("e7e5 g1f3 b8c6 f1c4");
     chai.expect(sanMoves).to.equal("1...e5 2. Nf3 Nc6 3. Bc4");
+    const sanMovesInvalid = board.variationSan("e7e5 g1f3 b8c6 f1c7");
+    chai.expect(sanMovesInvalid).to.equal("");
     board.delete();
   });
 });
@@ -477,6 +483,26 @@ describe('board.toVerboseString()', function () {
   });
 });
 
+describe('board.variant()', function () {
+  it("it returns the uci-variant of the board.", () => {
+    const board = new ffish.Board("chess");
+    chai.expect(board.variant()).to.equal("chess");
+    board.delete();
+    const board2 = new ffish.Board("");
+    chai.expect(board2.variant()).to.equal("chess");
+    board2.delete();
+    const board3 = new ffish.Board("standard");
+    chai.expect(board3.variant()).to.equal("chess");
+    board3.delete();
+    const board4 = new ffish.Board("Standard");
+    chai.expect(board4.variant()).to.equal("chess");
+    board4.delete();
+    const board5 = new ffish.Board("atomic");
+    chai.expect(board5.variant()).to.equal("atomic");
+    board5.delete();
+  });
+});
+
 describe('ffish.info()', function () {
   it("it returns the version of the Fairy-Stockfish binary", () => {
     chai.expect(ffish.info()).to.be.a('string');
@@ -522,8 +548,13 @@ describe('ffish.validateFen(fen, uciVariant)', function () {
       // check if starting fens are valid for all variants
       const variants = ffish.variants().split(" ")
       for (let idx = 0; idx < variants.length; ++idx) {
-        const startFen = ffish.startingFen(variants[idx]);
-        chai.expect(ffish.validateFen(startFen, variants[idx])).to.equal(1);
+        const variant = variants[idx];
+        const startFen = ffish.startingFen(variant);
+        chai.expect(ffish.validateFen(startFen, variant)).to.equal(1);
+        // check if the FEN is still valid if board.fen() is returned
+        const board = new ffish.Board(variant);
+        chai.expect(ffish.validateFen(board.fen(), variant)).to.equal(1);
+        board.delete();
       }
       // alternative pocket piece formulation
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/RB w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(1);

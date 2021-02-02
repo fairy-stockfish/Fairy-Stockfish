@@ -61,13 +61,18 @@ Show all available variants supported by _Fairy-Stockfish_ and **ffish.js**.
 ffish.variants()
 ```
 ```
-3check 5check ai-wok almost amazon antichess armageddon asean ataxx breakthrough bughouse cambodian\
-capablanca capahouse caparandom centaur chancellor chess chessgi chigorin clobber clobber10 codrus courier\
-crazyhouse dobutsu embassy euroshogi extinction fairy fischerandom gardner giveaway gorogoro gothic grand\
-hoppelpoppel horde janggi janggicasual janggimodern janggitraditional janus jesonmor judkins karouk kinglet\
-kingofthehill knightmate koedem kyotoshogi loop losalamos losers makpong makruk manchu micro mini minishogi\
-minixiangqi modern newzealand nocastle normal placement pocketknight racingkings seirawan shako shatar\
-shatranj shogi shouse sittuyin suicide supply threekings xiangqi
+3check 3check-crazyhouse 5check ai-wok almost amazon anti-losalamos antichess\
+armageddon asean ataxx atomic breakthrough bughouse cambodian capablanca\
+capahouse caparandom centaur cfour chancellor chaturanga chess chessgi chigorin\
+clobber clobber10 codrus coffeehouse courier crazyhouse dobutsu embassy euroshogi\
+extinction fairy fischerandom flipello flipersi gardner gemini giveaway gorogoro\
+gothic grand grandhouse hoppelpoppel horde indiangreat janggi janggicasual\
+janggihouse janggimodern janggitraditional janus jesonmor judkins karouk kinglet\
+kingofthehill knightmate koedem kyotoshogi loop losalamos losers makpong makruk\
+makrukhouse manchu micro mini minishogi minixiangqi modern newzealand nocastle\
+nocheckatomic normal orda pawnsonly peasant placement pocketknight racingkings\
+seirawan semitorpedo shako shatar shatranj shogi shogun shouse sittuyin suicide\
+supply threekings tictactoe upsidedown weak xiangqi xiangqihouse
 ```
 
 ### Board object
@@ -81,10 +86,10 @@ ffish['onRuntimeInitialized'] = () => {
 }
 ```
 
-Set a custom fen position including fen valdiation:
+Set a custom fen position including fen validiation:
 ```javascript
 fen = "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3";
-if (ffish.valdiateFen(fen) == 1) {  // ffish.valdiateFen(fen) can return different error codes, it returns 1 for FEN_OK
+if (ffish.validateFen(fen) == 1) {  // ffish.validateFen(fen) can return different error codes, it returns 1 for FEN_OK
     board.setFen(fen);
 }
 else {
