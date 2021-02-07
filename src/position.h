@@ -52,6 +52,7 @@ struct StateInfo {
   int    countingLimit;
   CheckCount checksRemaining[COLOR_NB];
   Square epSquare;
+  Square castlingKingSquare[COLOR_NB];
   Bitboard gatesBB[COLOR_NB];
 
   // Not copied when making a move (will be recomputed anyhow)
@@ -136,6 +137,8 @@ public:
   File castling_kingside_file() const;
   File castling_queenside_file() const;
   Rank castling_rank(Color c) const;
+  File castling_king_file() const;
+  PieceType castling_king_piece() const;
   PieceType castling_rook_piece() const;
   PieceType king_type() const;
   bool checking_permitted() const;
@@ -202,12 +205,14 @@ public:
   Piece piece_on(Square s) const;
   Piece unpromoted_piece_on(Square s) const;
   Square ep_square() const;
+  Square castling_king_square(Color c) const;
   Bitboard gates(Color c) const;
   bool empty(Square s) const;
   int count(Color c, PieceType pt) const;
   template<PieceType Pt> int count(Color c) const;
   template<PieceType Pt> int count() const;
   template<PieceType Pt> Square square(Color c) const;
+  Square square(Color c, PieceType pt) const;
   bool is_on_semiopen_file(Color c, Square s) const;
 
   // Castling
@@ -473,6 +478,16 @@ inline File Position::castling_queenside_file() const {
 inline Rank Position::castling_rank(Color c) const {
   assert(var != nullptr);
   return relative_rank(c, var->castlingRank, max_rank());
+}
+
+inline File Position::castling_king_file() const {
+  assert(var != nullptr);
+  return var->castlingKingFile;
+}
+
+inline PieceType Position::castling_king_piece() const {
+  assert(var != nullptr);
+  return var->castlingKingPiece;
 }
 
 inline PieceType Position::castling_rook_piece() const {
@@ -891,8 +906,17 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
   return lsb(pieces(c, Pt));
 }
 
+inline Square Position::square(Color c, PieceType pt) const {
+  assert(count(c, pt) == 1);
+  return lsb(pieces(c, pt));
+}
+
 inline Square Position::ep_square() const {
   return st->epSquare;
+}
+
+inline Square Position::castling_king_square(Color c) const {
+  return st->castlingKingSquare[c];
 }
 
 inline Bitboard Position::gates(Color c) const {

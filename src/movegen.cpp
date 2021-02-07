@@ -401,7 +401,7 @@ namespace {
     // Castling with non-king piece
     if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(Us & ANY_CASTLING))
     {
-        Square from = make_square(FILE_E, pos.castling_rank(Us));
+        Square from = pos.castling_king_square(Us);
         for(CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
             if (!pos.castling_impeded(cr) && pos.can_castle(cr))
                 moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, from, pos.castling_rook_square(cr));

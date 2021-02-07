@@ -209,6 +209,7 @@ namespace {
         v->remove_piece(KNIGHT);
         v->startFen = "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1";
         v->kingType = KNIGHT;
+        v->castlingKingPiece = KNIGHT;
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP};
         return v;
     }
@@ -227,6 +228,7 @@ namespace {
         v->variantTemplate = "giveaway";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
         v->stalemateValue = VALUE_MATE;
         v->extinctionValue = VALUE_MATE;
@@ -255,6 +257,7 @@ namespace {
         Variant* v = fairy_variant_base();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
@@ -272,6 +275,7 @@ namespace {
         Variant* v = fairy_variant_base();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
         v->startFen = "knbqkbnk/pppppppp/8/8/8/8/PPPPPPPP/KNBQKBNK w - - 0 1";
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER};
@@ -296,6 +300,7 @@ namespace {
         v->variantTemplate = "atomic";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER};
         v->blastOnCapture = true;
@@ -352,6 +357,7 @@ namespace {
         Variant* v = bughouse_variant();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
         v->mustDrop = true;
         v->mustDropType = COMMONER;
         v->extinctionValue = -VALUE_MATE;

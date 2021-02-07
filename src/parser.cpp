@@ -248,6 +248,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("castlingKingsideFile", v->castlingKingsideFile);
     parse_attribute("castlingQueensideFile", v->castlingQueensideFile);
     parse_attribute("castlingRank", v->castlingRank);
+    parse_attribute("castlingKingFile", v->castlingKingFile);
+    parse_attribute("castlingKingPiece", v->castlingKingPiece, v->pieceToChar);
     parse_attribute("castlingRookPiece", v->castlingRookPiece, v->pieceToChar);
     parse_attribute("kingType", v->kingType, v->pieceToChar);
     parse_attribute("checking", v->checking);
