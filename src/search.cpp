@@ -1120,7 +1120,7 @@ moves_loop: // When in check, search starts from here
           // Reduced depth of the next LMR search
           int lmrDepth = std::max(newDepth - reduction(improving, depth, moveCount), 0);
 
-          if (pos.must_capture() && (captureOrPromotion || givesCheck || pos.attackers_to(to_sq(move), ~us)))
+          if (pos.must_capture() && pos.attackers_to(to_sq(move), ~us))
           {}
           else
 
