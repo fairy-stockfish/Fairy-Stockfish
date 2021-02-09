@@ -516,7 +516,29 @@ inline bool Position::must_capture() const {
 }
 
 inline bool Position::has_capture() const {
-  return st->legalCapture == VALUE_TRUE || (st->legalCapture == NO_VALUE && MoveList<CAPTURES>(*this).size());
+  // Check for cached value
+  if (st->legalCapture != NO_VALUE)
+      return st->legalCapture == VALUE_TRUE;
+  if (checkers())
+  {
+      for (const auto& mevasion : MoveList<EVASIONS>(*this))
+          if (capture(mevasion) && legal(mevasion))
+          {
+              st->legalCapture = VALUE_TRUE;
+              return true;
+          }
+  }
+  else
+  {
+      for (const auto& mcap : MoveList<CAPTURES>(*this))
+          if (capture(mcap) && legal(mcap))
+          {
+              st->legalCapture = VALUE_TRUE;
+              return true;
+          }
+  }
+  st->legalCapture = VALUE_FALSE;
+  return false;
 }
 
 inline bool Position::must_drop() const {

@@ -199,7 +199,7 @@ top:
       [[fallthrough]];
 
   case QUIET_INIT:
-      if (!skipQuiets)
+      if (!skipQuiets && !(pos.must_capture() && pos.has_capture()))
       {
           cur = endBadCaptures;
           endMoves = generate<QUIETS>(pos, cur);
