@@ -1244,7 +1244,7 @@ moves_loop: // When in check, search starts from here
       // re-searched at full depth.
       if (    depth >= 3
           &&  moveCount > 1 + 2 * rootNode
-          && !(pos.must_capture() && (givesCheck || pos.has_capture()))
+          && !(pos.must_capture() && pos.has_capture())
           && (  !captureOrPromotion
               || moveCountPruning
               || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha
