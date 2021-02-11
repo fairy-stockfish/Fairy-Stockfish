@@ -967,11 +967,9 @@ bool Position::legal(Move m) const {
       if (is_gating(m) && (gating_square(m) == to || gating_square(m) == rto))
           return false;
 
-      // In case of Chess960, verify that when moving the castling rook we do
-      // not discover some hidden checker.
+      // In case of Chess960, verify if the Rook blocks some checks
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-      return   !chess960
-            || !(attackers_to(to, pieces() ^ to_sq(m), ~us));
+      return !chess960 || !attackers_to(to, pieces() ^ to_sq(m), ~us);
   }
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
@@ -1034,8 +1032,10 @@ bool Position::pseudo_legal(const Move m) const {
                 || (drop_promoted() && type_of(pc) == promoted_piece_type(in_hand_piece_type(m))));
 
   // Use a slower but simpler function for uncommon cases
+  // yet we skip the legality check of MoveList<LEGAL>().
   if (type_of(m) != NORMAL || is_gating(m) || arrow_gating())
-      return MoveList<LEGAL>(*this).contains(m);
+      return checkers() ? MoveList<    EVASIONS>(*this).contains(m)
+                        : MoveList<NON_EVASIONS>(*this).contains(m);
 
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
@@ -1193,19 +1193,17 @@ bool Position::gives_check(Move m) const {
 
       return attackers_to(square<KING>(~sideToMove), b) & pieces(sideToMove) & b;
   }
-  case CASTLING:
+  default: //CASTLING
   {
+      // Castling is encoded as 'king captures the rook'
       Square kfrom = from;
-      Square rfrom = to; // Castling is encoded as 'king captures the rook'
+      Square rfrom = to;
       Square kto = make_square(rfrom > kfrom ? castling_kingside_file() : castling_queenside_file(), castling_rank(sideToMove));
       Square rto = kto + (rfrom > kfrom ? WEST : EAST);
 
       return   (PseudoAttacks[sideToMove][type_of(piece_on(rfrom))][rto] & square<KING>(~sideToMove))
             && (attacks_bb(sideToMove, type_of(piece_on(rfrom)), rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
   }
-  default:
-      assert(false);
-      return false;
   }
 }
 
