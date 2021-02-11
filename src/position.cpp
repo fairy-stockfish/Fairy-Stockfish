@@ -1654,9 +1654,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   if (   counting_rule()
       && (!st->countingLimit || (captured && count<ALL_PIECES>(sideToMove) == 1))
-      && counting_limit())
+      && new_counting_limit())
   {
-      st->countingLimit = 2 * counting_limit();
+      st->countingLimit = 2 * new_counting_limit();
       st->countingPly = counting_rule() == MAKRUK_COUNTING && count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
   }
 
@@ -2396,9 +2396,9 @@ bool Position::has_game_cycle(int ply) const {
 }
 
 
-/// Position::counting_limit() returns the counting limit in full moves.
+/// Position::new_counting_limit() returns the counting limit in full moves.
 
-int Position::counting_limit() const {
+int Position::new_counting_limit() const {
 
   assert(counting_rule());
 

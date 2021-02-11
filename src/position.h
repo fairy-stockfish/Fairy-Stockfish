@@ -284,8 +284,9 @@ public:
   Value material_counting_result() const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
+  int new_counting_limit() const;
+  int counting_ply(int countStarted = 0) const;
   int counting_limit() const;
-  int counting_ply(int countStarted) const;
   int rule50_count() const;
   Score psq_score() const;
   Value non_pawn_material(Color c) const;
@@ -1103,6 +1104,10 @@ inline int Position::game_ply() const {
 
 inline int Position::counting_ply(int countStarted) const {
   return countStarted == 0 ? st->countingPly : std::min(st->countingPly, std::max(1 + gamePly - countStarted, 0));
+}
+
+inline int Position::counting_limit() const {
+  return st->countingLimit;
 }
 
 inline int Position::rule50_count() const {

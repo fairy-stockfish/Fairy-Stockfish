@@ -1561,7 +1561,9 @@ Value Eval::evaluate(const Position& pos) {
   }
 
   // Damp down the evaluation linearly when shuffling
-  if (pos.n_move_rule())
+  if (pos.counting_limit())
+      v = v * (pos.counting_limit() - pos.counting_ply()) / pos.counting_limit();
+  else if (pos.n_move_rule())
   {
       v = v * (2 * pos.n_move_rule() - pos.rule50_count()) / (2 * pos.n_move_rule());
       if (pos.material_counting())
