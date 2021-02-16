@@ -129,8 +129,7 @@ struct Variant {
   CountingRule countingRule = NO_COUNTING;
 
   // Derived properties
-  bool hasFairy = true;
-  bool isRestricted = true;
+  bool fastAttacks = true;
 
   void add_piece(PieceType pt, char c, char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
@@ -156,11 +155,14 @@ struct Variant {
 
   // Pre-calculate derived properties
   Variant* conclude() {
-      hasFairy = std::any_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) { return pt >= FAIRY_PIECES && pt != COMMONER && !(pt == KING && kingType == KING); });
-      isRestricted = std::any_of(pieceTypes.begin(), pieceTypes.end(),
-                                 [this](PieceType pt) {
-                                     return mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt];
-                                 });
+      fastAttacks = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
+                                    return (   pt < FAIRY_PIECES
+                                            || pt == COMMONER || pt == FERS || pt == SILVER
+                                            || pt == SHOGI_PAWN || pt == GOLD
+                                            || pt == DRAGON || pt == DRAGON_HORSE
+                                            || (pt == KING && kingType == KING))
+                                          && !(mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]);
+                                });
       return this;
   }
 };

@@ -200,6 +200,7 @@ public:
   Bitboard pieces(Color c) const;
   Bitboard pieces(Color c, PieceType pt) const;
   Bitboard pieces(Color c, PieceType pt1, PieceType pt2) const;
+  Bitboard pieces(Color c, PieceType pt1, PieceType pt2, PieceType pt3) const;
   Bitboard major_pieces(Color c) const;
   Bitboard non_sliding_riders() const;
   Piece piece_on(Square s) const;
@@ -901,6 +902,10 @@ inline Bitboard Position::pieces(Color c, PieceType pt) const {
 
 inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
   return pieces(c) & (pieces(pt1) | pieces(pt2));
+}
+
+inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2, PieceType pt3) const {
+  return pieces(c) & (pieces(pt1) | pieces(pt2) | pieces(pt3));
 }
 
 inline Bitboard Position::major_pieces(Color c) const {

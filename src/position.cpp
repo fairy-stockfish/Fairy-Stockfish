@@ -789,14 +789,18 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 
 Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard janggiCannons) const {
 
-  // Use a faster version for variants with standard chess pieces
-  if (!var->hasFairy && !var->isRestricted)
+  // Use a faster version for variants with moderate rule variations
+  if (var->fastAttacks)
   {
       return  (pawn_attacks_bb(~c, s)          & pieces(c, PAWN))
             | (attacks_bb<KNIGHT>(s)           & pieces(c, KNIGHT))
-            | (attacks_bb<  ROOK>(s, occupied) & pieces(c, ROOK, QUEEN))
-            | (attacks_bb<BISHOP>(s, occupied) & pieces(c, BISHOP, QUEEN))
-            | (attacks_bb<KING>(s)             & pieces(c, KING, COMMONER));
+            | (attacks_bb<  ROOK>(s, occupied) & pieces(c, ROOK, QUEEN, DRAGON))
+            | (attacks_bb<BISHOP>(s, occupied) & pieces(c, BISHOP, QUEEN, DRAGON_HORSE))
+            | (attacks_bb<KING>(s)             & pieces(c, KING, COMMONER, DRAGON_HORSE))
+            | (attacks_bb<FERS>(s)             & pieces(c, FERS, DRAGON))
+            | (LeaperAttacks[~c][SILVER][s]    & pieces(c, SILVER))
+            | (LeaperAttacks[~c][GOLD][s]      & pieces(c, GOLD))
+            | (LeaperAttacks[~c][SHOGI_PAWN][s]& pieces(c, SHOGI_PAWN));
   }
 
   Bitboard b = 0;
@@ -843,6 +847,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
       b |= diags & diagonal_lines();
   }
 
+  // Unpromoted soldiers
   if (b & pieces(SOLDIER) && relative_rank(c, s, max_rank()) < var->soldierPromotionRank)
       b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
 
