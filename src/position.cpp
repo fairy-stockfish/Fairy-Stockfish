@@ -792,15 +792,14 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
   // Use a faster version for variants with moderate rule variations
   if (var->fastAttacks)
   {
-      return  (pawn_attacks_bb(~c, s)          & pieces(c, PAWN))
+      return  (pawn_attacks_bb(~c, s)          & pieces(c, PAWN, GOLD))
             | (attacks_bb<KNIGHT>(s)           & pieces(c, KNIGHT))
             | (attacks_bb<  ROOK>(s, occupied) & pieces(c, ROOK, QUEEN, DRAGON))
             | (attacks_bb<BISHOP>(s, occupied) & pieces(c, BISHOP, QUEEN, DRAGON_HORSE))
-            | (attacks_bb<KING>(s)             & pieces(c, KING, COMMONER, DRAGON_HORSE))
-            | (attacks_bb<FERS>(s)             & pieces(c, FERS, DRAGON))
-            | (LeaperAttacks[~c][SILVER][s]    & pieces(c, SILVER))
-            | (LeaperAttacks[~c][GOLD][s]      & pieces(c, GOLD))
-            | (LeaperAttacks[~c][SHOGI_PAWN][s]& pieces(c, SHOGI_PAWN));
+            | (attacks_bb<KING>(s)             & pieces(c, KING, COMMONER))
+            | (attacks_bb<FERS>(s)             & pieces(c, FERS, DRAGON, SILVER))
+            | (attacks_bb<WAZIR>(s)            & pieces(c, WAZIR, DRAGON_HORSE, GOLD))
+            | (LeaperAttacks[~c][SHOGI_PAWN][s]& pieces(c, SHOGI_PAWN, SILVER));
   }
 
   Bitboard b = 0;

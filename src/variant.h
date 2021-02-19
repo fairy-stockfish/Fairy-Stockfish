@@ -157,8 +157,8 @@ struct Variant {
   Variant* conclude() {
       fastAttacks = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
                                     return (   pt < FAIRY_PIECES
-                                            || pt == COMMONER || pt == FERS || pt == SILVER
-                                            || pt == SHOGI_PAWN || pt == GOLD
+                                            || pt == COMMONER || pt == FERS || pt == WAZIR
+                                            || pt == SHOGI_PAWN || pt == GOLD || pt == SILVER
                                             || pt == DRAGON || pt == DRAGON_HORSE
                                             || (pt == KING && kingType == KING))
                                           && !(mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]);
