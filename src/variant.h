@@ -130,6 +130,7 @@ struct Variant {
 
   // Derived properties
   bool fastAttacks = true;
+  bool fastAttacks2 = true;
 
   void add_piece(PieceType pt, char c, char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
@@ -157,9 +158,18 @@ struct Variant {
   Variant* conclude() {
       fastAttacks = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
                                     return (   pt < FAIRY_PIECES
-                                            || pt == COMMONER || pt == FERS || pt == WAZIR
-                                            || pt == SHOGI_PAWN || pt == GOLD || pt == SILVER
-                                            || pt == DRAGON || pt == DRAGON_HORSE
+                                            || pt == COMMONER || pt == IMMOBILE_PIECE
+                                            || pt == ARCHBISHOP || pt == CHANCELLOR
+                                            || (pt == KING && kingType == KING))
+                                          && !(mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]);
+                                })
+                    && !cambodianMoves
+                    && !diagonalLines;
+      fastAttacks2 = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
+                                    return (   pt < FAIRY_PIECES
+                                            || pt == COMMONER || pt == FERS || pt == WAZIR || pt == BREAKTHROUGH_PIECE
+                                            || pt == SHOGI_PAWN || pt == GOLD || pt == SILVER || pt == SHOGI_KNIGHT
+                                            || pt == DRAGON || pt == DRAGON_HORSE || pt == LANCE
                                             || (pt == KING && kingType == KING))
                                           && !(mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]);
                                 })

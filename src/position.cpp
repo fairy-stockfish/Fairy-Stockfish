@@ -792,14 +792,26 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
   // Use a faster version for variants with moderate rule variations
   if (var->fastAttacks)
   {
-      return  (pawn_attacks_bb(~c, s)          & pieces(c, PAWN, GOLD))
-            | (attacks_bb<KNIGHT>(s)           & pieces(c, KNIGHT))
-            | (attacks_bb<  ROOK>(s, occupied) & pieces(c, ROOK, QUEEN, DRAGON))
-            | (attacks_bb<BISHOP>(s, occupied) & pieces(c, BISHOP, QUEEN, DRAGON_HORSE))
-            | (attacks_bb<KING>(s)             & pieces(c, KING, COMMONER))
-            | (attacks_bb<FERS>(s)             & pieces(c, FERS, DRAGON, SILVER))
-            | (attacks_bb<WAZIR>(s)            & pieces(c, WAZIR, DRAGON_HORSE, GOLD))
-            | (LeaperAttacks[~c][SHOGI_PAWN][s]& pieces(c, SHOGI_PAWN, SILVER));
+      return  (pawn_attacks_bb(~c, s)          & pieces(c, PAWN))
+            | (attacks_bb<KNIGHT>(s)           & pieces(c, KNIGHT, ARCHBISHOP, CHANCELLOR))
+            | (attacks_bb<  ROOK>(s, occupied) & pieces(c, ROOK, QUEEN, CHANCELLOR))
+            | (attacks_bb<BISHOP>(s, occupied) & pieces(c, BISHOP, QUEEN, ARCHBISHOP))
+            | (attacks_bb<KING>(s)             & pieces(c, KING, COMMONER));
+  }
+
+  // Use a faster version for selected fairy pieces
+  if (var->fastAttacks2)
+  {
+      return  (pawn_attacks_bb(~c, s)             & pieces(c, PAWN, BREAKTHROUGH_PIECE, GOLD))
+            | (attacks_bb<KNIGHT>(s)              & pieces(c, KNIGHT))
+            | (attacks_bb<  ROOK>(s, occupied)    & (  pieces(c, ROOK, QUEEN, DRAGON)
+                                                     | (pieces(c, LANCE) & PseudoAttacks[~c][LANCE][s])))
+            | (attacks_bb<BISHOP>(s, occupied)    & pieces(c, BISHOP, QUEEN, DRAGON_HORSE))
+            | (attacks_bb<KING>(s)                & pieces(c, KING, COMMONER))
+            | (attacks_bb<FERS>(s)                & pieces(c, FERS, DRAGON, SILVER))
+            | (attacks_bb<WAZIR>(s)               & pieces(c, WAZIR, DRAGON_HORSE, GOLD))
+            | (LeaperAttacks[~c][SHOGI_KNIGHT][s] & pieces(c, SHOGI_KNIGHT))
+            | (LeaperAttacks[~c][SHOGI_PAWN][s]   & pieces(c, SHOGI_PAWN, SILVER));
   }
 
   Bitboard b = 0;
