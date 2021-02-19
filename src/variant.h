@@ -162,7 +162,9 @@ struct Variant {
                                             || pt == DRAGON || pt == DRAGON_HORSE
                                             || (pt == KING && kingType == KING))
                                           && !(mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]);
-                                });
+                                })
+                    && !cambodianMoves
+                    && !diagonalLines;
       return this;
   }
 };
