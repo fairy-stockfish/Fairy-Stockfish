@@ -976,6 +976,9 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
+  if (var->fastAttacks || var->fastAttacks2)
+      return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb();
+
   PieceType movePt = pt == KING ? king_type() : pt;
   Bitboard b = attacks_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
   // Xiangqi soldier
@@ -1004,6 +1007,9 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
 }
 
 inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
+  if (var->fastAttacks || var->fastAttacks2)
+      return moves_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb();
+
   PieceType movePt = pt == KING ? king_type() : pt;
   Bitboard b = moves_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
   // Xiangqi soldier
