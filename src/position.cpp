@@ -1624,6 +1624,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           if (type_of(bpc) != PAWN)
               st->nonPawnMaterial[bc] -= PieceValue[MG][bpc];
 
+          if (Eval::useNNUE)
+          {
+              dp.piece[dp.dirty_num] = bpc;
+              dp.from[dp.dirty_num] = bsq;
+              dp.to[dp.dirty_num] = SQ_NONE;
+              dp.dirty_num++;
+          }
+
           // Update board and piece lists
           // In order to not have to store the values of both board and unpromotedBoard,
           // demote promoted pieces, but keep promoted pawns as promoted,

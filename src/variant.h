@@ -131,6 +131,7 @@ struct Variant {
   // Derived properties
   bool fastAttacks = true;
   bool fastAttacks2 = true;
+  PieceType nnueKing = KING;
 
   void add_piece(PieceType pt, char c, char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
@@ -175,6 +176,9 @@ struct Variant {
                                 })
                     && !cambodianMoves
                     && !diagonalLines;
+      nnueKing =  pieceTypes.find(KING) != pieceTypes.end() ? KING
+                : extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
+                : NO_PIECE_TYPE;
       return this;
   }
 };

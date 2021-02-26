@@ -44,8 +44,8 @@ namespace Eval::NNUE::Features {
   void HalfKP<AssociatedKing>::AppendActiveIndices(
       const Position& pos, Color perspective, IndexList* active) {
 
-    Square ksq = orient(pos, perspective, pos.square<KING>(perspective));
-    Bitboard bb = pos.pieces() & ~pos.pieces(KING);
+    Square ksq = orient(pos, perspective, pos.square(perspective, pos.nnue_king()));
+    Bitboard bb = pos.pieces() & ~pos.pieces(pos.nnue_king());
     while (bb) {
       Square s = pop_lsb(&bb);
       active->push_back(make_index(pos, perspective, s, pos.piece_on(s), ksq));
@@ -58,10 +58,10 @@ namespace Eval::NNUE::Features {
       const Position& pos, const DirtyPiece& dp, Color perspective,
       IndexList* removed, IndexList* added) {
 
-    Square ksq = orient(pos, perspective, pos.square<KING>(perspective));
+    Square ksq = orient(pos, perspective, pos.square(perspective, pos.nnue_king()));
     for (int i = 0; i < dp.dirty_num; ++i) {
       Piece pc = dp.piece[i];
-      if (type_of(pc) == KING) continue;
+      if (type_of(pc) == pos.nnue_king()) continue;
       if (dp.from[i] != SQ_NONE)
         removed->push_back(make_index(pos, perspective, dp.from[i], pc, ksq));
       if (dp.to[i] != SQ_NONE)

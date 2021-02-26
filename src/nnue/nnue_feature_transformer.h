@@ -256,7 +256,7 @@ namespace Eval::NNUE {
         static_assert(std::is_same_v<RawFeatures::SortedTriggerSet,
               Features::CompileTimeList<Features::TriggerEvent, Features::TriggerEvent::kFriendKingMoved>>,
               "Current code assumes that only kFriendlyKingMoved refresh trigger is being used.");
-        if (   dp.piece[0] == make_piece(c, KING)
+        if (   dp.piece[0] == make_piece(c, pos.nnue_king())
             || (gain -= dp.dirty_num + 1) < 0)
           break;
         next = st;
