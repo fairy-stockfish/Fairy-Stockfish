@@ -743,26 +743,30 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   // Snipers are sliders that attack 's' when a piece and other snipers are removed
   Bitboard snipers = 0;
 
-  for (PieceType pt : piece_types())
-  {
-      Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
-      if (b)
+  if (var->fastAttacks)
+      snipers = (  (attacks_bb<  ROOK>(s) & pieces(c, QUEEN, ROOK, CHANCELLOR))
+                 | (attacks_bb<BISHOP>(s) & pieces(c, QUEEN, BISHOP, ARCHBISHOP))) & sliders;
+  else
+      for (PieceType pt : piece_types())
       {
-          // Consider asymmetrical moves (e.g., horse)
-          if (AttackRiderTypes[pt] & ASYMMETRICAL_RIDERS)
+          Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
+          if (b)
           {
-              Bitboard asymmetricals = PseudoAttacks[~c][pt][s] & pieces(c, pt);
-              while (asymmetricals)
+              // Consider asymmetrical moves (e.g., horse)
+              if (AttackRiderTypes[pt] & ASYMMETRICAL_RIDERS)
               {
-                  Square s2 = pop_lsb(&asymmetricals);
-                  if (!(attacks_from(c, pt, s2) & s))
-                      snipers |= s2;
+                  Bitboard asymmetricals = PseudoAttacks[~c][pt][s] & pieces(c, pt);
+                  while (asymmetricals)
+                  {
+                      Square s2 = pop_lsb(&asymmetricals);
+                      if (!(attacks_from(c, pt, s2) & s))
+                          snipers |= s2;
+                  }
               }
+              else
+                  snipers |= b & ~attacks_bb(~c, pt, s, pieces());
           }
-          else
-              snipers |= b & ~attacks_bb(~c, pt, s, pieces());
       }
-  }
   Bitboard occupancy = pieces() ^ snipers;
 
   while (snipers)
