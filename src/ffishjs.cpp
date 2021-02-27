@@ -1,6 +1,6 @@
 /*
   ffish.js, a JavaScript chess variant library derived from Fairy-Stockfish
-  Copyright (C) 2020 Fabian Fichter, Johannes Czech
+  Copyright (C) 2021 Fabian Fichter, Johannes Czech
 
   ffish.js is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -59,9 +59,20 @@ inline void save_pop_back(std::string& s) {
 }
 
 const Variant* get_variant(const std::string& uciVariant) {
-  if (uciVariant.size() == 0)
+  if (uciVariant.size() == 0 || uciVariant == "Standard" || uciVariant == "standard")
     return variants.find("chess")->second;
   return variants.find(uciVariant)->second;
+}
+
+template <bool isUCI>
+inline bool is_move_none(Move move, const std::string& strMove, const Position& pos) {
+  if (move == MOVE_NONE) {
+    std::cerr << "The given ";
+    isUCI ? std::cerr << "uciMove" : std::cerr << "sanMove";
+    std::cerr << " '" << strMove << "' for position '" << pos.fen() << "' is invalid." << std::endl;
+    return true;
+  }
+  return false;
 }
 
 class Board {
@@ -117,8 +128,12 @@ public:
     return MoveList<LEGAL>(pos).size();
   }
 
-  void push(std::string uciMove) {
-    do_move(UCI::to_move(this->pos, uciMove));
+  bool push(std::string uciMove) {
+    const Move move = UCI::to_move(this->pos, uciMove);
+    if (is_move_none<true>(move, uciMove, pos))
+      return false;
+    do_move(move);
+    return true;
   }
 
   bool push_san(std::string sanMove) {
@@ -135,11 +150,10 @@ public:
         break;
       }
     }
-    if (foundMove != MOVE_NONE) {
-      do_move(foundMove);
-      return true;
-    }
-    return false;
+    if (is_move_none<false>(foundMove, sanMove, pos))
+      return false;
+    do_move(foundMove);
+    return true;
   }
 
   void pop() {
@@ -168,12 +182,16 @@ public:
 
   // note: const identifier for pos not possible due to move_to_san()
   std::string san_move(std::string uciMove) {
-    return move_to_san(this->pos, UCI::to_move(this->pos, uciMove), NOTATION_SAN);
+    return san_move(uciMove, NOTATION_SAN);
   }
 
   std::string san_move(std::string uciMove, Notation notation) {
+    const Move move = UCI::to_move(this->pos, uciMove);
+    if (is_move_none<true>(move, uciMove, pos))
+      return "";
     return move_to_san(this->pos, UCI::to_move(this->pos, uciMove), notation);
   }
+
   std::string variation_san(std::string uciMoves) {
     return variation_san(uciMoves, NOTATION_SAN, true);
   }
@@ -191,6 +209,9 @@ public:
     bool first = true;
 
     while (std::getline(ss, uciMove, ' ')) {
+      const Move move = UCI::to_move(this->pos, uciMove);
+      if (is_move_none<true>(move, uciMove, pos))
+        return "";
       moves.emplace_back(UCI::to_move(this->pos, uciMove));
       if (first) {
         first = false;
@@ -296,9 +317,42 @@ public:
     return pocket;
   }
 
-  // TODO: return board in ascii notation
-  // static std::string get_string_from_instance(const Board& board) {
-  // }
+  std::string to_string() {
+    std::string stringBoard;
+    for (Rank r = pos.max_rank(); r >= RANK_1; --r) {
+      for (File f = FILE_A; f <= pos.max_file(); ++f) {
+        if (f != FILE_A)
+          stringBoard += " ";
+        const Piece p = pos.piece_on(make_square(f, r));
+        switch(p) {
+        case NO_PIECE:
+          stringBoard += '.';
+          break;
+        default:
+          stringBoard += pos.piece_to_char()[p];
+        }
+      }
+      if (r != RANK_1)
+        stringBoard += "\n";
+    }
+    return stringBoard;
+  }
+
+  std::string to_verbose_string() {
+    std::stringstream ss;
+    operator<<(ss, pos);
+    return ss.str();
+  }
+
+  std::string variant() {
+    // Iterate through the variants map
+    for (auto it = variants.begin(); it != variants.end(); ++it)
+      if (it->second == v)
+        return it->first;
+
+    std::cerr << "Current variant is not registered." << std::endl;
+    return "unknown";
+  }
 
 private:
   void resetStates() {
@@ -409,6 +463,17 @@ public:
 };
 
 
+bool skip_comment(const std::string& pgn, size_t& curIdx, size_t& lineEnd) {
+  curIdx = pgn.find('}', curIdx);
+  if (curIdx == std::string::npos) {
+    std::cerr << "Missing '}' for move comment while reading pgn." << std::endl;
+    return false;
+  }
+  if (curIdx > lineEnd)
+    lineEnd = pgn.find('\n', curIdx);
+  return true;
+}
+
 Game read_game_pgn(std::string pgn) {
   Game game;
   size_t lineStart = 0;
@@ -418,7 +483,7 @@ Game read_game_pgn(std::string pgn) {
     size_t lineEnd = pgn.find('\n', lineStart);
 
     if (lineEnd == std::string::npos)
-    lineEnd = pgn.size();
+      lineEnd = pgn.size();
 
     if (!headersParsed && pgn[lineStart] == '[') {
       // parse header
@@ -444,7 +509,7 @@ Game read_game_pgn(std::string pgn) {
 
         it = game.header.find("FEN");
         if (it != game.header.end())
-        game.fen = it->second;
+          game.fen = it->second;
 
         game.board = std::make_unique<Board>(game.variant, game.fen, game.is960);
         game.parsedGame = true;
@@ -454,39 +519,55 @@ Game read_game_pgn(std::string pgn) {
       size_t curIdx = lineStart;
       while (curIdx <= lineEnd) {
         if (pgn[curIdx] == '*')
-        return game;
+          return game;
 
-        while (pgn[curIdx] == '{') {
-          // skip comment
-          curIdx = pgn.find('}', curIdx);
-          if (curIdx == std::string::npos) {
-            std::cerr << "Missing '}' for move comment while reading pgn." << std::endl;
+        if (pgn[curIdx] == '{') {
+          if (!skip_comment(pgn, curIdx, lineEnd))
             return game;
-          }
-          curIdx += 2;
+          ++curIdx;
         }
-        while (pgn[curIdx] == '(') {
-          // skip comment
-          curIdx = pgn.find(')', curIdx);
-          if (curIdx == std::string::npos) {
-            std::cerr << "Missing ')' for move comment while reading pgn." << std::endl;
-            return game;
+
+        // Movetext RAV (Recursive Annotation Variation)
+        size_t openedRAV = 0;
+        if (pgn[curIdx] == '(') {
+          openedRAV = 1;
+          ++curIdx;
+        }
+        while (openedRAV != 0) {
+          switch (pgn[curIdx]) {
+            case '(':
+              ++openedRAV;
+              break;
+            case ')':
+              --openedRAV;
+              break;
+            case '{':
+              if (!skip_comment(pgn, curIdx, lineEnd))
+                return game;
+            default: ;  // pass
           }
-          curIdx += 2;
+          ++curIdx;
+          if (curIdx > lineEnd)
+            lineEnd = pgn.find('\n', curIdx);
+        }
+
+        if (pgn[curIdx] == '$') {
+          // we are at a glyph
+          curIdx = pgn.find(' ', curIdx);
         }
 
         if (pgn[curIdx] >= '0' && pgn[curIdx] <= '9') {
           // we are at a move number -> look for next point
           curIdx = pgn.find('.', curIdx);
           if (curIdx == std::string::npos)
-          break;
+            break;
           ++curIdx;
           // increment if we're at a space
           while (curIdx < pgn.size() && pgn[curIdx] == ' ')
-          ++curIdx;
+            ++curIdx;
           // increment if we're at a point
           while (curIdx < pgn.size() && pgn[curIdx] == '.')
-          ++curIdx;
+            ++curIdx;
         }
         // extract sanMove
         size_t sanMoveEnd = std::min(pgn.find(' ', curIdx), lineEnd);
@@ -496,7 +577,8 @@ Game read_game_pgn(std::string pgn) {
           size_t annotationChar1 = sanMove.find('?');
           size_t annotationChar2 = sanMove.find('!');
           if (annotationChar1 != std::string::npos || annotationChar2 != std::string::npos)
-          sanMove = sanMove.substr(0, std::min(annotationChar1, annotationChar2));
+            sanMove = sanMove.substr(0, std::min(annotationChar1, annotationChar2));
+          std::cout << sanMove << " ";
           game.board->push_san(sanMove);
         }
         curIdx = sanMoveEnd+1;
@@ -505,7 +587,7 @@ Game read_game_pgn(std::string pgn) {
     lineStart = lineEnd+1;
 
     if (lineStart >= pgn.size())
-    return game;
+      return game;
   }
   return game;
 }
@@ -545,7 +627,10 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("pushMoves", &Board::push_moves)
     .function("pushSanMoves", select_overload<void(std::string)>(&Board::push_san_moves))
     .function("pushSanMoves", select_overload<void(std::string, Notation)>(&Board::push_san_moves))
-    .function("pocket", &Board::pocket);
+    .function("pocket", &Board::pocket)
+    .function("toString", &Board::to_string)
+    .function("toVerboseString", &Board::to_verbose_string)
+    .function("variant", &Board::variant);
   class_<Game>("Game")
     .function("headerKeys", &Game::header_keys)
     .function("headers", &Game::headers)

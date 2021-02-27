@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2020 Fabian Fichter
+  Copyright (C) 2018-2021 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -237,6 +237,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("mandatoryPawnPromotion", v->mandatoryPawnPromotion);
     parse_attribute("mandatoryPiecePromotion", v->mandatoryPiecePromotion);
     parse_attribute("pieceDemotion", v->pieceDemotion);
+    parse_attribute("blastOnCapture", v->blastOnCapture);
     parse_attribute("endgameEval", v->endgameEval);
     parse_attribute("doubleStep", v->doubleStep);
     parse_attribute("doubleStepRank", v->doubleStepRank);
@@ -247,6 +248,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("castlingKingsideFile", v->castlingKingsideFile);
     parse_attribute("castlingQueensideFile", v->castlingQueensideFile);
     parse_attribute("castlingRank", v->castlingRank);
+    parse_attribute("castlingKingFile", v->castlingKingFile);
+    parse_attribute("castlingKingPiece", v->castlingKingPiece, v->pieceToChar);
     parse_attribute("castlingRookPiece", v->castlingRookPiece, v->pieceToChar);
     parse_attribute("kingType", v->kingType, v->pieceToChar);
     parse_attribute("checking", v->checking);
@@ -365,6 +368,18 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                     std::cerr << "pieceToCharTable - Missing piece type: " << ptu << std::endl;
             }
         }
+
+        // Check for limitations
+
+        // Options incompatible with royal kings
+        if (v->pieceTypes.find(KING) != v->pieceTypes.end())
+        {
+            if (v->blastOnCapture)
+                std::cerr << "Can not use kings with blastOnCapture" << std::endl;
+            if (v->flipEnclosedPieces)
+                std::cerr << "Can not use kings with flipEnclosedPieces" << std::endl;
+        }
+
     }
     return v;
 }

@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2020 Fabian Fichter
+  Copyright (C) 2018-2021 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -54,6 +54,7 @@ struct Variant {
   bool mandatoryPawnPromotion = true;
   bool mandatoryPiecePromotion = false;
   bool pieceDemotion = false;
+  bool blastOnCapture = false;
   bool endgameEval = false;
   bool doubleStep = true;
   Rank doubleStepRank = RANK_2;
@@ -64,6 +65,8 @@ struct Variant {
   File castlingKingsideFile = FILE_G;
   File castlingQueensideFile = FILE_C;
   Rank castlingRank = RANK_1;
+  File castlingKingFile = FILE_E;
+  PieceType castlingKingPiece = KING;
   PieceType castlingRookPiece = ROOK;
   PieceType kingType = KING;
   bool checking = true;
@@ -112,6 +115,7 @@ struct Variant {
   bool bikjangRule = false;
   Value extinctionValue = VALUE_NONE;
   bool extinctionClaim = false;
+  bool extinctionPseudoRoyal = false; // TODO: implementation incomplete
   std::set<PieceType> extinctionPieceTypes = {};
   int extinctionPieceCount = 0;
   int extinctionOpponentPieceCount = 0;
@@ -125,8 +129,9 @@ struct Variant {
   CountingRule countingRule = NO_COUNTING;
 
   // Derived properties
-  bool isFairy = true;
-  bool isRestricted = true;
+  bool fastAttacks = true;
+  bool fastAttacks2 = true;
+  PieceType nnueKing = KING;
 
   void add_piece(PieceType pt, char c, char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
@@ -152,11 +157,28 @@ struct Variant {
 
   // Pre-calculate derived properties
   Variant* conclude() {
-      isFairy = std::any_of(pieceTypes.begin(), pieceTypes.end(), [](PieceType pt) { return pt >= FAIRY_PIECES && pt < KING; });
-      isRestricted = std::any_of(pieceTypes.begin(), pieceTypes.end(),
-                                 [this](PieceType pt) {
-                                     return mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt];
-                                 });
+      fastAttacks = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
+                                    return (   pt < FAIRY_PIECES
+                                            || pt == COMMONER || pt == IMMOBILE_PIECE
+                                            || pt == ARCHBISHOP || pt == CHANCELLOR
+                                            || (pt == KING && kingType == KING))
+                                          && !(mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]);
+                                })
+                    && !cambodianMoves
+                    && !diagonalLines;
+      fastAttacks2 = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
+                                    return (   pt < FAIRY_PIECES
+                                            || pt == COMMONER || pt == FERS || pt == WAZIR || pt == BREAKTHROUGH_PIECE
+                                            || pt == SHOGI_PAWN || pt == GOLD || pt == SILVER || pt == SHOGI_KNIGHT
+                                            || pt == DRAGON || pt == DRAGON_HORSE || pt == LANCE
+                                            || (pt == KING && kingType == KING))
+                                          && !(mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]);
+                                })
+                    && !cambodianMoves
+                    && !diagonalLines;
+      nnueKing =  pieceTypes.find(KING) != pieceTypes.end() ? KING
+                : extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
+                : NO_PIECE_TYPE;
       return this;
   }
 };

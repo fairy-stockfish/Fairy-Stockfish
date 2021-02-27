@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2020 Fabian Fichter
+  Copyright (C) 2018-2021 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -209,6 +209,7 @@ namespace {
         v->remove_piece(KNIGHT);
         v->startFen = "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1";
         v->kingType = KNIGHT;
+        v->castlingKingPiece = KNIGHT;
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP};
         return v;
     }
@@ -227,6 +228,7 @@ namespace {
         v->variantTemplate = "giveaway";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
         v->stalemateValue = VALUE_MATE;
         v->extinctionValue = VALUE_MATE;
@@ -255,6 +257,7 @@ namespace {
         Variant* v = fairy_variant_base();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
@@ -272,6 +275,7 @@ namespace {
         Variant* v = fairy_variant_base();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
         v->startFen = "knbqkbnk/pppppppp/8/8/8/8/PPPPPPPP/KNBQKBNK w - - 0 1";
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER};
@@ -287,6 +291,27 @@ namespace {
         v->enPassantRegion = Rank3BB | Rank6BB; // exclude en passant on second rank
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {ALL_PIECES};
+        return v;
+    }
+    // Atomic chess without checks (ICC rules)
+    // https://www.chessclub.com/help/atomic
+    Variant* nocheckatomic_variant() {
+        Variant* v = fairy_variant_base();
+        v->variantTemplate = "atomic";
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->blastOnCapture = true;
+        return v;
+    }
+    // Atomic chess
+    // https://en.wikipedia.org/wiki/Atomic_chess
+    Variant* atomic_variant() {
+        Variant* v = nocheckatomic_variant();
+        // TODO: castling, check(-mate), stalemate are not yet properly implemented
+        v->extinctionPseudoRoyal = true;
         return v;
     }
     Variant* threecheck_variant() {
@@ -332,6 +357,7 @@ namespace {
         Variant* v = bughouse_variant();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
         v->mustDrop = true;
         v->mustDropType = COMMONER;
         v->extinctionValue = -VALUE_MATE;
@@ -998,6 +1024,8 @@ void VariantMap::init() {
     add("kinglet", kinglet_variant()->conclude());
     add("threekings", threekings_variant()->conclude());
     add("horde", horde_variant()->conclude());
+    add("nocheckatomic", nocheckatomic_variant()->conclude());
+    add("atomic", atomic_variant()->conclude());
     add("3check", threecheck_variant()->conclude());
     add("5check", fivecheck_variant()->conclude());
     add("crazyhouse", crazyhouse_variant()->conclude());

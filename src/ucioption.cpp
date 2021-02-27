@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ namespace UCI {
 // standard variants of XBoard/WinBoard
 std::set<string> standard_variants = {
     "normal", "nocastle", "fischerandom", "knightmate", "3check", "makruk", "shatranj",
-    "asean", "seirawan", "crazyhouse", "bughouse", "suicide", "giveaway", "losers",
+    "asean", "seirawan", "crazyhouse", "bughouse", "suicide", "giveaway", "losers", "atomic",
     "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi"
 };
 
@@ -156,7 +156,7 @@ void init(OptionsMap& o) {
 
   constexpr int MaxHashMB = Is64Bit ? 33554432 : 2048;
 
-  o["Protocol"]              << Option("uci", {"uci", "usi", "ucci", "xboard"});
+  o["Protocol"]              << Option("uci", {"uci", "usi", "ucci", "ucicyclone", "xboard"});
   o["Debug Log File"]        << Option("", on_logger);
   o["Contempt"]              << Option(24, -100, 100);
   o["Analysis Contempt"]     << Option("Both", {"Both", "Off", "White", "Black"});
@@ -232,11 +232,13 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
           if (it.second.idx == idx)
           {
               const Option& o = it.second;
-              if (Options["Protocol"] == "ucci")
+              // UCI dialects do not allow spaces
+              if (Options["Protocol"] == "ucci" || Options["Protocol"] == "usi")
               {
                   string name = it.first;
                   std::replace(name.begin(), name.end(), ' ', '_');
-                  os << "\noption " <<  name << " type " << o.type;
+                  // UCCI skips "name"
+                  os << "\noption " << (Options["Protocol"] == "ucci" ? "" : "name ") << name << " type " << o.type;
               }
               else
                   os << "\noption name " << it.first << " type " << o.type;

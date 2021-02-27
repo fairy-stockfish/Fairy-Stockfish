@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -90,7 +90,68 @@ namespace Eval::NNUE {
     PS_END2     = 12 * SQUARE_NB_CHESS + 1
   };
 
-  extern const uint32_t kpp_board_index[PIECE_NB][COLOR_NB];
+  constexpr uint32_t kpp_board_index[COLOR_NB][PIECE_NB] = {
+    // convention: W - us, B - them
+    // viewed from other side, W and B are reversed
+    { PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN,
+      PS_W_QUEEN, PS_W_BISHOP, PS_W_BISHOP, PS_W_BISHOP, PS_W_QUEEN,
+      PS_W_QUEEN, PS_NONE, PS_NONE, PS_W_QUEEN, PS_W_KNIGHT,
+      PS_W_BISHOP, PS_W_KNIGHT, PS_W_ROOK, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_W_BISHOP,
+      PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_W_KING,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_B_PAWN,
+      PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_B_QUEEN,
+      PS_B_BISHOP, PS_B_BISHOP, PS_B_BISHOP, PS_B_QUEEN, PS_B_QUEEN,
+      PS_NONE, PS_NONE, PS_B_QUEEN, PS_B_KNIGHT, PS_B_BISHOP,
+      PS_B_KNIGHT, PS_B_ROOK, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_B_BISHOP, PS_NONE,
+      PS_B_PAWN, PS_B_KNIGHT, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_B_KING, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE },
+    { PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN,
+      PS_B_QUEEN, PS_B_BISHOP, PS_B_BISHOP, PS_B_BISHOP, PS_B_QUEEN,
+      PS_B_QUEEN, PS_NONE, PS_NONE, PS_B_QUEEN, PS_B_KNIGHT,
+      PS_B_BISHOP, PS_B_KNIGHT, PS_B_ROOK, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_B_BISHOP,
+      PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_B_KING,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_W_PAWN,
+      PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_W_QUEEN,
+      PS_W_BISHOP, PS_W_BISHOP, PS_W_BISHOP, PS_W_QUEEN, PS_W_QUEEN,
+      PS_NONE, PS_NONE, PS_W_QUEEN, PS_W_KNIGHT, PS_W_BISHOP,
+      PS_W_KNIGHT, PS_W_ROOK, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_W_BISHOP, PS_NONE,
+      PS_W_PAWN, PS_W_KNIGHT, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_W_KING, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
+      PS_NONE, PS_NONE }
+  };
+  // Check that the fragile array definition is correct
+  static_assert(kpp_board_index[WHITE][make_piece(WHITE, PAWN)] == PS_W_PAWN);
+  static_assert(kpp_board_index[WHITE][make_piece(WHITE, KING)] == PS_W_KING);
+  static_assert(kpp_board_index[WHITE][make_piece(BLACK, PAWN)] == PS_B_PAWN);
+  static_assert(kpp_board_index[WHITE][make_piece(BLACK, KING)] == PS_B_KING);
+
 
   // Type of input feature after conversion
   using TransformedFeatureType = std::uint8_t;

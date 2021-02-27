@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,10 +52,6 @@ namespace Eval::NNUE::Features {
     // Get a list of indices for recently changed features
     static void AppendChangedIndices(const Position& pos, const DirtyPiece& dp, Color perspective,
                                      IndexList* removed, IndexList* added);
-
-   private:
-    // Index of a feature for a given king position and another piece on some square
-    static IndexType MakeIndex(const Position& pos, Color perspective, Square s, Piece pc, Square sq_k);
   };
 
 }  // namespace Eval::NNUE::Features

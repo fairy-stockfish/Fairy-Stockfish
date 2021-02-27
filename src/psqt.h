@@ -16,25 +16,24 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Class for difference calculation of NNUE evaluation function
 
-#ifndef NNUE_ACCUMULATOR_H_INCLUDED
-#define NNUE_ACCUMULATOR_H_INCLUDED
+#ifndef PSQT_H_INCLUDED
+#define PSQT_H_INCLUDED
 
-#include "nnue_architecture.h"
 
-namespace Eval::NNUE {
+#include "types.h"
 
-  // The accumulator of a StateInfo without parent is set to the INIT state
-  enum AccumulatorState { EMPTY, COMPUTED, INIT };
+#include "variant.h"
 
-  // Class that holds the result of affine transformation of input features
-  struct alignas(kCacheLineSize) Accumulator {
-    std::int16_t
-        accumulation[2][kRefreshTriggers.size()][kTransformedFeatureDimensions];
-    AccumulatorState state[2];
-  };
+namespace PSQT
+{
 
-}  // namespace Eval::NNUE
+extern Score psq[PIECE_NB][SQUARE_NB + 1];
 
-#endif // NNUE_ACCUMULATOR_H_INCLUDED
+// Fill psqt array from a set of internally linked parameters
+extern void init(const Variant*);
+
+} // namespace PSQT
+
+
+#endif // PSQT_H_INCLUDED

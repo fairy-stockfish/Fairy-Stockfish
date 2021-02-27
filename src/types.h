@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -234,7 +234,7 @@ constexpr int MAX_PLY   = 246;
 /// bit  6-11: origin square (from 0 to 63)
 /// bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 /// bit 14-15: special move flag: promotion (1), en passant (2), castling (3)
-/// NOTE: EN-PASSANT bit is set only when a pawn can be captured
+/// NOTE: en passant bit is set only when a pawn can be captured
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
 /// any normal move destination square is always different from origin square
@@ -247,7 +247,7 @@ enum Move : int {
 
 enum MoveType : int {
   NORMAL,
-  ENPASSANT          = 1 << (2 * SQUARE_BITS),
+  EN_PASSANT          = 1 << (2 * SQUARE_BITS),
   CASTLING           = 2 << (2 * SQUARE_BITS),
   PROMOTION          = 3 << (2 * SQUARE_BITS),
   DROP               = 4 << (2 * SQUARE_BITS),
@@ -340,9 +340,9 @@ enum Value : int {
   FersValueMg              = 420,   FersValueEg              = 450,
   AlfilValueMg             = 350,   AlfilValueEg             = 330,
   FersAlfilValueMg         = 700,   FersAlfilValueEg         = 650,
-  SilverValueMg            = 630,   SilverValueEg            = 630,
+  SilverValueMg            = 660,   SilverValueEg            = 640,
   AiwokValueMg             = 2300,  AiwokValueEg             = 2700,
-  BersValueMg              = 1900,  BersValueEg              = 2000,
+  BersValueMg              = 1800,  BersValueEg              = 1900,
   ArchbishopValueMg        = 2200,  ArchbishopValueEg        = 2200,
   ChancellorValueMg        = 2300,  ChancellorValueEg        = 2600,
   AmazonValueMg            = 2700,  AmazonValueEg            = 2850,
@@ -351,11 +351,11 @@ enum Value : int {
   KnirooValueMg            = 1050,  KnirooValueEg            = 1250,
   RookniValueMg            = 800,   RookniValueEg            = 950,
   ShogiPawnValueMg         =  90,   ShogiPawnValueEg         = 100,
-  LanceValueMg             = 360,   LanceValueEg             = 250,
-  ShogiKnightValueMg       = 360,   ShogiKnightValueEg       = 300,
-  EuroShogiKnightValueMg   = 400,   EuroShogiKnightValueEg   = 400,
-  GoldValueMg              = 660,   GoldValueEg              = 640,
-  DragonHorseValueMg       = 1500,  DragonHorseValueEg       = 1500,
+  LanceValueMg             = 400,   LanceValueEg             = 240,
+  ShogiKnightValueMg       = 420,   ShogiKnightValueEg       = 290,
+  EuroShogiKnightValueMg   = 500,   EuroShogiKnightValueEg   = 400,
+  GoldValueMg              = 720,   GoldValueEg              = 700,
+  DragonHorseValueMg       = 1550,  DragonHorseValueEg       = 1550,
   ClobberPieceValueMg      = 300,   ClobberPieceValueEg      = 300,
   BreakthroughPieceValueMg = 300,   BreakthroughPieceValueEg = 300,
   ImmobilePieceValueMg     = 50,    ImmobilePieceValueEg     = 50,
@@ -402,7 +402,7 @@ enum Piece {
   PIECE_NB = 2 * PIECE_TYPE_NB
 };
 
-enum RiderType {
+enum RiderType : int {
   NO_RIDER = 0,
   RIDER_BISHOP = 1 << 0,
   RIDER_ROOK_H = 1 << 1,
@@ -469,6 +469,9 @@ constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
 
 static_assert(   PieceValue[MG][PIECE_TYPE_NB + 1] == PawnValueMg
               && PieceValue[EG][PIECE_TYPE_NB + 1] == PawnValueEg, "PieceValue array broken");
+
+extern Value EvalPieceValue[PHASE_NB][PIECE_NB]; // variant piece values for evaluation
+extern Value CapturePieceValue[PHASE_NB][PIECE_NB]; // variant piece values for captures/search
 
 typedef int Depth;
 
@@ -563,11 +566,11 @@ struct DirtyPiece {
   // Max 3 pieces can change in one move. A promotion with capture moves
   // both the pawn and the captured piece to SQ_NONE and the piece promoted
   // to from SQ_NONE to the capture square.
-  Piece piece[3];
+  Piece piece[12];
 
   // From and to squares, which may be SQ_NONE
-  Square from[3];
-  Square to[3];
+  Square from[12];
+  Square to[12];
 };
 
 /// Score enum stores a middlegame and an endgame value in a single integer (enum).
