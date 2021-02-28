@@ -46,12 +46,12 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Amazon](https://en.wikipedia.org/wiki/Amazon_(chess)), [Chigorin](https://en.wikipedia.org/wiki/Chigorin_Chess), [Almost chess](https://en.wikipedia.org/wiki/Almost_Chess)
 - [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html), New Zealand
 - [Antichess](https://lichess.org/variant/antichess), [Giveaway](http://www.chessvariants.com/diffobjective.dir/giveaway.old.html), [Suicide](https://www.freechess.org/Help/HelpFiles/suicide_chess.html), [Losers](https://www.chessclub.com/help/Wild17), [Codrus](http://www.binnewirtz.com/Schlagschach1.htm)
-- [Extinction](https://en.wikipedia.org/wiki/Extinction_chess), [Kinglet](https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_Chess), Three Kings Chess
+- [Extinction](https://en.wikipedia.org/wiki/Extinction_chess), [Kinglet](https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_Chess), Three Kings, [Coregal](https://www.chessvariants.com/winning.dir/coregal.html)
 - [King of the Hill](https://en.wikipedia.org/wiki/King_of_the_Hill_(chess)), [Racing Kings](https://en.wikipedia.org/wiki/V._R._Parton#Racing_Kings)
 - [Three-check](https://en.wikipedia.org/wiki/Three-check_chess), Five-check
 - [Los Alamos](https://en.wikipedia.org/wiki/Los_Alamos_chess)
-- [Atomic](https://en.wikipedia.org/wiki/Atomic_chess) (non-standard rules)
-- [Horde](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess)
+- [Atomic](https://en.wikipedia.org/wiki/Atomic_chess)
+- [Horde](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess), [Maharajah and the Sepoys](https://en.wikipedia.org/wiki/Maharajah_and_the_Sepoys)
 - [Knightmate](https://www.chessvariants.com/diffobjective.dir/knightmate.html)
 
 ### Shogi variants
