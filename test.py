@@ -124,7 +124,7 @@ variant_positions = {
 class TestPyffish(unittest.TestCase):
     def test_version(self):
         result = sf.version()
-        self.assertEqual(result, (0, 0, 51))
+        self.assertEqual(result, (0, 0, 55))
 
     def test_info(self):
         result = sf.info()

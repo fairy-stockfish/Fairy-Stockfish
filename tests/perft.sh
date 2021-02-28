@@ -47,6 +47,13 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp racingkings startpos 4 296242 > /dev/null
   expect perft.exp racingkings "fen 6r1/2K5/5k2/8/3R4/8/8/8 w - - 0 1" 4 86041 > /dev/null
   expect perft.exp racingkings "fen 6R1/2k5/5K2/8/3r4/8/8/8 b - - 0 1" 4 86009 > /dev/null
+  expect perft.exp atomic startpos 4 197326 > /dev/null
+  expect perft.exp atomic "fen rn2kb1r/1pp1p2p/p2q1pp1/3P4/2P3b1/4PN2/PP3PPP/R2QKB1R b KQkq - 0 1" 4 1434825 > /dev/null
+  expect perft.exp atomic "fen rn1qkb1r/p5pp/2p5/3p4/N3P3/5P2/PPP4P/R1BQK3 w Qkq - 0 1" 4 714499 > /dev/null
+  expect perft.exp coregal startpos 4 195896 > /dev/null
+  expect perft.exp coregal "fen rn2kb1r/ppp1pppp/6q1/8/2PP2b1/5B2/PP3P1P/R1BQK1NR w KQkq - 1 9" 3 20421 > /dev/null
+  expect perft.exp coregal "fen 2Q5/3Pq2k/6p1/4Bp1p/5P1P/8/8/K7 w - - 2 72" 4 55970 > /dev/null
+  expect perft.exp coregal "fen r3kb1r/1pp1pppp/p1q2n2/3P4/6b1/2N2N2/PPP2PPP/R1BQ1RK1 b kq - 0 9" 4 136511 > /dev/null
   expect perft.exp knightmate startpos 5 3249033 > /dev/null
   expect perft.exp losers startpos 5 2723795 > /dev/null
   expect perft.exp antichess startpos 5 2732672 > /dev/null

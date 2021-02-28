@@ -310,7 +310,6 @@ namespace {
     // https://en.wikipedia.org/wiki/Atomic_chess
     Variant* atomic_variant() {
         Variant* v = nocheckatomic_variant();
-        // TODO: castling, check(-mate), stalemate are not yet properly implemented
         v->extinctionPseudoRoyal = true;
         return v;
     }
@@ -613,6 +612,14 @@ namespace {
         v->extinctionPieceTypes = {ALL_PIECES};
         v->extinctionPieceCount = 1;
         v->shatarMateRule = true;
+        return v;
+    }
+    Variant* coregal_variant() {
+        Variant* v = fairy_variant();
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {QUEEN};
+        v->extinctionPseudoRoyal = true;
+        v->extinctionPieceCount = 64; // no matter how many queens, all are royal
         return v;
     }
     Variant* clobber_variant() {
@@ -1051,6 +1058,7 @@ void VariantMap::init() {
     add("almost", almost_variant()->conclude());
     add("chigorin", chigorin_variant()->conclude());
     add("shatar", shatar_variant()->conclude());
+    add("coregal", coregal_variant()->conclude());
     add("clobber", clobber_variant()->conclude());
     add("breakthrough", breakthrough_variant()->conclude());
     add("ataxx", ataxx_variant()->conclude());
