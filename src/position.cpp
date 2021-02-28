@@ -519,6 +519,17 @@ void Position::set_check_info(StateInfo* si) const {
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
   si->legalCapture = NO_VALUE;
+  if (var->extinctionPseudoRoyal)
+  {
+      si->pseudoRoyals = 0;
+      for (PieceType pt : extinction_piece_types())
+      {
+          if (count(sideToMove, pt) <= var->extinctionPieceCount + 1)
+              si->pseudoRoyals |= pieces(sideToMove, pt);
+          if (count(~sideToMove, pt) <= var->extinctionPieceCount + 1)
+              si->pseudoRoyals |= pieces(~sideToMove, pt);
+      }
+  }
 }
 
 
@@ -944,6 +955,47 @@ bool Position::legal(Move m) const {
               return false;
   }
 
+  // Check for attacks to pseudo-royal pieces
+  if (var->extinctionPseudoRoyal)
+  {
+      Square kto = to;
+      if (type_of(m) == CASTLING && (st->pseudoRoyals & from))
+      {
+          // After castling, the rook and king final positions are the same in
+          // Chess960 as they would be in standard chess.
+          kto = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
+          Direction step = to > from ? WEST : EAST;
+          for (Square s = kto; s != from + step; s += step)
+              if (  !(blast_on_capture() && (attacks_bb<KING>(s) & st->pseudoRoyals & pieces(~sideToMove)))
+                  && attackers_to(s, (s == kto ? (pieces() ^ to) : pieces()) ^ from, ~us))
+                  return false;
+      }
+      Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | kto;
+      if (type_of(m) == EN_PASSANT)
+          occupied &= ~square_bb(kto - pawn_push(us));
+      if (capture(m) && blast_on_capture())
+          occupied &= ~((attacks_bb<KING>(kto) & (pieces() ^ pieces(PAWN))) | kto);
+      Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
+      Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
+      if (is_ok(from) && (pseudoRoyals & from))
+          pseudoRoyals ^= square_bb(from) ^ kto;
+      if (type_of(m) == PROMOTION && extinction_piece_types().find(promotion_type(m)) != extinction_piece_types().end())
+          pseudoRoyals |= kto;
+      // Self-explosions are illegal
+      if (pseudoRoyals & ~occupied)
+          return false;
+      // Check for legality unless we capture a pseudo-royal piece
+      if (!(pseudoRoyalsTheirs & ~occupied))
+          while (pseudoRoyals)
+          {
+              Square sr = pop_lsb(&pseudoRoyals);
+              // Touching pseudo-royal pieces are immune
+              if (  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+                  && (attackers_to(sr, occupied, ~us) & (occupied & ~square_bb(kto))))
+                  return false;
+          }
+  }
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
@@ -965,27 +1017,23 @@ bool Position::legal(Move m) const {
   // enemy attacks, it is delayed at a later time: now!
   if (type_of(m) == CASTLING)
   {
-      // Non-royal pieces can not be impeded from castling
-      if (type_of(piece_on(from)) != KING && !var->extinctionPseudoRoyal)
-          return true;
-
       // After castling, the rook and king final positions are the same in
       // Chess960 as they would be in standard chess.
       to = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
       Direction step = to > from ? WEST : EAST;
 
-      for (Square s = to; s != from; s += step)
-          if (attackers_to(s, ~us))
-              return false;
-
-      // TODO: need to consider touching kings
-      if (var->extinctionPseudoRoyal && attackers_to(from, ~us))
-          return false;
-
       // Will the gate be blocked by king or rook?
       Square rto = to + (to_sq(m) > from_sq(m) ? WEST : EAST);
       if (is_gating(m) && (gating_square(m) == to || gating_square(m) == rto))
           return false;
+
+      // Non-royal pieces can not be impeded from castling
+      if (type_of(piece_on(from)) != KING)
+          return true;
+
+      for (Square s = to; s != from; s += step)
+          if (attackers_to(s, ~us))
+              return false;
 
       // In case of Chess960, verify if the Rook blocks some checks
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
@@ -1013,7 +1061,7 @@ bool Position::legal(Move m) const {
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
   if (type_of(moved_piece(m)) == KING)
-      return type_of(m) == CASTLING || !attackers_to(to, occupied, ~us);
+      return !attackers_to(to, occupied, ~us);
 
   Bitboard janggiCannons = pieces(JANGGI_CANNON);
   if (type_of(moved_piece(m)) == JANGGI_CANNON)
@@ -2273,8 +2321,9 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
 
-  // extinction
-  if (extinction_value() != VALUE_NONE)
+  // Extinction
+  // Extinction does not apply for pseudo-royal pieces, because they can not be captured
+  if (extinction_value() != VALUE_NONE && (!var->extinctionPseudoRoyal || blast_on_capture()))
   {
       for (Color c : { ~sideToMove, sideToMove })
           for (PieceType pt : extinction_piece_types())

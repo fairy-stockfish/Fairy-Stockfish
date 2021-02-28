@@ -298,6 +298,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("bikjangRule", v->bikjangRule);
     parse_attribute("extinctionValue", v->extinctionValue);
     parse_attribute("extinctionClaim", v->extinctionClaim);
+    parse_attribute("extinctionPseudoRoyal", v->extinctionPseudoRoyal);
     // extinction piece types
     const auto& it_ext = config.find("extinctionPieceTypes");
     if (it_ext != config.end())

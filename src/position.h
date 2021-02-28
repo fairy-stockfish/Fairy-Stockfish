@@ -68,6 +68,7 @@ struct StateInfo {
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
   Bitboard   flippedPieces;
+  Bitboard   pseudoRoyals;
   OptBool    legalCapture;
   bool       capturedpromoted;
   bool       shak;
@@ -740,6 +741,19 @@ inline Value Position::stalemate_value(int ply) const {
   {
       int c = count<ALL_PIECES>(sideToMove) - count<ALL_PIECES>(~sideToMove);
       return c == 0 ? VALUE_DRAW : convert_mate_value(c < 0 ? var->stalemateValue : -var->stalemateValue, ply);
+  }
+  // Check for checkmate of pseudo-royal pieces
+  if (var->extinctionPseudoRoyal)
+  {
+      Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
+      Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
+      while (pseudoRoyals)
+      {
+          Square sr = pop_lsb(&pseudoRoyals);
+          if (  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+              && attackers_to(sr, ~sideToMove))
+              return convert_mate_value(var->checkmateValue, ply);
+      }
   }
   return convert_mate_value(var->stalemateValue, ply);
 }
