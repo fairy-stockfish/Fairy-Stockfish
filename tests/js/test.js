@@ -75,14 +75,20 @@ describe('Board(uciVariant, fen, is960)', function () {
 
 describe('board.legalMoves()', function () {
   it("it returns all legal moves in uci notation as a concatenated string", () => {
-    const board = new ffish.Board("crazyhouse", "r1b3nr/pppp1kpp/2n5/2b1p3/4P3/2N5/PPPP1PPP/R1B1K1NR/QPbq w KQ - 0 7");
-    const expectedMoves = 'a2a3 b2b3 d2d3 f2f3 g2g3 h2h3 a2a4 b2b4 d2d4 f2f4 g2g4 h2h4 c3b1 c3d1 c3e2 c3a4 c3b5 c3d5' +
+    const crazyhouseBoard = new ffish.Board("crazyhouse", "r1b3nr/pppp1kpp/2n5/2b1p3/4P3/2N5/PPPP1PPP/R1B1K1NR/QPbq w KQ - 0 7");
+    const expectedMovesCrazyhouse = 'a2a3 b2b3 d2d3 f2f3 g2g3 h2h3 a2a4 b2b4 d2d4 f2f4 g2g4 h2h4 c3b1 c3d1 c3e2 c3a4 c3b5 c3d5' +
         ' g1e2 g1f3 g1h3 a1b1 P@e2 P@a3 P@b3 P@d3 P@e3 P@f3 P@g3 P@h3 P@a4 P@b4 P@c4 P@d4 P@f4 P@g4 P@h4 P@a5 P@b5' +
         ' P@d5 P@f5 P@g5 P@h5 P@a6 P@b6 P@d6 P@e6 P@f6 P@g6 P@h6 P@e7 Q@b1 Q@d1 Q@f1 Q@e2 Q@a3 Q@b3 Q@d3 Q@e3 Q@f3 ' +
         'Q@g3 Q@h3 Q@a4 Q@b4 Q@c4 Q@d4 Q@f4 Q@g4 Q@h4 Q@a5 Q@b5 Q@d5 Q@f5 Q@g5 Q@h5 Q@a6 Q@b6 Q@d6 Q@e6 Q@f6 Q@g6' +
         ' Q@h6 Q@e7 Q@b8 Q@d8 Q@e8 Q@f8 e1d1 e1f1 e1e2';
-    chai.expect(board.legalMoves().split(' ').sort().join()).to.equal(expectedMoves.split(' ').sort().join());
-    board.delete();
+    chai.expect(crazyhouseBoard.legalMoves().split(' ').sort().join()).to.equal(expectedMovesCrazyhouse.split(' ').sort().join());
+    crazyhouseBoard.delete();
+    // test atomic(960) castling rights
+    const atomicBoard = new ffish.Board("atomic", "b1rkr1q1/pp3p2/n1p4p/6p1/1P2P1PP/8/PbR2P1Q/BN1KRN1B b Eec - 0 10", true);
+    const expectedMovesAtomic = 'c6c5 h6h5 b7b6 f7f6 b7b5 f7f5 g5h4 a6b4 a6c5 a6c7 a6b8 b2a1 b2c1 b2a3 b2c3 b2d4 b2e5 b2f6 b2g7' +
+                                ' b2h8 c8c7 c8b8 e8e4 e8e5 e8e6 e8e7 e8f8 g8g6 g8g7 g8h7 g8f8 g8h8 d8c8 d8d7 d8e7';
+    chai.expect(atomicBoard.legalMoves().split(' ').sort().join()).to.equal(expectedMovesAtomic.split(' ').sort().join());
+    atomicBoard.delete();
   });
 });
 
