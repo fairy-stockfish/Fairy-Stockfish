@@ -89,6 +89,7 @@ largeboards = no
 all = no
 precomputedmagics = yes
 nnue = no
+load_net = $(if $(filter $(nnue),yes),net)
 
 ifeq ($(ARCH),)
    ARCH = x86-64-modern
@@ -757,10 +758,10 @@ endif
         config-sanity icc-profile-use icc-profile-make gcc-profile-use gcc-profile-make \
         clang-profile-use clang-profile-make
 
-build: net config-sanity
+build: $(load_net) config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
 
-profile-build: net config-sanity objclean profileclean
+profile-build: $(load_net) config-sanity objclean profileclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
@@ -830,7 +831,7 @@ default:
 
 all: $(EXE) .depend
 
-config-sanity: net
+config-sanity: $(load_net)
 	@echo ""
 	@echo "Config:"
 	@echo "debug: '$(debug)'"
@@ -853,6 +854,12 @@ config-sanity: net
 	@echo "vnni256: '$(vnni256)'"
 	@echo "vnni512: '$(vnni512)'"
 	@echo "neon: '$(neon)'"
+	@echo ""
+	@echo "Fairy-Stockfish specific:"
+	@echo "largeboards: '$(largeboards)'"
+	@echo "all: '$(all)'"
+	@echo "precomputedmagics: '$(precomputedmagics)'"
+	@echo "nnue: '$(nnue)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "CXX: $(CXX)"
