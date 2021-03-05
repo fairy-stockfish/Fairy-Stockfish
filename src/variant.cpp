@@ -451,7 +451,7 @@ namespace {
         v->promotedPieceType[SILVER]     = GOLD;
         v->promotedPieceType[BISHOP]     = DRAGON_HORSE;
         v->promotedPieceType[ROOK]       = DRAGON;
-        v->shogiDoubledPawn = false;
+        v->dropNoDoubled = SHOGI_PAWN;
         v->immobilityIllegal = true;
         v->shogiPawnDropMateIllegal = true;
         v->stalemateValue = -VALUE_MATE;
@@ -486,7 +486,7 @@ namespace {
         v->promotedPieceType[ROOK]         = NO_PIECE_TYPE;
         v->immobilityIllegal = false;
         v->shogiPawnDropMateIllegal = false;
-        v->shogiDoubledPawn = true;
+        v->dropNoDoubled = NO_PIECE_TYPE;
         return v;
     }
     Variant* microshogi_variant() {
@@ -523,7 +523,7 @@ namespace {
         v->flagPiece = KING;
         v->whiteFlag = Rank4BB;
         v->blackFlag = Rank1BB;
-        v->shogiDoubledPawn = true;
+        v->dropNoDoubled = NO_PIECE_TYPE;
         return v;
     }
     Variant* gorogoroshogi_variant() {

@@ -119,7 +119,7 @@ void on_variant_change(const Option &o) {
             {
                 if (pt == PAWN && !v->firstRankPawnDrops)
                     suffix += "j";
-                else if (pt == SHOGI_PAWN && !v->shogiDoubledPawn)
+                else if (pt == v->dropNoDoubled)
                     suffix += "f";
                 else if (pt == BISHOP && v->dropOppositeColoredBishop)
                     suffix += "s";

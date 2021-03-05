@@ -87,7 +87,7 @@ struct Variant {
   bool sittuyinRookDrop = false;
   bool dropOppositeColoredBishop = false;
   bool dropPromoted = false;
-  bool shogiDoubledPawn = true;
+  PieceType dropNoDoubled = NO_PIECE_TYPE;
   bool immobilityIllegal = false;
   bool gating = false;
   bool arrowGating = false;
