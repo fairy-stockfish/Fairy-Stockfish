@@ -239,7 +239,7 @@ void init(const Variant* v) {
                   psq[pc][s] += make_score(1000, 1000);
           }
           if (v->blastOnCapture)
-              psq[pc][s] += make_score(10, 0) * r;
+              psq[pc][s] += make_score(20, 0) * r;
           psq[~pc][rank_of(s) <= v->maxRank ? flip_rank(s, v->maxRank) : s] = -psq[pc][s];
       }
       // pieces in pocket
