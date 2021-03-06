@@ -134,16 +134,17 @@ namespace {
     limits.startTime = now(); // As early as possible!
 
     limits.banmoves = banmoves;
+    bool isUsi = Options["Protocol"] == "usi";
 
     while (is >> token)
         if (token == "searchmoves") // Needs to be the last command on the line
             while (is >> token)
                 limits.searchmoves.push_back(UCI::to_move(pos, token));
 
-        else if (token == "wtime")     is >> limits.time[WHITE];
-        else if (token == "btime")     is >> limits.time[BLACK];
-        else if (token == "winc")      is >> limits.inc[WHITE];
-        else if (token == "binc")      is >> limits.inc[BLACK];
+        else if (token == "wtime")     is >> limits.time[isUsi ? BLACK : WHITE];
+        else if (token == "btime")     is >> limits.time[isUsi ? WHITE : BLACK];
+        else if (token == "winc")      is >> limits.inc[isUsi ? BLACK : WHITE];
+        else if (token == "binc")      is >> limits.inc[isUsi ? WHITE : BLACK];
         else if (token == "movestogo") is >> limits.movestogo;
         else if (token == "depth")     is >> limits.depth;
         else if (token == "nodes")     is >> limits.nodes;
