@@ -518,7 +518,8 @@ enum Square : int {
   SQUARE_BIT_MASK = 63,
 #endif
   SQ_MAX = SQUARE_NB - 1,
-  SQUARE_NB_CHESS = 64
+  SQUARE_NB_CHESS = 64,
+  SQUARE_NB_SHOGI = 81,
 };
 
 enum Direction : int {
@@ -567,10 +568,17 @@ struct DirtyPiece {
   // both the pawn and the captured piece to SQ_NONE and the piece promoted
   // to from SQ_NONE to the capture square.
   Piece piece[12];
+  Piece handPiece[12];
 
   // From and to squares, which may be SQ_NONE
   Square from[12];
   Square to[12];
+};
+
+enum NnueFeatures {
+  NNUE_CHESS,
+  NNUE_SHOGI,
+  NNUE_VARIANT,
 };
 
 /// Score enum stores a middlegame and an endgame value in a single integer (enum).

@@ -18,8 +18,8 @@
 
 //Definition of input features HalfKP of NNUE evaluation function
 
-#ifndef NNUE_FEATURES_HALF_KP_H_INCLUDED
-#define NNUE_FEATURES_HALF_KP_H_INCLUDED
+#ifndef NNUE_FEATURES_HALF_KP_SHOGI_H_INCLUDED
+#define NNUE_FEATURES_HALF_KP_SHOGI_H_INCLUDED
 
 #include "../../evaluate.h"
 #include "features_common.h"
@@ -29,7 +29,7 @@ namespace Eval::NNUE::Features {
   // Feature HalfKP: Combination of the position of own king
   // and the position of pieces other than kings
   template <Side AssociatedKing>
-  class HalfKPChess {
+  class HalfKPShogi {
 
    public:
     // Feature name
@@ -39,9 +39,9 @@ namespace Eval::NNUE::Features {
         0x5D69D5B9u ^ (AssociatedKing == Side::kFriend);
     // Number of feature dimensions
     static constexpr IndexType kDimensions =
-        static_cast<IndexType>(SQUARE_NB_CHESS) * static_cast<IndexType>(PS_END);
+        static_cast<IndexType>(SQUARE_NB_SHOGI) * static_cast<IndexType>(SHOGI_PS_END);
     // Maximum number of simultaneously active features
-    static constexpr IndexType kMaxActiveDimensions = 30; // Kings don't count
+    static constexpr IndexType kMaxActiveDimensions = 38; // Kings don't count
     // Trigger for full calculation instead of difference calculation
     static constexpr TriggerEvent kRefreshTrigger = TriggerEvent::kFriendKingMoved;
 
@@ -56,4 +56,4 @@ namespace Eval::NNUE::Features {
 
 }  // namespace Eval::NNUE::Features
 
-#endif // #ifndef NNUE_FEATURES_HALF_KP_H_INCLUDED
+#endif // #ifndef NNUE_FEATURES_HALF_KP_SHOGI_H_INCLUDED

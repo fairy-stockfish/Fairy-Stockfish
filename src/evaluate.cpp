@@ -57,6 +57,8 @@
 using namespace std;
 using namespace Eval::NNUE;
 
+NnueFeatures currentNnueFeatures;
+
 namespace Eval {
 
   bool useNNUE;
@@ -99,6 +101,8 @@ namespace Eval {
     }
     if (!useNNUE)
         return;
+
+    currentNnueFeatures = variants.find(variant)->second->nnueFeatures;
 
     #if defined(DEFAULT_NNUE_DIRECTORY)
     #define stringify2(x) #x

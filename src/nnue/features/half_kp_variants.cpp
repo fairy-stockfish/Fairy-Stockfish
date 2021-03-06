@@ -18,8 +18,12 @@
 
 //Definition of input features HalfKP of NNUE evaluation function
 
-#include "half_kp.h"
+#include "half_kp_variants.h"
 #include "index_list.h"
+
+#ifdef LARGEBOARDS
+#include "half_kp_shogi.h"
+#endif
 
 namespace Eval::NNUE::Features {
 
@@ -29,45 +33,64 @@ namespace Eval::NNUE::Features {
   }
 
   // Orient a square according to perspective (rotates by 180 for black)
-  inline Square orient(Color perspective, Square s) {
-    return Square(int(to_chess_square(s)) ^ (bool(perspective) * 63));
+  inline Square orient(const Position& pos, Color perspective, Square s) {
+    return to_chess_square(  perspective == WHITE || (pos.capture_the_flag(BLACK) & Rank8BB) ? s
+                           : flip_rank(flip_file(s, pos.max_file()), pos.max_rank()));
   }
 
   // Index of a feature for a given king position and another piece on some square
-  inline IndexType make_index(Color perspective, Square s, Piece pc, Square ksq) {
-    return IndexType(orient(perspective, s) + kpp_board_index[perspective][pc] + PS_END * ksq);
+  inline IndexType make_index(const Position& pos, Color perspective, Square s, Piece pc, Square ksq) {
+    return IndexType(orient(pos, perspective, s) + kpp_board_index[perspective][pc] + PS_END * ksq);
   }
 
   // Get a list of indices for active features
   template <Side AssociatedKing>
-  void HalfKPChess<AssociatedKing>::AppendActiveIndices(
+  void HalfKPVariants<AssociatedKing>::AppendActiveIndices(
       const Position& pos, Color perspective, IndexList* active) {
 
-    Square ksq = orient(perspective, pos.square<KING>(perspective));
-    Bitboard bb = pos.pieces() & ~pos.pieces(KING);
+    // Re-route to shogi features
+#ifdef LARGEBOARDS
+    if (currentNnueFeatures == NNUE_SHOGI)
+    {
+        assert(HalfKPShogi<AssociatedKing>::kDimensions <= kDimensions);
+        return HalfKPShogi<AssociatedKing>::AppendActiveIndices(pos, perspective, active);
+    }
+#endif
+
+    Square ksq = orient(pos, perspective, pos.square(perspective, pos.nnue_king()));
+    Bitboard bb = pos.pieces() & ~pos.pieces(pos.nnue_king());
     while (bb) {
       Square s = pop_lsb(&bb);
-      active->push_back(make_index(perspective, s, pos.piece_on(s), ksq));
+      active->push_back(make_index(pos, perspective, s, pos.piece_on(s), ksq));
     }
   }
 
   // Get a list of indices for recently changed features
   template <Side AssociatedKing>
-  void HalfKPChess<AssociatedKing>::AppendChangedIndices(
+  void HalfKPVariants<AssociatedKing>::AppendChangedIndices(
       const Position& pos, const DirtyPiece& dp, Color perspective,
       IndexList* removed, IndexList* added) {
 
-    Square ksq = orient(perspective, pos.square<KING>(perspective));
+    // Re-route to shogi features
+#ifdef LARGEBOARDS
+    if (currentNnueFeatures == NNUE_SHOGI)
+    {
+        assert(HalfKPShogi<AssociatedKing>::kDimensions <= kDimensions);
+        return HalfKPShogi<AssociatedKing>::AppendChangedIndices(pos, dp, perspective, removed, added);
+    }
+#endif
+
+    Square ksq = orient(pos, perspective, pos.square(perspective, pos.nnue_king()));
     for (int i = 0; i < dp.dirty_num; ++i) {
       Piece pc = dp.piece[i];
-      if (type_of(pc) == KING) continue;
+      if (type_of(pc) == pos.nnue_king()) continue;
       if (dp.from[i] != SQ_NONE)
-        removed->push_back(make_index(perspective, dp.from[i], pc, ksq));
+        removed->push_back(make_index(pos, perspective, dp.from[i], pc, ksq));
       if (dp.to[i] != SQ_NONE)
-        added->push_back(make_index(perspective, dp.to[i], pc, ksq));
+        added->push_back(make_index(pos, perspective, dp.to[i], pc, ksq));
     }
   }
 
-  template class HalfKPChess<Side::kFriend>;
+  template class HalfKPVariants<Side::kFriend>;
 
 }  // namespace Eval::NNUE::Features

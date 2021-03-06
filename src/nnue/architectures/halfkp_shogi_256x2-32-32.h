@@ -18,11 +18,11 @@
 
 // Definition of input features and network structure used in NNUE evaluation function
 
-#ifndef NNUE_HALFKP_256X2_32_32_H_INCLUDED
-#define NNUE_HALFKP_256X2_32_32_H_INCLUDED
+#ifndef NNUE_HALFKP_SHOGI_256X2_32_32_H_INCLUDED
+#define NNUE_HALFKP_SHOGI_256X2_32_32_H_INCLUDED
 
 #include "../features/feature_set.h"
-#include "../features/half_kp.h"
+#include "../features/half_kp_shogi.h"
 
 #include "../layers/input_slice.h"
 #include "../layers/affine_transform.h"
@@ -31,14 +31,14 @@
 namespace Eval::NNUE::Features {
 // Alias for compatibility with upstream code
 template <Side AssociatedKing>
-using HalfKP = HalfKPChess<AssociatedKing>;
+using HalfKP = HalfKPShogi<AssociatedKing>;
 }
 
 namespace Eval::NNUE {
 
 // Input features used in evaluation function
 using RawFeatures = Features::FeatureSet<
-    Features::HalfKP<Features::Side::kFriend>>;
+    Features::HalfKPShogi<Features::Side::kFriend>>;
 
 // Number of input feature dimensions after conversion
 constexpr IndexType kTransformedFeatureDimensions = 256;
@@ -57,4 +57,4 @@ using Network = Layers::OutputLayer;
 
 }  // namespace Eval::NNUE
 
-#endif // #ifndef NNUE_HALFKP_256X2_32_32_H_INCLUDED
+#endif // #ifndef NNUE_HALFKP_SHOGI_256X2_32_32_H_INCLUDED
