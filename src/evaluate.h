@@ -50,4 +50,6 @@ namespace Eval {
 
 } // namespace Eval
 
+extern NnueFeatures currentNnueFeatures;
+
 #endif // #ifndef EVALUATE_H_INCLUDED

@@ -114,7 +114,9 @@ namespace Eval::NNUE {
 
       for (std::size_t i = 0; i < kHalfDimensions; ++i)
         biases_[i] = read_little_endian<BiasType>(stream);
-      for (std::size_t i = 0; i < kHalfDimensions * kInputDimensions; ++i)
+      for (std::size_t i = 0; i < kHalfDimensions * (  currentNnueFeatures == NNUE_SHOGI ? SQUARE_NB_SHOGI * SHOGI_PS_END
+                                                     : currentNnueFeatures == NNUE_CHESS ? SQUARE_NB_CHESS * PS_END
+                                                                                         : SQUARE_NB_CHESS * PS_END); ++i)
         weights_[i] = read_little_endian<WeightType>(stream);
       return !stream.fail();
     }
@@ -248,6 +250,7 @@ namespace Eval::NNUE {
       // of the estimated gain in terms of features to be added/subtracted.
       StateInfo *st = pos.state(), *next = nullptr;
       int gain = pos.count<ALL_PIECES>() - 2;
+
       while (st->accumulator.state[c] == EMPTY)
       {
         auto& dp = st->dirtyPiece;

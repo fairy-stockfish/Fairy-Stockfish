@@ -18,29 +18,38 @@
 
 //Definition of input features HalfKP of NNUE evaluation function
 
-#include "half_kp.h"
+#include "half_kp_shogi.h"
 #include "index_list.h"
 
 namespace Eval::NNUE::Features {
 
-  // Map square to numbering on 8x8 board
-  constexpr Square to_chess_square(Square s) {
-    return Square(s - rank_of(s) * (FILE_MAX - FILE_H));
+  constexpr Square rotate(Square s) {
+    return Square(SQUARE_NB_SHOGI - 1 - int(s));
+  }
+
+  constexpr Square to_shogi_square(Square s) {
+    return Square((8 - s % 12) * 9 + 8 - s / 12);
   }
 
   // Orient a square according to perspective (rotates by 180 for black)
   inline Square orient(Color perspective, Square s) {
-    return Square(int(to_chess_square(s)) ^ (bool(perspective) * 63));
+    return perspective == WHITE ? to_shogi_square(s) : rotate(to_shogi_square(s));
   }
 
   // Index of a feature for a given king position and another piece on some square
   inline IndexType make_index(Color perspective, Square s, Piece pc, Square ksq) {
-    return IndexType(orient(perspective, s) + kpp_board_index[perspective][pc] + PS_END * ksq);
+    return IndexType(orient(perspective, s) + shogi_kpp_board_index[perspective][pc] + SHOGI_PS_END * ksq);
+  }
+
+  // Index of a feature for a given king position and hand piece
+  inline IndexType make_index(Color perspective, Color c, int hand_index, PieceType pt, Square ksq) {
+    Color color = (c == perspective) ? WHITE : BLACK;
+    return IndexType(hand_index + shogi_kpp_hand_index[color][pt] + SHOGI_PS_END * ksq);
   }
 
   // Get a list of indices for active features
   template <Side AssociatedKing>
-  void HalfKPChess<AssociatedKing>::AppendActiveIndices(
+  void HalfKPShogi<AssociatedKing>::AppendActiveIndices(
       const Position& pos, Color perspective, IndexList* active) {
 
     Square ksq = orient(perspective, pos.square<KING>(perspective));
@@ -49,11 +58,17 @@ namespace Eval::NNUE::Features {
       Square s = pop_lsb(&bb);
       active->push_back(make_index(perspective, s, pos.piece_on(s), ksq));
     }
+
+    // Indices for pieces in hand
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : pos.piece_types())
+            for (int i = 0; i < pos.count_in_hand(c, pt); i++)
+                active->push_back(make_index(perspective, c, i, pt, ksq));
   }
 
   // Get a list of indices for recently changed features
   template <Side AssociatedKing>
-  void HalfKPChess<AssociatedKing>::AppendChangedIndices(
+  void HalfKPShogi<AssociatedKing>::AppendChangedIndices(
       const Position& pos, const DirtyPiece& dp, Color perspective,
       IndexList* removed, IndexList* added) {
 
@@ -63,11 +78,21 @@ namespace Eval::NNUE::Features {
       if (type_of(pc) == KING) continue;
       if (dp.from[i] != SQ_NONE)
         removed->push_back(make_index(perspective, dp.from[i], pc, ksq));
+      else if (dp.dirty_num == 1)
+      {
+        Piece handPc = dp.handPiece[i];
+        removed->push_back(make_index(perspective, color_of(handPc), pos.count_in_hand(color_of(handPc), type_of(handPc)), type_of(handPc), ksq));
+      }
       if (dp.to[i] != SQ_NONE)
         added->push_back(make_index(perspective, dp.to[i], pc, ksq));
+      else if (i == 1)
+      {
+        Piece handPc = dp.handPiece[i];
+        added->push_back(make_index(perspective, color_of(handPc), pos.count_in_hand(color_of(handPc), type_of(handPc)) - 1, type_of(handPc), ksq));
+      }
     }
   }
 
-  template class HalfKPChess<Side::kFriend>;
+  template class HalfKPShogi<Side::kFriend>;
 
 }  // namespace Eval::NNUE::Features
