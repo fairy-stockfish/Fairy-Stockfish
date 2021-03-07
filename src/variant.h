@@ -55,7 +55,6 @@ struct Variant {
   bool mandatoryPiecePromotion = false;
   bool pieceDemotion = false;
   bool blastOnCapture = false;
-  bool endgameEval = false;
   bool doubleStep = true;
   Rank doubleStepRank = RANK_2;
   Rank doubleStepRankMin = RANK_2;
@@ -87,7 +86,7 @@ struct Variant {
   bool sittuyinRookDrop = false;
   bool dropOppositeColoredBishop = false;
   bool dropPromoted = false;
-  bool shogiDoubledPawn = true;
+  PieceType dropNoDoubled = NO_PIECE_TYPE;
   bool immobilityIllegal = false;
   bool gating = false;
   bool arrowGating = false;
@@ -128,10 +127,13 @@ struct Variant {
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
 
+  NnueFeatures nnueFeatures = NNUE_VARIANT;
+
   // Derived properties
   bool fastAttacks = true;
   bool fastAttacks2 = true;
   PieceType nnueKing = KING;
+  bool endgameEval = false;
 
   void add_piece(PieceType pt, char c, char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
@@ -179,6 +181,24 @@ struct Variant {
       nnueKing =  pieceTypes.find(KING) != pieceTypes.end() ? KING
                 : extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
                 : NO_PIECE_TYPE;
+      // For endgame evaluation to be applicable, no special win rules must apply.
+      // Furthermore, rules significantly changing game mechanics also invalidate it.
+      endgameEval = std::none_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
+                                    return mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt];
+                                })
+                    && extinctionValue == VALUE_NONE
+                    && checkmateValue == -VALUE_MATE
+                    && stalemateValue == VALUE_DRAW
+                    && !materialCounting
+                    && !flagPiece
+                    && !mustCapture
+                    && !checkCounting
+                    && !makpongRule
+                    && !connectN
+                    && !blastOnCapture
+                    && !capturesToHand
+                    && !twoBoards
+                    && kingType == KING;
       return this;
   }
 };

@@ -20,7 +20,8 @@ SRCS = ffishjs.cpp benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.c
 	material.cpp misc.cpp movegen.cpp movepick.cpp pawns.cpp position.cpp psqt.cpp \
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
 	nnue/evaluate_nnue.cpp nnue/features/half_kp.cpp \
-	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp
+	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
+	nnue/features/half_kp_shogi.cpp nnue/features/half_kp_variants.cpp
 
 CXX=emcc
 CXXFLAGS += --bind -DNNUE_EMBEDDING_OFF -DNO_THREADS -std=c++17 -Wall

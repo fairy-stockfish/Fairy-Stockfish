@@ -141,7 +141,7 @@ void VariantParser<DoCheck>::parse_attribute(const std::string& key, PieceType& 
         char token;
         size_t idx;
         std::stringstream ss(it->second);
-        if (ss >> token && (idx = pieceToChar.find(toupper(token))) != std::string::npos)
+        if (ss >> token && (idx = token == '-' ? 0 : pieceToChar.find(toupper(token))) != std::string::npos)
             target = PieceType(idx);
         else if (DoCheck)
             std::cerr << key << " - Invalid piece type: " << token << std::endl;
@@ -238,7 +238,6 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("mandatoryPiecePromotion", v->mandatoryPiecePromotion);
     parse_attribute("pieceDemotion", v->pieceDemotion);
     parse_attribute("blastOnCapture", v->blastOnCapture);
-    parse_attribute("endgameEval", v->endgameEval);
     parse_attribute("doubleStep", v->doubleStep);
     parse_attribute("doubleStepRank", v->doubleStepRank);
     parse_attribute("doubleStepRankMin", v->doubleStepRankMin);
@@ -270,7 +269,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("sittuyinRookDrop", v->sittuyinRookDrop);
     parse_attribute("dropOppositeColoredBishop", v->dropOppositeColoredBishop);
     parse_attribute("dropPromoted", v->dropPromoted);
-    parse_attribute("shogiDoubledPawn", v->shogiDoubledPawn);
+    parse_attribute("dropNoDoubled", v->dropNoDoubled, v->pieceToChar);
     parse_attribute("immobilityIllegal", v->immobilityIllegal);
     parse_attribute("gating", v->gating);
     parse_attribute("arrowGating", v->arrowGating);

@@ -57,6 +57,8 @@
 using namespace std;
 using namespace Eval::NNUE;
 
+NnueFeatures currentNnueFeatures;
+
 namespace Eval {
 
   bool useNNUE;
@@ -99,6 +101,8 @@ namespace Eval {
     }
     if (!useNNUE)
         return;
+
+    currentNnueFeatures = variants.find(variant)->second->nnueFeatures;
 
     #if defined(DEFAULT_NNUE_DIRECTORY)
     #define stringify2(x) #x
@@ -646,8 +650,9 @@ namespace {
         if (pos.seirawan_gating() && !pos.piece_drops() && pos.count_in_hand(Us, ALL_PIECES) > popcount(pos.gates(Us)))
             score -= make_score(200, 900) / pos.count_in_hand(Us, ALL_PIECES) * (pos.count_in_hand(Us, ALL_PIECES) - popcount(pos.gates(Us)));
 
-        if (pt == SHOGI_PAWN && !pos.shogi_doubled_pawn())
-            score -= make_score(50, 20) * std::max(pos.count_with_hand(Us, SHOGI_PAWN) - pos.max_file() - 1, 0);
+        // Redundant pieces that can not be doubled per file (e.g., shogi pawns)
+        if (pt == pos.drop_no_doubled())
+            score -= make_score(50, 20) * std::max(pos.count_with_hand(Us, pt) - pos.max_file() - 1, 0);
     }
 
     return score;

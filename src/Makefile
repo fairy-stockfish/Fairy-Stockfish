@@ -40,7 +40,8 @@ SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp main.cpp 
 	material.cpp misc.cpp movegen.cpp movepick.cpp pawns.cpp position.cpp psqt.cpp \
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
 	nnue/evaluate_nnue.cpp nnue/features/half_kp.cpp \
-	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp
+	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
+	nnue/features/half_kp_shogi.cpp nnue/features/half_kp_variants.cpp
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
@@ -89,6 +90,7 @@ largeboards = no
 all = no
 precomputedmagics = yes
 nnue = no
+load_net = $(if $(filter $(nnue),yes),net)
 
 ifeq ($(ARCH),)
    ARCH = x86-64-modern
@@ -309,6 +311,9 @@ endif
 CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++17
 LDFLAGS += $(EXTRALDFLAGS)
+
+# Ignore warning due to missing profile information from unused NNUE features
+CXXFLAGS += -Wno-profile-instr-out-of-date
 
 # Compile version with support for large board variants
 # Use precomputed magics by default if pext is not available
@@ -757,10 +762,10 @@ endif
         config-sanity icc-profile-use icc-profile-make gcc-profile-use gcc-profile-make \
         clang-profile-use clang-profile-make
 
-build: net config-sanity
+build: $(load_net) config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
 
-profile-build: net config-sanity objclean profileclean
+profile-build: $(load_net) config-sanity objclean profileclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
@@ -830,7 +835,7 @@ default:
 
 all: $(EXE) .depend
 
-config-sanity: net
+config-sanity: $(load_net)
 	@echo ""
 	@echo "Config:"
 	@echo "debug: '$(debug)'"
@@ -853,6 +858,12 @@ config-sanity: net
 	@echo "vnni256: '$(vnni256)'"
 	@echo "vnni512: '$(vnni512)'"
 	@echo "neon: '$(neon)'"
+	@echo ""
+	@echo "Fairy-Stockfish specific:"
+	@echo "largeboards: '$(largeboards)'"
+	@echo "all: '$(all)'"
+	@echo "precomputedmagics: '$(precomputedmagics)'"
+	@echo "nnue: '$(nnue)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "CXX: $(CXX)"

@@ -159,7 +159,7 @@ public:
   bool sittuyin_rook_drop() const;
   bool drop_opposite_colored_bishop() const;
   bool drop_promoted() const;
-  bool shogi_doubled_pawn() const;
+  PieceType drop_no_doubled() const;
   bool immobility_illegal() const;
   bool gating() const;
   bool arrow_gating() const;
@@ -192,6 +192,7 @@ public:
   CountingRule counting_rule() const;
 
   // Variant-specific properties
+  int count_in_hand(PieceType pt) const;
   int count_in_hand(Color c, PieceType pt) const;
   int count_with_hand(Color c, PieceType pt) const;
   bool bikjang() const;
@@ -440,7 +441,7 @@ inline bool Position::blast_on_capture() const {
 
 inline bool Position::endgame_eval() const {
   assert(var != nullptr);
-  return var->endgameEval && !count_in_hand(WHITE, ALL_PIECES) && !count_in_hand(BLACK, ALL_PIECES);
+  return var->endgameEval && !count_in_hand(ALL_PIECES) && count<KING>() == 2;
 }
 
 inline bool Position::double_step_enabled() const {
@@ -604,7 +605,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
           b &= ~rank_bb(relative_rank(c, RANK_1, max_rank()));
   }
   // Doubled shogi pawns
-  if (pt == SHOGI_PAWN && !shogi_doubled_pawn())
+  if (pt == drop_no_doubled())
       for (File f = FILE_A; f <= max_file(); ++f)
           if (file_bb(f) & pieces(c, pt))
               b &= ~file_bb(f);
@@ -665,9 +666,9 @@ inline bool Position::drop_promoted() const {
   return var->dropPromoted;
 }
 
-inline bool Position::shogi_doubled_pawn() const {
+inline PieceType Position::drop_no_doubled() const {
   assert(var != nullptr);
-  return var->shogiDoubledPawn;
+  return var->dropNoDoubled;
 }
 
 inline bool Position::immobility_illegal() const {
@@ -1226,6 +1227,10 @@ inline StateInfo* Position::state() const {
 }
 
 // Variant-specific
+
+inline int Position::count_in_hand(PieceType pt) const {
+  return pieceCountInHand[WHITE][pt] + pieceCountInHand[BLACK][pt];
+}
 
 inline int Position::count_in_hand(Color c, PieceType pt) const {
   return pieceCountInHand[c][pt];
