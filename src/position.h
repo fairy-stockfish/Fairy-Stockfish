@@ -192,6 +192,7 @@ public:
   CountingRule counting_rule() const;
 
   // Variant-specific properties
+  int count_in_hand(PieceType pt) const;
   int count_in_hand(Color c, PieceType pt) const;
   int count_with_hand(Color c, PieceType pt) const;
   bool bikjang() const;
@@ -440,7 +441,7 @@ inline bool Position::blast_on_capture() const {
 
 inline bool Position::endgame_eval() const {
   assert(var != nullptr);
-  return var->endgameEval && !count_in_hand(WHITE, ALL_PIECES) && !count_in_hand(BLACK, ALL_PIECES);
+  return var->endgameEval && !count_in_hand(ALL_PIECES) && count<KING>() == 2;
 }
 
 inline bool Position::double_step_enabled() const {
@@ -1226,6 +1227,10 @@ inline StateInfo* Position::state() const {
 }
 
 // Variant-specific
+
+inline int Position::count_in_hand(PieceType pt) const {
+  return pieceCountInHand[WHITE][pt] + pieceCountInHand[BLACK][pt];
+}
 
 inline int Position::count_in_hand(Color c, PieceType pt) const {
   return pieceCountInHand[c][pt];
