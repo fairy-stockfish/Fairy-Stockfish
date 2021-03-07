@@ -238,7 +238,6 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("mandatoryPiecePromotion", v->mandatoryPiecePromotion);
     parse_attribute("pieceDemotion", v->pieceDemotion);
     parse_attribute("blastOnCapture", v->blastOnCapture);
-    parse_attribute("endgameEval", v->endgameEval);
     parse_attribute("doubleStep", v->doubleStep);
     parse_attribute("doubleStepRank", v->doubleStepRank);
     parse_attribute("doubleStepRankMin", v->doubleStepRankMin);

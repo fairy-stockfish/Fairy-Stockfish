@@ -31,15 +31,17 @@ VariantMap variants; // Global object
 
 namespace {
     // Define variant rules
-    Variant* fairy_variant_base() {
+    Variant* variant_base() {
         Variant* v = new Variant();
+        return v;
+    }
+    Variant* chess_variant_base() {
+        Variant* v = variant_base();
         v->pieceToCharTable = "PNBRQ................Kpnbrq................k";
-        v->endgameEval = false;
         return v;
     }
     Variant* chess_variant() {
-        Variant* v = fairy_variant_base();
-        v->endgameEval = true;
+        Variant* v = chess_variant_base();
         v->nnueFeatures = NNUE_CHESS;
         return v;
     }
@@ -57,19 +59,19 @@ namespace {
     // Armageddon Chess
     // https://en.wikipedia.org/wiki/Fast_chess#Armageddon
     Variant* armageddon_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant();
         v->materialCounting = BLACK_DRAW_ODDS;
         return v;
     }
     Variant* fairy_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->add_piece(SILVER, 's');
         v->add_piece(FERS, 'f');
         return v;
     }
     // Makruk (Thai Chess)
     Variant* makruk_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->variantTemplate = "makruk";
         v->pieceToCharTable = "PN.R.M....SKpn.r.m....sk";
         v->remove_piece(BISHOP);
@@ -106,7 +108,7 @@ namespace {
         return v;
     }
     Variant* asean_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(KHON, 'b');
@@ -128,7 +130,7 @@ namespace {
         return v;
     }
     Variant* shatranj_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->variantTemplate = "shatranj";
         v->pieceToCharTable = "PN.R.QB....Kpn.r.qb....k";
         v->remove_piece(BISHOP);
@@ -158,7 +160,7 @@ namespace {
         return v;
     }
     Variant* amazon_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR..............AKpnbr..............ak";
         v->remove_piece(QUEEN);
         v->add_piece(AMAZON, 'a');
@@ -167,7 +169,7 @@ namespace {
         return v;
     }
     Variant* hoppelpoppel_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->remove_piece(KNIGHT);
         v->remove_piece(BISHOP);
         v->add_piece(KNIBIS, 'n');
@@ -176,7 +178,7 @@ namespace {
         return v;
     }
     Variant* newzealand_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->remove_piece(ROOK);
         v->remove_piece(KNIGHT);
         v->add_piece(ROOKNI, 'r');
@@ -186,7 +188,7 @@ namespace {
         return v;
     }
     Variant* kingofthehill_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->flagPiece = KING;
         v->whiteFlag = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
         v->blackFlag = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
@@ -194,7 +196,7 @@ namespace {
         return v;
     }
     Variant* racingkings_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
         v->flagPiece = KING;
         v->whiteFlag = Rank8BB;
@@ -205,7 +207,7 @@ namespace {
         return v;
     }
     Variant* knightmate_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->add_piece(COMMONER, 'm');
         v->remove_piece(KNIGHT);
         v->startFen = "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1";
@@ -215,7 +217,7 @@ namespace {
         return v;
     }
     Variant* losers_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->checkmateValue = VALUE_MATE;
         v->stalemateValue = VALUE_MATE;
         v->extinctionValue = VALUE_MATE;
@@ -225,7 +227,7 @@ namespace {
         return v;
     }
     Variant* giveaway_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->variantTemplate = "giveaway";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -255,7 +257,7 @@ namespace {
         return v;
     }
     Variant* extinction_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
         v->castlingKingPiece = COMMONER;
@@ -273,7 +275,7 @@ namespace {
     // Three Kings Chess
     // https://github.com/cutechess/cutechess/blob/master/projects/lib/src/board/threekingsboard.h
     Variant* threekings_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
         v->castlingKingPiece = COMMONER;
@@ -286,7 +288,7 @@ namespace {
     // Horde chess
     // https://en.wikipedia.org/wiki/Dunsany%27s_chess#Horde_chess
     Variant* horde_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
         v->doubleStepRankMin = RANK_1;
         v->enPassantRegion = Rank3BB | Rank6BB; // exclude en passant on second rank
@@ -297,7 +299,7 @@ namespace {
     // Atomic chess without checks (ICC rules)
     // https://www.chessclub.com/help/atomic
     Variant* nocheckatomic_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->variantTemplate = "atomic";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -315,7 +317,7 @@ namespace {
         return v;
     }
     Variant* threecheck_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
         v->checkCounting = true;
         return v;
@@ -326,7 +328,7 @@ namespace {
         return v;
     }
     Variant* crazyhouse_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->variantTemplate = "crazyhouse";
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
@@ -366,7 +368,7 @@ namespace {
         return v;
     }
     Variant* pocketknight_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->variantTemplate = "bughouse";
         v->pocketSize = 2;
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
@@ -375,7 +377,7 @@ namespace {
         return v;
     }
     Variant* placement_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->variantTemplate = "bughouse";
         v->startFen = "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - - 0 1";
         v->mustDrop = true;
@@ -409,7 +411,7 @@ namespace {
         return v;
     }
     Variant* seirawan_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->variantTemplate = "seirawan";
         v->pieceToCharTable = "PNBRQ.E..........H...Kpnbrq.e..........h...k";
         v->add_piece(ARCHBISHOP, 'h');
@@ -428,7 +430,7 @@ namespace {
         return v;
     }
     Variant* minishogi_variant_base() {
-        Variant* v = fairy_variant_base();
+        Variant* v = variant_base();
         v->variantTemplate = "shogi";
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
@@ -561,7 +563,7 @@ namespace {
         return v;
     }
     Variant* losalamos_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PN.RQ................Kpn.rq................k";
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
@@ -574,7 +576,7 @@ namespace {
         return v;
     }
     Variant* gardner_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
         v->startFen = "rnbqk/ppppp/5/PPPPP/RNBQK w - - 0 1";
@@ -584,7 +586,7 @@ namespace {
         return v;
     }
     Variant* almost_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR............CKpnbr............ck";
         v->remove_piece(QUEEN);
         v->add_piece(CHANCELLOR, 'c');
@@ -593,7 +595,7 @@ namespace {
         return v;
     }
     Variant* chigorin_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR............CKpnbrq............k";
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rbbqkbbr/pppppppp/8/8/8/8/PPPPPPPP/RNNCKNNR w KQkq - 0 1";
@@ -601,7 +603,7 @@ namespace {
         return v;
     }
     Variant* shatar_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR..........J......Kpnbr..........j......k";
         v->remove_piece(QUEEN);
         v->add_piece(BERS, 'j');
@@ -616,7 +618,7 @@ namespace {
         return v;
     }
     Variant* coregal_variant() {
-        Variant* v = fairy_variant();
+        Variant* v = chess_variant_base();
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {QUEEN};
         v->extinctionPseudoRoyal = true;
@@ -624,7 +626,7 @@ namespace {
         return v;
     }
     Variant* clobber_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "P.................p.................";
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
@@ -639,7 +641,7 @@ namespace {
         return v;
     }
     Variant* breakthrough_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "P.................p.................";
         v->reset_pieces();
         v->add_piece(BREAKTHROUGH_PIECE, 'p');
@@ -654,7 +656,7 @@ namespace {
         return v;
     }
     Variant* ataxx_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "P.................p.................";
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
@@ -675,7 +677,7 @@ namespace {
         return v;
     }
     Variant* minixiangqi_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->variantTemplate = "xiangqi";
         v->pieceToCharTable = "PN.R.....K.C.pn.r.....k.c.";
         v->maxRank = RANK_7;
@@ -714,7 +716,7 @@ namespace {
         return v;
     }
     Variant* capablanca_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -731,7 +733,6 @@ namespace {
         v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
-        v->endgameEval = false;
         return v;
     }
     Variant* caparandom_variant() {
@@ -745,7 +746,7 @@ namespace {
         return v;
     }
     Variant* janus_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ............J...Kpnbrq............j...k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -757,7 +758,7 @@ namespace {
         return v;
     }
     Variant* modern_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ..M.............Kpnbrq..m.............k";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -770,7 +771,7 @@ namespace {
         return v;
     }
     Variant* chancellor_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ...........CKpnbrq...........ck";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -790,7 +791,7 @@ namespace {
         return v;
     }
     Variant* centaur_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ...............CKpnbrq...............ck";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -802,7 +803,7 @@ namespace {
         return v;
     }
     Variant* jesonmor_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
         v->reset_pieces();
@@ -819,7 +820,7 @@ namespace {
         return v;
     }
     Variant* courier_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->maxRank = RANK_8;
         v->maxFile = FILE_L;
         v->remove_piece(QUEEN);
@@ -840,7 +841,7 @@ namespace {
         return v;
     }
     Variant* grand_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
@@ -863,7 +864,7 @@ namespace {
         return v;
     }
     Variant* shako_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ.E....C.........Kpnbrq.e....c.........k";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
@@ -891,7 +892,7 @@ namespace {
     // Game of the Amazons
     // https://en.wikipedia.org/wiki/Game_of_the_Amazons
     Variant* amazons_variant() {
-        Variant* v = fairy_variant_base();
+        Variant* v = chess_variant_base();
         v->pieceToCharTable = "P...Q.................p...q.................";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;

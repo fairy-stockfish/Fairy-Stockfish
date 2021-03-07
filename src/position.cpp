@@ -660,7 +660,7 @@ const string Position::fen(bool sfen, bool showPromoted, int countStarted, std::
                       ss << pieceCountInHand[c][pt];
                   ss << piece_to_char()[make_piece(c, pt)];
               }
-      if (!count_in_hand(WHITE, ALL_PIECES) && !count_in_hand(BLACK, ALL_PIECES))
+      if (!count_in_hand(ALL_PIECES))
           ss << '-';
       ss << " " << gamePly + 1;
       return ss.str();
