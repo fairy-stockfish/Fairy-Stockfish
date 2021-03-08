@@ -141,7 +141,7 @@ void init(const Variant* v) {
       {
           score -= make_score(0, (QueenValueEg - maxPromotion) / 100);
           if (v->blastOnCapture)
-              score += score;
+              score += score * 3 / 2;
       }
 
       // Scale slider piece values with board size
@@ -239,7 +239,7 @@ void init(const Variant* v) {
                   psq[pc][s] += make_score(1000, 1000);
           }
           if (v->blastOnCapture)
-              psq[pc][s] += make_score(40, 0) * r;
+              psq[pc][s] += make_score(40, 0) * (r - v->maxRank / 2);
           psq[~pc][rank_of(s) <= v->maxRank ? flip_rank(s, v->maxRank) : s] = -psq[pc][s];
       }
       // pieces in pocket
