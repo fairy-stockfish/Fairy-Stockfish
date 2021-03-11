@@ -350,6 +350,9 @@ void Option::set_combo(std::vector<std::string> newComboValues) {
 
 void Option::set_default(std::string newDefault) {
     defaultValue = currentValue = newDefault;
+
+    if (on_change)
+        on_change(*this);
 }
 
 const std::string Option::get_type() const {
