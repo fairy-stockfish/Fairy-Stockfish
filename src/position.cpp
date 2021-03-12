@@ -1498,6 +1498,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           if (type_of(pc) == castling_king_piece() && file_of(to) == castling_king_file())
           {
+              st->castlingKingSquare[us] = to;
               Bitboard castling_rooks =  pieces(us, castling_rook_piece())
                                        & rank_bb(castling_rank(us))
                                        & (file_bb(FILE_A) | file_bb(max_file()));
