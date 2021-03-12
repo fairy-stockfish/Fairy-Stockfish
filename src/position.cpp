@@ -1509,7 +1509,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           {
               if (   (file_of(to) == FILE_A || file_of(to) == max_file())
                   && piece_on(make_square(castling_king_file(), castling_rank(us))) == make_piece(us, castling_king_piece()))
+              {
+                  st->castlingKingSquare[us] = make_square(castling_king_file(), castling_rank(us));
                   set_castling_right(us, to);
+              }
           }
       }
   }
