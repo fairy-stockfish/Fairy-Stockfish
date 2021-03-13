@@ -318,6 +318,8 @@ void UCI::loop(int argc, char* argv[]) {
 #endif
                                                            : "chess");
           Options["UCI_Variant"].set_default(defaultVariant);
+          std::istringstream ss("startpos");
+          position(pos, ss, states);
           if (token == "uci" || token == "usi" || token == "ucci")
               sync_cout << "id name " << engine_info(true)
                           << "\n" << Options

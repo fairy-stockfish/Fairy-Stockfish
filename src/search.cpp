@@ -83,7 +83,7 @@ namespace {
 
   // History and stats update bonus, based on depth
   int stat_bonus(Depth d) {
-    return d > 14 ? 29 : 8 * d * d + 224 * d - 215;
+    return d > 14 ? 66 : 6 * d * d + 231 * d - 206;
   }
 
   // Add a small random component to draw evaluations to avoid 3-fold blindness
@@ -917,10 +917,10 @@ namespace {
     // Step 8. Null move search with verification search (~40 Elo)
     if (   !PvNode
         && (ss-1)->currentMove != MOVE_NULL
-        && (ss-1)->statScore < 22977
+        && (ss-1)->statScore < 22661
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 30 * depth - 28 * improving + 84 * ss->ttPv + 168 + 200 * (!pos.double_step_enabled() && pos.piece_to_char()[PAWN] != ' ')
+        &&  ss->staticEval >= beta - 24 * depth - 34 * improving + 162 * ss->ttPv + 159 + 200 * (!pos.double_step_enabled() && pos.piece_to_char()[PAWN] != ' ')
         && !excludedMove
         &&  pos.non_pawn_material(us)
         &&  pos.count<ALL_PIECES>(~us) != pos.count<PAWN>(~us)
@@ -930,7 +930,7 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = (1015 - 300 * pos.must_capture() - 250 * !pos.checking_permitted() + 85 * depth) / 256 + std::min(int(eval - beta) / 191, pos.must_capture() || pos.blast_on_capture() ? 0 : 3);
+        Depth R = (1062 - 300 * pos.must_capture() - 250 * !pos.checking_permitted() + 68 * depth) / 256 + std::min(int(eval - beta) / 190, pos.must_capture() || pos.blast_on_capture() ? 0 : 3);
 
         ss->currentMove = MOVE_NULL;
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
@@ -966,7 +966,7 @@ namespace {
         }
     }
 
-    probCutBeta = beta + (194 + 20 * !!pos.capture_the_flag_piece() + 50 * pos.captures_to_hand()) * (1 + pos.check_counting() + pos.extinction_single_piece()) - 49 * improving;
+    probCutBeta = beta + (209 + 20 * !!pos.capture_the_flag_piece() + 50 * pos.captures_to_hand()) * (1 + pos.check_counting() + pos.extinction_single_piece()) - 44 * improving;
 
     // Step 9. ProbCut (~10 Elo)
     // If we have a good enough capture and a reduced search returns a value
@@ -1105,6 +1105,14 @@ moves_loop: // When in check, search starts from here
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
 
+      // Indicate PvNodes that will probably fail low if node was searched with non-PV search
+      // at depth equal or greater to current depth and result of this search was far below alpha
+      bool likelyFailLow =    PvNode
+                           && ttMove
+                           && (tte->bound() & BOUND_UPPER)
+                           && ttValue < alpha + 200 + 100 * depth
+                           && tte->depth() >= depth;
+
       // Calculate new depth for this move
       newDepth = depth - 1;
 
@@ -1148,11 +1156,11 @@ moves_loop: // When in check, search starts from here
               if (   lmrDepth < 7
                   && !ss->inCheck
                   && !pos.extinction_single_piece()
-                  && ss->staticEval + (254 + 159 * lmrDepth) * (1 + pos.check_counting()) <= alpha
+                  && ss->staticEval + (174 + 157 * lmrDepth) * (1 + pos.check_counting()) <= alpha
                   &&  (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
                     + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
                     + (*contHist[3])[history_slot(movedPiece)][to_sq(move)]
-                    + (*contHist[5])[history_slot(movedPiece)][to_sq(move)] / 2 < 26394)
+                    + (*contHist[5])[history_slot(movedPiece)][to_sq(move)] / 3 < 26237)
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
@@ -1262,8 +1270,9 @@ moves_loop: // When in check, search starts from here
           if (th.marked())
               r++;
 
-          // Decrease reduction if position is or has been on the PV (~10 Elo)
-          if (ss->ttPv)
+          // Decrease reduction if position is or has been on the PV
+          // and node is not likely to fail low. (~10 Elo)
+          if (ss->ttPv && !likelyFailLow)
               r -= 2;
 
           // Increase reduction at root and non-PV nodes when the best move does not change frequently
@@ -1313,13 +1322,13 @@ moves_loop: // When in check, search starts from here
                              + (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
                              + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
                              + (*contHist[3])[history_slot(movedPiece)][to_sq(move)]
-                             - 5287;
+                             - 5337;
 
               // Decrease/increase reduction by comparing opponent's stat score (~10 Elo)
-              if (ss->statScore >= -105 && (ss-1)->statScore < -103)
+              if (ss->statScore >= -89 && (ss-1)->statScore < -116)
                   r--;
 
-              else if ((ss-1)->statScore >= -122 && ss->statScore < -129)
+              else if ((ss-1)->statScore >= -112 && ss->statScore < -100)
                   r++;
 
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
@@ -1327,9 +1336,9 @@ moves_loop: // When in check, search starts from here
               // use sum of main history and first continuation history with an offset
               if (ss->inCheck)
                   r -= (thisThread->mainHistory[us][from_to(move)]
-                     + (*contHist[0])[history_slot(movedPiece)][to_sq(move)] - 4333) / 16384;
+                     + (*contHist[0])[history_slot(movedPiece)][to_sq(move)] - 4341) / 16384;
               else
-                  r -= ss->statScore / (14884 - 4434 * pos.captures_to_hand());
+                  r -= ss->statScore / (14382 - 4434 * pos.captures_to_hand());
           }
 
           Depth d = std::clamp(newDepth - r, 1, newDepth);
@@ -1807,8 +1816,8 @@ moves_loop: // When in check, search starts from here
     PieceType captured = type_of(pos.piece_on(to_sq(bestMove)));
 
     bonus1 = stat_bonus(depth + 1);
-    bonus2 = bestValue > beta + PawnValueMg ? bonus1               // larger bonus
-                                            : stat_bonus(depth);   // smaller bonus
+    bonus2 = bestValue > beta + PawnValueMg ? bonus1                                 // larger bonus
+                                            : std::min(bonus1, stat_bonus(depth));   // smaller bonus
 
     if (!pos.capture_or_promotion(bestMove))
     {

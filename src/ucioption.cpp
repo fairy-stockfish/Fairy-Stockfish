@@ -60,12 +60,18 @@ void on_use_NNUE(const Option& ) { Eval::NNUE::init(); }
 void on_eval_file(const Option& ) { Eval::NNUE::init(); }
 
 void on_variant_path(const Option& o) { variants.parse<false>(o); Options["UCI_Variant"].set_combo(variants.get_keys()); }
-void on_variant_change(const Option &o) {
+void on_variant_set(const Option &o) {
     // Re-initialize NNUE
     Eval::NNUE::init();
 
     const Variant* v = variants.find(o)->second;
     PSQT::init(v);
+}
+void on_variant_change(const Option &o) {
+    // Variant initialization
+    on_variant_set(o);
+
+    const Variant* v = variants.find(o)->second;
     // Do not send setup command for known variants
     if (standard_variants.find(o) != standard_variants.end())
         return;
@@ -350,6 +356,11 @@ void Option::set_combo(std::vector<std::string> newComboValues) {
 
 void Option::set_default(std::string newDefault) {
     defaultValue = currentValue = newDefault;
+
+    // When changing the variant default, suppress variant definition output,
+    // but still do the essential re-initialization of the variant
+    if (on_change)
+        (on_change == on_variant_change ? on_variant_set : on_change)(*this);
 }
 
 const std::string Option::get_type() const {

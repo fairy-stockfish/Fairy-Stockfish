@@ -1,7 +1,5 @@
 # Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-# Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-# Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-# Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+# Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 #
 # Stockfish is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -403,7 +401,9 @@ ifeq ($(COMP),clang)
 
 	ifneq ($(KERNEL),Darwin)
 	ifneq ($(KERNEL),OpenBSD)
+	ifneq ($(KERNEL),FreeBSD)
 		LDFLAGS += -latomic
+	endif
 	endif
 	endif
 
@@ -516,6 +516,10 @@ ifeq ($(optimize),yes)
 			CXXFLAGS += -mdynamic-no-pic
 		endif
 	endif
+
+	ifeq ($(comp),clang)
+		CXXFLAGS += -fexperimental-new-pass-manager
+	endif
 endif
 
 ### 3.4 Bits
@@ -625,7 +629,7 @@ endif
 ifeq ($(optimize),yes)
 ifeq ($(debug), no)
 	ifeq ($(comp),clang)
-		CXXFLAGS += -flto=thin
+		CXXFLAGS += -flto
 		ifneq ($(findstring MINGW,$(KERNEL)),)
 			CXXFLAGS += -fuse-ld=lld
 		else ifneq ($(findstring MSYS,$(KERNEL)),)
@@ -645,7 +649,7 @@ ifeq ($(debug), no)
 			LDFLAGS += -save-temps
 		endif
 	else
-		CXXFLAGS += -flto=thin
+		CXXFLAGS += -flto
 		LDFLAGS += $(CXXFLAGS)
 	endif
 

@@ -307,7 +307,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
   // 2. Active color
   ss >> token;
-  sideToMove = (token == 'w' ? WHITE : BLACK);
+  sideToMove = (token == 'w' || token == 'r' ? WHITE : BLACK);
   // Invert side to move for SFEN
   if (sfen)
       sideToMove = ~sideToMove;
@@ -996,21 +996,17 @@ bool Position::legal(Move m) const {
           }
   }
 
-  // En passant captures are a tricky special case. Because they are rather
-  // uncommon, we do it simply by testing whether the king is attacked after
-  // the move is made.
+  // st->previous->blockersForKing consider capsq as empty.
+  // If pinned, it has to move along the king ray.
   if (type_of(m) == EN_PASSANT)
   {
-      Square ksq = count<KING>(us) ? square<KING>(us) : SQ_NONE;
+      if (!count<KING>(us))
+          return true;
+
       Square capsq = to - pawn_push(us);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
-      assert(to == ep_square());
-      assert(moved_piece(m) == make_piece(us, PAWN));
-      assert(piece_on(capsq) == make_piece(~us, PAWN));
-      assert(piece_on(to) == NO_PIECE);
-
-      return !count<KING>(us) || !(attackers_to(ksq, occupied, ~us) & occupied);
+      return !(attackers_to(square<KING>(us), occupied, ~us) & occupied);
   }
 
   // Castling moves generation does not check if the castling path is clear of
@@ -1057,6 +1053,10 @@ bool Position::legal(Move m) const {
   if (var->makpongRule && checkers() && type_of(moved_piece(m)) == KING && (checkers() ^ to))
       return false;
 
+  // Return early when without king
+  if (!count<KING>(us))
+      return true;
+
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
@@ -1070,7 +1070,7 @@ bool Position::legal(Move m) const {
       janggiCannons ^= to;
 
   // A non-king move is legal if the king is not under attack after the move.
-  return !count<KING>(us) || !(attackers_to(square<KING>(us), occupied, ~us, janggiCannons) & ~SquareBB[to]);
+  return !(attackers_to(square<KING>(us), occupied, ~us, janggiCannons) & ~SquareBB[to]);
 }
 
 
@@ -1250,10 +1250,10 @@ bool Position::gives_check(Move m) const {
   case PIECE_DEMOTION:
       return attacks_bb(sideToMove, type_of(unpromoted_piece_on(from)), to, pieces() ^ from) & square<KING>(~sideToMove);
 
-  // En passant capture with check? We have already handled the case
-  // of direct checks and ordinary discovered check, so the only case we
-  // need to handle is the unusual case of a discovered check through
-  // the captured pawn.
+  // The double-pushed pawn blocked a check? En Passant will remove the blocker.
+  // The only discovery check that wasn't handle is through capsq and fromsq
+  // So the King must be in the same rank as fromsq to consider this possibility.
+  // st->previous->blockersForKing consider capsq as empty.
   case EN_PASSANT:
   {
       Square capsq = make_square(file_of(to), rank_of(from));
@@ -1498,6 +1498,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           if (type_of(pc) == castling_king_piece() && file_of(to) == castling_king_file())
           {
+              st->castlingKingSquare[us] = to;
               Bitboard castling_rooks =  pieces(us, castling_rook_piece())
                                        & rank_bb(castling_rank(us))
                                        & (file_bb(FILE_A) | file_bb(max_file()));
@@ -1508,7 +1509,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           {
               if (   (file_of(to) == FILE_A || file_of(to) == max_file())
                   && piece_on(make_square(castling_king_file(), castling_rank(us))) == make_piece(us, castling_king_piece()))
+              {
+                  st->castlingKingSquare[us] = make_square(castling_king_file(), castling_rank(us));
                   set_castling_right(us, to);
+              }
           }
       }
   }
