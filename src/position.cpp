@@ -468,6 +468,18 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       st->rule50 = 0;
   }
 
+  // Lichess-style counter for 3check
+  if (check_counting())
+  {
+      if (ss >> token && token == '+')
+      {
+          ss >> token;
+          st->checksRemaining[WHITE] = CheckCount(std::max(3 - (token - '0'), 0));
+          ss >> token >> token;
+          st->checksRemaining[BLACK] = CheckCount(std::max(3 - (token - '0'), 0));
+      }
+  }
+
   chess960 = isChess960 || v->chess960;
   tsumeMode = Options["TsumeMode"];
   thisThread = th;
