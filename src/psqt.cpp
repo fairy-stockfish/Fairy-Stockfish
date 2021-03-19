@@ -228,6 +228,7 @@ void init(const Variant* v) {
                                  : pt == KING  ? KingBonus[std::clamp(Rank(r - pawnRank + 1), RANK_1, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
                                  : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)]
                                  : pt == HORSE ? Bonus[KNIGHT][std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                 : pt == COMMONER && v->extinctionValue == -VALUE_MATE && v->extinctionPieceTypes.find(COMMONER) != v->extinctionPieceTypes.end() ? KingBonus[std::clamp(Rank(r - pawnRank + 1), RANK_1, RANK_8)][std::min(f, FILE_D)]
                                  : isSlider    ? make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile - 1)
                                  : isPawn      ? make_score(5, 5) * (2 * f - v->maxFile)
                                                : make_score(10, 10) * (1 + isSlowLeaper) * (f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile / 2));
