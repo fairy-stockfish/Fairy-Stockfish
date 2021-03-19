@@ -390,6 +390,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
                && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
       {
           st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
+#ifdef LARGEBOARDS
+          // Consider different rank numbering in CECP
+          if (max_rank() == RANK_10 && Options["Protocol"] == "xboard")
+              st->epSquare += NORTH;
+#endif
 
           // En passant square will be considered only if
           // a) side to move have a pawn threatening epSquare
