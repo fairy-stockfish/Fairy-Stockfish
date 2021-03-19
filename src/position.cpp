@@ -971,18 +971,22 @@ bool Position::legal(Move m) const {
   if (var->extinctionPseudoRoyal)
   {
       Square kto = to;
-      if (type_of(m) == CASTLING && (st->pseudoRoyals & from))
+      Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | kto;
+      if (type_of(m) == CASTLING)
       {
           // After castling, the rook and king final positions are the same in
           // Chess960 as they would be in standard chess.
           kto = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
-          Direction step = to > from ? WEST : EAST;
-          for (Square s = kto; s != from + step; s += step)
-              if (  !(blast_on_capture() && (attacks_bb<KING>(s) & st->pseudoRoyals & pieces(~sideToMove)))
-                  && attackers_to(s, (s == kto ? (pieces() ^ to) : pieces()) ^ from, ~us))
-                  return false;
+          Direction step = kto > from ? EAST : WEST;
+          Square rto = kto - step;
+          // Pseudo-royal king
+          if (st->pseudoRoyals & from)
+              for (Square s = from; s != kto; s += step)
+                  if (  !(blast_on_capture() && (attacks_bb<KING>(s) & st->pseudoRoyals & pieces(~sideToMove)))
+                      && attackers_to(s, pieces() ^ from, ~us))
+                      return false;
+          occupied = (pieces() ^ from ^ to) | kto | rto;
       }
-      Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | kto;
       if (type_of(m) == EN_PASSANT)
           occupied &= ~square_bb(kto - pawn_push(us));
       if (capture(m) && blast_on_capture())

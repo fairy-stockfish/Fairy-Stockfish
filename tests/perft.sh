@@ -12,8 +12,10 @@ echo "perft testing started"
 
 cat << EOF > perft.exp
    set timeout 60
-   lassign \$argv var pos depth result
+   lassign \$argv var pos depth result chess960
+   if {\$chess960 eq ""} {set chess960 false}
    spawn ./stockfish
+   send "setoption name UCI_Chess960 value \$chess960\\n"
    send "setoption name UCI_Variant value \$var\\n"
    send "position \$pos\\ngo perft \$depth\\n"
    expect "Nodes searched? \$result" {} timeout {exit 1}
@@ -103,6 +105,13 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   # non-chess
   expect perft.exp ataxx startpos 4 155888 > /dev/null
   expect perft.exp ataxx "fen 7/7/7/7/ppppppp/ppppppp/PPPPPPP[PPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppp] w 0 1" 5 452980 > /dev/null
+  # 960 variants
+  expect perft.exp atomic "fen 8/8/8/8/8/8/2k5/rR4KR w KQ - 0 1" 4 61401 true > /dev/null
+  expect perft.exp atomic "fen r3k1rR/5K2/8/8/8/8/8/8 b kq - 0 1" 4 98729 true > /dev/null
+  expect perft.exp atomic "fen Rr2k1rR/3K4/3p4/8/8/8/7P/8 w kq - 0 1" 4 241478 true > /dev/null
+  expect perft.exp atomic "fen 1R4kr/4K3/8/8/8/8/8/8 b k - 0 1" 4 17915 true > /dev/null
+  expect perft.exp extinction "fen rnbqb1kr/pppppppp/8/8/8/8/PPPPPPPP/RNBQB1KR w AHah - 0 1" 4 195286 true > /dev/null
+  expect perft.exp seirawan "fen qbbrnkrn/pppppppp/8/8/8/8/PPPPPPPP/QBBRNKRN[HEhe] w ABCDEFGHabcdefgh - 0 1" 3 21170 true > /dev/null
 fi
 
 # large-board variants
@@ -115,6 +124,7 @@ if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp chancellor startpos 4 436656 > /dev/null
   expect perft.exp courier startpos 4 500337 > /dev/null
   expect perft.exp grand startpos 3 259514 > /dev/null
+  expect perft.exp grand "fen r8r/1nbqkcabn1/ppp2ppppp/3p6/4pP4/10/10/PPPPP1PPPP/1NBQKCABN1/R8R w - e7 0 3" 2 5768 > /dev/null
   expect perft.exp xiangqi startpos 4 3290240 > /dev/null
   expect perft.exp xiangqi "fen 1rbaka2R/5r3/6n2/2p1p1p2/4P1bP1/PpC3Bc1/1nPR2P2/2N2AN2/1c2K1p2/2BAC4 w - - 0 1" 4 4485547 > /dev/null
   expect perft.exp xiangqi "fen 4kcP1N/8n/3rb4/9/9/9/9/3p1A3/4K4/5CB2 w - - 0 1" 4 92741 > /dev/null

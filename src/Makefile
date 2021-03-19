@@ -294,11 +294,11 @@ ifeq ($(ARCH),ppc-64)
 	prefetch = yes
 endif
 
+endif
+
 # Disable precomputed magics when 64-bit PEXT is available
 ifeq ($(pext),yes)
 	precomputedmagics = no
-endif
-
 endif
 
 ### ==========================================================================
