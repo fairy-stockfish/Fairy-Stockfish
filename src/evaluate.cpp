@@ -1233,7 +1233,7 @@ namespace {
                                         80 - 15 * (edge_distance(f, pos.max_file()) % 2)) * m / (1 + l * r);
                 }
             }
-            else if (pos.count<PAWN>(Them) == pos.count<ALL_PIECES>(Them) && pos.pieces(Us, ROOK, QUEEN))
+            else if (pos.count<PAWN>(Them) == pos.count<ALL_PIECES>(Them))
             {
                 // Add a bonus according to how close we are to breaking through the pawn wall
                 int dist = 8;
