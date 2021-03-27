@@ -171,16 +171,12 @@ void init(const Variant* v) {
                                  eg_value(score) * 4700 / (3500 + mg_value(score)));
       }
 
-      // For drop variants, halve the piece values
-      if (v->capturesToHand)
+      if (v->capturesToHand || v->twoBoards)
           score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
                              eg_value(score) * 7000 / (7000 + eg_value(score)));
       else if (!v->checking)
           score = make_score(std::min(mg_value(score), Value(1800)) / 2,
                              std::min(eg_value(score), Value(1800)) * 3 / 5);
-      else if (v->twoBoards)
-          score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
-                             eg_value(score) * 7000 / (7000 + eg_value(score)));
       else if (v->blastOnCapture)
           score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)), eg_value(score));
       else if (v->checkCounting)
@@ -201,6 +197,7 @@ void init(const Variant* v) {
       if (v->extinctionValue == VALUE_MATE)
           score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
 
+      // For drop variants, halve the piece values to compensate for double changes by captures
       if (v->capturesToHand)
           score = score / 2;
 
