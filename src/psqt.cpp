@@ -177,7 +177,7 @@ void init(const Variant* v) {
                              eg_value(score) * 7000 / (7000 + eg_value(score)));
       else if (!v->checking)
           score = make_score(mg_value(score) * 2000 / (3500 + mg_value(score)),
-                             eg_value(score) * 2700 / (4000 + eg_value(score)));
+                             std::min(eg_value(score), Value(1800)) * 3 / 5);
       else if (v->twoBoards)
           score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
                              eg_value(score) * 7000 / (7000 + eg_value(score)));
