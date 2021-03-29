@@ -30,26 +30,32 @@ using std::string;
 VariantMap variants; // Global object
 
 namespace {
-    // Define variant rules
+    // Base variant
     Variant* variant_base() {
         Variant* v = new Variant();
         return v;
     }
+    // Base for all fairy variants
     Variant* chess_variant_base() {
         Variant* v = variant_base();
         v->pieceToCharTable = "PNBRQ................Kpnbrq................k";
         return v;
     }
+    // Standard chess
+    // https://en.wikipedia.org/wiki/Chess
     Variant* chess_variant() {
         Variant* v = chess_variant_base();
         v->nnueFeatures = NNUE_CHESS;
         return v;
     }
+    // Chess960 aka Fischer random chess
+    // https://en.wikipedia.org/wiki/Fischer_random_chess
     Variant* chess960_variant() {
         Variant* v = chess_variant();
         v->chess960 = true;
         return v;
     }
+    // Standard chess without castling
     Variant* nocastle_variant() {
         Variant* v = chess_variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
@@ -63,6 +69,7 @@ namespace {
         v->materialCounting = BLACK_DRAW_ODDS;
         return v;
     }
+    // Pseudo-variant only used for endgame initialization
     Variant* fairy_variant() {
         Variant* v = chess_variant_base();
         v->add_piece(SILVER, 's');
@@ -70,6 +77,7 @@ namespace {
         return v;
     }
     // Makruk (Thai Chess)
+    // https://en.wikipedia.org/wiki/Makruk
     Variant* makruk_variant() {
         Variant* v = chess_variant_base();
         v->variantTemplate = "makruk";
@@ -95,6 +103,8 @@ namespace {
         v->makpongRule = true;
         return v;
     }
+    // Ouk Chatrang, Cambodian chess
+    // https://en.wikipedia.org/wiki/Makruk#Cambodian_chess
     Variant* cambodian_variant() {
         Variant* v = makruk_variant();
         v->startFen = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w DEde - 0 1";
@@ -102,11 +112,17 @@ namespace {
         v->cambodianMoves = true;
         return v;
     }
+    // Kar Ouk
+    // A variant of Cambodian chess where the first check wins
+    // https://en.wikipedia.org/wiki/Makruk#Ka_Ouk
     Variant* karouk_variant() {
         Variant* v = cambodian_variant();
         v->checkCounting = true;
         return v;
     }
+    // ASEAN chess
+    // A simplified version of south-east asian variants
+    // https://aseanchess.org/laws-of-asean-chess/
     Variant* asean_variant() {
         Variant* v = chess_variant_base();
         v->remove_piece(BISHOP);
@@ -120,6 +136,8 @@ namespace {
         v->countingRule = ASEAN_COUNTING;
         return v;
     }
+    // Ai-wok
+    // A makruk variant where the met is replaced by a super-piece moving as rook, knight, or met
     Variant* aiwok_variant() {
         Variant* v = makruk_variant();
         v->pieceToCharTable = "PN.R...A..SKpn.r...a..sk";
@@ -129,6 +147,9 @@ namespace {
         v->promotionPieceTypes = {AIWOK};
         return v;
     }
+    // Shatranj
+    // The medieval form of chess, originating from chaturanga
+    // https://en.wikipedia.org/wiki/Shatranj
     Variant* shatranj_variant() {
         Variant* v = chess_variant_base();
         v->variantTemplate = "shatranj";
@@ -151,14 +172,16 @@ namespace {
         return v;
     }
     // Chaturanga
+    // The actual rules of the game are not known. This reflects the rules as used on chess.com.
     // https://en.wikipedia.org/wiki/Chaturanga
-    // Rules as used on chess.com
     Variant* chaturanga_variant() {
         Variant* v = shatranj_variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
         v->extinctionValue = VALUE_NONE;
         return v;
     }
+    // Amazon chess
+    // The queen has the additional power of moving like a knight.
     Variant* amazon_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR..............AKpnbr..............ak";
@@ -168,6 +191,9 @@ namespace {
         v->promotionPieceTypes = {AMAZON, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Hoppel-Poppel
+    // A variant from Germany where knights capture like bishops and vice versa
+    // https://www.chessvariants.com/diffmove.dir/hoppel-poppel.html
     Variant* hoppelpoppel_variant() {
         Variant* v = chess_variant_base();
         v->remove_piece(KNIGHT);
@@ -177,6 +203,8 @@ namespace {
         v->promotionPieceTypes = {QUEEN, ROOK, BISKNI, KNIBIS};
         return v;
     }
+    // New Zealand
+    // Knights capture like rooks and vice versa.
     Variant* newzealand_variant() {
         Variant* v = chess_variant_base();
         v->remove_piece(ROOK);
@@ -187,6 +215,8 @@ namespace {
         v->promotionPieceTypes = {QUEEN, ROOKNI, BISHOP, KNIROO};
         return v;
     }
+    // King of the Hill
+    // https://lichess.org/variant/kingOfTheHill
     Variant* kingofthehill_variant() {
         Variant* v = chess_variant_base();
         v->flagPiece = KING;
@@ -195,6 +225,8 @@ namespace {
         v->flagMove = false;
         return v;
     }
+    // Racing Kings
+    // https://lichess.org/variant/racingKings
     Variant* racingkings_variant() {
         Variant* v = chess_variant_base();
         v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
@@ -206,6 +238,8 @@ namespace {
         v->checking = false;
         return v;
     }
+    // Knightmate
+    // https://www.chessvariants.com/diffobjective.dir/knightmate.html
     Variant* knightmate_variant() {
         Variant* v = chess_variant_base();
         v->add_piece(COMMONER, 'm');
@@ -216,6 +250,8 @@ namespace {
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP};
         return v;
     }
+    // Losers chess
+    // https://www.chessclub.com/help/Wild17
     Variant* losers_variant() {
         Variant* v = chess_variant_base();
         v->checkmateValue = VALUE_MATE;
@@ -226,6 +262,9 @@ namespace {
         v->mustCapture = true;
         return v;
     }
+    // Giveaway chess
+    // Antichess with castling.
+    // https://www.chessvariants.com/diffobjective.dir/giveaway.old.html
     Variant* giveaway_variant() {
         Variant* v = chess_variant_base();
         v->variantTemplate = "giveaway";
@@ -239,23 +278,33 @@ namespace {
         v->mustCapture = true;
         return v;
     }
+    // Antichess
+    // https://lichess.org/variant/antichess
     Variant* antichess_variant() {
         Variant* v = giveaway_variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
         v->castling = false;
         return v;
     }
+    // Suicide chess
+    // Antichess with modified stalemate adjudication.
+    // https://www.freechess.org/Help/HelpFiles/suicide_chess.html
     Variant* suicide_variant() {
         Variant* v = antichess_variant();
         v->stalematePieceCount = true;
         return v;
     }
+    // Codrus
+    // Lose the king to win. Captures are mandatory.
+    // http://www.binnewirtz.com/Schlagschach1.htm
     Variant* codrus_variant() {
         Variant* v = giveaway_variant();
         v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, KNIGHT};
         v->extinctionPieceTypes = {COMMONER};
         return v;
     }
+    // Extinction chess
+    // https://en.wikipedia.org/wiki/Extinction_chess
     Variant* extinction_variant() {
         Variant* v = chess_variant_base();
         v->remove_piece(KING);
@@ -266,6 +315,8 @@ namespace {
         v->extinctionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
         return v;
     }
+    // Kinglet
+    // https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_chess
     Variant* kinglet_variant() {
         Variant* v = extinction_variant();
         v->promotionPieceTypes = {COMMONER};
