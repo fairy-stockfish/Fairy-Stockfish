@@ -369,17 +369,29 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             }
         }
 
+        // Contradictory options
+        if (!v->checking && v->checkCounting)
+            std::cerr << "checkCounting=true requires checking=true." << std::endl;
+        if (v->doubleStep && v->doubleStepRankMin > v->doubleStepRank)
+            std::cerr << "Inconsistent settings: doubleStepRankMin > doubleStepRank." << std::endl;
+        if (v->castling && v->castlingRank > v->maxRank)
+            std::cerr << "Inconsistent settings: castlingRank > maxRank." << std::endl;
+        if (v->castling && v->castlingQueensideFile > v->castlingKingsideFile)
+            std::cerr << "Inconsistent settings: castlingQueensideFile > castlingKingsideFile." << std::endl;
+
         // Check for limitations
 
         // Options incompatible with royal kings
         if (v->pieceTypes.find(KING) != v->pieceTypes.end())
         {
             if (v->blastOnCapture)
-                std::cerr << "Can not use kings with blastOnCapture" << std::endl;
+                std::cerr << "Can not use kings with blastOnCapture." << std::endl;
             if (v->flipEnclosedPieces)
-                std::cerr << "Can not use kings with flipEnclosedPieces" << std::endl;
+                std::cerr << "Can not use kings with flipEnclosedPieces." << std::endl;
+            const PieceInfo* pi = pieceMap.find(v->kingType)->second;
+            if (pi->lameLeaper || pi->hopperQuiet.size() || pi->hopperCapture.size())
+                std::cerr << pi->name << " is not supported as kingType." << std::endl;
         }
-
     }
     return v;
 }
