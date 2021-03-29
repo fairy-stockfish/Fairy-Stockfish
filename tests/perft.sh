@@ -97,6 +97,7 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp placement startpos 3 50560 > /dev/null
   expect perft.exp placement "fen rnbq1bnr/pppppppp/8/8/8/8/PPPPPPPP/QR1BKNN1[BRk] w - - 0 1" 6 17804 > /dev/null
   expect perft.exp placement "fen 1n1r1q2/pppppppp/8/8/8/8/PPPPPPPP/1N1B1R1N[KQRBkrbbn] b - - 0 4" 5 145152 > /dev/null
+  expect perft.exp placement "fen r3k3/pppppppp/8/8/8/8/PPPPPPPP/R6R[Kr] w q - 0 1" 4 18492 > /dev/null
   expect perft.exp seirawan startpos 4 782599 > /dev/null
   expect perft.exp seirawan "fen reb1k2r/ppppqppp/2nb1n2/4p3/4P3/N1P2N2/PB1PQPPP/RE2KBHR[h] b KQkqc - 3 7" 4 890467 > /dev/null
   expect perft.exp euroshogi startpos 4 380499 > /dev/null
