@@ -639,9 +639,13 @@ namespace {
         }
         Bitboard theirHalf = pos.board_bb() & ~forward_ranks_bb(Them, relative_rank(Them, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
         mobility[Us] += DropMobility * popcount(b & theirHalf & ~attackedBy[Them][ALL_PIECES]);
+
+        // Bonus for Kyoto shogi style drops of promoted pieces
         if (pos.promoted_piece_type(pt) != NO_PIECE_TYPE && pos.drop_promoted())
             score += make_score(std::max(PieceValue[MG][pos.promoted_piece_type(pt)] - PieceValue[MG][pt], VALUE_ZERO),
                                 std::max(PieceValue[EG][pos.promoted_piece_type(pt)] - PieceValue[EG][pt], VALUE_ZERO)) / 4 * pos.count_in_hand(Us, pt);
+
+        // Mobility bonus for reversi variants
         if (pos.enclosing_drop())
             mobility[Us] += make_score(500, 500) * popcount(b);
 
@@ -1178,6 +1182,7 @@ namespace {
         Bitboard inaccessible = pos.pieces(Us, PAWN) & shift<Down>(pos.pieces(Them, PAWN));
         // Traverse all paths of the CTF pieces to the CTF targets.
         // Put squares that are attacked or occupied on hold for one iteration.
+        // This reflects that likely a move will be needed to block or capture the attack.
         for (int dist = 0; (ctfPieces || onHold || onHold2) && (ctfTargets & ~processed); dist++)
         {
             int wins = popcount(ctfTargets & ctfPieces);
@@ -1214,6 +1219,7 @@ namespace {
         for (PieceType pt : pos.extinction_piece_types())
             if (pt != ALL_PIECES)
             {
+                // Single piece type extinction bonus
                 int denom = std::max(pos.count(Us, pt) - pos.extinction_piece_count(), 1);
                 if (pos.count(Them, pt) >= pos.extinction_opponent_piece_count() || pos.two_boards())
                     score += make_score(1000000 / (500 + PieceValue[MG][pt]),
@@ -1221,7 +1227,10 @@ namespace {
                             * (pos.extinction_value() / VALUE_MATE);
             }
             else if (pos.extinction_value() == VALUE_MATE)
+            {
+                // Losing chess variant bonus
                 score += make_score(pos.non_pawn_material(Us), pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
+            }
             else if (pos.count<PAWN>(Us) == pos.count<ALL_PIECES>(Us))
             {
                 // Pawns easy to stop/capture
@@ -1268,7 +1277,7 @@ namespace {
         }
     }
 
-    // Potential piece flips
+    // Potential piece flips (Reversi)
     if (pos.flip_enclosed_pieces())
     {
         // Stable pieces

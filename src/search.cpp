@@ -258,6 +258,7 @@ void MainThread::search() {
       Thread::search();          // main thread start searching
   }
 
+  // Sit in bughouse variants if partner requested it or we are dead
   if (rootPos.two_boards() && !Threads.abort && Options["Protocol"] == "xboard")
   {
       while (!Threads.stop && (Partner.sitRequested || Partner.weDead) && Time.elapsed() < Limits.time[us] - 1000)
@@ -569,6 +570,7 @@ void Thread::search() {
           if (rootMoves.size() == 1)
               totalTime = std::min(500.0, totalTime);
 
+          // Update partner in bughouse variants
           if (completedDepth >= 8 && rootPos.two_boards() && Options["Protocol"] == "xboard")
           {
               if (Limits.time[us])

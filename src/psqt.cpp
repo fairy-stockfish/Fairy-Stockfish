@@ -239,7 +239,7 @@ void init(const Variant* v) {
           // Add a penalty for unpromoted soldiers
           if (pt == SOLDIER && r < v->soldierPromotionRank)
               psq[pc][s] -= score * (v->soldierPromotionRank - r) / (4 + f);
-          // Corners are valuable in othello
+          // Corners are valuable in reversi
           if (v->enclosingDrop == REVERSI)
           {
               if (f == FILE_A && (r == RANK_1 || r == v->maxRank))
