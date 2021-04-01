@@ -162,8 +162,23 @@ void init(const Variant* v) {
                              eg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider));
       }
 
+      // Piece values saturate earlier in drop variants
+      if (v->capturesToHand || v->twoBoards)
+          score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
+                             eg_value(score) * 7000 / (7000 + eg_value(score)));
+
+      // In variants where checks are prohibited, strong pieces are less mobile, so limit their value 
+      if (!v->checking)
+          score = make_score(std::min(mg_value(score), Value(1800)) / 2,
+                             std::min(eg_value(score), Value(1800)) * 3 / 5);
+
+      // With check counting, strong pieces are even more dangerous
+      else if (v->checkCounting)
+          score = make_score(mg_value(score) * (20000 + mg_value(score)) / 22000,
+                             eg_value(score) * (20000 + eg_value(score)) / 21000);
+
       // Increase leapers' value in makpong
-      if (v->makpongRule)
+      else if (v->makpongRule)
       {
           if (std::any_of(pi->stepsCapture.begin(), pi->stepsCapture.end(), [](Direction d) { return dist(d) > 1; })
                   && !pi->lameLeaper)
@@ -171,29 +186,19 @@ void init(const Variant* v) {
                                  eg_value(score) * 4700 / (3500 + mg_value(score)));
       }
 
-      // Piece values saturate earlier in drop variants
-      if (v->capturesToHand || v->twoBoards)
-          score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
-                             eg_value(score) * 7000 / (7000 + eg_value(score)));
-      // In variants where checks are prohibited, strong pieces are less mobile, so limit their value 
-      else if (!v->checking)
-          score = make_score(std::min(mg_value(score), Value(1800)) / 2,
-                             std::min(eg_value(score), Value(1800)) * 3 / 5);
       // Adjust piece values for atomic captures
-      else if (v->blastOnCapture)
+      if (v->blastOnCapture)
           score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)), eg_value(score));
-      // With check counting, strong pieces are even more dangerous
-      else if (v->checkCounting)
-          score = make_score(mg_value(score) * (20000 + mg_value(score)) / 22000,
-                             eg_value(score) * (20000 + eg_value(score)) / 21000);
+
       // In variants such as horde where all pieces need to be captured, weak pieces such as pawns are more useful
-      else if (   v->extinctionValue == -VALUE_MATE
-               && v->extinctionPieceCount == 0
-               && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
+      if (   v->extinctionValue == -VALUE_MATE
+          && v->extinctionPieceCount == 0
+          && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
           score += make_score(0, std::max(KnightValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
+
       // The strongest piece of a variant usually has some dominance, such as rooks in Makruk and Xiangqi.
       // This does not apply to drop variants.
-      else if (pt == strongestPiece)
+      if (pt == strongestPiece && !v->capturesToHand)
               score += make_score(std::max(QueenValueMg - PieceValue[MG][pt], VALUE_ZERO) / 20,
                                   std::max(QueenValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
 
