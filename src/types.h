@@ -405,8 +405,14 @@ enum Piece {
 enum RiderType : int {
   NO_RIDER = 0,
   RIDER_BISHOP = 1 << 0,
+#ifdef LARGEBOARDS
   RIDER_ROOK_H = 1 << 1,
   RIDER_ROOK_V = 1 << 2,
+#else
+  RIDER_ROOK = 1 << 1,
+  RIDER_ROOK_H = RIDER_ROOK,
+  RIDER_ROOK_V = RIDER_ROOK,
+#endif
   RIDER_CANNON_H = 1 << 3,
   RIDER_CANNON_V = 1 << 4,
   RIDER_HORSE = 1 << 5,

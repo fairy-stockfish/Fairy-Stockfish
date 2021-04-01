@@ -37,8 +37,12 @@ Bitboard BoardSizeBB[FILE_NB][RANK_NB];
 RiderType AttackRiderTypes[PIECE_TYPE_NB];
 RiderType MoveRiderTypes[PIECE_TYPE_NB];
 
+#ifdef LARGEBOARDS
 Magic RookMagicsH[SQUARE_NB];
 Magic RookMagicsV[SQUARE_NB];
+#else
+Magic RookMagics[SQUARE_NB];
+#endif
 Magic BishopMagics[SQUARE_NB];
 Magic CannonMagicsH[SQUARE_NB];
 Magic CannonMagicsV[SQUARE_NB];
@@ -46,8 +50,13 @@ Magic HorseMagics[SQUARE_NB];
 Magic ElephantMagics[SQUARE_NB];
 Magic JanggiElephantMagics[SQUARE_NB];
 
+#ifdef LARGEBOARDS
 Magic* magics[] = {BishopMagics, RookMagicsH, RookMagicsV, CannonMagicsH, CannonMagicsV,
                    HorseMagics, ElephantMagics, JanggiElephantMagics};
+#else
+Magic* magics[] = {BishopMagics, RookMagics, CannonMagicsH, CannonMagicsV,
+                   HorseMagics, ElephantMagics, JanggiElephantMagics};
+#endif
 
 namespace {
 
@@ -63,8 +72,12 @@ namespace {
   Bitboard ElephantTable[0x400];  // To store elephant attacks
   Bitboard JanggiElephantTable[0x1C000];  // To store janggi elephant attacks
 #else
+#ifdef LARGEBOARDS
   Bitboard RookTableH[0xA00];  // To store horizontal rook attacks
   Bitboard RookTableV[0xA00];  // To store vertical rook attacks
+#else
+  Bitboard RookTable[0x19000];  // To store rook attacks
+#endif
   Bitboard BishopTable[0x1480]; // To store bishop attacks
   Bitboard CannonTableH[0xA00];  // To store horizontal cannon attacks
   Bitboard CannonTableV[0xA00];  // To store vertical cannon attacks
@@ -192,6 +205,9 @@ void Bitboards::init() {
   // Piece moves
   std::vector<Direction> RookDirectionsV = { NORTH, SOUTH};
   std::vector<Direction> RookDirectionsH = { EAST, WEST };
+#ifndef LARGEBOARDS
+  std::vector<Direction> RookDirections = { NORTH, SOUTH, EAST, WEST };
+#endif
   std::vector<Direction> BishopDirections = { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
   std::vector<Direction> HorseDirections = {2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
                                             NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST };
@@ -285,8 +301,12 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections, ElephantMagicInit);
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections, JanggiElephantMagicInit);
 #else
+#ifdef LARGEBOARDS
   init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH);
   init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV);
+#else
+  init_magics<RIDER>(RookTable, RookMagics, RookDirections);
+#endif
   init_magics<RIDER>(BishopTable, BishopMagics, BishopDirections);
   init_magics<HOPPER>(CannonTableH, CannonMagicsH, RookDirectionsH);
   init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV);

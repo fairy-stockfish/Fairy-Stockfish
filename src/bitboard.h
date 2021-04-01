@@ -138,8 +138,12 @@ struct Magic {
   }
 };
 
+#ifdef LARGEBOARDS
 extern Magic RookMagicsH[SQUARE_NB];
 extern Magic RookMagicsV[SQUARE_NB];
+#else
+extern Magic RookMagics[SQUARE_NB];
+#endif
 extern Magic BishopMagics[SQUARE_NB];
 extern Magic CannonMagicsH[SQUARE_NB];
 extern Magic CannonMagicsV[SQUARE_NB];
@@ -382,8 +386,13 @@ inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
 
   assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V || R == RIDER_CANNON_H || R == RIDER_CANNON_V
          || R == RIDER_HORSE || R == RIDER_ELEPHANT || R == RIDER_JANGGI_ELEPHANT);
-  const Magic& m =  R == RIDER_ROOK_H ? RookMagicsH[s]
+  const Magic& m =
+#ifdef LARGEBOARDS
+                    R == RIDER_ROOK_H ? RookMagicsH[s]
                   : R == RIDER_ROOK_V ? RookMagicsV[s]
+#else
+                    R == RIDER_ROOK ? RookMagics[s]
+#endif
                   : R == RIDER_CANNON_H ? CannonMagicsH[s]
                   : R == RIDER_CANNON_V ? CannonMagicsV[s]
                   : R == RIDER_HORSE ? HorseMagics[s]
@@ -428,7 +437,11 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
   switch (Pt)
   {
   case BISHOP: return rider_attacks_bb<RIDER_BISHOP>(s, occupied);
+#ifdef LARGEBOARDS
   case ROOK  : return rider_attacks_bb<RIDER_ROOK_H>(s, occupied) | rider_attacks_bb<RIDER_ROOK_V>(s, occupied);
+#else
+  case ROOK  : return rider_attacks_bb<RIDER_ROOK>(s, occupied);
+#endif
   case QUEEN : return attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
   default    : return PseudoAttacks[WHITE][Pt][s];
   }
