@@ -367,17 +367,25 @@ namespace {
         v->extinctionPseudoRoyal = true;
         return v;
     }
+    // Three-check chess
+    // Check the king three times to win
+    // https://lichess.org/variant/threeCheck
     Variant* threecheck_variant() {
         Variant* v = chess_variant_base();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
         v->checkCounting = true;
         return v;
     }
+    // Five-check chess
+    // Check the king five times to win
     Variant* fivecheck_variant() {
         Variant* v = threecheck_variant();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 5+5 0 1";
         return v;
     }
+    // Crazyhouse
+    // Chess with piece drops
+    // https://en.wikipedia.org/wiki/Crazyhouse
     Variant* crazyhouse_variant() {
         Variant* v = chess_variant_base();
         v->variantTemplate = "crazyhouse";
@@ -386,16 +394,25 @@ namespace {
         v->capturesToHand = true;
         return v;
     }
+    // Loop chess
+    // Variant of crazyhouse where promoted pawns are not demoted when captured
+    // https://en.wikipedia.org/wiki/Crazyhouse#Variations
     Variant* loop_variant() {
         Variant* v = crazyhouse_variant();
         v->dropLoop = true;
         return v;
     }
+    // Chessgi
+    // Variant of loop chess where pawns can be dropped to the first rank
+    // https://en.wikipedia.org/wiki/Crazyhouse#Variations
     Variant* chessgi_variant() {
         Variant* v = loop_variant();
         v->firstRankPawnDrops = true;
         return v;
     }
+    // Bughouse
+    // A four player variant where captured pieces are introduced on the other board
+    // https://en.wikipedia.org/wiki/Bughouse_chess
     Variant* bughouse_variant() {
         Variant* v = crazyhouse_variant();
         v->variantTemplate = "bughouse";
@@ -418,6 +435,9 @@ namespace {
         v->extinctionOpponentPieceCount = 2; // own all kings/commoners
         return v;
     }
+    // Pocket Knight chess
+    // Each player has an additional knight in hand which can be dropped at any move
+    // https://www.chessvariants.com/other.dir/pocket.html
     Variant* pocketknight_variant() {
         Variant* v = chess_variant_base();
         v->variantTemplate = "bughouse";
@@ -427,6 +447,9 @@ namespace {
         v->capturesToHand = false;
         return v;
     }
+    // Placement/Pre-chess
+    // A shuffle variant where the players determine the placing of the back rank pieces
+    // https://www.chessvariants.com/link/placement-chess
     Variant* placement_variant() {
         Variant* v = chess_variant_base();
         v->variantTemplate = "bughouse";
@@ -440,6 +463,9 @@ namespace {
         v->castlingDroppedPiece = true;
         return v;
     }
+    // Sittuyin (Burmese chess)
+    // Regional chess variant from Myanmar, similar to Makruk but with a setup phase.
+    // https://en.wikipedia.org/wiki/Sittuyin
     Variant* sittuyin_variant() {
         Variant* v = makruk_variant();
         v->variantTemplate = "bughouse";
@@ -461,6 +487,9 @@ namespace {
         v->nMoveRule = 50;
         return v;
     }
+    // S-Chess (aka Seirawan-, or SHarper chess)
+    // 8x8 variant introducing the knighted pieces from capablanca chess
+    // via gating when a piece first moves from its initial square.
     Variant* seirawan_variant() {
         Variant* v = chess_variant_base();
         v->variantTemplate = "seirawan";
@@ -473,6 +502,9 @@ namespace {
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // S-House
+    // A hybrid variant of S-Chess and Crazyhouse.
+    // Pieces in the pocket can either be gated or dropped.
     Variant* shouse_variant() {
         Variant* v = seirawan_variant();
         v->variantTemplate = "crazyhouse";
@@ -480,6 +512,7 @@ namespace {
         v->capturesToHand = true;
         return v;
     }
+    // Base used for most shogi variants
     Variant* minishogi_variant_base() {
         Variant* v = variant_base();
         v->variantTemplate = "shogi";
@@ -514,6 +547,9 @@ namespace {
         v->perpetualCheckIllegal = true;
         return v;
     }
+    // Minishogi
+    // 5x5 variant of shogi
+    // https://en.wikipedia.org/wiki/Minishogi
     Variant* minishogi_variant() {
         Variant* v = minishogi_variant_base();
         v->pieceToCharTable = "P.BR.S...G.+.++.+Kp.br.s...g.+.++.+k";
@@ -522,6 +558,9 @@ namespace {
         v->nFoldValueAbsolute = true;
         return v;
     }
+    // Kyoto shogi
+    // 5x5 variant of shogi with pieces alternating between promotion and demotion
+    // https://en.wikipedia.org/wiki/Kyoto_shogi
     Variant* kyotoshogi_variant() {
         Variant* v = minishogi_variant_base();
         v->add_piece(LANCE, 'l');
@@ -543,6 +582,9 @@ namespace {
         v->dropNoDoubled = NO_PIECE_TYPE;
         return v;
     }
+    // Micro shogi
+    // 4x5 shogi variant where pieces promoted and demote when capturing
+    // https://en.wikipedia.org/wiki/Micro_shogi
     Variant* microshogi_variant() {
         Variant* v = kyotoshogi_variant();
         v->maxFile = FILE_D;
@@ -558,6 +600,9 @@ namespace {
         v->promotedPieceType[SHOGI_KNIGHT] = NO_PIECE_TYPE;
         return v;
     }
+    // Dobutsu
+    // Educational shogi variant on a 3x4 board
+    // https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi
     Variant* dobutsu_variant() {
         Variant* v = minishogi_variant_base();
         v->pieceToCharTable = "C....E...G.+.....Lc....e...g.+.....l";
