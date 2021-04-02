@@ -71,10 +71,10 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
   if (pos.two_boards())
   {
       if (Partner.partnerDead && Partner.opptime)
-          timeLeft -= Partner.opptime * 10;
+          timeLeft -= Partner.opptime;
       else
       {
-          timeLeft = std::min(timeLeft, 5000 + std::min(std::abs(limits.time[us] - Partner.opptime * 10), TimePoint(Partner.opptime * 10)));
+          timeLeft = std::min(timeLeft, 5000 + std::min(std::abs(limits.time[us] - Partner.opptime), TimePoint(Partner.opptime)));
           if (Partner.fast || Partner.partnerDead)
               timeLeft /= 4;
       }

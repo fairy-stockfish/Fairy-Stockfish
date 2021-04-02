@@ -1291,7 +1291,7 @@ inline void Position::remove_from_hand(Piece pc) {
 }
 
 inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s) {
-  assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]);
+  assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] > 0 || var->twoBoards);
   put_piece(pc_drop, s, pc_drop != pc_hand, pc_drop != pc_hand ? pc_hand : NO_PIECE);
   remove_from_hand(pc_hand);
 }
@@ -1300,7 +1300,7 @@ inline void Position::undrop_piece(Piece pc_hand, Square s) {
   remove_piece(s);
   board[s] = NO_PIECE;
   add_to_hand(pc_hand);
-  assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]);
+  assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] > 0 || var->twoBoards);
 }
 
 #endif // #ifndef POSITION_H_INCLUDED
