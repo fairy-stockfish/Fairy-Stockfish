@@ -657,6 +657,11 @@ namespace {
         if (pt == pos.drop_no_doubled())
             score -= make_score(50, 20) * std::max(pos.count_with_hand(Us, pt) - pos.max_file() - 1, 0);
     }
+    else if (pos.count_in_hand(Us, pt) < 0)
+    {
+        // Penalize drops of virtual pieces
+        score += (PSQT::psq[make_piece(WHITE, pt)][SQ_NONE] + make_score(1000, 1000)) * pos.count_in_hand(Us, pt);
+    }
 
     return score;
   }
@@ -1580,6 +1585,10 @@ Value Eval::evaluate(const Position& pos) {
       if (pos.material_counting())
           v += pos.material_counting_result() / (10 * std::max(2 * pos.n_move_rule() - pos.rule50_count(), 1));
   }
+
+  // Guarantee evaluation does not hit the virtual win/loss range
+  if (pos.two_boards() && std::abs(v) >= VALUE_VIRTUAL_MATE_IN_MAX_PLY)
+      v += v > VALUE_ZERO ? MAX_PLY + 1 : -MAX_PLY - 1;
 
   // Guarantee evaluation does not hit the tablebase range
   v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);

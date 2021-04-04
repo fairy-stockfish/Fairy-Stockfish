@@ -70,9 +70,11 @@ namespace {
     return moveList;
   }
 
-  template<Color Us, bool Checks>
+  template<Color Us, GenType Type>
   ExtMove* generate_drops(const Position& pos, ExtMove* moveList, PieceType pt, Bitboard b) {
-    if (pos.count_in_hand(Us, pt) > 0)
+    assert(Type != CAPTURES);
+    // Do not generate virtual drops for perft and at root
+    if (pos.count_in_hand(Us, pt) > 0 || (Type != NON_EVASIONS && pos.two_boards() && pos.allow_virtual_drop(Us, pt)))
     {
         // Restrict to valid target
         b &= pos.drop_region(Us, pt);
@@ -81,12 +83,12 @@ namespace {
         if (pos.drop_promoted() && pos.promoted_piece_type(pt))
         {
             Bitboard b2 = b;
-            if (Checks)
+            if (Type == QUIET_CHECKS)
                 b2 &= pos.check_squares(pos.promoted_piece_type(pt));
             while (b2)
                 *moveList++ = make_drop(pop_lsb(&b2), pt, pos.promoted_piece_type(pt));
         }
-        if (Checks)
+        if (Type == QUIET_CHECKS || pos.count_in_hand(Us, pt) <= 0)
             b &= pos.check_squares(pt);
         while (b)
             *moveList++ = make_drop(pop_lsb(&b), pt, pt);
@@ -373,9 +375,9 @@ namespace {
         if (pt != PAWN && pt != KING)
             moveList = generate_moves<Checks>(pos, moveList, pt, piecesToMove, target);
     // generate drops
-    if (pos.piece_drops() && Type != CAPTURES && pos.count_in_hand(Us, ALL_PIECES) > 0)
+    if (pos.piece_drops() && Type != CAPTURES && (pos.count_in_hand(Us, ALL_PIECES) > 0 || pos.two_boards()))
         for (PieceType pt : pos.piece_types())
-            moveList = generate_drops<Us, Checks>(pos, moveList, pt, target & ~pos.pieces(~Us));
+            moveList = generate_drops<Us, Type>(pos, moveList, pt, target & ~pos.pieces(~Us));
 
     if (Type != QUIET_CHECKS && Type != EVASIONS && pos.count<KING>(Us))
     {
@@ -553,7 +555,7 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   moveList = pos.checkers() ? generate<EVASIONS    >(pos, moveList)
                             : generate<NON_EVASIONS>(pos, moveList);
   while (cur != moveList)
-      if (!pos.legal(*cur))
+      if (!pos.legal(*cur) || pos.virtual_drop(*cur))
           *cur = (--moveList)->move;
       else
           ++cur;
