@@ -27,7 +27,7 @@
 PartnerHandler Partner; // Global object
 
 void PartnerHandler::reset() {
-    fast = sitRequested = partnerDead = weDead = weWin = false;
+    fast = sitRequested = partnerDead = weDead = weWin = weVirtualWin = weVirtualLoss = false;
     time = opptime = 0;
 }
 
