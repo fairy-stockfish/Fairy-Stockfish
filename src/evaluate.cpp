@@ -657,11 +657,6 @@ namespace {
         if (pt == pos.drop_no_doubled())
             score -= make_score(50, 20) * std::max(pos.count_with_hand(Us, pt) - pos.max_file() - 1, 0);
     }
-    else if (pos.count_in_hand(Us, pt) < 0)
-    {
-        // Penalize drops of virtual pieces
-        score += (PSQT::psq[make_piece(WHITE, pt)][SQ_NONE] + make_score(1000, 1000)) * pos.count_in_hand(Us, pt);
-    }
 
     return score;
   }
