@@ -307,10 +307,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
   // 2. Active color
   ss >> token;
-  sideToMove = (token == 'w' || token == 'r' ? WHITE : BLACK);
-  // Invert side to move for SFEN
-  if (sfen)
-      sideToMove = ~sideToMove;
+  sideToMove = (token != (sfen ? 'w' : 'b') ? WHITE : BLACK);  // Invert colors for SFEN
   ss >> token;
 
   // 3-4. Skip parsing castling and en passant flags if not present
