@@ -567,8 +567,8 @@ describe('ffish.validateFen(fen, uciVariant)', function () {
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(1);
 
       // error id checks
-      chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[]wKQkq-3+301", "3check-crazyhouse")).to.equal(-12);
-      chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-11);
+      chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[]wKQkq-3+301", "3check-crazyhouse")).to.equal(-10);
+      chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-6);
       chai.expect(ffish.validateFen("rnbqkbnr/ppppXppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-10);
       chai.expect(ffish.validateFen("rnbqkbnr/pppppKpp/8/8/8/8/PPPPPPPP/RNBQ1BNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-9);
       chai.expect(ffish.validateFen("rnbqkbnr/ppppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(-8);
@@ -585,6 +585,13 @@ describe('ffish.validateFen(fen, uciVariant)', function () {
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 3+3 0 -13", "3check-crazyhouse")).to.equal(-1);
       chai.expect(ffish.validateFen("", "chess")).to.equal(0);
     });
+});
+
+describe('ffish.validateFen(fen, uciVariant, chess960)', function () {
+  it("it validates a given X-FEN and returns +1 if fen is valid. Otherwise an error code will be returned.", () => {
+    chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w AHah - 0 1", "chess", true)).to.equal(1);
+    chai.expect(ffish.validateFen("nrbqbkrn/pppppppp/8/8/8/8/PPPPPPPP/NRBQBKRN w BGbg - 0 1", "chess", true)).to.equal(1);
+  });
 });
 
 describe('ffish.readGamePGN(pgn)', function () {

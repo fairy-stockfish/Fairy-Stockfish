@@ -246,7 +246,7 @@ namespace {
         v->remove_piece(KNIGHT);
         v->startFen = "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1";
         v->kingType = KNIGHT;
-        v->castlingKingPiece = KNIGHT;
+        v->castlingKingPiece = KING;
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP};
         return v;
     }
