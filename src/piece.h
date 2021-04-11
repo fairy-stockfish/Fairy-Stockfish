@@ -38,8 +38,6 @@ struct PieceInfo {
   std::vector<Direction> hopperQuiet = {};
   std::vector<Direction> hopperCapture = {};
   bool lameLeaper = false;
-
-  void merge(const PieceInfo* pi);
 };
 
 struct PieceMap : public std::map<PieceType, const PieceInfo*> {
