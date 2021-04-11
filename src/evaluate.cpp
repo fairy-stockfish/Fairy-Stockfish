@@ -628,7 +628,7 @@ namespace {
 
     Score score = SCORE_ZERO;
 
-    if (pos.count_in_hand(Us, pt))
+    if (pos.count_in_hand(Us, pt) > 0)
     {
         Bitboard b = pos.drop_region(Us, pt) & ~pos.pieces() & (~attackedBy2[Them] | attackedBy[Us][ALL_PIECES]);
         if ((b & kingRing[Them]) && pt != SHOGI_PAWN)
@@ -639,9 +639,13 @@ namespace {
         }
         Bitboard theirHalf = pos.board_bb() & ~forward_ranks_bb(Them, relative_rank(Them, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
         mobility[Us] += DropMobility * popcount(b & theirHalf & ~attackedBy[Them][ALL_PIECES]);
+
+        // Bonus for Kyoto shogi style drops of promoted pieces
         if (pos.promoted_piece_type(pt) != NO_PIECE_TYPE && pos.drop_promoted())
             score += make_score(std::max(PieceValue[MG][pos.promoted_piece_type(pt)] - PieceValue[MG][pt], VALUE_ZERO),
                                 std::max(PieceValue[EG][pos.promoted_piece_type(pt)] - PieceValue[EG][pt], VALUE_ZERO)) / 4 * pos.count_in_hand(Us, pt);
+
+        // Mobility bonus for reversi variants
         if (pos.enclosing_drop())
             mobility[Us] += make_score(500, 500) * popcount(b);
 
@@ -691,7 +695,7 @@ namespace {
     b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
 
     std::function <Bitboard (Color, PieceType)> get_attacks = [this](Color c, PieceType pt) {
-        return attackedBy[c][pt] | (pos.piece_drops() && pos.count_in_hand(c, pt) ? pos.drop_region(c, pt) & ~pos.pieces() : Bitboard(0));
+        return attackedBy[c][pt] | (pos.piece_drops() && pos.count_in_hand(c, pt) > 0 ? pos.drop_region(c, pt) & ~pos.pieces() : Bitboard(0));
     };
     for (PieceType pt : pos.piece_types())
     {
@@ -720,7 +724,7 @@ namespace {
                 unsafeChecks |= knightChecks;
             break;
         case PAWN:
-            if (pos.piece_drops() && pos.count_in_hand(Them, pt))
+            if (pos.piece_drops() && pos.count_in_hand(Them, pt) > 0)
             {
                 pawnChecks = attacks_bb(Us, pt, ksq, pos.pieces()) & ~pos.pieces() & pos.board_bb();
                 if (pawnChecks & safe)
@@ -755,7 +759,7 @@ namespace {
     if (pos.two_boards() && pos.piece_drops())
     {
         for (PieceType pt : pos.piece_types())
-            if (!pos.count_in_hand(Them, pt) && (attacks_bb(Us, pt, ksq, pos.pieces()) & safe & pos.drop_region(Them, pt) & ~pos.pieces()))
+            if (pos.count_in_hand(Them, pt) <= 0 && (attacks_bb(Us, pt, ksq, pos.pieces()) & safe & pos.drop_region(Them, pt) & ~pos.pieces()))
             {
                 kingDanger += VirtualCheck * 500 / (500 + PieceValue[MG][pt]);
                 // Presumably a mate threat
@@ -1178,6 +1182,7 @@ namespace {
         Bitboard inaccessible = pos.pieces(Us, PAWN) & shift<Down>(pos.pieces(Them, PAWN));
         // Traverse all paths of the CTF pieces to the CTF targets.
         // Put squares that are attacked or occupied on hold for one iteration.
+        // This reflects that likely a move will be needed to block or capture the attack.
         for (int dist = 0; (ctfPieces || onHold || onHold2) && (ctfTargets & ~processed); dist++)
         {
             int wins = popcount(ctfTargets & ctfPieces);
@@ -1214,6 +1219,7 @@ namespace {
         for (PieceType pt : pos.extinction_piece_types())
             if (pt != ALL_PIECES)
             {
+                // Single piece type extinction bonus
                 int denom = std::max(pos.count(Us, pt) - pos.extinction_piece_count(), 1);
                 if (pos.count(Them, pt) >= pos.extinction_opponent_piece_count() || pos.two_boards())
                     score += make_score(1000000 / (500 + PieceValue[MG][pt]),
@@ -1221,7 +1227,10 @@ namespace {
                             * (pos.extinction_value() / VALUE_MATE);
             }
             else if (pos.extinction_value() == VALUE_MATE)
+            {
+                // Losing chess variant bonus
                 score += make_score(pos.non_pawn_material(Us), pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
+            }
             else if (pos.count<PAWN>(Us) == pos.count<ALL_PIECES>(Us))
             {
                 // Pawns easy to stop/capture
@@ -1233,7 +1242,7 @@ namespace {
                                         80 - 15 * (edge_distance(f, pos.max_file()) % 2)) * m / (1 + l * r);
                 }
             }
-            else if (pos.count<PAWN>(Them) == pos.count<ALL_PIECES>(Them) && pos.pieces(Us, ROOK, QUEEN))
+            else if (pos.count<PAWN>(Them) == pos.count<ALL_PIECES>(Them))
             {
                 // Add a bonus according to how close we are to breaking through the pawn wall
                 int dist = 8;
@@ -1268,7 +1277,7 @@ namespace {
         }
     }
 
-    // Potential piece flips
+    // Potential piece flips (Reversi)
     if (pos.flip_enclosed_pieces())
     {
         // Stable pieces
@@ -1571,6 +1580,10 @@ Value Eval::evaluate(const Position& pos) {
       if (pos.material_counting())
           v += pos.material_counting_result() / (10 * std::max(2 * pos.n_move_rule() - pos.rule50_count(), 1));
   }
+
+  // Guarantee evaluation does not hit the virtual win/loss range
+  if (pos.two_boards() && std::abs(v) >= VALUE_VIRTUAL_MATE_IN_MAX_PLY)
+      v += v > VALUE_ZERO ? MAX_PLY + 1 : -MAX_PLY - 1;
 
   // Guarantee evaluation does not hit the tablebase range
   v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);

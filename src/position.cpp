@@ -307,10 +307,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
   // 2. Active color
   ss >> token;
-  sideToMove = (token == 'w' || token == 'r' ? WHITE : BLACK);
-  // Invert side to move for SFEN
-  if (sfen)
-      sideToMove = ~sideToMove;
+  sideToMove = (token != (sfen ? 'w' : 'b') ? WHITE : BLACK);  // Invert colors for SFEN
   ss >> token;
 
   // 3-4. Skip parsing castling and en passant flags if not present
@@ -362,7 +359,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
                   st->gatesBB[c] |= st->castlingKingSquare[c];
               // Do not set castling rights for gates unless there are no pieces in hand,
               // which means that the file is referring to a chess960 castling right.
-              else if (!seirawan_gating() || count_in_hand(c, ALL_PIECES) || captures_to_hand())
+              else if (!seirawan_gating() || count_in_hand(c, ALL_PIECES) > 0 || captures_to_hand())
                   continue;
           }
 
@@ -373,7 +370,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       // Set castling rights for 960 gating variants
       if (gating() && castling_enabled())
           for (Color c : {WHITE, BLACK})
-              if ((gates(c) & pieces(castling_king_piece())) && !castling_rights(c) && (!seirawan_gating() || count_in_hand(c, ALL_PIECES) || captures_to_hand()))
+              if ((gates(c) & pieces(castling_king_piece())) && !castling_rights(c) && (!seirawan_gating() || count_in_hand(c, ALL_PIECES) > 0 || captures_to_hand()))
               {
                   Bitboard castling_rooks = gates(c) & pieces(castling_rook_piece());
                   while (castling_rooks)
@@ -390,6 +387,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
                && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
       {
           st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
+#ifdef LARGEBOARDS
+          // Consider different rank numbering in CECP
+          if (max_rank() == RANK_10 && Options["Protocol"] == "xboard")
+              st->epSquare += NORTH;
+#endif
 
           // En passant square will be considered only if
           // a) side to move have a pawn threatening epSquare
@@ -466,6 +468,18 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   {
       st->countingPly = st->rule50;
       st->rule50 = 0;
+  }
+
+  // Lichess-style counter for 3check
+  if (check_counting())
+  {
+      if (ss >> token && token == '+')
+      {
+          ss >> token;
+          st->checksRemaining[WHITE] = CheckCount(std::max(3 - (token - '0'), 0));
+          ss >> token >> token;
+          st->checksRemaining[BLACK] = CheckCount(std::max(3 - (token - '0'), 0));
+      }
   }
 
   chess960 = isChess960 || v->chess960;
@@ -654,13 +668,13 @@ const string Position::fen(bool sfen, bool showPromoted, int countStarted, std::
       ss << (sideToMove == WHITE ? " b " : " w ");
       for (Color c : {WHITE, BLACK})
           for (PieceType pt = KING; pt >= PAWN; --pt)
-              if (pieceCountInHand[c][pt])
+              if (pieceCountInHand[c][pt] > 0)
               {
                   if (pieceCountInHand[c][pt] > 1)
                       ss << pieceCountInHand[c][pt];
                   ss << piece_to_char()[make_piece(c, pt)];
               }
-      if (!count_in_hand(ALL_PIECES))
+      if (count_in_hand(ALL_PIECES) == 0)
           ss << '-';
       ss << " " << gamePly + 1;
       return ss.str();
@@ -675,7 +689,10 @@ const string Position::fen(bool sfen, bool showPromoted, int countStarted, std::
       else
           for (Color c : {WHITE, BLACK})
               for (PieceType pt = KING; pt >= PAWN; --pt)
+              {
+                  assert(pieceCountInHand[c][pt] >= 0);
                   ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
+              }
       ss << ']';
   }
 
@@ -691,7 +708,7 @@ const string Position::fen(bool sfen, bool showPromoted, int countStarted, std::
   if (can_castle(WHITE_OOO))
       ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OOO))) : 'Q');
 
-  if (gating() && gates(WHITE) && (!seirawan_gating() || count_in_hand(WHITE, ALL_PIECES) || captures_to_hand()))
+  if (gating() && gates(WHITE) && (!seirawan_gating() || count_in_hand(WHITE, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
           if (gates(WHITE) & file_bb(f))
               ss << char('A' + f);
@@ -706,7 +723,7 @@ const string Position::fen(bool sfen, bool showPromoted, int countStarted, std::
   if (can_castle(BLACK_OOO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OOO))) : 'q');
 
-  if (gating() && gates(BLACK) && (!seirawan_gating() || count_in_hand(BLACK, ALL_PIECES) || captures_to_hand()))
+  if (gating() && gates(BLACK) && (!seirawan_gating() || count_in_hand(BLACK, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
           if (gates(BLACK) & file_bb(f))
               ss << char('a' + f);
@@ -910,7 +927,7 @@ bool Position::legal(Move m) const {
       return false;
 
   // Illegal non-drop moves
-  if (must_drop() && type_of(m) != DROP && count_in_hand(us, var->mustDropType))
+  if (must_drop() && type_of(m) != DROP && count_in_hand(us, var->mustDropType) > 0)
   {
       if (checkers())
       {
@@ -959,18 +976,22 @@ bool Position::legal(Move m) const {
   if (var->extinctionPseudoRoyal)
   {
       Square kto = to;
-      if (type_of(m) == CASTLING && (st->pseudoRoyals & from))
+      Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | kto;
+      if (type_of(m) == CASTLING)
       {
           // After castling, the rook and king final positions are the same in
           // Chess960 as they would be in standard chess.
           kto = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
-          Direction step = to > from ? WEST : EAST;
-          for (Square s = kto; s != from + step; s += step)
-              if (  !(blast_on_capture() && (attacks_bb<KING>(s) & st->pseudoRoyals & pieces(~sideToMove)))
-                  && attackers_to(s, (s == kto ? (pieces() ^ to) : pieces()) ^ from, ~us))
-                  return false;
+          Direction step = kto > from ? EAST : WEST;
+          Square rto = kto - step;
+          // Pseudo-royal king
+          if (st->pseudoRoyals & from)
+              for (Square s = from; s != kto; s += step)
+                  if (  !(blast_on_capture() && (attacks_bb<KING>(s) & st->pseudoRoyals & pieces(~sideToMove)))
+                      && attackers_to(s, pieces() ^ from, ~us))
+                      return false;
+          occupied = (pieces() ^ from ^ to) | kto | rto;
       }
-      Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | kto;
       if (type_of(m) == EN_PASSANT)
           occupied &= ~square_bb(kto - pawn_push(us));
       if (capture(m) && blast_on_capture())
@@ -1094,7 +1115,7 @@ bool Position::pseudo_legal(const Move m) const {
       return   piece_drops()
             && pc != NO_PIECE
             && color_of(pc) == us
-            && count_in_hand(us, in_hand_piece_type(m))
+            && (count_in_hand(us, in_hand_piece_type(m)) > 0 || (two_boards() && allow_virtual_drop(us, type_of(pc))))
             && (drop_region(us, type_of(pc)) & ~pieces() & to)
             && (   type_of(pc) == in_hand_piece_type(m)
                 || (drop_promoted() && type_of(pc) == promoted_piece_type(in_hand_piece_type(m))));
@@ -1668,7 +1689,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->gatesBB[us] ^= to_sq(m);
       if (gates(them) & to)
           st->gatesBB[them] ^= to;
-      if (seirawan_gating() && !count_in_hand(us, ALL_PIECES) && !captures_to_hand())
+      if (seirawan_gating() && count_in_hand(us, ALL_PIECES) == 0 && !captures_to_hand())
           st->gatesBB[us] = 0;
   }
 
@@ -2418,6 +2439,19 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   {
       result = mate_in(ply);
       return true;
+  }
+  // Failing to checkmate with virtual pieces is a loss
+  if (two_boards() && !checkers())
+  {
+      int virtualCount = 0;
+      for (PieceType pt : piece_types())
+          virtualCount += std::max(-count_in_hand(~sideToMove, pt), 0);
+
+      if (virtualCount > 0)
+      {
+          result = mate_in(ply);
+          return true;
+      }
   }
 
   return false;

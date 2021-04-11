@@ -15,7 +15,7 @@ The goal of the project is to create an engine supporting a large variety of che
 ## Installation
 You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64.exe) or [Linux binary](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64) from the [latest release](https://github.com/ianfab/Fairy-Stockfish/releases/latest) or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you perhaps want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Graphical-user-interfaces), or [play against it online](https://github.com/ianfab/Fairy-Stockfish/wiki/Online) at [pychess](https://www.pychess.org/), [lishogi](https://lishogi.org/), [xichess](http://www.xichess.com/), or [lichess](https://lichess.org/@/Fairy-Stockfish). Read more about [how to use](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) Fairy-Stockfish in the wiki.
 
-Optional NNUE evaluation parameter files to improve playing strength for selected variants can be obtained via [patreon](https://www.patreon.com/ianfab).
+Optional NNUE evaluation parameter files to improve playing strength for selected variants can be obtained via [patreon](https://www.patreon.com/ianfab), also see the [variant NNUE overview](https://docs.google.com/spreadsheets/d/1fgGvBKleUOI1wZZbiNhpT98qhQ7mYuQ5kar1lTQ9g3w/edit?usp=sharing).
 When NNUE evaluation is used, the `EvalFile` parameter needs to be adjusted accordingly as explained in the [wiki](https://github.com/ianfab/Fairy-Stockfish/wiki/Settings#evalfile).
 
 ## Contributing
@@ -46,7 +46,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Amazon](https://en.wikipedia.org/wiki/Amazon_(chess)), [Chigorin](https://en.wikipedia.org/wiki/Chigorin_Chess), [Almost chess](https://en.wikipedia.org/wiki/Almost_Chess)
 - [Hoppel-Poppel](http://www.chessvariants.com/diffmove.dir/hoppel-poppel.html), New Zealand
 - [Antichess](https://lichess.org/variant/antichess), [Giveaway](http://www.chessvariants.com/diffobjective.dir/giveaway.old.html), [Suicide](https://www.freechess.org/Help/HelpFiles/suicide_chess.html), [Losers](https://www.chessclub.com/help/Wild17), [Codrus](http://www.binnewirtz.com/Schlagschach1.htm)
-- [Extinction](https://en.wikipedia.org/wiki/Extinction_chess), [Kinglet](https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_Chess), Three Kings, [Coregal](https://www.chessvariants.com/winning.dir/coregal.html)
+- [Extinction](https://en.wikipedia.org/wiki/Extinction_chess), [Kinglet](https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_chess), Three Kings, [Coregal](https://www.chessvariants.com/winning.dir/coregal.html)
 - [King of the Hill](https://en.wikipedia.org/wiki/King_of_the_Hill_(chess)), [Racing Kings](https://en.wikipedia.org/wiki/V._R._Parton#Racing_Kings)
 - [Three-check](https://en.wikipedia.org/wiki/Three-check_chess), Five-check
 - [Los Alamos](https://en.wikipedia.org/wiki/Los_Alamos_chess)

@@ -99,6 +99,7 @@ struct Variant {
   bool flyingGeneral = false;
   Rank soldierPromotionRank = RANK_1;
   EnclosingRule flipEnclosedPieces = NO_ENCLOSING;
+
   // game end
   int nMoveRule = 50;
   int nFoldRule = 3;

@@ -141,15 +141,15 @@ void init(const Variant* v) {
       {
           score -= make_score(0, (QueenValueEg - maxPromotion) / 100);
           if (v->blastOnCapture)
-              score += score * 3 / 2;
+              score += make_score(mg_value(score) * 3 / 2, eg_value(score));
       }
-
-      // Scale slider piece values with board size
+      
       const PieceInfo* pi = pieceMap.find(pt)->second;
       bool isSlider = pi->sliderQuiet.size() || pi->sliderCapture.size() || pi->hopperQuiet.size() || pi->hopperCapture.size();
       bool isPawn = !isSlider && pi->stepsQuiet.size() && !std::any_of(pi->stepsQuiet.begin(), pi->stepsQuiet.end(), [](Direction d) { return d < SOUTH / 2; });
       bool isSlowLeaper = !isSlider && !std::any_of(pi->stepsQuiet.begin(), pi->stepsQuiet.end(), [](Direction d) { return dist(d) > 1; });
 
+      // Scale slider piece values with board size
       if (isSlider)
       {
           constexpr int lc = 5;
@@ -162,8 +162,23 @@ void init(const Variant* v) {
                              eg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider));
       }
 
+      // Piece values saturate earlier in drop variants
+      if (v->capturesToHand || v->twoBoards)
+          score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
+                             eg_value(score) * 7000 / (7000 + eg_value(score)));
+
+      // In variants where checks are prohibited, strong pieces are less mobile, so limit their value 
+      if (!v->checking)
+          score = make_score(std::min(mg_value(score), Value(1800)) / 2,
+                             std::min(eg_value(score), Value(1800)) * 3 / 5);
+
+      // With check counting, strong pieces are even more dangerous
+      else if (v->checkCounting)
+          score = make_score(mg_value(score) * (20000 + mg_value(score)) / 22000,
+                             eg_value(score) * (20000 + eg_value(score)) / 21000);
+
       // Increase leapers' value in makpong
-      if (v->makpongRule)
+      else if (v->makpongRule)
       {
           if (std::any_of(pi->stepsCapture.begin(), pi->stepsCapture.end(), [](Direction d) { return dist(d) > 1; })
                   && !pi->lameLeaper)
@@ -171,26 +186,19 @@ void init(const Variant* v) {
                                  eg_value(score) * 4700 / (3500 + mg_value(score)));
       }
 
-      // For drop variants, halve the piece values
-      if (v->capturesToHand)
-          score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
-                             eg_value(score) * 7000 / (7000 + eg_value(score)));
-      else if (!v->checking)
-          score = make_score(mg_value(score) * 2000 / (3500 + mg_value(score)),
-                             eg_value(score) * 2700 / (4000 + eg_value(score)));
-      else if (v->twoBoards)
-          score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)),
-                             eg_value(score) * 7000 / (7000 + eg_value(score)));
-      else if (v->blastOnCapture)
+      // Adjust piece values for atomic captures
+      if (v->blastOnCapture)
           score = make_score(mg_value(score) * 7000 / (7000 + mg_value(score)), eg_value(score));
-      else if (v->checkCounting)
-          score = make_score(mg_value(score) * (20000 + mg_value(score)) / 22000,
-                             eg_value(score) * (20000 + eg_value(score)) / 21000);
-      else if (   v->extinctionValue == -VALUE_MATE
-               && v->extinctionPieceCount == 0
-               && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
+
+      // In variants such as horde where all pieces need to be captured, weak pieces such as pawns are more useful
+      if (   v->extinctionValue == -VALUE_MATE
+          && v->extinctionPieceCount == 0
+          && v->extinctionPieceTypes.find(ALL_PIECES) != v->extinctionPieceTypes.end())
           score += make_score(0, std::max(KnightValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
-      else if (pt == strongestPiece)
+
+      // The strongest piece of a variant usually has some dominance, such as rooks in Makruk and Xiangqi.
+      // This does not apply to drop variants.
+      if (pt == strongestPiece && !v->capturesToHand)
               score += make_score(std::max(QueenValueMg - PieceValue[MG][pt], VALUE_ZERO) / 20,
                                   std::max(QueenValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
 
@@ -201,6 +209,7 @@ void init(const Variant* v) {
       if (v->extinctionValue == VALUE_MATE)
           score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
 
+      // For drop variants, halve the piece values to compensate for double changes by captures
       if (v->capturesToHand)
           score = score / 2;
 
@@ -226,23 +235,27 @@ void init(const Variant* v) {
           Rank r = rank_of(s);
           psq[ pc][s] = score + (  pt == PAWN  ? PBonus[std::min(r, RANK_8)][std::min(file_of(s), FILE_H)]
                                  : pt == KING  ? KingBonus[std::clamp(Rank(r - pawnRank + 1), RANK_1, RANK_8)][std::min(f, FILE_D)] * (1 + v->capturesToHand)
-                                 : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                 : pt <= QUEEN ? Bonus[pc][std::min(r, RANK_8)][std::min(f, FILE_D)] * (1 + v->blastOnCapture)
                                  : pt == HORSE ? Bonus[KNIGHT][std::min(r, RANK_8)][std::min(f, FILE_D)]
+                                 : pt == COMMONER && v->extinctionValue == -VALUE_MATE && v->extinctionPieceTypes.find(COMMONER) != v->extinctionPieceTypes.end() ? KingBonus[std::clamp(Rank(r - pawnRank + 1), RANK_1, RANK_8)][std::min(f, FILE_D)]
                                  : isSlider    ? make_score(5, 5) * (2 * f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile - 1)
                                  : isPawn      ? make_score(5, 5) * (2 * f - v->maxFile)
                                                : make_score(10, 10) * (1 + isSlowLeaper) * (f + std::max(std::min(r, Rank(v->maxRank - r)), RANK_1) - v->maxFile / 2));
+          // Add a penalty for unpromoted soldiers
           if (pt == SOLDIER && r < v->soldierPromotionRank)
               psq[pc][s] -= score * (v->soldierPromotionRank - r) / (4 + f);
+          // Corners are valuable in reversi
           if (v->enclosingDrop == REVERSI)
           {
               if (f == FILE_A && (r == RANK_1 || r == v->maxRank))
                   psq[pc][s] += make_score(1000, 1000);
           }
+          // In atomic variants pieces are "self-defending" and should therefore be pushed forward
           if (v->blastOnCapture)
               psq[pc][s] += make_score(40, 0) * (r - v->maxRank / 2);
           psq[~pc][rank_of(s) <= v->maxRank ? flip_rank(s, v->maxRank) : s] = -psq[pc][s];
       }
-      // pieces in pocket
+      // Pieces in hand
       psq[ pc][SQ_NONE] = score + make_score(35, 10) * (1 + !isSlider);
       psq[~pc][SQ_NONE] = -psq[pc][SQ_NONE];
   }

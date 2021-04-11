@@ -27,7 +27,7 @@
 PartnerHandler Partner; // Global object
 
 void PartnerHandler::reset() {
-    fast = sitRequested = partnerDead = weDead = weWin = false;
+    fast = sitRequested = partnerDead = weDead = weWin = weVirtualWin = weVirtualLoss = false;
     time = opptime = 0;
 }
 
@@ -140,12 +140,12 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
     else if (token == "time")
     {
         int value;
-        time = (is >> value) ? value : 0;
+        time = (is >> value) ? value * 10 : 0;
     }
     else if (token == "otim")
     {
         int value;
-        opptime = (is >> value) ? value : 0;
+        opptime = (is >> value) ? value * 10 : 0;
     }
 }
 

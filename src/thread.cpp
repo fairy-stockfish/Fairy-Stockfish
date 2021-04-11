@@ -20,6 +20,7 @@
 
 #include <algorithm> // For std::count
 #include "movegen.h"
+#include "partner.h"
 #include "search.h"
 #include "thread.h"
 #include "uci.h"
@@ -187,6 +188,23 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
       if (   (limits.searchmoves.empty() || std::count(limits.searchmoves.begin(), limits.searchmoves.end(), m))
           && (limits.banmoves.empty() || !std::count(limits.banmoves.begin(), limits.banmoves.end(), m)))
           rootMoves.emplace_back(m);
+
+  // Add virtual drops
+  if (pos.two_boards() && Partner.opptime && limits.time[pos.side_to_move()] > Partner.opptime + 1000)
+  {
+      if (pos.checkers())
+      {
+          for (const auto& m : MoveList<EVASIONS>(pos))
+              if (pos.virtual_drop(m) && pos.legal(m))
+                  rootMoves.emplace_back(m);
+      }
+      else
+      {
+          for (const auto& m : MoveList<QUIETS>(pos))
+              if (pos.virtual_drop(m) && pos.legal(m))
+                  rootMoves.emplace_back(m);
+      }
+  }
 
   if (!rootMoves.empty())
       Tablebases::rank_root_moves(pos, rootMoves);

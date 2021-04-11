@@ -51,6 +51,8 @@ Magic* magics[] = {BishopMagics, RookMagicsH, RookMagicsV, CannonMagicsH, Cannon
 
 namespace {
 
+// Some magics need to be split in order to reduce memory consumption.
+// Otherwise on a 12x10 board they can be >100 MB.
 #ifdef LARGEBOARDS
   Bitboard RookTableH[0x11800];  // To store horizontalrook attacks
   Bitboard RookTableV[0x4800];  // To store vertical rook attacks

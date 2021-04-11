@@ -22,6 +22,7 @@
 #include <atomic>
 #include <sstream>
 
+#include "misc.h"
 #include "position.h"
 
 /// PartnerHandler manages the communication with the partner
@@ -41,8 +42,8 @@ struct PartnerHandler {
     void parse_ptell(std::istringstream& is, const Position& pos);
 
     std::atomic<bool> isFairy;
-    std::atomic<bool> fast, sitRequested, partnerDead, weDead, weWin;
-    std::atomic<int> time, opptime;
+    std::atomic<bool> fast, sitRequested, partnerDead, weDead, weWin, weVirtualWin, weVirtualLoss;
+    std::atomic<TimePoint> time, opptime;
     Move moveRequested;
 };
 

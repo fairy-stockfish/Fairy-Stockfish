@@ -18,7 +18,7 @@ SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg -
 GRAND = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1"
 GRANDHOUSE = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R[] w - - 0 1"
 XIANGQI = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
-SHOGUN = "rnb+fkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB+FKBNR w KQkq - 0 1"
+SHOGUN = "rnb+fkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB+FKBNR[] w KQkq - 0 1"
 JANGGI = "rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1"
 
 
@@ -31,7 +31,7 @@ capturesToHand = true
 
 # Shogun chess
 [shogun:crazyhouse]
-startFen = rnb+fkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB+FKBNR w KQkq - 0 1
+startFen = rnb+fkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB+FKBNR[] w KQkq - 0 1
 commoner = c
 centaur = g
 archbishop = a
@@ -66,6 +66,10 @@ sf.load_variant_config(ini_text)
 
 variant_positions = {
     "chess": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": (False, False),  # startpos
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -": (False, False),  # startpos
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR": (False, False),  # startpos
+        "rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3": (False, False),
         "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K
         "k7/b7/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KB
         "k7/n7/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs KN
@@ -79,13 +83,41 @@ variant_positions = {
         "kb6/8/8/8/8/8/8/KB7 w - - 0 1": (False, False),  # KB vs KB opp color
         "8/8/8/8/8/6KN/8/6nk w - - 0 1": (False, False),  # KN vs KN
     },
+    "atomic": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": (False, False),  # startpos
+    },
+    "3check": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1": (False, False),  # startpos
+        "k7/n7/8/8/8/8/8/K7 w - - 1+2 0 1": (True, False),  # K vs KN
+        "k7/b7/8/8/8/8/8/K7 w - - 3+1 0 1": (True, False),  # K vs KB
+    },
+    "horde": {
+        "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1": (False, False),  # startpos
+    },
+    "racingkings": {
+        "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1": (False, False),  # startpos
+        "8/8/8/8/8/8/K6k/8 w - - 0 1": (False, False),  # KvK
+    },
+    "placement": {
+        "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - - 0 1": (False, False),  # startpos
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1": (False, False),  # chess startpos
+        "k7/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # K vs K
+    },
+    "newzealand": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": (False, False),  # startpos
+    },
     "seirawan": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1": (False, False),  # startpos
         "k7/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # K vs K
         "k7/8/8/8/8/8/8/KH6[] w - - 0 1": (False, True),  # KH vs K
         "k7/8/8/8/8/8/8/4K3[E] w E - 0 1": (False, True),  # KE vs K
     },
+    "cambodian": {
+        "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w DEde 0 0 1": (False, False),  # startpos
+        "1ns1ksn1/r6r/pppmpppp/3p4/8/PPPPPPPP/RK2N2R/1NS1MS2 w Ee - 6 5": (False, False),
+    },
     "sittuyin": {
-        "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1": (False, False),  # starting position
+        "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1": (False, False),  # startpos
         "k7/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # K vs K
         "k6P/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # KP vs K
         "k6P/8/8/8/8/8/8/K6p[] w - - 0 1": (False, False),  # KP vs KP
@@ -93,7 +125,7 @@ variant_positions = {
         "k7/8/8/8/8/8/8/KS6[] w - - 0 1": (False, True),  # KS vs K
     },
     "xiangqi": {
-        "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1": (False, False),  # starting position
+        "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1": (False, False),  # startpos
         "5k3/4a4/3CN4/9/1PP5p/9/8P/4C4/4A4/2B1K4 w - - 0 46": (False, False),  # issue #53
         "4k4/9/9/9/9/9/9/9/9/4K4 w - - 0 1": (True, True),  # K vs K
         "4k4/9/9/4p4/9/9/9/9/9/4KR3 w - - 0 1": (False, False),  # KR vs KP
@@ -102,7 +134,8 @@ variant_positions = {
         "4k4/9/9/9/9/9/9/9/4A4/4KC3 w - - 0 1": (False, True),  # KCA vs K
     },
     "janggi": {
-        JANGGI: (False, False),  # starting position
+        JANGGI: (False, False),  # startpos
+        "rhea1aehr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RHEA1AEHR w - - 0 1": (False, False),  # startpos
         "5k3/4a4/3CN4/9/1PP5p/9/8P/4C4/4A4/2B1K4 w - - 0 46": (False, False),  # issue #53
         "4k4/9/9/9/9/4B4/4B4/9/9/4K4 w - - 0 1": (False, True),  # KEE vs K
         "4k4/9/9/9/9/9/9/9/4A4/4KC3 w - - 0 1": (False, True),  # KCA vs K
@@ -120,15 +153,56 @@ variant_positions = {
     },
 }
 
+invalid_variant_positions = {
+    "chess": (
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 a",  # invalid full move
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - b 1",  # invalid half move
+        "rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq -6 0 3",  # invalid en passant
+        "rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq .6 0 3",  # invalid en passant
+        "rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d- 0 3",  # invalid en passant
+        "rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq  0 3",  # invalid/missing en passant
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w 123 - 0 1",  # invalid castling
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR g KQkq - 0 1",  # invalid side to move
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNH w KQkq - 0 1",  # invalid piece type
+        "rnbqkbnr/pppppppp/7/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # invalid file count
+        "rnbqkbnr/pppppppp/9/7/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # invalid file count
+        "rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # invalid rank count
+        "1nbqkbn1/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # missing castling rook
+        "rnbqkbnr/pppppppp/8/8/4K3/PPPPPPPP/RNBQ1BNR w KQkq - 0 1",  # king not on castling rank
+        "rnbqkbnr/pppppppp/8/8/RNBQKBNR/PPPPPPPP/8 w KQkq - 0 1",  # not on castling rank
+        "8/pppppppp/rnbqkbnr/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # not on castling rank
+    ),
+    "atomic": (
+        "rnbqkbnr/pppppppp/8/8/8/RNBQKBNR/PPPPPPPP/8 w KQkq - 0 1",  # wrong castling rank
+    ),
+    "3check": (
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+a 0 1",  # invalid check count
+    ),
+    "horde": (
+        "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPK w kq - 0 1",  # wrong king count
+        "rnbq1bnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1",  # wrong king count
+    ),
+    "sittuyin": (
+        "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[FRRSSNNkfrrssnn] w - - 0 1",  # wrong king count
+    ),
+    "shako": {
+        "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/C8C/ERNBQKBNRE w KQkq - 0 1",  # not on castling rank
+    }
+}
+
 
 class TestPyffish(unittest.TestCase):
     def test_version(self):
         result = sf.version()
-        self.assertEqual(result, (0, 0, 55))
+        self.assertEqual(len(result), 3)
 
     def test_info(self):
         result = sf.info()
         self.assertTrue(result.startswith("Fairy-Stockfish"))
+
+    def test_variants_loaded(self):
+        variants = sf.variants()
+        self.assertTrue("shogun" in variants)
 
     def test_set_option(self):
         result = sf.set_option("UCI_Variant", "capablanca")
@@ -194,6 +268,18 @@ class TestPyffish(unittest.TestCase):
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
         self.assertEqual(result, CHESS)
+
+        # incomplete FENs
+        result = sf.get_fen("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", [])
+        self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1")
+        result = sf.get_fen("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", [])
+        self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        result = sf.get_fen("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w 1 2", [])
+        self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 1 2")
+
+        # alternative piece symbols
+        result = sf.get_fen("janggi", "rhea1aehr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RHEA1AEHR w - - 0 1", [])
+        self.assertEqual(result, JANGGI)
 
         result = sf.get_fen("capablanca", CAPA, [])
         self.assertEqual(result, CAPA)
@@ -474,7 +560,31 @@ class TestPyffish(unittest.TestCase):
 
     def test_game_result(self):
         result = sf.game_result("chess", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
-        self.assertTrue(result < 0)
+        self.assertEqual(result, -sf.VALUE_MATE)
+
+        # shogi pawn drop mate
+        result = sf.game_result("shogi", "lnsg3nk/1r2b1gs1/ppppppp1p/7N1/7p1/9/PPPPPPPP1/1B5R1/LNSGKGS1L[P] w 0 1", ["P@i8"])
+        self.assertEqual(result, sf.VALUE_MATE)
+
+        # losers checkmate
+        result = sf.game_result("losers", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
+        self.assertEqual(result, sf.VALUE_MATE)
+
+        # suicide stalemate
+        result = sf.game_result("suicide", "8/8/8/7p/7P/8/8/8 w - - 0 1", [])
+        self.assertEqual(result, sf.VALUE_DRAW)
+        result = sf.game_result("suicide", "8/8/8/7p/7P/7P/8/8 w - - 0 1", [])
+        self.assertEqual(result, -sf.VALUE_MATE)
+        result = sf.game_result("suicide", "8/8/8/7p/7P/8/8/n7 w - - 0 1", [])
+        self.assertEqual(result, sf.VALUE_MATE)
+
+        # atomic check- and stalemate
+        # checkmate
+        result = sf.game_result("atomic", "BQ6/Rk6/8/8/8/8/8/4K3 b - - 0 1", [])
+        self.assertEqual(result, -sf.VALUE_MATE)
+        # stalemate
+        result = sf.game_result("atomic", "KQ6/Rk6/2B5/8/8/8/8/8 b - - 0 1", [])
+        self.assertEqual(result, sf.VALUE_DRAW)
 
     def test_is_immediate_game_end(self):
         result = sf.is_immediate_game_end("capablanca", CAPA, [])
@@ -488,7 +598,7 @@ class TestPyffish(unittest.TestCase):
         moves = "e2e3 e9f9 h3d3 e7f7 i1i3 h10i8 i3h3 c10e7 h3h8 i10i9 h8b8 i9g9 d3f3 f9e9 f3f10 e7c10 f10c10 b10c8 c10g10 g9f9 b8c8 a10b10 b3f3 f9h9 a1a2 h9f9 a2d2 b10b9 d2d10 e9d10 c8c10 d10d9 f3f9 i8g9 f9b9 a7a6 g10g7 f7f6 e4e5 c7d7 g1e4 i7i6 e4b6 d9d8 c10c8 d8d9 b9g9 d7d6 b6e8 i6h6 e5e6 f6e6 c1e4 a6b6 e4b6 d6d5 c4c5 d9d10 e3d3 h6i6 c5c6 d5c5 d3d3"
         result = sf.is_immediate_game_end("janggi", JANGGI, moves.split())
         self.assertTrue(result[0])
-        self.assertTrue(result[1] < 0)
+        self.assertEqual(result[1], -sf.VALUE_MATE)
 
     def test_is_optional_game_end(self):
         result = sf.is_optional_game_end("capablanca", CAPA, [])
@@ -501,10 +611,21 @@ class TestPyffish(unittest.TestCase):
                 self.assertEqual(result, expected_result, "{}: {}".format(variant, fen))
 
     def test_validate_fen(self):
+        # valid
         for variant, positions in variant_positions.items():
             for fen in positions:
-                self.assertTrue(sf.validate_fen(fen, variant) == 1, "{}: {}".format(variant, fen))
-
+                self.assertEqual(sf.validate_fen(fen, variant), sf.FEN_OK, "{}: {}".format(variant, fen))
+        # invalid
+        for variant, positions in invalid_variant_positions.items():
+            for fen in positions:
+                self.assertNotEqual(sf.validate_fen(fen, variant), sf.FEN_OK, "{}: {}".format(variant, fen))
+        # chess960
+        self.assertEqual(sf.validate_fen(CHESS960, "chess", True), sf.FEN_OK, "{}: {}".format(variant, fen))
+        self.assertEqual(sf.validate_fen("nrbqbkrn/pppppppp/8/8/8/8/PPPPPPPP/NRBQBKRN w BGbg - 0 1", "newzealand", True), sf.FEN_OK, "{}: {}".format(variant, fen))
+        # all variants starting positions
+        for variant in sf.variants():
+            fen = sf.start_fen(variant)
+            self.assertEqual(sf.validate_fen(fen, variant), sf.FEN_OK, "{}: {}".format(variant, fen))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
