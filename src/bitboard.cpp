@@ -201,11 +201,45 @@ void Bitboards::init() {
                                                       SOUTH + 2 * SOUTH_WEST, WEST + 2 * SOUTH_WEST,
                                                       WEST  + 2 * NORTH_WEST, NORTH + 2 * NORTH_WEST };
 
-  // Initialize rider types
+  for (unsigned i = 0; i < (1 << 16); ++i)
+      PopCnt16[i] = uint8_t(std::bitset<16>(i).count());
+
+  for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+      SquareBB[s] = make_bitboard(s);
+
+  for (File f = FILE_A; f <= FILE_MAX; ++f)
+      for (Rank r = RANK_1; r <= RANK_MAX; ++r)
+          BoardSizeBB[f][r] = forward_file_bb(BLACK, make_square(f, r)) | SquareBB[make_square(f, r)] | (f > FILE_A ? BoardSizeBB[f - 1][r] : Bitboard(0));
+
+  for (Square s1 = SQ_A1; s1 <= SQ_MAX; ++s1)
+      for (Square s2 = SQ_A1; s2 <= SQ_MAX; ++s2)
+              SquareDistance[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
+
+#ifdef PRECOMPUTED_MAGICS
+  init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH, RookMagicHInit);
+  init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV, RookMagicVInit);
+  init_magics<RIDER>(BishopTable, BishopMagics, BishopDirections, BishopMagicInit);
+  init_magics<HOPPER>(CannonTableH, CannonMagicsH, RookDirectionsH, CannonMagicHInit);
+  init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV, CannonMagicVInit);
+  init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections, HorseMagicInit);
+  init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections, ElephantMagicInit);
+  init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections, JanggiElephantMagicInit);
+#else
+  init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH);
+  init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV);
+  init_magics<RIDER>(BishopTable, BishopMagics, BishopDirections);
+  init_magics<HOPPER>(CannonTableH, CannonMagicsH, RookDirectionsH);
+  init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV);
+  init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections);
+  init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections);
+  init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections);
+#endif
+
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
       const PieceInfo* pi = pieceMap.find(pt)->second;
 
+      // Initialize rider types
       if (pi->lameLeaper)
       {
           for (Direction d : pi->stepsCapture)
@@ -259,47 +293,10 @@ void Bitboards::init() {
           if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               MoveRiderTypes[pt] |= RIDER_CANNON_V;
       }
-  }
 
-  for (unsigned i = 0; i < (1 << 16); ++i)
-      PopCnt16[i] = uint8_t(std::bitset<16>(i).count());
-
-  for (Square s = SQ_A1; s <= SQ_MAX; ++s)
-      SquareBB[s] = make_bitboard(s);
-
-  for (File f = FILE_A; f <= FILE_MAX; ++f)
-      for (Rank r = RANK_1; r <= RANK_MAX; ++r)
-          BoardSizeBB[f][r] = forward_file_bb(BLACK, make_square(f, r)) | SquareBB[make_square(f, r)] | (f > FILE_A ? BoardSizeBB[f - 1][r] : Bitboard(0));
-
-  for (Square s1 = SQ_A1; s1 <= SQ_MAX; ++s1)
-      for (Square s2 = SQ_A1; s2 <= SQ_MAX; ++s2)
-              SquareDistance[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
-
-#ifdef PRECOMPUTED_MAGICS
-  init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH, RookMagicHInit);
-  init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV, RookMagicVInit);
-  init_magics<RIDER>(BishopTable, BishopMagics, BishopDirections, BishopMagicInit);
-  init_magics<HOPPER>(CannonTableH, CannonMagicsH, RookDirectionsH, CannonMagicHInit);
-  init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV, CannonMagicVInit);
-  init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections, HorseMagicInit);
-  init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections, ElephantMagicInit);
-  init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections, JanggiElephantMagicInit);
-#else
-  init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH);
-  init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV);
-  init_magics<RIDER>(BishopTable, BishopMagics, BishopDirections);
-  init_magics<HOPPER>(CannonTableH, CannonMagicsH, RookDirectionsH);
-  init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV);
-  init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections);
-  init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections);
-  init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections);
-#endif
-
-  for (Color c : { WHITE, BLACK })
-      for (PieceType pt = PAWN; pt <= KING; ++pt)
+      // Initialize move/attack bitboards
+      for (Color c : { WHITE, BLACK })
       {
-          const PieceInfo* pi = pieceMap.find(pt)->second;
-
           for (Square s = SQ_A1; s <= SQ_MAX; ++s)
           {
               for (Direction d : pi->stepsCapture)
@@ -320,6 +317,7 @@ void Bitboards::init() {
               PseudoMoves[c][pt][s] |= sliding_attack<RIDER>(pi->hopperQuiet, s, 0, c);
           }
       }
+  }
 
   for (Square s1 = SQ_A1; s1 <= SQ_MAX; ++s1)
   {
