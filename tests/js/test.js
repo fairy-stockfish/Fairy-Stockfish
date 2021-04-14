@@ -556,7 +556,7 @@ describe('ffish.validateFen(fen, uciVariant)', function () {
       for (let idx = 0; idx < variants.length; ++idx) {
         const variant = variants[idx];
         const startFen = ffish.startingFen(variant);
-        chai.expect(ffish.validateFen(startFen, variant)).to.equal(1);
+        chai.expect(ffish.validateFen(startFen, variant)).to.equal(1, "Invalid start FEN for " + variant);
         // check if the FEN is still valid if board.fen() is returned
         const board = new ffish.Board(variant);
         chai.expect(ffish.validateFen(board.fen(), variant)).to.equal(1);
