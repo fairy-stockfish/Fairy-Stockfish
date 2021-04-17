@@ -19,6 +19,7 @@
 #include <string>
 #include <sstream>
 
+#include "apiutil.h"
 #include "parser.h"
 #include "piece.h"
 #include "types.h"
@@ -183,6 +184,47 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             parse_attribute("mobilityRegion" + color + capitalizedPiece, v->mobilityRegion[c][pieceInfo.first]);
         }
     }
+    // custom piece types
+    for (PieceType pt = CUSTOM_PIECES; pt <= CUSTOM_PIECES_END; ++pt)
+    {
+        std::string customPieceName = "customPiece" + std::to_string(pt - CUSTOM_PIECES + 1);
+        const auto& itCustomPt = config.find(customPieceName);
+        if (itCustomPt != config.end() && !itCustomPt->second.empty())
+        {
+            // piece char
+            if (isalpha(itCustomPt->second.at(0)))
+                v->add_piece(pt, itCustomPt->second.at(0));
+            else
+            {
+                if (DoCheck && itCustomPt->second.at(0) != '-')
+                    std::cerr << customPieceName << " - Invalid letter: " << itCustomPt->second.at(0) << std::endl;
+                v->remove_piece(pt);
+            }
+            // betza
+            if (itCustomPt->second.size() > 1)
+                v->customPiece[pt - CUSTOM_PIECES] = itCustomPt->second.substr(2);
+            else if (DoCheck)
+                std::cerr << customPieceName << " - Missing Betza move notation" << std::endl;
+        }
+    }
+    // piece values
+    for (Phase phase : {MG, EG})
+    {
+        const std::string optionName = phase == MG ? "pieceValueMg" : "pieceValueEg";
+        const auto& pv = config.find(optionName);
+        if (pv != config.end())
+        {
+            char token;
+            size_t idx = 0;
+            std::stringstream ss(pv->second);
+            while (!ss.eof() && ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
+                             && ss >> token && ss >> v->pieceValue[phase][idx]) {}
+            if (DoCheck && idx == std::string::npos)
+                std::cerr << optionName << " - Invalid piece type: " << token << std::endl;
+            else if (DoCheck && !ss.eof())
+                std::cerr << optionName << " - Invalid piece value for type: " << v->pieceToChar[idx] << std::endl;
+        }
+    }
     parse_attribute("variantTemplate", v->variantTemplate);
     parse_attribute("pieceToCharTable", v->pieceToCharTable);
     parse_attribute("pocketSize", v->pocketSize);
@@ -333,28 +375,15 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     if (DoCheck)
     {
         // startFen
-        std::string fenBoard = v->startFen.substr(0, v->startFen.find(' '));
-        std::stringstream ss(fenBoard);
-        char token;
-        ss >> std::noskipws;
-
-        while (ss >> token)
-        {
-            if (token == '+')
-            {
-                ss >> token;
-                size_t idx = v->pieceToChar.find(toupper(token));
-                if (idx == std::string::npos || !v->promotedPieceType[idx])
-                    std::cerr << "startFen - Invalid piece type: +" << token << std::endl;
-            }
-            else if (isalpha(token) && v->pieceToChar.find(toupper(token)) == std::string::npos)
-                std::cerr << "startFen - Invalid piece type: " << token << std::endl;
-        }
+        if (FEN::validate_fen(v->startFen, v, v->chess960) != FEN::FEN_OK)
+            std::cerr << "startFen - Invalid starting position: " << v->startFen << std::endl;
 
         // pieceToCharTable
         if (v->pieceToCharTable != "-")
         {
-            ss = std::stringstream(v->pieceToCharTable);
+            const std::string fenBoard = v->startFen.substr(0, v->startFen.find(' '));
+            std::stringstream ss(v->pieceToCharTable);
+            char token;
             while (ss >> token)
                 if (isalpha(token) && v->pieceToChar.find(toupper(token)) == std::string::npos)
                     std::cerr << "pieceToCharTable - Invalid piece type: " << token << std::endl;

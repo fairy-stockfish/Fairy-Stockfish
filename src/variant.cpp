@@ -811,6 +811,65 @@ namespace {
         v->nnueFeatures = NNUE_SHOGI;
         return v;
     }
+    // Yari shogi
+    // https://en.wikipedia.org/wiki/Yari_shogi
+    Variant* yarishogi_variant() {
+        Variant* v = variant_base();
+        v->variantTemplate = "shogi";
+        v->maxRank = RANK_9;
+        v->maxFile = FILE_G;
+        v->reset_pieces();
+        v->add_piece(KING, 'k');
+        v->add_piece(SHOGI_PAWN, 'p');
+        v->add_piece(ROOK, 'l');
+        v->customPiece[0] = "fRffN"; // Yari knight
+        v->add_piece(CUSTOM_PIECES, 'n');
+        v->customPiece[1] = "fFfR"; // Yari bishop
+        v->add_piece(CUSTOM_PIECES + 1, 'b');
+        v->customPiece[2] = "frlR"; // Yari rook
+        v->add_piece(CUSTOM_PIECES + 2, 'r');
+        v->customPiece[3] = "WfFbR"; // Yari gold
+        v->add_piece(CUSTOM_PIECES + 3, 'g');
+        v->customPiece[4] = "fKbR"; // Yari silver
+        v->add_piece(CUSTOM_PIECES + 4, 's');
+        v->startFen = "rnnkbbr/7/ppppppp/7/7/7/PPPPPPP/7/RBBKNNR[-] w 0 1";
+        v->promotionRank = RANK_7;
+        v->promotedPieceType[SHOGI_PAWN] = CUSTOM_PIECES + 4;
+        v->promotedPieceType[CUSTOM_PIECES] = CUSTOM_PIECES + 3;
+        v->promotedPieceType[CUSTOM_PIECES + 1] = CUSTOM_PIECES + 3;
+        v->promotedPieceType[CUSTOM_PIECES + 2] = ROOK;
+        v->pieceDrops = true;
+        v->capturesToHand = true;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->dropNoDoubled = SHOGI_PAWN;
+        v->immobilityIllegal = true;
+        v->shogiPawnDropMateIllegal = false;
+        v->stalemateValue = -VALUE_MATE;
+        v->nFoldRule = 3;
+        v->nMoveRule = 0;
+        v->perpetualCheckIllegal = true;
+        return v;
+    }
+    // Okisaki shogi
+    // https://en.wikipedia.org/wiki/Okisaki_shogi
+    Variant* okisakishogi_variant() {
+        Variant* v = minishogi_variant_base();
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_J;
+        v->customPiece[0] = "vR"; // Vertical slider
+        v->add_piece(CUSTOM_PIECES, 'l');
+        v->add_piece(KNIGHT, 'n');
+        v->add_piece(QUEEN, 'q');
+        v->startFen = "lnsgkqgsnl/1r6b1/pppppppppp/10/10/10/10/PPPPPPPPPP/1B6R1/LNSGQKGSNL[-] w 0 1";
+        v->promotionRank = RANK_8;
+        v->promotedPieceType[CUSTOM_PIECES] = GOLD;
+        v->promotedPieceType[KNIGHT] = GOLD;
+        return v;
+    }
+    // Capablanca chess
+    // https://en.wikipedia.org/wiki/Capablanca_chess
     Variant* capablanca_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
@@ -959,6 +1018,27 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Tencubed
+    // https://www.chessvariants.com/contests/10/tencubedchess.html
+    Variant* tencubed_variant() {
+        Variant* v = chess_variant_base();
+        v->pieceToCharTable = "PNBRQ.CAM...........WKpnbrq.cam...........wk";
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_J;
+        v->startFen = "2cwamwc2/1rnbqkbnr1/pppppppppp/10/10/10/10/PPPPPPPPPP/1RNBQKBNR1/2CWAMWC2 w - - 0 1";
+        v->add_piece(ARCHBISHOP, 'a');
+        v->add_piece(CHANCELLOR, 'm');
+        v->customPiece[0] = "DAW"; // Champion
+        v->customPiece[1] = "CF"; // Wizard
+        v->add_piece(CUSTOM_PIECES, 'c');
+        v->add_piece(CUSTOM_PIECES + 1, 'w');
+        v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN};
+        v->promotionRank = RANK_10;
+        v->doubleStepRank = RANK_3;
+        v->doubleStepRankMin = RANK_3;
+        v->castling = false;
+        return v;
+    }
     Variant* shako_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ.E....C.........Kpnbrq.e....c.........k";
@@ -1001,6 +1081,8 @@ namespace {
         return v;
     }
 #endif
+    // Xiangqi
+    // https://en.wikipedia.org/wiki/Xiangqi
     Variant* xiangqi_variant() {
         Variant* v = minixiangqi_variant();
         v->pieceToCharTable = "PN.R.AB..K.C..........pn.r.ab..k.c..........";
@@ -1164,6 +1246,8 @@ void VariantMap::init() {
     add("minixiangqi", minixiangqi_variant()->conclude());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant()->conclude());
+    add("yarishogi", yarishogi_variant()->conclude());
+    add("okisakishogi", okisakishogi_variant()->conclude());
     add("capablanca", capablanca_variant()->conclude());
     add("capahouse", capahouse_variant()->conclude());
     add("caparandom", caparandom_variant()->conclude());
@@ -1176,6 +1260,7 @@ void VariantMap::init() {
     add("jesonmor", jesonmor_variant()->conclude());
     add("courier", courier_variant()->conclude());
     add("grand", grand_variant()->conclude());
+    add("tencubed", tencubed_variant()->conclude());
     add("shako", shako_variant()->conclude());
     add("clobber10", clobber10_variant()->conclude());
 #ifdef ALLVARS
