@@ -129,28 +129,28 @@ namespace {
                   // Add moves
                   for (char mt : moveTypes)
                   {
-                      std::vector<Direction>& v = hopper ? (mt == 'c' ? p->hopperCapture : p->hopperQuiet)
-                                                 : rider ? (mt == 'c' ? p->sliderCapture : p->sliderQuiet)
-                                                         : (mt == 'c' ? p->stepsCapture : p->stepsQuiet);
+                      std::set<Direction>& v = hopper ? (mt == 'c' ? p->hopperCapture : p->hopperQuiet)
+                                              : rider ? (mt == 'c' ? p->sliderCapture : p->sliderQuiet)
+                                                      : (mt == 'c' ? p->stepsCapture : p->stepsQuiet);
                       auto has_dir = [&](std::string s) {
                         return std::find(directions.begin(), directions.end(), s) != directions.end();
                       };
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("rf") || has_dir("rv") || has_dir("fh") || has_dir("rh") || has_dir("hr"))
-                          v.push_back(Direction(atom.first * FILE_NB + atom.second));
+                          v.insert(Direction(atom.first * FILE_NB + atom.second));
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("lb") || has_dir("lv") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
-                          v.push_back(Direction(-atom.first * FILE_NB - atom.second));
+                          v.insert(Direction(-atom.first * FILE_NB - atom.second));
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("br") || has_dir("bs") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
-                          v.push_back(Direction(-atom.second * FILE_NB + atom.first));
+                          v.insert(Direction(-atom.second * FILE_NB + atom.first));
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("fl") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hr"))
-                          v.push_back(Direction(atom.second * FILE_NB - atom.first));
+                          v.insert(Direction(atom.second * FILE_NB - atom.first));
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("fr") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hl"))
-                          v.push_back(Direction(atom.second * FILE_NB + atom.first));
+                          v.insert(Direction(atom.second * FILE_NB + atom.first));
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("bl") || has_dir("bs") || has_dir("bh") || has_dir("lh") || has_dir("hl"))
-                          v.push_back(Direction(-atom.second * FILE_NB - atom.first));
+                          v.insert(Direction(-atom.second * FILE_NB - atom.first));
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("rb") || has_dir("rv") || has_dir("bh") || has_dir("rh") || has_dir("hl"))
-                          v.push_back(Direction(-atom.first * FILE_NB + atom.second));
+                          v.insert(Direction(-atom.first * FILE_NB + atom.second));
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("lf") || has_dir("lv") || has_dir("fh") || has_dir("lh") || has_dir("hl"))
-                          v.push_back(Direction(atom.first * FILE_NB - atom.second));
+                          v.insert(Direction(atom.first * FILE_NB - atom.second));
                   }
               }
               // Reset state
@@ -180,7 +180,8 @@ namespace {
   }
 }
 
-void PieceMap::init() {
+void PieceMap::init(const Variant* v) {
+  clear_all();
   add(PAWN, from_betza("fmWfceF", "pawn"));
   add(KNIGHT, from_betza("N", "knight"));
   add(BISHOP, from_betza("B", "bishop"));
@@ -221,6 +222,9 @@ void PieceMap::init() {
   add(COMMONER, from_betza("K", "commoner"));
   add(CENTAUR, from_betza("KN", "centaur"));
   add(KING, from_betza("K", "king"));
+  // Add custom pieces
+  for (PieceType pt = CUSTOM_PIECES; pt <= CUSTOM_PIECES_END; ++pt)
+      add(pt, from_betza(v != nullptr ? v->customPiece[pt - CUSTOM_PIECES] : "", ""));
 }
 
 void PieceMap::add(PieceType pt, const PieceInfo* p) {

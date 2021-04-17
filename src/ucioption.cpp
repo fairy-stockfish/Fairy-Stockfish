@@ -65,6 +65,8 @@ void on_variant_set(const Option &o) {
     Eval::NNUE::init();
 
     const Variant* v = variants.find(o)->second;
+    pieceMap.init(v);
+    Bitboards::init_pieces();
     PSQT::init(v);
 }
 void on_variant_change(const Option &o) {

@@ -21,9 +21,10 @@
 
 #include <string>
 #include <map>
-#include <vector>
+#include <set>
 
 #include "types.h"
+#include "variant.h"
 
 
 /// PieceInfo struct stores information about the piece movements.
@@ -31,17 +32,17 @@
 struct PieceInfo {
   std::string name = "";
   std::string betza = "";
-  std::vector<Direction> stepsQuiet = {};
-  std::vector<Direction> stepsCapture = {};
-  std::vector<Direction> sliderQuiet = {};
-  std::vector<Direction> sliderCapture = {};
-  std::vector<Direction> hopperQuiet = {};
-  std::vector<Direction> hopperCapture = {};
+  std::set<Direction> stepsQuiet = {};
+  std::set<Direction> stepsCapture = {};
+  std::set<Direction> sliderQuiet = {};
+  std::set<Direction> sliderCapture = {};
+  std::set<Direction> hopperQuiet = {};
+  std::set<Direction> hopperCapture = {};
   bool lameLeaper = false;
 };
 
 struct PieceMap : public std::map<PieceType, const PieceInfo*> {
-  void init();
+  void init(const Variant* v = nullptr);
   void add(PieceType pt, const PieceInfo* v);
   void clear_all();
 };
