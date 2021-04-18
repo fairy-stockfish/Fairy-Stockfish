@@ -651,10 +651,11 @@ namespace {
         v->pieceToCharTable = "PNBR.....G.++++Kpnbr.....g.++++k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_H;
-        v->add_piece(EUROSHOGI_KNIGHT, 'n');
+        v->customPiece[0] = "fNsW";
+        v->add_piece(CUSTOM_PIECES, 'n');
         v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
         v->promotionRank = RANK_6;
-        v->promotedPieceType[EUROSHOGI_KNIGHT] = GOLD;
+        v->promotedPieceType[CUSTOM_PIECES] = GOLD;
         v->mandatoryPiecePromotion = true;
         return v;
     }
@@ -757,7 +758,8 @@ namespace {
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
         v->reset_pieces();
-        v->add_piece(ATAXX_PIECE, 'p');
+        v->customPiece[0] = "mDmNmA";
+        v->add_piece(CUSTOM_PIECES, 'p');
         v->startFen = "P5p/7/7/7/7/7/p5P[PPPPPPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppppppp] w 0 1";
         v->promotionPieceTypes = {};
         v->pieceDrops = true;
@@ -1073,7 +1075,8 @@ namespace {
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->reset_pieces();
-        v->add_piece(QUIET_QUEEN, 'q');
+        v->customPiece[0] = "mQ";
+        v->add_piece(CUSTOM_PIECES, 'q');
         v->add_piece(IMMOBILE_PIECE, 'p');
         v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppppppppppppppppp] w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
