@@ -67,6 +67,7 @@ struct StateInfo {
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
+  Bitboard   nonSlidingRiders;
   Bitboard   flippedPieces;
   Bitboard   pseudoRoyals;
   OptBool    legalCapture;
@@ -946,7 +947,7 @@ inline Bitboard Position::major_pieces(Color c) const {
 }
 
 inline Bitboard Position::non_sliding_riders() const {
-  return pieces(CANNON, BANNER) | pieces(HORSE, ELEPHANT) | pieces(JANGGI_CANNON, JANGGI_ELEPHANT);
+  return st->nonSlidingRiders;
 }
 
 inline int Position::count(Color c, PieceType pt) const {

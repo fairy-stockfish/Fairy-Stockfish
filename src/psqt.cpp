@@ -32,6 +32,46 @@
 Value EvalPieceValue[PHASE_NB][PIECE_NB];
 Value CapturePieceValue[PHASE_NB][PIECE_NB];
 
+Value PieceValue[PHASE_NB][PIECE_NB] = {
+  {
+    VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, FersValueMg, AlfilValueMg,
+    FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg, ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg,
+    BiskniValueMg, KnirooValueMg, RookniValueMg, ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg,
+    DragonHorseValueMg, ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, AtaxxPieceValueMg, QuietQueenPieceValueMg, CannonPieceValueMg, JanggiCannonPieceValueMg,
+    SoldierValueMg, HorseValueMg, ElephantValueMg, JanggiElephantValueMg, BannerValueMg, WazirValueMg, CommonerValueMg, CentaurValueMg,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+
+    VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, FersValueMg, AlfilValueMg,
+    FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg, ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg,
+    BiskniValueMg, KnirooValueMg, RookniValueMg, ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, EuroShogiKnightValueMg, GoldValueMg,
+    DragonHorseValueMg, ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, AtaxxPieceValueMg, QuietQueenPieceValueMg, CannonPieceValueMg, JanggiCannonPieceValueMg,
+    SoldierValueMg, HorseValueMg, ElephantValueMg, JanggiElephantValueMg, BannerValueMg, WazirValueMg, CommonerValueMg, CentaurValueMg,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+  },
+  {
+    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, FersValueEg, AlfilValueEg,
+    FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg, ArchbishopValueEg, ChancellorValueEg, AmazonValueEg, KnibisValueEg,
+    BiskniValueEg, KnirooValueEg, RookniValueEg, ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg,
+    DragonHorseValueEg, ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, AtaxxPieceValueEg, QuietQueenPieceValueEg, CannonPieceValueEg, JanggiCannonPieceValueEg,
+    SoldierValueEg, HorseValueEg, ElephantValueEg, JanggiElephantValueEg, BannerValueEg, WazirValueEg, CommonerValueEg, CentaurValueEg,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+
+    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, FersValueEg, AlfilValueEg,
+    FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg, ArchbishopValueEg, ChancellorValueEg, AmazonValueEg, KnibisValueEg,
+    BiskniValueEg, KnirooValueEg, RookniValueEg, ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, EuroShogiKnightValueEg, GoldValueEg,
+    DragonHorseValueEg, ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, AtaxxPieceValueEg, QuietQueenPieceValueEg, CannonPieceValueEg, JanggiCannonPieceValueEg,
+    SoldierValueEg, HorseValueEg, ElephantValueEg, JanggiElephantValueEg, BannerValueEg, WazirValueEg, CommonerValueEg, CentaurValueEg,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+  },
+};
 
 
 namespace
@@ -108,6 +148,21 @@ constexpr Score PBonus[RANK_NB][FILE_NB] =
    { S( -7, -1), S(  6,-14), S( -2, 13), S(-11, 22), S(  4, 24), S(-14, 17), S( 10,  7), S( -9,  7) }
   };
 
+// Estimate piece value
+Value piece_value(Phase phase, PieceType pt)
+{
+    const PieceInfo* pi = pieceMap.find(pt)->second;
+    return Value(   70 * pi->stepsCapture.size()
+                 +  40 * pi->stepsQuiet.size()
+                 + 150 * pi->sliderCapture.size()
+                 +  80 * pi->sliderQuiet.size()
+                 // Rook sliding directions are more valuable
+                 +  60 * std::count_if(pi->sliderQuiet.begin(), pi->sliderQuiet.end(), [](Direction d) { return std::abs(d) == NORTH || std::abs(d) == 1; })
+                 // Hoppers are more useful with more pieces on the board
+                 + (phase == MG ? 120 : 80) * pi->hopperCapture.size()
+                 + (phase == MG ?  80 : 60) * pi->hopperQuiet.size());
+}
+
 } // namespace
 
 
@@ -123,8 +178,16 @@ void init(const Variant* v) {
 
   PieceType strongestPiece = NO_PIECE_TYPE;
   for (PieceType pt : v->pieceTypes)
+  {
+      if (pt >= CUSTOM_PIECES && pt <= CUSTOM_PIECES_END)
+      {
+          PieceValue[MG][pt] = piece_value(MG, pt);
+          PieceValue[EG][pt] = piece_value(EG, pt);
+      }
+
       if (PieceValue[MG][pt] > PieceValue[MG][strongestPiece])
           strongestPiece = pt;
+  }
 
   Value maxPromotion = VALUE_ZERO;
   for (PieceType pt : v->promotionPieceTypes)
@@ -202,12 +265,18 @@ void init(const Variant* v) {
               score += make_score(std::max(QueenValueMg - PieceValue[MG][pt], VALUE_ZERO) / 20,
                                   std::max(QueenValueEg - PieceValue[EG][pt], VALUE_ZERO) / 20);
 
-      CapturePieceValue[MG][pc] = CapturePieceValue[MG][~pc] = mg_value(score);
-      CapturePieceValue[EG][pc] = CapturePieceValue[EG][~pc] = eg_value(score);
-
       // For antichess variants, use negative piece values
       if (v->extinctionValue == VALUE_MATE)
           score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
+
+      // Override variant piece value
+      if (v->pieceValue[MG][pt])
+          score = make_score(v->pieceValue[MG][pt], eg_value(score));
+      if (v->pieceValue[EG][pt])
+          score = make_score(mg_value(score), v->pieceValue[EG][pt]);
+
+      CapturePieceValue[MG][pc] = CapturePieceValue[MG][~pc] = mg_value(score);
+      CapturePieceValue[EG][pc] = CapturePieceValue[EG][~pc] = eg_value(score);
 
       // For drop variants, halve the piece values to compensate for double changes by captures
       if (v->capturesToHand)

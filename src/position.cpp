@@ -527,8 +527,14 @@ void Position::set_check_info(StateInfo* si) const {
   Square ksq = count<KING>(~sideToMove) ? square<KING>(~sideToMove) : SQ_NONE;
 
   // For unused piece types, the check squares are left uninitialized
+  si->nonSlidingRiders = 0;
   for (PieceType pt : piece_types())
+  {
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, pt, ksq, pieces()) : Bitboard(0);
+      // Collect special piece types that require slower check and evasion detection
+      if (AttackRiderTypes[pt] & NON_SLIDING_RIDERS)
+          si->nonSlidingRiders |= pieces(pt);
+  }
   si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;

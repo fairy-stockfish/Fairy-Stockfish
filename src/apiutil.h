@@ -15,6 +15,10 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+#ifndef APIUTIL_H_INCLUDED
+#define APIUTIL_H_INCLUDED
+
 #include <vector>
 #include <string>
 #include <sstream>
@@ -23,6 +27,7 @@
 #include <math.h>
 
 #include "types.h"
+#include "position.h"
 #include "variant.h"
 
 
@@ -41,7 +46,7 @@ enum Notation {
     NOTATION_XIANGQI_WXF,
 };
 
-Notation default_notation(const Variant* v) {
+inline Notation default_notation(const Variant* v) {
     if (v->variantTemplate == "shogi")
         return NOTATION_SHOGI_HODGES_NUMBER;
     return NOTATION_SAN;
@@ -56,11 +61,11 @@ enum Disambiguation {
     SQUARE_DISAMBIGUATION,
 };
 
-bool is_shogi(Notation n) {
+inline bool is_shogi(Notation n) {
     return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES || n == NOTATION_SHOGI_HODGES_NUMBER;
 }
 
-std::string piece(const Position& pos, Move m, Notation n) {
+inline std::string piece(const Position& pos, Move m, Notation n) {
     Color us = pos.side_to_move();
     Square from = from_sq(m);
     Piece pc = pos.moved_piece(m);
@@ -83,7 +88,7 @@ std::string piece(const Position& pos, Move m, Notation n) {
         return std::string(1, toupper(pos.piece_to_char()[pc]));
 }
 
-std::string file(const Position& pos, Square s, Notation n) {
+inline std::string file(const Position& pos, Square s, Notation n) {
     switch (n)
     {
     case NOTATION_SHOGI_HOSKING:
@@ -99,7 +104,7 @@ std::string file(const Position& pos, Square s, Notation n) {
     }
 }
 
-std::string rank(const Position& pos, Square s, Notation n) {
+inline std::string rank(const Position& pos, Square s, Notation n) {
     switch (n)
     {
     case NOTATION_SHOGI_HOSKING:
@@ -123,7 +128,7 @@ std::string rank(const Position& pos, Square s, Notation n) {
     }
 }
 
-std::string square(const Position& pos, Square s, Notation n) {
+inline std::string square(const Position& pos, Square s, Notation n) {
     switch (n)
     {
     case NOTATION_JANGGI:
@@ -133,7 +138,7 @@ std::string square(const Position& pos, Square s, Notation n) {
     }
 }
 
-Disambiguation disambiguation_level(const Position& pos, Move m, Notation n) {
+inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation n) {
     // Drops never need disambiguation
     if (type_of(m) == DROP)
         return NO_DISAMBIGUATION;
@@ -197,7 +202,7 @@ Disambiguation disambiguation_level(const Position& pos, Move m, Notation n) {
         return SQUARE_DISAMBIGUATION;
 }
 
-std::string disambiguation(const Position& pos, Square s, Notation n, Disambiguation d) {
+inline std::string disambiguation(const Position& pos, Square s, Notation n, Disambiguation d) {
     switch (d)
     {
     case FILE_DISAMBIGUATION:
@@ -212,7 +217,7 @@ std::string disambiguation(const Position& pos, Square s, Notation n, Disambigua
     }
 }
 
-const std::string move_to_san(Position& pos, Move m, Notation n) {
+inline const std::string move_to_san(Position& pos, Move m, Notation n) {
     std::string san = "";
     Color us = pos.side_to_move();
     Square from = from_sq(m);
@@ -287,7 +292,7 @@ const std::string move_to_san(Position& pos, Move m, Notation n) {
 
 } // namespace SAN
 
-bool has_insufficient_material(Color c, const Position& pos) {
+inline bool has_insufficient_material(Color c, const Position& pos) {
 
     // Other win rules
     if (   pos.captures_to_hand()
@@ -350,18 +355,18 @@ struct CharSquare {
     int rowIdx;
     int fileIdx;
     CharSquare() : rowIdx(-1), fileIdx(-1) {}
-    CharSquare(int rowIdx, int fileIdx) : rowIdx(rowIdx), fileIdx(fileIdx) {}
+    CharSquare(int row, int file) : rowIdx(row), fileIdx(file) {}
 };
 
-bool operator==(const CharSquare& s1, const CharSquare& s2) {
+inline bool operator==(const CharSquare& s1, const CharSquare& s2) {
     return s1.rowIdx == s2.rowIdx && s1.fileIdx == s2.fileIdx;
 }
 
-bool operator!=(const CharSquare& s1, const CharSquare& s2) {
+inline bool operator!=(const CharSquare& s1, const CharSquare& s2) {
     return !(s1 == s2);
 }
 
-int non_root_euclidian_distance(const CharSquare& s1, const CharSquare& s2) {
+inline int non_root_euclidian_distance(const CharSquare& s1, const CharSquare& s2) {
     return pow(s1.rowIdx - s2.rowIdx, 2) + pow(s1.fileIdx - s2.fileIdx, 2);
 }
 
@@ -371,7 +376,7 @@ private:
     int nbFiles;
     std::vector<char> board;  // fill an array where the pieces are for later geometry checks
 public:
-    CharBoard(int nbRanks, int nbFiles) : nbRanks(nbRanks), nbFiles(nbFiles) {
+    CharBoard(int ranks, int files) : nbRanks(ranks), nbFiles(files) {
         assert(nbFiles > 0 && nbRanks > 0);
         board = std::vector<char>(nbRanks * nbFiles, ' ');
     }
@@ -423,7 +428,7 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const CharBoard& board);
 };
 
-std::ostream& operator<<(std::ostream& os, const CharBoard& board) {
+inline std::ostream& operator<<(std::ostream& os, const CharBoard& board) {
     for (int r = 0; r < board.nbRanks; ++r)
     {
         for (int c = 0; c < board.nbFiles; ++c)
@@ -433,7 +438,7 @@ std::ostream& operator<<(std::ostream& os, const CharBoard& board) {
     return os;
 }
 
-Validation check_for_valid_characters(const std::string& firstFenPart, const std::string& validSpecialCharacters, const Variant* v) {
+inline Validation check_for_valid_characters(const std::string& firstFenPart, const std::string& validSpecialCharacters, const Variant* v) {
     for (char c : firstFenPart)
     {
         if (!isdigit(c) && v->pieceToChar.find(c) == std::string::npos && v->pieceToCharSynonyms.find(c) == std::string::npos && validSpecialCharacters.find(c) == std::string::npos)
@@ -445,7 +450,7 @@ Validation check_for_valid_characters(const std::string& firstFenPart, const std
     return OK;
 }
 
-std::vector<std::string> get_fen_parts(const std::string& fullFen, char delim) {
+inline std::vector<std::string> get_fen_parts(const std::string& fullFen, char delim) {
     std::vector<std::string> fenParts;
     std::string curPart;
     std::stringstream ss(fullFen);
@@ -455,7 +460,7 @@ std::vector<std::string> get_fen_parts(const std::string& fullFen, char delim) {
 }
 
 /// fills the character board according to a given FEN string
-Validation fill_char_board(CharBoard& board, const std::string& fenBoard, const std::string& validSpecialCharacters, const Variant* v) {
+inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard, const std::string& validSpecialCharacters, const Variant* v) {
     int rankIdx = 0;
     int fileIdx = 0;
 
@@ -515,7 +520,7 @@ Validation fill_char_board(CharBoard& board, const std::string& fenBoard, const 
     return OK;
 }
 
-Validation check_touching_kings(const CharBoard& board, const std::array<CharSquare, 2>& kingPositions) {
+inline Validation check_touching_kings(const CharBoard& board, const std::array<CharSquare, 2>& kingPositions) {
     if (non_root_euclidian_distance(kingPositions[WHITE], kingPositions[BLACK]) <= 2)
     {
         std::cerr << "King pieces are next to each other." << std::endl;
@@ -525,7 +530,7 @@ Validation check_touching_kings(const CharBoard& board, const std::array<CharSqu
     return OK;
 }
 
-Validation fill_castling_info_splitted(const std::string& castlingInfo, std::array<std::string, 2>& castlingInfoSplitted) {
+inline Validation fill_castling_info_splitted(const std::string& castlingInfo, std::array<std::string, 2>& castlingInfoSplitted) {
     for (char c : castlingInfo)
     {
         if (c != '-')
@@ -544,7 +549,7 @@ Validation fill_castling_info_splitted(const std::string& castlingInfo, std::arr
     return OK;
 }
 
-std::string color_to_string(Color c) {
+inline std::string color_to_string(Color c) {
     switch (c)
     {
     case WHITE:
@@ -558,7 +563,7 @@ std::string color_to_string(Color c) {
     }
 }
 
-std::string castling_rights_to_string(CastlingRights castlingRights) {
+inline std::string castling_rights_to_string(CastlingRights castlingRights) {
     switch (castlingRights)
     {
     case KING_SIDE:
@@ -586,7 +591,7 @@ std::string castling_rights_to_string(CastlingRights castlingRights) {
     }
 }
 
-Validation check_castling_rank(const std::array<std::string, 2>& castlingInfoSplitted, const CharBoard& board, const Variant* v) {
+inline Validation check_castling_rank(const std::array<std::string, 2>& castlingInfoSplitted, const CharBoard& board, const Variant* v) {
 
     for (Color c : {WHITE, BLACK})
     {
@@ -606,7 +611,7 @@ Validation check_castling_rank(const std::array<std::string, 2>& castlingInfoSpl
     return OK;
 }
 
-Validation check_standard_castling(std::array<std::string, 2>& castlingInfoSplitted, const CharBoard& board,
+inline Validation check_standard_castling(std::array<std::string, 2>& castlingInfoSplitted, const CharBoard& board,
                              const std::array<CharSquare, 2>& kingPositions, const std::array<CharSquare, 2>& kingPositionsStart,
                              const std::array<std::vector<CharSquare>, 2>& rookPositionsStart, const Variant* v) {
 
@@ -640,7 +645,7 @@ Validation check_standard_castling(std::array<std::string, 2>& castlingInfoSplit
     return OK;
 }
 
-Validation check_pocket_info(const std::string& fenBoard, int nbRanks, const Variant* v, std::string& pocket) {
+inline Validation check_pocket_info(const std::string& fenBoard, int nbRanks, const Variant* v, std::string& pocket) {
 
     char stopChar;
     int offset = 0;
@@ -682,11 +687,11 @@ Validation check_pocket_info(const std::string& fenBoard, int nbRanks, const Var
     return NOK;
 }
 
-int piece_count(const std::string& fenBoard, Color c, PieceType pt, const Variant* v) {
+inline int piece_count(const std::string& fenBoard, Color c, PieceType pt, const Variant* v) {
     return std::count(fenBoard.begin(), fenBoard.end(), v->pieceToChar[make_piece(c, pt)]);
 }
 
-Validation check_number_of_kings(const std::string& fenBoard, const std::string& startFenBoard, const Variant* v) {
+inline Validation check_number_of_kings(const std::string& fenBoard, const std::string& startFenBoard, const Variant* v) {
     int nbWhiteKings = piece_count(fenBoard, WHITE, KING, v);
     int nbBlackKings = piece_count(fenBoard, BLACK, KING, v);
     int nbWhiteKingsStart = piece_count(startFenBoard, WHITE, KING, v);
@@ -706,7 +711,7 @@ Validation check_number_of_kings(const std::string& fenBoard, const std::string&
 }
 
 
-Validation check_en_passant_square(const std::string& enPassantInfo) {
+inline Validation check_en_passant_square(const std::string& enPassantInfo) {
     if (enPassantInfo.size() != 1 || enPassantInfo[0] != '-')
     {
         if (enPassantInfo.size() != 2)
@@ -729,7 +734,7 @@ Validation check_en_passant_square(const std::string& enPassantInfo) {
 }
 
 
-Validation check_check_count(const std::string& checkCountInfo) {
+inline Validation check_check_count(const std::string& checkCountInfo) {
     if (checkCountInfo.size() != 3)
     {
         std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 3 characters. Actual: " << checkCountInfo.size() << " character(s)." << std::endl;
@@ -748,7 +753,7 @@ Validation check_check_count(const std::string& checkCountInfo) {
 }
 
 
-Validation check_digit_field(const std::string& field) {
+inline Validation check_digit_field(const std::string& field) {
     if (field.size() == 1 && field[0] == '-')
         return OK;
     for (char c : field)
@@ -758,7 +763,7 @@ Validation check_digit_field(const std::string& field) {
 }
 
 
-FenValidation validate_fen(const std::string& fen, const Variant* v, bool chess960 = false) {
+inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool chess960 = false) {
 
     const std::string validSpecialCharacters = "/+~[]-";
     // 0) Layout
@@ -915,3 +920,5 @@ FenValidation validate_fen(const std::string& fen, const Variant* v, bool chess9
     return FEN_OK;
 }
 } // namespace FEN
+
+#endif // #ifndef APIUTIL_H_INCLUDED

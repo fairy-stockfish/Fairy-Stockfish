@@ -118,6 +118,7 @@ fi
 # large-board variants
 if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp shogi startpos 4 719731 > /dev/null
+  expect perft.exp yarishogi startpos 4 158404 > /dev/null  # configurable pieces
   expect perft.exp capablanca startpos 4 805128 > /dev/null
   expect perft.exp embassy startpos 4 809539 > /dev/null
   expect perft.exp janus startpos 4 772074 > /dev/null
