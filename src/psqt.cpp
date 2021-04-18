@@ -322,6 +322,9 @@ void init(const Variant* v) {
           // In atomic variants pieces are "self-defending" and should therefore be pushed forward
           if (v->blastOnCapture)
               psq[pc][s] += make_score(40, 0) * (r - v->maxRank / 2);
+          // Safe king squares
+          if (r == RANK_1 && f <= FILE_B && ((pt == KING && v->checkCounting) || (pt == COMMONER && v->blastOnCapture)))
+              psq[pc][s] += make_score(100, 0);
           psq[~pc][rank_of(s) <= v->maxRank ? flip_rank(s, v->maxRank) : s] = -psq[pc][s];
       }
       // Pieces in hand
