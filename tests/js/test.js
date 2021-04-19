@@ -484,7 +484,7 @@ describe('board.toVerboseString()', function () {
                                                    "   a   b   c   d   e   f   g   h   i\n\n" +
                                                    "Fen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1\n" +
                                                    "Sfen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR b - 1\n" +
-                                                   "Key: 7D2D4DD861009613\nCheckers: ");
+                                                   "Key: CF494C075A7D927E\nCheckers: ");
     board2.delete();
   });
 });

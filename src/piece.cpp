@@ -203,14 +203,11 @@ void PieceMap::init(const Variant* v) {
   add(SHOGI_PAWN, from_betza("fW", "shogiPawn"));
   add(LANCE, from_betza("fR", "lance"));
   add(SHOGI_KNIGHT, from_betza("fN", "shogiKnight"));
-  add(EUROSHOGI_KNIGHT, from_betza("fNsW", "euroshogiKnight"));
   add(GOLD, from_betza("WfF", "gold"));
   add(DRAGON_HORSE, from_betza("BW", "dragonHorse"));
   add(CLOBBER_PIECE, from_betza("cW", "clobber"));
   add(BREAKTHROUGH_PIECE, from_betza("fWfFcF", "breakthrough"));
   add(IMMOBILE_PIECE, from_betza("", "immobile"));
-  add(ATAXX_PIECE, from_betza("mDmNmA", "ataxx"));
-  add(QUIET_QUEEN, from_betza("mQ", "quietQueen"));
   add(CANNON, from_betza("mRcpR", "cannon"));
   add(JANGGI_CANNON, from_betza("pR", "janggiCannon"));
   add(SOLDIER, from_betza("fsW", "soldier"));
