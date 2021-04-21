@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <math.h>
 
 #include "bitboard.h"
 #include "types.h"
@@ -152,15 +153,17 @@ constexpr Score PBonus[RANK_NB][FILE_NB] =
 Value piece_value(Phase phase, PieceType pt)
 {
     const PieceInfo* pi = pieceMap.find(pt)->second;
-    return Value(   70 * pi->stepsCapture.size()
-                 +  40 * pi->stepsQuiet.size()
-                 + 150 * pi->sliderCapture.size()
-                 +  80 * pi->sliderQuiet.size()
-                 // Rook sliding directions are more valuable
-                 +  60 * std::count_if(pi->sliderQuiet.begin(), pi->sliderQuiet.end(), [](Direction d) { return std::abs(d) == NORTH || std::abs(d) == 1; })
-                 // Hoppers are more useful with more pieces on the board
-                 + (phase == MG ? 120 : 80) * pi->hopperCapture.size()
-                 + (phase == MG ?  80 : 60) * pi->hopperQuiet.size());
+    int v0 =  (phase == MG ?  55 :  60) * pi->stepsCapture.size()
+            + (phase == MG ?  30 :  40) * pi->stepsQuiet.size()
+            + (phase == MG ? 185 : 180) * pi->sliderCapture.size()
+            + (phase == MG ?  55 :  50) * pi->sliderQuiet.size()
+            // Hoppers are more useful with more pieces on the board
+            + (phase == MG ? 100 :  80) * pi->hopperCapture.size()
+            + (phase == MG ?  80 :  60) * pi->hopperQuiet.size()
+            // Rook sliding directions are more valuable, especially in endgame
+            + (phase == MG ?  10 :  30) * std::count_if(pi->sliderCapture.begin(), pi->sliderCapture.end(), [](Direction d) { return std::abs(d) == NORTH || std::abs(d) == 1; })
+            + (phase == MG ?  30 :  45) * std::count_if(pi->sliderQuiet.begin(), pi->sliderQuiet.end(), [](Direction d) { return std::abs(d) == NORTH || std::abs(d) == 1; });
+    return Value(v0 * exp(double(v0) / 10000));
 }
 
 } // namespace
