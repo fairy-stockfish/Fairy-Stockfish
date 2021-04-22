@@ -628,7 +628,7 @@ namespace {
 
     Score score = SCORE_ZERO;
 
-    if (pos.count_in_hand(Us, pt) > 0)
+    if (pos.count_in_hand(Us, pt) > 0 && pt != KING)
     {
         Bitboard b = pos.drop_region(Us, pt) & ~pos.pieces() & (~attackedBy2[Them] | attackedBy[Us][ALL_PIECES]);
         if ((b & kingRing[Them]) && pt != SHOGI_PAWN)
@@ -1478,7 +1478,7 @@ namespace {
 
     // Evaluate pieces in hand once attack tables are complete
     if (pos.piece_drops() || pos.seirawan_gating())
-        for (PieceType pt = PAWN; pt < KING; ++pt)
+        for (PieceType pt : pos.piece_types())
             score += hand<WHITE>(pt) - hand<BLACK>(pt);
 
     score += (mobility[WHITE] - mobility[BLACK]) * (1 + pos.captures_to_hand() + pos.must_capture() + pos.check_counting());
