@@ -1467,13 +1467,14 @@ namespace {
         goto make_v;
 
     // Main evaluation begins here
+    std::memset(attackedBy, 0, sizeof(attackedBy));
     initialize<WHITE>();
     initialize<BLACK>();
 
     // Pieces evaluated first (also populates attackedBy, attackedBy2).
     // For unused piece types, we still need to set attack bitboard to zero.
-    for (PieceType pt = KNIGHT; pt < KING; ++pt)
-        if (pt != SHOGI_PAWN)
+    for (PieceType pt : pos.piece_types())
+        if (pt != SHOGI_PAWN && pt != PAWN && pt != KING)
             score += pieces<WHITE>(pt) - pieces<BLACK>(pt);
 
     // Evaluate pieces in hand once attack tables are complete
