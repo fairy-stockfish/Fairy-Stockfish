@@ -59,6 +59,15 @@ promotionPieceTypes = qh
 flagPiece = k
 whiteFlag = *8
 blackFlag = *1
+
+[diana:losalamos]
+pieceToCharTable = PNBRQ................Kpnbrq................k
+bishop = b
+promotionPieceTypes = rbn
+castling = true
+castlingKingsideFile = e
+castlingQueensideFile = b
+startFen = rbnkbr/pppppp/6/6/PPPPPP/RBNKBR w KQkq - 0 1
 """
 
 sf.load_variant_config(ini_text)
@@ -264,6 +273,11 @@ class TestPyffish(unittest.TestCase):
         moves = ['f2f4', 'g7g6', 'g1d4', 'j7j6', 'h1g3', 'b8a6', 'i1h3', 'h7h6']
         result = sf.legal_moves("capablanca", CAPA, moves)
         self.assertIn("f1i1", result)
+
+        # Check that chess960 castling notation is used for otherwise ambiguous castling move
+        # d1e1 is a normal king move, so castling has to be d1f1
+        result = sf.legal_moves("diana", "rbnk1r/pppbpp/3p2/5P/PPPPPB/RBNK1R w KQkq - 2 3", [])
+        self.assertIn("d1f1", result)
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
