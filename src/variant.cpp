@@ -625,6 +625,8 @@ namespace {
         v->dropNoDoubled = NO_PIECE_TYPE;
         return v;
     }
+    // Goro goro shogi
+    // https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi#Variation
     Variant* gorogoroshogi_variant() {
         Variant* v = minishogi_variant_base();
         v->pieceToCharTable = "P....S...G.+....+Kp....s...g.+....+k";
@@ -635,6 +637,8 @@ namespace {
         v->promotionRank = RANK_5;
         return v;
     }
+    // Judkins shogi
+    // https://en.wikipedia.org/wiki/Judkins_shogi
     Variant* judkinsshogi_variant() {
         Variant* v = minishogi_variant_base();
         v->pieceToCharTable = "PNBR.S...G.++++.+Kpnbr.s...g.++++.+k";
@@ -646,6 +650,8 @@ namespace {
         v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
         return v;
     }
+    // EuroShogi
+    // https://en.wikipedia.org/wiki/EuroShogi
     Variant* euroshogi_variant() {
         Variant* v = minishogi_variant_base();
         v->pieceToCharTable = "PNBR.....G.++++Kpnbr.....g.++++k";
@@ -659,6 +665,8 @@ namespace {
         v->mandatoryPiecePromotion = true;
         return v;
     }
+    // Los Alamos chess
+    // https://en.wikipedia.org/wiki/Los_Alamos_chess
     Variant* losalamos_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PN.RQ................Kpn.rq................k";
@@ -672,6 +680,8 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Gardner's minichess
+    // https://en.wikipedia.org/wiki/Minichess#5%C3%975_chess
     Variant* gardner_variant() {
         Variant* v = chess_variant_base();
         v->maxRank = RANK_5;
@@ -800,6 +810,8 @@ namespace {
         return v;
     }
 #ifdef LARGEBOARDS
+    // Shogi (Japanese chess)
+    // https://en.wikipedia.org/wiki/Shogi
     Variant* shogi_variant() {
         Variant* v = minishogi_variant_base();
         v->maxRank = RANK_9;
@@ -1084,7 +1096,7 @@ namespace {
         return v;
     }
 #endif
-    // Xiangqi
+    // Xiangqi (Chinese chess)
     // https://en.wikipedia.org/wiki/Xiangqi
     Variant* xiangqi_variant() {
         Variant* v = minixiangqi_variant();
@@ -1104,6 +1116,7 @@ namespace {
         return v;
     }
     // Manchu/Yitong chess
+    // Asymmetric Xiangqi variant with a super-piece
     // https://en.wikipedia.org/wiki/Manchu_chess
     Variant* manchu_variant() {
         Variant* v = xiangqi_variant();
