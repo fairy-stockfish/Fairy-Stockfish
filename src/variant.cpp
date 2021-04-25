@@ -182,6 +182,7 @@ namespace {
     }
     // Amazon chess
     // The queen has the additional power of moving like a knight.
+    // https://www.chessvariants.com/diffmove.dir/amazone.html
     Variant* amazon_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR..............AKpnbr..............ak";
@@ -692,6 +693,9 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Almost chess
+    // Queens are replaced by chancellors
+    // https://en.wikipedia.org/wiki/Almost_chess
     Variant* almost_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR............CKpnbr............ck";
@@ -701,6 +705,9 @@ namespace {
         v->promotionPieceTypes = {CHANCELLOR, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Chigorin chess
+    // Asymmetric variant with knight vs. bishop movements
+    // https://www.chessvariants.com/diffsetup.dir/chigorin.html
     Variant* chigorin_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR............CKpnbrq............k";
@@ -709,6 +716,8 @@ namespace {
         v->promotionPieceTypes = {QUEEN, CHANCELLOR, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Shatar (Mongolian chess)
+    // https://en.wikipedia.org/wiki/Shatar
     Variant* shatar_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR..........J......Kpnbr..........j......k";
@@ -724,6 +733,9 @@ namespace {
         v->shatarMateRule = true;
         return v;
     }
+    // Coregal chess
+    // Queens are also subject to check and checkmate
+    // https://www.chessvariants.com/winning.dir/coregal.html
     Variant* coregal_variant() {
         Variant* v = chess_variant_base();
         v->extinctionValue = -VALUE_MATE;
@@ -732,6 +744,8 @@ namespace {
         v->extinctionPieceCount = 64; // no matter how many queens, all are royal
         return v;
     }
+    // Clobber
+    // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "P.................p.................";
@@ -747,6 +761,8 @@ namespace {
         v->immobilityIllegal = false;
         return v;
     }
+    // Breakthrough
+    // https://en.wikipedia.org/wiki/Breakthrough_(board_game)
     Variant* breakthrough_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "P.................p.................";
@@ -762,6 +778,8 @@ namespace {
         v->blackFlag = Rank1BB;
         return v;
     }
+    // Ataxx
+    // https://en.wikipedia.org/wiki/Ataxx
     Variant* ataxx_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "P.................p.................";
@@ -784,6 +802,8 @@ namespace {
         v->materialCounting = UNWEIGHTED_MATERIAL;
         return v;
     }
+    // Minixiangqi
+    // http://mlwi.magix.net/bg/minixiangqi.htm
     Variant* minixiangqi_variant() {
         Variant* v = chess_variant_base();
         v->variantTemplate = "xiangqi";
@@ -897,6 +917,9 @@ namespace {
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Capahouse
+    // Capablanca chess with crazyhouse-style piece drops
+    // https://www.pychess.org/variant/capahouse
     Variant* capahouse_variant() {
         Variant* v = capablanca_variant();
         v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1";
@@ -904,16 +927,25 @@ namespace {
         v->capturesToHand = true;
         return v;
     }
+    // Capablanca random chess (CRC)
+    // Shuffle variant of capablanca chess
+    // https://en.wikipedia.org/wiki/Capablanca_random_chess
     Variant* caparandom_variant() {
         Variant* v = capablanca_variant();
         v->chess960 = true;
         return v;
     }
+    // Gothic chess
+    // Capablanca chess with changed starting position
+    // https://www.chessvariants.com/large.dir/gothicchess.html
     Variant* gothic_variant() {
         Variant* v = capablanca_variant();
         v->startFen = "rnbqckabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQCKABNR w KQkq - 0 1";
         return v;
     }
+    // Janus chess
+    // 10x8 variant with two archbishops per side
+    // https://en.wikipedia.org/wiki/Janus_Chess
     Variant* janus_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ............J...Kpnbrq............j...k";
@@ -926,6 +958,9 @@ namespace {
         v->promotionPieceTypes = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Modern chess
+    // 9x9 variant with archbishops
+    // https://en.wikipedia.org/wiki/Modern_chess
     Variant* modern_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ..M.............Kpnbrq..m.............k";
@@ -939,6 +974,9 @@ namespace {
         v->promotionPieceTypes = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Chancellor chess
+    // 9x9 variant with chancellors
+    // https://en.wikipedia.org/wiki/Chancellor_chess
     Variant* chancellor_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ...........CKpnbrq...........ck";
@@ -952,6 +990,9 @@ namespace {
         v->promotionPieceTypes = {CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Embassy chess
+    // Capablanca chess with different starting position
+    // https://en.wikipedia.org/wiki/Embassy_chess
     Variant* embassy_variant() {
         Variant* v = capablanca_variant();
         v->castlingKingsideFile = FILE_H;
@@ -959,6 +1000,9 @@ namespace {
         v->startFen = "rnbqkcabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQKCABNR w KQkq - 0 1";
         return v;
     }
+    // Centaur chess (aka Royal Court)
+    // 10x8 variant with a knight+commoner compound
+    // https://www.chessvariants.com/large.dir/contest/royalcourt.html
     Variant* centaur_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ...............CKpnbrq...............ck";
@@ -971,6 +1015,9 @@ namespace {
         v->promotionPieceTypes = {CENTAUR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Jeson mor
+    // Mongolian chess variant with knights only and a king of the hill like goal
+    // https://en.wikipedia.org/wiki/Jeson_Mor
     Variant* jesonmor_variant() {
         Variant* v = chess_variant_base();
         v->maxRank = RANK_9;
@@ -988,6 +1035,9 @@ namespace {
         v->flagMove = true;
         return v;
     }
+    // Courier chess
+    // Medieval variant of Shatranj on a 12x8 board
+    // https://en.wikipedia.org/wiki/Courier_chess
     Variant* courier_variant() {
         Variant* v = chess_variant_base();
         v->maxRank = RANK_8;
@@ -1009,6 +1059,9 @@ namespace {
         v->stalemateValue = -VALUE_MATE;
         return v;
     }
+    // Grand chess
+    // 10x10 variant with chancellors and archbishops
+    // https://en.wikipedia.org/wiki/Grand_chess
     Variant* grand_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
@@ -1053,6 +1106,9 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Shako
+    // 10x10 variant with cannons by Jean-Louis Cazaux
+    // https://www.chessvariants.com/large.dir/shako.html
     Variant* shako_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ.E....C.........Kpnbrq.e....c.........k";
@@ -1070,6 +1126,9 @@ namespace {
         v->doubleStepRankMin = RANK_3;
         return v;
     }
+    // Clobber 10x10
+    // Clobber on a 10x10, mainly played by computers
+    // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber10_variant() {
         Variant* v = clobber_variant();
         v->maxRank = RANK_10;
