@@ -29,6 +29,8 @@
 #include "piece.h"
 #include "variant.h"
 #include "misc.h"
+#include "uci.h"
+
 
 Value EvalPieceValue[PHASE_NB][PIECE_NB];
 Value CapturePieceValue[PHASE_NB][PIECE_NB];
@@ -63,6 +65,29 @@ Value PieceValue[PHASE_NB][PIECE_NB] = {
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
 
+    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, FersValueEg, AlfilValueEg,
+    FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg, ArchbishopValueEg, ChancellorValueEg, AmazonValueEg, KnibisValueEg,
+    BiskniValueEg, KnirooValueEg, RookniValueEg, ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, GoldValueEg, DragonHorseValueEg,
+    ClobberPieceValueEg, BreakthroughPieceValueEg, ImmobilePieceValueEg, CannonPieceValueEg, JanggiCannonPieceValueEg, SoldierValueEg, HorseValueEg, ElephantValueEg,
+    JanggiElephantValueEg, BannerValueEg, WazirValueEg, CommonerValueEg, CentaurValueEg, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+  },
+};
+
+Value pieceValue[PHASE_NB][PIECE_TYPE_NB] = {
+  {
+    VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, FersValueMg, AlfilValueMg,
+    FersAlfilValueMg, SilverValueMg, AiwokValueMg, BersValueMg, ArchbishopValueMg, ChancellorValueMg, AmazonValueMg, KnibisValueMg,
+    BiskniValueMg, KnirooValueMg, RookniValueMg, ShogiPawnValueMg, LanceValueMg, ShogiKnightValueMg, GoldValueMg, DragonHorseValueMg,
+    ClobberPieceValueMg, BreakthroughPieceValueMg, ImmobilePieceValueMg, CannonPieceValueMg, JanggiCannonPieceValueMg, SoldierValueMg, HorseValueMg, ElephantValueMg,
+    JanggiElephantValueMg, BannerValueMg, WazirValueMg, CommonerValueMg, CentaurValueMg, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO,
+  },
+  {
     VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, FersValueEg, AlfilValueEg,
     FersAlfilValueEg, SilverValueEg, AiwokValueEg, BersValueEg, ArchbishopValueEg, ChancellorValueEg, AmazonValueEg, KnibisValueEg,
     BiskniValueEg, KnirooValueEg, RookniValueEg, ShogiPawnValueEg, LanceValueEg, ShogiKnightValueEg, GoldValueEg, DragonHorseValueEg,
@@ -273,10 +298,10 @@ void init(const Variant* v) {
           score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->sliderCapture.size()));
 
       // Override variant piece value
-      if (v->pieceValue[MG][pt])
-          score = make_score(v->pieceValue[MG][pt], eg_value(score));
-      if (v->pieceValue[EG][pt])
-          score = make_score(mg_value(score), v->pieceValue[EG][pt]);
+      if (pieceValue[MG][pt])
+          score = make_score(pieceValue[MG][pt], eg_value(score));
+      if (pieceValue[EG][pt])
+          score = make_score(mg_value(score), pieceValue[EG][pt]);
 
       CapturePieceValue[MG][pc] = CapturePieceValue[MG][~pc] = mg_value(score);
       CapturePieceValue[EG][pc] = CapturePieceValue[EG][~pc] = eg_value(score);
@@ -335,5 +360,20 @@ void init(const Variant* v) {
       psq[~pc][SQ_NONE] = -psq[pc][SQ_NONE];
   }
 }
+
+void init_cur() { init(variants.find(Options["UCI_Variant"])->second); }
+
+auto myrange = [](int m){return m == 0 ? std::pair<int, int>(0, 0) : std::pair<int, int>(-4 * m, 4 * m);};
+
+TUNE(SetRange(myrange),
+     pieceValue[MG][PAWN], pieceValue[EG][PAWN],
+     pieceValue[MG][KNIGHT], pieceValue[EG][KNIGHT],
+     pieceValue[MG][BISHOP], pieceValue[EG][BISHOP],
+     pieceValue[MG][ROOK], pieceValue[EG][ROOK],
+     pieceValue[MG][QUEEN], pieceValue[EG][QUEEN],
+     pieceValue[MG][COMMONER], pieceValue[EG][COMMONER],
+     pieceValue[MG][FERS], pieceValue[EG][FERS],
+     pieceValue[MG][SILVER], pieceValue[EG][SILVER],
+     init_cur);
 
 } // namespace PSQT
