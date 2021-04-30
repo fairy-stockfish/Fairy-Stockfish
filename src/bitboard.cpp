@@ -80,41 +80,46 @@ namespace {
 #endif
 
   // Rider directions
-  const std::set<Direction> RookDirectionsV { NORTH, SOUTH};
-  const std::set<Direction> RookDirectionsH { EAST, WEST };
-  const std::set<Direction> BishopDirections { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
-  const std::set<Direction> HorseDirections { 2 * SOUTH + WEST, 2 * SOUTH + EAST, SOUTH + 2 * WEST, SOUTH + 2 * EAST,
-                                              NORTH + 2 * WEST, NORTH + 2 * EAST, 2 * NORTH + WEST, 2 * NORTH + EAST };
-  const std::set<Direction> ElephantDirections { 2 * NORTH_EAST, 2 * SOUTH_EAST, 2 * SOUTH_WEST, 2 * NORTH_WEST };
-  const std::set<Direction> JanggiElephantDirections { NORTH + 2 * NORTH_EAST, EAST  + 2 * NORTH_EAST,
-                                                       EAST  + 2 * SOUTH_EAST, SOUTH + 2 * SOUTH_EAST,
-                                                       SOUTH + 2 * SOUTH_WEST, WEST  + 2 * SOUTH_WEST,
-                                                       WEST  + 2 * NORTH_WEST, NORTH + 2 * NORTH_WEST };
+  const std::map<Direction, int> RookDirectionsV { {NORTH, 0}, {SOUTH, 0}};
+  const std::map<Direction, int> RookDirectionsH { {EAST, 0}, {WEST, 0} };
+  const std::map<Direction, int> BishopDirections { {NORTH_EAST, 0}, {SOUTH_EAST, 0}, {SOUTH_WEST, 0}, {NORTH_WEST, 0} };
+  const std::map<Direction, int> HorseDirections { {2 * SOUTH + WEST, 0}, {2 * SOUTH + EAST, 0}, {SOUTH + 2 * WEST, 0}, {SOUTH + 2 * EAST, 0},
+                                                   {NORTH + 2 * WEST, 0}, {NORTH + 2 * EAST, 0}, {2 * NORTH + WEST, 0}, {2 * NORTH + EAST, 0} };
+  const std::map<Direction, int> ElephantDirections { {2 * NORTH_EAST, 0}, {2 * SOUTH_EAST, 0}, {2 * SOUTH_WEST, 0}, {2 * NORTH_WEST, 0} };
+  const std::map<Direction, int> JanggiElephantDirections { {NORTH + 2 * NORTH_EAST, 0}, {EAST  + 2 * NORTH_EAST, 0},
+                                                            {EAST  + 2 * SOUTH_EAST, 0}, {SOUTH + 2 * SOUTH_EAST, 0},
+                                                            {SOUTH + 2 * SOUTH_WEST, 0}, {WEST  + 2 * SOUTH_WEST, 0},
+                                                            {WEST  + 2 * NORTH_WEST, 0}, {NORTH + 2 * NORTH_WEST, 0} };
 
   enum MovementType { RIDER, HOPPER, LAME_LEAPER };
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
-  void init_magics(Bitboard table[], Magic magics[], std::set<Direction> directions, Bitboard magicsInit[]);
+  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions, Bitboard magicsInit[]);
 #else
-  void init_magics(Bitboard table[], Magic magics[], std::set<Direction> directions);
+  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions);
 #endif
 
   template <MovementType MT>
-  Bitboard sliding_attack(std::set<Direction> directions, Square sq, Bitboard occupied, Color c = WHITE) {
+  Bitboard sliding_attack(std::map<Direction, int> directions, Square sq, Bitboard occupied, Color c = WHITE) {
     assert(MT != LAME_LEAPER);
 
     Bitboard attack = 0;
 
-    for (Direction d : directions)
+    for (auto const& [d, limit] : directions)
     {
+        int count = 0;
         bool hurdle = false;
         for (Square s = sq + (c == WHITE ? d : -d);
              is_ok(s) && distance(s, s - (c == WHITE ? d : -d)) <= 2;
              s += (c == WHITE ? d : -d))
         {
             if (MT != HOPPER || hurdle)
+            {
                 attack |= s;
+                if (limit && ++count >= limit)
+                    break;
+            }
 
             if (occupied & s)
             {
@@ -152,19 +157,19 @@ namespace {
     return b;
   }
 
-  Bitboard lame_leaper_path(std::set<Direction> directions, Square s) {
+  Bitboard lame_leaper_path(std::map<Direction, int> directions, Square s) {
     Bitboard b = 0;
-    for (Direction d : directions)
-        b |= lame_leaper_path(d, s);
+    for (const auto& i : directions)
+        b |= lame_leaper_path(i.first, s);
     return b;
   }
 
-  Bitboard lame_leaper_attack(std::set<Direction> directions, Square s, Bitboard occupied) {
+  Bitboard lame_leaper_attack(std::map<Direction, int> directions, Square s, Bitboard occupied) {
     Bitboard b = 0;
-    for (Direction d : directions)
+    for (const auto& i : directions)
     {
-        Square to = s + d;
-        if (is_ok(to) && distance(s, to) < 4 && !(lame_leaper_path(d, s) & occupied))
+        Square to = s + i.first;
+        if (is_ok(to) && distance(s, to) < 4 && !(lame_leaper_path(i.first, s) & occupied))
             b |= to;
     }
     return b;
@@ -213,65 +218,62 @@ void Bitboards::init_pieces() {
       AttackRiderTypes[pt] = NO_RIDER;
       MoveRiderTypes[pt] = NO_RIDER;
 
-      if (pi->lameLeaper)
+      for (auto const& [d, limit] : pi->stepsCapture)
       {
-          for (Direction d : pi->stepsCapture)
-          {
-              if (std::find(HorseDirections.begin(), HorseDirections.end(), d) != HorseDirections.end())
-                  AttackRiderTypes[pt] |= RIDER_HORSE;
-              if (std::find(ElephantDirections.begin(), ElephantDirections.end(), d) != ElephantDirections.end())
-                  AttackRiderTypes[pt] |= RIDER_ELEPHANT;
-              if (std::find(JanggiElephantDirections.begin(), JanggiElephantDirections.end(), d) != JanggiElephantDirections.end())
-                  AttackRiderTypes[pt] |= RIDER_JANGGI_ELEPHANT;
-          }
-          for (Direction d : pi->stepsQuiet)
-          {
-              if (std::find(HorseDirections.begin(), HorseDirections.end(), d) != HorseDirections.end())
-                  MoveRiderTypes[pt] |= RIDER_HORSE;
-              if (std::find(ElephantDirections.begin(), ElephantDirections.end(), d) != ElephantDirections.end())
-                  MoveRiderTypes[pt] |= RIDER_ELEPHANT;
-              if (std::find(JanggiElephantDirections.begin(), JanggiElephantDirections.end(), d) != JanggiElephantDirections.end())
-                  MoveRiderTypes[pt] |= RIDER_JANGGI_ELEPHANT;
-          }
+          if (limit && HorseDirections.find(d) != HorseDirections.end())
+              AttackRiderTypes[pt] |= RIDER_HORSE;
+          if (limit && ElephantDirections.find(d) != ElephantDirections.end())
+              AttackRiderTypes[pt] |= RIDER_ELEPHANT;
+          if (limit && JanggiElephantDirections.find(d) != JanggiElephantDirections.end())
+              AttackRiderTypes[pt] |= RIDER_JANGGI_ELEPHANT;
       }
-      for (Direction d : pi->sliderCapture)
+      for (auto const& [d, limit] : pi->stepsQuiet)
       {
-          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
+          if (limit && HorseDirections.find(d) != HorseDirections.end())
+              MoveRiderTypes[pt] |= RIDER_HORSE;
+          if (limit && ElephantDirections.find(d) != ElephantDirections.end())
+              MoveRiderTypes[pt] |= RIDER_ELEPHANT;
+          if (limit && JanggiElephantDirections.find(d) != JanggiElephantDirections.end())
+              MoveRiderTypes[pt] |= RIDER_JANGGI_ELEPHANT;
+      }
+      for (auto const& [d, limit] : pi->sliderCapture)
+      {
+          if (BishopDirections.find(d) != BishopDirections.end())
               AttackRiderTypes[pt] |= RIDER_BISHOP;
-          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
+          if (RookDirectionsH.find(d) != RookDirectionsH.end())
               AttackRiderTypes[pt] |= RIDER_ROOK_H;
-          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
+          if (RookDirectionsV.find(d) != RookDirectionsV.end())
               AttackRiderTypes[pt] |= RIDER_ROOK_V;
-          if (std::find(HorseDirections.begin(), HorseDirections.end(), d) != HorseDirections.end())
+          if (HorseDirections.find(d) != HorseDirections.end())
               AttackRiderTypes[pt] |= RIDER_NIGHTRIDER;
       }
-      for (Direction d : pi->sliderQuiet)
+      for (auto const& [d, limit] : pi->sliderQuiet)
       {
-          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
+          if (BishopDirections.find(d) != BishopDirections.end())
               MoveRiderTypes[pt] |= RIDER_BISHOP;
-          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
+          if (RookDirectionsH.find(d) != RookDirectionsH.end())
               MoveRiderTypes[pt] |= RIDER_ROOK_H;
-          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
+          if (RookDirectionsV.find(d) != RookDirectionsV.end())
               MoveRiderTypes[pt] |= RIDER_ROOK_V;
-          if (std::find(HorseDirections.begin(), HorseDirections.end(), d) != HorseDirections.end())
+          if (HorseDirections.find(d) != HorseDirections.end())
               MoveRiderTypes[pt] |= RIDER_NIGHTRIDER;
       }
-      for (Direction d : pi->hopperCapture)
+      for (auto const& [d, limit] : pi->hopperCapture)
       {
-          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
+          if (!limit && RookDirectionsH.find(d) != RookDirectionsH.end())
               AttackRiderTypes[pt] |= RIDER_CANNON_H;
-          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
+          if (!limit && RookDirectionsV.find(d) != RookDirectionsV.end())
               AttackRiderTypes[pt] |= RIDER_CANNON_V;
-          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
+          if (!limit && BishopDirections.find(d) != BishopDirections.end())
               AttackRiderTypes[pt] |= RIDER_CANNON_DIAG;
       }
-      for (Direction d : pi->hopperQuiet)
+      for (auto const& [d, limit] : pi->hopperQuiet)
       {
-          if (std::find(RookDirectionsH.begin(), RookDirectionsH.end(), d) != RookDirectionsH.end())
+          if (!limit && RookDirectionsH.find(d) != RookDirectionsH.end())
               MoveRiderTypes[pt] |= RIDER_CANNON_H;
-          if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
+          if (!limit && RookDirectionsV.find(d) != RookDirectionsV.end())
               MoveRiderTypes[pt] |= RIDER_CANNON_V;
-          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
+          if (!limit && BishopDirections.find(d) != BishopDirections.end())
               MoveRiderTypes[pt] |= RIDER_CANNON_DIAG;
       }
 
@@ -284,16 +286,16 @@ void Bitboards::init_pieces() {
               PseudoMoves[c][pt][s] = 0;
               LeaperAttacks[c][pt][s] = 0;
               LeaperMoves[c][pt][s] = 0;
-              for (Direction d : pi->stepsCapture)
+              for (auto const& [d, limit] : pi->stepsCapture)
               {
                   PseudoAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
-                  if (!pi->lameLeaper)
+                  if (!limit)
                       LeaperAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
               }
-              for (Direction d : pi->stepsQuiet)
+              for (auto const& [d, limit] : pi->stepsQuiet)
               {
                   PseudoMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
-                  if (!pi->lameLeaper)
+                  if (!limit)
                       LeaperMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
               }
               PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->sliderCapture, s, 0, c);
@@ -370,9 +372,9 @@ namespace {
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
-  void init_magics(Bitboard table[], Magic magics[], std::set<Direction> directions, Bitboard magicsInit[]) {
+  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions, Bitboard magicsInit[]) {
 #else
-  void init_magics(Bitboard table[], Magic magics[], std::set<Direction> directions) {
+  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions) {
 #endif
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time

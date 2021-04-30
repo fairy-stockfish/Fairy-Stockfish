@@ -418,7 +418,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             if (v->flipEnclosedPieces)
                 std::cerr << "Can not use kings with flipEnclosedPieces." << std::endl;
             const PieceInfo* pi = pieceMap.find(v->kingType)->second;
-            if (pi->lameLeaper || pi->hopperQuiet.size() || pi->hopperCapture.size())
+            if (pi->hopperQuiet.size() || pi->hopperCapture.size()
+                || std::any_of(pi->stepsCapture.begin(), pi->stepsCapture.end(), [](const std::pair<const Direction, int>& d) { return d.second; }))
                 std::cerr << pi->name << " is not supported as kingType." << std::endl;
         }
     }

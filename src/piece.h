@@ -21,7 +21,6 @@
 
 #include <string>
 #include <map>
-#include <set>
 
 #include "types.h"
 #include "variant.h"
@@ -32,13 +31,12 @@
 struct PieceInfo {
   std::string name = "";
   std::string betza = "";
-  std::set<Direction> stepsQuiet = {};
-  std::set<Direction> stepsCapture = {};
-  std::set<Direction> sliderQuiet = {};
-  std::set<Direction> sliderCapture = {};
-  std::set<Direction> hopperQuiet = {};
-  std::set<Direction> hopperCapture = {};
-  bool lameLeaper = false;
+  std::map<Direction, int> stepsQuiet = {};
+  std::map<Direction, int> stepsCapture = {};
+  std::map<Direction, int> sliderQuiet = {};
+  std::map<Direction, int> sliderCapture = {};
+  std::map<Direction, int> hopperQuiet = {};
+  std::map<Direction, int> hopperCapture = {};
 };
 
 struct PieceMap : public std::map<PieceType, const PieceInfo*> {
