@@ -161,8 +161,8 @@ Value piece_value(Phase phase, PieceType pt)
             + (phase == MG ? 100 :  80) * pi->hopperCapture.size()
             + (phase == MG ?  80 :  60) * pi->hopperQuiet.size()
             // Rook sliding directions are more valuable, especially in endgame
-            + (phase == MG ?  10 :  30) * std::count_if(pi->sliderCapture.begin(), pi->sliderCapture.end(), [](Direction d) { return std::abs(d) == NORTH || std::abs(d) == 1; })
-            + (phase == MG ?  30 :  45) * std::count_if(pi->sliderQuiet.begin(), pi->sliderQuiet.end(), [](Direction d) { return std::abs(d) == NORTH || std::abs(d) == 1; });
+            + (phase == MG ?  10 :  30) * std::count_if(pi->sliderCapture.begin(), pi->sliderCapture.end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; })
+            + (phase == MG ?  30 :  45) * std::count_if(pi->sliderQuiet.begin(), pi->sliderQuiet.end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; });
     return Value(v0 * exp(double(v0) / 10000));
 }
 
@@ -212,8 +212,8 @@ void init(const Variant* v) {
       
       const PieceInfo* pi = pieceMap.find(pt)->second;
       bool isSlider = pi->sliderQuiet.size() || pi->sliderCapture.size() || pi->hopperQuiet.size() || pi->hopperCapture.size();
-      bool isPawn = !isSlider && pi->stepsQuiet.size() && !std::any_of(pi->stepsQuiet.begin(), pi->stepsQuiet.end(), [](Direction d) { return d < SOUTH / 2; });
-      bool isSlowLeaper = !isSlider && !std::any_of(pi->stepsQuiet.begin(), pi->stepsQuiet.end(), [](Direction d) { return dist(d) > 1; });
+      bool isPawn = !isSlider && pi->stepsQuiet.size() && !std::any_of(pi->stepsQuiet.begin(), pi->stepsQuiet.end(), [](const std::pair<const Direction, int>& d) { return d.first < SOUTH / 2; });
+      bool isSlowLeaper = !isSlider && !std::any_of(pi->stepsQuiet.begin(), pi->stepsQuiet.end(), [](const std::pair<const Direction, int>& d) { return dist(d.first) > 1; });
 
       // Scale slider piece values with board size
       if (isSlider)
@@ -246,8 +246,7 @@ void init(const Variant* v) {
       // Increase leapers' value in makpong
       else if (v->makpongRule)
       {
-          if (std::any_of(pi->stepsCapture.begin(), pi->stepsCapture.end(), [](Direction d) { return dist(d) > 1; })
-                  && !pi->lameLeaper)
+          if (std::any_of(pi->stepsCapture.begin(), pi->stepsCapture.end(), [](const std::pair<const Direction, int>& d) { return dist(d.first) > 1 && !d.second; }))
               score = make_score(mg_value(score) * 4200 / (3500 + mg_value(score)),
                                  eg_value(score) * 4700 / (3500 + mg_value(score)));
       }

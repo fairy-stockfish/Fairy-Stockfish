@@ -57,6 +57,8 @@ namespace {
       std::vector<char> moveTypes = {};
       bool hopper = false;
       bool rider = false;
+      bool lame = false;
+      int distance = 0;
       std::vector<std::string> prelimDirections = {};
       for (std::string::size_type i = 0; i < betza.size(); i++)
       {
@@ -65,11 +67,15 @@ namespace {
           if (c == 'm' || c == 'c')
               moveTypes.push_back(c);
           // Hopper
-          else if (c == 'p')
+          else if (c == 'p' || c == 'g')
+          {
               hopper = true;
+              if (c == 'g')
+                  distance = 1;
+          }
           // Lame leaper
           else if (c == 'n')
-              p->lameLeaper = true;
+              lame = true;
           // Directional modifiers
           else if (verticals.find(c) != std::string::npos || horizontals.find(c) != std::string::npos)
           {
@@ -101,11 +107,11 @@ namespace {
                   rider = true;
                   // limited distance riders
                   if (isdigit(betza[i+1]))
-                  {
-                      // TODO: not supported
-                  }
+                      distance = betza[i+1] - '0';
                   i++;
               }
+              if (!rider && lame)
+                  distance = -1;
               // No type qualifier means m+c
               if (moveTypes.size() == 0)
               {
@@ -129,28 +135,28 @@ namespace {
                   // Add moves
                   for (char mt : moveTypes)
                   {
-                      std::set<Direction>& v = hopper ? (mt == 'c' ? p->hopperCapture : p->hopperQuiet)
-                                              : rider ? (mt == 'c' ? p->sliderCapture : p->sliderQuiet)
-                                                      : (mt == 'c' ? p->stepsCapture : p->stepsQuiet);
+                      auto& v = hopper ? (           mt == 'c' ? p->hopperCapture : p->hopperQuiet)
+                                          : rider ? (mt == 'c' ? p->sliderCapture : p->sliderQuiet)
+                                                  : (mt == 'c' ? p->stepsCapture : p->stepsQuiet);
                       auto has_dir = [&](std::string s) {
                         return std::find(directions.begin(), directions.end(), s) != directions.end();
                       };
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("rf") || has_dir("rv") || has_dir("fh") || has_dir("rh") || has_dir("hr"))
-                          v.insert(Direction(atom.first * FILE_NB + atom.second));
+                          v[Direction(atom.first * FILE_NB + atom.second)] = distance;
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("lb") || has_dir("lv") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
-                          v.insert(Direction(-atom.first * FILE_NB - atom.second));
+                          v[Direction(-atom.first * FILE_NB - atom.second)] = distance;
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("br") || has_dir("bs") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
-                          v.insert(Direction(-atom.second * FILE_NB + atom.first));
+                          v[Direction(-atom.second * FILE_NB + atom.first)] = distance;
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("fl") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hr"))
-                          v.insert(Direction(atom.second * FILE_NB - atom.first));
+                          v[Direction(atom.second * FILE_NB - atom.first)] = distance;
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("fr") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hl"))
-                          v.insert(Direction(atom.second * FILE_NB + atom.first));
+                          v[Direction(atom.second * FILE_NB + atom.first)] = distance;
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("bl") || has_dir("bs") || has_dir("bh") || has_dir("lh") || has_dir("hl"))
-                          v.insert(Direction(-atom.second * FILE_NB - atom.first));
+                          v[Direction(-atom.second * FILE_NB - atom.first)] = distance;
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("rb") || has_dir("rv") || has_dir("bh") || has_dir("rh") || has_dir("hl"))
-                          v.insert(Direction(-atom.first * FILE_NB + atom.second));
+                          v[Direction(-atom.first * FILE_NB + atom.second)] = distance;
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("lf") || has_dir("lv") || has_dir("fh") || has_dir("lh") || has_dir("hl"))
-                          v.insert(Direction(atom.first * FILE_NB - atom.second));
+                          v[Direction(atom.first * FILE_NB - atom.second)] = distance;
                   }
               }
               // Reset state
@@ -164,18 +170,8 @@ namespace {
   }
   // Special multi-leg betza description for Janggi elephant
   PieceInfo* janggi_elephant_piece() {
-      PieceInfo* p = new PieceInfo();
-      p->name = "janggiElephant";
-      p->betza = "mafsmafW";
-      p->stepsQuiet = {SOUTH + 2 * SOUTH_WEST, SOUTH + 2 * SOUTH_EAST,
-                       WEST  + 2 * SOUTH_WEST, EAST  + 2 * SOUTH_EAST,
-                       WEST  + 2 * NORTH_WEST, EAST  + 2 * NORTH_EAST,
-                       NORTH + 2 * NORTH_WEST, NORTH + 2 * NORTH_EAST};
-      p->stepsCapture = {SOUTH + 2 * SOUTH_WEST, SOUTH + 2 * SOUTH_EAST,
-                         WEST  + 2 * SOUTH_WEST, EAST  + 2 * SOUTH_EAST,
-                         WEST  + 2 * NORTH_WEST, EAST  + 2 * NORTH_EAST,
-                         NORTH + 2 * NORTH_WEST, NORTH + 2 * NORTH_EAST};
-      p->lameLeaper = true;
+      PieceInfo* p = from_betza("nZ", "");
+      p->betza = "mafsmafW"; // for compatiblity with XBoard/Winboard
       return p;
   }
 }
