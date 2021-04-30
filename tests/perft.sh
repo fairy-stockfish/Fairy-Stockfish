@@ -52,6 +52,7 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp sittuyin "fen 8/6s1/5P2/3n4/pR2K2S/1P6/1k4p1/8[] w - - 1 50" 4 268869 > /dev/null
   expect perft.exp shatranj startpos 4 68122 > /dev/null
   expect perft.exp amazon startpos 4 318185 > /dev/null
+  expect perft.exp nightrider startpos 4 419019 > /dev/null
   expect perft.exp hoppelpoppel startpos 4 202459 > /dev/null
   expect perft.exp newzealand startpos 4 200310 > /dev/null
   # alternative goals

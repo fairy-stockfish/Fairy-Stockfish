@@ -46,9 +46,10 @@ Magic HorseMagics[SQUARE_NB];
 Magic ElephantMagics[SQUARE_NB];
 Magic JanggiElephantMagics[SQUARE_NB];
 Magic CannonDiagMagics[SQUARE_NB];
+Magic NightriderMagics[SQUARE_NB];
 
 Magic* magics[] = {BishopMagics, RookMagicsH, RookMagicsV, CannonMagicsH, CannonMagicsV,
-                   HorseMagics, ElephantMagics, JanggiElephantMagics, CannonDiagMagics};
+                   HorseMagics, ElephantMagics, JanggiElephantMagics, CannonDiagMagics, NightriderMagics};
 
 namespace {
 
@@ -64,6 +65,7 @@ namespace {
   Bitboard ElephantTable[0x400];  // To store elephant attacks
   Bitboard JanggiElephantTable[0x1C000];  // To store janggi elephant attacks
   Bitboard CannonDiagTable[0x33C00]; // To store diagonal cannon attacks
+  Bitboard NightriderTable[0x70200]; // To store nightrider attacks
 #else
   Bitboard RookTableH[0xA00];  // To store horizontal rook attacks
   Bitboard RookTableV[0xA00];  // To store vertical rook attacks
@@ -74,6 +76,7 @@ namespace {
   Bitboard ElephantTable[0x1A0];  // To store elephant attacks
   Bitboard JanggiElephantTable[0x5C00];  // To store janggi elephant attacks
   Bitboard CannonDiagTable[0x1480]; // To store diagonal cannon attacks
+  Bitboard NightriderTable[0x1840]; // To store nightrider attacks
 #endif
 
   // Rider directions
@@ -107,7 +110,7 @@ namespace {
     {
         bool hurdle = false;
         for (Square s = sq + (c == WHITE ? d : -d);
-             is_ok(s) && distance(s, s - (c == WHITE ? d : -d)) == 1;
+             is_ok(s) && distance(s, s - (c == WHITE ? d : -d)) <= 2;
              s += (c == WHITE ? d : -d))
         {
             if (MT != HOPPER || hurdle)
@@ -239,6 +242,8 @@ void Bitboards::init_pieces() {
               AttackRiderTypes[pt] |= RIDER_ROOK_H;
           if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               AttackRiderTypes[pt] |= RIDER_ROOK_V;
+          if (std::find(HorseDirections.begin(), HorseDirections.end(), d) != HorseDirections.end())
+              AttackRiderTypes[pt] |= RIDER_NIGHTRIDER;
       }
       for (Direction d : pi->sliderQuiet)
       {
@@ -248,6 +253,8 @@ void Bitboards::init_pieces() {
               MoveRiderTypes[pt] |= RIDER_ROOK_H;
           if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               MoveRiderTypes[pt] |= RIDER_ROOK_V;
+          if (std::find(HorseDirections.begin(), HorseDirections.end(), d) != HorseDirections.end())
+              MoveRiderTypes[pt] |= RIDER_NIGHTRIDER;
       }
       for (Direction d : pi->hopperCapture)
       {
@@ -328,6 +335,7 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections, ElephantMagicInit);
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections, JanggiElephantMagicInit);
   init_magics<HOPPER>(CannonDiagTable, CannonDiagMagics, BishopDirections, CannonDiagMagicInit);
+  init_magics<RIDER>(NightriderTable, NightriderMagics, HorseDirections, NightriderMagicInit);
 #else
   init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH);
   init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV);
@@ -338,6 +346,7 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections);
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections);
   init_magics<HOPPER>(CannonDiagTable, CannonDiagMagics, BishopDirections);
+  init_magics<RIDER>(NightriderTable, NightriderMagics, HorseDirections);
 #endif
 
   init_pieces();

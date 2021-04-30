@@ -192,6 +192,17 @@ namespace {
         v->promotionPieceTypes = {AMAZON, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Nightrider chess
+    // Knights are replaced by nightriders.
+    // https://en.wikipedia.org/wiki/Nightrider_(chess)
+    Variant* nightrider_variant() {
+        Variant* v = chess_variant_base();
+        v->remove_piece(KNIGHT);
+        v->customPiece[0] = "NN";
+        v->add_piece(CUSTOM_PIECES, 'n');
+        v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, CUSTOM_PIECES};
+        return v;
+    }
     // Hoppel-Poppel
     // A variant from Germany where knights capture like bishops and vice versa
     // https://www.chessvariants.com/diffmove.dir/hoppel-poppel.html
@@ -1273,6 +1284,7 @@ void VariantMap::init() {
     add("shatranj", shatranj_variant()->conclude());
     add("chaturanga", chaturanga_variant()->conclude());
     add("amazon", amazon_variant()->conclude());
+    add("nightrider", nightrider_variant()->conclude());
     add("hoppelpoppel", hoppelpoppel_variant()->conclude());
     add("newzealand", newzealand_variant()->conclude());
     add("kingofthehill", kingofthehill_variant()->conclude());
