@@ -1031,9 +1031,8 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
       if (diagType)
           b |= attacks_bb(c, diagType, s, pieces()) & diagonal_lines();
       else if (movePt == JANGGI_CANNON)
-          // TODO: fix for longer diagonals
-          b |=   attacks_bb(c, ALFIL, s, pieces())
-              & ~attacks_bb(c, ELEPHANT, s, pieces() ^ pieces(pt))
+          b |=  rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces())
+              & rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces() ^ pieces(pt))
               & ~pieces(pt)
               & diagonal_lines();
   }
@@ -1062,9 +1061,8 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
       if (diagType)
           b |= attacks_bb(c, diagType, s, pieces()) & diagonal_lines();
       else if (movePt == JANGGI_CANNON)
-          // TODO: fix for longer diagonals
-          b |=   attacks_bb(c, ALFIL, s, pieces())
-              & ~attacks_bb(c, ELEPHANT, s, pieces() ^ pieces(pt))
+          b |=  rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces())
+              & rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces() ^ pieces(pt))
               & ~pieces(pt)
               & diagonal_lines();
   }

@@ -45,9 +45,10 @@ Magic CannonMagicsV[SQUARE_NB];
 Magic HorseMagics[SQUARE_NB];
 Magic ElephantMagics[SQUARE_NB];
 Magic JanggiElephantMagics[SQUARE_NB];
+Magic CannonDiagMagics[SQUARE_NB];
 
 Magic* magics[] = {BishopMagics, RookMagicsH, RookMagicsV, CannonMagicsH, CannonMagicsV,
-                   HorseMagics, ElephantMagics, JanggiElephantMagics};
+                   HorseMagics, ElephantMagics, JanggiElephantMagics, CannonDiagMagics};
 
 namespace {
 
@@ -62,6 +63,7 @@ namespace {
   Bitboard HorseTable[0x500];  // To store horse attacks
   Bitboard ElephantTable[0x400];  // To store elephant attacks
   Bitboard JanggiElephantTable[0x1C000];  // To store janggi elephant attacks
+  Bitboard CannonDiagTable[0x33C00]; // To store diagonal cannon attacks
 #else
   Bitboard RookTableH[0xA00];  // To store horizontal rook attacks
   Bitboard RookTableV[0xA00];  // To store vertical rook attacks
@@ -71,6 +73,7 @@ namespace {
   Bitboard HorseTable[0x240];  // To store horse attacks
   Bitboard ElephantTable[0x1A0];  // To store elephant attacks
   Bitboard JanggiElephantTable[0x5C00];  // To store janggi elephant attacks
+  Bitboard CannonDiagTable[0x1480]; // To store diagonal cannon attacks
 #endif
 
   // Rider directions
@@ -252,6 +255,8 @@ void Bitboards::init_pieces() {
               AttackRiderTypes[pt] |= RIDER_CANNON_H;
           if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               AttackRiderTypes[pt] |= RIDER_CANNON_V;
+          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
+              AttackRiderTypes[pt] |= RIDER_CANNON_DIAG;
       }
       for (Direction d : pi->hopperQuiet)
       {
@@ -259,6 +264,8 @@ void Bitboards::init_pieces() {
               MoveRiderTypes[pt] |= RIDER_CANNON_H;
           if (std::find(RookDirectionsV.begin(), RookDirectionsV.end(), d) != RookDirectionsV.end())
               MoveRiderTypes[pt] |= RIDER_CANNON_V;
+          if (std::find(BishopDirections.begin(), BishopDirections.end(), d) != BishopDirections.end())
+              MoveRiderTypes[pt] |= RIDER_CANNON_DIAG;
       }
 
       // Initialize move/attack bitboards
@@ -320,6 +327,7 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections, HorseMagicInit);
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections, ElephantMagicInit);
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections, JanggiElephantMagicInit);
+  init_magics<HOPPER>(CannonDiagTable, CannonDiagMagics, BishopDirections, CannonDiagMagicInit);
 #else
   init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH);
   init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV);
@@ -329,6 +337,7 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections);
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections);
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections);
+  init_magics<HOPPER>(CannonDiagTable, CannonDiagMagics, BishopDirections);
 #endif
 
   init_pieces();
