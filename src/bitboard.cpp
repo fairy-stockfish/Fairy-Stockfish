@@ -214,67 +214,40 @@ void Bitboards::init_pieces() {
   {
       const PieceInfo* pi = pieceMap.find(pt)->second;
 
-      // Initialize rider types
-      AttackRiderTypes[pt] = NO_RIDER;
-      MoveRiderTypes[pt] = NO_RIDER;
-
-      for (auto const& [d, limit] : pi->stepsCapture)
+      // Detect rider types
+      for (auto modality : {MODALITY_QUIET, MODALITY_CAPTURE})
       {
-          if (limit && HorseDirections.find(d) != HorseDirections.end())
-              AttackRiderTypes[pt] |= RIDER_HORSE;
-          if (limit && ElephantDirections.find(d) != ElephantDirections.end())
-              AttackRiderTypes[pt] |= RIDER_ELEPHANT;
-          if (limit && JanggiElephantDirections.find(d) != JanggiElephantDirections.end())
-              AttackRiderTypes[pt] |= RIDER_JANGGI_ELEPHANT;
-      }
-      for (auto const& [d, limit] : pi->stepsQuiet)
-      {
-          if (limit && HorseDirections.find(d) != HorseDirections.end())
-              MoveRiderTypes[pt] |= RIDER_HORSE;
-          if (limit && ElephantDirections.find(d) != ElephantDirections.end())
-              MoveRiderTypes[pt] |= RIDER_ELEPHANT;
-          if (limit && JanggiElephantDirections.find(d) != JanggiElephantDirections.end())
-              MoveRiderTypes[pt] |= RIDER_JANGGI_ELEPHANT;
-      }
-      for (auto const& [d, limit] : pi->sliderCapture)
-      {
-          if (BishopDirections.find(d) != BishopDirections.end())
-              AttackRiderTypes[pt] |= RIDER_BISHOP;
-          if (RookDirectionsH.find(d) != RookDirectionsH.end())
-              AttackRiderTypes[pt] |= RIDER_ROOK_H;
-          if (RookDirectionsV.find(d) != RookDirectionsV.end())
-              AttackRiderTypes[pt] |= RIDER_ROOK_V;
-          if (HorseDirections.find(d) != HorseDirections.end())
-              AttackRiderTypes[pt] |= RIDER_NIGHTRIDER;
-      }
-      for (auto const& [d, limit] : pi->sliderQuiet)
-      {
-          if (BishopDirections.find(d) != BishopDirections.end())
-              MoveRiderTypes[pt] |= RIDER_BISHOP;
-          if (RookDirectionsH.find(d) != RookDirectionsH.end())
-              MoveRiderTypes[pt] |= RIDER_ROOK_H;
-          if (RookDirectionsV.find(d) != RookDirectionsV.end())
-              MoveRiderTypes[pt] |= RIDER_ROOK_V;
-          if (HorseDirections.find(d) != HorseDirections.end())
-              MoveRiderTypes[pt] |= RIDER_NIGHTRIDER;
-      }
-      for (auto const& [d, limit] : pi->hopperCapture)
-      {
-          if (!limit && RookDirectionsH.find(d) != RookDirectionsH.end())
-              AttackRiderTypes[pt] |= RIDER_CANNON_H;
-          if (!limit && RookDirectionsV.find(d) != RookDirectionsV.end())
-              AttackRiderTypes[pt] |= RIDER_CANNON_V;
-          if (!limit && BishopDirections.find(d) != BishopDirections.end())
-              AttackRiderTypes[pt] |= RIDER_CANNON_DIAG;
-      }
-      for (auto const& [d, limit] : pi->hopperQuiet)
-      {
-          if (!limit && RookDirectionsH.find(d) != RookDirectionsH.end())
-              MoveRiderTypes[pt] |= RIDER_CANNON_H;
-          if (!limit && RookDirectionsV.find(d) != RookDirectionsV.end())
-              MoveRiderTypes[pt] |= RIDER_CANNON_V;
-          if (!limit && BishopDirections.find(d) != BishopDirections.end())
-              MoveRiderTypes[pt] |= RIDER_CANNON_DIAG;
+          auto& riderTypes = modality == MODALITY_CAPTURE ? AttackRiderTypes[pt] : MoveRiderTypes[pt];
+          riderTypes = NO_RIDER;
+          for (auto const& [d, limit] : pi->steps[modality])
+          {
+              if (limit && HorseDirections.find(d) != HorseDirections.end())
+                  riderTypes |= RIDER_HORSE;
+              if (limit && ElephantDirections.find(d) != ElephantDirections.end())
+                  riderTypes |= RIDER_ELEPHANT;
+              if (limit && JanggiElephantDirections.find(d) != JanggiElephantDirections.end())
+                  riderTypes |= RIDER_JANGGI_ELEPHANT;
+          }
+          for (auto const& [d, limit] : pi->slider[modality])
+          {
+              if (BishopDirections.find(d) != BishopDirections.end())
+                  riderTypes |= RIDER_BISHOP;
+              if (RookDirectionsH.find(d) != RookDirectionsH.end())
+                  riderTypes |= RIDER_ROOK_H;
+              if (RookDirectionsV.find(d) != RookDirectionsV.end())
+                  riderTypes |= RIDER_ROOK_V;
+              if (HorseDirections.find(d) != HorseDirections.end())
+                  riderTypes |= RIDER_NIGHTRIDER;
+          }
+          for (auto const& [d, limit] : pi->hopper[modality])
+          {
+              if (!limit && RookDirectionsH.find(d) != RookDirectionsH.end())
+                  riderTypes |= RIDER_CANNON_H;
+              if (!limit && RookDirectionsV.find(d) != RookDirectionsV.end())
+                  riderTypes |= RIDER_CANNON_V;
+              if (!limit && BishopDirections.find(d) != BishopDirections.end())
+                  riderTypes |= RIDER_CANNON_DIAG;
+          }
       }
 
       // Initialize move/attack bitboards
@@ -282,26 +255,21 @@ void Bitboards::init_pieces() {
       {
           for (Square s = SQ_A1; s <= SQ_MAX; ++s)
           {
-              PseudoAttacks[c][pt][s] = 0;
-              PseudoMoves[c][pt][s] = 0;
-              LeaperAttacks[c][pt][s] = 0;
-              LeaperMoves[c][pt][s] = 0;
-              for (auto const& [d, limit] : pi->stepsCapture)
+              for (auto modality : {MODALITY_QUIET, MODALITY_CAPTURE})
               {
-                  PseudoAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
-                  if (!limit)
-                      LeaperAttacks[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
+                  auto& pseudo = modality == MODALITY_CAPTURE ? PseudoAttacks[c][pt][s] : PseudoMoves[c][pt][s];
+                  auto& leaper = modality == MODALITY_CAPTURE ? LeaperAttacks[c][pt][s] : LeaperMoves[c][pt][s];
+                  pseudo = 0;
+                  leaper = 0;
+                  for (auto const& [d, limit] : pi->steps[modality])
+                  {
+                      pseudo |= safe_destination(s, c == WHITE ? d : -d);
+                      if (!limit)
+                          leaper |= safe_destination(s, c == WHITE ? d : -d);
+                  }
+                  pseudo |= sliding_attack<RIDER>(pi->slider[modality], s, 0, c);
+                  pseudo |= sliding_attack<RIDER>(pi->hopper[modality], s, 0, c);
               }
-              for (auto const& [d, limit] : pi->stepsQuiet)
-              {
-                  PseudoMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
-                  if (!limit)
-                      LeaperMoves[c][pt][s] |= safe_destination(s, c == WHITE ? d : -d);
-              }
-              PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->sliderCapture, s, 0, c);
-              PseudoAttacks[c][pt][s] |= sliding_attack<RIDER>(pi->hopperCapture, s, 0, c);
-              PseudoMoves[c][pt][s] |= sliding_attack<RIDER>(pi->sliderQuiet, s, 0, c);
-              PseudoMoves[c][pt][s] |= sliding_attack<RIDER>(pi->hopperQuiet, s, 0, c);
           }
       }
   }

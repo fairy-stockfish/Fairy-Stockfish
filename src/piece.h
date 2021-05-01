@@ -26,17 +26,16 @@
 #include "variant.h"
 
 
+enum MoveModality {MODALITY_QUIET, MODALITY_CAPTURE, MOVE_MODALITY_NB};
+
 /// PieceInfo struct stores information about the piece movements.
 
 struct PieceInfo {
   std::string name = "";
   std::string betza = "";
-  std::map<Direction, int> stepsQuiet = {};
-  std::map<Direction, int> stepsCapture = {};
-  std::map<Direction, int> sliderQuiet = {};
-  std::map<Direction, int> sliderCapture = {};
-  std::map<Direction, int> hopperQuiet = {};
-  std::map<Direction, int> hopperCapture = {};
+  std::map<Direction, int> steps[MOVE_MODALITY_NB] = {};
+  std::map<Direction, int> slider[MOVE_MODALITY_NB] = {};
+  std::map<Direction, int> hopper[MOVE_MODALITY_NB] = {};
 };
 
 struct PieceMap : public std::map<PieceType, const PieceInfo*> {
