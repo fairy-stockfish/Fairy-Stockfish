@@ -679,7 +679,7 @@ namespace {
         v->add_piece(CUSTOM_PIECES + 4, 'p', "bFfD"); // pheasant
         v->add_piece(CUSTOM_PIECES + 5, 'g', "fAbD"); // goose
         v->add_piece(CUSTOM_PIECES + 6, 'e', "KbRfBbF2"); // eagle
-        v->startFen = "rpckcpl/3f3/sssssss/2s1S2/SSSSSSS/3F3/LPCKCPR [-] w 0 1";
+        v->startFen = "rpckcpl/3f3/sssssss/2s1S2/SSSSSSS/3F3/LPCKCPR[-] w 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
         v->promotionRank = RANK_6;
@@ -1347,7 +1347,7 @@ void VariantMap::init() {
     add("dobutsu", dobutsu_variant()->conclude());
     add("gorogoro", gorogoroshogi_variant()->conclude());
     add("judkins", judkinsshogi_variant()->conclude());
-    add("tori", torishogi_variant()->conclude());
+    add("torishogi", torishogi_variant()->conclude());
     add("euroshogi", euroshogi_variant()->conclude());
     add("losalamos", losalamos_variant()->conclude());
     add("gardner", gardner_variant()->conclude());
