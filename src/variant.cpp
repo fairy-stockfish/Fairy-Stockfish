@@ -202,6 +202,16 @@ namespace {
         v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, CUSTOM_PIECES};
         return v;
     }
+    // Grasshopper chess
+    // https://en.wikipedia.org/wiki/Grasshopper_chess
+    Variant* grasshopper_variant() {
+        Variant* v = chess_variant_base();
+        v->add_piece(CUSTOM_PIECES, 'g', "gQ");
+        v->promotionPieceTypes.insert(CUSTOM_PIECES);
+        v->startFen = "rnbqkbnr/gggggggg/pppppppp/8/8/PPPPPPPP/GGGGGGGG/RNBQKBNR w KQkq - 0 1";
+        v->doubleStep = false;
+        return v;
+    }
     // Hoppel-Poppel
     // A variant from Germany where knights capture like bishops and vice versa
     // https://www.chessvariants.com/diffmove.dir/hoppel-poppel.html
@@ -1312,6 +1322,7 @@ void VariantMap::init() {
     add("chaturanga", chaturanga_variant()->conclude());
     add("amazon", amazon_variant()->conclude());
     add("nightrider", nightrider_variant()->conclude());
+    add("grasshopper", grasshopper_variant()->conclude());
     add("hoppelpoppel", hoppelpoppel_variant()->conclude());
     add("newzealand", newzealand_variant()->conclude());
     add("kingofthehill", kingofthehill_variant()->conclude());

@@ -52,7 +52,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Los Alamos](https://en.wikipedia.org/wiki/Los_Alamos_chess), [Gardner's Minichess](https://en.wikipedia.org/wiki/Minichess#5%C3%975_chess)
 - [Atomic](https://en.wikipedia.org/wiki/Atomic_chess)
 - [Horde](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess), [Maharajah and the Sepoys](https://en.wikipedia.org/wiki/Maharajah_and_the_Sepoys)
-- [Knightmate](https://www.chessvariants.com/diffobjective.dir/knightmate.html), [Nightrider](https://en.wikipedia.org/wiki/Nightrider_(chess))
+- [Knightmate](https://www.chessvariants.com/diffobjective.dir/knightmate.html), [Nightrider](https://en.wikipedia.org/wiki/Nightrider_(chess)), [Grasshopper](https://en.wikipedia.org/wiki/Grasshopper_chess)
 
 ### Shogi variants
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi)
