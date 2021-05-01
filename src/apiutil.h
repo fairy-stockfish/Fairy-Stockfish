@@ -306,6 +306,9 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     for (PieceType pt : pos.piece_types())
         if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)))
             restricted |= pos.pieces(c, pt);
+        else if (pt >= CUSTOM_PIECES && pt <= CUSTOM_PIECES_END && pos.count(c, pt) > 0)
+            // to be conservative, assume any custom piece has mating potential
+            return false;
 
     // Mating pieces
     for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR })

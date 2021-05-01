@@ -717,7 +717,7 @@ namespace {
         v->pieceToCharTable = "PNBR.....G.++++Kpnbr.....g.++++k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_H;
-        v->add_piece(CUSTOM_PIECES, 'n', std::string("fNsW"));
+        v->add_piece(CUSTOM_PIECES, 'n', "fNsW");
         v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
         v->promotionRank = RANK_6;
         v->promotedPieceType[CUSTOM_PIECES] = GOLD;

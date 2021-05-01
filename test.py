@@ -160,6 +160,11 @@ variant_positions = {
     "orda": {
         "k7/8/8/8/8/8/8/K7 w - - 0 1": (False, False),  # K vs K
     },
+    "tencubed": {
+        "2cwamwc2/1rnbqkbnr1/pppppppppp/10/10/10/10/PPPPPPPPPP/1RNBQKBNR1/2CWAMWC2 w - - 0 1":  (False, False),  # startpos
+        "10/5k4/10/10/10/10/10/10/5KC3/10 w - - 0 1":  (False, True),  # KC vs K
+        "10/5k4/10/10/10/10/10/10/5K4/10 w - - 0 1":  (True, True),  # K vs K
+    },
 }
 
 invalid_variant_positions = {
