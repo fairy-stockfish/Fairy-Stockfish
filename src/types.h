@@ -564,11 +564,11 @@ inline Value mg_value(Score s) {
   return Value(mg.s);
 }
 
-#define ENABLE_BIT_OPERATORS_ON(T)                                    \
-inline T operator~ (T d) { return (T)~(int)d; }                       \
-inline T operator| (T d1, T d2) { return (T)((int)d1 | (int)d2); }        \
-inline T operator& (T d1, T d2) { return (T)((int)d1 & (int)d2); }        \
-inline T operator^ (T d1, T d2) { return (T)((int)d1 ^ (int)d2); }        \
+#define ENABLE_BIT_OPERATORS_ON(T)                                        \
+constexpr T operator~ (T d) { return (T)~(int)d; }                        \
+constexpr T operator| (T d1, T d2) { return (T)((int)d1 | (int)d2); }     \
+constexpr T operator& (T d1, T d2) { return (T)((int)d1 & (int)d2); }     \
+constexpr T operator^ (T d1, T d2) { return (T)((int)d1 ^ (int)d2); }     \
 inline T& operator|= (T& d1, T d2) { return (T&)((int&)d1 |= (int)d2); }  \
 inline T& operator&= (T& d1, T d2) { return (T&)((int&)d1 &= (int)d2); }  \
 inline T& operator^= (T& d1, T d2) { return (T&)((int&)d1 ^= (int)d2); }
