@@ -108,7 +108,7 @@ namespace {
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
-  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions, Bitboard magicsInit[]);
+  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions, const Bitboard magicsInit[]);
 #else
   void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions);
 #endif
@@ -359,7 +359,7 @@ namespace {
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
-  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions, Bitboard magicsInit[]) {
+  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions, const Bitboard magicsInit[]) {
 #else
   void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions) {
 #endif
