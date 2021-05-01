@@ -657,7 +657,7 @@ inline Validation check_pocket_info(const std::string& fenBoard, int nbRanks, co
         // look for last '/'
         stopChar = '/';
     }
-    else
+    else if (std::count(fenBoard.begin(), fenBoard.end(), '[') == 1)
     {
         // pocket is defined as [ and ]
         stopChar = '[';
@@ -668,6 +668,9 @@ inline Validation check_pocket_info(const std::string& fenBoard, int nbRanks, co
             return NOK;
         }
     }
+    else
+        // allow to skip pocket
+        return OK;
 
     // look for last '/'
     for (auto it = fenBoard.rbegin()+offset; it != fenBoard.rend(); ++it)

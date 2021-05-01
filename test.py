@@ -127,7 +127,7 @@ variant_positions = {
     },
     "sittuyin": {
         "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1": (False, False),  # startpos
-        "k7/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # K vs K
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K, skip pocket
         "k6P/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # KP vs K
         "k6P/8/8/8/8/8/8/K6p[] w - - 0 1": (False, False),  # KP vs KP
         "k7/8/8/8/8/8/8/KFF5[] w - - 0 1": (False, True),  # KFF vs K

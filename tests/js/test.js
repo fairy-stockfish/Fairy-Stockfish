@@ -562,9 +562,11 @@ describe('ffish.validateFen(fen, uciVariant)', function () {
         chai.expect(ffish.validateFen(board.fen(), variant)).to.equal(1);
         board.delete();
       }
-      // alternative pocket piece formulation
+      // alternative or skipped pocket formulation
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/RB w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(1);
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(1);
+      chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(1);
+      chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[-] w KQkq - 3+3 0 1", "3check-crazyhouse")).to.equal(1);
 
       // error id checks
       chai.expect(ffish.validateFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[]wKQkq-3+301", "3check-crazyhouse")).to.equal(-10);
