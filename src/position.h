@@ -610,7 +610,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   // Doubled shogi pawns
   if (pt == drop_no_doubled())
       for (File f = FILE_A; f <= max_file(); ++f)
-          if (file_bb(f) & pieces(c, pt))
+          if (popcount(file_bb(f) & pieces(c, pt)) >= var->dropNoDoubledCount)
               b &= ~file_bb(f);
   // Sittuyin rook drops
   if (pt == ROOK && sittuyin_rook_drop())

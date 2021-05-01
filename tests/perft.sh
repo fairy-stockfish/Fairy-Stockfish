@@ -104,6 +104,7 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp euroshogi startpos 4 380499 > /dev/null
   expect perft.exp minishogi startpos 5 533203 > /dev/null
   expect perft.exp kyotoshogi startpos 5 225903 > /dev/null
+  expect perft.exp tori startpos 4 103857 > /dev/null
   # non-chess
   expect perft.exp ataxx startpos 4 155888 > /dev/null
   expect perft.exp ataxx "fen 7/7/7/7/ppppppp/ppppppp/PPPPPPP[PPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppp] w 0 1" 5 452980 > /dev/null

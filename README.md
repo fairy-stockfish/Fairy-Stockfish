@@ -49,15 +49,16 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Extinction](https://en.wikipedia.org/wiki/Extinction_chess), [Kinglet](https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_chess), Three Kings, [Coregal](https://www.chessvariants.com/winning.dir/coregal.html)
 - [King of the Hill](https://en.wikipedia.org/wiki/King_of_the_Hill_(chess)), [Racing Kings](https://en.wikipedia.org/wiki/V._R._Parton#Racing_Kings)
 - [Three-check](https://en.wikipedia.org/wiki/Three-check_chess), Five-check
-- [Los Alamos](https://en.wikipedia.org/wiki/Los_Alamos_chess)
+- [Los Alamos](https://en.wikipedia.org/wiki/Los_Alamos_chess), [Gardner's Minichess](https://en.wikipedia.org/wiki/Minichess#5%C3%975_chess)
 - [Atomic](https://en.wikipedia.org/wiki/Atomic_chess)
 - [Horde](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess), [Maharajah and the Sepoys](https://en.wikipedia.org/wiki/Maharajah_and_the_Sepoys)
-- [Knightmate](https://www.chessvariants.com/diffobjective.dir/knightmate.html)
+- [Knightmate](https://www.chessvariants.com/diffobjective.dir/knightmate.html), [Nightrider](https://en.wikipedia.org/wiki/Nightrider_(chess))
 
 ### Shogi variants
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi)
 - [Kyoto shogi](https://en.wikipedia.org/wiki/Kyoto_shogi), [Microshogi](https://en.wikipedia.org/wiki/Micro_shogi)
 - [Dobutsu shogi](https://en.wikipedia.org/wiki/Dōbutsu_shōgi), [Goro goro shogi](https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi#Variation)
+- [Tori shogi](https://en.wikipedia.org/wiki/Tori_shogi)
 - [Yari shogi](https://en.wikipedia.org/wiki/Yari_shogi)
 - [Okisaki shogi](https://en.wikipedia.org/wiki/Okisaki_shogi)
 

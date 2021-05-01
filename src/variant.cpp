@@ -198,8 +198,7 @@ namespace {
     Variant* nightrider_variant() {
         Variant* v = chess_variant_base();
         v->remove_piece(KNIGHT);
-        v->customPiece[0] = "NN";
-        v->add_piece(CUSTOM_PIECES, 'n');
+        v->add_piece(CUSTOM_PIECES, 'n', "NN");
         v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, CUSTOM_PIECES};
         return v;
     }
@@ -662,6 +661,45 @@ namespace {
         v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
         return v;
     }
+    // Tori shogi
+    // https://en.wikipedia.org/wiki/Tori_shogi
+    Variant* torishogi_variant() {
+        Variant* v = variant_base();
+        v->variantTemplate = "shogi";
+        v->pieceToCharTable = "S.....FLR.C+.....+.PKs.....flr.c+.....+.pk";
+        v->maxRank = RANK_7;
+        v->maxFile = FILE_G;
+        v->reset_pieces();
+        v->add_piece(SHOGI_PAWN, 's');
+        v->add_piece(KING, 'k');
+        v->add_piece(CUSTOM_PIECES, 'f', "FsfW"); // falcon
+        v->add_piece(CUSTOM_PIECES + 1, 'c', "FvW"); // crane
+        v->add_piece(CUSTOM_PIECES + 2, 'l', "fRrbBlbF"); // left quail
+        v->add_piece(CUSTOM_PIECES + 3, 'r', "fRlbBrbF"); // right quail
+        v->add_piece(CUSTOM_PIECES + 4, 'p', "bFfD"); // pheasant
+        v->add_piece(CUSTOM_PIECES + 5, 'g', "fAbD"); // goose
+        v->add_piece(CUSTOM_PIECES + 6, 'e', "KbRfBbF2"); // eagle
+        v->startFen = "rpckcpl/3f3/sssssss/2s1S2/SSSSSSS/3F3/LPCKCPR [-] w 0 1";
+        v->pieceDrops = true;
+        v->capturesToHand = true;
+        v->promotionRank = RANK_6;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->promotedPieceType[SHOGI_PAWN]    = CUSTOM_PIECES + 5; // swallow promotes to goose
+        v->promotedPieceType[CUSTOM_PIECES] = CUSTOM_PIECES + 6; // falcon promotes to eagle
+        v->mandatoryPiecePromotion = true;
+        v->dropNoDoubled = SHOGI_PAWN;
+        v->dropNoDoubledCount = 2;
+        v->immobilityIllegal = true;
+        v->shogiPawnDropMateIllegal = true;
+        v->stalemateValue = -VALUE_MATE;
+        v->nFoldValue = VALUE_MATE;
+        v->nFoldRule = 3;
+        v->nMoveRule = 0;
+        v->perpetualCheckIllegal = true;
+        return v;
+    }
     // EuroShogi
     // https://en.wikipedia.org/wiki/EuroShogi
     Variant* euroshogi_variant() {
@@ -669,8 +707,7 @@ namespace {
         v->pieceToCharTable = "PNBR.....G.++++Kpnbr.....g.++++k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_H;
-        v->customPiece[0] = "fNsW";
-        v->add_piece(CUSTOM_PIECES, 'n');
+        v->add_piece(CUSTOM_PIECES, 'n', std::string("fNsW"));
         v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
         v->promotionRank = RANK_6;
         v->promotedPieceType[CUSTOM_PIECES] = GOLD;
@@ -797,8 +834,7 @@ namespace {
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
         v->reset_pieces();
-        v->customPiece[0] = "mDmNmA";
-        v->add_piece(CUSTOM_PIECES, 'p');
+        v->add_piece(CUSTOM_PIECES, 'p', "mDmNmA");
         v->startFen = "P5p/7/7/7/7/7/p5P[PPPPPPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppppppp] w 0 1";
         v->promotionPieceTypes = {};
         v->pieceDrops = true;
@@ -867,16 +903,11 @@ namespace {
         v->add_piece(KING, 'k');
         v->add_piece(SHOGI_PAWN, 'p');
         v->add_piece(ROOK, 'l');
-        v->customPiece[0] = "fRffN"; // Yari knight
-        v->add_piece(CUSTOM_PIECES, 'n');
-        v->customPiece[1] = "fFfR"; // Yari bishop
-        v->add_piece(CUSTOM_PIECES + 1, 'b');
-        v->customPiece[2] = "frlR"; // Yari rook
-        v->add_piece(CUSTOM_PIECES + 2, 'r');
-        v->customPiece[3] = "WfFbR"; // Yari gold
-        v->add_piece(CUSTOM_PIECES + 3, 'g');
-        v->customPiece[4] = "fKbR"; // Yari silver
-        v->add_piece(CUSTOM_PIECES + 4, 's');
+        v->add_piece(CUSTOM_PIECES, 'n', "fRffN"); // Yari knight
+        v->add_piece(CUSTOM_PIECES + 1, 'b', "fFfR"); // Yari bishop
+        v->add_piece(CUSTOM_PIECES + 2, 'r', "frlR"); // Yari rook
+        v->add_piece(CUSTOM_PIECES + 3, 'g', "WfFbR"); // Yari gold
+        v->add_piece(CUSTOM_PIECES + 4, 's', "fKbR"); // Yari silver
         v->startFen = "rnnkbbr/7/ppppppp/7/7/7/PPPPPPP/7/RBBKNNR[-] w 0 1";
         v->promotionRank = RANK_7;
         v->promotedPieceType[SHOGI_PAWN] = CUSTOM_PIECES + 4;
@@ -903,8 +934,7 @@ namespace {
         Variant* v = minishogi_variant_base();
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
-        v->customPiece[0] = "vR"; // Vertical slider
-        v->add_piece(CUSTOM_PIECES, 'l');
+        v->add_piece(CUSTOM_PIECES, 'l', "vR"); // Vertical slider
         v->add_piece(KNIGHT, 'n');
         v->add_piece(QUEEN, 'q');
         v->startFen = "lnsgkqgsnl/1r6b1/pppppppppp/10/10/10/10/PPPPPPPPPP/1B6R1/LNSGQKGSNL[-] w 0 1";
@@ -1106,10 +1136,8 @@ namespace {
         v->startFen = "2cwamwc2/1rnbqkbnr1/pppppppppp/10/10/10/10/PPPPPPPPPP/1RNBQKBNR1/2CWAMWC2 w - - 0 1";
         v->add_piece(ARCHBISHOP, 'a');
         v->add_piece(CHANCELLOR, 'm');
-        v->customPiece[0] = "DAW"; // Champion
-        v->customPiece[1] = "CF"; // Wizard
-        v->add_piece(CUSTOM_PIECES, 'c');
-        v->add_piece(CUSTOM_PIECES + 1, 'w');
+        v->add_piece(CUSTOM_PIECES, 'c', "DAW"); // Champion
+        v->add_piece(CUSTOM_PIECES + 1, 'w', "CF"); // Wizard
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN};
         v->promotionRank = RANK_10;
         v->doubleStepRank = RANK_3;
@@ -1157,8 +1185,7 @@ namespace {
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->reset_pieces();
-        v->customPiece[0] = "mQ";
-        v->add_piece(CUSTOM_PIECES, 'q');
+        v->add_piece(CUSTOM_PIECES, 'q', "mQ");
         v->add_piece(IMMOBILE_PIECE, 'p');
         v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppppppppppppppppp] w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
@@ -1320,6 +1347,7 @@ void VariantMap::init() {
     add("dobutsu", dobutsu_variant()->conclude());
     add("gorogoro", gorogoroshogi_variant()->conclude());
     add("judkins", judkinsshogi_variant()->conclude());
+    add("tori", torishogi_variant()->conclude());
     add("euroshogi", euroshogi_variant()->conclude());
     add("losalamos", losalamos_variant()->conclude());
     add("gardner", gardner_variant()->conclude());

@@ -128,7 +128,7 @@ void on_variant_change(const Option &o) {
                 if (pt == PAWN && !v->firstRankPawnDrops)
                     suffix += "j";
                 else if (pt == v->dropNoDoubled)
-                    suffix += "f";
+                    suffix += std::string(v->dropNoDoubledCount, 'f');
                 else if (pt == BISHOP && v->dropOppositeColoredBishop)
                     suffix += "s";
                 suffix += "@" + std::to_string(pt == PAWN && !v->promotionZonePawnDrops ? v->promotionRank : v->maxRank + 1);
