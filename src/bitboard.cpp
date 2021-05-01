@@ -47,9 +47,13 @@ Magic ElephantMagics[SQUARE_NB];
 Magic JanggiElephantMagics[SQUARE_NB];
 Magic CannonDiagMagics[SQUARE_NB];
 Magic NightriderMagics[SQUARE_NB];
+Magic GrasshopperMagicsH[SQUARE_NB];
+Magic GrasshopperMagicsV[SQUARE_NB];
+Magic GrasshopperMagicsD[SQUARE_NB];
 
 Magic* magics[] = {BishopMagics, RookMagicsH, RookMagicsV, CannonMagicsH, CannonMagicsV,
-                   HorseMagics, ElephantMagics, JanggiElephantMagics, CannonDiagMagics, NightriderMagics};
+                   HorseMagics, ElephantMagics, JanggiElephantMagics, CannonDiagMagics, NightriderMagics,
+                   GrasshopperMagicsH, GrasshopperMagicsV, GrasshopperMagicsD};
 
 namespace {
 
@@ -66,6 +70,9 @@ namespace {
   Bitboard JanggiElephantTable[0x1C000];  // To store janggi elephant attacks
   Bitboard CannonDiagTable[0x33C00]; // To store diagonal cannon attacks
   Bitboard NightriderTable[0x70200]; // To store nightrider attacks
+  Bitboard GrasshopperTableH[0x11800];  // To store horizontal grasshopper attacks
+  Bitboard GrasshopperTableV[0x4800];  // To store vertical grasshopper attacks
+  Bitboard GrasshopperTableD[0x33C00]; // To store diagonal grasshopper attacks
 #else
   Bitboard RookTableH[0xA00];  // To store horizontal rook attacks
   Bitboard RookTableV[0xA00];  // To store vertical rook attacks
@@ -77,6 +84,9 @@ namespace {
   Bitboard JanggiElephantTable[0x5C00];  // To store janggi elephant attacks
   Bitboard CannonDiagTable[0x1480]; // To store diagonal cannon attacks
   Bitboard NightriderTable[0x1840]; // To store nightrider attacks
+  Bitboard GrasshopperTableH[0xA00];  // To store horizontal grasshopper attacks
+  Bitboard GrasshopperTableV[0xA00];  // To store vertical grasshopper attacks
+  Bitboard GrasshopperTableD[0x1480]; // To store diagonal grasshopper attacks
 #endif
 
   // Rider directions
@@ -90,8 +100,11 @@ namespace {
                                                             {EAST  + 2 * SOUTH_EAST, 0}, {SOUTH + 2 * SOUTH_EAST, 0},
                                                             {SOUTH + 2 * SOUTH_WEST, 0}, {WEST  + 2 * SOUTH_WEST, 0},
                                                             {WEST  + 2 * NORTH_WEST, 0}, {NORTH + 2 * NORTH_WEST, 0} };
+  const std::map<Direction, int> GrasshopperDirectionsV { {NORTH, 1}, {SOUTH, 1}};
+  const std::map<Direction, int> GrasshopperDirectionsH { {EAST, 1}, {WEST, 1} };
+  const std::map<Direction, int> GrasshopperDirectionsD { {NORTH_EAST, 1}, {SOUTH_EAST, 1}, {SOUTH_WEST, 1}, {NORTH_WEST, 1} };
 
-  enum MovementType { RIDER, HOPPER, LAME_LEAPER };
+  enum MovementType { RIDER, HOPPER, LAME_LEAPER, UNLIMITED_RIDER };
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
@@ -117,7 +130,7 @@ namespace {
             if (MT != HOPPER || hurdle)
             {
                 attack |= s;
-                if (limit && ++count >= limit)
+                if (limit && MT != UNLIMITED_RIDER && ++count >= limit)
                     break;
             }
 
@@ -241,12 +254,12 @@ void Bitboards::init_pieces() {
           }
           for (auto const& [d, limit] : pi->hopper[modality])
           {
-              if (!limit && RookDirectionsH.find(d) != RookDirectionsH.end())
-                  riderTypes |= RIDER_CANNON_H;
-              if (!limit && RookDirectionsV.find(d) != RookDirectionsV.end())
-                  riderTypes |= RIDER_CANNON_V;
-              if (!limit && BishopDirections.find(d) != BishopDirections.end())
-                  riderTypes |= RIDER_CANNON_DIAG;
+              if (RookDirectionsH.find(d) != RookDirectionsH.end())
+                  riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_H : RIDER_CANNON_H;
+              if (RookDirectionsV.find(d) != RookDirectionsV.end())
+                  riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_V : RIDER_CANNON_V;
+              if (BishopDirections.find(d) != BishopDirections.end())
+                  riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_D : RIDER_CANNON_DIAG;
           }
       }
 
@@ -268,7 +281,7 @@ void Bitboards::init_pieces() {
                           leaper |= safe_destination(s, c == WHITE ? d : -d);
                   }
                   pseudo |= sliding_attack<RIDER>(pi->slider[modality], s, 0, c);
-                  pseudo |= sliding_attack<RIDER>(pi->hopper[modality], s, 0, c);
+                  pseudo |= sliding_attack<UNLIMITED_RIDER>(pi->hopper[modality], s, 0, c);
               }
           }
       }
@@ -306,6 +319,9 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections, JanggiElephantMagicInit);
   init_magics<HOPPER>(CannonDiagTable, CannonDiagMagics, BishopDirections, CannonDiagMagicInit);
   init_magics<RIDER>(NightriderTable, NightriderMagics, HorseDirections, NightriderMagicInit);
+  init_magics<HOPPER>(GrasshopperTableH, GrasshopperMagicsH, GrasshopperDirectionsH, GrasshopperMagicHInit);
+  init_magics<HOPPER>(GrasshopperTableV, GrasshopperMagicsV, GrasshopperDirectionsV, GrasshopperMagicVInit);
+  init_magics<HOPPER>(GrasshopperTableD, GrasshopperMagicsD, GrasshopperDirectionsD, GrasshopperMagicDInit);
 #else
   init_magics<RIDER>(RookTableH, RookMagicsH, RookDirectionsH);
   init_magics<RIDER>(RookTableV, RookMagicsV, RookDirectionsV);
@@ -317,6 +333,9 @@ void Bitboards::init() {
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections);
   init_magics<HOPPER>(CannonDiagTable, CannonDiagMagics, BishopDirections);
   init_magics<RIDER>(NightriderTable, NightriderMagics, HorseDirections);
+  init_magics<HOPPER>(GrasshopperTableH, GrasshopperMagicsH, GrasshopperDirectionsH);
+  init_magics<HOPPER>(GrasshopperTableV, GrasshopperMagicsV, GrasshopperDirectionsV);
+  init_magics<HOPPER>(GrasshopperTableD, GrasshopperMagicsD, GrasshopperDirectionsD);
 #endif
 
   init_pieces();
@@ -362,7 +381,6 @@ namespace {
     int* epoch = new int[1 << (FILE_NB + RANK_NB - 4)]();
     int cnt = 0, size = 0;
 
-
     for (Square s = SQ_A1; s <= SQ_MAX; ++s)
     {
         // Board edges are not considered in the relevant occupancies
@@ -374,7 +392,8 @@ namespace {
         // the number of 1s of the mask. Hence we deduce the size of the shift to
         // apply to the 64 or 32 bits word to get the index.
         Magic& m = magics[s];
-        m.mask  = (MT == LAME_LEAPER ? lame_leaper_path(directions, s) : sliding_attack<MT == HOPPER ? RIDER : MT>(directions, s, 0)) & ~edges;
+        // The mask for hoppers is unlimited distance, even if the hopper is limited distance (e.g., grasshopper)
+        m.mask  = (MT == LAME_LEAPER ? lame_leaper_path(directions, s) : sliding_attack<MT == HOPPER ? UNLIMITED_RIDER : MT>(directions, s, 0)) & ~edges;
 #ifdef LARGEBOARDS
         m.shift = 128 - popcount(m.mask);
 #else
