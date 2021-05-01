@@ -54,7 +54,7 @@ namespace {
       PieceInfo* p = new PieceInfo();
       p->name = name;
       p->betza = betza;
-      std::vector<char> moveTypes = {};
+      std::vector<MoveModality> moveModalities = {};
       bool hopper = false;
       bool rider = false;
       bool lame = false;
@@ -63,13 +63,14 @@ namespace {
       for (std::string::size_type i = 0; i < betza.size(); i++)
       {
           char c = betza[i];
-          // Move or capture
+          // Modality
           if (c == 'm' || c == 'c')
-              moveTypes.push_back(c);
+              moveModalities.push_back(c == 'c' ? MODALITY_CAPTURE : MODALITY_QUIET);
           // Hopper
           else if (c == 'p' || c == 'g')
           {
               hopper = true;
+              // Grasshopper
               if (c == 'g')
                   distance = 1;
           }
@@ -112,11 +113,11 @@ namespace {
               }
               if (!rider && lame)
                   distance = -1;
-              // No type qualifier means m+c
-              if (moveTypes.size() == 0)
+              // No modality qualifier means m+c
+              if (moveModalities.size() == 0)
               {
-                  moveTypes.push_back('m');
-                  moveTypes.push_back('c');
+                  moveModalities.push_back(MODALITY_QUIET);
+                  moveModalities.push_back(MODALITY_CAPTURE);
               }
               // Define moves
               for (const auto& atom : atoms)
@@ -133,11 +134,11 @@ namespace {
                       else
                           directions.push_back(s);
                   // Add moves
-                  for (char mt : moveTypes)
+                  for (auto modality : moveModalities)
                   {
-                      auto& v = hopper ? (           mt == 'c' ? p->hopperCapture : p->hopperQuiet)
-                                          : rider ? (mt == 'c' ? p->sliderCapture : p->sliderQuiet)
-                                                  : (mt == 'c' ? p->stepsCapture : p->stepsQuiet);
+                      auto& v = hopper ? p->hopper[modality]
+                               : rider ? p->slider[modality]
+                                       : p->steps[modality];
                       auto has_dir = [&](std::string s) {
                         return std::find(directions.begin(), directions.end(), s) != directions.end();
                       };
@@ -160,7 +161,7 @@ namespace {
                   }
               }
               // Reset state
-              moveTypes.clear();
+              moveModalities.clear();
               prelimDirections.clear();
               hopper = false;
               rider = false;
