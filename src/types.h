@@ -791,6 +791,10 @@ constexpr PieceType in_hand_piece_type(Move m) {
   return PieceType((m >> (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) & (PIECE_TYPE_NB - 1));
 }
 
+inline bool is_custom(PieceType pt) {
+  return pt >= CUSTOM_PIECES && pt <= CUSTOM_PIECES_END;
+}
+
 inline bool is_ok(Move m) {
   return from_sq(m) != to_sq(m) || type_of(m) == PROMOTION || type_of(m) == SPECIAL; // Catch MOVE_NULL and MOVE_NONE
 }

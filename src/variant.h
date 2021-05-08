@@ -146,7 +146,7 @@ struct Variant {
       pieceToCharSynonyms[make_piece(BLACK, pt)] = tolower(c2);
       pieceTypes.insert(pt);
       // Add betza notation for custom piece
-      if (pt >= CUSTOM_PIECES && pt <= CUSTOM_PIECES_END)
+      if (is_custom(pt))
           customPiece[pt - CUSTOM_PIECES] = betza;
   }
 

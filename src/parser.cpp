@@ -160,51 +160,38 @@ Variant* VariantParser<DoCheck>::parse() {
 template <bool DoCheck>
 Variant* VariantParser<DoCheck>::parse(Variant* v) {
     // piece types
-    for (const auto& pieceInfo : pieceMap)
+    for (PieceType pt = PAWN; pt <= KING; ++pt)
     {
         // piece char
-        const auto& keyValue = config.find(pieceInfo.second->name);
+        std::string name = piece_name(pt);
+
+        const auto& keyValue = config.find(name);
         if (keyValue != config.end() && !keyValue->second.empty())
         {
             if (isalpha(keyValue->second.at(0)))
-                v->add_piece(pieceInfo.first, keyValue->second.at(0));
+                v->add_piece(pt, keyValue->second.at(0));
             else
             {
                 if (DoCheck && keyValue->second.at(0) != '-')
-                    std::cerr << pieceInfo.second->name << " - Invalid letter: " << keyValue->second.at(0) << std::endl;
-                v->remove_piece(pieceInfo.first);
+                    std::cerr << name << " - Invalid letter: " << keyValue->second.at(0) << std::endl;
+                v->remove_piece(pt);
+            }
+            // betza
+            if (is_custom(pt))
+            {
+                if (keyValue->second.size() > 1)
+                    v->customPiece[pt - CUSTOM_PIECES] = keyValue->second.substr(2);
+                else if (DoCheck)
+                    std::cerr << name << " - Missing Betza move notation" << std::endl;
             }
         }
         // mobility region
-        std::string capitalizedPiece = pieceInfo.second->name;
+        std::string capitalizedPiece = name;
         capitalizedPiece[0] = toupper(capitalizedPiece[0]);
         for (Color c : {WHITE, BLACK})
         {
             std::string color = c == WHITE ? "White" : "Black";
-            parse_attribute("mobilityRegion" + color + capitalizedPiece, v->mobilityRegion[c][pieceInfo.first]);
-        }
-    }
-    // custom piece types
-    for (PieceType pt = CUSTOM_PIECES; pt <= CUSTOM_PIECES_END; ++pt)
-    {
-        std::string customPieceName = "customPiece" + std::to_string(pt - CUSTOM_PIECES + 1);
-        const auto& itCustomPt = config.find(customPieceName);
-        if (itCustomPt != config.end() && !itCustomPt->second.empty())
-        {
-            // piece char
-            if (isalpha(itCustomPt->second.at(0)))
-                v->add_piece(pt, itCustomPt->second.at(0));
-            else
-            {
-                if (DoCheck && itCustomPt->second.at(0) != '-')
-                    std::cerr << customPieceName << " - Invalid letter: " << itCustomPt->second.at(0) << std::endl;
-                v->remove_piece(pt);
-            }
-            // betza
-            if (itCustomPt->second.size() > 1)
-                v->customPiece[pt - CUSTOM_PIECES] = itCustomPt->second.substr(2);
-            else if (DoCheck)
-                std::cerr << customPieceName << " - Missing Betza move notation" << std::endl;
+            parse_attribute("mobilityRegion" + color + capitalizedPiece, v->mobilityRegion[c][pt]);
         }
     }
     // piece values
@@ -375,6 +362,14 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     // Check consistency
     if (DoCheck)
     {
+        // pieces
+        for (PieceType pt : v->pieceTypes)
+        {
+            for (Color c : {WHITE, BLACK})
+                if (std::count(v->pieceToChar.begin(), v->pieceToChar.end(), v->pieceToChar[make_piece(c, pt)]) != 1)
+                    std::cerr << piece_name(pt) << " - Ambiguous piece character: " << v->pieceToChar[make_piece(c, pt)] << std::endl;
+        }
+
         // startFen
         if (FEN::validate_fen(v->startFen, v, v->chess960) != FEN::FEN_OK)
             std::cerr << "startFen - Invalid starting position: " << v->startFen << std::endl;
@@ -418,11 +413,17 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                 std::cerr << "Can not use kings with blastOnCapture." << std::endl;
             if (v->flipEnclosedPieces)
                 std::cerr << "Can not use kings with flipEnclosedPieces." << std::endl;
-            const PieceInfo* pi = pieceMap.find(v->kingType)->second;
-            if (   pi->hopper[MODALITY_QUIET].size()
-                || pi->hopper[MODALITY_CAPTURE].size()
-                || std::any_of(pi->steps[MODALITY_CAPTURE].begin(), pi->steps[MODALITY_CAPTURE].end(), [](const std::pair<const Direction, int>& d) { return d.second; }))
-                std::cerr << pi->name << " is not supported as kingType." << std::endl;
+            // We can not fully check custom king movements at this point
+            if (!is_custom(v->kingType))
+            {
+                const PieceInfo* pi = pieceMap.find(v->kingType)->second;
+                if (   pi->hopper[MODALITY_QUIET].size()
+                    || pi->hopper[MODALITY_CAPTURE].size()
+                    || std::any_of(pi->steps[MODALITY_CAPTURE].begin(),
+                                pi->steps[MODALITY_CAPTURE].end(),
+                                [](const std::pair<const Direction, int>& d) { return d.second; }))
+                    std::cerr << piece_name(v->kingType) << " is not supported as kingType." << std::endl;
+            }
         }
     }
     return v;

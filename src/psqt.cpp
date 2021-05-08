@@ -182,7 +182,7 @@ void init(const Variant* v) {
   PieceType strongestPiece = NO_PIECE_TYPE;
   for (PieceType pt : v->pieceTypes)
   {
-      if (pt >= CUSTOM_PIECES && pt <= CUSTOM_PIECES_END)
+      if (is_custom(pt))
       {
           PieceValue[MG][pt] = piece_value(MG, pt);
           PieceValue[EG][pt] = piece_value(EG, pt);
