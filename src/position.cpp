@@ -890,9 +890,10 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
           diags |= attacks_bb(~c, FERS, s, occupied) & pieces(c, KING);
       diags |= attacks_bb(~c, FERS, s, occupied) & pieces(c, WAZIR);
       diags |= attacks_bb(~c, PAWN, s, occupied) & pieces(c, SOLDIER);
-      diags |= attacks_bb(~c, BISHOP, s, occupied) & pieces(c, ROOK);
-      // TODO: fix for longer diagonals
-      diags |= attacks_bb(~c, ALFIL, s, occupied) & ~attacks_bb(~c, ELEPHANT, s, occupied & ~janggiCannons) & pieces(c, JANGGI_CANNON);
+      diags |= rider_attacks_bb<RIDER_BISHOP>(s, occupied) & pieces(c, ROOK);
+      diags |=  rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied)
+              & rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied & ~janggiCannons)
+              & pieces(c, JANGGI_CANNON);
       b |= diags & diagonal_lines();
   }
 
@@ -1256,8 +1257,9 @@ bool Position::gives_check(Move m) const {
       Bitboard occupied = type_of(m) == DROP ? pieces() : pieces() ^ from;
       if (diagType && (attacks_bb(sideToMove, diagType, to, occupied) & square<KING>(~sideToMove)))
           return true;
-      // TODO: fix for longer diagonals
-      else if (pt == JANGGI_CANNON && (attacks_bb(sideToMove, ALFIL, to, occupied) & ~attacks_bb(sideToMove, ELEPHANT, to, occupied) & square<KING>(~sideToMove)))
+      else if (pt == JANGGI_CANNON && (  rider_attacks_bb<RIDER_CANNON_DIAG>(to, occupied)
+                                       & rider_attacks_bb<RIDER_CANNON_DIAG>(to, occupied & ~janggiCannons)
+                                       & square<KING>(~sideToMove)))
           return true;
   }
 

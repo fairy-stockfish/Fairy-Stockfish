@@ -54,22 +54,29 @@ namespace {
       PieceInfo* p = new PieceInfo();
       p->name = name;
       p->betza = betza;
-      std::vector<char> moveTypes = {};
+      std::vector<MoveModality> moveModalities = {};
       bool hopper = false;
       bool rider = false;
+      bool lame = false;
+      int distance = 0;
       std::vector<std::string> prelimDirections = {};
       for (std::string::size_type i = 0; i < betza.size(); i++)
       {
           char c = betza[i];
-          // Move or capture
+          // Modality
           if (c == 'm' || c == 'c')
-              moveTypes.push_back(c);
+              moveModalities.push_back(c == 'c' ? MODALITY_CAPTURE : MODALITY_QUIET);
           // Hopper
-          else if (c == 'p')
+          else if (c == 'p' || c == 'g')
+          {
               hopper = true;
+              // Grasshopper
+              if (c == 'g')
+                  distance = 1;
+          }
           // Lame leaper
           else if (c == 'n')
-              p->lameLeaper = true;
+              lame = true;
           // Directional modifiers
           else if (verticals.find(c) != std::string::npos || horizontals.find(c) != std::string::npos)
           {
@@ -101,16 +108,16 @@ namespace {
                   rider = true;
                   // limited distance riders
                   if (isdigit(betza[i+1]))
-                  {
-                      // TODO: not supported
-                  }
+                      distance = betza[i+1] - '0';
                   i++;
               }
-              // No type qualifier means m+c
-              if (moveTypes.size() == 0)
+              if (!rider && lame)
+                  distance = -1;
+              // No modality qualifier means m+c
+              if (moveModalities.size() == 0)
               {
-                  moveTypes.push_back('m');
-                  moveTypes.push_back('c');
+                  moveModalities.push_back(MODALITY_QUIET);
+                  moveModalities.push_back(MODALITY_CAPTURE);
               }
               // Define moves
               for (const auto& atom : atoms)
@@ -127,34 +134,34 @@ namespace {
                       else
                           directions.push_back(s);
                   // Add moves
-                  for (char mt : moveTypes)
+                  for (auto modality : moveModalities)
                   {
-                      std::set<Direction>& v = hopper ? (mt == 'c' ? p->hopperCapture : p->hopperQuiet)
-                                              : rider ? (mt == 'c' ? p->sliderCapture : p->sliderQuiet)
-                                                      : (mt == 'c' ? p->stepsCapture : p->stepsQuiet);
+                      auto& v = hopper ? p->hopper[modality]
+                               : rider ? p->slider[modality]
+                                       : p->steps[modality];
                       auto has_dir = [&](std::string s) {
                         return std::find(directions.begin(), directions.end(), s) != directions.end();
                       };
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("rf") || has_dir("rv") || has_dir("fh") || has_dir("rh") || has_dir("hr"))
-                          v.insert(Direction(atom.first * FILE_NB + atom.second));
+                          v[Direction(atom.first * FILE_NB + atom.second)] = distance;
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("lb") || has_dir("lv") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
-                          v.insert(Direction(-atom.first * FILE_NB - atom.second));
+                          v[Direction(-atom.first * FILE_NB - atom.second)] = distance;
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("br") || has_dir("bs") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
-                          v.insert(Direction(-atom.second * FILE_NB + atom.first));
+                          v[Direction(-atom.second * FILE_NB + atom.first)] = distance;
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("fl") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hr"))
-                          v.insert(Direction(atom.second * FILE_NB - atom.first));
+                          v[Direction(atom.second * FILE_NB - atom.first)] = distance;
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("fr") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hl"))
-                          v.insert(Direction(atom.second * FILE_NB + atom.first));
+                          v[Direction(atom.second * FILE_NB + atom.first)] = distance;
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("bl") || has_dir("bs") || has_dir("bh") || has_dir("lh") || has_dir("hl"))
-                          v.insert(Direction(-atom.second * FILE_NB - atom.first));
+                          v[Direction(-atom.second * FILE_NB - atom.first)] = distance;
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("rb") || has_dir("rv") || has_dir("bh") || has_dir("rh") || has_dir("hl"))
-                          v.insert(Direction(-atom.first * FILE_NB + atom.second));
+                          v[Direction(-atom.first * FILE_NB + atom.second)] = distance;
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("lf") || has_dir("lv") || has_dir("fh") || has_dir("lh") || has_dir("hl"))
-                          v.insert(Direction(atom.first * FILE_NB - atom.second));
+                          v[Direction(atom.first * FILE_NB - atom.second)] = distance;
                   }
               }
               // Reset state
-              moveTypes.clear();
+              moveModalities.clear();
               prelimDirections.clear();
               hopper = false;
               rider = false;
@@ -164,18 +171,8 @@ namespace {
   }
   // Special multi-leg betza description for Janggi elephant
   PieceInfo* janggi_elephant_piece() {
-      PieceInfo* p = new PieceInfo();
-      p->name = "janggiElephant";
-      p->betza = "mafsmafW";
-      p->stepsQuiet = {SOUTH + 2 * SOUTH_WEST, SOUTH + 2 * SOUTH_EAST,
-                       WEST  + 2 * SOUTH_WEST, EAST  + 2 * SOUTH_EAST,
-                       WEST  + 2 * NORTH_WEST, EAST  + 2 * NORTH_EAST,
-                       NORTH + 2 * NORTH_WEST, NORTH + 2 * NORTH_EAST};
-      p->stepsCapture = {SOUTH + 2 * SOUTH_WEST, SOUTH + 2 * SOUTH_EAST,
-                         WEST  + 2 * SOUTH_WEST, EAST  + 2 * SOUTH_EAST,
-                         WEST  + 2 * NORTH_WEST, EAST  + 2 * NORTH_EAST,
-                         NORTH + 2 * NORTH_WEST, NORTH + 2 * NORTH_EAST};
-      p->lameLeaper = true;
+      PieceInfo* p = from_betza("nZ", "");
+      p->betza = "mafsmafW"; // for compatiblity with XBoard/Winboard
       return p;
   }
 }

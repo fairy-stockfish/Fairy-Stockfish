@@ -21,24 +21,21 @@
 
 #include <string>
 #include <map>
-#include <set>
 
 #include "types.h"
 #include "variant.h"
 
+
+enum MoveModality {MODALITY_QUIET, MODALITY_CAPTURE, MOVE_MODALITY_NB};
 
 /// PieceInfo struct stores information about the piece movements.
 
 struct PieceInfo {
   std::string name = "";
   std::string betza = "";
-  std::set<Direction> stepsQuiet = {};
-  std::set<Direction> stepsCapture = {};
-  std::set<Direction> sliderQuiet = {};
-  std::set<Direction> sliderCapture = {};
-  std::set<Direction> hopperQuiet = {};
-  std::set<Direction> hopperCapture = {};
-  bool lameLeaper = false;
+  std::map<Direction, int> steps[MOVE_MODALITY_NB] = {};
+  std::map<Direction, int> slider[MOVE_MODALITY_NB] = {};
+  std::map<Direction, int> hopper[MOVE_MODALITY_NB] = {};
 };
 
 struct PieceMap : public std::map<PieceType, const PieceInfo*> {
@@ -48,5 +45,10 @@ struct PieceMap : public std::map<PieceType, const PieceInfo*> {
 };
 
 extern PieceMap pieceMap;
+
+inline std::string piece_name(PieceType pt) {
+  return is_custom(pt) ? "customPiece" + std::to_string(pt - CUSTOM_PIECES + 1)
+                       : pieceMap.find(pt)->second->name;
+}
 
 #endif // #ifndef PIECE_H_INCLUDED

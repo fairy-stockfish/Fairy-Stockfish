@@ -416,10 +416,17 @@ enum RiderType : int {
   RIDER_HORSE = 1 << 5,
   RIDER_ELEPHANT = 1 << 6,
   RIDER_JANGGI_ELEPHANT = 1 << 7,
-  HOPPING_RIDERS = RIDER_CANNON_H | RIDER_CANNON_V,
+  RIDER_CANNON_DIAG = 1 << 8,
+  RIDER_NIGHTRIDER = 1 << 9,
+  RIDER_GRASSHOPPER_H = 1 << 10,
+  RIDER_GRASSHOPPER_V = 1 << 11,
+  RIDER_GRASSHOPPER_D = 1 << 12,
+  HOPPING_RIDERS =  RIDER_CANNON_H | RIDER_CANNON_V | RIDER_CANNON_DIAG
+                  | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
   LAME_LEAPERS = RIDER_HORSE | RIDER_ELEPHANT | RIDER_JANGGI_ELEPHANT,
-  ASYMMETRICAL_RIDERS = RIDER_HORSE | RIDER_JANGGI_ELEPHANT,
-  NON_SLIDING_RIDERS = HOPPING_RIDERS | LAME_LEAPERS,
+  ASYMMETRICAL_RIDERS =  RIDER_HORSE | RIDER_JANGGI_ELEPHANT
+                       | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
+  NON_SLIDING_RIDERS = HOPPING_RIDERS | LAME_LEAPERS | RIDER_NIGHTRIDER,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
@@ -557,11 +564,11 @@ inline Value mg_value(Score s) {
   return Value(mg.s);
 }
 
-#define ENABLE_BIT_OPERATORS_ON(T)                                    \
-inline T operator~ (T d) { return (T)~(int)d; }                       \
-inline T operator| (T d1, T d2) { return (T)((int)d1 | (int)d2); }        \
-inline T operator& (T d1, T d2) { return (T)((int)d1 & (int)d2); }        \
-inline T operator^ (T d1, T d2) { return (T)((int)d1 ^ (int)d2); }        \
+#define ENABLE_BIT_OPERATORS_ON(T)                                        \
+constexpr T operator~ (T d) { return (T)~(int)d; }                        \
+constexpr T operator| (T d1, T d2) { return (T)((int)d1 | (int)d2); }     \
+constexpr T operator& (T d1, T d2) { return (T)((int)d1 & (int)d2); }     \
+constexpr T operator^ (T d1, T d2) { return (T)((int)d1 ^ (int)d2); }     \
 inline T& operator|= (T& d1, T d2) { return (T&)((int&)d1 |= (int)d2); }  \
 inline T& operator&= (T& d1, T d2) { return (T&)((int&)d1 &= (int)d2); }  \
 inline T& operator^= (T& d1, T d2) { return (T&)((int&)d1 ^= (int)d2); }
@@ -782,6 +789,10 @@ constexpr PieceType dropped_piece_type(Move m) {
 
 constexpr PieceType in_hand_piece_type(Move m) {
   return PieceType((m >> (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) & (PIECE_TYPE_NB - 1));
+}
+
+inline bool is_custom(PieceType pt) {
+  return pt >= CUSTOM_PIECES && pt <= CUSTOM_PIECES_END;
 }
 
 inline bool is_ok(Move m) {

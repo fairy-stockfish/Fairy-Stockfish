@@ -59,6 +59,15 @@ promotionPieceTypes = qh
 flagPiece = k
 whiteFlag = *8
 blackFlag = *1
+
+[diana:losalamos]
+pieceToCharTable = PNBRQ................Kpnbrq................k
+bishop = b
+promotionPieceTypes = rbn
+castling = true
+castlingKingsideFile = e
+castlingQueensideFile = b
+startFen = rbnkbr/pppppp/6/6/PPPPPP/RBNKBR w KQkq - 0 1
 """
 
 sf.load_variant_config(ini_text)
@@ -118,7 +127,7 @@ variant_positions = {
     },
     "sittuyin": {
         "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1": (False, False),  # startpos
-        "k7/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # K vs K
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K, skip pocket
         "k6P/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # KP vs K
         "k6P/8/8/8/8/8/8/K6p[] w - - 0 1": (False, False),  # KP vs KP
         "k7/8/8/8/8/8/8/KFF5[] w - - 0 1": (False, True),  # KFF vs K
@@ -150,6 +159,11 @@ variant_positions = {
     },
     "orda": {
         "k7/8/8/8/8/8/8/K7 w - - 0 1": (False, False),  # K vs K
+    },
+    "tencubed": {
+        "2cwamwc2/1rnbqkbnr1/pppppppppp/10/10/10/10/PPPPPPPPPP/1RNBQKBNR1/2CWAMWC2 w - - 0 1":  (False, False),  # startpos
+        "10/5k4/10/10/10/10/10/10/5KC3/10 w - - 0 1":  (False, True),  # KC vs K
+        "10/5k4/10/10/10/10/10/10/5K4/10 w - - 0 1":  (True, True),  # K vs K
     },
 }
 
@@ -264,6 +278,11 @@ class TestPyffish(unittest.TestCase):
         moves = ['f2f4', 'g7g6', 'g1d4', 'j7j6', 'h1g3', 'b8a6', 'i1h3', 'h7h6']
         result = sf.legal_moves("capablanca", CAPA, moves)
         self.assertIn("f1i1", result)
+
+        # Check that chess960 castling notation is used for otherwise ambiguous castling move
+        # d1e1 is a normal king move, so castling has to be d1f1
+        result = sf.legal_moves("diana", "rbnk1r/pppbpp/3p2/5P/PPPPPB/RBNK1R w KQkq - 2 3", [])
+        self.assertIn("d1f1", result)
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])

@@ -472,7 +472,12 @@ string UCI::move(const Position& pos, Move m) {
   if (is_gating(m) && gating_square(m) == to)
       from = to_sq(m), to = from_sq(m);
   else if (type_of(m) == CASTLING && !pos.is_chess960())
+  {
       to = make_square(to > from ? pos.castling_kingside_file() : pos.castling_queenside_file(), rank_of(from));
+      // If the castling move is ambiguous with a normal king move, switch to 960 notation
+      if (pos.pseudo_legal(make_move(from, to)))
+          to = to_sq(m);
+  }
 
   string move = (type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (Options["Protocol"] == "usi" ? '*' : '@')
                                     : UCI::square(pos, from)) + UCI::square(pos, to);

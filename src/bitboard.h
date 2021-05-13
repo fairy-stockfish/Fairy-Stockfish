@@ -147,6 +147,11 @@ extern Magic CannonMagicsV[SQUARE_NB];
 extern Magic HorseMagics[SQUARE_NB];
 extern Magic ElephantMagics[SQUARE_NB];
 extern Magic JanggiElephantMagics[SQUARE_NB];
+extern Magic CannonDiagMagics[SQUARE_NB];
+extern Magic NightriderMagics[SQUARE_NB];
+extern Magic GrasshopperMagicsH[SQUARE_NB];
+extern Magic GrasshopperMagicsV[SQUARE_NB];
+extern Magic GrasshopperMagicsD[SQUARE_NB];
 
 extern Magic* magics[];
 
@@ -381,8 +386,7 @@ inline int edge_distance(Rank r, Rank maxRank = RANK_8) { return std::min(r, Ran
 template<RiderType R>
 inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
 
-  assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V || R == RIDER_CANNON_H || R == RIDER_CANNON_V
-         || R == RIDER_HORSE || R == RIDER_ELEPHANT || R == RIDER_JANGGI_ELEPHANT);
+  static_assert(R != NO_RIDER && !(R & (R - 1))); // exactly one bit
   const Magic& m =  R == RIDER_ROOK_H ? RookMagicsH[s]
                   : R == RIDER_ROOK_V ? RookMagicsV[s]
                   : R == RIDER_CANNON_H ? CannonMagicsH[s]
@@ -390,6 +394,11 @@ inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
                   : R == RIDER_HORSE ? HorseMagics[s]
                   : R == RIDER_ELEPHANT ? ElephantMagics[s]
                   : R == RIDER_JANGGI_ELEPHANT ? JanggiElephantMagics[s]
+                  : R == RIDER_CANNON_DIAG ? CannonDiagMagics[s]
+                  : R == RIDER_NIGHTRIDER ? NightriderMagics[s]
+                  : R == RIDER_GRASSHOPPER_H ? GrasshopperMagicsH[s]
+                  : R == RIDER_GRASSHOPPER_V ? GrasshopperMagicsV[s]
+                  : R == RIDER_GRASSHOPPER_D ? GrasshopperMagicsD[s]
                   : BishopMagics[s];
   return m.attacks[m.index(occupied)];
 }
@@ -398,8 +407,7 @@ inline Square lsb(Bitboard b);
 
 inline Bitboard rider_attacks_bb(RiderType R, Square s, Bitboard occupied) {
 
-  assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V || R == RIDER_CANNON_H || R == RIDER_CANNON_V
-         || R == RIDER_HORSE || R == RIDER_ELEPHANT || R == RIDER_JANGGI_ELEPHANT);
+  assert(R != NO_RIDER && !(R & (R - 1))); // exactly one bit
   const Magic& m = magics[lsb(R)][s]; // re-use Bitboard lsb for riders
   return m.attacks[m.index(occupied)];
 }

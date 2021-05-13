@@ -89,6 +89,7 @@ struct Variant {
   bool dropOppositeColoredBishop = false;
   bool dropPromoted = false;
   PieceType dropNoDoubled = NO_PIECE_TYPE;
+  int dropNoDoubledCount = 1;
   bool immobilityIllegal = false;
   bool gating = false;
   bool arrowGating = false;
@@ -138,12 +139,19 @@ struct Variant {
   PieceType nnueKing = KING;
   bool endgameEval = false;
 
-  void add_piece(PieceType pt, char c, char c2 = ' ') {
+  void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
       pieceToChar[make_piece(BLACK, pt)] = tolower(c);
       pieceToCharSynonyms[make_piece(WHITE, pt)] = toupper(c2);
       pieceToCharSynonyms[make_piece(BLACK, pt)] = tolower(c2);
       pieceTypes.insert(pt);
+      // Add betza notation for custom piece
+      if (is_custom(pt))
+          customPiece[pt - CUSTOM_PIECES] = betza;
+  }
+
+  void add_piece(PieceType pt, char c, char c2) {
+      add_piece(pt, c, "", c2);
   }
 
   void remove_piece(PieceType pt) {

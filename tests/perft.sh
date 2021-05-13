@@ -52,6 +52,8 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp sittuyin "fen 8/6s1/5P2/3n4/pR2K2S/1P6/1k4p1/8[] w - - 1 50" 4 268869 > /dev/null
   expect perft.exp shatranj startpos 4 68122 > /dev/null
   expect perft.exp amazon startpos 4 318185 > /dev/null
+  expect perft.exp nightrider startpos 4 419019 > /dev/null
+  expect perft.exp grasshopper startpos 4 635298 > /dev/null
   expect perft.exp hoppelpoppel startpos 4 202459 > /dev/null
   expect perft.exp newzealand startpos 4 200310 > /dev/null
   # alternative goals
@@ -103,6 +105,7 @@ if [[ $1 == "" || $1 == "variant" ]]; then
   expect perft.exp euroshogi startpos 4 380499 > /dev/null
   expect perft.exp minishogi startpos 5 533203 > /dev/null
   expect perft.exp kyotoshogi startpos 5 225903 > /dev/null
+  expect perft.exp torishogi startpos 4 103857 > /dev/null
   # non-chess
   expect perft.exp ataxx startpos 4 155888 > /dev/null
   expect perft.exp ataxx "fen 7/7/7/7/ppppppp/ppppppp/PPPPPPP[PPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppp] w 0 1" 5 452980 > /dev/null
