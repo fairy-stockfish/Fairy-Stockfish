@@ -34,7 +34,7 @@ namespace Bitboards {
 
 void init_pieces();
 void init();
-const std::string pretty(Bitboard b);
+std::string pretty(Bitboard b);
 
 }
 

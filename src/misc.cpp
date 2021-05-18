@@ -138,7 +138,7 @@ public:
 /// the program was compiled) or "Stockfish <Version>", depending on whether
 /// Version is empty.
 
-const string engine_info(bool to_uci, bool to_xboard) {
+string engine_info(bool to_uci, bool to_xboard) {
 
   const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
   string month, day, year;
@@ -166,7 +166,7 @@ const string engine_info(bool to_uci, bool to_xboard) {
 
 /// compiler_info() returns a string trying to describe the compiler we use
 
-const std::string compiler_info() {
+std::string compiler_info() {
 
   #define stringify2(x) #x
   #define stringify(x) stringify2(x)
