@@ -1,0 +1,28 @@
+name: build linux
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install
+        run: sudo apt install mingw-w64
+
+      - name: make default
+        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64 EXE=fairy-stockfish_x86-64 && strip fairy-stockfish_x86-64*
+
+      - name: make largeboards
+        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64 EXE=fairy-stockfish-largeboards_x86-64 largeboards=yes && strip fairy-stockfish-largeboards_x86-64*
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: fairy-stockfish
+          path: src/fairy-stockfish*
