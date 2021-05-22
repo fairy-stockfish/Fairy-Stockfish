@@ -93,6 +93,8 @@ const vector<string> Defaults = {
 
 } // namespace
 
+namespace Stockfish {
+
 /// setup_bench() builds a list of UCI commands to be run by bench. There
 /// are five parameters: TT size in MB, number of search threads that
 /// should be used, the limit value spent for each position, a file name
@@ -189,3 +191,5 @@ vector<string> setup_bench(const Position& current, istream& is) {
 
   return list;
 }
+
+} // namespace Stockfish

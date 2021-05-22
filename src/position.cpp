@@ -34,6 +34,8 @@
 
 using std::string;
 
+namespace Stockfish {
+
 namespace Zobrist {
 
   Key psq[PIECE_NB][SQUARE_NB];
@@ -2684,3 +2686,5 @@ bool Position::pos_is_ok() const {
 
   return true;
 }
+
+} // namespace Stockfish

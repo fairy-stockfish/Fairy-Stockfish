@@ -25,7 +25,7 @@
 #include "half_kp_shogi.h"
 #endif
 
-namespace Eval::NNUE::Features {
+namespace Stockfish::Eval::NNUE::Features {
 
   // Map square to numbering on 8x8 board
   constexpr Square to_chess_square(Square s) {
@@ -93,4 +93,4 @@ namespace Eval::NNUE::Features {
 
   template class HalfKPVariants<Side::kFriend>;
 
-}  // namespace Eval::NNUE::Features
+}  // namespace Stockfish::Eval::NNUE::Features

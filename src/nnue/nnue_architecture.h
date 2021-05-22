@@ -26,7 +26,7 @@
 // #include "architectures/halfkp_shogi_256x2-32-32.h"
 #include "architectures/halfkp_variants_256x2-32-32.h"
 
-namespace Eval::NNUE {
+namespace Stockfish::Eval::NNUE {
 
   static_assert(kTransformedFeatureDimensions % kMaxSimdWidth == 0, "");
   static_assert(Network::kOutputDimensions == 1, "");
@@ -35,6 +35,6 @@ namespace Eval::NNUE {
   // Trigger for full calculation instead of difference calculation
   constexpr auto kRefreshTriggers = RawFeatures::kRefreshTriggers;
 
-}  // namespace Eval::NNUE
+}  // namespace Stockfish::Eval::NNUE
 
 #endif // #ifndef NNUE_ARCHITECTURE_H_INCLUDED

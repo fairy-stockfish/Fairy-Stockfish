@@ -34,6 +34,7 @@
 
 #include "nnue/nnue_accumulator.h"
 
+namespace Stockfish {
 
 /// StateInfo struct stores information needed to restore a Position object to
 /// its previous state when we retract a move. Whenever a move is made on the
@@ -1328,5 +1329,7 @@ inline void Position::undrop_piece(Piece pc_hand, Square s) {
   add_to_hand(pc_hand);
   assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] > 0 || var->twoBoards);
 }
+
+} // namespace Stockfish
 
 #endif // #ifndef POSITION_H_INCLUDED

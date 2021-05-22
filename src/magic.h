@@ -19,6 +19,8 @@
 #ifndef MAGIC_H_INCLUDED
 #define MAGIC_H_INCLUDED
 
+namespace Stockfish {
+
 #ifdef PRECOMPUTED_MAGICS
 #define B(a, b) (Bitboard(a) << 64) ^ Bitboard(b)
   // Use precomputed magics if pext is not available,
@@ -1611,5 +1613,7 @@
   };
 #undef B
 #endif
+
+} // namespace Stockfish
 
 #endif // #ifndef MAGIC_H_INCLUDED

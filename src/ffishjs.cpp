@@ -40,6 +40,7 @@
 
 using namespace emscripten;
 
+using namespace Stockfish;
 
 void initialize_stockfish() {
   pieceMap.init();

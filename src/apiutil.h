@@ -30,6 +30,7 @@
 #include "position.h"
 #include "variant.h"
 
+namespace Stockfish {
 
 enum Notation {
     NOTATION_DEFAULT,
@@ -926,5 +927,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     return FEN_OK;
 }
 } // namespace FEN
+
+} // namespace Stockfish
 
 #endif // #ifndef APIUTIL_H_INCLUDED

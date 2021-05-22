@@ -20,6 +20,7 @@
 
 #include "movepick.h"
 
+namespace Stockfish {
 
 // Since continuation history grows quadratically with the number of piece types,
 // we need to reserve a limited number of slots and map piece types to these slots
@@ -27,7 +28,6 @@
 int history_slot(Piece pc) {
     return pc == NO_PIECE ? 0 : (type_of(pc) == KING ? PIECE_SLOTS - 1 : type_of(pc) % (PIECE_SLOTS - 1)) + color_of(pc) * PIECE_SLOTS;
 }
-
 
 namespace {
 
@@ -273,3 +273,5 @@ top:
   assert(false);
   return MOVE_NONE; // Silence warning
 }
+
+} // namespace Stockfish

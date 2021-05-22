@@ -25,6 +25,8 @@
 
 #include "types.h"
 
+namespace Stockfish {
+
 class Position;
 
 namespace UCI {
@@ -84,5 +86,7 @@ Move to_move(const Position& pos, std::string& str);
 } // namespace UCI
 
 extern UCI::OptionsMap Options;
+
+} // namespace Stockfish
 
 #endif // #ifndef UCI_H_INCLUDED

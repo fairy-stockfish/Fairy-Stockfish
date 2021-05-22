@@ -30,6 +30,9 @@
 #include "variant.h"
 #include "misc.h"
 
+
+namespace Stockfish {
+
 Value EvalPieceValue[PHASE_NB][PIECE_NB];
 Value CapturePieceValue[PHASE_NB][PIECE_NB];
 
@@ -336,3 +339,5 @@ void init(const Variant* v) {
 }
 
 } // namespace PSQT
+
+} // namespace Stockfish

@@ -28,6 +28,8 @@
 #include "tt.h"
 #include "xboard.h"
 
+namespace Stockfish {
+
 ThreadPool Threads; // Global object
 
 
@@ -283,3 +285,5 @@ void ThreadPool::wait_for_search_finished() const {
         if (th != front())
             th->wait_for_search_finished();
 }
+
+} // namespace Stockfish

@@ -35,6 +35,8 @@
 
 using namespace std;
 
+namespace Stockfish {
+
 extern vector<string> setup_bench(const Position&, istream&);
 
 namespace {
@@ -520,3 +522,5 @@ Move UCI::to_move(const Position& pos, string& str) {
 
   return MOVE_NONE;
 }
+
+} // namespace Stockfish

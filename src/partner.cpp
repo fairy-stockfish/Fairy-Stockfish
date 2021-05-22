@@ -24,6 +24,8 @@
 #include "thread.h"
 #include "uci.h"
 
+namespace Stockfish {
+
 PartnerHandler Partner; // Global object
 
 void PartnerHandler::reset() {
@@ -152,3 +154,5 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
 template void PartnerHandler::ptell<HUMAN>(const std::string&);
 template void PartnerHandler::ptell<FAIRY>(const std::string&);
 template void PartnerHandler::ptell<ALL_PARTNERS>(const std::string&);
+
+} // namespace Stockfish

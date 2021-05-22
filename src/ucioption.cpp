@@ -34,6 +34,8 @@
 
 using std::string;
 
+namespace Stockfish {
+
 UCI::OptionsMap Options; // Global object
 
 namespace PSQT {
@@ -370,3 +372,5 @@ const std::string Option::get_type() const {
 }
 
 } // namespace UCI
+
+} // namespace Stockfish

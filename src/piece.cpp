@@ -23,6 +23,8 @@
 #include "types.h"
 #include "piece.h"
 
+namespace Stockfish {
+
 PieceMap pieceMap; // Global object
 
 
@@ -230,3 +232,5 @@ void PieceMap::clear_all() {
       delete element.second;
   clear();
 }
+
+} // namespace Stockfish

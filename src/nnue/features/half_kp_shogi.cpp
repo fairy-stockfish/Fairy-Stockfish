@@ -21,7 +21,7 @@
 #include "half_kp_shogi.h"
 #include "index_list.h"
 
-namespace Eval::NNUE::Features {
+namespace Stockfish::Eval::NNUE::Features {
 
   constexpr Square rotate(Square s) {
     return Square(SQUARE_NB_SHOGI - 1 - int(s));
@@ -95,4 +95,4 @@ namespace Eval::NNUE::Features {
 
   template class HalfKPShogi<Side::kFriend>;
 
-}  // namespace Eval::NNUE::Features
+}  // namespace Stockfish::Eval::NNUE::Features

@@ -24,6 +24,8 @@
 #include "misc.h"
 #include "piece.h"
 
+namespace Stockfish {
+
 uint8_t PopCnt16[1 << 16];
 uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
@@ -190,7 +192,6 @@ namespace {
 
 }
 
-
 /// safe_destination() returns the bitboard of target square for the given step
 /// from the given square. If the step is off the board, returns empty bitboard.
 
@@ -349,7 +350,6 @@ void Bitboards::init() {
   }
 }
 
-
 namespace {
 
   // init_magics() computes all rook and bishop attacks at startup. Magic
@@ -468,3 +468,5 @@ namespace {
     delete[] epoch;
   }
 }
+
+} // namespace Stockfish

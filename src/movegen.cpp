@@ -21,6 +21,8 @@
 #include "movegen.h"
 #include "position.h"
 
+namespace Stockfish {
+
 namespace {
 
   template<MoveType T>
@@ -562,3 +564,5 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 
   return moveList;
 }
+
+} // namespace Stockfish
