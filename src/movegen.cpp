@@ -122,7 +122,7 @@ namespace {
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank7BB : AllSquares);
 
-    Bitboard enemies = (Type == EVASIONS ? pos.pieces(Them) & target:
+    Bitboard enemies = (Type == EVASIONS ? pos.checkers():
                         Type == CAPTURES ? target : pos.pieces(Them));
 
     // Single and double pawn pushes, no promotions
@@ -273,11 +273,6 @@ namespace {
 
     Bitboard bb = piecesToMove & pos.pieces(Pt);
 
-    if (!bb)
-        return moveList;
-
-    [[maybe_unused]] const Bitboard checkSquares = pos.check_squares(Pt);
-
     while (bb) {
         Square from = pop_lsb(&bb);
 
@@ -289,7 +284,7 @@ namespace {
 
         if (Checks)
         {
-            b1 &= checkSquares;
+            b1 &= pos.check_squares(Pt);
             if (b2)
                 b2 &= pos.check_squares(pos.promoted_piece_type(Pt));
             if (b3)
