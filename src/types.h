@@ -183,6 +183,10 @@ struct Bitboard {
         return Bitboard(~b64[0], ~b64[1]);
     }
 
+    constexpr Bitboard operator - () const {
+        return Bitboard(-b64[0] - (b64[1] > 0), -b64[1]);
+    }
+
     constexpr Bitboard operator | (const Bitboard x) const {
         return Bitboard(b64[0] | x.b64[0], b64[1] | x.b64[1]);
     }
