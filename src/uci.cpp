@@ -363,7 +363,7 @@ void UCI::loop(int argc, char* argv[]) {
           is.seekg(0);
           position(pos, is, states);
       }
-      else
+      else if (!token.empty() && token[0] != '#')
           sync_cout << "Unknown command: " << cmd << sync_endl;
 
   } while (token != "quit" && argc == 1); // Command line args are one-shot

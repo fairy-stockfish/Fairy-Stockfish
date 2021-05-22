@@ -359,11 +359,11 @@ namespace {
                 target = ~pos.pieces(Us);
                 break;
             }
-            Square checksq = lsb(pos.checkers());
-            target = between_bb(pos.square<KING>(Us), checksq) | checksq;
+            target = between_bb(pos.square<KING>(Us), lsb(pos.checkers())) | pos.checkers();
             // Leaper attacks can not be blocked
+            Square checksq = lsb(pos.checkers());
             if (LeaperAttacks[~Us][type_of(pos.piece_on(checksq))][checksq] & pos.square<KING>(Us))
-                target = square_bb(checksq);
+                target = pos.checkers();
             break;
         }
         case NON_EVASIONS:
