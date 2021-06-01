@@ -173,7 +173,7 @@ namespace {
   }
   // Special multi-leg betza description for Janggi elephant
   PieceInfo* janggi_elephant_piece() {
-      PieceInfo* p = from_betza("nZ", "");
+      PieceInfo* p = from_betza("nZ", "janggiElephant");
       p->betza = "mafsmafW"; // for compatiblity with XBoard/Winboard
       return p;
   }
