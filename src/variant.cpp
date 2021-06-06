@@ -1138,6 +1138,7 @@ namespace {
     // https://en.wikipedia.org/wiki/Grand_chess
     Variant* grand_variant() {
         Variant* v = chess_variant_base();
+        v->variantTemplate = "grand";
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
@@ -1157,6 +1158,26 @@ namespace {
         v->doubleStepRank = RANK_3;
         v->doubleStepRankMin = RANK_3;
         v->castling = false;
+        return v;
+    }
+    // Opulent chess
+    // Variant of Grand chess with two extra pieces
+    // https://www.chessvariants.com/rules/opulent-chess
+    Variant* opulent_variant() {
+        Variant* v = grand_variant();
+        v->pieceToCharTable = "PNBRQ..AC....W.......LKpnbrq..ac....w.......lk";
+        v->remove_piece(KNIGHT);
+        v->add_piece(CUSTOM_PIECES, 'n', "NW");
+        v->add_piece(CUSTOM_PIECES + 1, 'w', "CF");
+        v->add_piece(CUSTOM_PIECES + 2, 'l', "FDH");
+        v->startFen = "rw6wr/clbnqknbla/pppppppppp/10/10/10/10/PPPPPPPPPP/CLBNQKNBLA/RW6WR w - - 0 1";
+        v->promotionPieceTypes.erase(KNIGHT);
+        v->promotionPieceTypes.insert(CUSTOM_PIECES);
+        v->promotionPieceTypes.insert(CUSTOM_PIECES + 1);
+        v->promotionPieceTypes.insert(CUSTOM_PIECES + 2);
+        v->promotionLimit[CUSTOM_PIECES] = 2;
+        v->promotionLimit[CUSTOM_PIECES + 1] = 2;
+        v->promotionLimit[CUSTOM_PIECES + 2] = 2;
         return v;
     }
     // Tencubed
@@ -1410,6 +1431,7 @@ void VariantMap::init() {
     add("jesonmor", jesonmor_variant()->conclude());
     add("courier", courier_variant()->conclude());
     add("grand", grand_variant()->conclude());
+    add("opulent", opulent_variant()->conclude());
     add("tencubed", tencubed_variant()->conclude());
     add("shako", shako_variant()->conclude());
     add("clobber10", clobber10_variant()->conclude());
