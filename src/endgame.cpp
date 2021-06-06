@@ -371,7 +371,7 @@ Value Endgame<KFsPsK>::operator()(const Position& pos) const {
       Bitboard b = pos.pieces(strongSide, PAWN);
       while (b && (!dark || !light))
       {
-          if (file_of(pop_lsb(&b)) % 2 != relative_rank(strongSide, pos.promotion_rank(), pos.max_rank()) % 2)
+          if (file_of(pop_lsb(b)) % 2 != relative_rank(strongSide, pos.promotion_rank(), pos.max_rank()) % 2)
               light = true;
           else
               dark = true;

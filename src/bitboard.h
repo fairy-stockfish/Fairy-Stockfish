@@ -292,6 +292,7 @@ constexpr Bitboard adjacent_files_bb(Square s) {
 inline Bitboard line_bb(Square s1, Square s2) {
 
   assert(is_ok(s1) && is_ok(s2));
+
   return LineBB[s1][s2];
 }
 
@@ -305,7 +306,9 @@ inline Bitboard line_bb(Square s1, Square s2) {
 /// interpose itself to cover the check or capture the checking piece.
 
 inline Bitboard between_bb(Square s1, Square s2) {
+
   assert(is_ok(s1) && is_ok(s2));
+
   return BetweenBB[s1][s2];
 }
 
@@ -650,10 +653,10 @@ inline Bitboard least_significant_square_bb(Bitboard b) {
 
 /// pop_lsb() finds and clears the least significant bit in a non-zero bitboard
 
-inline Square pop_lsb(Bitboard* b) {
-  assert(*b);
-  const Square s = lsb(*b);
-  *b &= *b - 1;
+inline Square pop_lsb(Bitboard& b) {
+  assert(b);
+  const Square s = lsb(b);
+  b &= b - 1;
   return s;
 }
 

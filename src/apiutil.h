@@ -184,7 +184,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
 
     while (b)
     {
-        Square s = pop_lsb(&b);
+        Square s = pop_lsb(b);
         if (   pos.pseudo_legal(make_move(s, to))
                && pos.legal(make_move(s, to))
                && !(is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))

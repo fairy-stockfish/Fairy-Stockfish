@@ -60,7 +60,7 @@ namespace Stockfish::Eval::NNUE::Features {
     Square ksq = orient(pos, perspective, pos.square(perspective, pos.nnue_king()));
     Bitboard bb = pos.pieces() & ~pos.pieces(pos.nnue_king());
     while (bb) {
-      Square s = pop_lsb(&bb);
+      Square s = pop_lsb(bb);
       active->push_back(make_index(pos, perspective, s, pos.piece_on(s), ksq));
     }
   }

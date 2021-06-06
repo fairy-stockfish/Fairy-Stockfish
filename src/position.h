@@ -634,7 +634,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
               Bitboard b2 = b;
               while (b2)
               {
-                  Square s = pop_lsb(&b2);
+                  Square s = pop_lsb(b2);
                   if (!(attacks_bb(c, QUEEN, s, board_bb() & ~pieces(~c)) & ~PseudoAttacks[c][KING][s] & pieces(c)))
                       b ^= s;
               }
@@ -753,7 +753,7 @@ inline Value Position::stalemate_value(int ply) const {
       Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
       while (pseudoRoyals)
       {
-          Square sr = pop_lsb(&pseudoRoyals);
+          Square sr = pop_lsb(pseudoRoyals);
           if (  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
               && attackers_to(sr, ~sideToMove))
               return convert_mate_value(var->checkmateValue, ply);

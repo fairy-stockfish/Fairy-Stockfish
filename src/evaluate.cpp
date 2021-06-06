@@ -55,7 +55,6 @@
 
 
 using namespace std;
-using namespace Stockfish::Eval::NNUE;
 
 namespace Stockfish {
 
@@ -286,11 +285,12 @@ namespace {
     S(0, 0), S(3, 44), S(37, 68), S(42, 60), S(0, 39), S(58, 43)
   };
 
+  constexpr Value CorneredBishop = Value(50);
+
   // Assorted bonuses and penalties
   constexpr Score UncontestedOutpost  = S(  1, 10);
   constexpr Score BishopOnKingRing    = S( 24,  0);
   constexpr Score BishopXRayPawns     = S(  4,  5);
-  constexpr Score CorneredBishop      = S( 50, 50);
   constexpr Score FlankAttacks        = S(  8,  0);
   constexpr Score Hanging             = S( 69, 36);
   constexpr Score KnightOnQueen       = S( 16, 11);
@@ -455,8 +455,9 @@ namespace {
 
     attackedBy[Us][Pt] = 0;
 
-    while (b1) {
-        Square s = pop_lsb(&b1);
+    while (b1)
+    {
+        Square s = pop_lsb(b1);
 
         // Find attacked squares, including x-ray attacks for bishops and rooks
         b = Pt == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(QUEEN))
@@ -574,9 +575,8 @@ namespace {
                 {
                     Direction d = pawn_push(Us) + (file_of(s) == FILE_A ? EAST : WEST);
                     if (pos.piece_on(s + d) == make_piece(Us, PAWN))
-                        score -= !pos.empty(s + d + pawn_push(Us))                ? CorneredBishop * 4
-                                : pos.piece_on(s + d + d) == make_piece(Us, PAWN) ? CorneredBishop * 2
-                                                                                  : CorneredBishop;
+                        score -= !pos.empty(s + d + pawn_push(Us)) ? 4 * make_score(CorneredBishop, CorneredBishop)
+                                                                   : 3 * make_score(CorneredBishop, CorneredBishop);
                 }
             }
         }
@@ -856,7 +856,7 @@ namespace {
         Bitboard moves = 0, piecebb = pos.pieces(Us);
         while (piecebb)
         {
-            Square s = pop_lsb(&piecebb);
+            Square s = pop_lsb(piecebb);
             if (type_of(pos.piece_on(s)) != KING)
                 moves |= pos.moves_from(Us, type_of(pos.piece_on(s)), s);
         }
@@ -883,7 +883,7 @@ namespace {
                 Bitboard bExtBlast = bExt & (attackedBy2[Us] | ~attackedBy[Us][pt]);
                 while (bExtBlast)
                 {
-                    Square s = pop_lsb(&bExtBlast);
+                    Square s = pop_lsb(bExtBlast);
                     if (((attacks_bb<KING>(s) | s) & pos.pieces(Them, pt)) && !(attacks_bb<KING>(s) & pos.pieces(Us, pt)))
                         explosions++;
                 }
@@ -915,11 +915,11 @@ namespace {
     {
         b = (defended | weak) & (attackedBy[Us][KNIGHT] | attackedBy[Us][BISHOP]);
         while (b)
-            score += ThreatByMinor[type_of(pos.piece_on(pop_lsb(&b)))];
+            score += ThreatByMinor[type_of(pos.piece_on(pop_lsb(b)))];
 
         b = weak & attackedBy[Us][ROOK];
         while (b)
-            score += ThreatByRook[type_of(pos.piece_on(pop_lsb(&b)))];
+            score += ThreatByRook[type_of(pos.piece_on(pop_lsb(b)))];
 
         if (weak & attackedBy[Us][KING])
             score += ThreatByKing;
@@ -1017,7 +1017,7 @@ namespace {
 
     while (b)
     {
-        Square s = pop_lsb(&b);
+        Square s = pop_lsb(b);
 
         assert(!(pos.pieces(Them, PAWN) & forward_file_bb(Us, s + Up)));
 
@@ -1087,7 +1087,7 @@ namespace {
         b = pos.pieces(Us, SHOGI_PAWN);
         while (b)
         {
-            Square s = pop_lsb(&b);
+            Square s = pop_lsb(b);
             if ((pos.pieces(Them, SHOGI_PAWN) & forward_file_bb(Us, s)) || relative_rank(Us, s, pos.max_rank()) == pos.max_rank())
                 continue;
 
@@ -1197,7 +1197,7 @@ namespace {
             onHold2 = 0;
             while (current)
             {
-                Square s = pop_lsb(&current);
+                Square s = pop_lsb(current);
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
                                     | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
                 ctfPieces |= attacks & ~blocked;
@@ -1269,7 +1269,7 @@ namespace {
             // Count number of pieces per gap
             while (b)
             {
-                Square s = pop_lsb(&b);
+                Square s = pop_lsb(b);
                 int c = 0;
                 for (int j = 0; j < pos.connect_n(); j++)
                     if (pos.pieces(Us) & (s - j * d))
@@ -1289,7 +1289,7 @@ namespace {
             Bitboard edgePieces = pos.pieces(Us) & edges;
             while (edgePieces)
             {
-                Bitboard connectedEdge = attacks_bb(Us, ROOK, pop_lsb(&edgePieces), ~(pos.pieces(Us) & edges)) & edges;
+                Bitboard connectedEdge = attacks_bb(Us, ROOK, pop_lsb(edgePieces), ~(pos.pieces(Us) & edges)) & edges;
                 if (!more_than_one(connectedEdge & ~pos.pieces(Us)))
                     score += make_score(300, 300);
                 else if (!(connectedEdge & ~pos.pieces()))
@@ -1302,12 +1302,12 @@ namespace {
         Bitboard drops = pos.drop_region(Them, IMMOBILE_PIECE);
         while (drops)
         {
-            Square s = pop_lsb(&drops);
+            Square s = pop_lsb(drops);
             if (pos.flip_enclosed_pieces() == REVERSI)
             {
                 Bitboard b = attacks_bb(Them, QUEEN, s, ~pos.pieces(Us)) & ~PseudoAttacks[Them][KING][s] & pos.pieces(Them);
                 while(b)
-                    unstable |= between_bb(s, pop_lsb(&b));
+                    unstable |= between_bb(s, pop_lsb(b));
             }
             else
                 unstable |= PseudoAttacks[Them][KING][s] & pos.pieces(Us);
@@ -1518,7 +1518,43 @@ make_v:
     return v;
   }
 
-} // namespace
+
+  /// Fisher Random Chess: correction for cornered bishops, to fix chess960 play with NNUE
+
+  Value fix_FRC(const Position& pos) {
+
+    constexpr Bitboard Corners =  Bitboard(1ULL) << SQ_A1 | Bitboard(1ULL) << SQ_H1 | Bitboard(1ULL) << SQ_A8 | Bitboard(1ULL) << SQ_H8;
+
+    if (!(pos.pieces(BISHOP) & Corners))
+        return VALUE_ZERO;
+
+    int correction = 0;
+
+    if (   pos.piece_on(SQ_A1) == W_BISHOP
+        && pos.piece_on(SQ_B2) == W_PAWN)
+        correction += !pos.empty(SQ_B3) ? -CorneredBishop * 4
+                                        : -CorneredBishop * 3;
+
+    if (   pos.piece_on(SQ_H1) == W_BISHOP
+        && pos.piece_on(SQ_G2) == W_PAWN)
+        correction += !pos.empty(SQ_G3) ? -CorneredBishop * 4
+                                        : -CorneredBishop * 3;
+
+    if (   pos.piece_on(SQ_A8) == B_BISHOP
+        && pos.piece_on(SQ_B7) == B_PAWN)
+        correction += !pos.empty(SQ_B6) ? CorneredBishop * 4
+                                        : CorneredBishop * 3;
+
+    if (   pos.piece_on(SQ_H8) == B_BISHOP
+        && pos.piece_on(SQ_G7) == B_PAWN)
+        correction += !pos.empty(SQ_G6) ? CorneredBishop * 4
+                                        : CorneredBishop * 3;
+
+    return pos.side_to_move() == WHITE ?  Value(correction)
+                                       : -Value(correction);
+  }
+
+} // namespace Eval
 
 
 /// tempo_value() returns the evaluation offset for the side to move
@@ -1540,16 +1576,26 @@ Value Eval::evaluate(const Position& pos) {
   else
   {
       // Scale and shift NNUE for compatibility with search and classical evaluation
-      auto  adjusted_NNUE = [&](){
-         int mat = pos.non_pawn_material() + 2 * PawnValueMg * pos.count<PAWN>();
-         int v2 = VALUE_ZERO;
+      auto  adjusted_NNUE = [&]()
+      {
+         int material = pos.non_pawn_material() + 4 * PawnValueMg * pos.count<PAWN>();
+         int scale =  580
+                    + material / 32
+                    - 4 * pos.rule50_count();
+
+         Value nnue = NNUE::evaluate(pos) * scale / 1024 + Tempo;
+
+         if (pos.is_chess960())
+             nnue += fix_FRC(pos);
+
          if (pos.check_counting())
          {
              Color us = pos.side_to_move();
-             v2 =  mat / (30 * pos.checks_remaining( us))
-                 - mat / (30 * pos.checks_remaining(~us));
+             nnue +=  material / (30 * pos.checks_remaining( us))
+                    - material / (30 * pos.checks_remaining(~us));
          }
-         return NNUE::evaluate(pos) * (641 + mat / 32 - 4 * pos.rule50_count()) / 1024 + Tempo + v2;
+
+         return nnue;
       };
 
       // If there is PSQ imbalance use classical eval, with small probability if it is small
@@ -1568,7 +1614,8 @@ Value Eval::evaluate(const Position& pos) {
       // If the classical eval is small and imbalance large, use NNUE nevertheless.
       // For the case of opposite colored bishops, switch to NNUE eval with
       // small probability if the classical eval is less than the threshold.
-      if (   largePsq && !strongClassical
+      if (   largePsq
+          && !strongClassical
           && (   abs(v) * 16 < NNUEThreshold2 * r50
               || (   pos.opposite_bishops()
                   && abs(v) * 16 < (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50

@@ -94,7 +94,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
      << std::setfill(' ') << std::dec << "\nCheckers: ";
 
   for (Bitboard b = pos.checkers(); b; )
-      os << UCI::square(pos, pop_lsb(&b)) << " ";
+      os << UCI::square(pos, pop_lsb(b)) << " ";
 
   if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
       && Options["UCI_Variant"] == "chess"
@@ -376,7 +376,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
               {
                   Bitboard castling_rooks = gates(c) & pieces(castling_rook_piece());
                   while (castling_rooks)
-                      set_castling_right(c, pop_lsb(&castling_rooks));
+                      set_castling_right(c, pop_lsb(castling_rooks));
               }
 
       // counting limit
@@ -571,7 +571,7 @@ void Position::set_state(StateInfo* si) const {
 
   for (Bitboard b = pieces(); b; )
   {
-      Square s = pop_lsb(&b);
+      Square s = pop_lsb(b);
       Piece pc = piece_on(s);
       si->key ^= Zobrist::psq[pc][s];
 
@@ -794,7 +794,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
                   Bitboard asymmetricals = PseudoAttacks[~c][pt][s] & pieces(c, pt);
                   while (asymmetricals)
                   {
-                      Square s2 = pop_lsb(&asymmetricals);
+                      Square s2 = pop_lsb(asymmetricals);
                       if (!(attacks_from(c, pt, s2) & s))
                           snipers |= s2;
                   }
@@ -807,7 +807,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 
   while (snipers)
   {
-    Square sniperSq = pop_lsb(&snipers);
+    Square sniperSq = pop_lsb(snipers);
     Bitboard b = between_bb(s, sniperSq, type_of(piece_on(sniperSq))) & occupancy;
 
     if (b && (!more_than_one(b) || ((AttackRiderTypes[type_of(piece_on(sniperSq))] & HOPPING_RIDERS) && popcount(b) == 2)))
@@ -865,7 +865,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
               Bitboard asymmetricals = PseudoAttacks[~c][move_pt][s] & pieces(c, pt);
               while (asymmetricals)
               {
-                  Square s2 = pop_lsb(&asymmetricals);
+                  Square s2 = pop_lsb(asymmetricals);
                   if (attacks_bb(c, move_pt, s2, occupied) & s)
                       b |= s2;
               }
@@ -1018,7 +1018,7 @@ bool Position::legal(Move m) const {
       if (!(pseudoRoyalsTheirs & ~occupied))
           while (pseudoRoyals)
           {
-              Square sr = pop_lsb(&pseudoRoyals);
+              Square sr = pop_lsb(pseudoRoyals);
               // Touching pseudo-royal pieces are immune
               if (  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
                   && (attackers_to(sr, occupied, ~us) & (occupied & ~square_bb(kto))))
@@ -1087,9 +1087,8 @@ bool Position::legal(Move m) const {
   if (!count<KING>(us))
       return true;
 
-  // If the moving piece is a king, check whether the destination
-  // square is attacked by the opponent. Castling moves are checked
-  // for legality during move generation.
+  // If the moving piece is a king, check whether the destination square is
+  // attacked by the opponent.
   if (type_of(moved_piece(m)) == KING)
       return !attackers_to(to, occupied, ~us);
 
@@ -1478,7 +1477,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           Bitboard b = attacks_bb(us, QUEEN, to, board_bb() & ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
           while(b)
-              st->flippedPieces |= between_bb(to, pop_lsb(&b));
+              st->flippedPieces |= between_bb(to, pop_lsb(b));
       }
       else
       {
@@ -1490,7 +1489,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       Bitboard to_flip = st->flippedPieces;
       while(to_flip)
       {
-          Square s = pop_lsb(&to_flip);
+          Square s = pop_lsb(to_flip);
           Piece flipped = piece_on(s);
           Piece resulting = ~flipped;
 
@@ -1534,7 +1533,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
                                        & rank_bb(castling_rank(us))
                                        & (file_bb(FILE_A) | file_bb(max_file()));
               while (castling_rooks)
-                  set_castling_right(us, pop_lsb(&castling_rooks));
+                  set_castling_right(us, pop_lsb(castling_rooks));
           }
           else if (type_of(pc) == castling_rook_piece())
           {
@@ -1711,7 +1710,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       Bitboard blast = (attacks_bb<KING>(to) & (pieces() ^ pieces(PAWN))) | to;
       while (blast)
       {
-          Square bsq = pop_lsb(&blast);
+          Square bsq = pop_lsb(blast);
           Piece bpc = piece_on(bsq);
           Color bc = color_of(bpc);
           if (type_of(bpc) != PAWN)
@@ -1834,7 +1833,7 @@ void Position::undo_move(Move m) {
       Bitboard blast = attacks_bb<KING>(to) | to;
       while (blast)
       {
-          Square bsq = pop_lsb(&blast);
+          Square bsq = pop_lsb(blast);
           Piece unpromotedBpc = st->unpromotedBycatch[bsq];
           Piece bpc = st->demotedBycatch & bsq ? make_piece(color_of(unpromotedBpc), promoted_piece_type(type_of(unpromotedBpc)))
                                                : unpromotedBpc;
@@ -1929,7 +1928,7 @@ void Position::undo_move(Move m) {
       Bitboard to_flip = st->flippedPieces;
       while(to_flip)
       {
-          Square s = pop_lsb(&to_flip);
+          Square s = pop_lsb(to_flip);
           Piece resulting = ~piece_on(s);
           remove_piece(s);
           put_piece(resulting, s);
@@ -2078,7 +2077,7 @@ Value Position::blast_see(Move m) const {
 
       while (attackers)
       {
-          Square s = pop_lsb(&attackers);
+          Square s = pop_lsb(attackers);
           if (extinction_piece_types().find(type_of(piece_on(s))) == extinction_piece_types().end())
               minAttacker = std::min(minAttacker, blast & s ? VALUE_ZERO : CapturePieceValue[MG][piece_on(s)]);
       }
@@ -2094,7 +2093,7 @@ Value Position::blast_see(Move m) const {
   // Sum up blast piece values
   while (blast)
   {
-      Piece bpc = piece_on(pop_lsb(&blast));
+      Piece bpc = piece_on(pop_lsb(blast));
       if (extinction_piece_types().find(type_of(bpc)) != extinction_piece_types().end())
           return color_of(bpc) == us ?  extinction_value()
                         : capture(m) ? -extinction_value()
