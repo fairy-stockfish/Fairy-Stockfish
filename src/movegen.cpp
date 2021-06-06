@@ -247,7 +247,7 @@ namespace {
         {
             assert(relative_rank(Them, rank_of(pos.ep_square()), pos.max_rank()) <= Rank(pos.double_step_rank_max() + 1));
 
-            // An en passant capture cannot resolve a discovered check.
+            // An en passant capture cannot resolve a discovered check
             if (Type == EVASIONS && (target & (pos.ep_square() + Up)))
                 return moveList;
 
@@ -354,7 +354,7 @@ namespace {
                 target = ~pos.pieces(Us);
                 break;
             }
-            target = between_bb(pos.square<KING>(Us), lsb(pos.checkers())) | pos.checkers();
+            target = between_bb(pos.square<KING>(Us), lsb(pos.checkers()));
             // Leaper attacks can not be blocked
             Square checksq = lsb(pos.checkers());
             if (LeaperAttacks[~Us][type_of(pos.piece_on(checksq))][checksq] & pos.square<KING>(Us))
@@ -533,7 +533,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   if (more_than_one(pos.checkers()))
       return moveList; // Double check, only a king move can save the day
 
-  // Generate blocking evasions or captures of the checking piece
+  // Generate blocking interpositions or captures of the checking piece
   return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList)
                      : generate_all<BLACK, EVASIONS>(pos, moveList);
 }

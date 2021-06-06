@@ -514,7 +514,7 @@ void Position::set_castling_right(Color c, Square rfrom) {
   Square kto = make_square(cr & KING_SIDE ? castling_kingside_file() : castling_queenside_file(), castling_rank(c));
   Square rto = kto + (cr & KING_SIDE ? WEST : EAST);
 
-  castlingPath[cr] =   (between_bb(rfrom, rto) | between_bb(kfrom, kto) | rto | kto)
+  castlingPath[cr] =   (between_bb(rfrom, rto) | between_bb(kfrom, kto))
                     & ~(kfrom | rfrom);
 }
 
@@ -1193,7 +1193,7 @@ bool Position::pseudo_legal(const Move m) const {
 
           // Our move must be a blocking evasion or a capture of the checking piece
           Square checksq = lsb(checkers());
-          if (  !((between_bb(checksq, square<KING>(us)) | checkers()) & to)
+          if (  !(between_bb(square<KING>(us), lsb(checkers())) & to)
               || ((LeaperAttacks[~us][type_of(piece_on(checksq))][checksq] & square<KING>(us)) && !(checkers() & to)))
               return false;
       }
@@ -2513,7 +2513,7 @@ bool Position::has_game_cycle(int ply) const {
           Square s1 = from_sq(move);
           Square s2 = to_sq(move);
 
-          if (!(between_bb(s1, s2) & pieces()))
+          if (!((between_bb(s1, s2) ^ s2) & pieces()))
           {
               if (ply > i)
                   return true;
