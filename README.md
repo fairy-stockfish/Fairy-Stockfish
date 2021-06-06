@@ -61,6 +61,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Tori shogi](https://en.wikipedia.org/wiki/Tori_shogi)
 - [Yari shogi](https://en.wikipedia.org/wiki/Yari_shogi)
 - [Okisaki shogi](https://en.wikipedia.org/wiki/Okisaki_shogi)
+- [Sho shogi](https://en.wikipedia.org/wiki/Sho_shogi)
 
 ### Related games
 - [Amazons](https://en.wikipedia.org/wiki/Game_of_the_Amazons)

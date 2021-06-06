@@ -904,11 +904,32 @@ namespace {
         v->nnueFeatures = NNUE_SHOGI;
         return v;
     }
+    // Sho-Shogi
+    // 16-th century shogi variant with one additional piece and no drops
+    // https://en.wikipedia.org/wiki/Sho_shogi
+    Variant* shoshogi_variant() {
+        Variant* v = shogi_variant();
+        v->pieceToCharTable = "PNBRLSE..G.+.++.++Kpnbrlse..g.+.++.++k";
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->add_piece(CUSTOM_PIECES, 'e', "FsfW"); // drunk elephant
+        v->startFen = "lnsgkgsnl/1r2e2b1/ppppppppp/9/9/9/PPPPPPPPP/1B2E2R1/LNSGKGSNL w 0 1";
+        v->capturesToHand = false;
+        v->pieceDrops = false;
+        v->promotedPieceType[CUSTOM_PIECES] = COMMONER;
+        v->castlingKingPiece = COMMONER;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPseudoRoyal = true;
+        v->extinctionPieceCount = 0;
+        return v;
+    }
     // Yari shogi
     // https://en.wikipedia.org/wiki/Yari_shogi
     Variant* yarishogi_variant() {
         Variant* v = variant_base();
         v->variantTemplate = "shogi";
+        v->pieceToCharTable = "PNBR.......++++Kpnbr.......++++k";
         v->maxRank = RANK_9;
         v->maxFile = FILE_G;
         v->reset_pieces();
@@ -1374,6 +1395,7 @@ void VariantMap::init() {
     add("minixiangqi", minixiangqi_variant()->conclude());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant()->conclude());
+    add("shoshogi", shoshogi_variant()->conclude());
     add("yarishogi", yarishogi_variant()->conclude());
     add("okisakishogi", okisakishogi_variant()->conclude());
     add("capablanca", capablanca_variant()->conclude());
