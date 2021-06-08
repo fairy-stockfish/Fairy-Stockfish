@@ -535,6 +535,29 @@ namespace {
         v->capturesToHand = true;
         return v;
     }
+    // Musketeer Chess
+    // https://musketeerchess.net
+    // A variant with many new pieces, a piece selection stage and gating mechanics.
+    Variant* musketeer_variant() {
+        Variant* v = chess_variant();
+        v->variantTemplate = "seirawan";
+        v->pieceToCharTable = "PNBRQ.C..........AD..Kpnbrq.c..........ad..k";
+        v->add_piece(ARCHBISHOP, 'a');
+        v->add_piece(CHANCELLOR, 'c');
+        v->add_piece(AMAZON, 'd'); // called Dragon in Musketeer
+        v->add_piece(LEOPARD, 'l');
+        v->add_piece(HAWK, 'h');
+        v->add_piece(UNICORN, 'u');
+        v->add_piece(SPIDER, 's');
+        v->add_piece(FORTRESS, 'f');
+        v->add_piece(MUSKETEER_ELEPHANT, 'e');
+        v->add_piece(MUSKETEER_CANNON, 'o');
+        //"********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1"
+        v->startFen = "********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1";
+        v->commitGates = true;
+        v->promotionPieceTypes = {AMAZON, ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
+        return v;
+    }
     // Base used for most shogi variants
     Variant* minishogi_variant_base() {
         Variant* v = variant_base();
@@ -1353,6 +1376,7 @@ void VariantMap::init() {
     add("sittuyin", sittuyin_variant()->conclude());
     add("seirawan", seirawan_variant()->conclude());
     add("shouse", shouse_variant()->conclude());
+    add("musketeer", musketeer_variant());
     add("minishogi", minishogi_variant()->conclude());
     add("mini", minishogi_variant()->conclude());
     add("kyotoshogi", kyotoshogi_variant()->conclude());
