@@ -554,7 +554,7 @@ namespace {
         v->add_piece(MUSKETEER_CANNON, 'o');
         //"********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1"
         v->startFen = "********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1";
-        v->commitGates = true;
+        //v->commitGates = true;
         v->promotionPieceTypes = {AMAZON, ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
