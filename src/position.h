@@ -78,6 +78,7 @@ struct StateInfo {
   bool       pass;
   Move       move;
   int        repetition;
+  PieceType  removedGatingType;
 
   // Used by NNUE
   Eval::NNUE::Accumulator accumulator;
@@ -166,6 +167,7 @@ public:
   bool gating() const;
   bool arrow_gating() const;
   bool seirawan_gating() const;
+  bool commit_gates() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
   bool pass() const;
@@ -338,11 +340,16 @@ private:
   bool tsumeMode;
   bool chess960;
   int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+  PieceType committedGates[COLOR_NB][FILE_NB];
   Bitboard promotedPieces;
   void add_to_hand(Piece pc);
   void remove_from_hand(Piece pc);
   void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
   void undrop_piece(Piece pc_hand, Square s);
+  void commit_piece(Piece pc, File fl);
+  void uncommit_piece(Color cl, File fl);
+  bool has_committed_piece(Color cl, File fl) const;
+  PieceType drop_committed_piece(Color cl, File fl);
 };
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
@@ -692,6 +699,11 @@ inline bool Position::arrow_gating() const {
 inline bool Position::seirawan_gating() const {
   assert(var != nullptr);
   return var->seirawanGating;
+}
+
+inline bool Position::commit_gates() const {
+  assert(var != nullptr);
+  return var->commitGates;
 }
 
 inline bool Position::cambodian_moves() const {
@@ -1321,6 +1333,30 @@ inline void Position::undrop_piece(Piece pc_hand, Square s) {
   board[s] = NO_PIECE;
   add_to_hand(pc_hand);
   assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] > 0 || var->twoBoards);
+}
+
+inline void Position::commit_piece(Piece pc, File fl){
+    committedGates[color_of(pc)][fl] = type_of(pc);
+}
+
+inline void Position::uncommit_piece(Color cl, File fl){
+  //std::cout << "uncommit_piece\n";
+    committedGates[cl][fl] = NO_PIECE_TYPE;
+}
+
+inline bool Position::has_committed_piece(Color cl, File fl) const {
+    return committedGates[cl][fl] > NO_PIECE_TYPE;
+}
+
+inline PieceType Position::drop_committed_piece(Color cl, File fl){
+    if(has_committed_piece(cl, fl)){
+        Square dropSquare = make_square(fl, (cl == WHITE)? RANK_1 : max_rank());
+        PieceType committedPieceType = committedGates[cl][fl];
+        put_piece(make_piece(cl, committedPieceType), dropSquare, false, NO_PIECE);
+        uncommit_piece(cl, fl);
+        return committedPieceType;
+    }
+    else return NO_PIECE_TYPE;
 }
 
 } // namespace Stockfish
