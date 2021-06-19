@@ -34,7 +34,7 @@ if [[ $1 == "" || $1 == "chess" ]]; then
 fi
 
 # variants
-if [[ $1 == "" || $1 == "variant" ]]; then
+if [[ $1 == "all" || $1 == "variant" ]]; then
   # small board
   expect perft.exp losalamos startpos 5 191846 > /dev/null
   expect perft.exp losalamos "fen 6/2P3/6/1K1k2/6/6 w - - 0 1" 6 187431 > /dev/null
