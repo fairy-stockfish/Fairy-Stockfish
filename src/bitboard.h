@@ -131,10 +131,12 @@ struct Magic {
     if (HasPext)
         return unsigned(pext(occupied, mask));
 
-#ifndef LARGEBOARDS
+#ifdef LARGEBOARDS
+    return unsigned(((occupied & mask) * magic) >> shift);
+#else
     if (Is64Bit)
-#endif
         return unsigned(((occupied & mask) * magic) >> shift);
+#endif
 
     unsigned lo = unsigned(occupied) & unsigned(mask);
     unsigned hi = unsigned(occupied >> 32) & unsigned(mask >> 32);
