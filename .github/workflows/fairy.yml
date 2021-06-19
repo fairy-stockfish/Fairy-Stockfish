@@ -64,6 +64,10 @@ jobs:
         run: |
           ../tests/protocol.sh
 
+      - name: Test variants.ini
+        run: |
+          ! ./stockfish check variants.ini 2>&1 >/dev/null | grep -v "Parsing variant"
+
       - name: Test variant perft
         run: |
           ../tests/perft.sh all
