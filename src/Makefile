@@ -324,6 +324,9 @@ ifneq ($(largeboards),no)
 	ifeq ($(precomputedmagics),yes)
 		CXXFLAGS += -DPRECOMPUTED_MAGICS
 	endif
+	ifeq ($(bits),32)
+		CXXFLAGS += -Wno-class-memaccess
+	endif
 endif
 
 # Embed and enable NNUE
