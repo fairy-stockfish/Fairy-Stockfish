@@ -22,6 +22,7 @@
 #include <cstring> // For std::memset, std::memcmp
 #include <iomanip>
 #include <sstream>
+#include <iostream>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -301,18 +302,8 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       // Promoted shogi pieces
       else if (token == '+')
       {
-          ss >> token;
-          idx = piece_to_char().find(token);
-          if(v->commitGates && (rank == 0 || rank == max_rank() + 2)){
-              //std::cout << "C\n";
-            commit_piece(Piece(idx), File(commitFile));
-            //std::cout << "D\n";
-            ++commitFile;
-          }
-          else {
-            put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
-            ++sq;
-          }
+        put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
+        ++sq;
       }
       // Stop before pieces in hand
       else if (token == '[')
@@ -1750,7 +1741,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->removedGatingType = drop_committed_piece(BLACK, file_of(from));
       }
       else st->removedGatingType = NO_PIECE_TYPE;
-  }
+  } else st->removedGatingType = NO_PIECE_TYPE;
 
   // Remove the blast pieces
   if (captured && blast_on_capture())
@@ -2072,6 +2063,8 @@ void Position::do_null_move(StateInfo& newSt) {
   set_check_info(st);
 
   st->repetition = 0;
+
+  st->removedGatingType = NO_PIECE_TYPE;
 
   assert(pos_is_ok());
 }

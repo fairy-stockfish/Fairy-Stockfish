@@ -1336,7 +1336,8 @@ inline void Position::undrop_piece(Piece pc_hand, Square s) {
 }
 
 inline void Position::commit_piece(Piece pc, File fl){
-    committedGates[color_of(pc)][fl] = type_of(pc);
+  assert(pc != NO_PIECE);
+  committedGates[color_of(pc)][fl] = type_of(pc);
 }
 
 inline void Position::uncommit_piece(Color cl, File fl){
