@@ -28,25 +28,25 @@
 #include "../layers/affine_transform.h"
 #include "../layers/clipped_relu.h"
 
-namespace Eval::NNUE::Features {
+namespace Stockfish::Eval::NNUE::Features {
 // Alias for compatibility with upstream code
 template <Side AssociatedKing>
 using HalfKP = HalfKPVariants<AssociatedKing>;
 }
 
-namespace Eval::NNUE {
+namespace Stockfish::Eval::NNUE {
 
 // Input features used in evaluation function
 using RawFeatures = Features::FeatureSet<
-    Features::HalfKPVariants<Features::Side::kFriend>>;
+    Features::HalfKPVariants<Features::Side::Friend>>;
 
 // Number of input feature dimensions after conversion
-constexpr IndexType kTransformedFeatureDimensions = 256;
+constexpr IndexType TransformedFeatureDimensions = 256;
 
 namespace Layers {
 
 // Define network structure
-using InputLayer = InputSlice<kTransformedFeatureDimensions * 2>;
+using InputLayer = InputSlice<TransformedFeatureDimensions * 2>;
 using HiddenLayer1 = ClippedReLU<AffineTransform<InputLayer, 32>>;
 using HiddenLayer2 = ClippedReLU<AffineTransform<HiddenLayer1, 32>>;
 using OutputLayer = AffineTransform<HiddenLayer2, 1>;
@@ -55,6 +55,6 @@ using OutputLayer = AffineTransform<HiddenLayer2, 1>;
 
 using Network = Layers::OutputLayer;
 
-}  // namespace Eval::NNUE
+}  // namespace Stockfish::Eval::NNUE
 
 #endif // #ifndef NNUE_HALFKP_256X2_32_32_H_INCLUDED

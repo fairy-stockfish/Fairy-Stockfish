@@ -34,6 +34,7 @@
 
 #include "nnue/nnue_accumulator.h"
 
+namespace Stockfish {
 
 /// StateInfo struct stores information needed to restore a Position object to
 /// its previous state when we retract a move. Whenever a move is made on the
@@ -108,7 +109,7 @@ public:
   // FEN string input/output
   Position& set(const Variant* v, const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th, bool sfen = false);
   Position& set(const std::string& code, Color c, StateInfo* si);
-  const std::string fen(bool sfen = false, bool showPromoted = false, int countStarted = 0, std::string holdings = "-") const;
+  std::string fen(bool sfen = false, bool showPromoted = false, int countStarted = 0, std::string holdings = "-") const;
 
   // Variant rule properties
   const Variant* variant() const;
@@ -251,7 +252,6 @@ public:
   bool capture(Move m) const;
   bool capture_or_promotion(Move m) const;
   bool gives_check(Move m) const;
-  bool advanced_pawn_push(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
 
@@ -610,7 +610,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   // Doubled shogi pawns
   if (pt == drop_no_doubled())
       for (File f = FILE_A; f <= max_file(); ++f)
-          if (file_bb(f) & pieces(c, pt))
+          if (popcount(file_bb(f) & pieces(c, pt)) >= var->dropNoDoubledCount)
               b &= ~file_bb(f);
   // Sittuyin rook drops
   if (pt == ROOK && sittuyin_rook_drop())
@@ -634,7 +634,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
               Bitboard b2 = b;
               while (b2)
               {
-                  Square s = pop_lsb(&b2);
+                  Square s = pop_lsb(b2);
                   if (!(attacks_bb(c, QUEEN, s, board_bb() & ~pieces(~c)) & ~PseudoAttacks[c][KING][s] & pieces(c)))
                       b ^= s;
               }
@@ -753,7 +753,7 @@ inline Value Position::stalemate_value(int ply) const {
       Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
       while (pseudoRoyals)
       {
-          Square sr = pop_lsb(&pseudoRoyals);
+          Square sr = pop_lsb(pseudoRoyals);
           if (  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
               && attackers_to(sr, ~sideToMove))
               return convert_mate_value(var->checkmateValue, ply);
@@ -1031,9 +1031,8 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
       if (diagType)
           b |= attacks_bb(c, diagType, s, pieces()) & diagonal_lines();
       else if (movePt == JANGGI_CANNON)
-          // TODO: fix for longer diagonals
-          b |=   attacks_bb(c, ALFIL, s, pieces())
-              & ~attacks_bb(c, ELEPHANT, s, pieces() ^ pieces(pt))
+          b |=  rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces())
+              & rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces() ^ pieces(pt))
               & ~pieces(pt)
               & diagonal_lines();
   }
@@ -1062,9 +1061,8 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
       if (diagType)
           b |= attacks_bb(c, diagType, s, pieces()) & diagonal_lines();
       else if (movePt == JANGGI_CANNON)
-          // TODO: fix for longer diagonals
-          b |=   attacks_bb(c, ALFIL, s, pieces())
-              & ~attacks_bb(c, ELEPHANT, s, pieces() ^ pieces(pt))
+          b |=  rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces())
+              & rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces() ^ pieces(pt))
               & ~pieces(pt)
               & diagonal_lines();
   }
@@ -1105,12 +1103,6 @@ inline bool Position::is_discovered_check_on_king(Color c, Move m) const {
 
 inline bool Position::pawn_passed(Color c, Square s) const {
   return !(pieces(~c, PAWN) & passed_pawn_span(c, s));
-}
-
-inline bool Position::advanced_pawn_push(Move m) const {
-  return  (   type_of(moved_piece(m)) == PAWN
-           && relative_rank(sideToMove, to_sq(m), max_rank()) > (max_rank() + 1) / 2)
-        || type_of(m) == EN_PASSANT;
 }
 
 inline int Position::pawns_on_same_color_squares(Color c, Square s) const {
@@ -1330,5 +1322,7 @@ inline void Position::undrop_piece(Piece pc_hand, Square s) {
   add_to_hand(pc_hand);
   assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] > 0 || var->twoBoards);
 }
+
+} // namespace Stockfish
 
 #endif // #ifndef POSITION_H_INCLUDED

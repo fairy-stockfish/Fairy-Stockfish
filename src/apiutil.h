@@ -30,6 +30,7 @@
 #include "position.h"
 #include "variant.h"
 
+namespace Stockfish {
 
 enum Notation {
     NOTATION_DEFAULT,
@@ -183,7 +184,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
 
     while (b)
     {
-        Square s = pop_lsb(&b);
+        Square s = pop_lsb(b);
         if (   pos.pseudo_legal(make_move(s, to))
                && pos.legal(make_move(s, to))
                && !(is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
@@ -306,6 +307,9 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     for (PieceType pt : pos.piece_types())
         if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)))
             restricted |= pos.pieces(c, pt);
+        else if (is_custom(pt) && pos.count(c, pt) > 0)
+            // to be conservative, assume any custom piece has mating potential
+            return false;
 
     // Mating pieces
     for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR })
@@ -654,7 +658,7 @@ inline Validation check_pocket_info(const std::string& fenBoard, int nbRanks, co
         // look for last '/'
         stopChar = '/';
     }
-    else
+    else if (std::count(fenBoard.begin(), fenBoard.end(), '[') == 1)
     {
         // pocket is defined as [ and ]
         stopChar = '[';
@@ -665,6 +669,9 @@ inline Validation check_pocket_info(const std::string& fenBoard, int nbRanks, co
             return NOK;
         }
     }
+    else
+        // allow to skip pocket
+        return OK;
 
     // look for last '/'
     for (auto it = fenBoard.rbegin()+offset; it != fenBoard.rend(); ++it)
@@ -920,5 +927,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     return FEN_OK;
 }
 } // namespace FEN
+
+} // namespace Stockfish
 
 #endif // #ifndef APIUTIL_H_INCLUDED

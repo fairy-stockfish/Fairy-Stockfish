@@ -50,7 +50,7 @@ cat << EOF > ucicyclone.exp
 EOF
 
 cat << EOF > xboard.exp
-   spawn ./stockfish
+   spawn ./stockfish load variants.ini
    send "xboard\\n"
    send "protover 2\\n"
    expect "feature done=1"
@@ -58,6 +58,8 @@ cat << EOF > xboard.exp
    expect "pong"
    send "ping\\n"
    expect "pong"
+   send "variant 3check-crazyhouse\\n"
+   expect "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\\\\\[] w KQkq - 3+3 0 1"
    send "quit\\n"
    expect eof
 EOF

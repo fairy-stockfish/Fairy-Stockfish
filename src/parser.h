@@ -23,6 +23,8 @@
 
 #include "variant.h"
 
+namespace Stockfish {
+
 class Config : public std::map<std::string, std::string> {
 public:
     Config::iterator find (const std::string& s) {
@@ -51,5 +53,7 @@ private:
     template <class T> void parse_attribute(const std::string& key, T& target);
     void parse_attribute(const std::string& key, PieceType& target, std::string pieceToChar);
 };
+
+} // namespace Stockfish
 
 #endif // #ifndef PARSER_H_INCLUDED

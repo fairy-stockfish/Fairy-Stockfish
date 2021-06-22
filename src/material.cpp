@@ -24,6 +24,8 @@
 
 using namespace std;
 
+namespace Stockfish {
+
 namespace {
   #define S(mg, eg) make_score(mg, eg)
 
@@ -81,7 +83,7 @@ namespace {
 
   bool is_KBPsK(const Position& pos, Color us) {
     return   pos.non_pawn_material(us) == BishopValueMg
-          && pos.count<PAWN  >(us) >= 1;
+          && pos.count<PAWN>(us) >= 1;
   }
 
   bool is_KQKRPs(const Position& pos, Color us) {
@@ -265,3 +267,5 @@ Entry* probe(const Position& pos) {
 }
 
 } // namespace Material
+
+} // namespace Stockfish

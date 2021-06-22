@@ -61,6 +61,8 @@ typedef bool(*fun3_t)(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY);
 
 using namespace std;
 
+namespace Stockfish {
+
 namespace {
 
 /// Version number. If Version is left empty, then compile date in the format
@@ -138,7 +140,7 @@ public:
 /// the program was compiled) or "Stockfish <Version>", depending on whether
 /// Version is empty.
 
-const string engine_info(bool to_uci, bool to_xboard) {
+string engine_info(bool to_uci, bool to_xboard) {
 
   const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
   string month, day, year;
@@ -166,7 +168,7 @@ const string engine_info(bool to_uci, bool to_xboard) {
 
 /// compiler_info() returns a string trying to describe the compiler we use
 
-const std::string compiler_info() {
+std::string compiler_info() {
 
   #define stringify2(x) #x
   #define stringify(x) stringify2(x)
@@ -366,7 +368,11 @@ void std_aligned_free(void* ptr) {
 
 #if defined(_WIN32)
 
-static void* aligned_large_pages_alloc_win(size_t allocSize) {
+static void* aligned_large_pages_alloc_windows(size_t allocSize) {
+
+  #if !defined(_WIN64)
+    return nullptr;
+  #else
 
   HANDLE hProcessToken { };
   LUID luid { };
@@ -409,12 +415,14 @@ static void* aligned_large_pages_alloc_win(size_t allocSize) {
   CloseHandle(hProcessToken);
 
   return mem;
+
+  #endif
 }
 
 void* aligned_large_pages_alloc(size_t allocSize) {
 
   // Try to allocate large pages
-  void* mem = aligned_large_pages_alloc_win(allocSize);
+  void* mem = aligned_large_pages_alloc_windows(allocSize);
 
   // Fall back to regular, page aligned, allocation if necessary
   if (!mem)
@@ -454,8 +462,9 @@ void aligned_large_pages_free(void* mem) {
   if (mem && !VirtualFree(mem, 0, MEM_RELEASE))
   {
       DWORD err = GetLastError();
-      std::cerr << "Failed to free transposition table. Error code: 0x" <<
-          std::hex << err << std::dec << std::endl;
+      std::cerr << "Failed to free large page memory. Error code: 0x"
+                << std::hex << err
+                << std::dec << std::endl;
       exit(EXIT_FAILURE);
   }
 }
@@ -631,3 +640,5 @@ void init(int argc, char* argv[]) {
 
 
 } // namespace CommandLine
+
+} // namespace Stockfish

@@ -24,7 +24,7 @@
 #include "../../position.h"
 #include "../nnue_architecture.h"
 
-namespace Eval::NNUE::Features {
+namespace Stockfish::Eval::NNUE::Features {
 
   // Class template used for feature index list
   template <typename T, std::size_t MaxSize>
@@ -56,9 +56,9 @@ namespace Eval::NNUE::Features {
 
   //Type of feature index list
   class IndexList
-      : public ValueList<IndexType, RawFeatures::kMaxActiveDimensions> {
+      : public ValueList<IndexType, RawFeatures::MaxActiveDimensions> {
   };
 
-}  // namespace Eval::NNUE::Features
+}  // namespace Stockfish::Eval::NNUE::Features
 
 #endif // NNUE_FEATURES_INDEX_LIST_H_INCLUDED

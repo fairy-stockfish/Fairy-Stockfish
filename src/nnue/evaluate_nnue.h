@@ -25,11 +25,11 @@
 
 #include <memory>
 
-namespace Eval::NNUE {
+namespace Stockfish::Eval::NNUE {
 
   // Hash value of evaluation function structure
-  constexpr std::uint32_t kHashValue =
-      FeatureTransformer::GetHashValue() ^ Network::GetHashValue();
+  constexpr std::uint32_t HashValue =
+      FeatureTransformer::get_hash_value() ^ Network::get_hash_value();
 
   // Deleter for automating release of memory area
   template <typename T>
@@ -54,6 +54,6 @@ namespace Eval::NNUE {
   template <typename T>
   using LargePagePtr = std::unique_ptr<T, LargePageDeleter<T>>;
 
-}  // namespace Eval::NNUE
+}  // namespace Stockfish::Eval::NNUE
 
 #endif // #ifndef NNUE_EVALUATE_NNUE_H_INCLUDED

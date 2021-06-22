@@ -27,6 +27,8 @@
 
 using std::string;
 
+namespace Stockfish {
+
 VariantMap variants; // Global object
 
 namespace {
@@ -182,6 +184,7 @@ namespace {
     }
     // Amazon chess
     // The queen has the additional power of moving like a knight.
+    // https://www.chessvariants.com/diffmove.dir/amazone.html
     Variant* amazon_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR..............AKpnbr..............ak";
@@ -189,6 +192,26 @@ namespace {
         v->add_piece(AMAZON, 'a');
         v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {AMAZON, ROOK, BISHOP, KNIGHT};
+        return v;
+    }
+    // Nightrider chess
+    // Knights are replaced by nightriders.
+    // https://en.wikipedia.org/wiki/Nightrider_(chess)
+    Variant* nightrider_variant() {
+        Variant* v = chess_variant_base();
+        v->remove_piece(KNIGHT);
+        v->add_piece(CUSTOM_PIECES, 'n', "NN");
+        v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, CUSTOM_PIECES};
+        return v;
+    }
+    // Grasshopper chess
+    // https://en.wikipedia.org/wiki/Grasshopper_chess
+    Variant* grasshopper_variant() {
+        Variant* v = chess_variant_base();
+        v->add_piece(CUSTOM_PIECES, 'g', "gQ");
+        v->promotionPieceTypes.insert(CUSTOM_PIECES);
+        v->startFen = "rnbqkbnr/gggggggg/pppppppp/8/8/PPPPPPPP/GGGGGGGG/RNBQKBNR w KQkq - 0 1";
+        v->doubleStep = false;
         return v;
     }
     // Hoppel-Poppel
@@ -625,6 +648,8 @@ namespace {
         v->dropNoDoubled = NO_PIECE_TYPE;
         return v;
     }
+    // Goro goro shogi
+    // https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi#Variation
     Variant* gorogoroshogi_variant() {
         Variant* v = minishogi_variant_base();
         v->pieceToCharTable = "P....S...G.+....+Kp....s...g.+....+k";
@@ -635,6 +660,8 @@ namespace {
         v->promotionRank = RANK_5;
         return v;
     }
+    // Judkins shogi
+    // https://en.wikipedia.org/wiki/Judkins_shogi
     Variant* judkinsshogi_variant() {
         Variant* v = minishogi_variant_base();
         v->pieceToCharTable = "PNBR.S...G.++++.+Kpnbr.s...g.++++.+k";
@@ -646,19 +673,61 @@ namespace {
         v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
         return v;
     }
+    // Tori shogi
+    // https://en.wikipedia.org/wiki/Tori_shogi
+    Variant* torishogi_variant() {
+        Variant* v = variant_base();
+        v->variantTemplate = "shogi";
+        v->pieceToCharTable = "S.....FLR.C+.....+.PKs.....flr.c+.....+.pk";
+        v->maxRank = RANK_7;
+        v->maxFile = FILE_G;
+        v->reset_pieces();
+        v->add_piece(SHOGI_PAWN, 's');
+        v->add_piece(KING, 'k');
+        v->add_piece(CUSTOM_PIECES, 'f', "FsfW"); // falcon
+        v->add_piece(CUSTOM_PIECES + 1, 'c', "FvW"); // crane
+        v->add_piece(CUSTOM_PIECES + 2, 'l', "fRrbBlbF"); // left quail
+        v->add_piece(CUSTOM_PIECES + 3, 'r', "fRlbBrbF"); // right quail
+        v->add_piece(CUSTOM_PIECES + 4, 'p', "bFfD"); // pheasant
+        v->add_piece(CUSTOM_PIECES + 5, 'g', "fAbD"); // goose
+        v->add_piece(CUSTOM_PIECES + 6, 'e', "KbRfBbF2"); // eagle
+        v->startFen = "rpckcpl/3f3/sssssss/2s1S2/SSSSSSS/3F3/LPCKCPR[-] w 0 1";
+        v->pieceDrops = true;
+        v->capturesToHand = true;
+        v->promotionRank = RANK_6;
+        v->promotionPieceTypes = {};
+        v->doubleStep = false;
+        v->castling = false;
+        v->promotedPieceType[SHOGI_PAWN]    = CUSTOM_PIECES + 5; // swallow promotes to goose
+        v->promotedPieceType[CUSTOM_PIECES] = CUSTOM_PIECES + 6; // falcon promotes to eagle
+        v->mandatoryPiecePromotion = true;
+        v->dropNoDoubled = SHOGI_PAWN;
+        v->dropNoDoubledCount = 2;
+        v->immobilityIllegal = true;
+        v->shogiPawnDropMateIllegal = true;
+        v->stalemateValue = -VALUE_MATE;
+        v->nFoldValue = VALUE_MATE;
+        v->nFoldRule = 3;
+        v->nMoveRule = 0;
+        v->perpetualCheckIllegal = true;
+        return v;
+    }
+    // EuroShogi
+    // https://en.wikipedia.org/wiki/EuroShogi
     Variant* euroshogi_variant() {
         Variant* v = minishogi_variant_base();
         v->pieceToCharTable = "PNBR.....G.++++Kpnbr.....g.++++k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_H;
-        v->customPiece[0] = "fNsW";
-        v->add_piece(CUSTOM_PIECES, 'n');
+        v->add_piece(CUSTOM_PIECES, 'n', "fNsW");
         v->startFen = "1nbgkgn1/1r4b1/pppppppp/8/8/PPPPPPPP/1B4R1/1NGKGBN1[-] w 0 1";
         v->promotionRank = RANK_6;
         v->promotedPieceType[CUSTOM_PIECES] = GOLD;
         v->mandatoryPiecePromotion = true;
         return v;
     }
+    // Los Alamos chess
+    // https://en.wikipedia.org/wiki/Los_Alamos_chess
     Variant* losalamos_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PN.RQ................Kpn.rq................k";
@@ -672,6 +741,8 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Gardner's minichess
+    // https://en.wikipedia.org/wiki/Minichess#5%C3%975_chess
     Variant* gardner_variant() {
         Variant* v = chess_variant_base();
         v->maxRank = RANK_5;
@@ -682,6 +753,9 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Almost chess
+    // Queens are replaced by chancellors
+    // https://en.wikipedia.org/wiki/Almost_chess
     Variant* almost_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR............CKpnbr............ck";
@@ -691,6 +765,9 @@ namespace {
         v->promotionPieceTypes = {CHANCELLOR, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Chigorin chess
+    // Asymmetric variant with knight vs. bishop movements
+    // https://www.chessvariants.com/diffsetup.dir/chigorin.html
     Variant* chigorin_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR............CKpnbrq............k";
@@ -699,6 +776,8 @@ namespace {
         v->promotionPieceTypes = {QUEEN, CHANCELLOR, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Shatar (Mongolian chess)
+    // https://en.wikipedia.org/wiki/Shatar
     Variant* shatar_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBR..........J......Kpnbr..........j......k";
@@ -714,6 +793,9 @@ namespace {
         v->shatarMateRule = true;
         return v;
     }
+    // Coregal chess
+    // Queens are also subject to check and checkmate
+    // https://www.chessvariants.com/winning.dir/coregal.html
     Variant* coregal_variant() {
         Variant* v = chess_variant_base();
         v->extinctionValue = -VALUE_MATE;
@@ -722,6 +804,8 @@ namespace {
         v->extinctionPieceCount = 64; // no matter how many queens, all are royal
         return v;
     }
+    // Clobber
+    // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "P.................p.................";
@@ -737,6 +821,8 @@ namespace {
         v->immobilityIllegal = false;
         return v;
     }
+    // Breakthrough
+    // https://en.wikipedia.org/wiki/Breakthrough_(board_game)
     Variant* breakthrough_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "P.................p.................";
@@ -752,14 +838,15 @@ namespace {
         v->blackFlag = Rank1BB;
         return v;
     }
+    // Ataxx
+    // https://en.wikipedia.org/wiki/Ataxx
     Variant* ataxx_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "P.................p.................";
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
         v->reset_pieces();
-        v->customPiece[0] = "mDmNmA";
-        v->add_piece(CUSTOM_PIECES, 'p');
+        v->add_piece(CUSTOM_PIECES, 'p', "mDmNmA");
         v->startFen = "P5p/7/7/7/7/7/p5P[PPPPPPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppppppp] w 0 1";
         v->promotionPieceTypes = {};
         v->pieceDrops = true;
@@ -774,6 +861,8 @@ namespace {
         v->materialCounting = UNWEIGHTED_MATERIAL;
         return v;
     }
+    // Minixiangqi
+    // http://mlwi.magix.net/bg/minixiangqi.htm
     Variant* minixiangqi_variant() {
         Variant* v = chess_variant_base();
         v->variantTemplate = "xiangqi";
@@ -800,6 +889,8 @@ namespace {
         return v;
     }
 #ifdef LARGEBOARDS
+    // Shogi (Japanese chess)
+    // https://en.wikipedia.org/wiki/Shogi
     Variant* shogi_variant() {
         Variant* v = minishogi_variant_base();
         v->maxRank = RANK_9;
@@ -813,27 +904,43 @@ namespace {
         v->nnueFeatures = NNUE_SHOGI;
         return v;
     }
+    // Sho-Shogi
+    // 16-th century shogi variant with one additional piece and no drops
+    // https://en.wikipedia.org/wiki/Sho_shogi
+    Variant* shoshogi_variant() {
+        Variant* v = shogi_variant();
+        v->pieceToCharTable = "PNBRLSE..G.+.++.++Kpnbrlse..g.+.++.++k";
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->add_piece(CUSTOM_PIECES, 'e', "FsfW"); // drunk elephant
+        v->startFen = "lnsgkgsnl/1r2e2b1/ppppppppp/9/9/9/PPPPPPPPP/1B2E2R1/LNSGKGSNL w 0 1";
+        v->capturesToHand = false;
+        v->pieceDrops = false;
+        v->promotedPieceType[CUSTOM_PIECES] = COMMONER;
+        v->castlingKingPiece = COMMONER;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPseudoRoyal = true;
+        v->extinctionPieceCount = 0;
+        return v;
+    }
     // Yari shogi
     // https://en.wikipedia.org/wiki/Yari_shogi
     Variant* yarishogi_variant() {
         Variant* v = variant_base();
         v->variantTemplate = "shogi";
+        v->pieceToCharTable = "PNBR.......++++Kpnbr.......++++k";
         v->maxRank = RANK_9;
         v->maxFile = FILE_G;
         v->reset_pieces();
         v->add_piece(KING, 'k');
         v->add_piece(SHOGI_PAWN, 'p');
         v->add_piece(ROOK, 'l');
-        v->customPiece[0] = "fRffN"; // Yari knight
-        v->add_piece(CUSTOM_PIECES, 'n');
-        v->customPiece[1] = "fFfR"; // Yari bishop
-        v->add_piece(CUSTOM_PIECES + 1, 'b');
-        v->customPiece[2] = "frlR"; // Yari rook
-        v->add_piece(CUSTOM_PIECES + 2, 'r');
-        v->customPiece[3] = "WfFbR"; // Yari gold
-        v->add_piece(CUSTOM_PIECES + 3, 'g');
-        v->customPiece[4] = "fKbR"; // Yari silver
-        v->add_piece(CUSTOM_PIECES + 4, 's');
+        v->add_piece(CUSTOM_PIECES, 'n', "fRffN"); // Yari knight
+        v->add_piece(CUSTOM_PIECES + 1, 'b', "fFfR"); // Yari bishop
+        v->add_piece(CUSTOM_PIECES + 2, 'r', "frlR"); // Yari rook
+        v->add_piece(CUSTOM_PIECES + 3, 'g', "WfFbR"); // Yari gold
+        v->add_piece(CUSTOM_PIECES + 4, 's', "fKbR"); // Yari silver
         v->startFen = "rnnkbbr/7/ppppppp/7/7/7/PPPPPPP/7/RBBKNNR[-] w 0 1";
         v->promotionRank = RANK_7;
         v->promotedPieceType[SHOGI_PAWN] = CUSTOM_PIECES + 4;
@@ -860,8 +967,7 @@ namespace {
         Variant* v = minishogi_variant_base();
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
-        v->customPiece[0] = "vR"; // Vertical slider
-        v->add_piece(CUSTOM_PIECES, 'l');
+        v->add_piece(CUSTOM_PIECES, 'l', "vR"); // Vertical slider
         v->add_piece(KNIGHT, 'n');
         v->add_piece(QUEEN, 'q');
         v->startFen = "lnsgkqgsnl/1r6b1/pppppppppp/10/10/10/10/PPPPPPPPPP/1B6R1/LNSGQKGSNL[-] w 0 1";
@@ -885,6 +991,9 @@ namespace {
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Capahouse
+    // Capablanca chess with crazyhouse-style piece drops
+    // https://www.pychess.org/variant/capahouse
     Variant* capahouse_variant() {
         Variant* v = capablanca_variant();
         v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1";
@@ -892,16 +1001,25 @@ namespace {
         v->capturesToHand = true;
         return v;
     }
+    // Capablanca random chess (CRC)
+    // Shuffle variant of capablanca chess
+    // https://en.wikipedia.org/wiki/Capablanca_random_chess
     Variant* caparandom_variant() {
         Variant* v = capablanca_variant();
         v->chess960 = true;
         return v;
     }
+    // Gothic chess
+    // Capablanca chess with changed starting position
+    // https://www.chessvariants.com/large.dir/gothicchess.html
     Variant* gothic_variant() {
         Variant* v = capablanca_variant();
         v->startFen = "rnbqckabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQCKABNR w KQkq - 0 1";
         return v;
     }
+    // Janus chess
+    // 10x8 variant with two archbishops per side
+    // https://en.wikipedia.org/wiki/Janus_Chess
     Variant* janus_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ............J...Kpnbrq............j...k";
@@ -914,6 +1032,9 @@ namespace {
         v->promotionPieceTypes = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Modern chess
+    // 9x9 variant with archbishops
+    // https://en.wikipedia.org/wiki/Modern_chess
     Variant* modern_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ..M.............Kpnbrq..m.............k";
@@ -927,6 +1048,9 @@ namespace {
         v->promotionPieceTypes = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Chancellor chess
+    // 9x9 variant with chancellors
+    // https://en.wikipedia.org/wiki/Chancellor_chess
     Variant* chancellor_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ...........CKpnbrq...........ck";
@@ -940,6 +1064,9 @@ namespace {
         v->promotionPieceTypes = {CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Embassy chess
+    // Capablanca chess with different starting position
+    // https://en.wikipedia.org/wiki/Embassy_chess
     Variant* embassy_variant() {
         Variant* v = capablanca_variant();
         v->castlingKingsideFile = FILE_H;
@@ -947,6 +1074,9 @@ namespace {
         v->startFen = "rnbqkcabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQKCABNR w KQkq - 0 1";
         return v;
     }
+    // Centaur chess (aka Royal Court)
+    // 10x8 variant with a knight+commoner compound
+    // https://www.chessvariants.com/large.dir/contest/royalcourt.html
     Variant* centaur_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ...............CKpnbrq...............ck";
@@ -959,6 +1089,9 @@ namespace {
         v->promotionPieceTypes = {CENTAUR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Jeson mor
+    // Mongolian chess variant with knights only and a king of the hill like goal
+    // https://en.wikipedia.org/wiki/Jeson_Mor
     Variant* jesonmor_variant() {
         Variant* v = chess_variant_base();
         v->maxRank = RANK_9;
@@ -976,6 +1109,9 @@ namespace {
         v->flagMove = true;
         return v;
     }
+    // Courier chess
+    // Medieval variant of Shatranj on a 12x8 board
+    // https://en.wikipedia.org/wiki/Courier_chess
     Variant* courier_variant() {
         Variant* v = chess_variant_base();
         v->maxRank = RANK_8;
@@ -997,8 +1133,12 @@ namespace {
         v->stalemateValue = -VALUE_MATE;
         return v;
     }
+    // Grand chess
+    // 10x10 variant with chancellors and archbishops
+    // https://en.wikipedia.org/wiki/Grand_chess
     Variant* grand_variant() {
         Variant* v = chess_variant_base();
+        v->variantTemplate = "grand";
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
@@ -1020,6 +1160,26 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Opulent chess
+    // Variant of Grand chess with two extra pieces
+    // https://www.chessvariants.com/rules/opulent-chess
+    Variant* opulent_variant() {
+        Variant* v = grand_variant();
+        v->pieceToCharTable = "PNBRQ..AC....W.......LKpnbrq..ac....w.......lk";
+        v->remove_piece(KNIGHT);
+        v->add_piece(CUSTOM_PIECES, 'n', "NW");
+        v->add_piece(CUSTOM_PIECES + 1, 'w', "CF");
+        v->add_piece(CUSTOM_PIECES + 2, 'l', "FDH");
+        v->startFen = "rw6wr/clbnqknbla/pppppppppp/10/10/10/10/PPPPPPPPPP/CLBNQKNBLA/RW6WR w - - 0 1";
+        v->promotionPieceTypes.erase(KNIGHT);
+        v->promotionPieceTypes.insert(CUSTOM_PIECES);
+        v->promotionPieceTypes.insert(CUSTOM_PIECES + 1);
+        v->promotionPieceTypes.insert(CUSTOM_PIECES + 2);
+        v->promotionLimit[CUSTOM_PIECES] = 2;
+        v->promotionLimit[CUSTOM_PIECES + 1] = 2;
+        v->promotionLimit[CUSTOM_PIECES + 2] = 2;
+        return v;
+    }
     // Tencubed
     // https://www.chessvariants.com/contests/10/tencubedchess.html
     Variant* tencubed_variant() {
@@ -1030,10 +1190,8 @@ namespace {
         v->startFen = "2cwamwc2/1rnbqkbnr1/pppppppppp/10/10/10/10/PPPPPPPPPP/1RNBQKBNR1/2CWAMWC2 w - - 0 1";
         v->add_piece(ARCHBISHOP, 'a');
         v->add_piece(CHANCELLOR, 'm');
-        v->customPiece[0] = "DAW"; // Champion
-        v->customPiece[1] = "CF"; // Wizard
-        v->add_piece(CUSTOM_PIECES, 'c');
-        v->add_piece(CUSTOM_PIECES + 1, 'w');
+        v->add_piece(CUSTOM_PIECES, 'c', "DAW"); // Champion
+        v->add_piece(CUSTOM_PIECES + 1, 'w', "CF"); // Wizard
         v->promotionPieceTypes = {ARCHBISHOP, CHANCELLOR, QUEEN};
         v->promotionRank = RANK_10;
         v->doubleStepRank = RANK_3;
@@ -1041,6 +1199,9 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Shako
+    // 10x10 variant with cannons by Jean-Louis Cazaux
+    // https://www.chessvariants.com/large.dir/shako.html
     Variant* shako_variant() {
         Variant* v = chess_variant_base();
         v->pieceToCharTable = "PNBRQ.E....C.........Kpnbrq.e....c.........k";
@@ -1058,6 +1219,9 @@ namespace {
         v->doubleStepRankMin = RANK_3;
         return v;
     }
+    // Clobber 10x10
+    // Clobber on a 10x10, mainly played by computers
+    // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber10_variant() {
         Variant* v = clobber_variant();
         v->maxRank = RANK_10;
@@ -1075,8 +1239,7 @@ namespace {
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->reset_pieces();
-        v->customPiece[0] = "mQ";
-        v->add_piece(CUSTOM_PIECES, 'q');
+        v->add_piece(CUSTOM_PIECES, 'q', "mQ");
         v->add_piece(IMMOBILE_PIECE, 'p');
         v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppppppppppppppppp] w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
@@ -1084,7 +1247,7 @@ namespace {
         return v;
     }
 #endif
-    // Xiangqi
+    // Xiangqi (Chinese chess)
     // https://en.wikipedia.org/wiki/Xiangqi
     Variant* xiangqi_variant() {
         Variant* v = minixiangqi_variant();
@@ -1104,6 +1267,7 @@ namespace {
         return v;
     }
     // Manchu/Yitong chess
+    // Asymmetric Xiangqi variant with a super-piece
     // https://en.wikipedia.org/wiki/Manchu_chess
     Variant* manchu_variant() {
         Variant* v = xiangqi_variant();
@@ -1201,6 +1365,8 @@ void VariantMap::init() {
     add("shatranj", shatranj_variant()->conclude());
     add("chaturanga", chaturanga_variant()->conclude());
     add("amazon", amazon_variant()->conclude());
+    add("nightrider", nightrider_variant()->conclude());
+    add("grasshopper", grasshopper_variant()->conclude());
     add("hoppelpoppel", hoppelpoppel_variant()->conclude());
     add("newzealand", newzealand_variant()->conclude());
     add("kingofthehill", kingofthehill_variant()->conclude());
@@ -1236,6 +1402,7 @@ void VariantMap::init() {
     add("dobutsu", dobutsu_variant()->conclude());
     add("gorogoro", gorogoroshogi_variant()->conclude());
     add("judkins", judkinsshogi_variant()->conclude());
+    add("torishogi", torishogi_variant()->conclude());
     add("euroshogi", euroshogi_variant()->conclude());
     add("losalamos", losalamos_variant()->conclude());
     add("gardner", gardner_variant()->conclude());
@@ -1249,6 +1416,7 @@ void VariantMap::init() {
     add("minixiangqi", minixiangqi_variant()->conclude());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant()->conclude());
+    add("shoshogi", shoshogi_variant()->conclude());
     add("yarishogi", yarishogi_variant()->conclude());
     add("okisakishogi", okisakishogi_variant()->conclude());
     add("capablanca", capablanca_variant()->conclude());
@@ -1263,6 +1431,7 @@ void VariantMap::init() {
     add("jesonmor", jesonmor_variant()->conclude());
     add("courier", courier_variant()->conclude());
     add("grand", grand_variant()->conclude());
+    add("opulent", opulent_variant()->conclude());
     add("tencubed", tencubed_variant()->conclude());
     add("shako", shako_variant()->conclude());
     add("clobber10", clobber10_variant()->conclude());
@@ -1369,3 +1538,5 @@ std::vector<std::string> VariantMap::get_keys() {
       keys.push_back(element.first);
   return keys;
 }
+
+} // namespace Stockfish

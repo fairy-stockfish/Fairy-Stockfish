@@ -23,20 +23,22 @@
 
 #include "types.h"
 
+namespace Stockfish {
+
 namespace Bitbases {
 
 void init();
 bool probe(Square wksq, Square wpsq, Square bksq, Color us);
 
-}
+} // namespace Stockfish::Bitbases
 
 namespace Bitboards {
 
 void init_pieces();
 void init();
-const std::string pretty(Bitboard b);
+std::string pretty(Bitboard b);
 
-}
+} // namespace Stockfish::Bitboards
 
 #ifdef LARGEBOARDS
 constexpr Bitboard AllSquares = ((~Bitboard(0)) >> 8);
@@ -101,6 +103,7 @@ extern uint8_t PopCnt16[1 << 16];
 extern uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
 extern Bitboard SquareBB[SQUARE_NB];
+extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard PseudoAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard PseudoMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
@@ -128,10 +131,12 @@ struct Magic {
     if (HasPext)
         return unsigned(pext(occupied, mask));
 
-#ifndef LARGEBOARDS
+#ifdef LARGEBOARDS
+    return unsigned(((occupied & mask) * magic) >> shift);
+#else
     if (Is64Bit)
-#endif
         return unsigned(((occupied & mask) * magic) >> shift);
+#endif
 
     unsigned lo = unsigned(occupied) & unsigned(mask);
     unsigned hi = unsigned(occupied >> 32) & unsigned(mask >> 32);
@@ -147,6 +152,11 @@ extern Magic CannonMagicsV[SQUARE_NB];
 extern Magic HorseMagics[SQUARE_NB];
 extern Magic ElephantMagics[SQUARE_NB];
 extern Magic JanggiElephantMagics[SQUARE_NB];
+extern Magic CannonDiagMagics[SQUARE_NB];
+extern Magic NightriderMagics[SQUARE_NB];
+extern Magic GrasshopperMagicsH[SQUARE_NB];
+extern Magic GrasshopperMagicsV[SQUARE_NB];
+extern Magic GrasshopperMagicsD[SQUARE_NB];
 
 extern Magic* magics[];
 
@@ -284,18 +294,24 @@ constexpr Bitboard adjacent_files_bb(Square s) {
 inline Bitboard line_bb(Square s1, Square s2) {
 
   assert(is_ok(s1) && is_ok(s2));
+
   return LineBB[s1][s2];
 }
 
 
-/// between_bb() returns a bitboard representing squares that are linearly
-/// between the two given squares (excluding the given squares). If the given
-/// squares are not on a same file/rank/diagonal, we return 0. For instance,
-/// between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5 and E6.
+/// between_bb(s1, s2) returns a bitboard representing the squares in the semi-open
+/// segment between the squares s1 and s2 (excluding s1 but including s2). If the
+/// given squares are not on a same file/rank/diagonal, it returns s2. For instance,
+/// between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5, E6 and F7, but
+/// between_bb(SQ_E6, SQ_F8) will return a bitboard with the square F8. This trick
+/// allows to generate non-king evasion moves faster: the defending piece must either
+/// interpose itself to cover the check or capture the checking piece.
 
 inline Bitboard between_bb(Square s1, Square s2) {
-  Bitboard b = line_bb(s1, s2) & ((AllSquares << s1) ^ (AllSquares << s2));
-  return b & (b - 1); //exclude lsb
+
+  assert(is_ok(s1) && is_ok(s2));
+
+  return BetweenBB[s1][s2];
 }
 
 inline Bitboard between_bb(Square s1, Square s2, PieceType pt) {
@@ -309,8 +325,8 @@ inline Bitboard between_bb(Square s1, Square s2, PieceType pt) {
 }
 
 
-/// forward_ranks_bb() returns a bitboard representing the squares on the ranks
-/// in front of the given one, from the point of view of the given color. For instance,
+/// forward_ranks_bb() returns a bitboard representing the squares on the ranks in
+/// front of the given one, from the point of view of the given color. For instance,
 /// forward_ranks_bb(BLACK, SQ_D3) will return the 16 squares on ranks 1 and 2.
 
 constexpr Bitboard forward_ranks_bb(Color c, Square s) {
@@ -381,8 +397,7 @@ inline int edge_distance(Rank r, Rank maxRank = RANK_8) { return std::min(r, Ran
 template<RiderType R>
 inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
 
-  assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V || R == RIDER_CANNON_H || R == RIDER_CANNON_V
-         || R == RIDER_HORSE || R == RIDER_ELEPHANT || R == RIDER_JANGGI_ELEPHANT);
+  static_assert(R != NO_RIDER && !(R & (R - 1))); // exactly one bit
   const Magic& m =  R == RIDER_ROOK_H ? RookMagicsH[s]
                   : R == RIDER_ROOK_V ? RookMagicsV[s]
                   : R == RIDER_CANNON_H ? CannonMagicsH[s]
@@ -390,6 +405,11 @@ inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
                   : R == RIDER_HORSE ? HorseMagics[s]
                   : R == RIDER_ELEPHANT ? ElephantMagics[s]
                   : R == RIDER_JANGGI_ELEPHANT ? JanggiElephantMagics[s]
+                  : R == RIDER_CANNON_DIAG ? CannonDiagMagics[s]
+                  : R == RIDER_NIGHTRIDER ? NightriderMagics[s]
+                  : R == RIDER_GRASSHOPPER_H ? GrasshopperMagicsH[s]
+                  : R == RIDER_GRASSHOPPER_V ? GrasshopperMagicsV[s]
+                  : R == RIDER_GRASSHOPPER_D ? GrasshopperMagicsD[s]
                   : BishopMagics[s];
   return m.attacks[m.index(occupied)];
 }
@@ -398,8 +418,7 @@ inline Square lsb(Bitboard b);
 
 inline Bitboard rider_attacks_bb(RiderType R, Square s, Bitboard occupied) {
 
-  assert(R == RIDER_BISHOP || R == RIDER_ROOK_H || R == RIDER_ROOK_V || R == RIDER_CANNON_H || R == RIDER_CANNON_V
-         || R == RIDER_HORSE || R == RIDER_ELEPHANT || R == RIDER_JANGGI_ELEPHANT);
+  assert(R != NO_RIDER && !(R & (R - 1))); // exactly one bit
   const Magic& m = magics[lsb(R)][s]; // re-use Bitboard lsb for riders
   return m.attacks[m.index(occupied)];
 }
@@ -626,13 +645,20 @@ inline Square msb(Bitboard b) {
 
 #endif
 
+/// least_significant_square_bb() returns the bitboard of the least significant
+/// square of a non-zero bitboard. It is equivalent to square_bb(lsb(bb)).
+
+inline Bitboard least_significant_square_bb(Bitboard b) {
+  assert(b);
+  return b & -b;
+}
 
 /// pop_lsb() finds and clears the least significant bit in a non-zero bitboard
 
-inline Square pop_lsb(Bitboard* b) {
-  assert(*b);
-  const Square s = lsb(*b);
-  *b &= *b - 1;
+inline Square pop_lsb(Bitboard& b) {
+  assert(b);
+  const Square s = lsb(b);
+  b &= b - 1;
   return s;
 }
 
@@ -643,5 +669,7 @@ inline Square frontmost_sq(Color c, Bitboard b) {
   assert(b);
   return c == WHITE ? msb(b) : lsb(b);
 }
+
+} // namespace Stockfish
 
 #endif // #ifndef BITBOARD_H_INCLUDED

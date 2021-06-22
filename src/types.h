@@ -89,6 +89,8 @@
 #  define pext(b, m) 0
 #endif
 
+namespace Stockfish {
+
 #ifdef USE_POPCNT
 constexpr bool HasPopCnt = true;
 #else
@@ -179,6 +181,10 @@ struct Bitboard {
 
     constexpr Bitboard operator ~ () const {
         return Bitboard(~b64[0], ~b64[1]);
+    }
+
+    constexpr Bitboard operator - () const {
+        return Bitboard(-b64[0] - (b64[1] > 0), -b64[1]);
     }
 
     constexpr Bitboard operator | (const Bitboard x) const {
@@ -403,6 +409,8 @@ static_assert(2 * SQUARE_BITS + MOVE_TYPE_BITS + 2 * PIECE_TYPE_BITS <= 32, "Mov
 
 enum Piece {
   NO_PIECE,
+  W_PAWN = PAWN,                 W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING = KING,
+  B_PAWN = PAWN + PIECE_TYPE_NB, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING = KING + PIECE_TYPE_NB,
   PIECE_NB = 2 * PIECE_TYPE_NB
 };
 
@@ -416,10 +424,17 @@ enum RiderType : int {
   RIDER_HORSE = 1 << 5,
   RIDER_ELEPHANT = 1 << 6,
   RIDER_JANGGI_ELEPHANT = 1 << 7,
-  HOPPING_RIDERS = RIDER_CANNON_H | RIDER_CANNON_V,
+  RIDER_CANNON_DIAG = 1 << 8,
+  RIDER_NIGHTRIDER = 1 << 9,
+  RIDER_GRASSHOPPER_H = 1 << 10,
+  RIDER_GRASSHOPPER_V = 1 << 11,
+  RIDER_GRASSHOPPER_D = 1 << 12,
+  HOPPING_RIDERS =  RIDER_CANNON_H | RIDER_CANNON_V | RIDER_CANNON_DIAG
+                  | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
   LAME_LEAPERS = RIDER_HORSE | RIDER_ELEPHANT | RIDER_JANGGI_ELEPHANT,
-  ASYMMETRICAL_RIDERS = RIDER_HORSE | RIDER_JANGGI_ELEPHANT,
-  NON_SLIDING_RIDERS = HOPPING_RIDERS | LAME_LEAPERS,
+  ASYMMETRICAL_RIDERS =  RIDER_HORSE | RIDER_JANGGI_ELEPHANT
+                       | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
+  NON_SLIDING_RIDERS = HOPPING_RIDERS | LAME_LEAPERS | RIDER_NIGHTRIDER,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
@@ -557,11 +572,11 @@ inline Value mg_value(Score s) {
   return Value(mg.s);
 }
 
-#define ENABLE_BIT_OPERATORS_ON(T)                                    \
-inline T operator~ (T d) { return (T)~(int)d; }                       \
-inline T operator| (T d1, T d2) { return (T)((int)d1 | (int)d2); }        \
-inline T operator& (T d1, T d2) { return (T)((int)d1 & (int)d2); }        \
-inline T operator^ (T d1, T d2) { return (T)((int)d1 ^ (int)d2); }        \
+#define ENABLE_BIT_OPERATORS_ON(T)                                        \
+constexpr T operator~ (T d) { return (T)~(int)d; }                        \
+constexpr T operator| (T d1, T d2) { return (T)((int)d1 | (int)d2); }     \
+constexpr T operator& (T d1, T d2) { return (T)((int)d1 & (int)d2); }     \
+constexpr T operator^ (T d1, T d2) { return (T)((int)d1 ^ (int)d2); }     \
 inline T& operator|= (T& d1, T d2) { return (T&)((int&)d1 |= (int)d2); }  \
 inline T& operator&= (T& d1, T d2) { return (T&)((int&)d1 &= (int)d2); }  \
 inline T& operator^= (T& d1, T d2) { return (T&)((int&)d1 ^= (int)d2); }
@@ -784,6 +799,10 @@ constexpr PieceType in_hand_piece_type(Move m) {
   return PieceType((m >> (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) & (PIECE_TYPE_NB - 1));
 }
 
+inline bool is_custom(PieceType pt) {
+  return pt >= CUSTOM_PIECES && pt <= CUSTOM_PIECES_END;
+}
+
 inline bool is_ok(Move m) {
   return from_sq(m) != to_sq(m) || type_of(m) == PROMOTION || type_of(m) == SPECIAL; // Catch MOVE_NULL and MOVE_NONE
 }
@@ -797,6 +816,8 @@ inline int dist(Direction d) {
 constexpr Key make_key(uint64_t seed) {
   return seed * 6364136223846793005ULL + 1442695040888963407ULL;
 }
+
+} // namespace Stockfish
 
 #endif // #ifndef TYPES_H_INCLUDED
 

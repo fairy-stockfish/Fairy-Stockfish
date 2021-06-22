@@ -23,6 +23,8 @@
 
 #include "types.h"
 
+namespace Stockfish {
+
 class Position;
 
 namespace Eval {
@@ -51,5 +53,7 @@ namespace Eval {
 } // namespace Eval
 
 extern NnueFeatures currentNnueFeatures;
+
+} // namespace Stockfish
 
 #endif // #ifndef EVALUATE_H_INCLUDED
