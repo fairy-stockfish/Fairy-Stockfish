@@ -19,6 +19,7 @@
 #ifndef APIUTIL_H_INCLUDED
 #define APIUTIL_H_INCLUDED
 
+#include <array>
 #include <vector>
 #include <string>
 #include <sstream>
