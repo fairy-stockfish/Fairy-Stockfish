@@ -537,6 +537,7 @@ struct DirtyPiece {
   // to from SQ_NONE to the capture square.
   Piece piece[12];
   Piece handPiece[12];
+  int handCount[12];
 
   // From and to squares, which may be SQ_NONE
   Square from[12];

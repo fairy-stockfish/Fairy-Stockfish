@@ -1427,7 +1427,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
 
           if (Eval::useNNUE)
+          {
               dp.handPiece[1] = pieceToHand;
+              dp.handCount[1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
+          }
       }
       else
           dp.handPiece[1] = NO_PIECE;
@@ -1515,6 +1518,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           // Add drop piece
           dp.piece[0] = pc;
           dp.handPiece[0] = make_piece(us, in_hand_piece_type(m));
+          dp.handCount[0] = pieceCountInHand[us][in_hand_piece_type(m)];
           dp.from[0] = SQ_NONE;
           dp.to[0] = to;
       }
@@ -1678,6 +1682,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           // Add gating piece
           dp.piece[dp.dirty_num] = gating_piece;
           dp.handPiece[dp.dirty_num] = gating_piece;
+          dp.handCount[dp.dirty_num] = pieceCountInHand[us][gating_type(m)];
           dp.from[dp.dirty_num] = SQ_NONE;
           dp.to[dp.dirty_num] = gate;
           dp.dirty_num++;
@@ -1748,7 +1753,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
                   ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
 
               if (Eval::useNNUE)
+              {
                   dp.handPiece[dp.dirty_num - 1] = pieceToHand;
+                  dp.handCount[dp.dirty_num - 1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
+              }
           }
 
           // Update material hash key
