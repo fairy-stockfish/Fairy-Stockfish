@@ -108,8 +108,6 @@ namespace {
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    const Square ksq = pos.count<KING>(Them) ? pos.square<KING>(Them) : SQ_NONE;
-
     Bitboard TRank8BB = pos.mandatory_pawn_promotion() ? rank_bb(relative_rank(Us, pos.promotion_rank(), pos.max_rank()))
                                                        : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
     Bitboard TRank7BB = shift<Down>(TRank8BB);
@@ -117,19 +115,17 @@ namespace {
     Bitboard  TRank3BB =  forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_min(), pos.max_rank()))
                         & ~shift<Up>(forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_max(), pos.max_rank())));
 
-    Bitboard emptySquares;
+    const Square ksq = pos.count<KING>(Them) ? pos.square<KING>(Them) : SQ_NONE;
+    const Bitboard emptySquares = Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces();
+    const Bitboard enemies      = Type == EVASIONS ? pos.checkers()
+                                : Type == CAPTURES ? target : pos.pieces(Them);
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank7BB : AllSquares);
 
-    Bitboard enemies = (Type == EVASIONS ? pos.checkers()
-                     :  Type == CAPTURES ? target : pos.pieces(Them));
-
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
-        emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces() & pos.board_bb(Us, PAWN));
-
         Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
         Bitboard b2 = pos.double_step_enabled() ? shift<Up>(b1 & TRank3BB) & emptySquares : Bitboard(0);
 
@@ -141,22 +137,12 @@ namespace {
 
         if (Type == QUIET_CHECKS && pos.count<KING>(Them))
         {
-            b1 &= pawn_attacks_bb(Them, ksq);
-            b2 &= pawn_attacks_bb(Them, ksq);
-
-            // Add pawn pushes which give discovered check. This is possible only
-            // if the pawn is not on the same file as the enemy king, because we
-            // don't generate captures. Note that a possible discovered check
-            // promotion has been already generated amongst the captures.
-            Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOn7;
-            if (dcCandidateQuiets)
-            {
-                Bitboard dc1 = shift<Up>(dcCandidateQuiets) & emptySquares & ~file_bb(ksq);
-                Bitboard dc2 = pos.double_step_enabled() ? shift<Up>(dc1 & TRank3BB) & emptySquares : Bitboard(0);
-
-                b1 |= dc1;
-                b2 |= dc2;
-            }
+            // To make a quiet check, you either make a direct check by pushing a pawn
+            // or push a blocker pawn that is not on the same file as the enemy king.
+            // Discovered check promotion has been already generated amongst the captures.
+            Bitboard dcCandidatePawns = pos.blockers_for_king(Them) & ~file_bb(ksq);
+            b1 &= pawn_attacks_bb(Them, ksq) | shift<   Up>(dcCandidatePawns);
+            b2 &= pawn_attacks_bb(Them, ksq) | shift<Up+Up>(dcCandidatePawns);
         }
 
         while (b1)
@@ -175,15 +161,12 @@ namespace {
     // Promotions and underpromotions
     if (pawnsOn7)
     {
-        if (Type == CAPTURES)
-            emptySquares = ~pos.pieces() & pos.board_bb(Us, PAWN);
-
-        if (Type == EVASIONS)
-            emptySquares &= target;
-
         Bitboard b1 = shift<UpRight>(pawnsOn7) & enemies;
         Bitboard b2 = shift<UpLeft >(pawnsOn7) & enemies;
         Bitboard b3 = shift<Up     >(pawnsOn7) & emptySquares;
+
+        if (Type == EVASIONS)
+            b3 &= target;
 
         while (b1)
             moveList = make_promotions<Us, Type, UpRight>(pos, moveList, pop_lsb(b1));
