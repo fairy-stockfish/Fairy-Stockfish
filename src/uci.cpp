@@ -348,6 +348,7 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "d")        sync_cout << pos << sync_endl;
       else if (token == "eval")     trace_eval(pos);
       else if (token == "compiler") sync_cout << compiler_info() << sync_endl;
+      else if (token == "export_net") Eval::NNUE::export_net();
       else if (token == "load")     { load(is); argc = 1; } // continue reading stdin
       else if (token == "check")    check(is);
       // UCI-Cyclone omits the "position" keyword

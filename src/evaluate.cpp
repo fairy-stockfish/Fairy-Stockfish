@@ -33,6 +33,7 @@
 #include "misc.h"
 #include "pawns.h"
 #include "thread.h"
+#include "timeman.h"
 #include "uci.h"
 #include "incbin/incbin.h"
 
@@ -46,7 +47,9 @@
 // Note that this does not work in Microsoft Visual Studio.
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
   INCBIN(EmbeddedNNUE, EvalFileDefaultName);
+  constexpr bool             gHasEmbeddedNet = true;
 #else
+  constexpr bool             gHasEmbeddedNet = false;
   const unsigned char        gEmbeddedNNUEData[1] = {0x0};
   [[maybe_unused]]
   const unsigned char *const gEmbeddedNNUEEnd = &gEmbeddedNNUEData[1];
@@ -138,6 +141,15 @@ namespace Eval {
                     eval_file_loaded = eval_file;
             }
         }
+  }
+
+  void NNUE::export_net() {
+    if constexpr (gHasEmbeddedNet) {
+      ofstream stream(EvalFileDefaultName, std::ios_base::binary);
+      stream.write(reinterpret_cast<const char*>(gEmbeddedNNUEData), gEmbeddedNNUESize);
+    } else {
+      sync_cout << "No embedded network file." << sync_endl;
+    }
   }
 
   /// NNUE::verify() verifies that the last net used was loaded successfully
@@ -1583,7 +1595,7 @@ Value Eval::evaluate(const Position& pos) {
                     + material / 32
                     - 4 * pos.rule50_count();
 
-         Value nnue = NNUE::evaluate(pos) * scale / 1024 + Tempo;
+         Value nnue = NNUE::evaluate(pos) * scale / 1024 + Time.tempoNNUE;
 
          if (pos.is_chess960())
              nnue += fix_FRC(pos);
