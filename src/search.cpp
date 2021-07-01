@@ -104,49 +104,6 @@ namespace {
     Move best = MOVE_NONE;
   };
 
-  // Breadcrumbs are used to mark nodes as being searched by a given thread
-  struct Breadcrumb {
-    std::atomic<Thread*> thread;
-    std::atomic<Key> key;
-  };
-  std::array<Breadcrumb, 1024> breadcrumbs;
-
-  // ThreadHolding structure keeps track of which thread left breadcrumbs at the given
-  // node for potential reductions. A free node will be marked upon entering the moves
-  // loop by the constructor, and unmarked upon leaving that loop by the destructor.
-  struct ThreadHolding {
-    explicit ThreadHolding(Thread* thisThread, Key posKey, int ply) {
-       location = ply < 8 ? &breadcrumbs[posKey & (breadcrumbs.size() - 1)] : nullptr;
-       otherThread = false;
-       owning = false;
-       if (location)
-       {
-          // See if another already marked this location, if not, mark it ourselves
-          Thread* tmp = (*location).thread.load(std::memory_order_relaxed);
-          if (tmp == nullptr)
-          {
-              (*location).thread.store(thisThread, std::memory_order_relaxed);
-              (*location).key.store(posKey, std::memory_order_relaxed);
-              owning = true;
-          }
-          else if (   tmp != thisThread
-                   && (*location).key.load(std::memory_order_relaxed) == posKey)
-              otherThread = true;
-       }
-    }
-
-    ~ThreadHolding() {
-       if (owning) // Free the marked location
-           (*location).thread.store(nullptr, std::memory_order_relaxed);
-    }
-
-    bool marked() { return otherThread; }
-
-    private:
-    Breadcrumb* location;
-    bool otherThread, owning;
-  };
-
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
 
@@ -1028,7 +985,7 @@ namespace {
 
     probCutBeta = beta + (209 + 20 * !!pos.capture_the_flag_piece() + 50 * pos.captures_to_hand()) * (1 + pos.check_counting() + pos.extinction_single_piece()) - 44 * improving;
 
-    // Step 9. ProbCut (~10 Elo)
+    // Step 9. ProbCut (~4 Elo)
     // If we have a good enough capture and a reduced search returns a value
     // much above beta, we can (almost) safely prune the previous move.
     if (   !PvNode
@@ -1043,16 +1000,6 @@ namespace {
              && ttValue != VALUE_NONE
              && ttValue < probCutBeta))
     {
-        // if ttMove is a capture and value from transposition table is good enough produce probCut
-        // cutoff without digging into actual probCut search
-        if (   ss->ttHit
-            && tte->depth() >= depth - 3
-            && ttValue != VALUE_NONE
-            && ttValue >= probCutBeta
-            && ttMove
-            && pos.capture_or_promotion(ttMove))
-            return probCutBeta;
-
         assert(probCutBeta < VALUE_INFINITE);
 
         MovePicker mp(pos, ttMove, probCutBeta - ss->staticEval, &captureHistory);
@@ -1151,9 +1098,6 @@ moves_loop: // When in check, search starts from here
                          && (tte->bound() & BOUND_UPPER)
                          && tte->depth() >= depth;
 
-    // Mark this node as being searched
-    ThreadHolding th(thisThread, posKey, ss->ply);
-
     // Step 12. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
     while ((move = mp.next_move(moveCountPruning)) != MOVE_NONE)
@@ -1222,8 +1166,8 @@ moves_loop: // When in check, search starts from here
           }
           else
           {
-              // Countermoves based pruning (~20 Elo)
-              if (   lmrDepth < 4 + ((ss-1)->statScore > 0 || (ss-1)->moveCount == 1)
+              // Continuation history based pruning (~20 Elo)
+              if (   lmrDepth < 4
                   && (*contHist[0])[history_slot(movedPiece)][to_sq(move)] < CounterMovePruneThreshold
                   && (*contHist[1])[history_slot(movedPiece)][to_sq(move)] < CounterMovePruneThreshold)
                   continue;
@@ -1334,16 +1278,12 @@ moves_loop: // When in check, search starts from here
       {
           Depth r = reduction(improving, depth, moveCount);
 
-          // Decrease reduction if the ttHit running average is large
+          // Decrease reduction if the ttHit running average is large (~0 Elo)
           if (thisThread->ttHitAverage > 537 * TtHitAverageResolution * TtHitAverageWindow / 1024)
               r--;
 
-          // Increase reduction if other threads are searching this position
-          if (th.marked())
-              r++;
-
           // Decrease reduction if position is or has been on the PV
-          // and node is not likely to fail low. (~10 Elo)
+          // and node is not likely to fail low. (~3 Elo)
           if (   ss->ttPv
               && !likelyFailLow)
               r -= 2;
@@ -1354,45 +1294,27 @@ moves_loop: // When in check, search starts from here
               && thisThread->bestMoveChanges <= 2)
               r++;
 
-          // More reductions for late moves if position was not in previous PV
-          if (   moveCountPruning
-              && !formerPv)
-              r++;
-
-          // Decrease reduction if opponent's move count is high (~5 Elo)
+          // Decrease reduction if opponent's move count is high (~1 Elo)
           if ((ss-1)->moveCount > 13)
               r--;
 
-          // Decrease reduction if ttMove has been singularly extended (~3 Elo)
+          // Decrease reduction if ttMove has been singularly extended (~1 Elo)
           if (singularQuietLMR)
               r--;
 
-          if (captureOrPromotion)
+          if (!captureOrPromotion)
           {
-              // Increase reduction for non-checking captures likely to be bad
-              if (   !givesCheck
-                  && ss->staticEval + PieceValue[EG][pos.captured_piece()] + 210 * depth <= alpha)
-                  r++;
-          }
-          else
-          {
-              // Increase reduction if ttMove is a capture (~5 Elo)
+              // Increase reduction if ttMove is a capture (~3 Elo)
               if (ttCapture)
                   r++;
 
               // Increase reduction at root if failing high
-              r += rootNode ? thisThread->failedHighCnt * thisThread->failedHighCnt * moveCount / 512 : 0;
+              if (rootNode)
+                  r += thisThread->failedHighCnt * thisThread->failedHighCnt * moveCount / 512;
 
-              // Increase reduction for cut nodes (~10 Elo)
+              // Increase reduction for cut nodes (~3 Elo)
               if (cutNode)
                   r += 2;
-
-              // Decrease reduction for moves that escape a capture. Filter out
-              // castling moves, because they are coded as "king captures rook" and
-              // hence break reverse_move() (~2 Elo)
-              else if (    type_of(move) == NORMAL
-                       && !pos.see_ge(reverse_move(move)))
-                  r -= 2 + ss->ttPv - (type_of(movedPiece) == PAWN);
 
               ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                              + (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
@@ -1400,20 +1322,8 @@ moves_loop: // When in check, search starts from here
                              + (*contHist[3])[history_slot(movedPiece)][to_sq(move)]
                              - 4741;
 
-              // Decrease/increase reduction by comparing opponent's stat score (~10 Elo)
-              if (ss->statScore >= -89 && (ss-1)->statScore < -116)
-                  r--;
-
-              else if ((ss-1)->statScore >= -112 && ss->statScore < -100)
-                  r++;
-
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-              // If we are not in check use statScore, but if we are in check we use
-              // the sum of main history and first continuation history with an offset.
-              if (ss->inCheck)
-                  r -= (thisThread->mainHistory[us][from_to(move)]
-                     + (*contHist[0])[history_slot(movedPiece)][to_sq(move)] - 3833) / 16384;
-              else
+              if (!ss->inCheck)
                   r -= ss->statScore / (14790 - 4434 * pos.captures_to_hand());
           }
 
@@ -1771,7 +1681,7 @@ moves_loop: // When in check, search starts from here
                                                                 [history_slot(pos.moved_piece(move))]
                                                                 [to_sq(move)];
 
-      // CounterMove based pruning
+      // Continuation history based pruning
       if (  !captureOrPromotion
           && bestValue > VALUE_TB_LOSS_IN_MAX_PLY
           && (*contHist[0])[history_slot(pos.moved_piece(move))][to_sq(move)] < CounterMovePruneThreshold
