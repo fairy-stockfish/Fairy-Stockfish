@@ -53,6 +53,24 @@ ifeq ($(es6),yes)
 	CXXFLAGS += -s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0
 endif
 
+.PHONY: help objclean clean build deps test serve
+
+help:
+	@echo ""
+	@echo "To compile ffishjs, type: "
+	@echo ""
+	@echo "make -f Makefile_js build"
+	@echo ""
+	@echo "Supported targets:"
+	@echo ""
+	@echo "help                    > Display this help"
+	@echo "build                   > Standard build"
+	@echo "clean                   > Clean up"
+	@echo "deps                    > Install runtime dependencies using npm"
+	@echo "test                    > Run tests"
+	@echo "serve                   > Run example server"
+	@echo ""
+
 objclean:
 	@rm -f $(EXE) *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
 
@@ -60,3 +78,12 @@ clean: objclean
 
 build:
 	$(CXX) $(CXXFLAGS) $(SRCS) -o $(EXE)
+
+deps:
+	cd ../tests/js && npm install
+
+test: deps
+	cd ../tests/js && npm test
+
+serve: deps
+	cd ../tests/js && node index.js
