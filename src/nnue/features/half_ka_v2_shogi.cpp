@@ -16,9 +16,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//Definition of input features HalfKP of NNUE evaluation function
+//Definition of input features HalfKAv2 of NNUE evaluation function
 
-#include "half_kp_shogi.h"
+#include "half_ka_v2_shogi.h"
 
 #include "../../position.h"
 
@@ -33,30 +33,31 @@ namespace Stockfish::Eval::NNUE::Features {
   }
 
   // Orient a square according to perspective (rotates by 180 for black)
-  inline Square HalfKPShogi::orient(Color perspective, Square s) {
+  inline Square HalfKAv2Shogi::orient(Color perspective, Square s) {
     return perspective == WHITE ? to_shogi_square(s) : rotate(to_shogi_square(s));
   }
 
   // Index of a feature for a given king position and another piece on some square
-  inline IndexType HalfKPShogi::make_index(Color perspective, Square s, Piece pc, Square ksq) {
-    return IndexType(orient(perspective, s) + PieceSquareIndexShogi[perspective][pc] + SHOGI_PS_END * ksq);
+  inline IndexType HalfKAv2Shogi::make_index(Color perspective, Square s, Piece pc, Square ksq) {
+    return IndexType(orient(perspective, s) + PieceSquareIndexShogi[perspective][pc] + SHOGI_PS_NB * ksq);
   }
 
   // Index of a feature for a given king position and hand piece
-  inline IndexType HalfKPShogi::make_index(Color perspective, Color c, int hand_index, PieceType pt, Square ksq) {
+  inline IndexType HalfKAv2Shogi::make_index(Color perspective, Color c, int hand_index, PieceType pt, Square ksq) {
     Color color = (c == perspective) ? WHITE : BLACK;
-    return IndexType(hand_index + PieceSquareIndexShogiHand[color][pt] + SHOGI_PS_END * ksq);
+    return IndexType(hand_index + PieceSquareIndexShogiHand[color][pt] + SHOGI_PS_NB * ksq);
   }
 
   // Get a list of indices for active features
-  void HalfKPShogi::append_active_indices(
+  void HalfKAv2Shogi::append_active_indices(
     const Position& pos,
     Color perspective,
     ValueListInserter<IndexType> active
   ) {
     Square ksq = orient(perspective, pos.square<KING>(perspective));
-    Bitboard bb = pos.pieces() & ~pos.pieces(KING);
-    while (bb) {
+    Bitboard bb = pos.pieces();
+    while (bb)
+    {
       Square s = pop_lsb(bb);
       active.push_back(make_index(perspective, s, pos.piece_on(s), ksq));
     }
@@ -70,19 +71,17 @@ namespace Stockfish::Eval::NNUE::Features {
 
   // append_changed_indices() : get a list of indices for recently changed features
 
-  void HalfKPShogi::append_changed_indices(
+  void HalfKAv2Shogi::append_changed_indices(
     Square ksq,
     StateInfo* st,
     Color perspective,
     ValueListInserter<IndexType> removed,
-    ValueListInserter<IndexType> added,
-    const Position& pos
+    ValueListInserter<IndexType> added
   ) {
     const auto& dp = st->dirtyPiece;
     Square oriented_ksq = orient(perspective, ksq);
     for (int i = 0; i < dp.dirty_num; ++i) {
       Piece pc = dp.piece[i];
-      if (type_of(pc) == pos.nnue_king()) continue;
       if (dp.from[i] != SQ_NONE)
         removed.push_back(make_index(perspective, dp.from[i], pc, oriented_ksq));
       else if (dp.dirty_num == 1)
@@ -100,16 +99,16 @@ namespace Stockfish::Eval::NNUE::Features {
     }
   }
 
-  int HalfKPShogi::update_cost(StateInfo* st) {
+  int HalfKAv2Shogi::update_cost(StateInfo* st) {
     return st->dirtyPiece.dirty_num;
   }
 
-  int HalfKPShogi::refresh_cost(const Position& pos) {
-    return pos.count<ALL_PIECES>() - 2;
+  int HalfKAv2Shogi::refresh_cost(const Position& pos) {
+    return pos.count<ALL_PIECES>();
   }
 
-  bool HalfKPShogi::requires_refresh(StateInfo* st, Color perspective, const Position& pos) {
-    return st->dirtyPiece.piece[0] == make_piece(perspective, pos.nnue_king());
+  bool HalfKAv2Shogi::requires_refresh(StateInfo* st, Color perspective) {
+    return st->dirtyPiece.piece[0] == make_piece(perspective, KING);
   }
 
 

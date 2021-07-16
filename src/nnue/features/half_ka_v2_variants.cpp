@@ -16,12 +16,12 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//Definition of input features HalfKP of NNUE evaluation function
+//Definition of input features HalfKAv2 of NNUE evaluation function
 
-#include "half_kp_variants.h"
+#include "half_ka_v2_variants.h"
 
 #ifdef LARGEBOARDS
-#include "half_kp_shogi.h"
+#include "half_ka_v2_shogi.h"
 #endif
 
 #include "../../position.h"
@@ -34,18 +34,18 @@ namespace Stockfish::Eval::NNUE::Features {
   }
 
   // Orient a square according to perspective (rotates by 180 for black)
-  inline Square HalfKPVariants::orient(Color perspective, Square s, const Position& pos) {
+  inline Square HalfKAv2Variants::orient(Color perspective, Square s, const Position& pos) {
     return to_chess_square(  perspective == WHITE || (pos.capture_the_flag(BLACK) & Rank8BB) ? s
-                           : flip_rank(flip_file(s, pos.max_file()), pos.max_rank()));
+                           : flip_rank(s, pos.max_rank()));
   }
 
   // Index of a feature for a given king position and another piece on some square
-  inline IndexType HalfKPVariants::make_index(Color perspective, Square s, Piece pc, Square ksq, const Position& pos) {
+  inline IndexType HalfKAv2Variants::make_index(Color perspective, Square s, Piece pc, Square ksq, const Position& pos) {
     return IndexType(orient(perspective, s, pos) + PieceSquareIndex[perspective][pc] + PS_NB * ksq);
   }
 
   // Get a list of indices for active features
-  void HalfKPVariants::append_active_indices(
+  void HalfKAv2Variants::append_active_indices(
     const Position& pos,
     Color perspective,
     ValueListInserter<IndexType> active
@@ -54,14 +54,15 @@ namespace Stockfish::Eval::NNUE::Features {
 #ifdef LARGEBOARDS
     if (currentNnueFeatures == NNUE_SHOGI)
     {
-        assert(HalfKPShogi::Dimensions <= Dimensions);
-        return HalfKPShogi::append_active_indices(pos, perspective, active);
+        assert(HalfKAv2Shogi::Dimensions <= Dimensions);
+        return HalfKAv2Shogi::append_active_indices(pos, perspective, active);
     }
 #endif
 
     Square oriented_ksq = orient(perspective, pos.square(perspective, pos.nnue_king()), pos);
-    Bitboard bb = pos.pieces() & ~pos.pieces(pos.nnue_king());
-    while (bb) {
+    Bitboard bb = pos.pieces();
+    while (bb)
+    {
       Square s = pop_lsb(bb);
       active.push_back(make_index(perspective, s, pos.piece_on(s), oriented_ksq, pos));
     }
@@ -69,7 +70,7 @@ namespace Stockfish::Eval::NNUE::Features {
 
   // append_changed_indices() : get a list of indices for recently changed features
 
-  void HalfKPVariants::append_changed_indices(
+  void HalfKAv2Variants::append_changed_indices(
     Square ksq,
     StateInfo* st,
     Color perspective,
@@ -81,15 +82,14 @@ namespace Stockfish::Eval::NNUE::Features {
 #ifdef LARGEBOARDS
     if (currentNnueFeatures == NNUE_SHOGI)
     {
-        assert(HalfKPShogi::Dimensions <= Dimensions);
-        return HalfKPShogi::append_changed_indices(ksq, st, perspective, removed, added, pos);
+        assert(HalfKAv2Shogi::Dimensions <= Dimensions);
+        return HalfKAv2Shogi::append_changed_indices(ksq, st, perspective, removed, added);
     }
 #endif
     const auto& dp = st->dirtyPiece;
     Square oriented_ksq = orient(perspective, ksq, pos);
     for (int i = 0; i < dp.dirty_num; ++i) {
       Piece pc = dp.piece[i];
-      if (type_of(pc) == pos.nnue_king()) continue;
       if (dp.from[i] != SQ_NONE)
         removed.push_back(make_index(perspective, dp.from[i], pc, oriented_ksq, pos));
       if (dp.to[i] != SQ_NONE)
@@ -97,15 +97,15 @@ namespace Stockfish::Eval::NNUE::Features {
     }
   }
 
-  int HalfKPVariants::update_cost(StateInfo* st) {
+  int HalfKAv2Variants::update_cost(StateInfo* st) {
     return st->dirtyPiece.dirty_num;
   }
 
-  int HalfKPVariants::refresh_cost(const Position& pos) {
-    return pos.count<ALL_PIECES>() - 2;
+  int HalfKAv2Variants::refresh_cost(const Position& pos) {
+    return pos.count<ALL_PIECES>();
   }
 
-  bool HalfKPVariants::requires_refresh(StateInfo* st, Color perspective, const Position& pos) {
+  bool HalfKAv2Variants::requires_refresh(StateInfo* st, Color perspective, const Position& pos) {
     return st->dirtyPiece.piece[0] == make_piece(perspective, pos.nnue_king());
   }
 

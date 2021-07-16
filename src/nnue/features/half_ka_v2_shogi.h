@@ -16,10 +16,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//Definition of input features HalfKP of NNUE evaluation function
+//Definition of input features HalfKAv2 of NNUE evaluation function
 
-#ifndef NNUE_FEATURES_HALF_KP_SHOGI_H_INCLUDED
-#define NNUE_FEATURES_HALF_KP_SHOGI_H_INCLUDED
+#ifndef NNUE_FEATURES_HALF_KA_V2_SHOGI_H_INCLUDED
+#define NNUE_FEATURES_HALF_KA_V2_SHOGI_H_INCLUDED
 
 #include "../nnue_common.h"
 
@@ -32,27 +32,28 @@ namespace Stockfish {
 
 namespace Stockfish::Eval::NNUE::Features {
 
-  // Feature HalfKP: Combination of the position of own king
-  // and the position of pieces other than kings
-  class HalfKPShogi {
+  // Feature HalfKAv2: Combination of the position of own king
+  // and the position of pieces
+  class HalfKAv2Shogi {
 
+    // unique number for each piece type on each square
     enum {
-      PS_NONE             =  0,
-      SHOGI_HAND_W_PAWN   =   1,
-      SHOGI_HAND_B_PAWN   =  20,
-      SHOGI_HAND_W_LANCE  =  39,
-      SHOGI_HAND_B_LANCE  =  44,
-      SHOGI_HAND_W_KNIGHT =  49,
-      SHOGI_HAND_B_KNIGHT =  54,
-      SHOGI_HAND_W_SILVER =  59,
-      SHOGI_HAND_B_SILVER =  64,
-      SHOGI_HAND_W_GOLD   =  69,
-      SHOGI_HAND_B_GOLD   =  74,
-      SHOGI_HAND_W_BISHOP =  79,
-      SHOGI_HAND_B_BISHOP =  82,
-      SHOGI_HAND_W_ROOK   =  85,
-      SHOGI_HAND_B_ROOK   =  88,
-      SHOGI_HAND_END      =  90,
+      PS_NONE             =   0,
+      SHOGI_HAND_W_PAWN   =   0,
+      SHOGI_HAND_B_PAWN   =  19,
+      SHOGI_HAND_W_LANCE  =  38,
+      SHOGI_HAND_B_LANCE  =  43,
+      SHOGI_HAND_W_KNIGHT =  48,
+      SHOGI_HAND_B_KNIGHT =  53,
+      SHOGI_HAND_W_SILVER =  58,
+      SHOGI_HAND_B_SILVER =  63,
+      SHOGI_HAND_W_GOLD   =  68,
+      SHOGI_HAND_B_GOLD   =  73,
+      SHOGI_HAND_W_BISHOP =  78,
+      SHOGI_HAND_B_BISHOP =  81,
+      SHOGI_HAND_W_ROOK   =  84,
+      SHOGI_HAND_B_ROOK   =  87,
+      SHOGI_HAND_END      =  89,
 
       SHOGI_PS_W_PAWN     =  SHOGI_HAND_END,
       SHOGI_PS_B_PAWN     =  1 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
@@ -72,10 +73,8 @@ namespace Stockfish::Eval::NNUE::Features {
       SHOGI_PS_B_ROOK     = 15 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
       SHOGI_PS_W_DRAGON   = 16 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
       SHOGI_PS_B_DRAGON   = 17 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-      SHOGI_PS_W_KING     = 18 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-      SHOGI_PS_END        = SHOGI_PS_W_KING, // pieces without kings (pawns included)
-      SHOGI_PS_B_KING     = 19 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-      SHOGI_PS_END2       = 20 * SQUARE_NB_SHOGI + SHOGI_HAND_END
+      SHOGI_PS_KING       = 18 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
+      SHOGI_PS_NB         = 19 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
     };
 
     static constexpr uint32_t PieceSquareIndexShogi[COLOR_NB][PIECE_NB] = {
@@ -89,7 +88,7 @@ namespace Stockfish::Eval::NNUE::Features {
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_W_KING,
+        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_KING,
 
         PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_B_BISHOP, SHOGI_PS_B_ROOK, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, SHOGI_PS_B_SILVER, PS_NONE, SHOGI_PS_B_DRAGON, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
@@ -98,7 +97,7 @@ namespace Stockfish::Eval::NNUE::Features {
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_B_KING
+        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_KING
       },
 
       {
@@ -109,7 +108,7 @@ namespace Stockfish::Eval::NNUE::Features {
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_B_KING,
+        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_KING,
 
         PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_W_BISHOP, SHOGI_PS_W_ROOK, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, SHOGI_PS_W_SILVER, PS_NONE, SHOGI_PS_W_DRAGON, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
@@ -118,13 +117,13 @@ namespace Stockfish::Eval::NNUE::Features {
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
         PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_W_KING
+        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_KING
       }
     };
     static_assert(PieceSquareIndexShogi[WHITE][make_piece(WHITE, SHOGI_PAWN)] == SHOGI_PS_W_PAWN);
-    static_assert(PieceSquareIndexShogi[WHITE][make_piece(WHITE, KING)] == SHOGI_PS_W_KING);
+    static_assert(PieceSquareIndexShogi[WHITE][make_piece(WHITE, KING)] == SHOGI_PS_KING);
     static_assert(PieceSquareIndexShogi[WHITE][make_piece(BLACK, SHOGI_PAWN)] == SHOGI_PS_B_PAWN);
-    static_assert(PieceSquareIndexShogi[WHITE][make_piece(BLACK, KING)] == SHOGI_PS_B_KING);
+    static_assert(PieceSquareIndexShogi[WHITE][make_piece(BLACK, KING)] == SHOGI_PS_KING);
 
     static constexpr uint32_t PieceSquareIndexShogiHand[COLOR_NB][PIECE_TYPE_NB] = {
       // convention: W - us, B - them
@@ -167,17 +166,17 @@ namespace Stockfish::Eval::NNUE::Features {
 
    public:
     // Feature name
-    static constexpr const char* Name = "HalfKP(Friend)";
+    static constexpr const char* Name = "HalfKAv2(Friend)";
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t HashValue = 0x5D69D5B8u;
+    static constexpr std::uint32_t HashValue = 0x5f234cb8u;
 
     // Number of feature dimensions
     static constexpr IndexType Dimensions =
-        static_cast<IndexType>(SQUARE_NB_SHOGI) * static_cast<IndexType>(SHOGI_PS_END);
+        static_cast<IndexType>(SQUARE_NB_SHOGI) * static_cast<IndexType>(SHOGI_PS_NB);
 
-    // Maximum number of simultaneously active features. 38 because kins are not included.
-    static constexpr IndexType MaxActiveDimensions = 38;
+    // Maximum number of simultaneously active features.
+    static constexpr IndexType MaxActiveDimensions = 40;
 
     // Get a list of indices for active features
     static void append_active_indices(
@@ -191,8 +190,7 @@ namespace Stockfish::Eval::NNUE::Features {
       StateInfo* st,
       Color perspective,
       ValueListInserter<IndexType> removed,
-      ValueListInserter<IndexType> added,
-      const Position& pos);
+      ValueListInserter<IndexType> added);
 
     // Returns the cost of updating one perspective, the most costly one.
     // Assumes no refresh needed.
@@ -201,9 +199,9 @@ namespace Stockfish::Eval::NNUE::Features {
 
     // Returns whether the change stored in this StateInfo means that
     // a full accumulator refresh is required.
-    static bool requires_refresh(StateInfo* st, Color perspective, const Position& pos);
+    static bool requires_refresh(StateInfo* st, Color perspective);
   };
 
 }  // namespace Stockfish::Eval::NNUE::Features
 
-#endif // #ifndef NNUE_FEATURES_HALF_KP_SHOGI_H_INCLUDED
+#endif // #ifndef NNUE_FEATURES_HALF_KA_V2_SHOGI_H_INCLUDED

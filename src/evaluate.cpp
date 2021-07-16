@@ -147,7 +147,7 @@ namespace Eval {
 
     if (filename.has_value())
         actualFilename = filename.value();
-    else 
+    else
     {
         if (eval_file_loaded != EvalFileDefaultName)
         {
@@ -1603,10 +1603,8 @@ Value Eval::evaluate(const Position& pos) {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&]()
       {
-         int material = pos.non_pawn_material() + 4 * PawnValueMg * pos.count<PAWN>();
-         int scale =  580
-                    + material / 32
-                    - 4 * pos.rule50_count();
+
+         int scale = 903 + 28 * pos.count<PAWN>() + 28 * pos.non_pawn_material() / 1024;
 
          Value nnue = NNUE::evaluate(pos) * scale / 1024 + Time.tempoNNUE;
 
@@ -1616,8 +1614,8 @@ Value Eval::evaluate(const Position& pos) {
          if (pos.check_counting())
          {
              Color us = pos.side_to_move();
-             nnue +=  material / (30 * pos.checks_remaining( us))
-                    - material / (30 * pos.checks_remaining(~us));
+             nnue +=  6 * scale / (5 * pos.checks_remaining( us))
+                    - 6 * scale / (5 * pos.checks_remaining(~us));
          }
 
          return nnue;
@@ -1629,7 +1627,7 @@ Value Eval::evaluate(const Position& pos) {
       int   r50 = 16 + pos.rule50_count();
       bool  pure = !pos.check_counting();
       bool  largePsq = psq * 16 > (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50 && !pure;
-      bool  classical = largePsq || (psq > PawnValueMg / 4 && !(pos.this_thread()->nodes & 0xB) && !pure);
+      bool  classical = largePsq;
 
       // Use classical evaluation for really low piece endgames.
       // One critical case is the draw for bishop + A/H file pawn vs naked king.
@@ -1646,8 +1644,7 @@ Value Eval::evaluate(const Position& pos) {
           && !lowPieceEndgame
           && (   abs(v) * 16 < NNUEThreshold2 * r50
               || (   pos.opposite_bishops()
-                  && abs(v) * 16 < (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50
-                  && !(pos.this_thread()->nodes & 0xB))))
+                  && abs(v) * 16 < (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50)))
           v = adjusted_NNUE();
   }
 

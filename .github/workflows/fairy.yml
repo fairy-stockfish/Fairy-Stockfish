@@ -55,6 +55,12 @@ jobs:
           make -j2 ARCH=x86-64 nnue=yes debug=yes build
           ./stockfish bench
 
+      - name: Test NNUE largeboards
+        run: |
+          make clean
+          make -j2 ARCH=x86-64 largeboards=yes nnue=yes debug=yes build
+          ./stockfish bench
+
       - name: Build all variants
         run: |
           make clean
