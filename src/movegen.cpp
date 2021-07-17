@@ -318,71 +318,72 @@ namespace {
     const Square ksq = pos.count<KING>(Us) ? pos.square<KING>(Us) : SQ_NONE;
     Bitboard target;
 
-    if (Type == EVASIONS && more_than_one(pos.checkers() & ~pos.non_sliding_riders()))
-        goto kingMoves; // Double check, only a king move can save the day
-
-    target = Type == EVASIONS     ?  between_bb(ksq, lsb(pos.checkers()))
-           : Type == NON_EVASIONS ? ~pos.pieces( Us)
-           : Type == CAPTURES     ?  pos.pieces(~Us)
-                                  : ~pos.pieces(   ); // QUIETS || QUIET_CHECKS
-
-    if (Type == EVASIONS)
+    // Skip generating non-king moves when in double check
+    if (Type != EVASIONS || !more_than_one(pos.checkers() & ~pos.non_sliding_riders()))
     {
-        if (pos.checkers() & pos.non_sliding_riders())
-            target = ~pos.pieces(Us);
-        // Leaper attacks can not be blocked
-        Square checksq = lsb(pos.checkers());
-        if (LeaperAttacks[~Us][type_of(pos.piece_on(checksq))][checksq] & pos.square<KING>(Us))
-            target = pos.checkers();
-    }
+        target = Type == EVASIONS     ?  between_bb(ksq, lsb(pos.checkers()))
+               : Type == NON_EVASIONS ? ~pos.pieces( Us)
+               : Type == CAPTURES     ?  pos.pieces(~Us)
+                                      : ~pos.pieces(   ); // QUIETS || QUIET_CHECKS
 
-    target &= pos.board_bb();
+        if (Type == EVASIONS)
+        {
+            if (pos.checkers() & pos.non_sliding_riders())
+                target = ~pos.pieces(Us);
+            // Leaper attacks can not be blocked
+            Square checksq = lsb(pos.checkers());
+            if (LeaperAttacks[~Us][type_of(pos.piece_on(checksq))][checksq] & pos.square<KING>(Us))
+                target = pos.checkers();
+        }
 
-    moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
-    for (PieceType pt : pos.piece_types())
-        if (pt != PAWN && pt != KING)
-            moveList = generate_moves<Us, Checks>(pos, moveList, pt, target);
-    // generate drops
-    if (pos.piece_drops() && Type != CAPTURES && (pos.count_in_hand(Us, ALL_PIECES) > 0 || pos.two_boards()))
+        target &= pos.board_bb();
+
+        moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
         for (PieceType pt : pos.piece_types())
-            moveList = generate_drops<Us, Type>(pos, moveList, pt, target & ~pos.pieces(~Us));
+            if (pt != PAWN && pt != KING)
+                moveList = generate_moves<Us, Checks>(pos, moveList, pt, target);
+        // generate drops
+        if (pos.piece_drops() && Type != CAPTURES && (pos.count_in_hand(Us, ALL_PIECES) > 0 || pos.two_boards()))
+            for (PieceType pt : pos.piece_types())
+                moveList = generate_drops<Us, Type>(pos, moveList, pt, target & ~pos.pieces(~Us));
 
-    // Castling with non-king piece
-    if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(Us & ANY_CASTLING))
-    {
-        Square from = pos.castling_king_square(Us);
-        for(CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
-            if (!pos.castling_impeded(cr) && pos.can_castle(cr))
-                moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, from, pos.castling_rook_square(cr));
-    }
-
-    // Special moves
-    if (pos.cambodian_moves() && pos.gates(Us))
-    {
-        if (Type != CAPTURES && Type != EVASIONS && (pos.pieces(Us, KING) & pos.gates(Us)))
+        // Castling with non-king piece
+        if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(Us & ANY_CASTLING))
         {
-            Square from = pos.square<KING>(Us);
-            Bitboard b = PseudoAttacks[WHITE][KNIGHT][from] & rank_bb(rank_of(from + (Us == WHITE ? NORTH : SOUTH)))
-                        & target & ~pos.pieces();
+            Square from = pos.castling_king_square(Us);
+            for(CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
+                if (!pos.castling_impeded(cr) && pos.can_castle(cr))
+                    moveList = make_move_and_gating<CASTLING>(pos, moveList, Us, from, pos.castling_rook_square(cr));
+        }
+
+        // Special moves
+        if (pos.cambodian_moves() && pos.gates(Us))
+        {
+            if (Type != CAPTURES && Type != EVASIONS && (pos.pieces(Us, KING) & pos.gates(Us)))
+            {
+                Square from = pos.square<KING>(Us);
+                Bitboard b = PseudoAttacks[WHITE][KNIGHT][from] & rank_bb(rank_of(from + (Us == WHITE ? NORTH : SOUTH)))
+                            & target & ~pos.pieces();
+                while (b)
+                    moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, from, pop_lsb(b));
+            }
+
+            Bitboard b = pos.pieces(Us, FERS) & pos.gates(Us);
             while (b)
-                moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, from, pop_lsb(b));
+            {
+                Square from = pop_lsb(b);
+                Square to = from + 2 * (Us == WHITE ? NORTH : SOUTH);
+                if (is_ok(to) && (target & to))
+                    moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, from, to);
+            }
         }
 
-        Bitboard b = pos.pieces(Us, FERS) & pos.gates(Us);
-        while (b)
-        {
-            Square from = pop_lsb(b);
-            Square to = from + 2 * (Us == WHITE ? NORTH : SOUTH);
-            if (is_ok(to) && (target & to))
-                moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, from, to);
-        }
+        // Workaround for passing: Execute a non-move with any piece
+        if (pos.pass() && !pos.count<KING>(Us) && pos.pieces(Us))
+            *moveList++ = make<SPECIAL>(lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
     }
 
-    // Workaround for passing: Execute a non-move with any piece
-    if (pos.pass() && !pos.count<KING>(Us) && pos.pieces(Us))
-        *moveList++ = make<SPECIAL>(lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
-
-kingMoves:
+    // King moves
     if (pos.count<KING>(Us) && (!Checks || pos.blockers_for_king(~Us) & ksq))
     {
         Bitboard b = (  (pos.attacks_from(Us, KING, ksq) & pos.pieces())
