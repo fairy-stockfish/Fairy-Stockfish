@@ -59,7 +59,6 @@ struct StateInfo {
   // Not copied when making a move (will be recomputed anyhow)
   Key        key;
   Bitboard   checkersBB;
-  Piece      capturedPiece;
   Piece      unpromotedCapturedPiece;
   Piece      unpromotedBycatch[SQUARE_NB];
   Bitboard   promotedBycatch;
@@ -68,6 +67,7 @@ struct StateInfo {
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
+  Piece      capturedPiece;
   Bitboard   nonSlidingRiders;
   Bitboard   flippedPieces;
   Bitboard   pseudoRoyals;
@@ -326,11 +326,11 @@ private:
   int castlingRightsMask[SQUARE_NB];
   Square castlingRookSquare[CASTLING_RIGHT_NB];
   Bitboard castlingPath[CASTLING_RIGHT_NB];
+  Thread* thisThread;
+  StateInfo* st;
   int gamePly;
   Color sideToMove;
   Score psq;
-  Thread* thisThread;
-  StateInfo* st;
 
   // variant-specific
   const Variant* var;
