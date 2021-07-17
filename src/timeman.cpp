@@ -108,14 +108,6 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
   optimumTime = TimePoint(optScale * timeLeft);
   maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, maxScale * optimumTime));
 
-  if (Stockfish::Search::Limits.use_time_management())
-  {
-      int strength = std::log( std::max(1, int(optimumTime * Threads.size() / 10))) * 60;
-      tempoNNUE = std::clamp( (strength + 264) / 24, 18, 30);
-  }
-  else
-      tempoNNUE = 28; // default for no time given
-
   if (Options["Ponder"])
       optimumTime += optimumTime / 4;
 }

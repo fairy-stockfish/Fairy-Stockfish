@@ -1538,7 +1538,7 @@ make_v:
     v = (v / 16) * 16;
 
     // Side to move point of view
-    v = (pos.side_to_move() == WHITE ? v : -v) + Eval::tempo_value(pos);
+    v = (pos.side_to_move() == WHITE ? v : -v);
 
     return v;
   }
@@ -1582,13 +1582,6 @@ make_v:
 } // namespace Eval
 
 
-/// tempo_value() returns the evaluation offset for the side to move
-
-Value Eval::tempo_value(const Position& pos) {
-  return Tempo * (1 + 4 * pos.captures_to_hand());
-}
-
-
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
 
@@ -1606,7 +1599,7 @@ Value Eval::evaluate(const Position& pos) {
 
          int scale = 903 + 28 * pos.count<PAWN>() + 28 * pos.non_pawn_material() / 1024;
 
-         Value nnue = NNUE::evaluate(pos) * scale / 1024 + Time.tempoNNUE;
+         Value nnue = NNUE::evaluate(pos) * scale / 1024;
 
          if (pos.is_chess960())
              nnue += fix_FRC(pos);

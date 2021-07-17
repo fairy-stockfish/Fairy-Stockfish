@@ -30,7 +30,6 @@ class Position;
 
 namespace Eval {
 
-  Value tempo_value(const Position& pos);
   std::string trace(const Position& pos);
   Value evaluate(const Position& pos);
 
