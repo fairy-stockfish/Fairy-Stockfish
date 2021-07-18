@@ -1026,17 +1026,21 @@ bool Position::legal(Move m) const {
           }
   }
 
-  // st->previous->blockersForKing consider capsq as empty.
-  // If pinned, it has to move along the king ray.
-  if (type_of(m) == EN_PASSANT)
+  // En passant captures are a tricky special case. Because they are rather
+  // uncommon, we do it simply by testing whether the king is attacked after
+  // the move is made.
+  if (type_of(m) == EN_PASSANT && count<KING>(us))
   {
-      if (!count<KING>(us))
-          return true;
-
+      Square ksq = square<KING>(us);
       Square capsq = to - pawn_push(us);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
-      return !(attackers_to(square<KING>(us), occupied, ~us) & occupied);
+      assert(to == ep_square());
+      assert(moved_piece(m) == make_piece(us, PAWN));
+      assert(piece_on(capsq) == make_piece(~us, PAWN));
+      assert(piece_on(to) == NO_PIECE);
+
+      return !(attackers_to(ksq, occupied, ~us) & occupied);
   }
 
   // Castling moves generation does not check if the castling path is clear of
@@ -1280,10 +1284,10 @@ bool Position::gives_check(Move m) const {
   case PIECE_DEMOTION:
       return attacks_bb(sideToMove, type_of(unpromoted_piece_on(from)), to, pieces() ^ from) & square<KING>(~sideToMove);
 
-  // The double-pushed pawn blocked a check? En Passant will remove the blocker.
-  // The only discovery check that wasn't handle is through capsq and fromsq
-  // So the King must be in the same rank as fromsq to consider this possibility.
-  // st->previous->blockersForKing consider capsq as empty.
+  // En passant capture with check? We have already handled the case
+  // of direct checks and ordinary discovered check, so the only case we
+  // need to handle is the unusual case of a discovered check through
+  // the captured pawn.
   case EN_PASSANT:
   {
       Square capsq = make_square(file_of(to), rank_of(from));
