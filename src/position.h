@@ -288,6 +288,7 @@ public:
   bool is_optional_game_end(Value& result, int ply = 0, int countStarted = 0) const;
   bool is_game_end(Value& result, int ply = 0) const;
   Value material_counting_result() const;
+  bool is_draw(int ply) const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
   int counting_limit() const;
@@ -888,6 +889,11 @@ inline bool Position::is_immediate_game_end() const {
 inline bool Position::is_optional_game_end() const {
   Value result;
   return is_optional_game_end(result);
+}
+
+inline bool Position::is_draw(int ply) const {
+  Value result;
+  return is_optional_game_end(result, ply);
 }
 
 inline bool Position::is_game_end(Value& result, int ply) const {
