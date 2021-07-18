@@ -115,7 +115,6 @@ namespace {
     Bitboard  TRank3BB =  forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_min(), pos.max_rank()))
                         & ~shift<Up>(forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_max(), pos.max_rank())));
 
-    const Square ksq = pos.count<KING>(Them) ? pos.square<KING>(Them) : SQ_NONE;
     const Bitboard emptySquares = Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces();
     const Bitboard enemies      = Type == EVASIONS ? pos.checkers()
                                 : Type == CAPTURES ? target : pos.pieces(Them);
@@ -140,6 +139,7 @@ namespace {
             // To make a quiet check, you either make a direct check by pushing a pawn
             // or push a blocker pawn that is not on the same file as the enemy king.
             // Discovered check promotion has been already generated amongst the captures.
+            Square ksq = pos.square<KING>(Them);
             Bitboard dcCandidatePawns = pos.blockers_for_king(Them) & ~file_bb(ksq);
             b1 &= pawn_attacks_bb(Them, ksq) | shift<   Up>(dcCandidatePawns);
             b2 &= pawn_attacks_bb(Them, ksq) | shift<Up+Up>(dcCandidatePawns);
@@ -407,10 +407,10 @@ namespace {
 } // namespace
 
 
-/// <CAPTURES>     Generates all pseudo-legal captures plus queen and checking knight promotions
-/// <QUIETS>       Generates all pseudo-legal non-captures and underpromotions (except checking knight)
+/// <CAPTURES>     Generates all pseudo-legal captures plus queen promotions
+/// <QUIETS>       Generates all pseudo-legal non-captures and underpromotions
 /// <EVASIONS>     Generates all pseudo-legal check evasions when the side to move is in check
-/// <QUIET_CHECKS> Generates all pseudo-legal non-captures giving check, except castling
+/// <QUIET_CHECKS> Generates all pseudo-legal non-captures giving check, except castling and promotions
 /// <NON_EVASIONS> Generates all pseudo-legal captures and non-captures
 ///
 /// Returns a pointer to the end of the move list.
