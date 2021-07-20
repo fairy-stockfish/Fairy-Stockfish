@@ -1512,7 +1512,7 @@ make_v:
     v = (v / 16) * 16;
 
     // Side to move point of view
-    v = (pos.side_to_move() == WHITE ? v : -v);
+    v = (pos.side_to_move() == WHITE ? v : -v) + 80 * pos.captures_to_hand();
 
     return v;
   }
