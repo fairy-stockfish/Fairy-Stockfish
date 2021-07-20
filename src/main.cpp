@@ -30,6 +30,7 @@
 
 #include "piece.h"
 #include "variant.h"
+#include "xboard.h"
 
 
 using namespace Stockfish;
@@ -57,5 +58,6 @@ int main(int argc, char* argv[]) {
   Threads.set(0);
   variants.clear_all();
   pieceMap.clear_all();
+  delete XBoard::stateMachine;
   return 0;
 }
