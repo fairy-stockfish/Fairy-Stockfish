@@ -115,6 +115,8 @@ public:
   const Variant* variant() const;
   Rank max_rank() const;
   File max_file() const;
+  int ranks() const;
+  int files() const;
   bool two_boards() const;
   Bitboard board_bb() const;
   Bitboard board_bb(Color c, PieceType pt) const;
@@ -361,6 +363,16 @@ inline Rank Position::max_rank() const {
 inline File Position::max_file() const {
   assert(var != nullptr);
   return var->maxFile;
+}
+
+inline int Position::ranks() const {
+  assert(var != nullptr);
+  return var->maxRank + 1;
+}
+
+inline int Position::files() const {
+  assert(var != nullptr);
+  return var->maxFile + 1;
 }
 
 inline bool Position::two_boards() const {
