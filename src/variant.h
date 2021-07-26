@@ -138,6 +138,7 @@ struct Variant {
   PieceType nnueKing = KING;
   int nnueSquares = 0;
   int nnuePieceIndices = 0;
+  int pieceSquareIndex[COLOR_NB][PIECE_NB];
   bool endgameEval = false;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
@@ -190,11 +191,24 @@ struct Variant {
                                 })
                     && !cambodianMoves
                     && !diagonalLines;
+
+      // Initialize calculated NNUE properties
       nnueKing =  pieceTypes.find(KING) != pieceTypes.end() ? KING
                 : extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
                 : NO_PIECE_TYPE;
       nnueSquares = (maxRank + 1) * (maxFile + 1);
       nnuePieceIndices = (2 * pieceTypes.size() - 1) * nnueSquares;
+      int i = 0;
+      for (PieceType pt : pieceTypes)
+      {
+          for (Color c : { WHITE, BLACK})
+          {
+              pieceSquareIndex[c][make_piece(c, pt)] = 2 * i * nnueSquares;
+              pieceSquareIndex[c][make_piece(~c, pt)] = (2 * i + (pt != nnueKing)) * nnueSquares;
+          }
+          i++;
+      }
+
       // For endgame evaluation to be applicable, no special win rules must apply.
       // Furthermore, rules significantly changing game mechanics also invalidate it.
       endgameEval = std::none_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
