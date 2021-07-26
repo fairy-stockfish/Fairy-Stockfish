@@ -47,7 +47,6 @@ namespace {
     // https://en.wikipedia.org/wiki/Chess
     Variant* chess_variant() {
         Variant* v = chess_variant_base();
-        v->nnueFeatures = NNUE_CHESS;
         return v;
     }
     // Chess960 aka Fischer random chess
@@ -901,7 +900,6 @@ namespace {
         v->promotionRank = RANK_7;
         v->promotedPieceType[LANCE]        = GOLD;
         v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
-        v->nnueFeatures = NNUE_SHOGI;
         return v;
     }
     // Sho-Shogi

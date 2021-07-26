@@ -545,12 +545,6 @@ struct DirtyPiece {
   Square to[12];
 };
 
-enum NnueFeatures {
-  NNUE_CHESS,
-  NNUE_SHOGI,
-  NNUE_VARIANT,
-};
-
 /// Score enum stores a middlegame and an endgame value in a single integer (enum).
 /// The least significant 16 bits are used to store the middlegame value and the
 /// upper 16 bits are used to store the endgame value. We have to take care to

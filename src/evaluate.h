@@ -24,6 +24,8 @@
 
 #include "types.h"
 
+#include "variant.h"
+
 namespace Stockfish {
 
 class Position;
@@ -59,7 +61,7 @@ namespace Eval {
 
 } // namespace Eval
 
-extern NnueFeatures currentNnueFeatures;
+extern const Variant* currentNnueVariant;
 
 } // namespace Stockfish
 

@@ -50,7 +50,7 @@ SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp main.cpp 
 	material.cpp misc.cpp movegen.cpp movepick.cpp pawns.cpp position.cpp psqt.cpp \
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
 	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
-	nnue/features/half_ka_v2_shogi.cpp nnue/features/half_ka_v2_variants.cpp \
+	nnue/features/half_ka_v2_variants.cpp \
 	nnue/evaluate_nnue.cpp \
 	nnue/features/half_ka_v2.cpp \
 	tools/validate_training_data.cpp \

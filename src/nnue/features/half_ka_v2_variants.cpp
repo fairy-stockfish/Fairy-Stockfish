@@ -20,28 +20,24 @@
 
 #include "half_ka_v2_variants.h"
 
-#ifdef LARGEBOARDS
-#include "half_ka_v2_shogi.h"
-#endif
-
 #include "../../position.h"
 
 namespace Stockfish::Eval::NNUE::Features {
 
-  // Map square to numbering on 8x8 board
-  constexpr Square to_chess_square(Square s) {
-    return Square(s - rank_of(s) * (FILE_MAX - FILE_H));
+  // Map square to numbering on variant board
+  inline Square to_variant_square(Square s, const Position& pos) {
+    return Square(s - rank_of(s) * (FILE_MAX - pos.max_file()));
   }
 
   // Orient a square according to perspective (rotates by 180 for black)
   inline Square HalfKAv2Variants::orient(Color perspective, Square s, const Position& pos) {
-    return to_chess_square(  perspective == WHITE || (pos.capture_the_flag(BLACK) & Rank8BB) ? s
-                           : flip_rank(s, pos.max_rank()));
+    return to_variant_square(  perspective == WHITE || (pos.capture_the_flag(BLACK) & Rank8BB) ? s
+                             : flip_rank(s, pos.max_rank()), pos);
   }
 
   // Index of a feature for a given king position and another piece on some square
   inline IndexType HalfKAv2Variants::make_index(Color perspective, Square s, Piece pc, Square ksq, const Position& pos) {
-    return IndexType(orient(perspective, s, pos) + PieceSquareIndex[perspective][pc] + PS_NB * ksq);
+    return IndexType(orient(perspective, s, pos) + PieceSquareIndex[perspective][pc] + ksq * pos.variant()->nnuePieceIndices);
   }
 
   // Get a list of indices for active features
@@ -50,15 +46,6 @@ namespace Stockfish::Eval::NNUE::Features {
     Color perspective,
     ValueListInserter<IndexType> active
   ) {
-    // Re-route to shogi features
-#ifdef LARGEBOARDS
-    if (currentNnueFeatures == NNUE_SHOGI)
-    {
-        assert(HalfKAv2Shogi::Dimensions <= Dimensions);
-        return HalfKAv2Shogi::append_active_indices(pos, perspective, active);
-    }
-#endif
-
     Square oriented_ksq = orient(perspective, pos.square(perspective, pos.nnue_king()), pos);
     Bitboard bb = pos.pieces();
     while (bb)
@@ -78,14 +65,6 @@ namespace Stockfish::Eval::NNUE::Features {
     ValueListInserter<IndexType> added,
     const Position& pos
   ) {
-    // Re-route to shogi features
-#ifdef LARGEBOARDS
-    if (currentNnueFeatures == NNUE_SHOGI)
-    {
-        assert(HalfKAv2Shogi::Dimensions <= Dimensions);
-        return HalfKAv2Shogi::append_changed_indices(ksq, st, perspective, removed, added);
-    }
-#endif
     const auto& dp = st->dirtyPiece;
     Square oriented_ksq = orient(perspective, ksq, pos);
     for (int i = 0; i < dp.dirty_num; ++i) {

@@ -59,7 +59,7 @@ using namespace std;
 
 namespace Stockfish {
 
-NnueFeatures currentNnueFeatures;
+const Variant* currentNnueVariant;
 
 namespace Eval {
 
@@ -118,7 +118,7 @@ namespace Eval {
     if (useNNUE == UseNNUEMode::False)
         return;
 
-    currentNnueFeatures = variants.find(variant)->second->nnueFeatures;
+    currentNnueVariant = variants.find(variant)->second;
 
     #if defined(DEFAULT_NNUE_DIRECTORY)
     #define stringify2(x) #x

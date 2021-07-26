@@ -26,7 +26,6 @@
 #include "../../evaluate.h"
 #include "../../misc.h"
 
-#include "half_ka_v2_shogi.h"
 #include "half_ka_v2.h"
 
 namespace Stockfish {
@@ -119,17 +118,10 @@ namespace Stockfish::Eval::NNUE::Features {
     static constexpr std::uint32_t HashValue = 0x5f234cb8u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions =
-#ifdef LARGEBOARDS
-        HalfKAv2Shogi::Dimensions;
-#else
-        HalfKAv2::Dimensions;
-#endif
+    static constexpr IndexType Dimensions = static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(PS_NB);
 
     static IndexType get_dimensions() {
-      return  currentNnueFeatures == NNUE_SHOGI ? HalfKAv2Shogi::Dimensions
-            : currentNnueFeatures == NNUE_CHESS ? HalfKAv2::Dimensions
-                                                : SQUARE_NB_CHESS * PS_NB;
+      return currentNnueVariant->nnueSquares * currentNnueVariant->nnuePieceIndices;
     }
 
     // Maximum number of simultaneously active features.
