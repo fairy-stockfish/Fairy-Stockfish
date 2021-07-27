@@ -24,6 +24,8 @@
 #include <cstring>
 #include <iostream>
 
+#include "../misc.h"  // for IsLittleEndian
+
 #if defined(USE_AVX2)
 #include <immintrin.h>
 
@@ -46,7 +48,7 @@
 namespace Stockfish::Eval::NNUE {
 
   // Version of the evaluation file
-  constexpr std::uint32_t Version = 0x7AF32F16u;
+  constexpr std::uint32_t Version = 0x7AF32F20u;
 
   // Constant used in evaluation value calculation
   constexpr int OutputScale = 16;
@@ -71,191 +73,6 @@ namespace Stockfish::Eval::NNUE {
 
   constexpr std::size_t MaxSimdWidth = 32;
 
-  // unique number for each piece type on each square
-  enum {
-    PS_NONE     =  0,
-    PS_W_PAWN   =  1,
-    PS_B_PAWN   =  1 * SQUARE_NB_CHESS + 1,
-    PS_W_KNIGHT =  2 * SQUARE_NB_CHESS + 1,
-    PS_B_KNIGHT =  3 * SQUARE_NB_CHESS + 1,
-    PS_W_BISHOP =  4 * SQUARE_NB_CHESS + 1,
-    PS_B_BISHOP =  5 * SQUARE_NB_CHESS + 1,
-    PS_W_ROOK   =  6 * SQUARE_NB_CHESS + 1,
-    PS_B_ROOK   =  7 * SQUARE_NB_CHESS + 1,
-    PS_W_QUEEN  =  8 * SQUARE_NB_CHESS + 1,
-    PS_B_QUEEN  =  9 * SQUARE_NB_CHESS + 1,
-    PS_NB       = 10 * SQUARE_NB_CHESS + 1,
-  };
-
-  enum {
-    SHOGI_HAND_W_PAWN   =   1,
-    SHOGI_HAND_B_PAWN   =  20,
-    SHOGI_HAND_W_LANCE  =  39,
-    SHOGI_HAND_B_LANCE  =  44,
-    SHOGI_HAND_W_KNIGHT =  49,
-    SHOGI_HAND_B_KNIGHT =  54,
-    SHOGI_HAND_W_SILVER =  59,
-    SHOGI_HAND_B_SILVER =  64,
-    SHOGI_HAND_W_GOLD   =  69,
-    SHOGI_HAND_B_GOLD   =  74,
-    SHOGI_HAND_W_BISHOP =  79,
-    SHOGI_HAND_B_BISHOP =  82,
-    SHOGI_HAND_W_ROOK   =  85,
-    SHOGI_HAND_B_ROOK   =  88,
-    SHOGI_HAND_END      =  90,
-
-    SHOGI_PS_W_PAWN     =  SHOGI_HAND_END,
-    SHOGI_PS_B_PAWN     =  1 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_W_LANCE    =  2 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_B_LANCE    =  3 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_W_KNIGHT   =  4 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_B_KNIGHT   =  5 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_W_SILVER   =  6 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_B_SILVER   =  7 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_W_GOLD     =  8 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_B_GOLD     =  9 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_W_BISHOP   = 10 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_B_BISHOP   = 11 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_W_HORSE    = 12 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_B_HORSE    = 13 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_W_ROOK     = 14 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_B_ROOK     = 15 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_W_DRAGON   = 16 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_B_DRAGON   = 17 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_W_KING     = 18 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_END        = SHOGI_PS_W_KING, // pieces without kings (pawns included)
-    SHOGI_PS_B_KING     = 19 * SQUARE_NB_SHOGI + SHOGI_HAND_END,
-    SHOGI_PS_END2       = 20 * SQUARE_NB_SHOGI + SHOGI_HAND_END
-  };
-
-  constexpr uint32_t PieceSquareIndexShogi[COLOR_NB][PIECE_NB] = {
-    // convention: W - us, B - them
-    // viewed from other side, W and B are reversed
-    {
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_W_BISHOP, SHOGI_PS_W_ROOK, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, SHOGI_PS_W_SILVER, PS_NONE, SHOGI_PS_W_DRAGON, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_W_PAWN, SHOGI_PS_W_LANCE, SHOGI_PS_W_KNIGHT, SHOGI_PS_W_GOLD, SHOGI_PS_W_HORSE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_W_KING,
-
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_B_BISHOP, SHOGI_PS_B_ROOK, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, SHOGI_PS_B_SILVER, PS_NONE, SHOGI_PS_B_DRAGON, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_B_PAWN, SHOGI_PS_B_LANCE, SHOGI_PS_B_KNIGHT, SHOGI_PS_B_GOLD, SHOGI_PS_B_HORSE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_B_KING
-    },
-
-    {
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_B_BISHOP, SHOGI_PS_B_ROOK, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, SHOGI_PS_B_SILVER, PS_NONE, SHOGI_PS_B_DRAGON, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_B_PAWN, SHOGI_PS_B_LANCE, SHOGI_PS_B_KNIGHT, SHOGI_PS_B_GOLD, SHOGI_PS_B_HORSE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_B_KING,
-
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_W_BISHOP, SHOGI_PS_W_ROOK, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, SHOGI_PS_W_SILVER, PS_NONE, SHOGI_PS_W_DRAGON, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_W_PAWN, SHOGI_PS_W_LANCE, SHOGI_PS_W_KNIGHT, SHOGI_PS_W_GOLD, SHOGI_PS_W_HORSE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, SHOGI_PS_W_KING
-    }
-  };
-  static_assert(PieceSquareIndexShogi[WHITE][make_piece(WHITE, SHOGI_PAWN)] == SHOGI_PS_W_PAWN);
-  static_assert(PieceSquareIndexShogi[WHITE][make_piece(WHITE, KING)] == SHOGI_PS_W_KING);
-  static_assert(PieceSquareIndexShogi[WHITE][make_piece(BLACK, SHOGI_PAWN)] == SHOGI_PS_B_PAWN);
-  static_assert(PieceSquareIndexShogi[WHITE][make_piece(BLACK, KING)] == SHOGI_PS_B_KING);
-
-  constexpr uint32_t PieceSquareIndexShogiHand[COLOR_NB][PIECE_TYPE_NB] = {
-    // convention: W - us, B - them
-    // viewed from other side, W and B are reversed
-    {
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_HAND_W_BISHOP, SHOGI_HAND_W_ROOK, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, SHOGI_HAND_W_SILVER, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_HAND_W_PAWN, SHOGI_HAND_W_LANCE, SHOGI_HAND_W_KNIGHT, SHOGI_HAND_W_GOLD, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE
-    },
-
-    {
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_HAND_B_BISHOP, SHOGI_HAND_B_ROOK, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, SHOGI_HAND_B_SILVER, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, SHOGI_HAND_B_PAWN, SHOGI_HAND_B_LANCE, SHOGI_HAND_B_KNIGHT, SHOGI_HAND_B_GOLD, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE
-    }
-  };
-  static_assert(PieceSquareIndexShogiHand[WHITE][SHOGI_PAWN] == SHOGI_HAND_W_PAWN);
-  static_assert(PieceSquareIndexShogiHand[WHITE][GOLD] == SHOGI_HAND_W_GOLD);
-  static_assert(PieceSquareIndexShogiHand[BLACK][SHOGI_PAWN] == SHOGI_HAND_B_PAWN);
-  static_assert(PieceSquareIndexShogiHand[BLACK][GOLD] == SHOGI_HAND_B_GOLD);
-
-  constexpr uint32_t PieceSquareIndex[COLOR_NB][PIECE_NB] = {
-    // convention: W - us, B - them
-    // viewed from other side, W and B are reversed
-    {
-      PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_W_QUEEN, PS_W_BISHOP,
-      PS_W_BISHOP, PS_W_BISHOP, PS_W_QUEEN, PS_W_QUEEN, PS_NONE, PS_NONE, PS_W_QUEEN, PS_W_KNIGHT,
-      PS_W_BISHOP, PS_W_KNIGHT, PS_W_ROOK, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_W_BISHOP, PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-
-      PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_B_QUEEN, PS_B_BISHOP,
-      PS_B_BISHOP, PS_B_BISHOP, PS_B_QUEEN, PS_B_QUEEN, PS_NONE, PS_NONE, PS_B_QUEEN, PS_B_KNIGHT,
-      PS_B_BISHOP, PS_B_KNIGHT, PS_B_ROOK, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_B_BISHOP, PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-    },
-
-    {
-      PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_B_QUEEN, PS_B_BISHOP,
-      PS_B_BISHOP, PS_B_BISHOP, PS_B_QUEEN, PS_B_QUEEN, PS_NONE, PS_NONE, PS_B_QUEEN, PS_B_KNIGHT,
-      PS_B_BISHOP, PS_B_KNIGHT, PS_B_ROOK, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_B_BISHOP, PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-
-      PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_W_QUEEN, PS_W_BISHOP,
-      PS_W_BISHOP, PS_W_BISHOP, PS_W_QUEEN, PS_W_QUEEN, PS_NONE, PS_NONE, PS_W_QUEEN, PS_W_KNIGHT,
-      PS_W_BISHOP, PS_W_KNIGHT, PS_W_ROOK, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_W_BISHOP, PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-      PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-    }
-  };
-  // Check that the fragile array definition is correct
-  static_assert(PieceSquareIndex[WHITE][make_piece(WHITE, PAWN)] == PS_W_PAWN);
-  static_assert(PieceSquareIndex[WHITE][make_piece(WHITE, KING)] == PS_NONE);
-  static_assert(PieceSquareIndex[WHITE][make_piece(BLACK, PAWN)] == PS_B_PAWN);
-  static_assert(PieceSquareIndex[WHITE][make_piece(BLACK, KING)] == PS_NONE);
-
-
   // Type of input feature after conversion
   using TransformedFeatureType = std::uint8_t;
   using IndexType = std::uint32_t;
@@ -271,17 +88,75 @@ namespace Stockfish::Eval::NNUE {
   // necessary to return a result with the byte ordering of the compiling machine.
   template <typename IntType>
   inline IntType read_little_endian(std::istream& stream) {
-
       IntType result;
-      std::uint8_t u[sizeof(IntType)];
-      typename std::make_unsigned<IntType>::type v = 0;
 
-      stream.read(reinterpret_cast<char*>(u), sizeof(IntType));
-      for (std::size_t i = 0; i < sizeof(IntType); ++i)
-          v = (v << 8) | u[sizeof(IntType) - i - 1];
+      if (IsLittleEndian)
+          stream.read(reinterpret_cast<char*>(&result), sizeof(IntType));
+      else
+      {
+          std::uint8_t u[sizeof(IntType)];
+          typename std::make_unsigned<IntType>::type v = 0;
 
-      std::memcpy(&result, &v, sizeof(IntType));
+          stream.read(reinterpret_cast<char*>(u), sizeof(IntType));
+          for (std::size_t i = 0; i < sizeof(IntType); ++i)
+              v = (v << 8) | u[sizeof(IntType) - i - 1];
+
+          std::memcpy(&result, &v, sizeof(IntType));
+      }
+
       return result;
+  }
+
+  // write_little_endian() is our utility to write an integer (signed or unsigned, any size)
+  // to a stream in little-endian order. We swap the byte order before the write if
+  // necessary to always write in little endian order, independantly of the byte
+  // ordering of the compiling machine.
+  template <typename IntType>
+  inline void write_little_endian(std::ostream& stream, IntType value) {
+
+      if (IsLittleEndian)
+          stream.write(reinterpret_cast<const char*>(&value), sizeof(IntType));
+      else
+      {
+          std::uint8_t u[sizeof(IntType)];
+          typename std::make_unsigned<IntType>::type v = value;
+
+          std::size_t i = 0;
+          // if constexpr to silence the warning about shift by 8
+          if constexpr (sizeof(IntType) > 1)
+          {
+            for (; i + 1 < sizeof(IntType); ++i)
+            {
+                u[i] = v;
+                v >>= 8;
+            }
+          }
+          u[i] = v;
+
+          stream.write(reinterpret_cast<char*>(u), sizeof(IntType));
+      }
+  }
+
+  // read_little_endian(s, out, N) : read integers in bulk from a little indian stream.
+  // This reads N integers from stream s and put them in array out.
+  template <typename IntType>
+  inline void read_little_endian(std::istream& stream, IntType* out, std::size_t count) {
+      if (IsLittleEndian)
+          stream.read(reinterpret_cast<char*>(out), sizeof(IntType) * count);
+      else
+          for (std::size_t i = 0; i < count; ++i)
+              out[i] = read_little_endian<IntType>(stream);
+  }
+
+  // write_little_endian(s, values, N) : write integers in bulk to a little indian stream.
+  // This takes N integers from array values and writes them on stream s.
+  template <typename IntType>
+  inline void write_little_endian(std::ostream& stream, const IntType* values, std::size_t count) {
+      if (IsLittleEndian)
+          stream.write(reinterpret_cast<const char*>(values), sizeof(IntType) * count);
+      else
+          for (std::size_t i = 0; i < count; ++i)
+              write_little_endian<IntType>(stream, values[i]);
   }
 
 }  // namespace Stockfish::Eval::NNUE

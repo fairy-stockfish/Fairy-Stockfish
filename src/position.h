@@ -59,7 +59,6 @@ struct StateInfo {
   // Not copied when making a move (will be recomputed anyhow)
   Key        key;
   Bitboard   checkersBB;
-  Piece      capturedPiece;
   Piece      unpromotedCapturedPiece;
   Piece      unpromotedBycatch[SQUARE_NB];
   Bitboard   promotedBycatch;
@@ -68,6 +67,7 @@ struct StateInfo {
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
+  Piece      capturedPiece;
   Bitboard   nonSlidingRiders;
   Bitboard   flippedPieces;
   Bitboard   pseudoRoyals;
@@ -115,6 +115,8 @@ public:
   const Variant* variant() const;
   Rank max_rank() const;
   File max_file() const;
+  int ranks() const;
+  int files() const;
   bool two_boards() const;
   Bitboard board_bb() const;
   Bitboard board_bb(Color c, PieceType pt) const;
@@ -233,7 +235,6 @@ public:
   Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
   Bitboard pinners(Color c) const;
-  bool is_discovered_check_on_king(Color c, Move m) const;
 
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
@@ -289,6 +290,7 @@ public:
   bool is_optional_game_end(Value& result, int ply = 0, int countStarted = 0) const;
   bool is_game_end(Value& result, int ply = 0) const;
   Value material_counting_result() const;
+  bool is_draw(int ply) const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
   int counting_limit() const;
@@ -305,6 +307,9 @@ public:
   // Used by NNUE
   StateInfo* state() const;
 
+  void put_piece(Piece pc, Square s, bool isPromoted = false, Piece unpromotedPc = NO_PIECE);
+  void remove_piece(Square s);
+
 private:
   // Initialization helpers (used while setting up a position)
   void set_castling_right(Color c, Square rfrom);
@@ -312,8 +317,6 @@ private:
   void set_check_info(StateInfo* si) const;
 
   // Other helpers
-  void put_piece(Piece pc, Square s, bool isPromoted = false, Piece unpromotedPc = NO_PIECE);
-  void remove_piece(Square s);
   void move_piece(Square from, Square to);
   template<bool Do>
   void do_castling(Color us, Square from, Square& to, Square& rfrom, Square& rto);
@@ -327,11 +330,11 @@ private:
   int castlingRightsMask[SQUARE_NB];
   Square castlingRookSquare[CASTLING_RIGHT_NB];
   Bitboard castlingPath[CASTLING_RIGHT_NB];
+  Thread* thisThread;
+  StateInfo* st;
   int gamePly;
   Color sideToMove;
   Score psq;
-  Thread* thisThread;
-  StateInfo* st;
 
   // variant-specific
   const Variant* var;
@@ -360,6 +363,16 @@ inline Rank Position::max_rank() const {
 inline File Position::max_file() const {
   assert(var != nullptr);
   return var->maxFile;
+}
+
+inline int Position::ranks() const {
+  assert(var != nullptr);
+  return var->maxRank + 1;
+}
+
+inline int Position::files() const {
+  assert(var != nullptr);
+  return var->maxFile + 1;
 }
 
 inline bool Position::two_boards() const {
@@ -891,6 +904,11 @@ inline bool Position::is_optional_game_end() const {
   return is_optional_game_end(result);
 }
 
+inline bool Position::is_draw(int ply) const {
+  Value result;
+  return is_optional_game_end(result, ply);
+}
+
 inline bool Position::is_game_end(Value& result, int ply) const {
   return is_immediate_game_end(result, ply) || is_optional_game_end(result, ply);
 }
@@ -1097,10 +1115,6 @@ inline Bitboard Position::check_squares(PieceType pt) const {
   return st->checkSquares[pt];
 }
 
-inline bool Position::is_discovered_check_on_king(Color c, Move m) const {
-  return is_ok(from_sq(m)) && st->blockersForKing[c] & from_sq(m);
-}
-
 inline bool Position::pawn_passed(Color c, Square s) const {
   return !(pieces(~c, PAWN) & passed_pawn_span(c, s));
 }
@@ -1203,7 +1217,7 @@ inline void Position::remove_piece(Square s) {
   byTypeBB[ALL_PIECES] ^= s;
   byTypeBB[type_of(pc)] ^= s;
   byColorBB[color_of(pc)] ^= s;
-  /* board[s] = NO_PIECE;  Not needed, overwritten by the capturing one */
+  board[s] = NO_PIECE;
   pieceCount[pc]--;
   pieceCount[make_piece(color_of(pc), ALL_PIECES)]--;
   psq -= PSQT::psq[pc][s];

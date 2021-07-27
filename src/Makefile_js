@@ -19,9 +19,9 @@ EXE = ../tests/js/ffish.js
 SRCS = ffishjs.cpp benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp \
 	material.cpp misc.cpp movegen.cpp movepick.cpp pawns.cpp position.cpp psqt.cpp \
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
-	nnue/evaluate_nnue.cpp nnue/features/half_kp.cpp \
+	nnue/evaluate_nnue.cpp nnue/features/half_ka_v2.cpp \
 	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
-	nnue/features/half_kp_shogi.cpp nnue/features/half_kp_variants.cpp
+	nnue/features/half_ka_v2_shogi.cpp nnue/features/half_ka_v2_variants.cpp
 
 CXX=emcc
 CXXFLAGS += --bind -DNNUE_EMBEDDING_OFF -DNO_THREADS -std=c++17 -Wall
@@ -53,6 +53,24 @@ ifeq ($(es6),yes)
 	CXXFLAGS += -s ENVIRONMENT='web,worker' -s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0
 endif
 
+.PHONY: help objclean clean build deps test serve
+
+help:
+	@echo ""
+	@echo "To compile ffishjs, type: "
+	@echo ""
+	@echo "make -f Makefile_js build"
+	@echo ""
+	@echo "Supported targets:"
+	@echo ""
+	@echo "help                    > Display this help"
+	@echo "build                   > Standard build"
+	@echo "clean                   > Clean up"
+	@echo "deps                    > Install runtime dependencies using npm"
+	@echo "test                    > Run tests"
+	@echo "serve                   > Run example server"
+	@echo ""
+
 objclean:
 	@rm -f $(EXE) *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
 
@@ -60,3 +78,12 @@ clean: objclean
 
 build:
 	$(CXX) $(CXXFLAGS) $(SRCS) -o $(EXE)
+
+deps:
+	cd ../tests/js && npm install
+
+test: deps
+	cd ../tests/js && npm test
+
+serve: deps
+	cd ../tests/js && node index.js

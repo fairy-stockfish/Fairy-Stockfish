@@ -488,8 +488,6 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   tsumeMode = Options["TsumeMode"];
   thisThread = th;
   set_state(st);
-  st->accumulator.state[WHITE] = Eval::NNUE::INIT;
-  st->accumulator.state[BLACK] = Eval::NNUE::INIT;
 
   assert(pos_is_ok());
 
@@ -1026,17 +1024,21 @@ bool Position::legal(Move m) const {
           }
   }
 
-  // st->previous->blockersForKing consider capsq as empty.
-  // If pinned, it has to move along the king ray.
-  if (type_of(m) == EN_PASSANT)
+  // En passant captures are a tricky special case. Because they are rather
+  // uncommon, we do it simply by testing whether the king is attacked after
+  // the move is made.
+  if (type_of(m) == EN_PASSANT && count<KING>(us))
   {
-      if (!count<KING>(us))
-          return true;
-
+      Square ksq = square<KING>(us);
       Square capsq = to - pawn_push(us);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
-      return !(attackers_to(square<KING>(us), occupied, ~us) & occupied);
+      assert(to == ep_square());
+      assert(moved_piece(m) == make_piece(us, PAWN));
+      assert(piece_on(capsq) == make_piece(~us, PAWN));
+      assert(piece_on(to) == NO_PIECE);
+
+      return !(attackers_to(ksq, occupied, ~us) & occupied);
   }
 
   // Castling moves generation does not check if the castling path is clear of
@@ -1280,10 +1282,10 @@ bool Position::gives_check(Move m) const {
   case PIECE_DEMOTION:
       return attacks_bb(sideToMove, type_of(unpromoted_piece_on(from)), to, pieces() ^ from) & square<KING>(~sideToMove);
 
-  // The double-pushed pawn blocked a check? En Passant will remove the blocker.
-  // The only discovery check that wasn't handle is through capsq and fromsq
-  // So the King must be in the same rank as fromsq to consider this possibility.
-  // st->previous->blockersForKing consider capsq as empty.
+  // En passant capture with check? We have already handled the case
+  // of direct checks and ordinary discovered check, so the only case we
+  // need to handle is the unusual case of a discovered check through
+  // the captured pawn.
   case EN_PASSANT:
   {
       Square capsq = make_square(file_of(to), rank_of(from));
@@ -1337,8 +1339,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       ++st->countingPly;
 
   // Used by NNUE
-  st->accumulator.state[WHITE] = Eval::NNUE::EMPTY;
-  st->accumulator.state[BLACK] = Eval::NNUE::EMPTY;
+  st->accumulator.computed[WHITE] = false;
+  st->accumulator.computed[BLACK] = false;
   auto& dp = st->dirtyPiece;
   dp.dirty_num = 1;
 
@@ -1427,7 +1429,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
 
           if (Eval::useNNUE)
+          {
               dp.handPiece[1] = pieceToHand;
+              dp.handCount[1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
+          }
       }
       else
           dp.handPiece[1] = NO_PIECE;
@@ -1515,6 +1520,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           // Add drop piece
           dp.piece[0] = pc;
           dp.handPiece[0] = make_piece(us, in_hand_piece_type(m));
+          dp.handCount[0] = pieceCountInHand[us][in_hand_piece_type(m)];
           dp.from[0] = SQ_NONE;
           dp.to[0] = to;
       }
@@ -1678,6 +1684,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           // Add gating piece
           dp.piece[dp.dirty_num] = gating_piece;
           dp.handPiece[dp.dirty_num] = gating_piece;
+          dp.handCount[dp.dirty_num] = pieceCountInHand[us][gating_type(m)];
           dp.from[dp.dirty_num] = SQ_NONE;
           dp.to[dp.dirty_num] = gate;
           dp.dirty_num++;
@@ -1748,7 +1755,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
                   ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
 
               if (Eval::useNNUE)
+              {
                   dp.handPiece[dp.dirty_num - 1] = pieceToHand;
+                  dp.handCount[dp.dirty_num - 1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
+              }
           }
 
           // Update material hash key
@@ -1977,7 +1987,7 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
 }
 
 
-/// Position::do(undo)_null_move() is used to do(undo) a "null move": it flips
+/// Position::do_null_move() is used to do a "null move": it flips
 /// the side to move without executing any move on the board.
 
 void Position::do_null_move(StateInfo& newSt) {
@@ -1992,8 +2002,8 @@ void Position::do_null_move(StateInfo& newSt) {
 
   st->dirtyPiece.dirty_num = 0;
   st->dirtyPiece.piece[0] = NO_PIECE; // Avoid checks in UpdateAccumulator()
-  st->accumulator.state[WHITE] = Eval::NNUE::EMPTY;
-  st->accumulator.state[BLACK] = Eval::NNUE::EMPTY;
+  st->accumulator.computed[WHITE] = false;
+  st->accumulator.computed[BLACK] = false;
 
   if (st->epSquare != SQ_NONE)
   {
@@ -2015,6 +2025,9 @@ void Position::do_null_move(StateInfo& newSt) {
 
   assert(pos_is_ok());
 }
+
+
+/// Position::undo_null_move() must be used to undo a "null move"
 
 void Position::undo_null_move() {
 
@@ -2176,8 +2189,8 @@ bool Position::see_ge(Move m, Value threshold) const {
       if (!(stmAttackers = attackers & pieces(stm)))
           break;
 
-      // Don't allow pinned pieces to attack (except the king) as long as
-      // there are pinners on their original square.
+      // Don't allow pinned pieces to attack as long as there are
+      // pinners on their original square.
       if (pinners(~stm) & occupied)
           stmAttackers &= ~blockers_for_king(stm);
 

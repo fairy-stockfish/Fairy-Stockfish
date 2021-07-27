@@ -376,7 +376,6 @@ enum Value : int {
   WazirValueMg             = 400,   WazirValueEg             = 350,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
   CentaurValueMg           = 1800,  CentaurValueEg           = 1900,
-  Tempo = 28,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
@@ -537,6 +536,7 @@ struct DirtyPiece {
   // to from SQ_NONE to the capture square.
   Piece piece[12];
   Piece handPiece[12];
+  int handCount[12];
 
   // From and to squares, which may be SQ_NONE
   Square from[12];

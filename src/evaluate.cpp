@@ -33,6 +33,7 @@
 #include "misc.h"
 #include "pawns.h"
 #include "thread.h"
+#include "timeman.h"
 #include "uci.h"
 #include "incbin/incbin.h"
 
@@ -206,7 +207,7 @@ namespace Trace {
     else
         os << scores[t][WHITE] << " | " << scores[t][BLACK];
 
-    os << " | " << scores[t][WHITE] - scores[t][BLACK] << "\n";
+    os << " | " << scores[t][WHITE] - scores[t][BLACK] << " |\n";
     return os;
   }
 }
@@ -216,11 +217,9 @@ using namespace Trace;
 namespace {
 
   // Threshold for lazy and space evaluation
-  constexpr Value LazyThreshold1 =  Value(1565);
-  constexpr Value LazyThreshold2 =  Value(1102);
-  constexpr Value SpaceThreshold = Value(11551);
-  constexpr Value NNUEThreshold1 =   Value(682);
-  constexpr Value NNUEThreshold2 =   Value(176);
+  constexpr Value LazyThreshold1    =  Value(1565);
+  constexpr Value LazyThreshold2    =  Value(1102);
+  constexpr Value SpaceThreshold    =  Value(11551);
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 81, 52, 44, 10, 40 };
@@ -1376,7 +1375,7 @@ namespace {
     Color strongSide = eg > VALUE_DRAW ? WHITE : BLACK;
     int sf = me->scale_factor(pos, strongSide);
 
-    // If scale factor is not already specific, scale down via general heuristics
+    // If scale factor is not already specific, scale up/down via general heuristics
     if (sf == SCALE_FACTOR_NORMAL && !pos.captures_to_hand() && !pos.material_counting())
     {
         if (pos.opposite_bishops())
@@ -1454,7 +1453,7 @@ namespace {
     Score score = pos.psq_score();
     if (T)
         Trace::add(MATERIAL, score);
-    score += me->imbalance() + pos.this_thread()->contempt;
+    score += me->imbalance() + pos.this_thread()->trend;
 
     // Probe the pawn hash table
     pe = Pawns::probe(pos);
@@ -1513,7 +1512,7 @@ make_v:
     v = (v / 16) * 16;
 
     // Side to move point of view
-    v = (pos.side_to_move() == WHITE ? v : -v) + Eval::tempo_value(pos);
+    v = (pos.side_to_move() == WHITE ? v : -v) + 80 * pos.captures_to_hand();
 
     return v;
   }
@@ -1557,13 +1556,6 @@ make_v:
 } // namespace Eval
 
 
-/// tempo_value() returns the evaluation offset for the side to move
-
-Value Eval::tempo_value(const Position& pos) {
-  return Tempo * (1 + 4 * pos.captures_to_hand());
-}
-
-
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
 
@@ -1578,12 +1570,11 @@ Value Eval::evaluate(const Position& pos) {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&]()
       {
-         int material = pos.non_pawn_material() + 4 * PawnValueMg * pos.count<PAWN>();
-         int scale =  580
-                    + material / 32
-                    - 4 * pos.rule50_count();
+         int scale =   903
+                     + 32 * pos.count<PAWN>()
+                     + 32 * pos.non_pawn_material() / 1024;
 
-         Value nnue = NNUE::evaluate(pos) * scale / 1024 + Tempo;
+         Value nnue = NNUE::evaluate(pos, true) * scale / 1024;
 
          if (pos.is_chess960())
              nnue += fix_FRC(pos);
@@ -1591,39 +1582,22 @@ Value Eval::evaluate(const Position& pos) {
          if (pos.check_counting())
          {
              Color us = pos.side_to_move();
-             nnue +=  material / (30 * pos.checks_remaining( us))
-                    - material / (30 * pos.checks_remaining(~us));
+             nnue +=  6 * scale / (5 * pos.checks_remaining( us))
+                    - 6 * scale / (5 * pos.checks_remaining(~us));
          }
 
          return nnue;
       };
 
-      // If there is PSQ imbalance we use the classical eval. We also introduce
-      // a small probability of using the classical eval when PSQ imbalance is small.
+      // If there is PSQ imbalance we use the classical eval, but we switch to
+      // NNUE eval faster when shuffling or if the material on the board is high.
+      int r50 = pos.rule50_count();
       Value psq = Value(abs(eg_value(pos.psq_score())));
-      int   r50 = 16 + pos.rule50_count();
-      bool  pure = !pos.check_counting();
-      bool  largePsq = psq * 16 > (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50 && !pure;
-      bool  classical = largePsq || (psq > PawnValueMg / 4 && !(pos.this_thread()->nodes & 0xB) && !pure);
+      bool pure = !pos.check_counting();
+      bool classical = psq * 5 > (750 + pos.non_pawn_material() / 64) * (5 + r50) && !pure;
 
-      // Use classical evaluation for really low piece endgames.
-      // One critical case is the draw for bishop + A/H file pawn vs naked king.
-      bool lowPieceEndgame =   pos.non_pawn_material() == BishopValueMg
-                            || (pos.non_pawn_material() < 2 * RookValueMg && pos.count<PAWN>() < 2);
-
-      v = classical || lowPieceEndgame ? Evaluation<NO_TRACE>(pos).value() 
-                                       : adjusted_NNUE();
-
-      // If the classical eval is small and imbalance large, use NNUE nevertheless.
-      // For the case of opposite colored bishops, switch to NNUE eval with small
-      // probability if the classical eval is less than the threshold.
-      if (    largePsq
-          && !lowPieceEndgame
-          && (   abs(v) * 16 < NNUEThreshold2 * r50
-              || (   pos.opposite_bishops()
-                  && abs(v) * 16 < (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50
-                  && !(pos.this_thread()->nodes & 0xB))))
-          v = adjusted_NNUE();
+      v = classical ? Evaluation<NO_TRACE>(pos).value()  // classical
+                    : adjusted_NNUE();                   // NNUE
   }
 
   // Damp down the evaluation linearly when shuffling
@@ -1649,7 +1623,7 @@ Value Eval::evaluate(const Position& pos) {
 /// descriptions and values of each evaluation term. Useful for debugging.
 /// Trace scores are from white's point of view
 
-std::string Eval::trace(const Position& pos) {
+std::string Eval::trace(Position& pos) {
 
   if (pos.checkers())
       return "Final evaluation: none (in check)";
@@ -1661,45 +1635,54 @@ std::string Eval::trace(const Position& pos) {
 
   std::memset(scores, 0, sizeof(scores));
 
-  pos.this_thread()->contempt = SCORE_ZERO; // Reset any dynamic contempt
+  pos.this_thread()->trend = SCORE_ZERO; // Reset any dynamic contempt
 
   v = Evaluation<TRACE>(pos).value();
 
   ss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2)
-     << "     Term    |    White    |    Black    |    Total   \n"
-     << "             |   MG    EG  |   MG    EG  |   MG    EG \n"
-     << " ------------+-------------+-------------+------------\n"
-     << "    Material | " << Term(MATERIAL)
-     << "   Imbalance | " << Term(IMBALANCE)
-     << "       Pawns | " << Term(PAWN)
-     << "     Knights | " << Term(KNIGHT)
-     << "     Bishops | " << Term(BISHOP)
-     << "       Rooks | " << Term(ROOK)
-     << "      Queens | " << Term(QUEEN)
-     << "    Mobility | " << Term(MOBILITY)
-     << " King safety | " << Term(KING)
-     << "     Threats | " << Term(THREAT)
-     << "      Passed | " << Term(PASSED)
-     << "       Space | " << Term(SPACE)
-     << "     Variant | " << Term(VARIANT)
-     << "    Winnable | " << Term(WINNABLE)
-     << " ------------+-------------+-------------+------------\n"
-     << "       Total | " << Term(TOTAL);
-
-  v = pos.side_to_move() == WHITE ? v : -v;
-
-  ss << "\nClassical evaluation: " << to_cp(v) << " (white side)\n";
+     << " Contributing terms for the classical eval:\n"
+     << "+------------+-------------+-------------+-------------+\n"
+     << "|    Term    |    White    |    Black    |    Total    |\n"
+     << "|            |   MG    EG  |   MG    EG  |   MG    EG  |\n"
+     << "+------------+-------------+-------------+-------------+\n"
+     << "|   Material | " << Term(MATERIAL)
+     << "|  Imbalance | " << Term(IMBALANCE)
+     << "|      Pawns | " << Term(PAWN)
+     << "|    Knights | " << Term(KNIGHT)
+     << "|    Bishops | " << Term(BISHOP)
+     << "|      Rooks | " << Term(ROOK)
+     << "|     Queens | " << Term(QUEEN)
+     << "|   Mobility | " << Term(MOBILITY)
+     << "|King safety | " << Term(KING)
+     << "|    Threats | " << Term(THREAT)
+     << "|     Passed | " << Term(PASSED)
+     << "|      Space | " << Term(SPACE)
+     << "|    Variant | " << Term(VARIANT)
+     << "|   Winnable | " << Term(WINNABLE)
+     << "+------------+-------------+-------------+-------------+\n"
+     << "|      Total | " << Term(TOTAL)
+     << "+------------+-------------+-------------+-------------+\n";
 
   if (Eval::useNNUE)
+      ss << '\n' << NNUE::trace(pos) << '\n';
+
+  ss << std::showpoint << std::showpos << std::fixed << std::setprecision(2) << std::setw(15);
+
+  v = pos.side_to_move() == WHITE ? v : -v;
+  ss << "\nClassical evaluation   " << to_cp(v) << " (white side)\n";
+  if (Eval::useNNUE)
   {
-      v = NNUE::evaluate(pos);
+      v = NNUE::evaluate(pos, false);
       v = pos.side_to_move() == WHITE ? v : -v;
-      ss << "\nNNUE evaluation:      " << to_cp(v) << " (white side)\n";
+      ss << "NNUE evaluation        " << to_cp(v) << " (white side)\n";
   }
 
   v = evaluate(pos);
   v = pos.side_to_move() == WHITE ? v : -v;
-  ss << "\nFinal evaluation:     " << to_cp(v) << " (white side)\n";
+  ss << "Final evaluation       " << to_cp(v) << " (white side)";
+  if (Eval::useNNUE)
+     ss << " [with scaled NNUE, hybrid, ...]";
+  ss << "\n";
 
   return ss.str();
 }

@@ -117,21 +117,28 @@ intrinsics available on most CPUs (sse2, avx2, neon, or similar).
 
 This distribution of Stockfish consists of the following files:
 
-  * Readme.md, the file you are currently reading.
+  * [Readme.md](https://github.com/official-stockfish/Stockfish/blob/master/README.md), the file you are currently reading.
 
-  * Copying.txt, a text file containing the GNU General Public License version 3.
-  
-  * AUTHORS, a text file with the list of authors for the project
+  * [Copying.txt](https://github.com/official-stockfish/Stockfish/blob/master/Copying.txt), a text file containing the GNU General Public License version 3.
 
-  * src, a subdirectory containing the full source code, including a Makefile
+  * [AUTHORS](https://github.com/official-stockfish/Stockfish/blob/master/AUTHORS), a text file with the list of authors for the project
+
+  * [src](https://github.com/official-stockfish/Stockfish/tree/master/src), a subdirectory containing the full source code, including a Makefile
     that can be used to compile Stockfish on Unix-like systems.
 
-  * a file with the .nnue extension, storing the neural network for the NNUE 
+  * a file with the .nnue extension, storing the neural network for the NNUE
     evaluation. Binary distributions will have this file embedded.
 
-## UCI options
+## The UCI protocol and available options
 
-Currently, Stockfish has the following UCI options:
+The Universal Chess Interface (UCI) is a standard protocol used to communicate with
+a chess engine, and is the recommended way to do so for typical graphical user interfaces
+(GUI) or chess tools. Stockfish implements the majority of it options as described
+in [the UCI protocol](https://www.shredderchess.com/download/div/uci.zip).
+
+Developers can see the default values for UCI options available in Stockfish by typing
+`./stockfish uci` in a terminal, but the majority of users will typically see them and
+change them via a chess GUI. This is a list of available UCI options in Stockfish:
 
   * #### Threads
     The number of CPU threads used for searching a position. For best performance, set
@@ -209,14 +216,6 @@ Currently, Stockfish has the following UCI options:
     Limit Syzygy tablebase probing to positions with at most this many pieces left
     (including kings and pawns).
 
-  * #### Contempt
-    A positive value for contempt favors middle game positions and avoids draws,
-    effective for the classical evaluation only.
-
-  * #### Analysis Contempt
-    By default, contempt is set to prefer the side to move. Set this option to "White"
-    or "Black" to analyse with contempt for that side, or "Off" to disable contempt.
-
   * #### Move Overhead
     Assume a time delay of x ms due to network and GUI overheads. This is useful to
     avoid losses on time in those cases.
@@ -231,6 +230,34 @@ Currently, Stockfish has the following UCI options:
 
   * #### Debug Log File
     Write all communication to and from the engine into a text file.
+
+For developers the following non-standard commands might be of interest, mainly useful for debugging:
+
+  * #### bench *ttSize threads limit fenFile limitType evalType*
+    Performs a standard benchmark using various options. The signature of a version (standard node
+    count) is obtained using all defaults. `bench` is currently `bench 16 1 13 default depth mixed`.
+
+  * #### compiler
+    Give information about the compiler and environment used for building a binary.
+
+  * #### d
+    Display the current position, with ascii art and fen.
+
+  * #### eval
+    Return the evaluation of the current position.
+
+  * #### export_net [filename]
+    Exports the currently loaded network to a file.
+    If the currently loaded network is the embedded network and the filename
+    is not specified then the network is saved to the file matching the name
+    of the embedded network, as defined in evaluate.h.
+    If the currently loaded network is not the embedded network (some net set
+    through the UCI setoption) then the filename parameter is required and the
+    network is saved into that file.
+
+  * #### flip
+    Flips the side to move.
+
 
 ## A note on classical evaluation versus NNUE evaluation
 
@@ -258,7 +285,7 @@ Stockfish binary, but the default value of the EvalFile UCI option is the name o
 that is guaranteed to be compatible with that binary.
 
 2) to use the NNUE evaluation, the additional data file with neural network parameters
-needs to be available. Normally, this file is already embedded in the binary or it 
+needs to be available. Normally, this file is already embedded in the binary or it
 can be downloaded. The filename for the default (recommended) net can be found as the default
 value of the `EvalFile` UCI option, with the format `nn-[SHA256 first 12 digits].nnue`
 (for instance, `nn-c157e0a5755b.nnue`). This file can be downloaded from
@@ -271,7 +298,7 @@ replacing `[filename]` as needed.
 
 If the engine is searching a position that is not in the tablebases (e.g.
 a position with 8 pieces), it will access the tablebases during the search.
-If the engine reports a very large score (typically 153.xx), this means 
+If the engine reports a very large score (typically 153.xx), this means
 it has found a winning line into a tablebase position.
 
 If the engine is given a position to search that is in the tablebases, it
@@ -393,4 +420,4 @@ you are distributing. If you make any changes to the source code,
 these changes must also be made available under the GPL.
 
 For full details, read the copy of the GPL v3 found in the file named
-*Copying.txt*.
+[*Copying.txt*](https://github.com/official-stockfish/Stockfish/blob/master/Copying.txt).
