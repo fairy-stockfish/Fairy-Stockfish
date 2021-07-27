@@ -39,6 +39,7 @@ ThreadPool Threads; // Global object
 Thread::Thread(size_t n) : idx(n), stdThread(&Thread::idle_loop, this) {
 
   wait_for_search_finished();
+  wait_for_worker_finished();
 }
 
 
@@ -84,6 +85,14 @@ void Thread::start_searching() {
   cv.notify_one(); // Wake up the thread in idle_loop()
 }
 
+void Thread::execute_with_worker(std::function<void(Thread&)> t)
+{
+  std::lock_guard<std::mutex> lk(mutex);
+  worker = std::move(t);
+  searching = true;
+  cv.notify_one(); // Wake up the thread in idle_loop()
+}
+
 
 /// Thread::wait_for_search_finished() blocks on the condition variable
 /// until the thread has finished searching.
@@ -94,6 +103,12 @@ void Thread::wait_for_search_finished() {
   cv.wait(lk, [&]{ return !searching; });
 }
 
+
+void Thread::wait_for_worker_finished() {
+
+  std::unique_lock<std::mutex> lk(mutex);
+  cv.wait(lk, [&]{ return !searching; });
+}
 
 /// Thread::idle_loop() is where the thread is parked, blocked on the
 /// condition variable, when it has no work to do.
@@ -112,6 +127,7 @@ void Thread::idle_loop() {
   {
       std::unique_lock<std::mutex> lk(mutex);
       searching = false;
+      worker = nullptr;
       cv.notify_one(); // Wake up anyone waiting for search finished
       // Start ponder search from separate thread to prevent deadlock
       if (Threads.size() && this == Threads.main() && XBoard::stateMachine && XBoard::stateMachine->ponderMove)
@@ -124,9 +140,18 @@ void Thread::idle_loop() {
       if (exit)
           return;
 
+      auto wrk = std::move(worker);
+
       lk.unlock();
 
-      search();
+      if (wrk)
+      {
+        wrk(*this);
+      }
+      else
+      {
+        search();
+      }
   }
 }
 
@@ -173,6 +198,13 @@ void ThreadPool::clear() {
   main()->previousTimeReduction = 1.0;
 }
 
+void ThreadPool::execute_with_workers(const std::function<void(Thread&)>& worker)
+{
+  for(Thread* th : *this)
+  {
+    th->execute_with_worker(worker);
+  }
+}
 
 /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and
 /// returns immediately. Main thread will wake up other threads and start the search.
@@ -286,6 +318,13 @@ void ThreadPool::wait_for_search_finished() const {
     for (Thread* th : *this)
         if (th != front())
             th->wait_for_search_finished();
+}
+
+
+void ThreadPool::wait_for_workers_finished() const {
+
+    for (Thread* th : *this)
+        th->wait_for_worker_finished();
 }
 
 } // namespace Stockfish

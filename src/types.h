@@ -268,6 +268,8 @@ enum Color {
   WHITE, BLACK, COLOR_NB = 2
 };
 
+constexpr Color Colors[2] = { WHITE, BLACK };
+
 enum CastlingRights {
   NO_CASTLING,
   WHITE_OO,
@@ -743,6 +745,11 @@ constexpr Square to_sq(Move m) {
 
 constexpr Square from_sq(Move m) {
   return type_of(m) == DROP ? SQ_NONE : Square((m >> SQUARE_BITS) & SQUARE_BIT_MASK);
+}
+
+// Return relative square when turning the board 180 degrees
+constexpr Square rotate180(Square sq) {
+    return (Square)(sq ^ 0x3F);
 }
 
 inline int from_to(Move m) {

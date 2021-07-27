@@ -24,6 +24,7 @@
 #include "misc.h"
 #include "movepick.h"
 #include "types.h"
+#include "uci.h"
 
 namespace Stockfish {
 
@@ -34,6 +35,7 @@ namespace Search {
 /// Threshold used for countermoves based pruning
 constexpr int CounterMovePruneThreshold = 0;
 
+extern bool prune_at_shallow_depth;
 
 /// Stack struct keeps track of the information we need to remember from nodes
 /// shallower and deeper in the tree during the search. Each search thread has
@@ -89,6 +91,7 @@ struct LimitsType {
     time[WHITE] = time[BLACK] = inc[WHITE] = inc[BLACK] = npmsec = movetime = TimePoint(0);
     movestogo = depth = mate = perft = infinite = 0;
     nodes = 0;
+    silent = false;
   }
 
   bool use_time_management() const {
@@ -99,6 +102,9 @@ struct LimitsType {
   TimePoint time[COLOR_NB], inc[COLOR_NB], npmsec, movetime, startTime;
   int movestogo, depth, mate, perft, infinite;
   int64_t nodes;
+  // Silent mode that does not output to the screen (for continuous self-play in process)
+  // Do not output PV at this time.
+  bool silent;
 };
 
 extern LimitsType Limits;
@@ -106,7 +112,35 @@ extern LimitsType Limits;
 void init();
 void clear();
 
-} // namespace Search
+// A pair of reader and evaluation value. Returned by Tools::search(),Tools::qsearch().
+using ValueAndPV = std::pair<Value, std::vector<Move>>;
+
+ValueAndPV qsearch(Position& pos);
+ValueAndPV search(Position& pos, int depth_, size_t multiPV = 1, uint64_t nodesLimit = 0);
+
+namespace MCTS {
+
+  struct MctsContinuation {
+    std::uint64_t numVisits;
+    Value value;
+    float actionValue;
+    std::vector<Move> pv;
+  };
+
+  ValueAndPV search_mcts(
+    Position& pos,
+    std::uint64_t nodes,
+    Depth leafDepth,
+    float explorationFactor);
+
+  std::vector<MctsContinuation> search_mcts_multipv(
+    Position& pos,
+    std::uint64_t numPlayouts,
+    Depth leafDepth,
+    float explorationFactor);
+}
+
+}
 
 } // namespace Stockfish
 
