@@ -25,11 +25,15 @@
 
 #include "types.h"
 
+#include "variant.h"
+
 namespace Stockfish {
 
 class Position;
 
 namespace UCI {
+
+void init_variant(const Variant* v);
 
 class Option;
 
