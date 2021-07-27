@@ -5,6 +5,8 @@
 #include "misc.h"
 #include "position.h"
 
+#include "uci.h"
+
 #include <sstream>
 #include <fstream>
 #include <cstring> // std::memset()
@@ -169,7 +171,7 @@ namespace Stockfish::Tools {
             for (File f = FILE_A; f <= FILE_H; ++f)
             {
                 Piece pc = pos.piece_on(make_square(f, r));
-                if (type_of(pc) == KING)
+                if (type_of(pc) == pos.nnue_king())
                     continue;
                 write_board_piece_to_stream(pc);
             }
@@ -234,7 +236,7 @@ namespace Stockfish::Tools {
 
             assert(bits <= 6);
 
-            for (pr = NO_PIECE_TYPE; pr <KING; ++pr)
+            for (pr = NO_PIECE_TYPE; pr <= QUEEN; ++pr)
                 if (huffman_table[pr].code == code
                     && huffman_table[pr].bits == bits)
                     goto Found;
@@ -263,13 +265,14 @@ namespace Stockfish::Tools {
         si->accumulator.state[WHITE] = Eval::NNUE::INIT;
         si->accumulator.state[BLACK] = Eval::NNUE::INIT;
         pos.st = si;
+        pos.var = variants.find(Options["UCI_Variant"])->second;
 
         // Active color
         pos.sideToMove = (Color)stream.read_one_bit();
 
         // First the position of the ball
         for (auto c : Colors)
-            pos.board[stream.read_n_bit(6)] = make_piece(c, KING);
+            pos.board[stream.read_n_bit(6)] = make_piece(c, pos.nnue_king());
 
         // Piece placement
         for (Rank r = RANK_8; r >= RANK_1; --r)
@@ -280,7 +283,7 @@ namespace Stockfish::Tools {
 
                 // it seems there are already balls
                 Piece pc;
-                if (type_of(pos.board[sq]) != KING)
+                if (type_of(pos.board[sq]) != pos.nnue_king())
                 {
                     assert(pos.board[sq] == NO_PIECE);
                     pc = packer.read_board_piece_from_stream();
