@@ -110,6 +110,9 @@ describe('board.numberLegalMoves()', function () {
     const board = new ffish.Board("crazyhouse", "r1b3nr/pppp1kpp/2n5/2b1p3/4P3/2N5/PPPP1PPP/R1B1K1NR/QPbq w KQ - 0 7");
     chai.expect(board.numberLegalMoves()).to.equal(90);
     board.delete();
+    const yariboard = new ffish.Board("yarishogi");
+    chai.expect(yariboard.numberLegalMoves()).to.equal(20);
+    yariboard.delete();
   });
 });
 
