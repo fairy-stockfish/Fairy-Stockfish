@@ -16,6 +16,8 @@
 
 #include "syzygy/tbprobe.h"
 
+#include "apiutil.h"
+
 #include <atomic>
 #include <chrono>
 #include <climits>
@@ -419,20 +421,24 @@ namespace Stockfish::Tools
         // draw at the maximum number of steps to write.
         const int ply = move_hist_scores.size();
 
+        std::function <int (Value)> sign = [](Value v) {
+            return v > 0 ? 1 : v < 0 ? -1 : 0;
+        };
+
         // has it reached the max length or is a draw by fifty-move rule
         // or by 3-fold repetition
-        if (ply >= params.write_maxply
-            || pos.is_optional_game_end())
+        Value v = VALUE_DRAW;
+        if (ply >= params.write_maxply || pos.is_game_end(v))
         {
-            return 0;
+            return sign(v);
         }
 
         if(pos.this_thread()->rootMoves.empty())
         {
             // If there is no legal move
             return pos.checkers()
-                ? -1 /* mate */
-                : 0 /* stalemate */;
+                ? sign(pos.checkmate_value()) /* mate */
+                : sign(pos.stalemate_value()) /* stalemate */;
         }
 
         // Adjudicate game to a draw if the last 4 scores of each engine is 0.
@@ -471,49 +477,11 @@ namespace Stockfish::Tools
         }
 
         // Draw by insufficient mating material
-        if (params.detect_draw_by_insufficient_mating_material)
+        if (params.detect_draw_by_insufficient_mating_material
+            && has_insufficient_material(WHITE, pos)
+            && has_insufficient_material(BLACK, pos))
         {
-            if (pos.count<ALL_PIECES>() <= 4)
-            {
-                int num_pieces = pos.count<ALL_PIECES>();
-
-                // (1) KvK
-                if (num_pieces == 2)
-                {
-                    return 0;
-                }
-
-                // (2) KvK + 1 minor piece
-                if (num_pieces == 3)
-                {
-                    int minor_pc = pos.count<BISHOP>(WHITE) + pos.count<KNIGHT>(WHITE) +
-                        pos.count<BISHOP>(BLACK) + pos.count<KNIGHT>(BLACK);
-                    if (minor_pc == 1)
-                    {
-                        return 0;
-                    }
-                }
-
-                // (3) KBvKB, bishops of the same color
-                else if (num_pieces == 4)
-                {
-                    if (pos.count<BISHOP>(WHITE) == 1 && pos.count<BISHOP>(BLACK) == 1)
-                    {
-                        // Color of bishops is black.
-                        if ((pos.pieces(WHITE, BISHOP) & DarkSquares)
-                            && (pos.pieces(BLACK, BISHOP) & DarkSquares))
-                        {
-                            return 0;
-                        }
-                        // Color of bishops is white.
-                        if ((pos.pieces(WHITE, BISHOP) & ~DarkSquares)
-                            && (pos.pieces(BLACK, BISHOP) & ~DarkSquares))
-                        {
-                            return 0;
-                        }
-                    }
-                }
-            }
+            return 0;
         }
 
         return nullopt;
