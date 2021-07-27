@@ -25,6 +25,8 @@
 #include "timeman.h"
 #include "uci.h"
 
+namespace Stockfish {
+
 TimeManagement Time; // Our global time management object
 
 
@@ -109,3 +111,5 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
   if (Options["Ponder"])
       optimumTime += optimumTime / 4;
 }
+
+} // namespace Stockfish

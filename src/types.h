@@ -89,6 +89,8 @@
 #  define pext(b, m) 0
 #endif
 
+namespace Stockfish {
+
 #ifdef USE_POPCNT
 constexpr bool HasPopCnt = true;
 #else
@@ -179,6 +181,10 @@ struct Bitboard {
 
     constexpr Bitboard operator ~ () const {
         return Bitboard(~b64[0], ~b64[1]);
+    }
+
+    constexpr Bitboard operator - () const {
+        return Bitboard(-b64[0] - (b64[1] > 0), -b64[1]);
     }
 
     constexpr Bitboard operator | (const Bitboard x) const {
@@ -403,6 +409,8 @@ static_assert(2 * SQUARE_BITS + MOVE_TYPE_BITS + 2 * PIECE_TYPE_BITS <= 32, "Mov
 
 enum Piece {
   NO_PIECE,
+  W_PAWN = PAWN,                 W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING = KING,
+  B_PAWN = PAWN + PIECE_TYPE_NB, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING = KING + PIECE_TYPE_NB,
   PIECE_NB = 2 * PIECE_TYPE_NB
 };
 
@@ -808,6 +816,8 @@ inline int dist(Direction d) {
 constexpr Key make_key(uint64_t seed) {
   return seed * 6364136223846793005ULL + 1442695040888963407ULL;
 }
+
+} // namespace Stockfish
 
 #endif // #ifndef TYPES_H_INCLUDED
 

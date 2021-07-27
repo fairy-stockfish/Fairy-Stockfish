@@ -28,6 +28,8 @@
 #include "uci.h"
 #include "xboard.h"
 
+namespace Stockfish {
+
 namespace {
 
   const Search::LimitsType analysisLimits = []{
@@ -479,3 +481,5 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
 }
 
 } // namespace XBoard
+
+} // namespace Stockfish

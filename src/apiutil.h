@@ -30,6 +30,7 @@
 #include "position.h"
 #include "variant.h"
 
+namespace Stockfish {
 
 enum Notation {
     NOTATION_DEFAULT,
@@ -183,7 +184,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
 
     while (b)
     {
-        Square s = pop_lsb(&b);
+        Square s = pop_lsb(b);
         if (   pos.pseudo_legal(make_move(s, to))
                && pos.legal(make_move(s, to))
                && !(is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
@@ -926,5 +927,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     return FEN_OK;
 }
 } // namespace FEN
+
+} // namespace Stockfish
 
 #endif // #ifndef APIUTIL_H_INCLUDED

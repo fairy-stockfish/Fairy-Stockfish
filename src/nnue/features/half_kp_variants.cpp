@@ -25,7 +25,7 @@
 #include "half_kp_shogi.h"
 #endif
 
-namespace Eval::NNUE::Features {
+namespace Stockfish::Eval::NNUE::Features {
 
   // Map square to numbering on 8x8 board
   constexpr Square to_chess_square(Square s) {
@@ -40,34 +40,34 @@ namespace Eval::NNUE::Features {
 
   // Index of a feature for a given king position and another piece on some square
   inline IndexType make_index(const Position& pos, Color perspective, Square s, Piece pc, Square ksq) {
-    return IndexType(orient(pos, perspective, s) + kpp_board_index[perspective][pc] + PS_END * ksq);
+    return IndexType(orient(pos, perspective, s) + PieceSquareIndex[perspective][pc] + PS_NB * ksq);
   }
 
   // Get a list of indices for active features
   template <Side AssociatedKing>
-  void HalfKPVariants<AssociatedKing>::AppendActiveIndices(
+  void HalfKPVariants<AssociatedKing>::append_active_indices(
       const Position& pos, Color perspective, IndexList* active) {
 
     // Re-route to shogi features
 #ifdef LARGEBOARDS
     if (currentNnueFeatures == NNUE_SHOGI)
     {
-        assert(HalfKPShogi<AssociatedKing>::kDimensions <= kDimensions);
-        return HalfKPShogi<AssociatedKing>::AppendActiveIndices(pos, perspective, active);
+        assert(HalfKPShogi<AssociatedKing>::Dimensions <= Dimensions);
+        return HalfKPShogi<AssociatedKing>::append_active_indices(pos, perspective, active);
     }
 #endif
 
     Square ksq = orient(pos, perspective, pos.square(perspective, pos.nnue_king()));
     Bitboard bb = pos.pieces() & ~pos.pieces(pos.nnue_king());
     while (bb) {
-      Square s = pop_lsb(&bb);
+      Square s = pop_lsb(bb);
       active->push_back(make_index(pos, perspective, s, pos.piece_on(s), ksq));
     }
   }
 
   // Get a list of indices for recently changed features
   template <Side AssociatedKing>
-  void HalfKPVariants<AssociatedKing>::AppendChangedIndices(
+  void HalfKPVariants<AssociatedKing>::append_changed_indices(
       const Position& pos, const DirtyPiece& dp, Color perspective,
       IndexList* removed, IndexList* added) {
 
@@ -75,8 +75,8 @@ namespace Eval::NNUE::Features {
 #ifdef LARGEBOARDS
     if (currentNnueFeatures == NNUE_SHOGI)
     {
-        assert(HalfKPShogi<AssociatedKing>::kDimensions <= kDimensions);
-        return HalfKPShogi<AssociatedKing>::AppendChangedIndices(pos, dp, perspective, removed, added);
+        assert(HalfKPShogi<AssociatedKing>::Dimensions <= Dimensions);
+        return HalfKPShogi<AssociatedKing>::append_changed_indices(pos, dp, perspective, removed, added);
     }
 #endif
 
@@ -91,6 +91,6 @@ namespace Eval::NNUE::Features {
     }
   }
 
-  template class HalfKPVariants<Side::kFriend>;
+  template class HalfKPVariants<Side::Friend>;
 
-}  // namespace Eval::NNUE::Features
+}  // namespace Stockfish::Eval::NNUE::Features

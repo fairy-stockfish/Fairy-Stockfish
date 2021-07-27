@@ -23,6 +23,8 @@
 #include "bitboard.h"
 #include "types.h"
 
+namespace Stockfish {
+
 namespace {
 
   // There are 24 possible pawn squares: files A to D and ranks from 2 to 7.
@@ -66,7 +68,6 @@ namespace {
 
 } // namespace
 
-
 bool Bitbases::probe(Square wksq, Square wpsq, Square bksq, Color stm) {
 
   assert(file_of(wpsq) <= FILE_D);
@@ -100,7 +101,6 @@ void Bitbases::init() {
       if (db[idx] == WIN)
           KPKBitbase.set(idx);
 }
-
 
 namespace {
 
@@ -155,8 +155,8 @@ namespace {
     Bitboard b = attacks_bb<KING>(ksq[stm]);
 
     while (b)
-        r |= stm == WHITE ? db[index(BLACK, ksq[BLACK] , pop_lsb(&b), psq)]
-                          : db[index(WHITE, pop_lsb(&b),  ksq[WHITE], psq)];
+        r |= stm == WHITE ? db[index(BLACK, ksq[BLACK], pop_lsb(b), psq)]
+                          : db[index(WHITE, pop_lsb(b), ksq[WHITE], psq)];
 
     if (stm == WHITE)
     {
@@ -173,3 +173,5 @@ namespace {
   }
 
 } // namespace
+
+} // namespace Stockfish

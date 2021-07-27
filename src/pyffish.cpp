@@ -20,6 +20,7 @@
 #include "variant.h"
 #include "apiutil.h"
 
+using namespace Stockfish;
 
 static PyObject* PyFFishError;
 

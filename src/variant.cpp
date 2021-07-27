@@ -27,6 +27,8 @@
 
 using std::string;
 
+namespace Stockfish {
+
 VariantMap variants; // Global object
 
 namespace {
@@ -902,11 +904,32 @@ namespace {
         v->nnueFeatures = NNUE_SHOGI;
         return v;
     }
+    // Sho-Shogi
+    // 16-th century shogi variant with one additional piece and no drops
+    // https://en.wikipedia.org/wiki/Sho_shogi
+    Variant* shoshogi_variant() {
+        Variant* v = shogi_variant();
+        v->pieceToCharTable = "PNBRLSE..G.+.++.++Kpnbrlse..g.+.++.++k";
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->add_piece(CUSTOM_PIECES, 'e', "FsfW"); // drunk elephant
+        v->startFen = "lnsgkgsnl/1r2e2b1/ppppppppp/9/9/9/PPPPPPPPP/1B2E2R1/LNSGKGSNL w 0 1";
+        v->capturesToHand = false;
+        v->pieceDrops = false;
+        v->promotedPieceType[CUSTOM_PIECES] = COMMONER;
+        v->castlingKingPiece = COMMONER;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPseudoRoyal = true;
+        v->extinctionPieceCount = 0;
+        return v;
+    }
     // Yari shogi
     // https://en.wikipedia.org/wiki/Yari_shogi
     Variant* yarishogi_variant() {
         Variant* v = variant_base();
         v->variantTemplate = "shogi";
+        v->pieceToCharTable = "PNBR.......++++Kpnbr.......++++k";
         v->maxRank = RANK_9;
         v->maxFile = FILE_G;
         v->reset_pieces();
@@ -1115,6 +1138,7 @@ namespace {
     // https://en.wikipedia.org/wiki/Grand_chess
     Variant* grand_variant() {
         Variant* v = chess_variant_base();
+        v->variantTemplate = "grand";
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
@@ -1134,6 +1158,26 @@ namespace {
         v->doubleStepRank = RANK_3;
         v->doubleStepRankMin = RANK_3;
         v->castling = false;
+        return v;
+    }
+    // Opulent chess
+    // Variant of Grand chess with two extra pieces
+    // https://www.chessvariants.com/rules/opulent-chess
+    Variant* opulent_variant() {
+        Variant* v = grand_variant();
+        v->pieceToCharTable = "PNBRQ..AC....W.......LKpnbrq..ac....w.......lk";
+        v->remove_piece(KNIGHT);
+        v->add_piece(CUSTOM_PIECES, 'n', "NW");
+        v->add_piece(CUSTOM_PIECES + 1, 'w', "CF");
+        v->add_piece(CUSTOM_PIECES + 2, 'l', "FDH");
+        v->startFen = "rw6wr/clbnqknbla/pppppppppp/10/10/10/10/PPPPPPPPPP/CLBNQKNBLA/RW6WR w - - 0 1";
+        v->promotionPieceTypes.erase(KNIGHT);
+        v->promotionPieceTypes.insert(CUSTOM_PIECES);
+        v->promotionPieceTypes.insert(CUSTOM_PIECES + 1);
+        v->promotionPieceTypes.insert(CUSTOM_PIECES + 2);
+        v->promotionLimit[CUSTOM_PIECES] = 2;
+        v->promotionLimit[CUSTOM_PIECES + 1] = 2;
+        v->promotionLimit[CUSTOM_PIECES + 2] = 2;
         return v;
     }
     // Tencubed
@@ -1372,6 +1416,7 @@ void VariantMap::init() {
     add("minixiangqi", minixiangqi_variant()->conclude());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant()->conclude());
+    add("shoshogi", shoshogi_variant()->conclude());
     add("yarishogi", yarishogi_variant()->conclude());
     add("okisakishogi", okisakishogi_variant()->conclude());
     add("capablanca", capablanca_variant()->conclude());
@@ -1386,6 +1431,7 @@ void VariantMap::init() {
     add("jesonmor", jesonmor_variant()->conclude());
     add("courier", courier_variant()->conclude());
     add("grand", grand_variant()->conclude());
+    add("opulent", opulent_variant()->conclude());
     add("tencubed", tencubed_variant()->conclude());
     add("shako", shako_variant()->conclude());
     add("clobber10", clobber10_variant()->conclude());
@@ -1492,3 +1538,5 @@ std::vector<std::string> VariantMap::get_keys() {
       keys.push_back(element.first);
   return keys;
 }
+
+} // namespace Stockfish

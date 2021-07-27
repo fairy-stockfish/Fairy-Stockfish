@@ -21,7 +21,7 @@
 #include "half_kp.h"
 #include "index_list.h"
 
-namespace Eval::NNUE::Features {
+namespace Stockfish::Eval::NNUE::Features {
 
   // Map square to numbering on 8x8 board
   constexpr Square to_chess_square(Square s) {
@@ -35,25 +35,44 @@ namespace Eval::NNUE::Features {
 
   // Index of a feature for a given king position and another piece on some square
   inline IndexType make_index(Color perspective, Square s, Piece pc, Square ksq) {
-    return IndexType(orient(perspective, s) + kpp_board_index[perspective][pc] + PS_END * ksq);
+    return IndexType(orient(perspective, s) + PieceSquareIndex[perspective][pc] + PS_NB * ksq);
   }
 
   // Get a list of indices for active features
   template <Side AssociatedKing>
-  void HalfKPChess<AssociatedKing>::AppendActiveIndices(
+  void HalfKPChess<AssociatedKing>::append_active_indices(
       const Position& pos, Color perspective, IndexList* active) {
 
     Square ksq = orient(perspective, pos.square<KING>(perspective));
     Bitboard bb = pos.pieces() & ~pos.pieces(KING);
-    while (bb) {
-      Square s = pop_lsb(&bb);
+    while (bb)
+    {
+      Square s = pop_lsb(bb);
       active->push_back(make_index(perspective, s, pos.piece_on(s), ksq));
     }
   }
 
-  // Get a list of indices for recently changed features
+
+  // append_changed_indices() : get a list of indices for recently changed features
+
+  // IMPORTANT: The `pos` in this function is pretty much useless as it
+  // is not always the position the features are updated to. The feature
+  // transformer code right now can update multiple accumulators per move,
+  // but since Stockfish only keeps the full state of the current leaf
+  // search position it is not possible to always pass here the position for
+  // which the accumulator is being updated. Therefore the only thing that
+  // can be reliably extracted from `pos` is the king square for the king
+  // of the `perspective` color (note: not even the other king's square will
+  // match reality in all cases, this is also the reason why `dp` is passed
+  // as a parameter and not extracted from pos.state()). This is of particular
+  // problem for future nets with other feature sets, where updating the active
+  // feature might require more information from the intermediate positions. In
+  // this case the only easy solution is to remove the multiple updates from
+  // the feature transformer update code and only update the accumulator for
+  // the current leaf position (the position after the move).
+
   template <Side AssociatedKing>
-  void HalfKPChess<AssociatedKing>::AppendChangedIndices(
+  void HalfKPChess<AssociatedKing>::append_changed_indices(
       const Position& pos, const DirtyPiece& dp, Color perspective,
       IndexList* removed, IndexList* added) {
 
@@ -68,6 +87,6 @@ namespace Eval::NNUE::Features {
     }
   }
 
-  template class HalfKPChess<Side::kFriend>;
+  template class HalfKPChess<Side::Friend>;
 
-}  // namespace Eval::NNUE::Features
+}  // namespace Stockfish::Eval::NNUE::Features

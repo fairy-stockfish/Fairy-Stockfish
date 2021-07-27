@@ -3,7 +3,7 @@
 ## Overview
 
 [![Build Status](https://github.com/ianfab/Fairy-Stockfish/workflows/build/badge.svg?branch=master)](https://github.com/ianfab/Fairy-Stockfish/actions?query=workflow%3Abuild)
-[![Build Status](https://travis-ci.org/ianfab/Fairy-Stockfish.svg?branch=master)](https://travis-ci.org/ianfab/Fairy-Stockfish)
+[![Build Status](https://github.com/ianfab/Fairy-Stockfish/workflows/fairy/badge.svg?branch=master)](https://github.com/ianfab/Fairy-Stockfish/actions?query=workflow%3Afairy)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/ianfab/Fairy-Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/ianfab/Fairy-Stockfish/branch/master)
 [![PyPI version](https://badge.fury.io/py/pyffish.svg)](https://badge.fury.io/py/pyffish)
 [![NPM version](https://img.shields.io/npm/v/ffish.svg?sanitize=true)](https://www.npmjs.com/package/ffish)
@@ -38,7 +38,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 
 ### Chess variants
 - [Capablanca](https://en.wikipedia.org/wiki/Capablanca_Chess), [Janus](https://en.wikipedia.org/wiki/Janus_Chess), [Modern](https://en.wikipedia.org/wiki/Modern_Chess_(chess_variant)), [Chancellor](https://en.wikipedia.org/wiki/Chancellor_Chess), [Embassy](https://en.wikipedia.org/wiki/Embassy_Chess), [Gothic](https://www.chessvariants.com/large.dir/gothicchess.html), [Capablanca random chess](https://en.wikipedia.org/wiki/Capablanca_Random_Chess)
-- [Grand](https://en.wikipedia.org/wiki/Grand_Chess), [Shako](https://www.chessvariants.com/large.dir/shako.html), [Centaur](https://www.chessvariants.com/large.dir/contest/royalcourt.html), [Tencubed](https://www.chessvariants.com/contests/10/tencubedchess.html)
+- [Grand](https://en.wikipedia.org/wiki/Grand_Chess), [Shako](https://www.chessvariants.com/large.dir/shako.html), [Centaur](https://www.chessvariants.com/large.dir/contest/royalcourt.html), [Tencubed](https://www.chessvariants.com/contests/10/tencubedchess.html), [Opulent](https://www.chessvariants.com/rules/opulent-chess)
 - [Chess960](https://en.wikipedia.org/wiki/Chess960), [Placement/Pre-Chess](https://www.chessvariants.com/link/placement-chess)
 - [Crazyhouse](https://en.wikipedia.org/wiki/Crazyhouse), [Loop](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Chessgi](https://en.wikipedia.org/wiki/Crazyhouse#Variations), [Pocket Knight](http://www.chessvariants.com/other.dir/pocket.html), Capablanca-Crazyhouse
 - [Bughouse](https://en.wikipedia.org/wiki/Bughouse_chess), [Koedem](http://schachclub-oetigheim.de/wp-content/uploads/2016/04/Koedem-rules.pdf)
@@ -61,6 +61,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Tori shogi](https://en.wikipedia.org/wiki/Tori_shogi)
 - [Yari shogi](https://en.wikipedia.org/wiki/Yari_shogi)
 - [Okisaki shogi](https://en.wikipedia.org/wiki/Okisaki_shogi)
+- [Sho shogi](https://en.wikipedia.org/wiki/Sho_shogi)
 
 ### Related games
 - [Amazons](https://en.wikipedia.org/wiki/Game_of_the_Amazons)
@@ -95,7 +96,7 @@ A port of Fairy-Stockfish to WebAssembly is maintained at https://github.com/ian
 # Stockfish
 ## Overview
 
-[![Build Status](https://travis-ci.org/official-stockfish/Stockfish.svg?branch=master)](https://travis-ci.org/official-stockfish/Stockfish)
+[![Build Status](https://github.com/official-stockfish/Stockfish/actions/workflows/stockfish.yml/badge.svg)](https://github.com/official-stockfish/Stockfish/actions)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/official-stockfish/Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/mcostalba/stockfish/branch/master)
 
 [Stockfish](https://stockfishchess.org) is a free, powerful UCI chess engine
@@ -337,9 +338,9 @@ When not using the Makefile to compile (for instance, with Microsoft MSVC) you
 need to manually set/unset some switches in the compiler command line; see
 file *types.h* for a quick reference.
 
-When reporting an issue or a bug, please tell us which version and
-compiler you used to create your executable. These informations can
-be found by typing the following commands in a console:
+When reporting an issue or a bug, please tell us which Stockfish version
+and which compiler you used to create your executable. This information
+can be found by typing the following command in a console:
 
 ```
     ./stockfish compiler
@@ -347,8 +348,8 @@ be found by typing the following commands in a console:
 
 ## Understanding the code base and participating in the project
 
-Stockfish's improvement over the last couple of years has been a great
-community effort. There are a few ways to help contribute to its growth.
+Stockfish's improvement over the last decade has been a great community
+effort. There are a few ways to help contribute to its growth.
 
 ### Donating hardware
 

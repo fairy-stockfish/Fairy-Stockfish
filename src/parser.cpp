@@ -24,6 +24,8 @@
 #include "piece.h"
 #include "types.h"
 
+namespace Stockfish {
+
 namespace {
 
     template <typename T> bool set(const std::string& value, T& target)
@@ -433,3 +435,5 @@ template Variant* VariantParser<true>::parse();
 template Variant* VariantParser<false>::parse();
 template Variant* VariantParser<true>::parse(Variant* v);
 template Variant* VariantParser<false>::parse(Variant* v);
+
+} // namespace Stockfish

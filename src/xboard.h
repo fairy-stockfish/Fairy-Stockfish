@@ -25,6 +25,8 @@
 
 #include "types.h"
 
+namespace Stockfish {
+
 class Position;
 
 namespace XBoard {
@@ -63,5 +65,7 @@ private:
 extern StateMachine* stateMachine;
 
 } // namespace XBoard
+
+} // namespace Stockfish
 
 #endif // #ifndef XBOARD_H_INCLUDED

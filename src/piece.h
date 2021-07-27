@@ -25,6 +25,7 @@
 #include "types.h"
 #include "variant.h"
 
+namespace Stockfish {
 
 enum MoveModality {MODALITY_QUIET, MODALITY_CAPTURE, MOVE_MODALITY_NB};
 
@@ -50,5 +51,7 @@ inline std::string piece_name(PieceType pt) {
   return is_custom(pt) ? "customPiece" + std::to_string(pt - CUSTOM_PIECES + 1)
                        : pieceMap.find(pt)->second->name;
 }
+
+} // namespace Stockfish
 
 #endif // #ifndef PIECE_H_INCLUDED

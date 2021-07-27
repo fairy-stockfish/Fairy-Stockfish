@@ -21,7 +21,7 @@
 #include "half_kp_shogi.h"
 #include "index_list.h"
 
-namespace Eval::NNUE::Features {
+namespace Stockfish::Eval::NNUE::Features {
 
   constexpr Square rotate(Square s) {
     return Square(SQUARE_NB_SHOGI - 1 - int(s));
@@ -38,24 +38,24 @@ namespace Eval::NNUE::Features {
 
   // Index of a feature for a given king position and another piece on some square
   inline IndexType make_index(Color perspective, Square s, Piece pc, Square ksq) {
-    return IndexType(orient(perspective, s) + shogi_kpp_board_index[perspective][pc] + SHOGI_PS_END * ksq);
+    return IndexType(orient(perspective, s) + PieceSquareIndexShogi[perspective][pc] + SHOGI_PS_END * ksq);
   }
 
   // Index of a feature for a given king position and hand piece
   inline IndexType make_index(Color perspective, Color c, int hand_index, PieceType pt, Square ksq) {
     Color color = (c == perspective) ? WHITE : BLACK;
-    return IndexType(hand_index + shogi_kpp_hand_index[color][pt] + SHOGI_PS_END * ksq);
+    return IndexType(hand_index + PieceSquareIndexShogiHand[color][pt] + SHOGI_PS_END * ksq);
   }
 
   // Get a list of indices for active features
   template <Side AssociatedKing>
-  void HalfKPShogi<AssociatedKing>::AppendActiveIndices(
+  void HalfKPShogi<AssociatedKing>::append_active_indices(
       const Position& pos, Color perspective, IndexList* active) {
 
     Square ksq = orient(perspective, pos.square<KING>(perspective));
     Bitboard bb = pos.pieces() & ~pos.pieces(KING);
     while (bb) {
-      Square s = pop_lsb(&bb);
+      Square s = pop_lsb(bb);
       active->push_back(make_index(perspective, s, pos.piece_on(s), ksq));
     }
 
@@ -68,7 +68,7 @@ namespace Eval::NNUE::Features {
 
   // Get a list of indices for recently changed features
   template <Side AssociatedKing>
-  void HalfKPShogi<AssociatedKing>::AppendChangedIndices(
+  void HalfKPShogi<AssociatedKing>::append_changed_indices(
       const Position& pos, const DirtyPiece& dp, Color perspective,
       IndexList* removed, IndexList* added) {
 
@@ -93,6 +93,6 @@ namespace Eval::NNUE::Features {
     }
   }
 
-  template class HalfKPShogi<Side::kFriend>;
+  template class HalfKPShogi<Side::Friend>;
 
-}  // namespace Eval::NNUE::Features
+}  // namespace Stockfish::Eval::NNUE::Features

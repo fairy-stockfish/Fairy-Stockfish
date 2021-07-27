@@ -22,6 +22,8 @@
 #include "endgame.h"
 #include "movegen.h"
 
+namespace Stockfish {
+
 namespace {
 
   // Used to drive the king towards the edge of the board
@@ -369,7 +371,7 @@ Value Endgame<KFsPsK>::operator()(const Position& pos) const {
       Bitboard b = pos.pieces(strongSide, PAWN);
       while (b && (!dark || !light))
       {
-          if (file_of(pop_lsb(&b)) % 2 != relative_rank(strongSide, pos.promotion_rank(), pos.max_rank()) % 2)
+          if (file_of(pop_lsb(b)) % 2 != relative_rank(strongSide, pos.promotion_rank(), pos.max_rank()) % 2)
               light = true;
           else
               dark = true;
@@ -938,3 +940,5 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
 
   return Bitbases::probe(strongKing, strongPawn, weakKing, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
 }
+
+} // namespace Stockfish

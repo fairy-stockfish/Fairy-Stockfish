@@ -34,7 +34,7 @@ if [[ $1 == "" || $1 == "chess" ]]; then
 fi
 
 # variants
-if [[ $1 == "" || $1 == "variant" ]]; then
+if [[ $1 == "all" || $1 == "variant" ]]; then
   # small board
   expect perft.exp losalamos startpos 5 191846 > /dev/null
   expect perft.exp losalamos "fen 6/2P3/6/1K1k2/6/6 w - - 0 1" 6 187431 > /dev/null
@@ -121,6 +121,7 @@ fi
 # large-board variants
 if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp shogi startpos 4 719731 > /dev/null
+  expect perft.exp shoshogi startpos 4 445372 > /dev/null  # configurable pieces
   expect perft.exp yarishogi startpos 4 158404 > /dev/null  # configurable pieces
   expect perft.exp capablanca startpos 4 805128 > /dev/null
   expect perft.exp embassy startpos 4 809539 > /dev/null
@@ -130,6 +131,7 @@ if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp courier startpos 4 500337 > /dev/null
   expect perft.exp grand startpos 3 259514 > /dev/null
   expect perft.exp grand "fen r8r/1nbqkcabn1/ppp2ppppp/3p6/4pP4/10/10/PPPPP1PPPP/1NBQKCABN1/R8R w - e7 0 3" 2 5768 > /dev/null
+  expect perft.exp opulent startpos 3 133829 > /dev/null
   expect perft.exp xiangqi startpos 4 3290240 > /dev/null
   expect perft.exp xiangqi "fen 1rbaka2R/5r3/6n2/2p1p1p2/4P1bP1/PpC3Bc1/1nPR2P2/2N2AN2/1c2K1p2/2BAC4 w - - 0 1" 4 4485547 > /dev/null
   expect perft.exp xiangqi "fen 4kcP1N/8n/3rb4/9/9/9/9/3p1A3/4K4/5CB2 w - - 0 1" 4 92741 > /dev/null
