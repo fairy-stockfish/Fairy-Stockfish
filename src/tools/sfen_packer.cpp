@@ -125,14 +125,15 @@ namespace Stockfish::Tools {
     // Queen   xxxx1001 + 1 bit (Color)
     //
     // Worst case:
-    // - 32 empty squares    32 bits
-    // - 30 pieces           150 bits
-    // - 2 kings             12 bits
+    // - 80 empty squares    80 bits
+    // - 40 pieces           240 bits
+    // - 20 pockets          100 bits
+    // - 2 kings             14 bits
     // - castling rights     4 bits
-    // - ep square           7 bits
+    // - ep square           8 bits
     // - rule50              7 bits
     // - game ply            16 bits
-    // - TOTAL               228 bits < 256 bits
+    // - TOTAL               469 bits < 512 bits
 
     struct HuffmanedPiece
     {
@@ -142,13 +143,23 @@ namespace Stockfish::Tools {
 
     constexpr HuffmanedPiece huffman_table[] =
     {
-        {0b0000,1}, // NO_PIECE
-        {0b0001,4}, // PAWN
-        {0b0011,4}, // KNIGHT
-        {0b0101,4}, // BISHOP
-        {0b0111,4}, // ROOK
-        {0b1001,4}, // QUEEN
-        // TODO
+        {0b00000,1}, // NO_PIECE
+        {0b00001,5}, // PAWN
+        {0b00011,5}, // KNIGHT
+        {0b00101,5}, // BISHOP
+        {0b00111,5}, // ROOK
+        {0b01001,5}, // QUEEN
+        {0b01011,5}, //
+        {0b01101,5}, //
+        {0b01111,5}, //
+        {0b10001,5}, //
+        {0b10011,5}, //
+        {0b10101,5}, //
+        {0b10111,5}, //
+        {0b11001,5}, //
+        {0b11011,5}, //
+        {0b11101,5}, //
+        {0b11111,5}, //
     };
 
     inline Square to_variant_square(Square s, const Position& pos) {
@@ -225,7 +236,7 @@ namespace Stockfish::Tools {
     void SfenPacker::write_board_piece_to_stream(const Position& pos, Piece pc)
     {
         // piece type
-        PieceType pr = PieceType(pos.variant()->pieceIndex[type_of(pc)] + 1);
+        PieceType pr = PieceType(pc == NO_PIECE ? NO_PIECE_TYPE : pos.variant()->pieceIndex[type_of(pc)] + 1);
         auto c = huffman_table[pr];
         stream.write_n_bit(c.code, c.bits);
 
