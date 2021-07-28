@@ -151,6 +151,10 @@ namespace Stockfish::Tools {
         // TODO
     };
 
+    inline Square to_variant_square(Square s, const Position& pos) {
+        return Square(s - rank_of(s) * (FILE_MAX - pos.max_file()));
+    }
+
     // Pack sfen and store in data[64].
     void SfenPacker::pack(const Position& pos)
     {
@@ -164,7 +168,7 @@ namespace Stockfish::Tools {
         // 7-bit positions for leading and trailing balls
         // White king and black king, 6 bits for each.
         for(auto c: Colors)
-            stream.write_n_bit(pos.king_square(c), 7);
+            stream.write_n_bit(to_variant_square(pos.king_square(c), pos), 7);
 
         // Write the pieces on the board other than the kings.
         for (Rank r = pos.max_rank(); r >= RANK_1; --r)
@@ -196,7 +200,7 @@ namespace Stockfish::Tools {
         }
         else {
             stream.write_one_bit(1);
-            stream.write_n_bit(static_cast<int>(pos.ep_square()), 7);
+            stream.write_n_bit(static_cast<int>(to_variant_square(pos.ep_square(), pos)), 7);
         }
 
         stream.write_n_bit(pos.state()->rule50, 6);
