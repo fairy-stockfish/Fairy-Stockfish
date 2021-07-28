@@ -138,6 +138,7 @@ struct Variant {
   PieceType nnueKing = KING;
   int nnueSquares = 0;
   int nnuePieceIndices = 0;
+  int pieceIndex[PIECE_TYPE_NB];
   int pieceSquareIndex[COLOR_NB][PIECE_NB];
   bool endgameEval = false;
 
@@ -201,6 +202,7 @@ struct Variant {
       int i = 0;
       for (PieceType pt : pieceTypes)
       {
+          pieceIndex[pt] = i;
           for (Color c : { WHITE, BLACK})
           {
               pieceSquareIndex[c][make_piece(c, pt)] = 2 * i * nnueSquares;

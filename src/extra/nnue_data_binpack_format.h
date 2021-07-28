@@ -6357,7 +6357,7 @@ namespace binpack
 
         struct PackedSfen
         {
-            uint8_t data[32];
+            uint8_t data[64];
         };
 
         struct PackedSfenValue
@@ -6387,7 +6387,7 @@ namespace binpack
 
             // 32 + 2 + 2 + 2 + 1 + 1 = 40bytes
         };
-        static_assert(sizeof(PackedSfenValue) == 40);
+        static_assert(sizeof(PackedSfenValue) == 72);
         // Class that handles bitstream
 
         // useful when doing aspect encoding

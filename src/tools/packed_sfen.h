@@ -7,7 +7,7 @@
 namespace Stockfish::Tools {
 
     // packed sfen
-    struct PackedSfen { std::uint8_t data[32]; };
+    struct PackedSfen { std::uint8_t data[64]; };
 
     // Structure in which PackedSfen and evaluation value are integrated
     // If you write different contents for each option, it will be a problem when reusing the teacher game
@@ -37,7 +37,7 @@ namespace Stockfish::Tools {
         //Because this structure size is not fixed, pad it so that it is 40 bytes in any environment.
         std::uint8_t padding;
 
-        // 32 + 2 + 2 + 2 + 1 + 1 = 40bytes
+        // 64 + 2 + 2 + 2 + 1 + 1 = 72bytes
     };
 
     // Phase array: PSVector stands for packed sfen vector.

@@ -105,7 +105,7 @@ namespace Stockfish::Tools {
         BitStream stream;
 
         // Output the board pieces to stream.
-        void write_board_piece_to_stream(Piece pc);
+        void write_board_piece_to_stream(const Position& pos, Piece pc);
 
         // Read one board piece from stream
         Piece read_board_piece_from_stream();
@@ -148,12 +148,13 @@ namespace Stockfish::Tools {
         {0b0101,4}, // BISHOP
         {0b0111,4}, // ROOK
         {0b1001,4}, // QUEEN
+        // TODO
     };
 
-    // Pack sfen and store in data[32].
+    // Pack sfen and store in data[64].
     void SfenPacker::pack(const Position& pos)
     {
-        memset(data, 0, 32 /* 256bit */);
+        memset(data, 0, 64 /* 512bit */);
         stream.set_data(data);
 
         // turn
@@ -163,18 +164,25 @@ namespace Stockfish::Tools {
         // 7-bit positions for leading and trailing balls
         // White king and black king, 6 bits for each.
         for(auto c: Colors)
-            stream.write_n_bit(pos.king_square(c), 6);
+            stream.write_n_bit(pos.king_square(c), 7);
 
         // Write the pieces on the board other than the kings.
-        for (Rank r = RANK_8; r >= RANK_1; --r)
+        for (Rank r = pos.max_rank(); r >= RANK_1; --r)
         {
-            for (File f = FILE_A; f <= FILE_H; ++f)
+            for (File f = FILE_A; f <= pos.max_file(); ++f)
             {
                 Piece pc = pos.piece_on(make_square(f, r));
                 if (type_of(pc) == pos.nnue_king())
                     continue;
-                write_board_piece_to_stream(pc);
+                write_board_piece_to_stream(pos, pc);
             }
+        }
+
+        if (pos.piece_drops() || pos.seirawan_gating())
+        {
+            for(auto c: Colors)
+                for (PieceType pt : pos.piece_types())
+                    stream.write_n_bit(pos.count_in_hand(c, pt), 5);
         }
 
         // TODO(someone): Support chess960.
@@ -188,7 +196,7 @@ namespace Stockfish::Tools {
         }
         else {
             stream.write_one_bit(1);
-            stream.write_n_bit(static_cast<int>(pos.ep_square()), 6);
+            stream.write_n_bit(static_cast<int>(pos.ep_square()), 7);
         }
 
         stream.write_n_bit(pos.state()->rule50, 6);
@@ -206,14 +214,14 @@ namespace Stockfish::Tools {
         // This bit is just ignored by the old parsers.
         stream.write_n_bit(pos.state()->rule50 >> 6, 1);
 
-        assert(stream.get_cursor() <= 256);
+        assert(stream.get_cursor() <= 512);
     }
 
     // Output the board pieces to stream.
-    void SfenPacker::write_board_piece_to_stream(Piece pc)
+    void SfenPacker::write_board_piece_to_stream(const Position& pos, Piece pc)
     {
         // piece type
-        PieceType pr = type_of(pc);
+        PieceType pr = PieceType(pos.variant()->pieceIndex[type_of(pc)] + 1);
         auto c = huffman_table[pr];
         stream.write_n_bit(c.code, c.bits);
 
@@ -272,12 +280,12 @@ namespace Stockfish::Tools {
 
         // First the position of the ball
         for (auto c : Colors)
-            pos.board[stream.read_n_bit(6)] = make_piece(c, pos.nnue_king());
+            pos.board[stream.read_n_bit(7)] = make_piece(c, pos.nnue_king());
 
         // Piece placement
-        for (Rank r = RANK_8; r >= RANK_1; --r)
+        for (Rank r = pos.max_rank(); r >= RANK_1; --r)
         {
-            for (File f = FILE_A; f <= FILE_H; ++f)
+            for (File f = FILE_A; f <= pos.max_file(); ++f)
             {
                 auto sq = make_square(f, r);
 
@@ -301,7 +309,7 @@ namespace Stockfish::Tools {
 
                 pos.put_piece(Piece(pc), sq);
 
-                if (stream.get_cursor()> 256)
+                if (stream.get_cursor()> 512)
                     return 1;
             }
         }
@@ -332,7 +340,7 @@ namespace Stockfish::Tools {
 
         // En passant square. Ignore if no pawn capture is possible
         if (stream.read_one_bit()) {
-            Square ep_square = static_cast<Square>(stream.read_n_bit(6));
+            Square ep_square = static_cast<Square>(stream.read_n_bit(7));
             pos.st->epSquare = ep_square;
 
             if (!(pos.attackers_to(pos.st->epSquare) & pos.pieces(pos.sideToMove, PAWN))
@@ -363,7 +371,7 @@ namespace Stockfish::Tools {
         // handle also common incorrect FEN with fullmove = 0.
         pos.gamePly = std::max(2 * (pos.gamePly - 1), 0) + (pos.sideToMove == BLACK);
 
-        assert(stream.get_cursor() <= 256);
+        assert(stream.get_cursor() <= 512);
 
         pos.chess960 = false;
         pos.thisThread = th;
