@@ -51,6 +51,11 @@ std::set<string> standard_variants = {
     "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi"
 };
 
+void init_variant(const Variant* v) {
+    pieceMap.init(v);
+    Bitboards::init_pieces();
+}
+
 /// 'On change' actions, triggered by an option's value change
 void on_clear_hash(const Option&) { Search::clear(); }
 void on_hash_size(const Option& o) { TT.resize(size_t(o)); }
@@ -67,8 +72,7 @@ void on_variant_set(const Option &o) {
     Eval::NNUE::init();
 
     const Variant* v = variants.find(o)->second;
-    pieceMap.init(v);
-    Bitboards::init_pieces();
+    init_variant(v);
     PSQT::init(v);
 }
 void on_variant_change(const Option &o) {
