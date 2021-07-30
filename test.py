@@ -133,6 +133,11 @@ variant_positions = {
         "k7/8/8/8/8/8/8/KFF5[] w - - 0 1": (False, True),  # KFF vs K
         "k7/8/8/8/8/8/8/KS6[] w - - 0 1": (False, True),  # KS vs K
     },
+    "makpong": {
+        "8/8/8/4k2K/5m~2/4m~3/8/8 w - 128 8 58": (True, False),  # KFF vs K
+        "k7/n7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KN
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K
+    },
     "xiangqi": {
         "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1": (False, False),  # startpos
         "5k3/4a4/3CN4/9/1PP5p/9/8P/4C4/4A4/2B1K4 w - - 0 46": (False, False),  # issue #53
