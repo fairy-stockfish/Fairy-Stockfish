@@ -193,12 +193,9 @@ namespace Stockfish::Tools {
             }
         }
 
-        if (pos.piece_drops() || pos.seirawan_gating())
-        {
-            for(auto c: Colors)
-                for (PieceType pt : pos.piece_types())
-                    stream.write_n_bit(pos.count_in_hand(c, pt), 5);
-        }
+        for(auto c: Colors)
+            for (PieceType pt : pos.piece_types())
+                stream.write_n_bit(pos.count_in_hand(c, pt), 5);
 
         // TODO(someone): Support chess960.
         stream.write_one_bit(pos.can_castle(WHITE_OO));
