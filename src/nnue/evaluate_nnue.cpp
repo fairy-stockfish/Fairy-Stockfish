@@ -160,7 +160,7 @@ namespace Stockfish::Eval::NNUE {
     ASSERT_ALIGNED(transformedFeatures, alignment);
     ASSERT_ALIGNED(buffer, alignment);
 
-    const std::size_t bucket = (pos.count<ALL_PIECES>() - 1) / 4;
+    const std::size_t bucket = std::min((pos.count<ALL_PIECES>() - 1) * 8 / currentNnueVariant->nnueMaxPieces, 7);
     const auto psqt = featureTransformer->transform(pos, transformedFeatures, bucket);
     const auto output = network[bucket]->propagate(transformedFeatures, buffer);
 
@@ -210,7 +210,7 @@ namespace Stockfish::Eval::NNUE {
     ASSERT_ALIGNED(buffer, alignment);
 
     NnueEvalTrace t{};
-    t.correctBucket = (pos.count<ALL_PIECES>() - 1) / 4;
+    t.correctBucket = std::min((pos.count<ALL_PIECES>() - 1) * 8 / currentNnueVariant->nnueMaxPieces, 7);
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket) {
       const auto psqt = featureTransformer->transform(pos, transformedFeatures, bucket);
       const auto output = network[bucket]->propagate(transformedFeatures, buffer);
@@ -301,13 +301,13 @@ namespace Stockfish::Eval::NNUE {
     char board[3*RANK_NB+1][8*FILE_NB+2];
     std::memset(board, ' ', sizeof(board));
     for (int row = 0; row < 3*pos.ranks()+1; ++row)
-      board[row][pos.ranks()*pos.files()+1] = '\0';
+      board[row][8*FILE_NB+1] = '\0';
 
     // A lambda to output one box of the board
     auto writeSquare = [&board, &pos](File file, Rank rank, Piece pc, Value value) {
 
       const int x = ((int)file) * 8;
-      const int y = (7 - (int)rank) * 3;
+      const int y = (pos.max_rank() - (int)rank) * 3;
       for (int i = 1; i < 8; ++i)
          board[y][x+i] = board[y+3][x+i] = '-';
       for (int i = 1; i < 3; ++i)

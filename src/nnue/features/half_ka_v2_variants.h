@@ -26,7 +26,6 @@
 #include "../../evaluate.h"
 #include "../../misc.h"
 
-#include "half_ka_v2_shogi.h"
 #include "half_ka_v2.h"
 
 namespace Stockfish {
@@ -38,72 +37,6 @@ namespace Stockfish::Eval::NNUE::Features {
   // Feature HalfKAv2: Combination of the position of own king
   // and the position of pieces
   class HalfKAv2Variants {
-
-    // unique number for each piece type on each square
-    enum {
-      PS_NONE     =  0,
-      PS_W_PAWN   =  0,
-      PS_B_PAWN   =  1 * SQUARE_NB_CHESS,
-      PS_W_KNIGHT =  2 * SQUARE_NB_CHESS,
-      PS_B_KNIGHT =  3 * SQUARE_NB_CHESS,
-      PS_W_BISHOP =  4 * SQUARE_NB_CHESS,
-      PS_B_BISHOP =  5 * SQUARE_NB_CHESS,
-      PS_W_ROOK   =  6 * SQUARE_NB_CHESS,
-      PS_B_ROOK   =  7 * SQUARE_NB_CHESS,
-      PS_W_QUEEN  =  8 * SQUARE_NB_CHESS,
-      PS_B_QUEEN  =  9 * SQUARE_NB_CHESS,
-      PS_KING     =  10 * SQUARE_NB_CHESS,
-      PS_NB = 11 * SQUARE_NB_CHESS
-    };
-
-    static constexpr uint32_t PieceSquareIndex[COLOR_NB][PIECE_NB] = {
-      // convention: W - us, B - them
-      // viewed from other side, W and B are reversed
-      {
-        PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_W_QUEEN, PS_W_BISHOP,
-        PS_W_BISHOP, PS_W_BISHOP, PS_W_QUEEN, PS_W_QUEEN, PS_NONE, PS_NONE, PS_W_QUEEN, PS_W_KNIGHT,
-        PS_W_BISHOP, PS_W_KNIGHT, PS_W_ROOK, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_W_BISHOP, PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_KING, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_KING,
-
-        PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_B_QUEEN, PS_B_BISHOP,
-        PS_B_BISHOP, PS_B_BISHOP, PS_B_QUEEN, PS_B_QUEEN, PS_NONE, PS_NONE, PS_B_QUEEN, PS_B_KNIGHT,
-        PS_B_BISHOP, PS_B_KNIGHT, PS_B_ROOK, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_B_BISHOP, PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_KING, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_KING,
-      },
-
-      {
-        PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_B_QUEEN, PS_B_BISHOP,
-        PS_B_BISHOP, PS_B_BISHOP, PS_B_QUEEN, PS_B_QUEEN, PS_NONE, PS_NONE, PS_B_QUEEN, PS_B_KNIGHT,
-        PS_B_BISHOP, PS_B_KNIGHT, PS_B_ROOK, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_B_BISHOP, PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_KING, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_KING,
-
-        PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_W_QUEEN, PS_W_BISHOP,
-        PS_W_BISHOP, PS_W_BISHOP, PS_W_QUEEN, PS_W_QUEEN, PS_NONE, PS_NONE, PS_W_QUEEN, PS_W_KNIGHT,
-        PS_W_BISHOP, PS_W_KNIGHT, PS_W_ROOK, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_W_BISHOP, PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_KING, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE,
-        PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_NONE, PS_KING,
-      }
-    };
-    // Check that the fragile array definition is correct
-    static_assert(PieceSquareIndex[WHITE][make_piece(WHITE, PAWN)] == PS_W_PAWN);
-    static_assert(PieceSquareIndex[WHITE][make_piece(WHITE, KING)] == PS_KING);
-    static_assert(PieceSquareIndex[WHITE][make_piece(BLACK, PAWN)] == PS_B_PAWN);
-    static_assert(PieceSquareIndex[WHITE][make_piece(BLACK, KING)] == PS_KING);
 
     // Orient a square according to perspective (rotates by 180 for black)
     static Square orient(Color perspective, Square s, const Position& pos);
@@ -119,17 +52,10 @@ namespace Stockfish::Eval::NNUE::Features {
     static constexpr std::uint32_t HashValue = 0x5f234cb8u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions =
-#ifdef LARGEBOARDS
-        HalfKAv2Shogi::Dimensions;
-#else
-        HalfKAv2::Dimensions;
-#endif
+    static constexpr IndexType Dimensions = static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(SQUARE_NB) * 19;
 
     static IndexType get_dimensions() {
-      return  currentNnueFeatures == NNUE_SHOGI ? HalfKAv2Shogi::Dimensions
-            : currentNnueFeatures == NNUE_CHESS ? HalfKAv2::Dimensions
-                                                : SQUARE_NB_CHESS * PS_NB;
+      return currentNnueVariant->nnueSquares * currentNnueVariant->nnuePieceIndices;
     }
 
     // Maximum number of simultaneously active features.
