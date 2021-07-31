@@ -34,7 +34,7 @@ namespace Stockfish::Tools {
         std::int8_t game_result;
 
         // When exchanging the file that wrote the teacher aspect with other people
-        //Because this structure size is not fixed, pad it so that it is 40 bytes in any environment.
+        //Because this structure size is not fixed, pad it so that it is 72 bytes in any environment.
         std::uint8_t padding;
 
         // 64 + 2 + 2 + 2 + 1 + 1 = 72bytes

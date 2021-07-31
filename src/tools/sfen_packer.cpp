@@ -108,7 +108,7 @@ namespace Stockfish::Tools {
         void write_board_piece_to_stream(const Position& pos, Piece pc);
 
         // Read one board piece from stream
-        Piece read_board_piece_from_stream();
+        Piece read_board_piece_from_stream(const Position& pos);
     };
 
 
@@ -245,7 +245,7 @@ namespace Stockfish::Tools {
     }
 
     // Read one board piece from stream
-    Piece SfenPacker::read_board_piece_from_stream()
+    Piece SfenPacker::read_board_piece_from_stream(const Position& pos)
     {
         PieceType pr = NO_PIECE_TYPE;
         int code = 0, bits = 0;
@@ -268,7 +268,11 @@ namespace Stockfish::Tools {
         // first and second flag
         Color c = (Color)stream.read_one_bit();
 
-        return make_piece(c, pr);
+        for(PieceType pt : pos.piece_types())
+            if (pos.variant()->pieceIndex[pt] + 1 == pr)
+                return make_piece(c, pt);
+        assert(false);
+        return NO_PIECE;
     }
 
     int set_from_packed_sfen(Position& pos, const PackedSfen& sfen, StateInfo* si, Thread* th)
@@ -306,7 +310,7 @@ namespace Stockfish::Tools {
                 if (type_of(pos.board[sq]) != pos.nnue_king())
                 {
                     assert(pos.board[sq] == NO_PIECE);
-                    pc = packer.read_board_piece_from_stream();
+                    pc = packer.read_board_piece_from_stream(pos);
                 }
                 else
                 {

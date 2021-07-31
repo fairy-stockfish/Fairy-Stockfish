@@ -7646,7 +7646,7 @@ namespace binpack
         for(;;)
         {
             inputFile.read(reinterpret_cast<char*>(&psv), sizeof(psv));
-            if (inputFile.gcount() != 40)
+            if (inputFile.gcount() != 72)
             {
                 break;
             }
@@ -7737,7 +7737,7 @@ namespace binpack
         for(;;)
         {
             inputFile.read(reinterpret_cast<char*>(&psv), sizeof(psv));
-            if (inputFile.gcount() != 40)
+            if (inputFile.gcount() != 72)
             {
                 break;
             }
@@ -7929,7 +7929,7 @@ namespace binpack
         for(;;)
         {
             inputFile.read(reinterpret_cast<char*>(&psv), sizeof(psv));
-            if (inputFile.gcount() != 40)
+            if (inputFile.gcount() != 72)
             {
                 break;
             }
