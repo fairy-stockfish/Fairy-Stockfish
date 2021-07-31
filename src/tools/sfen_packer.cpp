@@ -256,7 +256,7 @@ namespace Stockfish::Tools {
 
             assert(bits <= 6);
 
-            for (pr = NO_PIECE_TYPE; pr <= QUEEN; ++pr)
+            for (pr = NO_PIECE_TYPE; pr <= 16; ++pr)
                 if (huffman_table[pr].code == code
                     && huffman_table[pr].bits == bits)
                     goto Found;
