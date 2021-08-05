@@ -1230,7 +1230,7 @@ namespace {
             else if (pos.extinction_value() == VALUE_MATE)
             {
                 // Losing chess variant bonus
-                score += make_score(pos.non_pawn_material(Us), pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
+                score += make_score(pos.non_pawn_material(Us), pos.non_pawn_material(Us)) / std::max(pos.count<ALL_PIECES>(Us), 1);
             }
             else if (pos.count<PAWN>(Us) == pos.count<ALL_PIECES>(Us))
             {
