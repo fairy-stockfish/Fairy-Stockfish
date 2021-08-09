@@ -16,7 +16,6 @@ jobs:
     env:
       COMPILER: ${{ matrix.config.compiler }}
       COMP: ${{ matrix.config.comp }}
-      CXXFLAGS: "-Werror"
     strategy:
       matrix:
         config:
@@ -69,7 +68,7 @@ jobs:
 
       - name: Test debug x86-32 build
         run: |
-          export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
+          export CXXFLAGS="-D_GLIBCXX_DEBUG"
           make clean
           make -j2 ARCH=x86-32 optimize=no debug=yes build
           ../tests/signature.sh $benchref
@@ -102,7 +101,7 @@ jobs:
 
       - name: Test debug x86-64-modern build
         run: |
-          export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
+          export CXXFLAGS="-D_GLIBCXX_DEBUG"
           make clean
           make -j2 ARCH=x86-64-modern optimize=no debug=yes build
           ../tests/signature.sh $benchref
