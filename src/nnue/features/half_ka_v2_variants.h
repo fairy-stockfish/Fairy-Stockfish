@@ -38,23 +38,6 @@ namespace Stockfish::Eval::NNUE::Features {
   // and the position of pieces
   class HalfKAv2Variants {
 
-    // unique number for each piece type on each square
-    enum {
-      PS_NONE     =  0,
-      PS_W_PAWN   =  0,
-      PS_B_PAWN   =  1 * SQUARE_NB_CHESS,
-      PS_W_KNIGHT =  2 * SQUARE_NB_CHESS,
-      PS_B_KNIGHT =  3 * SQUARE_NB_CHESS,
-      PS_W_BISHOP =  4 * SQUARE_NB_CHESS,
-      PS_B_BISHOP =  5 * SQUARE_NB_CHESS,
-      PS_W_ROOK   =  6 * SQUARE_NB_CHESS,
-      PS_B_ROOK   =  7 * SQUARE_NB_CHESS,
-      PS_W_QUEEN  =  8 * SQUARE_NB_CHESS,
-      PS_B_QUEEN  =  9 * SQUARE_NB_CHESS,
-      PS_KING     =  10 * SQUARE_NB_CHESS,
-      PS_NB = 11 * SQUARE_NB_CHESS
-    };
-
     // Orient a square according to perspective (rotates by 180 for black)
     static Square orient(Color perspective, Square s, const Position& pos);
 
@@ -69,7 +52,7 @@ namespace Stockfish::Eval::NNUE::Features {
     static constexpr std::uint32_t HashValue = 0x5f234cb8u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(PS_NB);
+    static constexpr IndexType Dimensions = static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(SQUARE_NB) * 19;
 
     static IndexType get_dimensions() {
       return currentNnueVariant->nnueSquares * currentNnueVariant->nnuePieceIndices;
