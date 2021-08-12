@@ -1621,7 +1621,7 @@ Value Eval::evaluate(const Position& pos) {
       auto  adjusted_NNUE = [&]()
       {
 
-         int scale = 903 + 28 * pos.count<PAWN>() + 28 * pos.non_pawn_material() / 1024;
+         int scale = 1024; // avoid divergence in reinforcement learning
 
          Value nnue = NNUE::evaluate(pos, true) * scale / 1024;
 
