@@ -309,6 +309,8 @@ namespace Stockfish::Tools
                 const int depth = params.search_depth_min + (int)prng.rand(params.search_depth_max - params.search_depth_min + 1);
 
                 // Starting search calls init_for_search
+                auto [eval_value, eval_pv] = Search::search(pos, -1);
+                auto [qsearch_value, qsearch_pv] = Search::search(pos, 0);
                 auto [search_value, search_pv] = Search::search(pos, depth, 1, params.nodes);
 
                 // This has to be performed after search because it needs to know
@@ -349,7 +351,10 @@ namespace Stockfish::Tools
                 // Discard stuff before write_minply is reached
                 // because it can harm training due to overfitting.
                 // Initial positions would be too common.
-                if (ply >= params.write_minply && !was_seen_before(pos))
+
+                // Filter for static positions using abs(qsearch_value - eval_value)
+                // sync_cout << pos.fen() << " | " << search_value << " | " << qsearch_value << " | " << eval_value << sync_endl;
+                if (ply >= params.write_minply && !was_seen_before(pos) && std::abs(qsearch_value - eval_value) <= 500)
                 {
                     auto& psv = packed_sfens.emplace_back();
 
