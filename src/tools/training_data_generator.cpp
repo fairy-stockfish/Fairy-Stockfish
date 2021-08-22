@@ -53,6 +53,7 @@ namespace Stockfish::Tools
 
             // Upper limit of evaluation value of generated situation
             int eval_limit = 3000;
+            int eval_diff_limit = 500;
 
             // minimum ply with random move
             // maximum ply with random move
@@ -354,7 +355,7 @@ namespace Stockfish::Tools
 
                 // Filter for static positions using abs(qsearch_value - eval_value)
                 // sync_cout << pos.fen() << " | " << search_value << " | " << qsearch_value << " | " << eval_value << sync_endl;
-                if (ply >= params.write_minply && !was_seen_before(pos) && std::abs(qsearch_value - eval_value) <= 500)
+                if (ply >= params.write_minply && !was_seen_before(pos) && std::abs(qsearch_value - eval_value) <= params.eval_diff_limit)
                 {
                     auto& psv = packed_sfens.emplace_back();
 
@@ -748,6 +749,8 @@ namespace Stockfish::Tools
                 is >> params.output_file_name;
             else if (token == "eval_limit")
                 is >> params.eval_limit;
+            else if (token == "eval_diff_limit")
+                is >> params.eval_diff_limit;
             else if (token == "random_move_min_ply")
                 is >> params.random_move_minply;
             else if (token == "random_move_max_ply")
@@ -840,6 +843,7 @@ namespace Stockfish::Tools
             << "  - nodes                  = " << params.nodes << endl
             << "  - count                  = " << loop_max << endl
             << "  - eval_limit             = " << params.eval_limit << endl
+            << "  - eval_diff_limit        = " << params.eval_diff_limit << endl
             << "  - num threads (UCI)      = " << params.num_threads << endl
             << "  - random_move_min_ply    = " << params.random_move_minply << endl
             << "  - random_move_max_ply    = " << params.random_move_maxply << endl
