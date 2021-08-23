@@ -1621,7 +1621,7 @@ Value Eval::evaluate(const Position& pos) {
       auto  adjusted_NNUE = [&]()
       {
 
-         int scale = 1024; // avoid divergence in reinforcement learning
+         int scale = 1200; // try to avoid divergence in reinforcement learning
 
          Value nnue = NNUE::evaluate(pos, true) * scale / 1024;
 
