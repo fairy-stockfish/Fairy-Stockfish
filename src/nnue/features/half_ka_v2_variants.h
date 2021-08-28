@@ -44,6 +44,9 @@ namespace Stockfish::Eval::NNUE::Features {
     // Index of a feature for a given king position and another piece on some square
     static IndexType make_index(Color perspective, Square s, Piece pc, Square ksq, const Position& pos);
 
+    // Index of a feature for a given king position and another piece in hand
+    static IndexType make_index(Color perspective, int handCount, Piece pc, Square ksq, const Position& pos);
+
    public:
     // Feature name
     static constexpr const char* Name = "HalfKAv2(Friend)";
