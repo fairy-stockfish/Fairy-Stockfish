@@ -40,6 +40,11 @@ namespace Stockfish::Eval::NNUE::Features {
     return IndexType(orient(perspective, s, pos) + pos.variant()->pieceSquareIndex[perspective][pc] + ksq * pos.variant()->nnuePieceIndices);
   }
 
+  // Index of a feature for a given king position and another piece on some square
+  inline IndexType HalfKAv2Variants::make_index(Color perspective, int handCount, Piece pc, Square ksq, const Position& pos) {
+    return IndexType(handCount + pos.variant()->pieceHandIndex[perspective][pc] + ksq * pos.variant()->nnuePieceIndices);
+  }
+
   // Get a list of indices for active features
   void HalfKAv2Variants::append_active_indices(
     const Position& pos,
@@ -53,6 +58,14 @@ namespace Stockfish::Eval::NNUE::Features {
       Square s = pop_lsb(bb);
       active.push_back(make_index(perspective, s, pos.piece_on(s), oriented_ksq, pos));
     }
+
+    // Indices for pieces in hand
+    if (pos.piece_drops() || pos.seirawan_gating())
+      for (Color c : {WHITE, BLACK})
+          for (PieceType pt : pos.piece_types())
+              for (int i = 0; i < pos.count_in_hand(c, pt); i++)
+                  active.push_back(make_index(perspective, i, make_piece(c, pt), oriented_ksq, pos));
+
   }
 
   // append_changed_indices() : get a list of indices for recently changed features
@@ -71,8 +84,12 @@ namespace Stockfish::Eval::NNUE::Features {
       Piece pc = dp.piece[i];
       if (dp.from[i] != SQ_NONE)
         removed.push_back(make_index(perspective, dp.from[i], pc, oriented_ksq, pos));
+      else if (pos.piece_drops() && dp.dirty_num == 1)
+        removed.push_back(make_index(perspective, dp.handCount[i], dp.handPiece[i], oriented_ksq, pos));
       if (dp.to[i] != SQ_NONE)
         added.push_back(make_index(perspective, dp.to[i], pc, oriented_ksq, pos));
+      else if (pos.captures_to_hand() && i == 1)
+        added.push_back(make_index(perspective, dp.handCount[i] - 1, dp.handPiece[i], oriented_ksq, pos));
     }
   }
 

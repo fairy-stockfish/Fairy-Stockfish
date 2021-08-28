@@ -140,6 +140,8 @@ struct Variant {
   int nnuePieceIndices = 0;
   int pieceIndex[PIECE_TYPE_NB];
   int pieceSquareIndex[COLOR_NB][PIECE_NB];
+  int pieceHandIndex[COLOR_NB][PIECE_NB];
+  int nnueMaxPieces;
   bool endgameEval = false;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
@@ -198,7 +200,9 @@ struct Variant {
                 : extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
                 : NO_PIECE_TYPE;
       nnueSquares = (maxRank + 1) * (maxFile + 1);
-      nnuePieceIndices = (2 * pieceTypes.size() - 1) * nnueSquares;
+      int nnuePockets = pieceDrops ? 2 * int(maxFile + 1) : 0;
+      int nnueNonDropPieceIndices = (2 * pieceTypes.size() - 1) * nnueSquares;
+      nnuePieceIndices = nnueNonDropPieceIndices + 2 * (pieceTypes.size() - 1) * nnuePockets;
       int i = 0;
       for (PieceType pt : pieceTypes)
       {
@@ -207,6 +211,8 @@ struct Variant {
           {
               pieceSquareIndex[c][make_piece(c, pt)] = 2 * i * nnueSquares;
               pieceSquareIndex[c][make_piece(~c, pt)] = (2 * i + (pt != nnueKing)) * nnueSquares;
+              pieceHandIndex[c][make_piece(c, pt)] = 2 * i * nnuePockets + nnueNonDropPieceIndices;
+              pieceHandIndex[c][make_piece(~c, pt)] = (2 * i + 1) * nnuePockets + nnueNonDropPieceIndices;
           }
           i++;
       }
