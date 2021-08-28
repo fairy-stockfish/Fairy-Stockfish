@@ -39,26 +39,28 @@ namespace {
     }
     // Base for all fairy variants
     Variant* chess_variant_base() {
-        Variant* v = variant_base();
+        Variant* v = variant_base()->init();
         v->pieceToCharTable = "PNBRQ................Kpnbrq................k";
         return v;
     }
     // Standard chess
     // https://en.wikipedia.org/wiki/Chess
     Variant* chess_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
+        v->nnueAlias = "nn-";
         return v;
     }
     // Chess960 aka Fischer random chess
     // https://en.wikipedia.org/wiki/Fischer_random_chess
     Variant* chess960_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant()->init();
         v->chess960 = true;
+        v->nnueAlias = "nn-";
         return v;
     }
     // Standard chess without castling
     Variant* nocastle_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
         v->castling = false;
         return v;
@@ -66,13 +68,13 @@ namespace {
     // Armageddon Chess
     // https://en.wikipedia.org/wiki/Fast_chess#Armageddon
     Variant* armageddon_variant() {
-        Variant* v = chess_variant();
+        Variant* v = chess_variant()->init();
         v->materialCounting = BLACK_DRAW_ODDS;
         return v;
     }
     // Pseudo-variant only used for endgame initialization
     Variant* fairy_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->add_piece(SILVER, 's');
         v->add_piece(FERS, 'f');
         return v;
@@ -80,7 +82,7 @@ namespace {
     // Makruk (Thai Chess)
     // https://en.wikipedia.org/wiki/Makruk
     Variant* makruk_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "makruk";
         v->pieceToCharTable = "PN.R.M....SKpn.r.m....sk";
         v->remove_piece(BISHOP);
@@ -100,24 +102,25 @@ namespace {
     // A Makruk variant used for tie-breaks
     // https://www.mayhematics.com/v/vol8/vc64b.pdf, p. 177
     Variant* makpong_variant() {
-        Variant* v = makruk_variant();
+        Variant* v = makruk_variant()->init();
         v->makpongRule = true;
         return v;
     }
     // Ouk Chatrang, Cambodian chess
     // https://en.wikipedia.org/wiki/Makruk#Cambodian_chess
     Variant* cambodian_variant() {
-        Variant* v = makruk_variant();
+        Variant* v = makruk_variant()->init();
         v->startFen = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w DEde - 0 1";
         v->gating = true;
         v->cambodianMoves = true;
+        v->nnueAlias = "makruk";
         return v;
     }
     // Kar Ouk
     // A variant of Cambodian chess where the first check wins
     // https://en.wikipedia.org/wiki/Makruk#Ka_Ouk
     Variant* karouk_variant() {
-        Variant* v = cambodian_variant();
+        Variant* v = cambodian_variant()->init();
         v->checkCounting = true;
         return v;
     }
@@ -125,7 +128,7 @@ namespace {
     // A simplified version of south-east asian variants
     // https://aseanchess.org/laws-of-asean-chess/
     Variant* asean_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
         v->add_piece(KHON, 'b');
@@ -140,7 +143,7 @@ namespace {
     // Ai-wok
     // A makruk variant where the met is replaced by a super-piece moving as rook, knight, or met
     Variant* aiwok_variant() {
-        Variant* v = makruk_variant();
+        Variant* v = makruk_variant()->init();
         v->pieceToCharTable = "PN.R...A..SKpn.r...a..sk";
         v->remove_piece(MET);
         v->add_piece(AIWOK, 'a');
@@ -152,7 +155,7 @@ namespace {
     // The medieval form of chess, originating from chaturanga
     // https://en.wikipedia.org/wiki/Shatranj
     Variant* shatranj_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "shatranj";
         v->pieceToCharTable = "PN.R.QB....Kpn.r.qb....k";
         v->remove_piece(BISHOP);
@@ -176,16 +179,17 @@ namespace {
     // The actual rules of the game are not known. This reflects the rules as used on chess.com.
     // https://en.wikipedia.org/wiki/Chaturanga
     Variant* chaturanga_variant() {
-        Variant* v = shatranj_variant();
+        Variant* v = shatranj_variant()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
         v->extinctionValue = VALUE_NONE;
+        v->nnueAlias = "shatranj";
         return v;
     }
     // Amazon chess
     // The queen has the additional power of moving like a knight.
     // https://www.chessvariants.com/diffmove.dir/amazone.html
     Variant* amazon_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBR..............AKpnbr..............ak";
         v->remove_piece(QUEEN);
         v->add_piece(AMAZON, 'a');
@@ -197,7 +201,7 @@ namespace {
     // Knights are replaced by nightriders.
     // https://en.wikipedia.org/wiki/Nightrider_(chess)
     Variant* nightrider_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->remove_piece(KNIGHT);
         v->add_piece(CUSTOM_PIECES, 'n', "NN");
         v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, CUSTOM_PIECES};
@@ -206,7 +210,7 @@ namespace {
     // Grasshopper chess
     // https://en.wikipedia.org/wiki/Grasshopper_chess
     Variant* grasshopper_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->add_piece(CUSTOM_PIECES, 'g', "gQ");
         v->promotionPieceTypes.insert(CUSTOM_PIECES);
         v->startFen = "rnbqkbnr/gggggggg/pppppppp/8/8/PPPPPPPP/GGGGGGGG/RNBQKBNR w KQkq - 0 1";
@@ -217,7 +221,7 @@ namespace {
     // A variant from Germany where knights capture like bishops and vice versa
     // https://www.chessvariants.com/diffmove.dir/hoppel-poppel.html
     Variant* hoppelpoppel_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->remove_piece(KNIGHT);
         v->remove_piece(BISHOP);
         v->add_piece(KNIBIS, 'n');
@@ -228,7 +232,7 @@ namespace {
     // New Zealand
     // Knights capture like rooks and vice versa.
     Variant* newzealand_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->remove_piece(ROOK);
         v->remove_piece(KNIGHT);
         v->add_piece(ROOKNI, 'r');
@@ -240,7 +244,7 @@ namespace {
     // King of the Hill
     // https://lichess.org/variant/kingOfTheHill
     Variant* kingofthehill_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->flagPiece = KING;
         v->whiteFlag = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
         v->blackFlag = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
@@ -250,7 +254,7 @@ namespace {
     // Racing Kings
     // https://lichess.org/variant/racingKings
     Variant* racingkings_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
         v->flagPiece = KING;
         v->whiteFlag = Rank8BB;
@@ -263,7 +267,7 @@ namespace {
     // Knightmate
     // https://www.chessvariants.com/diffobjective.dir/knightmate.html
     Variant* knightmate_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->add_piece(COMMONER, 'm');
         v->remove_piece(KNIGHT);
         v->startFen = "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1";
@@ -275,7 +279,7 @@ namespace {
     // Losers chess
     // https://www.chessclub.com/help/Wild17
     Variant* losers_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->checkmateValue = VALUE_MATE;
         v->stalemateValue = VALUE_MATE;
         v->extinctionValue = VALUE_MATE;
@@ -288,7 +292,7 @@ namespace {
     // Antichess with castling.
     // https://www.chessvariants.com/diffobjective.dir/giveaway.old.html
     Variant* giveaway_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "giveaway";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -298,12 +302,13 @@ namespace {
         v->extinctionValue = VALUE_MATE;
         v->extinctionPieceTypes = {ALL_PIECES};
         v->mustCapture = true;
+        v->nnueAlias = "antichess";
         return v;
     }
     // Antichess
     // https://lichess.org/variant/antichess
     Variant* antichess_variant() {
-        Variant* v = giveaway_variant();
+        Variant* v = giveaway_variant()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
         v->castling = false;
         return v;
@@ -312,15 +317,16 @@ namespace {
     // Antichess with modified stalemate adjudication.
     // https://www.freechess.org/Help/HelpFiles/suicide_chess.html
     Variant* suicide_variant() {
-        Variant* v = antichess_variant();
+        Variant* v = antichess_variant()->init();
         v->stalematePieceCount = true;
+        v->nnueAlias = "antichess";
         return v;
     }
     // Codrus
     // Lose the king to win. Captures are mandatory.
     // http://www.binnewirtz.com/Schlagschach1.htm
     Variant* codrus_variant() {
-        Variant* v = giveaway_variant();
+        Variant* v = giveaway_variant()->init();
         v->promotionPieceTypes = {QUEEN, ROOK, BISHOP, KNIGHT};
         v->extinctionPieceTypes = {COMMONER};
         return v;
@@ -328,7 +334,7 @@ namespace {
     // Extinction chess
     // https://en.wikipedia.org/wiki/Extinction_chess
     Variant* extinction_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
         v->castlingKingPiece = COMMONER;
@@ -340,7 +346,7 @@ namespace {
     // Kinglet
     // https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_chess
     Variant* kinglet_variant() {
-        Variant* v = extinction_variant();
+        Variant* v = extinction_variant()->init();
         v->promotionPieceTypes = {COMMONER};
         v->extinctionPieceTypes = {PAWN};
         return v;
@@ -348,7 +354,7 @@ namespace {
     // Three Kings Chess
     // https://github.com/cutechess/cutechess/blob/master/projects/lib/src/board/threekingsboard.h
     Variant* threekings_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
         v->castlingKingPiece = COMMONER;
@@ -361,7 +367,7 @@ namespace {
     // Horde chess
     // https://en.wikipedia.org/wiki/Dunsany%27s_chess#Horde_chess
     Variant* horde_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
         v->doubleStepRankMin = RANK_1;
         v->enPassantRegion = Rank3BB | Rank6BB; // exclude en passant on second rank
@@ -372,7 +378,7 @@ namespace {
     // Atomic chess without checks (ICC rules)
     // https://www.chessclub.com/help/atomic
     Variant* nocheckatomic_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "atomic";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -380,12 +386,13 @@ namespace {
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER};
         v->blastOnCapture = true;
+        v->nnueAlias = "atomic";
         return v;
     }
     // Atomic chess
     // https://en.wikipedia.org/wiki/Atomic_chess
     Variant* atomic_variant() {
-        Variant* v = nocheckatomic_variant();
+        Variant* v = nocheckatomic_variant()->init();
         v->extinctionPseudoRoyal = true;
         return v;
     }
@@ -393,7 +400,7 @@ namespace {
     // Check the king three times to win
     // https://lichess.org/variant/threeCheck
     Variant* threecheck_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
         v->checkCounting = true;
         return v;
@@ -401,15 +408,16 @@ namespace {
     // Five-check chess
     // Check the king five times to win
     Variant* fivecheck_variant() {
-        Variant* v = threecheck_variant();
+        Variant* v = threecheck_variant()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 5+5 0 1";
+        v->nnueAlias = "3check";
         return v;
     }
     // Crazyhouse
     // Chess with piece drops
     // https://en.wikipedia.org/wiki/Crazyhouse
     Variant* crazyhouse_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "crazyhouse";
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
         v->pieceDrops = true;
@@ -420,23 +428,25 @@ namespace {
     // Variant of crazyhouse where promoted pawns are not demoted when captured
     // https://en.wikipedia.org/wiki/Crazyhouse#Variations
     Variant* loop_variant() {
-        Variant* v = crazyhouse_variant();
+        Variant* v = crazyhouse_variant()->init();
         v->dropLoop = true;
+        v->nnueAlias = "crazyhouse";
         return v;
     }
     // Chessgi
     // Variant of loop chess where pawns can be dropped to the first rank
     // https://en.wikipedia.org/wiki/Crazyhouse#Variations
     Variant* chessgi_variant() {
-        Variant* v = loop_variant();
+        Variant* v = loop_variant()->init();
         v->firstRankPawnDrops = true;
+        v->nnueAlias = "crazyhouse";
         return v;
     }
     // Bughouse
     // A four player variant where captured pieces are introduced on the other board
     // https://en.wikipedia.org/wiki/Bughouse_chess
     Variant* bughouse_variant() {
-        Variant* v = crazyhouse_variant();
+        Variant* v = crazyhouse_variant()->init();
         v->variantTemplate = "bughouse";
         v->twoBoards = true;
         v->capturesToHand = false;
@@ -446,7 +456,7 @@ namespace {
     // Koedem (Bughouse variant)
     // http://schachclub-oetigheim.de/wp-content/uploads/2016/04/Koedem-rules.pdf
     Variant* koedem_variant() {
-        Variant* v = bughouse_variant();
+        Variant* v = bughouse_variant()->init();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
         v->castlingKingPiece = COMMONER;
@@ -461,7 +471,7 @@ namespace {
     // Each player has an additional knight in hand which can be dropped at any move
     // https://www.chessvariants.com/other.dir/pocket.html
     Variant* pocketknight_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "bughouse";
         v->pocketSize = 2;
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
@@ -473,7 +483,7 @@ namespace {
     // A shuffle variant where the players determine the placing of the back rank pieces
     // https://www.chessvariants.com/link/placement-chess
     Variant* placement_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "bughouse";
         v->startFen = "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - - 0 1";
         v->mustDrop = true;
@@ -489,7 +499,7 @@ namespace {
     // Regional chess variant from Myanmar, similar to Makruk but with a setup phase.
     // https://en.wikipedia.org/wiki/Sittuyin
     Variant* sittuyin_variant() {
-        Variant* v = makruk_variant();
+        Variant* v = makruk_variant()->init();
         v->variantTemplate = "bughouse";
         v->pieceToCharTable = "PN.R.F....SKpn.r.f....sk";
         v->startFen = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1";
@@ -513,7 +523,7 @@ namespace {
     // 8x8 variant introducing the knighted pieces from capablanca chess
     // via gating when a piece first moves from its initial square.
     Variant* seirawan_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "seirawan";
         v->pieceToCharTable = "PNBRQ.E..........H...Kpnbrq.e..........h...k";
         v->add_piece(ARCHBISHOP, 'h');
@@ -528,7 +538,7 @@ namespace {
     // A hybrid variant of S-Chess and Crazyhouse.
     // Pieces in the pocket can either be gated or dropped.
     Variant* shouse_variant() {
-        Variant* v = seirawan_variant();
+        Variant* v = seirawan_variant()->init();
         v->variantTemplate = "crazyhouse";
         v->pieceDrops = true;
         v->capturesToHand = true;
@@ -536,7 +546,7 @@ namespace {
     }
     // Base used for most shogi variants
     Variant* minishogi_variant_base() {
-        Variant* v = variant_base();
+        Variant* v = variant_base()->init();
         v->variantTemplate = "shogi";
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
@@ -573,18 +583,19 @@ namespace {
     // 5x5 variant of shogi
     // https://en.wikipedia.org/wiki/Minishogi
     Variant* minishogi_variant() {
-        Variant* v = minishogi_variant_base();
+        Variant* v = minishogi_variant_base()->init();
         v->pieceToCharTable = "P.BR.S...G.+.++.+Kp.br.s...g.+.++.+k";
         v->pocketSize = 5;
         v->nFoldValue = -VALUE_MATE;
         v->nFoldValueAbsolute = true;
+        v->nnueAlias = "minishogi";
         return v;
     }
     // Kyoto shogi
     // 5x5 variant of shogi with pieces alternating between promotion and demotion
     // https://en.wikipedia.org/wiki/Kyoto_shogi
     Variant* kyotoshogi_variant() {
-        Variant* v = minishogi_variant_base();
+        Variant* v = minishogi_variant_base()->init();
         v->add_piece(LANCE, 'l');
         v->add_piece(SHOGI_KNIGHT, 'n');
         v->startFen = "p+nks+l/5/5/5/+LSK+NP[-] w 0 1";
@@ -608,7 +619,7 @@ namespace {
     // 4x5 shogi variant where pieces promoted and demote when capturing
     // https://en.wikipedia.org/wiki/Micro_shogi
     Variant* microshogi_variant() {
-        Variant* v = kyotoshogi_variant();
+        Variant* v = kyotoshogi_variant()->init();
         v->maxFile = FILE_D;
         v->startFen = "kb+r+l/p3/4/3P/+L+RBK[-] w 0 1";
         v->promotionRank = RANK_1;
@@ -626,7 +637,7 @@ namespace {
     // Educational shogi variant on a 3x4 board
     // https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi
     Variant* dobutsu_variant() {
-        Variant* v = minishogi_variant_base();
+        Variant* v = minishogi_variant_base()->init();
         v->pieceToCharTable = "C....E...G.+.....Lc....e...g.+.....l";
         v->pocketSize = 3;
         v->maxRank = RANK_4;
@@ -650,7 +661,7 @@ namespace {
     // Goro goro shogi
     // https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi#Variation
     Variant* gorogoroshogi_variant() {
-        Variant* v = minishogi_variant_base();
+        Variant* v = minishogi_variant_base()->init();
         v->pieceToCharTable = "P....S...G.+....+Kp....s...g.+....+k";
         v->pocketSize = 3;
         v->maxRank = RANK_6;
@@ -662,7 +673,7 @@ namespace {
     // Judkins shogi
     // https://en.wikipedia.org/wiki/Judkins_shogi
     Variant* judkinsshogi_variant() {
-        Variant* v = minishogi_variant_base();
+        Variant* v = minishogi_variant_base()->init();
         v->pieceToCharTable = "PNBR.S...G.++++.+Kpnbr.s...g.++++.+k";
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
@@ -675,7 +686,7 @@ namespace {
     // Tori shogi
     // https://en.wikipedia.org/wiki/Tori_shogi
     Variant* torishogi_variant() {
-        Variant* v = variant_base();
+        Variant* v = variant_base()->init();
         v->variantTemplate = "shogi";
         v->pieceToCharTable = "S.....FLR.C+.....+.PKs.....flr.c+.....+.pk";
         v->maxRank = RANK_7;
@@ -714,7 +725,7 @@ namespace {
     // EuroShogi
     // https://en.wikipedia.org/wiki/EuroShogi
     Variant* euroshogi_variant() {
-        Variant* v = minishogi_variant_base();
+        Variant* v = minishogi_variant_base()->init();
         v->pieceToCharTable = "PNBR.....G.++++Kpnbr.....g.++++k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_H;
@@ -728,7 +739,7 @@ namespace {
     // Los Alamos chess
     // https://en.wikipedia.org/wiki/Los_Alamos_chess
     Variant* losalamos_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PN.RQ................Kpn.rq................k";
         v->maxRank = RANK_6;
         v->maxFile = FILE_F;
@@ -743,7 +754,7 @@ namespace {
     // Gardner's minichess
     // https://en.wikipedia.org/wiki/Minichess#5%C3%975_chess
     Variant* gardner_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
         v->startFen = "rnbqk/ppppp/5/PPPPP/RNBQK w - - 0 1";
@@ -756,7 +767,7 @@ namespace {
     // Queens are replaced by chancellors
     // https://en.wikipedia.org/wiki/Almost_chess
     Variant* almost_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBR............CKpnbr............ck";
         v->remove_piece(QUEEN);
         v->add_piece(CHANCELLOR, 'c');
@@ -768,7 +779,7 @@ namespace {
     // Asymmetric variant with knight vs. bishop movements
     // https://www.chessvariants.com/diffsetup.dir/chigorin.html
     Variant* chigorin_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBR............CKpnbrq............k";
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rbbqkbbr/pppppppp/8/8/8/8/PPPPPPPP/RNNCKNNR w KQkq - 0 1";
@@ -778,7 +789,7 @@ namespace {
     // Shatar (Mongolian chess)
     // https://en.wikipedia.org/wiki/Shatar
     Variant* shatar_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBR..........J......Kpnbr..........j......k";
         v->remove_piece(QUEEN);
         v->add_piece(BERS, 'j');
@@ -796,7 +807,7 @@ namespace {
     // Queens are also subject to check and checkmate
     // https://www.chessvariants.com/winning.dir/coregal.html
     Variant* coregal_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {QUEEN};
         v->extinctionPseudoRoyal = true;
@@ -806,7 +817,7 @@ namespace {
     // Clobber
     // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "P.................p.................";
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
@@ -823,7 +834,7 @@ namespace {
     // Breakthrough
     // https://en.wikipedia.org/wiki/Breakthrough_(board_game)
     Variant* breakthrough_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "P.................p.................";
         v->reset_pieces();
         v->add_piece(BREAKTHROUGH_PIECE, 'p');
@@ -840,7 +851,7 @@ namespace {
     // Ataxx
     // https://en.wikipedia.org/wiki/Ataxx
     Variant* ataxx_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "P.................p.................";
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
@@ -863,7 +874,7 @@ namespace {
     // Minixiangqi
     // http://mlwi.magix.net/bg/minixiangqi.htm
     Variant* minixiangqi_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "xiangqi";
         v->pieceToCharTable = "PN.R.....K.C.pn.r.....k.c.";
         v->maxRank = RANK_7;
@@ -891,7 +902,7 @@ namespace {
     // Shogi (Japanese chess)
     // https://en.wikipedia.org/wiki/Shogi
     Variant* shogi_variant() {
-        Variant* v = minishogi_variant_base();
+        Variant* v = minishogi_variant_base()->init();
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
         v->add_piece(LANCE, 'l');
@@ -906,7 +917,7 @@ namespace {
     // 16-th century shogi variant with one additional piece and no drops
     // https://en.wikipedia.org/wiki/Sho_shogi
     Variant* shoshogi_variant() {
-        Variant* v = shogi_variant();
+        Variant* v = shogi_variant()->init();
         v->pieceToCharTable = "PNBRLSE..G.+.++.++Kpnbrlse..g.+.++.++k";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
@@ -925,7 +936,7 @@ namespace {
     // Yari shogi
     // https://en.wikipedia.org/wiki/Yari_shogi
     Variant* yarishogi_variant() {
-        Variant* v = variant_base();
+        Variant* v = variant_base()->init();
         v->variantTemplate = "shogi";
         v->pieceToCharTable = "PNBR.......++++Kpnbr.......++++k";
         v->maxRank = RANK_9;
@@ -962,7 +973,7 @@ namespace {
     // Okisaki shogi
     // https://en.wikipedia.org/wiki/Okisaki_shogi
     Variant* okisakishogi_variant() {
-        Variant* v = minishogi_variant_base();
+        Variant* v = minishogi_variant_base()->init();
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->add_piece(CUSTOM_PIECES, 'l', "vR"); // Vertical slider
@@ -977,7 +988,7 @@ namespace {
     // Capablanca chess
     // https://en.wikipedia.org/wiki/Capablanca_chess
     Variant* capablanca_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -993,7 +1004,7 @@ namespace {
     // Capablanca chess with crazyhouse-style piece drops
     // https://www.pychess.org/variant/capahouse
     Variant* capahouse_variant() {
-        Variant* v = capablanca_variant();
+        Variant* v = capablanca_variant()->init();
         v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = true;
@@ -1003,23 +1014,25 @@ namespace {
     // Shuffle variant of capablanca chess
     // https://en.wikipedia.org/wiki/Capablanca_random_chess
     Variant* caparandom_variant() {
-        Variant* v = capablanca_variant();
+        Variant* v = capablanca_variant()->init();
         v->chess960 = true;
+        v->nnueAlias = "capablanca";
         return v;
     }
     // Gothic chess
     // Capablanca chess with changed starting position
     // https://www.chessvariants.com/large.dir/gothicchess.html
     Variant* gothic_variant() {
-        Variant* v = capablanca_variant();
+        Variant* v = capablanca_variant()->init();
         v->startFen = "rnbqckabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQCKABNR w KQkq - 0 1";
+        v->nnueAlias = "capablanca";
         return v;
     }
     // Janus chess
     // 10x8 variant with two archbishops per side
     // https://en.wikipedia.org/wiki/Janus_Chess
     Variant* janus_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBRQ............J...Kpnbrq............j...k";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -1034,7 +1047,7 @@ namespace {
     // 9x9 variant with archbishops
     // https://en.wikipedia.org/wiki/Modern_chess
     Variant* modern_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBRQ..M.............Kpnbrq..m.............k";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -1050,7 +1063,7 @@ namespace {
     // 9x9 variant with chancellors
     // https://en.wikipedia.org/wiki/Chancellor_chess
     Variant* chancellor_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBRQ...........CKpnbrq...........ck";
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
@@ -1066,17 +1079,18 @@ namespace {
     // Capablanca chess with different starting position
     // https://en.wikipedia.org/wiki/Embassy_chess
     Variant* embassy_variant() {
-        Variant* v = capablanca_variant();
+        Variant* v = capablanca_variant()->init();
         v->castlingKingsideFile = FILE_H;
         v->castlingQueensideFile = FILE_B;
         v->startFen = "rnbqkcabnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNBQKCABNR w KQkq - 0 1";
+        v->nnueAlias = "capablanca";
         return v;
     }
     // Centaur chess (aka Royal Court)
     // 10x8 variant with a knight+commoner compound
     // https://www.chessvariants.com/large.dir/contest/royalcourt.html
     Variant* centaur_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBRQ...............CKpnbrq...............ck";
         v->maxRank = RANK_8;
         v->maxFile = FILE_J;
@@ -1091,7 +1105,7 @@ namespace {
     // Mongolian chess variant with knights only and a king of the hill like goal
     // https://en.wikipedia.org/wiki/Jeson_Mor
     Variant* jesonmor_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->maxRank = RANK_9;
         v->maxFile = FILE_I;
         v->reset_pieces();
@@ -1111,7 +1125,7 @@ namespace {
     // Medieval variant of Shatranj on a 12x8 board
     // https://en.wikipedia.org/wiki/Courier_chess
     Variant* courier_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->maxRank = RANK_8;
         v->maxFile = FILE_L;
         v->remove_piece(QUEEN);
@@ -1135,7 +1149,7 @@ namespace {
     // 10x10 variant with chancellors and archbishops
     // https://en.wikipedia.org/wiki/Grand_chess
     Variant* grand_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->variantTemplate = "grand";
         v->pieceToCharTable = "PNBRQ..AC............Kpnbrq..ac............k";
         v->maxRank = RANK_10;
@@ -1162,7 +1176,7 @@ namespace {
     // Variant of Grand chess with two extra pieces
     // https://www.chessvariants.com/rules/opulent-chess
     Variant* opulent_variant() {
-        Variant* v = grand_variant();
+        Variant* v = grand_variant()->init();
         v->pieceToCharTable = "PNBRQ..AC....W.......LKpnbrq..ac....w.......lk";
         v->remove_piece(KNIGHT);
         v->add_piece(CUSTOM_PIECES, 'n', "NW");
@@ -1181,7 +1195,7 @@ namespace {
     // Tencubed
     // https://www.chessvariants.com/contests/10/tencubedchess.html
     Variant* tencubed_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBRQ.CAM...........WKpnbrq.cam...........wk";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
@@ -1201,7 +1215,7 @@ namespace {
     // 10x10 variant with cannons by Jean-Louis Cazaux
     // https://www.chessvariants.com/large.dir/shako.html
     Variant* shako_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "PNBRQ.E....C.........Kpnbrq.e....c.........k";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
@@ -1221,7 +1235,7 @@ namespace {
     // Clobber on a 10x10, mainly played by computers
     // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber10_variant() {
-        Variant* v = clobber_variant();
+        Variant* v = clobber_variant()->init();
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->startFen = "PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/"
@@ -1232,7 +1246,7 @@ namespace {
     // Game of the Amazons
     // https://en.wikipedia.org/wiki/Game_of_the_Amazons
     Variant* amazons_variant() {
-        Variant* v = chess_variant_base();
+        Variant* v = chess_variant_base()->init();
         v->pieceToCharTable = "P...Q.................p...q.................";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
@@ -1248,7 +1262,7 @@ namespace {
     // Xiangqi (Chinese chess)
     // https://en.wikipedia.org/wiki/Xiangqi
     Variant* xiangqi_variant() {
-        Variant* v = minixiangqi_variant();
+        Variant* v = minixiangqi_variant()->init();
         v->pieceToCharTable = "PN.R.AB..K.C..........pn.r.ab..k.c..........";
         v->maxRank = RANK_10;
         v->maxFile = FILE_I;
@@ -1268,7 +1282,7 @@ namespace {
     // Asymmetric Xiangqi variant with a super-piece
     // https://en.wikipedia.org/wiki/Manchu_chess
     Variant* manchu_variant() {
-        Variant* v = xiangqi_variant();
+        Variant* v = xiangqi_variant()->init();
         v->pieceToCharTable = "PN.R.AB..K.C....M.....pn.r.ab..k.c..........";
         v->add_piece(BANNER, 'm');
         v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/9/9/M1BAKAB2 w - - 0 1";
@@ -1277,7 +1291,7 @@ namespace {
     // Supply chess
     // https://en.wikipedia.org/wiki/Xiangqi#Variations
     Variant* supply_variant() {
-        Variant* v = xiangqi_variant();
+        Variant* v = xiangqi_variant()->init();
         v->variantTemplate = "bughouse";
         v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR[] w - - 0 1";
         v->twoBoards = true;
@@ -1291,7 +1305,7 @@ namespace {
     // https://en.wikipedia.org/wiki/Janggi
     // Official tournament rules with bikjang and material counting.
     Variant* janggi_variant() {
-        Variant* v = xiangqi_variant();
+        Variant* v = xiangqi_variant()->init();
         v->variantTemplate = "janggi";
         v->pieceToCharTable = ".N.R.AB.P..C.........K.n.r.ab.p..c.........k";
         v->remove_piece(FERS);
@@ -1316,27 +1330,30 @@ namespace {
     }
     // Traditional rules of Janggi, where bikjang is a draw
     Variant* janggi_traditional_variant() {
-        Variant* v = janggi_variant();
+        Variant* v = janggi_variant()->init();
         v->bikjangRule = true;
         v->materialCounting = NO_MATERIAL_COUNTING;
+        v->nnueAlias = "janggi";
         return v;
     }
     // Modern rules of Janggi, where bikjang is not considered, but material counting is.
     // The repetition rules are also adjusted for better compatibility with Kakao Janggi.
     Variant* janggi_modern_variant() {
-        Variant* v = janggi_variant();
+        Variant* v = janggi_variant()->init();
         v->bikjangRule = false;
         v->materialCounting = JANGGI_MATERIAL;
         v->moveRepetitionIllegal = true;
         v->nFoldRule = 4; // avoid nFold being triggered before move repetition
         v->nMoveRule = 100; // avoid adjudication before reaching 200 half-moves
+        v->nnueAlias = "janggi";
         return v;
     }
     // Casual rules of Janggi, where bikjang and material counting are not considered
     Variant* janggi_casual_variant() {
-        Variant* v = janggi_variant();
+        Variant* v = janggi_variant()->init();
         v->bikjangRule = false;
         v->materialCounting = NO_MATERIAL_COUNTING;
+        v->nnueAlias = "janggi";
         return v;
     }
 #endif
@@ -1479,7 +1496,7 @@ void VariantMap::parse_istream(std::istream& file) {
         {
             if (DoCheck)
                 std::cerr << "Parsing variant: " << variant << std::endl;
-            Variant* v = !variant_template.empty() ? VariantParser<DoCheck>(attribs).parse(new Variant(*variants.find(variant_template)->second))
+            Variant* v = !variant_template.empty() ? VariantParser<DoCheck>(attribs).parse((new Variant(*variants.find(variant_template)->second))->init())
                                                    : VariantParser<DoCheck>(attribs).parse();
             if (v->maxFile <= FILE_MAX && v->maxRank <= RANK_MAX)
             {

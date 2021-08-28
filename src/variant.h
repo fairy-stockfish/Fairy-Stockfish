@@ -136,6 +136,7 @@ struct Variant {
   // Derived properties
   bool fastAttacks = true;
   bool fastAttacks2 = true;
+  std::string nnueAlias = "";
   PieceType nnueKing = KING;
   int nnueSquares;
   int nnuePieceIndices;
@@ -171,6 +172,12 @@ struct Variant {
       pieceToChar = std::string(PIECE_NB, ' ');
       pieceToCharSynonyms = std::string(PIECE_NB, ' ');
       pieceTypes.clear();
+  }
+
+  // Reset values that always need to be redefined
+  Variant* init() {
+      nnueAlias = "";
+      return this;
   }
 
   // Pre-calculate derived properties
