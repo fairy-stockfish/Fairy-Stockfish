@@ -84,11 +84,11 @@ namespace Stockfish::Eval::NNUE::Features {
       Piece pc = dp.piece[i];
       if (dp.from[i] != SQ_NONE)
         removed.push_back(make_index(perspective, dp.from[i], pc, oriented_ksq, pos));
-      else if (pos.piece_drops() && dp.dirty_num == 1)
+      else if (dp.handPiece[i] != NO_PIECE)
         removed.push_back(make_index(perspective, dp.handCount[i], dp.handPiece[i], oriented_ksq, pos));
       if (dp.to[i] != SQ_NONE)
         added.push_back(make_index(perspective, dp.to[i], pc, oriented_ksq, pos));
-      else if (pos.captures_to_hand() && i == 1)
+      else if (dp.handPiece[i] != NO_PIECE)
         added.push_back(make_index(perspective, dp.handCount[i] - 1, dp.handPiece[i], oriented_ksq, pos));
     }
   }

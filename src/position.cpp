@@ -1434,7 +1434,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               dp.handCount[1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
           }
       }
-      else
+      else if (Eval::useNNUE)
           dp.handPiece[1] = NO_PIECE;
 
       // Update material hash key and prefetch access to materialTable
@@ -1591,6 +1591,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           {
               // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
               dp.to[0] = SQ_NONE;
+              dp.handPiece[0] = NO_PIECE;
               dp.piece[dp.dirty_num] = promotion;
               dp.handPiece[dp.dirty_num] = NO_PIECE;
               dp.from[dp.dirty_num] = SQ_NONE;
@@ -1625,6 +1626,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           // Promoting piece to SQ_NONE, promoted piece from SQ_NONE
           dp.to[0] = SQ_NONE;
+          dp.handPiece[0] = NO_PIECE;
           dp.piece[dp.dirty_num] = promotion;
           dp.handPiece[dp.dirty_num] = NO_PIECE;
           dp.from[dp.dirty_num] = SQ_NONE;
@@ -1651,6 +1653,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           // Demoting piece to SQ_NONE, demoted piece from SQ_NONE
           dp.to[0] = SQ_NONE;
+          dp.handPiece[0] = NO_PIECE;
           dp.piece[dp.dirty_num] = demotion;
           dp.handPiece[dp.dirty_num] = NO_PIECE;
           dp.from[dp.dirty_num] = SQ_NONE;
