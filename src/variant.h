@@ -24,6 +24,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <sstream>
 
 #include "types.h"
 #include "bitboard.h"
@@ -132,12 +133,16 @@ struct Variant {
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
 
-  NnueFeatures nnueFeatures = NNUE_VARIANT;
-
   // Derived properties
   bool fastAttacks = true;
   bool fastAttacks2 = true;
+  std::string nnueAlias = "";
   PieceType nnueKing = KING;
+  int nnueSquares;
+  int nnuePieceIndices;
+  int pieceSquareIndex[COLOR_NB][PIECE_NB];
+  int pieceHandIndex[COLOR_NB][PIECE_NB];
+  int nnueMaxPieces;
   bool endgameEval = false;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
@@ -169,6 +174,12 @@ struct Variant {
       pieceTypes.clear();
   }
 
+  // Reset values that always need to be redefined
+  Variant* init() {
+      nnueAlias = "";
+      return this;
+  }
+
   // Pre-calculate derived properties
   Variant* conclude() {
       fastAttacks = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
@@ -190,9 +201,38 @@ struct Variant {
                                 })
                     && !cambodianMoves
                     && !diagonalLines;
+
+      // Initialize calculated NNUE properties
       nnueKing =  pieceTypes.find(KING) != pieceTypes.end() ? KING
                 : extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
                 : NO_PIECE_TYPE;
+      nnueSquares = (maxRank + 1) * (maxFile + 1);
+      int nnuePockets = pieceDrops ? 2 * int(maxFile + 1) : 0;
+      int nnueNonDropPieceIndices = (2 * pieceTypes.size() - 1) * nnueSquares;
+      nnuePieceIndices = nnueNonDropPieceIndices + 2 * (pieceTypes.size() - 1) * nnuePockets;
+      int i = 0;
+      for (PieceType pt : pieceTypes)
+      {
+          for (Color c : { WHITE, BLACK})
+          {
+              pieceSquareIndex[c][make_piece(c, pt)] = 2 * i * nnueSquares;
+              pieceSquareIndex[c][make_piece(~c, pt)] = (2 * i + (pt != nnueKing)) * nnueSquares;
+              pieceHandIndex[c][make_piece(c, pt)] = 2 * i * nnuePockets + nnueNonDropPieceIndices;
+              pieceHandIndex[c][make_piece(~c, pt)] = (2 * i + 1) * nnuePockets + nnueNonDropPieceIndices;
+          }
+          i++;
+      }
+      // Determine maximum piece count
+      std::istringstream ss(startFen);
+      ss >> std::noskipws;
+      unsigned char token;
+      nnueMaxPieces = 0;
+      while ((ss >> token) && !isspace(token))
+      {
+          if (pieceToChar.find(token) != std::string::npos || pieceToCharSynonyms.find(token) != std::string::npos)
+              nnueMaxPieces++;
+      }
+
       // For endgame evaluation to be applicable, no special win rules must apply.
       // Furthermore, rules significantly changing game mechanics also invalidate it.
       endgameEval = std::none_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {

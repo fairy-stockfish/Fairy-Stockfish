@@ -59,7 +59,7 @@ using namespace std;
 
 namespace Stockfish {
 
-NnueFeatures currentNnueFeatures;
+const Variant* currentNnueVariant;
 
 namespace Eval {
 
@@ -95,7 +95,8 @@ namespace Eval {
     while (getline(ss, eval_file, SepChar))
     {
         string basename = eval_file.substr(eval_file.find_last_of("\\/") + 1);
-        if (basename.rfind(variant, 0) != string::npos || (variant == "chess" && basename.rfind("nn-", 0) != string::npos))
+        string nnueAlias = variants.find(variant)->second->nnueAlias;
+        if (basename.rfind(variant, 0) != string::npos || (!nnueAlias.empty() && basename.rfind(nnueAlias, 0) != string::npos))
         {
             useNNUE = true;
             break;
@@ -104,7 +105,7 @@ namespace Eval {
     if (!useNNUE)
         return;
 
-    currentNnueFeatures = variants.find(variant)->second->nnueFeatures;
+    currentNnueVariant = variants.find(variant)->second;
 
     #if defined(DEFAULT_NNUE_DIRECTORY)
     #define stringify2(x) #x
@@ -1230,7 +1231,7 @@ namespace {
             else if (pos.extinction_value() == VALUE_MATE)
             {
                 // Losing chess variant bonus
-                score += make_score(pos.non_pawn_material(Us), pos.non_pawn_material(Us)) / pos.count<ALL_PIECES>(Us);
+                score += make_score(pos.non_pawn_material(Us), pos.non_pawn_material(Us)) / std::max(pos.count<ALL_PIECES>(Us), 1);
             }
             else if (pos.count<PAWN>(Us) == pos.count<ALL_PIECES>(Us))
             {
