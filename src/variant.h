@@ -264,7 +264,7 @@ public:
   std::vector<std::string> get_keys();
 
 private:
-  void add(std::string s, const Variant* v);
+  void add(std::string s, Variant* v);
 };
 
 extern VariantMap variants;
