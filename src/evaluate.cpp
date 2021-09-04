@@ -1564,7 +1564,7 @@ Value Eval::evaluate(const Position& pos) {
 
   Value v;
 
-  if (!Eval::useNNUE)
+  if (!Eval::useNNUE || !pos.nnue_applicable())
       v = Evaluation<NO_TRACE>(pos).value();
   else
   {
@@ -1664,14 +1664,14 @@ std::string Eval::trace(Position& pos) {
      << "|      Total | " << Term(TOTAL)
      << "+------------+-------------+-------------+-------------+\n";
 
-  if (Eval::useNNUE)
+  if (Eval::useNNUE && pos.nnue_applicable())
       ss << '\n' << NNUE::trace(pos) << '\n';
 
   ss << std::showpoint << std::showpos << std::fixed << std::setprecision(2) << std::setw(15);
 
   v = pos.side_to_move() == WHITE ? v : -v;
   ss << "\nClassical evaluation   " << to_cp(v) << " (white side)\n";
-  if (Eval::useNNUE)
+  if (Eval::useNNUE && pos.nnue_applicable())
   {
       v = NNUE::evaluate(pos, false);
       v = pos.side_to_move() == WHITE ? v : -v;
@@ -1681,7 +1681,7 @@ std::string Eval::trace(Position& pos) {
   v = evaluate(pos);
   v = pos.side_to_move() == WHITE ? v : -v;
   ss << "Final evaluation       " << to_cp(v) << " (white side)";
-  if (Eval::useNNUE)
+  if (Eval::useNNUE && pos.nnue_applicable())
      ss << " [with scaled NNUE, hybrid, ...]";
   ss << "\n";
 

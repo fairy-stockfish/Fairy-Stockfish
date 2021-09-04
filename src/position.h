@@ -147,6 +147,8 @@ public:
   PieceType castling_rook_piece() const;
   PieceType king_type() const;
   PieceType nnue_king() const;
+  bool nnue_use_pockets() const;
+  bool nnue_applicable() const;
   bool checking_permitted() const;
   bool drop_checks() const;
   bool must_capture() const;
@@ -523,6 +525,16 @@ inline PieceType Position::king_type() const {
 inline PieceType Position::nnue_king() const {
   assert(var != nullptr);
   return var->nnueKing;
+}
+
+inline bool Position::nnue_use_pockets() const {
+  assert(var != nullptr);
+  return var->nnueUsePockets;
+}
+
+inline bool Position::nnue_applicable() const {
+  // Do not use NNUE during setup phases (placement, sittuyin)
+  return !count_in_hand(ALL_PIECES) || nnue_use_pockets();
 }
 
 inline bool Position::checking_permitted() const {

@@ -139,6 +139,7 @@ struct Variant {
   std::string nnueAlias = "";
   PieceType nnueKing = KING;
   int nnueSquares;
+  bool nnueUsePockets;
   int nnuePieceIndices;
   int pieceSquareIndex[COLOR_NB][PIECE_NB];
   int pieceHandIndex[COLOR_NB][PIECE_NB];
@@ -207,7 +208,8 @@ struct Variant {
                 : extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
                 : NO_PIECE_TYPE;
       nnueSquares = (maxRank + 1) * (maxFile + 1);
-      int nnuePockets = pieceDrops || seirawanGating ? 2 * int(maxFile + 1) : 0;
+      nnueUsePockets = (pieceDrops && (!mustDrop || capturesToHand)) || seirawanGating;
+      int nnuePockets = nnueUsePockets ? 2 * int(maxFile + 1) : 0;
       int nnueNonDropPieceIndices = (2 * pieceTypes.size() - 1) * nnueSquares;
       nnuePieceIndices = nnueNonDropPieceIndices + 2 * (pieceTypes.size() - 1) * nnuePockets;
       int i = 0;

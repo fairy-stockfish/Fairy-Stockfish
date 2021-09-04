@@ -493,6 +493,7 @@ namespace {
         v->blackDropRegion = Rank8BB;
         v->dropOppositeColoredBishop = true;
         v->castlingDroppedPiece = true;
+        v->nnueAlias = "nn-";
         return v;
     }
     // Sittuyin (Burmese chess)

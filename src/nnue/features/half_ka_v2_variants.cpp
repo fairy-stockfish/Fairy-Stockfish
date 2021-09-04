@@ -60,7 +60,7 @@ namespace Stockfish::Eval::NNUE::Features {
     }
 
     // Indices for pieces in hand
-    if (pos.piece_drops() || pos.seirawan_gating())
+    if (pos.nnue_use_pockets())
       for (Color c : {WHITE, BLACK})
           for (PieceType pt : pos.piece_types())
               for (int i = 0; i < pos.count_in_hand(c, pt); i++)
