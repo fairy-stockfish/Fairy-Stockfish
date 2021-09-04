@@ -1679,9 +1679,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       Square gate = gating_square(m);
       Piece gating_piece = make_piece(us, gating_type(m));
 
-      put_piece(gating_piece, gate);
-      remove_from_hand(gating_piece);
-
       if (Eval::useNNUE)
       {
           // Add gating piece
@@ -1692,6 +1689,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           dp.to[dp.dirty_num] = gate;
           dp.dirty_num++;
       }
+
+      put_piece(gating_piece, gate);
+      remove_from_hand(gating_piece);
 
       st->gatesBB[us] ^= gate;
       k ^= Zobrist::psq[gating_piece][gate];
