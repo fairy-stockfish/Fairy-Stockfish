@@ -94,6 +94,9 @@ variant_positions = {
     },
     "atomic": {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": (False, False),  # startpos
+        "8/8/8/8/3K4/3k4/8/8 b - - 0 1": (True, True),  # K vs K
+        "k7/p7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KP
+        "k7/q7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KQ
     },
     "3check": {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1": (False, False),  # startpos

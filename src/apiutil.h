@@ -299,12 +299,15 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     // Other win rules
     if (   pos.captures_to_hand()
         || pos.count_in_hand(c, ALL_PIECES)
-        || pos.extinction_value() != VALUE_NONE
+        || (pos.extinction_value() != VALUE_NONE && !pos.extinction_pseudo_royal())
         || (pos.capture_the_flag_piece() && pos.count(c, pos.capture_the_flag_piece())))
         return false;
 
     // Restricted pieces
     Bitboard restricted = pos.pieces(~c, KING);
+    // Atomic kings can not help checkmating
+    if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && pos.extinction_piece_types().find(COMMONER) != pos.extinction_piece_types().end())
+        restricted |= pos.pieces(c, COMMONER);
     for (PieceType pt : pos.piece_types())
         if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)))
             restricted |= pos.pieces(c, pt);
