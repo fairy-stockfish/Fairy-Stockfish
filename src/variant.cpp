@@ -684,8 +684,7 @@ namespace {
         v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
         return v;
     }
-    // 
-  shogi
+    // Tori shogi
     // https://en.wikipedia.org/wiki/Tori_shogi
     Variant* torishogi_variant() {
         Variant* v = variant_base()->init();
