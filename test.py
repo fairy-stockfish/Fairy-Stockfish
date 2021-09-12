@@ -359,6 +359,17 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("makruk", fen, moves, False, False, True)
         self.assertEqual(result, "8/2K3k1/5S2/6S1/8/8/8/8 b - 44 8 1")
 
+        # ignore count_started for piece honor counting
+        fen = "8/3k4/8/2K1S1P1/8/8/8/8 w - - 0 1"
+        moves = ["g5g6m"]
+        result = sf.get_fen("makruk", fen, moves, False, False, True, -1)
+        self.assertEqual(result, "8/3k4/6M~1/2K1S3/8/8/8/8 b - 88 8 1")
+
+        fen = "8/2K3k1/5m2/4S1S1/8/8/8/8 w - 128 1 30"
+        moves = ["e5f6"]
+        result = sf.get_fen("makruk", fen, moves, False, False, True, 58)
+        self.assertEqual(result, "8/2K3k1/5S2/6S1/8/8/8/8 b - 44 8 30")
+
         # makruk board honor counting
         fen = "3k4/2m5/8/4MP2/3KS3/8/8/8 w - - 0 1"
         moves = ["f5f6m"]
