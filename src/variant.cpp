@@ -684,7 +684,8 @@ namespace {
         v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
         return v;
     }
-    // Tori shogi
+    // 
+  shogi
     // https://en.wikipedia.org/wiki/Tori_shogi
     Variant* torishogi_variant() {
         Variant* v = variant_base()->init();
@@ -718,7 +719,7 @@ namespace {
         v->shogiPawnDropMateIllegal = true;
         v->stalemateValue = -VALUE_MATE;
         v->nFoldValue = VALUE_MATE;
-        v->nFoldRule = 3;
+        v->nFoldRule = 4;
         v->nMoveRule = 0;
         v->perpetualCheckIllegal = true;
         return v;
