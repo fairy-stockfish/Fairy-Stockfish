@@ -195,6 +195,7 @@ namespace {
         v->add_piece(AMAZON, 'a');
         v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {AMAZON, ROOK, BISHOP, KNIGHT};
+        v->nnueAlias = "nn-";
         return v;
     }
     // Nightrider chess
@@ -774,6 +775,7 @@ namespace {
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rnbckbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBCKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {CHANCELLOR, ROOK, BISHOP, KNIGHT};
+        v->nnueAlias = "nn-";
         return v;
     }
     // Chigorin chess
