@@ -288,10 +288,13 @@ void UCI::loop(int argc, char* argv[]) {
   // UCCI banmoves state
   std::vector<Move> banmoves = {};
 
-  // Check environment for variants.ini file
-  char *envVariantPath = std::getenv("FAIRY_STOCKFISH_VARIANT_PATH");
-  if (envVariantPath != NULL)
-      Options["VariantPath"] = std::string(envVariantPath);
+  if (argc == 1)
+  {
+      // Check environment for variants.ini file
+      char *envVariantPath = std::getenv("FAIRY_STOCKFISH_VARIANT_PATH");
+      if (envVariantPath != NULL)
+          Options["VariantPath"] = std::string(envVariantPath);
+  }
 
   do {
       if (argc == 1 && !getline(cin, cmd)) // Block here waiting for input or EOF
