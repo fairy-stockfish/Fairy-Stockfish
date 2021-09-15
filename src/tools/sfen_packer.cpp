@@ -179,7 +179,7 @@ namespace Stockfish::Tools {
         // 7-bit positions for leading and trailing balls
         // White king and black king, 6 bits for each.
         for(auto c: Colors)
-            stream.write_n_bit(to_variant_square(pos.king_square(c), pos), 7);
+            stream.write_n_bit(pos.nnue_king() ? to_variant_square(pos.king_square(c), pos) : (pos.max_file() + 1) * (pos.max_rank() + 1), 7);
 
         // Write the pieces on the board other than the kings.
         for (Rank r = pos.max_rank(); r >= RANK_1; --r)
