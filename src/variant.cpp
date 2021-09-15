@@ -718,7 +718,7 @@ namespace {
         v->shogiPawnDropMateIllegal = true;
         v->stalemateValue = -VALUE_MATE;
         v->nFoldValue = VALUE_MATE;
-        v->nFoldRule = 3;
+        v->nFoldRule = 4;
         v->nMoveRule = 0;
         v->perpetualCheckIllegal = true;
         return v;
