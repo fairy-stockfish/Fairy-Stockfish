@@ -288,7 +288,12 @@ void UCI::loop(int argc, char* argv[]) {
   // UCCI banmoves state
   std::vector<Move> banmoves = {};
 
-  if (argc == 1)
+  if (argc > 1 && (std::strcmp(argv[1], "noautoload") == 0))
+  {
+      cmd = "";
+      argc = 1;
+  }
+  else if (argc == 1 || !(std::strcmp(argv[1], "load") == 0))
   {
       // Check environment for variants.ini file
       char *envVariantPath = std::getenv("FAIRY_STOCKFISH_VARIANT_PATH");
