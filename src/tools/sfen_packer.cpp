@@ -187,7 +187,7 @@ namespace Stockfish::Tools {
             for (File f = FILE_A; f <= pos.max_file(); ++f)
             {
                 Piece pc = pos.piece_on(make_square(f, r));
-                if (type_of(pc) == pos.nnue_king())
+                if (pos.nnue_king() && type_of(pc) == pos.nnue_king())
                     continue;
                 write_board_piece_to_stream(pos, pc);
             }
