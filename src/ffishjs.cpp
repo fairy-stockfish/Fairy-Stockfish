@@ -263,6 +263,34 @@ public:
     return pos.game_ply();
   }
 
+  int game_result() const {
+    Value result;
+    bool gameEnd;
+    if (MoveList<LEGAL>(pos).size() > 0)
+      return VALUE_NONE;
+    gameEnd = pos.is_immediate_game_end(result);
+    if (!gameEnd)
+        result = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
+    return result;
+  }
+
+  bool is_immediate_game_end() const {
+    return pos.is_immediate_game_end();
+  }
+
+  bool is_optional_game_end() const {
+    return pos.is_optional_game_end();
+  }
+
+  // Need to use different name than has_insufficient_material
+  bool has_insufficient_material_ffish(bool turn) const {
+    return has_insufficient_material(turn ? WHITE : BLACK, pos);
+  }
+
+  bool has_insufficient_material_ffish() const {
+    return has_insufficient_material(WHITE, pos) && has_insufficient_material(BLACK, pos);
+  }
+
   bool is_game_over() const {
     for (const ExtMove& move: MoveList<LEGAL>(pos))
       return false;
@@ -626,6 +654,11 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("fullmoveNumber", &Board::fullmove_number)
     .function("halfmoveClock", &Board::halfmove_clock)
     .function("gamePly", &Board::game_ply)
+    .function("gameResult", &Board::game_result)
+    .function("isImmediateGameEnd", &Board::is_immediate_game_end)
+    .function("isOptionalGameEnd", &Board::is_optional_game_end)
+    .function("hasInsufficientMaterial", select_overload<bool(bool) const>(&Board::has_insufficient_material_ffish))
+    .function("hasInsufficientMaterial", select_overload<bool() const>(&Board::has_insufficient_material_ffish))
     .function("isGameOver", &Board::is_game_over)
     .function("isCheck", &Board::is_check)
     .function("isBikjang", &Board::is_bikjang)
