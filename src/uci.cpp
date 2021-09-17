@@ -16,6 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdlib>
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -286,6 +287,19 @@ void UCI::loop(int argc, char* argv[]) {
   XBoard::stateMachine = new XBoard::StateMachine(pos, states);
   // UCCI banmoves state
   std::vector<Move> banmoves = {};
+
+  if (argc > 1 && (std::strcmp(argv[1], "noautoload") == 0))
+  {
+      cmd = "";
+      argc = 1;
+  }
+  else if (argc == 1 || !(std::strcmp(argv[1], "load") == 0))
+  {
+      // Check environment for variants.ini file
+      char *envVariantPath = std::getenv("FAIRY_STOCKFISH_VARIANT_PATH");
+      if (envVariantPath != NULL)
+          Options["VariantPath"] = std::string(envVariantPath);
+  }
 
   do {
       if (argc == 1 && !getline(cin, cmd)) // Block here waiting for input or EOF
