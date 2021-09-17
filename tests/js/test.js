@@ -321,6 +321,36 @@ describe('board.gamePly()', function () {
   });
 });
 
+describe('board.hasInsufficientMaterial(side)', function () {
+  it("it returns if the given side has insufficient mating material", () => {
+    let board = new ffish.Board();
+    chai.expect(board.hasInsufficientMaterial(true)).to.equal(false);
+    chai.expect(board.hasInsufficientMaterial(false)).to.equal(false);
+    board.setFen("8/5k2/8/8/8/2K5/6R1/8 w - - 0 1");
+    chai.expect(board.hasInsufficientMaterial(true)).to.equal(false);
+    chai.expect(board.hasInsufficientMaterial(false)).to.equal(true);
+    board.setFen("8/5k2/8/8/8/2K5/6q1/8 w - - 0 1");
+    chai.expect(board.hasInsufficientMaterial(true)).to.equal(true);
+    chai.expect(board.hasInsufficientMaterial(false)).to.equal(false);
+    board.setFen("8/5k2/8/8/8/2K5/6B1/8 w - - 0 1");
+    chai.expect(board.hasInsufficientMaterial(true)).to.equal(true);
+    chai.expect(board.hasInsufficientMaterial(false)).to.equal(true);
+  });
+});
+
+describe('board.isInsufficientMaterial()', function () {
+  it("it returns if the game is drawn due to insufficient material", () => {
+    let board = new ffish.Board();
+    chai.expect(board.isInsufficientMaterial()).to.equal(false);
+    board.setFen("8/5k2/8/8/8/2K5/6R1/8 w - - 0 1");
+    chai.expect(board.isInsufficientMaterial()).to.equal(false);
+    board.setFen("8/5k2/8/8/8/2K5/6q1/8 w - - 0 1");
+    chai.expect(board.isInsufficientMaterial()).to.equal(false);
+    board.setFen("8/5k2/8/8/8/2K5/6B1/8 w - - 0 1");
+    chai.expect(board.isInsufficientMaterial()).to.equal(true);
+  });
+});
+
 describe('board.isGameOver()', function () {
   it("it checks if the game is over based on the number of legal moves", () => {
     let board = new ffish.Board();

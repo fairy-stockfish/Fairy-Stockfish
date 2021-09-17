@@ -282,13 +282,12 @@ public:
     return pos.is_optional_game_end();
   }
 
-  // Need to use different name than has_insufficient_material
-  bool has_insufficient_material_ffish(bool turn) const {
-    return has_insufficient_material(turn ? WHITE : BLACK, pos);
+  bool has_insufficient_material(bool turn) const {
+    return Stockfish::has_insufficient_material(turn ? WHITE : BLACK, pos);
   }
 
-  bool has_insufficient_material_ffish() const {
-    return has_insufficient_material(WHITE, pos) && has_insufficient_material(BLACK, pos);
+  bool is_insufficient_material() const {
+    return Stockfish::has_insufficient_material(WHITE, pos) && Stockfish::has_insufficient_material(BLACK, pos);
   }
 
   bool is_game_over() const {
@@ -657,8 +656,8 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("gameResult", &Board::game_result)
     .function("isImmediateGameEnd", &Board::is_immediate_game_end)
     .function("isOptionalGameEnd", &Board::is_optional_game_end)
-    .function("hasInsufficientMaterial", select_overload<bool(bool) const>(&Board::has_insufficient_material_ffish))
-    .function("hasInsufficientMaterial", select_overload<bool() const>(&Board::has_insufficient_material_ffish))
+    .function("hasInsufficientMaterial", &Board::has_insufficient_material)
+    .function("isInsufficientMaterial", &Board::is_insufficient_material)
     .function("isGameOver", &Board::is_game_over)
     .function("isCheck", &Board::is_check)
     .function("isBikjang", &Board::is_bikjang)
