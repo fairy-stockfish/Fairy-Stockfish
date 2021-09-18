@@ -707,7 +707,7 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .value("XIANGQI_WXF", NOTATION_XIANGQI_WXF);
   // usage: e.g. ffish.Termination.CHECKMATE
   enum_<Termination>("Termination")
-    .value("UNDECIDED", UNDECIDED)
+    .value("ONGOING", ONGOING)
     .value("CHECKMATE", CHECKMATE)
     .value("STALEMATE", STALEMATE)
     .value("INSUFFICIENT_MATERIAL", INSUFFICIENT_MATERIAL)

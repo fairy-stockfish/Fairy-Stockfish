@@ -55,7 +55,7 @@ inline Notation default_notation(const Variant* v) {
 }
 
 enum Termination {
-    UNDECIDED,
+    ONGOING,
     CHECKMATE,
     STALEMATE,
     INSUFFICIENT_MATERIAL,
