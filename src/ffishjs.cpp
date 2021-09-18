@@ -263,23 +263,39 @@ public:
     return pos.game_ply();
   }
 
-  int game_result() const {
+  std::string result() const {
+    return result(false);
+  }
+
+  std::string result(bool claim_draw) const {
     Value result;
-    bool gameEnd;
-    if (MoveList<LEGAL>(pos).size() > 0)
-      return VALUE_NONE;
-    gameEnd = pos.is_immediate_game_end(result);
+    bool gameEnd = false;
+    if (is_insufficient_material()) {
+      gameEnd = true;
+      if (pos.material_counting())
+        result = pos.material_counting_result();
+      else
+        result = VALUE_DRAW;
+    }
     if (!gameEnd)
-        result = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
-    return result;
-  }
+      gameEnd = pos.is_immediate_game_end(result);
+    if (!gameEnd && MoveList<LEGAL>(pos).size() == 0) {
+      gameEnd = true;
+      result = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
+    }
+    if (!gameEnd && claim_draw)
+      gameEnd = pos.is_optional_game_end(result);
 
-  bool is_immediate_game_end() const {
-    return pos.is_immediate_game_end();
-  }
-
-  bool is_optional_game_end() const {
-    return pos.is_optional_game_end();
+    if (!gameEnd)
+      return "*";
+    if (result == 0)
+      return "1/2-1/2";
+    if (pos.side_to_move() == BLACK)
+      result = -result;
+    if (result > 0)
+      return "1-0";
+    else
+      return "0-1";
   }
 
   bool has_insufficient_material(bool turn) const {
@@ -291,9 +307,15 @@ public:
   }
 
   bool is_game_over() const {
-    for (const ExtMove& move: MoveList<LEGAL>(pos))
-      return false;
-    return true;
+    return is_game_over(false);
+  }
+
+  bool is_game_over(bool claim_draw) const {
+    if (is_insufficient_material())
+      return true;
+    if (claim_draw && pos.is_optional_game_end())
+      return true;
+    return MoveList<LEGAL>(pos).size() == 0;
   }
 
   bool is_check() const {
@@ -653,12 +675,12 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("fullmoveNumber", &Board::fullmove_number)
     .function("halfmoveClock", &Board::halfmove_clock)
     .function("gamePly", &Board::game_ply)
-    .function("gameResult", &Board::game_result)
-    .function("isImmediateGameEnd", &Board::is_immediate_game_end)
-    .function("isOptionalGameEnd", &Board::is_optional_game_end)
+    .function("result", select_overload<std::string() const>(&Board::result))
+    .function("result", select_overload<std::string(bool) const>(&Board::result))
     .function("hasInsufficientMaterial", &Board::has_insufficient_material)
     .function("isInsufficientMaterial", &Board::is_insufficient_material)
-    .function("isGameOver", &Board::is_game_over)
+    .function("isGameOver", select_overload<bool() const>(&Board::is_game_over))
+    .function("isGameOver", select_overload<bool(bool) const>(&Board::is_game_over))
     .function("isCheck", &Board::is_check)
     .function("isBikjang", &Board::is_bikjang)
     .function("moveStack", &Board::move_stack)
@@ -683,6 +705,15 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .value("SHOGI_HODGES_NUMBER", NOTATION_SHOGI_HODGES_NUMBER)
     .value("JANGGI", NOTATION_JANGGI)
     .value("XIANGQI_WXF", NOTATION_XIANGQI_WXF);
+  // usage: e.g. ffish.Termination.CHECKMATE
+  enum_<Termination>("Termination")
+    .value("UNDECIDED", UNDECIDED)
+    .value("CHECKMATE", CHECKMATE)
+    .value("STALEMATE", STALEMATE)
+    .value("INSUFFICIENT_MATERIAL", INSUFFICIENT_MATERIAL)
+    .value("N_MOVE_RULE", N_MOVE_RULE)
+    .value("N_FOLD_REPETITION", N_FOLD_REPETITION)
+    .value("VARIANT_END", VARIANT_END);
   function("info", &ffish::info);
   function("setOption", &ffish::set_option<std::string>);
   function("setOptionInt", &ffish::set_option<int>);

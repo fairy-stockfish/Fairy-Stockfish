@@ -54,6 +54,16 @@ inline Notation default_notation(const Variant* v) {
     return NOTATION_SAN;
 }
 
+enum Termination {
+    UNDECIDED,
+    CHECKMATE,
+    STALEMATE,
+    INSUFFICIENT_MATERIAL,
+    N_MOVE_RULE,
+    N_FOLD_REPETITION,
+    VARIANT_END,
+};
+
 namespace SAN {
 
 enum Disambiguation {
