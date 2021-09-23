@@ -263,6 +263,26 @@ public:
     return pos.game_ply();
   }
 
+  bool has_insufficient_material(bool turn) const {
+    return Stockfish::has_insufficient_material(turn ? WHITE : BLACK, pos);
+  }
+
+  bool is_insufficient_material() const {
+    return Stockfish::has_insufficient_material(WHITE, pos) && Stockfish::has_insufficient_material(BLACK, pos);
+  }
+
+  bool is_game_over() const {
+    return is_game_over(false);
+  }
+
+  bool is_game_over(bool claim_draw) const {
+    if (is_insufficient_material())
+      return true;
+    if (claim_draw && pos.is_optional_game_end())
+      return true;
+    return MoveList<LEGAL>(pos).size() == 0;
+  }
+
   std::string result() const {
     return result(false);
   }
@@ -296,26 +316,6 @@ public:
       return "1-0";
     else
       return "0-1";
-  }
-
-  bool has_insufficient_material(bool turn) const {
-    return Stockfish::has_insufficient_material(turn ? WHITE : BLACK, pos);
-  }
-
-  bool is_insufficient_material() const {
-    return Stockfish::has_insufficient_material(WHITE, pos) && Stockfish::has_insufficient_material(BLACK, pos);
-  }
-
-  bool is_game_over() const {
-    return is_game_over(false);
-  }
-
-  bool is_game_over(bool claim_draw) const {
-    if (is_insufficient_material())
-      return true;
-    if (claim_draw && pos.is_optional_game_end())
-      return true;
-    return MoveList<LEGAL>(pos).size() == 0;
   }
 
   bool is_check() const {
@@ -675,12 +675,12 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("fullmoveNumber", &Board::fullmove_number)
     .function("halfmoveClock", &Board::halfmove_clock)
     .function("gamePly", &Board::game_ply)
-    .function("result", select_overload<std::string() const>(&Board::result))
-    .function("result", select_overload<std::string(bool) const>(&Board::result))
     .function("hasInsufficientMaterial", &Board::has_insufficient_material)
     .function("isInsufficientMaterial", &Board::is_insufficient_material)
     .function("isGameOver", select_overload<bool() const>(&Board::is_game_over))
     .function("isGameOver", select_overload<bool(bool) const>(&Board::is_game_over))
+    .function("result", select_overload<std::string() const>(&Board::result))
+    .function("result", select_overload<std::string(bool) const>(&Board::result))
     .function("isCheck", &Board::is_check)
     .function("isBikjang", &Board::is_bikjang)
     .function("moveStack", &Board::move_stack)
