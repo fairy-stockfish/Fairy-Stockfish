@@ -278,3 +278,13 @@ npm install
 ```bash
 node index.js
 ```
+
+## Example Projects
+
+### ffish-test
+
+A simple ffish.js + [chessgroundx](https://github.com/gbtami/chessgroundx) website made by [thearst3rd](https://github.com/thearst3rd), mostly just to mess around with both libraries.
+
+Source code: https://github.com/thearst3rd/ffish-test
+
+See it deployed at: https://ffish-test.herokuapp.com
