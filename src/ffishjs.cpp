@@ -292,10 +292,7 @@ public:
     bool gameEnd = false;
     if (is_insufficient_material()) {
       gameEnd = true;
-      if (pos.material_counting())
-        result = pos.material_counting_result();
-      else
-        result = VALUE_DRAW;
+      result = VALUE_DRAW;
     }
     if (!gameEnd)
       gameEnd = pos.is_immediate_game_end(result);
@@ -308,8 +305,13 @@ public:
 
     if (!gameEnd)
       return "*";
-    if (result == 0)
-      return "1/2-1/2";
+    if (result == 0) {
+      if (pos.material_counting())
+        result = pos.material_counting_result();
+
+      if (result == 0)
+        return "1/2-1/2";
+    }
     if (pos.side_to_move() == BLACK)
       result = -result;
     if (result > 0)

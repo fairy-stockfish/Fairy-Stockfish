@@ -434,6 +434,12 @@ describe('board.result()', function () {
     board.pushSan("Kxd8");
     chai.expect(board.result()).to.equal("0-1");
 
+    // Stalemate with material counting - black draw odds (armageddon)
+    board.setFen("2Q2bnr/4p1pq/5pkr/7p/7P/4P3/PPPP1PP1/RNB1KBNR w KQ - 1 10");
+    chai.expect(board.result()).to.equal("*");
+    board.pushSan("Qe6");
+    chai.expect(board.result()).to.equal("0-1");
+
     // Atomic chess exploded king (variant ending)
     board.delete();
     board = new ffish.Board("atomic");
