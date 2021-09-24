@@ -12,6 +12,7 @@ CAPA = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1"
 CAPAHOUSE = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR[] w KQkq - 0 1"
 SITTUYIN = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1"
 MAKRUK = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1"
+CAMBODIAN = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w DEde - 0 1"
 SHOGI = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1"
 SHOGI_SFEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
 SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[EHeh] w KQBCDFGkqbcdfg - 0 1"
@@ -289,6 +290,13 @@ class TestPyffish(unittest.TestCase):
         result = sf.legal_moves("shogun", SHOGUN, ["c2c4", "b8c6", "b2b4", "b7b5", "c4b5", "c6b8"])
         self.assertIn("b5b6+", result)
 
+        # Cambodian queen cannot capture with its leap
+        # Cambodian king cannot leap to escape check
+        result = sf.legal_moves("cambodian", CAMBODIAN, ["b1d2", "g8e7", "d2e4", "d6d5", "e4d6"])
+        self.assertNotIn("d8d6", result)
+        self.assertNotIn("e8g7", result)
+        self.assertNotIn("e8c7", result)
+
         # In Janggi stalemate position pass move (in place king move) is possible
         fen = "4k4/c7R/9/3R1R3/9/9/9/9/9/3K5 b - - 0 1"
         result = sf.legal_moves("janggi", fen, [])
@@ -461,6 +469,22 @@ class TestPyffish(unittest.TestCase):
         moves = ["e7e8q"]
         result = sf.get_fen("asean", fen, moves, False, False, False)
         self.assertEqual(result, "3QQ3/8/4K3/3Q4/1k6/8/8/8 b - - 0 1")
+
+        # Cambodian king loses its leap ability when it is "aimed" by a rook
+        fen = "rnsmk1nr/4s3/pppppppp/8/8/PPPPPPPP/R7/1NSKMSNR w DEde - 2 2"
+        moves = ["a2e2"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True)
+        self.assertEqual(result, "rnsmk1nr/4s3/pppppppp/8/8/PPPPPPPP/4R3/1NSKMSNR b DEd - 3 2")
+
+        fen = "1nsmksnr/r7/pppppppp/8/8/PPPPPPPP/2SN4/R2KMSNR b DEde - 3 2"
+        moves = ["a7d7"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True)
+        self.assertEqual(result, "1nsmksnr/3r4/pppppppp/8/8/PPPPPPPP/2SN4/R2KMSNR w Ede - 4 3")
+
+        fen = "rnsmksnr/8/1ppppppp/8/8/1PPPPPPP/8/RNSKMSNR w DEde - 0 1"
+        moves = ["a1a8"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True)
+        self.assertEqual(result, "Rnsmksnr/8/1ppppppp/8/8/1PPPPPPP/8/1NSKMSNR b DEd - 0 1")
 
     def test_get_san(self):
         fen = "4k3/8/3R4/8/1R3R2/8/3R4/4K3 w - - 0 1"

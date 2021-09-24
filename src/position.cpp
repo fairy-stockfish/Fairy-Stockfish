@@ -911,14 +911,6 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
               b |= attacks_bb(~c, move_pt, s, occupied) & pieces(c, pt);
       }
 
-  // Consider special move of neang in cambodian chess
-  if (cambodian_moves())
-  {
-      Square fers_sq = s + 2 * (c == WHITE ? SOUTH : NORTH);
-      if (is_ok(fers_sq))
-          b |= pieces(c, FERS) & gates(c) & fers_sq;
-  }
-
   // Janggi palace moves
   if (diagonal_lines() & s)
   {
@@ -1770,6 +1762,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->gatesBB[them] ^= to;
       if (seirawan_gating() && count_in_hand(us, ALL_PIECES) == 0 && !captures_to_hand())
           st->gatesBB[us] = 0;
+  }
+
+  // Remove king leaping right when aimed by a rook
+  if (cambodian_moves())
+  {
+      Square king = square<KING>(them);
+      if ((king & gates(them)) && type_of(pc) == ROOK && (file_of(to) == file_of(king) || rank_of(to) == rank_of(king)))
+          st->gatesBB[them] ^= king;
   }
 
   // Remove the blast pieces
