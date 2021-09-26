@@ -58,7 +58,7 @@ namespace Stockfish::Eval::NNUE::Features {
     static constexpr IndexType Dimensions = static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(SQUARE_NB) * 19;
 
     static IndexType get_dimensions() {
-      return currentNnueVariant->nnueSquares * currentNnueVariant->nnuePieceIndices;
+      return currentNnueVariant->nnueDimensions;
     }
 
     // Maximum number of simultaneously active features.

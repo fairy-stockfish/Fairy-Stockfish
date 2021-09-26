@@ -338,7 +338,7 @@ namespace Stockfish::Eval::NNUE {
         // accumulator. Then, we update the current accumulator (pos.state()).
 
         // Gather all features to be updated.
-        const Square ksq = pos.square(perspective, pos.nnue_king());
+        const Square ksq = pos.nnue_king_square(perspective);
         IndexList removed[2], added[2];
         FeatureSet::append_changed_indices(
           ksq, next, perspective, removed[0], added[0], pos);
