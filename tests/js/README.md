@@ -283,7 +283,7 @@ node index.js
 
 ### ffish-test
 
-A simple ffish.js + [chessgroundx](https://github.com/gbtami/chessgroundx) website made by [thearst3rd](https://github.com/thearst3rd), mostly just to mess around with both libraries.
+A simple toy website which demonstrates the core functionality of ffish.js and [chessgroundx](https://github.com/gbtami/chessgroundx).
 
 Source code: https://github.com/thearst3rd/ffish-test
 
