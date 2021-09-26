@@ -285,14 +285,15 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           put_piece(Piece(idx), sq, token == '~');
           ++sq;
       }
+
       // Promoted shogi pieces
-      else if (token == '+')
+      else if (token == '+' && (idx = piece_to_char().find(ss.peek())) != string::npos)
       {
           ss >> token;
-          idx = piece_to_char().find(token);
           put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
           ++sq;
       }
+
       // Stop before pieces in hand
       else if (token == '[')
           break;
