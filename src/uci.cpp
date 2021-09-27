@@ -248,18 +248,22 @@ namespace {
   void load(istringstream& is) {
 
     string token;
-    while (is >> token)
-        Options["VariantPath"] = token;
+    std::getline(is >> std::ws, token);
+    std::size_t end = token.find_last_not_of(' ');
+    if (end != std::string::npos)
+        Options["VariantPath"] = token.erase(end + 1);
   }
 
   // check() is called when engine receives the "check" command.
-  // The function reads variant configuration files and validates them.
+  // The function reads a variant configuration file and validates it.
 
   void check(istringstream& is) {
 
     string token;
-    while (is >> token)
-        variants.parse<true>(token);
+    std::getline(is >> std::ws, token);
+    std::size_t end = token.find_last_not_of(' ');
+    if (end != std::string::npos)
+        variants.parse<true>(token.erase(end + 1));
   }
 
 } // namespace

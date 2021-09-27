@@ -33,6 +33,12 @@ class Position;
 
 namespace UCI {
 
+#ifndef _WIN32
+  constexpr char SepChar = ':';
+#else
+  constexpr char SepChar = ';';
+#endif
+
 void init_variant(const Variant* v);
 
 class Option;
