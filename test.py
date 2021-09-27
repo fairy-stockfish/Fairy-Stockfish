@@ -647,6 +647,11 @@ class TestPyffish(unittest.TestCase):
         result = sf.is_optional_game_end("capablanca", CAPA, [])
         self.assertFalse(result[0])
 
+        # sittuyin stalemate due to optional promotion
+        result = sf.is_optional_game_end("sittuyin", "1k4PK/3r4/8/8/8/8/8/8[] w - - 0 1", [])
+        self.assertTrue(result[0])
+        self.assertEqual(result[1], sf.VALUE_DRAW)
+
     def test_has_insufficient_material(self):
         for variant, positions in variant_positions.items():
             for fen, expected_result in positions.items():
