@@ -87,12 +87,7 @@ namespace Eval {
     stringstream ss(eval_file);
     string variant = string(Options["UCI_Variant"]);
     useNNUE = false;
-#ifndef _WIN32
-    constexpr char SepChar = ':';
-#else
-    constexpr char SepChar = ';';
-#endif
-    while (getline(ss, eval_file, SepChar))
+    while (getline(ss, eval_file, UCI::SepChar))
     {
         string basename = eval_file.substr(eval_file.find_last_of("\\/") + 1);
         string nnueAlias = variants.find(variant)->second->nnueAlias;
