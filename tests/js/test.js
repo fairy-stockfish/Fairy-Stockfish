@@ -447,6 +447,12 @@ describe('board.result()', function () {
     chai.expect(board.result()).to.equal("*");
     board.push("h5f7");
     chai.expect(board.result()).to.equal("1-0");
+
+    // Exploded king AND insufficient material - exploded king takes priority
+    board.setFen("3qk3/8/8/8/8/8/8/3QK3 w - - 0 1");
+    chai.expect(board.result()).to.equal("*");
+    board.push("d1d8");
+    chai.expect(board.result()).to.equal("1-0");
     board.delete();
   })
 })

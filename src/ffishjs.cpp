@@ -289,13 +289,13 @@ public:
 
   std::string result(bool claim_draw) const {
     Value result;
-    bool gameEnd = false;
-    if (is_insufficient_material()) {
-      gameEnd = true;
-      result = VALUE_DRAW;
+    bool gameEnd = pos.is_immediate_game_end(result);
+    if (!gameEnd) {
+      if (is_insufficient_material()) {
+        gameEnd = true;
+        result = VALUE_DRAW;
+      }
     }
-    if (!gameEnd)
-      gameEnd = pos.is_immediate_game_end(result);
     if (!gameEnd && MoveList<LEGAL>(pos).size() == 0) {
       gameEnd = true;
       result = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
