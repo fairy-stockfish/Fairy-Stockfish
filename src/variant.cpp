@@ -195,6 +195,12 @@ namespace {
         v->add_piece(AMAZON, 'a');
         v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1";
         v->promotionPieceTypes = {AMAZON, ROOK, BISHOP, KNIGHT};
+		v->nnueAlias = "nn-";
+        return v;
+    }
+	Variant* pawnsideways_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->nnueAlias = "nn-";
         return v;
     }
     // Nightrider chess
@@ -718,7 +724,7 @@ namespace {
         v->shogiPawnDropMateIllegal = true;
         v->stalemateValue = -VALUE_MATE;
         v->nFoldValue = VALUE_MATE;
-        v->nFoldRule = 4;
+        v->nFoldRule = 3;
         v->nMoveRule = 0;
         v->perpetualCheckIllegal = true;
         return v;
@@ -1368,11 +1374,12 @@ void VariantMap::init() {
     // Add to UCI_Variant option
     add("chess", chess_variant());
     add("normal", chess_variant());
-    add("fischerandom", chess960_variant());
-    add("nocastle", nocastle_variant());
-    add("armageddon", armageddon_variant());
+    //add("fischerandom", chess960_variant());
+	add("pawnsideways", pawnsideways_variant());
+    //add("nocastle", nocastle_variant());
+    //add("armageddon", armageddon_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
-    add("makruk", makruk_variant());
+    /*add("makruk", makruk_variant());
     add("makpong", makpong_variant());
     add("cambodian", cambodian_variant());
     add("karouk", karouk_variant());
@@ -1429,9 +1436,9 @@ void VariantMap::init() {
     add("clobber", clobber_variant());
     add("breakthrough", breakthrough_variant());
     add("ataxx", ataxx_variant());
-    add("minixiangqi", minixiangqi_variant());
+    add("minixiangqi", minixiangqi_variant()); */
 #ifdef LARGEBOARDS
-    add("shogi", shogi_variant());
+    /*add("shogi", shogi_variant());
     add("shoshogi", shoshogi_variant());
     add("yarishogi", yarishogi_variant());
     add("okisakishogi", okisakishogi_variant());
@@ -1460,7 +1467,7 @@ void VariantMap::init() {
     add("janggi", janggi_variant());
     add("janggitraditional", janggi_traditional_variant());
     add("janggimodern", janggi_modern_variant());
-    add("janggicasual", janggi_casual_variant());
+    add("janggicasual", janggi_casual_variant()); */
 #endif
 }
 
@@ -1555,4 +1562,4 @@ std::vector<std::string> VariantMap::get_keys() {
   return keys;
 }
 
-} // namespace Stockfish
+} // namespace Stockfish 
