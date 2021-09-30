@@ -107,6 +107,8 @@ namespace {
     constexpr Direction Down     = -pawn_push(Us);
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
+	constexpr Direction Right  = (Us == WHITE ? EAST : WEST);
+	constexpr Direction Left  = (Us == WHITE ? WEST : EAST);	
 
     Bitboard TRank8BB = pos.mandatory_pawn_promotion() ? rank_bb(relative_rank(Us, pos.promotion_rank(), pos.max_rank()))
                                                        : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
@@ -115,23 +117,27 @@ namespace {
     Bitboard  TRank3BB =  forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_min(), pos.max_rank()))
                         & ~shift<Up>(forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_max(), pos.max_rank())));
 
-    const Bitboard emptySquares = Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces() & pos.board_bb();
+    const Bitboard emptySquares = Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces();
     const Bitboard enemies      = Type == EVASIONS ? (pos.checkers() & pos.non_sliding_riders() ? pos.pieces(Them) : pos.checkers())
                                 : Type == CAPTURES ? target : pos.pieces(Them);
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
-    Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank7BB : AllSquares);
+	Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank7BB : AllSquares);
 
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
-        Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
+        Bitboard b1 = shift<Up>(pawnsNotOn7) & emptySquares;
         Bitboard b2 = pos.double_step_enabled() ? shift<Up>(b1 & TRank3BB) & emptySquares : Bitboard(0);
+		Bitboard b3 = shift<Right>(pawnsNotOn7) & emptySquares;
+		Bitboard b4 = shift<Left>(pawnsNotOn7) & emptySquares;
 
         if (Type == EVASIONS) // Consider only blocking squares
         {
             b1 &= target;
             b2 &= target;
+			b3 &= target;
+            b4 &= target;
         }
 
         if (Type == QUIET_CHECKS && pos.count<KING>(Them))
@@ -155,6 +161,16 @@ namespace {
         {
             Square to = pop_lsb(b2);
             *moveList++ = make_move(to - Up - Up, to);
+        }
+		while (b3)
+        {
+            Square to = pop_lsb(b3);
+            *moveList++ = make_move(to - Right, to);
+        }
+		while (b4)
+        {
+            Square to = pop_lsb(b4);
+            *moveList++ = make_move(to - Left, to);
         }
     }
 
