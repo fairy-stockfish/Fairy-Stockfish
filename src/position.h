@@ -147,6 +147,7 @@ public:
   PieceType castling_rook_piece() const;
   PieceType king_type() const;
   PieceType nnue_king() const;
+  Square nnue_king_square(Color c) const;
   bool nnue_use_pockets() const;
   bool nnue_applicable() const;
   bool checking_permitted() const;
@@ -526,6 +527,10 @@ inline PieceType Position::king_type() const {
 inline PieceType Position::nnue_king() const {
   assert(var != nullptr);
   return var->nnueKing;
+}
+
+inline Square Position::nnue_king_square(Color c) const {
+  return nnue_king() ? square(c, nnue_king()) : SQ_NONE;
 }
 
 inline bool Position::nnue_use_pockets() const {

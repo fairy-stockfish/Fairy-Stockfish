@@ -25,6 +25,7 @@
 #include <string>
 #include <functional>
 #include <sstream>
+#include <iostream>
 
 #include "types.h"
 #include "bitboard.h"
@@ -138,11 +139,11 @@ struct Variant {
   bool fastAttacks2 = true;
   std::string nnueAlias = "";
   PieceType nnueKing = KING;
-  int nnueSquares;
+  int nnueDimensions;
   bool nnueUsePockets;
-  int nnuePieceIndices;
   int pieceSquareIndex[COLOR_NB][PIECE_NB];
   int pieceHandIndex[COLOR_NB][PIECE_NB];
+  int kingSquareIndex[SQUARE_NB];
   int nnueMaxPieces;
   bool endgameEval = false;
 
@@ -205,13 +206,21 @@ struct Variant {
 
       // Initialize calculated NNUE properties
       nnueKing =  pieceTypes.find(KING) != pieceTypes.end() ? KING
-                : extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
+                : extinctionPieceCount == 0 && extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
                 : NO_PIECE_TYPE;
-      nnueSquares = (maxRank + 1) * (maxFile + 1);
+      if (nnueKing != NO_PIECE_TYPE)
+      {
+          std::string fenBoard = startFen.substr(0, startFen.find(' '));
+          // Switch NNUE from KA to A if there is no unique piece
+          if (   std::count(fenBoard.begin(), fenBoard.end(), pieceToChar[make_piece(WHITE, nnueKing)]) != 1
+              || std::count(fenBoard.begin(), fenBoard.end(), pieceToChar[make_piece(BLACK, nnueKing)]) != 1)
+              nnueKing = NO_PIECE_TYPE;
+      }
+      int nnueSquares = (maxRank + 1) * (maxFile + 1);
       nnueUsePockets = (pieceDrops && (!mustDrop || capturesToHand)) || seirawanGating;
       int nnuePockets = nnueUsePockets ? 2 * int(maxFile + 1) : 0;
-      int nnueNonDropPieceIndices = (2 * pieceTypes.size() - 1) * nnueSquares;
-      nnuePieceIndices = nnueNonDropPieceIndices + 2 * (pieceTypes.size() - 1) * nnuePockets;
+      int nnueNonDropPieceIndices = (2 * pieceTypes.size() - (nnueKing != NO_PIECE_TYPE)) * nnueSquares;
+      int nnuePieceIndices = nnueNonDropPieceIndices + 2 * (pieceTypes.size() - (nnueKing != NO_PIECE_TYPE)) * nnuePockets;
       int i = 0;
       for (PieceType pt : pieceTypes)
       {
@@ -224,6 +233,26 @@ struct Variant {
           }
           i++;
       }
+
+      // Map king squares to enumeration of actually available squares.
+      // E.g., for xiangqi map from 0-89 to 0-8.
+      // Variants might be initialized before bitboards, so do not rely on precomputed bitboards (like SquareBB).
+      int nnueKingSquare = 0;
+      if (nnueKing)
+          for (Square s = SQ_A1; s < nnueSquares; ++s)
+          {
+              Square bitboardSquare = Square(s + s / (maxFile + 1) * (FILE_MAX - maxFile));
+              if (   !mobilityRegion[WHITE][nnueKing] || !mobilityRegion[BLACK][nnueKing]
+                  || (mobilityRegion[WHITE][nnueKing] & make_bitboard(bitboardSquare))
+                  || (mobilityRegion[BLACK][nnueKing] & make_bitboard(relative_square(BLACK, bitboardSquare, maxRank))))
+              {
+                  kingSquareIndex[s] = nnueKingSquare++ * nnuePieceIndices;
+              }
+          }
+      else
+          kingSquareIndex[SQ_A1] = nnueKingSquare++ * nnuePieceIndices;
+      nnueDimensions = nnueKingSquare * nnuePieceIndices;
+
       // Determine maximum piece count
       std::istringstream ss(startFen);
       ss >> std::noskipws;
