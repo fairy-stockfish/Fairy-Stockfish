@@ -123,14 +123,15 @@ namespace {
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
 	Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank7BB : AllSquares);
+	Bitboard pawnsNotOn8 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank8BB : AllSquares);
 
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
         Bitboard b1 = shift<Up>(pawnsNotOn7) & emptySquares;
         Bitboard b2 = pos.double_step_enabled() ? shift<Up>(b1 & TRank3BB) & emptySquares : Bitboard(0);
-		Bitboard b3 = shift<Right>(pawnsNotOn7) & emptySquares;
-		Bitboard b4 = shift<Left>(pawnsNotOn7) & emptySquares;
+		Bitboard b3 = shift<Right>(pawnsNotOn8) & emptySquares;
+		Bitboard b4 = shift<Left>(pawnsNotOn8) & emptySquares;
 
         if (Type == EVASIONS) // Consider only blocking squares
         {
