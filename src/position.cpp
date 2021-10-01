@@ -2581,13 +2581,13 @@ int Position::counting_limit() const {
       return 64;
 
   case ASEAN_COUNTING:
-      if (count<ALL_PIECES>(sideToMove) > 1)
+      if (count<PAWN>() || count<ALL_PIECES>(sideToMove) > 1)
           return 0;
       if (count<ROOK>(~sideToMove))
           return 16;
-      if (count<KHON>(~sideToMove) && count<MET>(~sideToMove))
+      if (count<KHON>(~sideToMove))
           return 44;
-      if (count<KNIGHT>(~sideToMove) && count<MET>(~sideToMove))
+      if (count<KNIGHT>(~sideToMove))
           return 64;
 
       return 0;
