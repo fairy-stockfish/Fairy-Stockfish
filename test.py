@@ -396,6 +396,32 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("makruk", fen, moves, False, False, True, 58)
         self.assertEqual(result, "3k4/2m5/5M~2/3KM3/4S3/8/8/8 b - 128 8 33")
 
+        # asean counting
+        fen = "4k3/3r4/2K5/8/3R4/8/8/8 w - - 0 1"
+        moves = ["d4d7"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "4k3/3R4/2K5/8/8/8/8/8 b - 32 0 1")
+
+        fen = "4k3/3r4/2K5/8/3R4/1P6/8/8 w - - 0 1"
+        moves = ["d4d7"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "4k3/3R4/2K5/8/8/1P6/8/8 b - - 0 1")
+
+        fen = "8/2P1k3/2K5/8/8/8/8/8 w - - 0 1"
+        moves = ["c7c8b"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "2B5/4k3/2K5/8/8/8/8/8 b - 88 0 1")
+
+        fen = "8/8/4K3/3Q4/1k1N4/5b2/8/8 w - - 0 1"
+        moves = ["d4f3"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "8/8/4K3/3Q4/1k6/5N2/8/8 b - 128 0 1")
+
+        fen = "3Q4/4P3/4K3/3Q4/1k6/8/8/8 w - - 0 1"
+        moves = ["e7e8q"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "3QQ3/8/4K3/3Q4/1k6/8/8/8 b - - 0 1")
+
     def test_get_san(self):
         fen = "4k3/8/3R4/8/1R3R2/8/3R4/4K3 w - - 0 1"
         result = sf.get_san("chess", fen, "b4d4")
