@@ -114,6 +114,7 @@ namespace {
     // Define squares a pawn can pass during a double step
     Bitboard  TRank3BB =  forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_min(), pos.max_rank()))
                         & ~shift<Up>(forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_max(), pos.max_rank())));
+    Bitboard TRank2BB = shift<Down>(TRank3BB);	
 
     const Bitboard emptySquares = Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces() & pos.board_bb();
     const Bitboard enemies      = Type == EVASIONS ? (pos.checkers() & pos.non_sliding_riders() ? pos.pieces(Them) : pos.checkers())
@@ -121,17 +122,20 @@ namespace {
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank7BB : AllSquares);
+    Bitboard pawnsNotOn2 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank2BB : AllSquares);
 
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
         Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
         Bitboard b2 = pos.double_step_enabled() ? shift<Up>(b1 & TRank3BB) & emptySquares : Bitboard(0);
-
+        Bitboard b3 = shift<Down>(pawnsNotOn2) & emptySquares;
+        
         if (Type == EVASIONS) // Consider only blocking squares
         {
             b1 &= target;
             b2 &= target;
+            b3 &= target;
         }
 
         if (Type == QUIET_CHECKS && pos.count<KING>(Them))
@@ -155,6 +159,11 @@ namespace {
         {
             Square to = pop_lsb(b2);
             *moveList++ = make_move(to - Up - Up, to);
+        }
+        while (b3)
+        {
+            Square to = pop_lsb(b3);
+            *moveList++ = make_move(to - Down, to);
         }
     }
 
