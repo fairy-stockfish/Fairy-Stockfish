@@ -181,7 +181,7 @@ namespace {
 
 void PieceMap::init(const Variant* v) {
   clear_all();
-  add(PAWN, from_betza("fmWfceF", "pawn"));
+  add(PAWN, from_betza("fbmWfceF", "pawn"));
   add(KNIGHT, from_betza("N", "knight"));
   add(BISHOP, from_betza("B", "bishop"));
   add(ROOK, from_betza("R", "rook"));
