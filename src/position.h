@@ -1176,7 +1176,7 @@ inline int Position::game_ply() const {
 }
 
 inline int Position::counting_ply(int countStarted) const {
-  return countStarted == 0 || (count<ALL_PIECES>(WHITE) <= 1 || count<ALL_PIECES>(BLACK) <= 1) ? st->countingPly : std::min(st->countingPly, std::max(1 + gamePly - countStarted, 0));
+  return countStarted == 0 || (count<ALL_PIECES>(WHITE) <= 1 || count<ALL_PIECES>(BLACK) <= 1) ? st->countingPly : countStarted < 0 ? 0 : std::min(st->countingPly, std::max(1 + gamePly - countStarted, 0));
 }
 
 inline int Position::rule50_count() const {
