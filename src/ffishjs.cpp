@@ -175,6 +175,10 @@ public:
     return this->pos.fen();
   }
 
+  std::string fen(bool showPromoted, int countStarted) const {
+    return this->pos.fen(false, showPromoted, countStarted);
+  }
+
   void set_fen(std::string fen) {
     resetStates();
     moveStack.clear();
@@ -615,7 +619,8 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("pop", &Board::pop)
     .function("reset", &Board::reset)
     .function("is960", &Board::is_960)
-    .function("fen", &Board::fen)
+    .function("fen", select_overload<std::string()const>(&Board::fen))
+    .function("fen", select_overload<std::string(bool, int)const>(&Board::fen))
     .function("setFen", &Board::set_fen)
     .function("sanMove", select_overload<std::string(std::string)>(&Board::san_move))
     .function("sanMove", select_overload<std::string(std::string, Notation)>(&Board::san_move))

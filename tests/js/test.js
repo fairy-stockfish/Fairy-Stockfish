@@ -200,6 +200,15 @@ describe('board.fen()', function () {
   });
 });
 
+describe('board.fen(showPromoted, countStarted)', function () {
+  it("it returns the current position in fen format. showPromoted makes promoted pieces always followed by the symbol ~ regardless of variant. countStarted overwrites the start of makruk's board honor counting.", () => {
+    let board = new ffish.Board("makruk", "8/6ks/3M~2r1/2K1M3/8/3R4/8/8 w - 128 18 50");
+    chai.expect(board.fen(true, 0)).to.equal("8/6ks/3M~2r1/2K1M3/8/3R4/8/8 w - 128 18 50");
+    chai.expect(board.fen(true, -1)).to.equal("8/6ks/3M~2r1/2K1M3/8/3R4/8/8 w - 128 0 50");
+    chai.expect(board.fen(true, 89)).to.equal("8/6ks/3M~2r1/2K1M3/8/3R4/8/8 w - 128 10 50");
+  });
+});
+
 describe('board.setFen(fen)', function () {
   it("it sets a custom position via fen", () => {
     let board = new ffish.Board();
