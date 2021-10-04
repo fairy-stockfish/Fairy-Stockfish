@@ -160,7 +160,7 @@ string engine_info(bool to_uci, bool to_xboard) {
 
   if (!to_xboard)
     ss << (to_uci  ? "\nid author ": " by ")
-       << "Fabian Fichter, Michael Taktikos";
+       << "Fabian Fichter, pawnsideways by Michael Taktikos";
 
   return ss.str();
 }
