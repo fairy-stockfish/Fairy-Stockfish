@@ -205,7 +205,7 @@ void PieceMap::init(const Variant* v) {
   add(GOLD, from_betza("WfF", "gold"));
   add(DRAGON_HORSE, from_betza("BW", "dragonHorse"));
   add(CLOBBER_PIECE, from_betza("cW", "clobber"));
-  add(BREAKTHROUGH_PIECE, from_betza("fWfFcF", "breakthrough"));
+    add(BREAKTHROUGH_PIECE, from_betza("fmWfF", "breakthrough")); 
   add(IMMOBILE_PIECE, from_betza("", "immobile"));
   add(CANNON, from_betza("mRcpR", "cannon"));
   add(JANGGI_CANNON, from_betza("pR", "janggiCannon"));
