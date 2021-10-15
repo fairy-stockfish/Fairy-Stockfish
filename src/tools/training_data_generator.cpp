@@ -310,7 +310,7 @@ namespace Stockfish::Tools
                 const int depth = params.search_depth_min + (int)prng.rand(params.search_depth_max - params.search_depth_min + 1);
 
                 // Starting search calls init_for_search
-                auto [eval_value, eval_pv] = Search::search(pos, -1);
+                auto [eval_value, eval_pv] = Search::search(pos, pos.checkers() ? 0 : -1);
                 auto [qsearch_value, qsearch_pv] = Search::search(pos, 0);
                 auto [search_value, search_pv] = Search::search(pos, depth, 1, params.nodes);
 
@@ -355,7 +355,7 @@ namespace Stockfish::Tools
 
                 // Filter for static positions using abs(qsearch_value - eval_value)
                 // sync_cout << pos.fen() << " | " << search_value << " | " << qsearch_value << " | " << eval_value << sync_endl;
-                if (ply >= params.write_minply && !was_seen_before(pos) && std::abs(qsearch_value - eval_value) <= params.eval_diff_limit)
+                if (ply >= params.write_minply && !was_seen_before(pos) && !pos.checkers() && std::abs(qsearch_value - eval_value) <= params.eval_diff_limit)
                 {
                     auto& psv = packed_sfens.emplace_back();
 
@@ -382,6 +382,20 @@ namespace Stockfish::Tools
 
                 // Do move.
                 pos.do_move(next_move, states[ply]);
+
+                // Simulate piece flow
+                if (pos.two_boards())
+                {
+                    std::string fen = pos.fen();
+                    for (PieceType pt : pos.piece_types())
+                    {
+                        if (pt == KING || int(prng.rand(PieceValue[EG][pt])) > 20 + (pos.variant()->nnueMaxPieces / 2 - pos.count<ALL_PIECES>() - pos.count_in_hand(ALL_PIECES)))
+                            continue;
+                        for (Color c : { WHITE, BLACK })
+                            fen.insert(fen.find(']'), 1, pos.piece_to_char()[make_piece(c, pt)]);
+                    }
+                    pos.set(variants.find(Options["UCI_Variant"])->second, fen, false, &si, &th);
+                }
             }
         }
     }
