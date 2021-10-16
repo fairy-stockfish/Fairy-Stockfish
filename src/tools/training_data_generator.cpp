@@ -355,7 +355,8 @@ namespace Stockfish::Tools
 
                 // Filter for static positions using abs(qsearch_value - eval_value)
                 // sync_cout << pos.fen() << " | " << search_value << " | " << qsearch_value << " | " << eval_value << sync_endl;
-                if (ply >= params.write_minply && !was_seen_before(pos) && !pos.checkers() && std::abs(qsearch_value - eval_value) <= params.eval_diff_limit)
+                if (ply >= params.write_minply && !was_seen_before(pos)
+                    && !pos.checkers() && pos.nnue_applicable() && std::abs(qsearch_value - eval_value) <= params.eval_diff_limit)
                 {
                     auto& psv = packed_sfens.emplace_back();
 
