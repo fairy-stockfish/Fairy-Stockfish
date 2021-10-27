@@ -263,6 +263,8 @@ struct Variant {
           if (pieceToChar.find(token) != std::string::npos || pieceToCharSynonyms.find(token) != std::string::npos)
               nnueMaxPieces++;
       }
+      if (twoBoards)
+          nnueMaxPieces *= 2;
 
       // For endgame evaluation to be applicable, no special win rules must apply.
       // Furthermore, rules significantly changing game mechanics also invalidate it.
