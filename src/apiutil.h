@@ -291,7 +291,7 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
     }
 
     // Check and checkmate
-    if (pos.gives_check(m) && !is_shogi(n))
+    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
     {
         StateInfo st;
         pos.do_move(m, st);

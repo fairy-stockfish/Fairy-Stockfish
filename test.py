@@ -526,6 +526,17 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", XIANGQI, "h3h5")
         self.assertEqual(result, "Ch5")
 
+        # WXF notation does not denote check or checkmate
+        fen = "4k4/4a3R/9/9/9/9/9/9/4K4/9 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "i9e9", False)
+        self.assertEqual(result, "Rxe9+")
+        result = sf.get_san("xiangqi", fen, "i9e9", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "R1=5")
+        result = sf.get_san("xiangqi", fen, "i9i10", False)
+        self.assertEqual(result, "Ri10#")
+        result = sf.get_san("xiangqi", fen, "i9i10", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "R1+1")
+
         # skip disambiguation for elephants and advisors, but not for pieces that require it
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/1NB6/P1P1P1P1P/1C1A3C1/9/RNBAK21R w - - 0 1"
         result = sf.get_san("xiangqi", fen, "c5e3", False, sf.NOTATION_XIANGQI_WXF)
