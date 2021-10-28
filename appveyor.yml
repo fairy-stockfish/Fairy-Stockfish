@@ -45,6 +45,8 @@ before_build:
            'set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src)',
            'set(source_files', $src, ')',
            'add_compile_definitions(NNUE_EMBEDDING_OFF)',
+           'add_compile_definitions(LARGEBOARDS)',
+           'add_compile_definitions(PRECOMPUTED_MAGICS)',
            'add_executable(stockfish ${source_files})'
 
       # Write CMakeLists.txt withouth BOM
