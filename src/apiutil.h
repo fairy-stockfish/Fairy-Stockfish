@@ -54,6 +54,16 @@ inline Notation default_notation(const Variant* v) {
     return NOTATION_SAN;
 }
 
+enum Termination {
+    ONGOING,
+    CHECKMATE,
+    STALEMATE,
+    INSUFFICIENT_MATERIAL,
+    N_MOVE_RULE,
+    N_FOLD_REPETITION,
+    VARIANT_END,
+};
+
 namespace SAN {
 
 enum Disambiguation {
@@ -281,7 +291,7 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
     }
 
     // Check and checkmate
-    if (pos.gives_check(m) && !is_shogi(n))
+    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
     {
         StateInfo st;
         pos.do_move(m, st);

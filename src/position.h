@@ -345,6 +345,7 @@ private:
   bool tsumeMode;
   bool chess960;
   int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+  int virtualPieces;
   Bitboard promotedPieces;
   void add_to_hand(Piece pc);
   void remove_from_hand(Piece pc);
@@ -540,7 +541,7 @@ inline bool Position::nnue_use_pockets() const {
 
 inline bool Position::nnue_applicable() const {
   // Do not use NNUE during setup phases (placement, sittuyin)
-  return !count_in_hand(ALL_PIECES) || nnue_use_pockets();
+  return (!count_in_hand(ALL_PIECES) || nnue_use_pockets()) && !virtualPieces;
 }
 
 inline bool Position::checking_permitted() const {
@@ -1176,7 +1177,7 @@ inline int Position::game_ply() const {
 }
 
 inline int Position::counting_ply(int countStarted) const {
-  return countStarted == 0 || (count<ALL_PIECES>(WHITE) <= 1 || count<ALL_PIECES>(BLACK) <= 1) ? st->countingPly : std::min(st->countingPly, std::max(1 + gamePly - countStarted, 0));
+  return countStarted == 0 || (count<ALL_PIECES>(WHITE) <= 1 || count<ALL_PIECES>(BLACK) <= 1) ? st->countingPly : countStarted < 0 ? 0 : std::min(st->countingPly, std::max(1 + gamePly - countStarted, 0));
 }
 
 inline int Position::rule50_count() const {
@@ -1351,9 +1352,11 @@ inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s) {
   assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] > 0 || var->twoBoards);
   put_piece(pc_drop, s, pc_drop != pc_hand, pc_drop != pc_hand ? pc_hand : NO_PIECE);
   remove_from_hand(pc_hand);
+  virtualPieces += (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
 }
 
 inline void Position::undrop_piece(Piece pc_hand, Square s) {
+  virtualPieces -= (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
   remove_piece(s);
   board[s] = NO_PIECE;
   add_to_hand(pc_hand);

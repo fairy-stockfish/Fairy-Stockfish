@@ -958,13 +958,13 @@ bool Position::legal(Move m) const {
       {
           Bitboard remaining = drop_region(us, BISHOP) & ~pieces() & ~square_bb(to);
           // Are enough squares available to drop bishops on opposite colors?
-          if (  (!( DarkSquares & pieces(us, BISHOP)) && ( DarkSquares & remaining))
-              + (!(~DarkSquares & pieces(us, BISHOP)) && (~DarkSquares & remaining)) < count_in_hand(us, BISHOP))
+          if (   popcount( DarkSquares & (pieces(us, BISHOP) | remaining)) < count_with_hand(us, BISHOP) / 2
+              || popcount(~DarkSquares & (pieces(us, BISHOP) | remaining)) < count_with_hand(us, BISHOP) / 2)
               return false;
       }
       else
           // Drop resulting in same-colored bishops
-          if ((DarkSquares & to ? DarkSquares : ~DarkSquares) & pieces(us, BISHOP))
+          if (popcount((DarkSquares & to ? DarkSquares : ~DarkSquares) & pieces(us, BISHOP)) + 1 > (count_with_hand(us, BISHOP) + 1) / 2)
               return false;
   }
 
@@ -1086,14 +1086,14 @@ bool Position::legal(Move m) const {
   if (var->makpongRule && checkers() && type_of(moved_piece(m)) == KING && (checkers() ^ to))
       return false;
 
-  // Return early when without king
-  if (!count<KING>(us))
-      return true;
-
   // If the moving piece is a king, check whether the destination square is
   // attacked by the opponent.
   if (type_of(moved_piece(m)) == KING)
       return !attackers_to(to, occupied, ~us);
+
+  // Return early when without king
+  if (!count<KING>(us))
+      return true;
 
   Bitboard janggiCannons = pieces(JANGGI_CANNON);
   if (type_of(moved_piece(m)) == JANGGI_CANNON)
