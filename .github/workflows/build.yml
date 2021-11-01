@@ -16,11 +16,23 @@ jobs:
       - name: install
         run: sudo apt install mingw-w64
 
-      - name: make default
+      - name: make x86-64
         run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64 EXE=fairy-stockfish_x86-64.exe && strip fairy-stockfish_x86-64.exe
 
-      - name: make largeboards
+      - name: make x86-64-modern
+        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64-modern EXE=fairy-stockfish_x86-64-modern.exe && strip fairy-stockfish_x86-64-modern.exe
+
+      - name: make x86-64-bmi2
+        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64-bmi2 EXE=fairy-stockfish_x86-64-bmi2.exe && strip fairy-stockfish_x86-64-bmi2.exe
+
+      - name: make largeboards x86-64
         run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64 EXE=fairy-stockfish-largeboards_x86-64.exe largeboards=yes && strip fairy-stockfish-largeboards_x86-64.exe
+
+      - name: make largeboards x86-64-modern
+        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64-modern EXE=fairy-stockfish-largeboards_x86-64-modern.exe largeboards=yes && strip fairy-stockfish-largeboards_x86-64-modern.exe
+
+      - name: make largeboards x86-64-bmi2
+        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64-bmi2 EXE=fairy-stockfish-largeboards_x86-64-bmi2.exe largeboards=yes && strip fairy-stockfish-largeboards_x86-64-bmi2.exe
 
       - uses: actions/upload-artifact@v2
         with:
