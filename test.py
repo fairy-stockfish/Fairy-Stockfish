@@ -727,6 +727,8 @@ class TestPyffish(unittest.TestCase):
         fen = "rnsm1s1r/4n1k1/1ppppppp/p7/2PPP3/PP3PPP/4N2R/RNSKMS2 b - - 1 5"
         result = sf.get_san("makruk", fen, "f8f7")
         self.assertEqual(result, "Sf7")
+        result = sf.get_san("makruk", fen, "f8f7", False, sf.NOTATION_THAI_SAN)
+        self.assertEqual(result, "คฉ๗")
 
         fen = "4k3/8/8/4S3/8/2S5/8/4K3 w - - 0 1"
         result = sf.get_san("makruk", fen, "e5d4")
@@ -735,9 +737,19 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("makruk", fen, "c3d4")
         self.assertEqual(result, "Scd4")
 
+        result = sf.get_san("makruk", fen, "e5d4", False, sf.NOTATION_THAI_SAN)
+        self.assertEqual(result, "คจง๔")
+
+        result = sf.get_san("makruk", fen, "c3d4", False, sf.NOTATION_THAI_SAN)
+        self.assertEqual(result, "คคง๔")
+
         fen = "4k3/8/8/3S4/8/3S4/8/4K3 w - - 0 1"
         result = sf.get_san("makruk", fen, "d3d4")
         self.assertEqual(result, "Sd4")
+
+        result = sf.get_san("makruk", fen, "d3d4", False, sf.NOTATION_THAI_SAN)
+        self.assertEqual(result, "คง๔")
+
 
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
         SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]

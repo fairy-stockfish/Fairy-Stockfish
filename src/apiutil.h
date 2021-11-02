@@ -46,6 +46,8 @@ enum Notation {
     NOTATION_JANGGI,
     // https://en.wikipedia.org/wiki/Xiangqi#Notation
     NOTATION_XIANGQI_WXF,
+    // TODO add reference
+    NOTATION_THAI_SAN,
 };
 
 inline Notation default_notation(const Variant* v) {
@@ -63,6 +65,9 @@ enum Termination {
     N_FOLD_REPETITION,
     VARIANT_END,
 };
+
+const std::array<std::string, 8> THAI_FILES = {"ก", "ข", "ค", "ง", "จ", "ฉ", "ช", "ญ"};
+const std::array<std::string, 8> THAI_RANKS = {"๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘"};
 
 namespace SAN {
 
@@ -120,6 +125,8 @@ inline std::string file(const Position& pos, Square s, Notation n) {
         return std::to_string(file_of(s) + 1);
     case NOTATION_XIANGQI_WXF:
         return std::to_string((pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s)) + 1);
+    case NOTATION_THAI_SAN:
+        return THAI_FILES[file_of(s)];
     default:
         return std::string(1, char('a' + file_of(s)));
     }
@@ -145,6 +152,8 @@ inline std::string rank(const Position& pos, Square s, Notation n) {
         else
             return "+";
     }
+    case NOTATION_THAI_SAN:
+        return THAI_RANKS[rank_of(s)];
     default:
         return std::to_string(rank_of(s) + 1);
     }
