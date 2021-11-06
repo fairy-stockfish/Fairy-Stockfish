@@ -773,6 +773,23 @@ inline Validation check_check_count(const std::string& checkCountInfo) {
     return OK;
 }
 
+inline Validation check_lichess_check_count(const std::string& checkCountInfo) {
+    if (checkCountInfo.size() != 4)
+    {
+        std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 4 characters. Actual: " << checkCountInfo.size() << " character(s)." << std::endl;
+        return NOK;
+    }
+    if (!isdigit(checkCountInfo[1]) || checkCountInfo[1] - '0' > 3)
+    {
+        std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 2nd character to be a digit up to 3." << std::endl;
+        return NOK;
+    }
+    if (!isdigit(checkCountInfo[3]) || checkCountInfo[3] - '0' > 3) {
+        std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 4th character to be a digit up to 3." << std::endl;
+        return NOK;
+    }
+    return OK;
+}
 
 inline Validation check_digit_field(const std::string& field) {
     if (field.size() == 1 && field[0] == '-')
@@ -914,17 +931,25 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
 
     // 5) Part
     // check check count
-    unsigned int optionalFields = 2 * !skipCastlingAndEp;
-    if (fenParts.size() >= 3 + optionalFields && v->checkCounting && fenParts.size() % 2)
+    unsigned int optionalInbetweenFields = 2 * !skipCastlingAndEp;
+    unsigned int optionalTrailingFields = 0;
+    if (fenParts.size() >= 3 + optionalInbetweenFields && v->checkCounting && fenParts.size() % 2)
     {
-        if (check_check_count(fenParts[2 + optionalFields]) == NOK)
-            return FEN_INVALID_CHECK_COUNT;
-        optionalFields++;
+        if (check_check_count(fenParts[2 + optionalInbetweenFields]) == NOK)
+        {
+            // allow valid lichess style check as alternative
+            if (fenParts.size() < 5 + optionalInbetweenFields || check_lichess_check_count(fenParts[fenParts.size() - 1]) == NOK)
+                return FEN_INVALID_CHECK_COUNT;
+            else
+                optionalTrailingFields++;
+        }
+        else
+            optionalInbetweenFields++;
     }
 
     // 6) Part
     // check half move counter
-    if (fenParts.size() >= 3 + optionalFields && !check_digit_field(fenParts[fenParts.size()-2]))
+    if (fenParts.size() >= 3 + optionalInbetweenFields && !check_digit_field(fenParts[fenParts.size() - 2 - optionalTrailingFields]))
     {
         std::cerr << "Invalid half move counter: '" << fenParts[fenParts.size()-2] << "'." << std::endl;
         return FEN_INVALID_HALF_MOVE_COUNTER;
@@ -932,7 +957,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
 
     // 7) Part
     // check move counter
-    if (fenParts.size() >= 4 + optionalFields && !check_digit_field(fenParts[fenParts.size()-1]))
+    if (fenParts.size() >= 4 + optionalInbetweenFields && !check_digit_field(fenParts[fenParts.size() - 1 - optionalTrailingFields]))
     {
         std::cerr << "Invalid move counter: '" << fenParts[fenParts.size()-1] << "'." << std::endl;
         return FEN_INVALID_MOVE_COUNTER;
