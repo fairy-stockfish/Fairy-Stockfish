@@ -549,18 +549,33 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "R1+1")
 
         # skip disambiguation for elephants and advisors, but not for pieces that require it
-        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/1NB6/P1P1P1P1P/1C1A3C1/9/RNBAK21R w - - 0 1"
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/4P4/1NB6/P1P1P3P/1C1A3C1/9/RNBAK4 w - - 0 1"
         result = sf.get_san("xiangqi", fen, "c5e3", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "E7-5")
         result = sf.get_san("xiangqi", fen, "d1e2", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "A6+5")
         result = sf.get_san("xiangqi", fen, "b5c7", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "H++7")
+        result = sf.get_san("xiangqi", fen, "e6e7", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "P++1")
+        result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "P-+1")
 
         # Tandem pawns
         fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
         result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "15=6")
+        result = sf.get_san("xiangqi", fen, "e6d6", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "25=6")
+        result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "35+1")
+
+        # use tandem pawn notation for pair of tandem pawns
+        fen = "5k3/9/3P5/3P1P1P1/5P3/9/9/9/9/4K4 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "d7e7", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "26=5")
+        result = sf.get_san("xiangqi", fen, "f6e6", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "24=5")
 
         fen = "1rb1ka2r/4a4/2ncb1nc1/p1p1p1p1p/9/2P6/P3PNP1P/2N1C2C1/9/R1BAKAB1R w - - 1 7"
         result = sf.get_san("xiangqi", fen, "c3e2")

@@ -77,6 +77,15 @@ inline bool is_shogi(Notation n) {
     return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES || n == NOTATION_SHOGI_HODGES_NUMBER;
 }
 
+// is there more than one file with a pair of pieces?
+inline bool multi_tandem(Bitboard b) {
+    int tandems = 0;
+    for (File f = FILE_A; f <= FILE_MAX; ++f)
+        if (more_than_one(b & file_bb(f)))
+            tandems++;
+    return tandems >= 2;
+}
+
 inline std::string piece(const Position& pos, Move m, Notation n) {
     Color us = pos.side_to_move();
     Square from = from_sq(m);
@@ -86,7 +95,7 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     if ((n == NOTATION_SAN || n == NOTATION_LAN) && type_of(pc) == PAWN && type_of(m) != DROP)
         return "";
     // Tandem pawns
-    else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) > 2)
+    else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
         return std::to_string(popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1);
     // Moves of promoted pieces
     else if (is_shogi(n) && type_of(m) != DROP && pos.unpromoted_piece_on(from))
@@ -129,6 +138,7 @@ inline std::string rank(const Position& pos, Square s, Notation n) {
     case NOTATION_XIANGQI_WXF:
     {
         if (pos.empty(s))
+            // Handle piece drops
             return std::to_string(relative_rank(pos.side_to_move(), s, pos.max_rank()) + 1);
         else if (pos.pieces(pos.side_to_move(), type_of(pos.piece_on(s))) & forward_file_bb(pos.side_to_move(), s))
             return "-";
@@ -169,7 +179,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
     if (n == NOTATION_XIANGQI_WXF)
     {
         // Disambiguate by rank (+/-) if target square of other piece is valid
-        if (popcount(pos.pieces(us, pt) & file_bb(from)) == 2)
+        if (popcount(pos.pieces(us, pt) & file_bb(from)) == 2 && !multi_tandem(pos.pieces(us, pt)))
         {
             Square otherFrom = lsb((pos.pieces(us, pt) & file_bb(from)) ^ from);
             Square otherTo = otherFrom + Direction(to) - Direction(from);
