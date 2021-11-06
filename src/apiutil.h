@@ -436,13 +436,6 @@ public:
                     squares.emplace_back(CharSquare(r, c));
         return squares;
     }
-    /// Checks if a given character is on a given rank index
-    bool is_piece_on_rank(char piece, int rowIdx) const {
-        for (int f = 0; f < nbFiles; ++f)
-            if (get_piece(rowIdx, f) == piece)
-                return true;
-        return false;
-    }
     friend std::ostream& operator<<(std::ostream& os, const CharBoard& board);
 };
 
@@ -609,19 +602,39 @@ inline std::string castling_rights_to_string(CastlingRights castlingRights) {
     }
 }
 
-inline Validation check_castling_rank(const std::array<std::string, 2>& castlingInfoSplitted, const CharBoard& board, const Variant* v) {
+inline Validation check_castling_rank(const std::array<std::string, 2>& castlingInfoSplitted, const CharBoard& board,
+                            const std::array<CharSquare, 2>& kingPositions, const Variant* v) {
 
     for (Color c : {WHITE, BLACK})
     {
-        for (char charPiece : {v->pieceToChar[make_piece(c, v->castlingKingPiece)],
-                               v->pieceToChar[make_piece(c, v->castlingRookPiece)]})
+        const Rank castlingRank = relative_rank(c, v->castlingRank, v->maxRank);
+        char rookChar = v->pieceToChar[make_piece(c, v->castlingRookPiece)];
+        for (char castlingFlag : castlingInfoSplitted[c])
         {
-            if (castlingInfoSplitted[c].size() == 0)
-                continue;
-            const Rank castlingRank = relative_rank(c, v->castlingRank, v->maxRank);
-            if (!board.is_piece_on_rank(charPiece, castlingRank))
+            if (tolower(castlingFlag) == 'k' || tolower(castlingFlag) == 'q')
             {
-                std::cerr << "The " << color_to_string(c) << " king and rook must be on rank " << castlingRank << " if castling is enabled for " << color_to_string(c) << "." << std::endl;
+                if (kingPositions[c].rowIdx != castlingRank)
+                {
+                    std::cerr << "The " << color_to_string(c) << " king must be on rank " << castlingRank << " if castling is enabled for " << color_to_string(c) << "." << std::endl;
+                    return NOK;
+                }
+                bool kingside = tolower(castlingFlag) == 'k';
+                bool castlingRook = false;
+                for (int f = kingside ? board.get_nb_files() - 1 : 0; f != kingPositions[c].fileIdx; kingside ? f-- : f++)
+                    if (board.get_piece(castlingRank, f) == rookChar)
+                    {
+                        castlingRook = true;
+                        break;
+                    }
+                if (!castlingRook)
+                {
+                    std::cerr << "No castling rook for flag " << castlingFlag << std::endl;
+                    return NOK;
+                }
+            }
+            else if (board.get_piece(castlingRank, tolower(castlingFlag) - 'a') == ' ')
+            {
+                std::cerr << "No gating piece for flag " << castlingFlag << std::endl;
                 return NOK;
             }
         }
@@ -879,8 +892,8 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
             CharBoard startBoard(board.get_nb_ranks(), board.get_nb_files());
             fill_char_board(startBoard, v->startFen, validSpecialCharacters, v);
 
-            // skip check for gating variants to avoid confusion with gating squares
-            if (!v->gating && check_castling_rank(castlingInfoSplitted, board, v) == NOK)
+            // Check pieces present on castling rank against castling/gating rights
+            if (check_castling_rank(castlingInfoSplitted, board, kingPositions, v) == NOK)
                 return FEN_INVALID_CASTLING_INFO;
 
             // only check exact squares if starting position of castling pieces is known
