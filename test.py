@@ -98,8 +98,12 @@ variant_positions = {
         "k7/p7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KP
         "k7/q7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KQ
     },
+    "crazyhouse": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 0 1": (False, False),  # lichess style startpos
+    },
     "3check": {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1": (False, False),  # startpos
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 +0+2": (False, False),  # lichess style check count
         "k7/n7/8/8/8/8/8/K7 w - - 1+2 0 1": (True, False),  # K vs KN
         "k7/b7/8/8/8/8/8/K7 w - - 3+1 0 1": (True, False),  # K vs KB
     },
@@ -200,6 +204,8 @@ invalid_variant_positions = {
     ),
     "3check": (
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+a 0 1",  # invalid check count
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 +a+2",  # invalid lichess check count
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 +1+4",  # invalid lichess check count
     ),
     "horde": (
         "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPK w kq - 0 1",  # wrong king count
