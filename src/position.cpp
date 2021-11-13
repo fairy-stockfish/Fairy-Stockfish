@@ -1475,7 +1475,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Update castling rights if needed
-  if (type_of(m) != DROP && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
+  if (type_of(m) != DROP && !is_pass(m) && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
   {
       k ^= Zobrist::castling[st->castlingRights];
       st->castlingRights &= ~(castlingRightsMask[from] | castlingRightsMask[to]);
