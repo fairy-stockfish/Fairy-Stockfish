@@ -14,7 +14,7 @@ SITTUYIN = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1"
 MAKRUK = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1"
 SHOGI = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1"
 SHOGI_SFEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
-SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1"
+SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[EHeh] w KQBCDFGkqbcdfg - 0 1"
 GRAND = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1"
 GRANDHOUSE = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R[] w - - 0 1"
 XIANGQI = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
@@ -68,6 +68,9 @@ castling = true
 castlingKingsideFile = e
 castlingQueensideFile = b
 startFen = rbnkbr/pppppp/6/6/PPPPPP/RBNKBR w KQkq - 0 1
+
+[passchess:chess]
+pass = true
 """
 
 sf.load_variant_config(ini_text)
@@ -98,8 +101,12 @@ variant_positions = {
         "k7/p7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KP
         "k7/q7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KQ
     },
+    "crazyhouse": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 0 1": (False, False),  # lichess style startpos
+    },
     "3check": {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1": (False, False),  # startpos
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 +0+2": (False, False),  # lichess style check count
         "k7/n7/8/8/8/8/8/K7 w - - 1+2 0 1": (True, False),  # K vs KN
         "k7/b7/8/8/8/8/8/K7 w - - 3+1 0 1": (True, False),  # K vs KB
     },
@@ -189,16 +196,19 @@ invalid_variant_positions = {
         "rnbqkbnr/pppppppp/7/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # invalid file count
         "rnbqkbnr/pppppppp/9/7/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # invalid file count
         "rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # invalid rank count
-        "1nbqkbn1/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # missing castling rook
-        "rnbqkbnr/pppppppp/8/8/4K3/PPPPPPPP/RNBQ1BNR w KQkq - 0 1",  # king not on castling rank
-        "rnbqkbnr/pppppppp/8/8/RNBQKBNR/PPPPPPPP/8 w KQkq - 0 1",  # not on castling rank
-        "8/pppppppp/rnbqkbnr/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # not on castling rank
+        "rnbqkbn1/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # missing castling rook
+        "1nbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # missing castling rook
+        "rnbqkbnr/pppppppp/8/8/8/4K3/PPPPPPPP/RNBQ1BNR w KQkq - 0 1",  # king not on castling rank
+        "rnbqkbnr/pppppppp/8/8/8/RNBQKBNR/PPPPPPPP/8 w KQkq - 0 1",  # not on castling rank
+        "8/pppppppp/rnbqkbnr/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # not on castling rank
     ),
     "atomic": (
         "rnbqkbnr/pppppppp/8/8/8/RNBQKBNR/PPPPPPPP/8 w KQkq - 0 1",  # wrong castling rank
     ),
     "3check": (
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+a 0 1",  # invalid check count
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 +a+2",  # invalid lichess check count
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 +1+4",  # invalid lichess check count
     ),
     "horde": (
         "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPK w kq - 0 1",  # wrong king count
@@ -209,6 +219,10 @@ invalid_variant_positions = {
     ),
     "shako": {
         "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/C8C/ERNBQKBNRE w KQkq - 0 1",  # not on castling rank
+    },
+    "seirawan": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK1NR[HEhe] w KQBCDFGkqbcdfg - 0 1",  # white gating flag
+        "rnbqkb1r/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1",  # black gating flag
     }
 }
 
@@ -319,6 +333,14 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("xiangqi", XIANGQI, [])
         self.assertEqual(result, XIANGQI)
 
+        result = sf.get_fen("seirawan", SEIRAWAN, [])
+        self.assertEqual(result, SEIRAWAN)
+
+        # test idempotence for S-Chess960 gating flags
+        fen1 = sf.get_fen("seirawan", SEIRAWAN, [], True)
+        fen2 = sf.get_fen("seirawan", fen1, [], True)
+        self.assertEqual(fen1, fen2)
+
         fen = "rnab1kbcnr/ppppPppppp/10/4q5/10/10/PPPPP1PPPP/RNABQKBCNR[p] b KQkq - 0 3"
         result = sf.get_fen("capahouse", CAPA, ["f2f4", "e7e5", "f4e5", "e8e5", "P@e7"])
         self.assertEqual(result, fen)
@@ -335,7 +357,12 @@ class TestPyffish(unittest.TestCase):
         fen = "rbkqnrbn/pppppppp/8/8/8/8/PPPPPPPP/RBKQNRBN w AFaf - 0 1"
         moves = ["d2d4", "f7f5", "e1f3", "h8g6", "h1g3", "c7c6", "c2c3", "e7e6", "b1d3", "d7d5", "d1c2", "b8d6", "e2e3", "d8d7", "c1a1"]
         result = sf.get_fen("chess", fen, moves, True, False, False)
-        self.assertEqual(result, "r1k1nrb1/pp1q2pp/2pbp1n1/3p1p2/3P4/2PBPNN1/PPQ2PPP/2KR1RB1 b fa - 2 8", CHESS960)
+        self.assertEqual(result, "r1k1nrb1/pp1q2pp/2pbp1n1/3p1p2/3P4/2PBPNN1/PPQ2PPP/2KR1RB1 b fa - 2 8")
+
+        # passing should not affect castling rights
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        result = sf.get_fen("passchess", fen, ["e1e1", "e8e8"])
+        self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 2 2")
 
         # SFEN
         result = sf.get_fen("shogi", SHOGI, [], False, True)
@@ -526,19 +553,45 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", XIANGQI, "h3h5")
         self.assertEqual(result, "Ch5")
 
+        # WXF notation does not denote check or checkmate
+        fen = "4k4/4a3R/9/9/9/9/9/9/4K4/9 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "i9e9", False)
+        self.assertEqual(result, "Rxe9+")
+        result = sf.get_san("xiangqi", fen, "i9e9", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "R1=5")
+        result = sf.get_san("xiangqi", fen, "i9i10", False)
+        self.assertEqual(result, "Ri10#")
+        result = sf.get_san("xiangqi", fen, "i9i10", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "R1+1")
+
         # skip disambiguation for elephants and advisors, but not for pieces that require it
-        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/1NB6/P1P1P1P1P/1C1A3C1/9/RNBAK21R w - - 0 1"
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/4P4/1NB6/P1P1P3P/1C1A3C1/9/RNBAK4 w - - 0 1"
         result = sf.get_san("xiangqi", fen, "c5e3", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "E7-5")
         result = sf.get_san("xiangqi", fen, "d1e2", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "A6+5")
         result = sf.get_san("xiangqi", fen, "b5c7", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "H++7")
+        result = sf.get_san("xiangqi", fen, "e6e7", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "P++1")
+        result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "P-+1")
 
         # Tandem pawns
         fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
         result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "15=6")
+        result = sf.get_san("xiangqi", fen, "e6d6", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "25=6")
+        result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "35+1")
+
+        # use tandem pawn notation for pair of tandem pawns
+        fen = "5k3/9/3P5/3P1P1P1/5P3/9/9/9/9/4K4 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "d7e7", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "26=5")
+        result = sf.get_san("xiangqi", fen, "f6e6", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "24=5")
 
         fen = "1rb1ka2r/4a4/2ncb1nc1/p1p1p1p1p/9/2P6/P3PNP1P/2N1C2C1/9/R1BAKAB1R w - - 1 7"
         result = sf.get_san("xiangqi", fen, "c3e2")

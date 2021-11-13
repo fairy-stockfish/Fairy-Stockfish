@@ -717,7 +717,11 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   if (gating() && gates(WHITE) && (!seirawan_gating() || count_in_hand(WHITE, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
-          if (gates(WHITE) & file_bb(f))
+          if (   (gates(WHITE) & file_bb(f))
+              // skip gating flags redundant with castling flags
+              && !(!chess960 && can_castle(WHITE_CASTLING) && f == file_of(castling_king_square(WHITE)))
+              && !(can_castle(WHITE_OO ) && f == file_of(castling_rook_square(WHITE_OO )))
+              && !(can_castle(WHITE_OOO) && f == file_of(castling_rook_square(WHITE_OOO))))
               ss << char('A' + f);
 
   // Disambiguation for chess960 "king" square
@@ -732,7 +736,11 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   if (gating() && gates(BLACK) && (!seirawan_gating() || count_in_hand(BLACK, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
-          if (gates(BLACK) & file_bb(f))
+          if (   (gates(BLACK) & file_bb(f))
+              // skip gating flags redundant with castling flags
+              && !(!chess960 && can_castle(BLACK_CASTLING) && f == file_of(castling_king_square(BLACK)))
+              && !(can_castle(BLACK_OO ) && f == file_of(castling_rook_square(BLACK_OO )))
+              && !(can_castle(BLACK_OOO) && f == file_of(castling_rook_square(BLACK_OOO))))
               ss << char('a' + f);
 
   if (!can_castle(ANY_CASTLING) && !(gating() && (gates(WHITE) | gates(BLACK))))
@@ -1467,7 +1475,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Update castling rights if needed
-  if (type_of(m) != DROP && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
+  if (type_of(m) != DROP && !is_pass(m) && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
   {
       k ^= Zobrist::castling[st->castlingRights];
       st->castlingRights &= ~(castlingRightsMask[from] | castlingRightsMask[to]);
