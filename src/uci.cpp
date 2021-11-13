@@ -491,7 +491,7 @@ string UCI::move(const Position& pos, Move m) {
   if (m == MOVE_NONE)
       return Options["Protocol"] == "usi" ? "resign" : "(none)";
 
-  if (m == MOVE_NULL)
+  if (m == MOVE_NULL || (is_pass(m) && Options["Protocol"] == "uci"))
       return "0000";
 
   if (is_pass(m) && Options["Protocol"] == "xboard")
