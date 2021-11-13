@@ -101,6 +101,7 @@ struct Variant {
   Bitboard diagonalLines = 0;
   bool pass = false;
   bool passOnStalemate = false;
+  bool balancedAlternation = false;
   bool makpongRule = false;
   bool flyingGeneral = false;
   Rank soldierPromotionRank = RANK_1;

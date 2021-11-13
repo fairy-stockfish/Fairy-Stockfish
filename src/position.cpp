@@ -988,6 +988,12 @@ bool Position::legal(Move m) const {
               return false;
   }
 
+  // Balanced alternation
+  if (var->balancedAlternation && (is_pass(m) != (gamePly == 2 || gamePly == 5)))
+      return false;
+  if (var->balancedAlternation && (gamePly == 1 || gamePly == 4) && (capture(m) || gives_check(m)))
+      return false;
+
   // Check for attacks to pseudo-royal pieces
   if (var->extinctionPseudoRoyal)
   {
