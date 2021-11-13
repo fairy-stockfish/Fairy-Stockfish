@@ -68,6 +68,9 @@ castling = true
 castlingKingsideFile = e
 castlingQueensideFile = b
 startFen = rbnkbr/pppppp/6/6/PPPPPP/RBNKBR w KQkq - 0 1
+
+[passchess:chess]
+pass = true
 """
 
 sf.load_variant_config(ini_text)
@@ -354,7 +357,12 @@ class TestPyffish(unittest.TestCase):
         fen = "rbkqnrbn/pppppppp/8/8/8/8/PPPPPPPP/RBKQNRBN w AFaf - 0 1"
         moves = ["d2d4", "f7f5", "e1f3", "h8g6", "h1g3", "c7c6", "c2c3", "e7e6", "b1d3", "d7d5", "d1c2", "b8d6", "e2e3", "d8d7", "c1a1"]
         result = sf.get_fen("chess", fen, moves, True, False, False)
-        self.assertEqual(result, "r1k1nrb1/pp1q2pp/2pbp1n1/3p1p2/3P4/2PBPNN1/PPQ2PPP/2KR1RB1 b fa - 2 8", CHESS960)
+        self.assertEqual(result, "r1k1nrb1/pp1q2pp/2pbp1n1/3p1p2/3P4/2PBPNN1/PPQ2PPP/2KR1RB1 b fa - 2 8")
+
+        # passing should not affect castling rights
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        result = sf.get_fen("passchess", fen, ["e1e1", "e8e8"])
+        self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 2 2")
 
         # SFEN
         result = sf.get_fen("shogi", SHOGI, [], False, True)
