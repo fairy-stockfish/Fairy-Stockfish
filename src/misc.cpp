@@ -67,7 +67,7 @@ namespace {
 
 /// Version number. If Version is left empty, then compile date in the format
 /// DD-MM-YY and show in engine_info.
-const string Version = "";
+const string Version = "14.0.1";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -155,7 +155,7 @@ string engine_info(bool to_uci, bool to_xboard) {
   }
 
 #ifdef LARGEBOARDS
-  ss << " LB";
+  ss << " XQ";
 #endif
 
   if (!to_xboard)

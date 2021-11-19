@@ -201,7 +201,7 @@ void init(OptionsMap& o) {
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
   o["Use NNUE"]              << Option(true, on_use_NNUE);
 #ifndef NNUE_EMBEDDING_OFF
-  o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
+  o["EvalFile"]              << Option((std::string(EvalFileDefaultName) + UCI::SepChar + EvalFile2DefaultName).c_str(), on_eval_file);
 #else
   o["EvalFile"]              << Option("<empty>", on_eval_file);
 #endif

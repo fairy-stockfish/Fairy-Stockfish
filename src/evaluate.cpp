@@ -47,11 +47,16 @@
 // Note that this does not work in Microsoft Visual Studio.
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
   INCBIN(EmbeddedNNUE, EvalFileDefaultName);
+  INCBIN(EmbeddedNNUE2, EvalFile2DefaultName);
 #else
   const unsigned char        gEmbeddedNNUEData[1] = {0x0};
   [[maybe_unused]]
   const unsigned char *const gEmbeddedNNUEEnd = &gEmbeddedNNUEData[1];
   const unsigned int         gEmbeddedNNUESize = 1;
+  const unsigned char        gEmbeddedNNUE2Data[1] = {0x0};
+  [[maybe_unused]]
+  const unsigned char *const gEmbeddedNNUE2End = &gEmbeddedNNUE2Data[1];
+  const unsigned int         gEmbeddedNNUE2Size = 1;
 #endif
 
 
@@ -120,15 +125,16 @@ namespace Eval {
                     eval_file_loaded = eval_file;
             }
 
-            if (directory == "<internal>" && eval_file == EvalFileDefaultName)
+            if (directory == "<internal>" && (eval_file == EvalFileDefaultName || eval_file == EvalFile2DefaultName))
             {
                 // C++ way to prepare a buffer for a memory stream
                 class MemoryBuffer : public basic_streambuf<char> {
                     public: MemoryBuffer(char* p, size_t n) { setg(p, p, p + n); setp(p, p + n); }
                 };
 
-                MemoryBuffer buffer(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
-                                    size_t(gEmbeddedNNUESize));
+                bool first = eval_file == EvalFileDefaultName;
+                MemoryBuffer buffer(const_cast<char*>(reinterpret_cast<const char*>(first ? gEmbeddedNNUEData : gEmbeddedNNUE2Data)),
+                                    size_t(first ? gEmbeddedNNUESize : gEmbeddedNNUE2Size));
 
                 istream stream(&buffer);
                 if (load_eval(eval_file, stream))
