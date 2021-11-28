@@ -138,6 +138,7 @@ namespace {
 
     limits.banmoves = banmoves;
     bool isUsi = Options["Protocol"] == "usi";
+    int secResolution = Options["usemillisec"] ? 1 : 1000;
 
     while (is >> token)
         if (token == "searchmoves") // Needs to be the last command on the line
@@ -157,10 +158,10 @@ namespace {
         else if (token == "infinite")  limits.infinite = 1;
         else if (token == "ponder")    ponderMode = true;
         // UCCI commands
-        else if (token == "time")      is >> limits.time[pos.side_to_move()];
-        else if (token == "opptime")   is >> limits.time[~pos.side_to_move()];
-        else if (token == "increment") is >> limits.inc[pos.side_to_move()];
-        else if (token == "oppinc")    is >> limits.inc[~pos.side_to_move()];
+        else if (token == "time")         is >> limits.time[pos.side_to_move()], limits.time[pos.side_to_move()] *= secResolution;
+        else if (token == "opptime")      is >> limits.time[~pos.side_to_move()], limits.time[~pos.side_to_move()] *= secResolution;
+        else if (token == "increment")    is >> limits.inc[pos.side_to_move()], limits.inc[pos.side_to_move()] *= secResolution;
+        else if (token == "oppincrement") is >> limits.inc[~pos.side_to_move()], limits.inc[~pos.side_to_move()] *= secResolution;
         // USI commands
         else if (token == "byoyomi")
         {
