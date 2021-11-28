@@ -512,6 +512,13 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", SHOGI, "f1e2", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
         self.assertEqual(result, "G49-58")
 
+        # Disambiguation of promotion moves
+        fen = "p1ksS/n1n2/4P/5/+L1K1+L[] b - - 3 9"
+        result = sf.get_san("kyotoshogi", fen, "c4b2+", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
+        self.assertEqual(result, "N32-44+")
+        result = sf.get_san("kyotoshogi", fen, "a4b2+", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
+        self.assertEqual(result, "N52-44+")
+
         fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -"
         result = sf.get_san("shogi", fen, "b2h8", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "Bx2b=")
@@ -647,6 +654,13 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "O-O/Hh1")
         result = sf.get_san("seirawan", fen, "h1e1e")
         self.assertEqual(result, "O-O/Eh1")
+
+        # Disambiguation only when necessary
+        fen = "rnbqkb1r/ppp1pppp/5n2/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R[EHeh] w KQABCDEFHkqabcdefh - 2 3"
+        result = sf.get_san("seirawan", fen, "b1d2e")
+        self.assertEqual(result, "Nd2/E")
+        result = sf.get_san("seirawan", fen, "b1d2")
+        self.assertEqual(result, "Nbd2")
 
     def test_get_san_moves(self):
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
