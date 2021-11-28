@@ -1484,8 +1484,13 @@ void VariantMap::parse_istream(std::istream& file) {
         while (file.peek() != '[' && std::getline(file, input))
         {
             std::stringstream ss(input);
-            if (ss.peek() != '#' && std::getline(std::getline(ss, key, '=') >> std::ws, value) && !key.empty())
-                attribs[key.erase(key.find_last_not_of(" ") + 1)] = value;
+            if (ss.peek() != ';' && ss.peek() != '#')
+            {
+                if (DoCheck && !input.empty() && input.find('=') == std::string::npos)
+                    std::cerr << "Invalid sytax: '" << input << "'." << std::endl;
+                if (std::getline(std::getline(ss, key, '=') >> std::ws, value) && !key.empty())
+                    attribs[key.erase(key.find_last_not_of(" ") + 1)] = value;
+            }
         }
 
         // Create variant
