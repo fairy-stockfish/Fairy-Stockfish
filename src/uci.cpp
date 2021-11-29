@@ -116,8 +116,7 @@ namespace {
     if (Options.count(name))
         Options[name] = value;
     // UCI dialects do not allow spaces
-    else if (   (Options["Protocol"] == "ucci" || Options["Protocol"] == "usi")
-             && (std::replace(name.begin(), name.end(), '_', ' '), Options.count(name)))
+    else if (is_valid_option(Options, name))
         Options[name] = value;
     else
         sync_cout << "No such option: " << name << sync_endl;
@@ -548,6 +547,34 @@ Move UCI::to_move(const Position& pos, string& str) {
           return m;
 
   return MOVE_NONE;
+}
+
+std::string UCI::option_name(std::string name, std::string protocol) {
+  if (protocol == "ucci" && name == "Hash")
+      return "hashsize";
+  if (protocol == "usi")
+  {
+      if (name == "Hash" || name == "Ponder" || name == "MultiPV")
+          return "USI_" + name;
+      if (name.substr(0, 4) == "UCI_")
+          name = "USI_" + name.substr(4);
+  }
+  if (protocol == "ucci" || protocol == "usi")
+      std::replace(name.begin(), name.end(), ' ', '_');
+  return name;
+}
+
+bool UCI::is_valid_option(UCI::OptionsMap& options, std::string& name) {
+  std::string protocol = options["Protocol"];
+  for (const auto& it : options)
+  {
+      if (options.key_comp()(option_name(it.first, protocol), name))
+      {
+          name = it.first;
+          return true;
+      }
+  }
+  return false;
 }
 
 } // namespace Stockfish
