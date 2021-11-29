@@ -93,6 +93,9 @@ std::string pv(const Position& pos, Depth depth, Value alpha, Value beta);
 std::string wdl(Value v, int ply);
 Move to_move(const Position& pos, std::string& str);
 
+std::string option_name(std::string name, std::string protocol);
+bool is_valid_option(UCI::OptionsMap& options, std::string& name);
+
 } // namespace UCI
 
 extern UCI::OptionsMap Options;
