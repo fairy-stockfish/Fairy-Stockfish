@@ -419,7 +419,7 @@ string UCI::value(Value v) {
   } else
 
   if (abs(v) < VALUE_MATE_IN_MAX_PLY)
-      ss << "cp " << v * 100 / PawnValueEg;
+      ss << (Options["Protocol"] == "ucci" ? "" : "cp ") << v * 100 / PawnValueEg;
   else if (Options["Protocol"] == "usi")
       // In USI, mate distance is given in ply
       ss << "mate " << (v > 0 ? VALUE_MATE - v : -VALUE_MATE - v);
