@@ -115,7 +115,7 @@ namespace {
 
     if (Options.count(name))
         Options[name] = value;
-    // UCI dialects do not allow spaces
+    // Deal with option name aliases in UCI dialects
     else if (is_valid_option(Options, name))
         Options[name] = value;
     else
@@ -568,7 +568,7 @@ bool UCI::is_valid_option(UCI::OptionsMap& options, std::string& name) {
   std::string protocol = options["Protocol"];
   for (const auto& it : options)
   {
-      if (options.key_comp()(option_name(it.first, protocol), name))
+      if (option_name(it.first, protocol) == name)
       {
           name = it.first;
           return true;
