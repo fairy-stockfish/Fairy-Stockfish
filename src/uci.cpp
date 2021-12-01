@@ -568,7 +568,8 @@ bool UCI::is_valid_option(UCI::OptionsMap& options, std::string& name) {
   std::string protocol = options["Protocol"];
   for (const auto& it : options)
   {
-      if (option_name(it.first, protocol) == name)
+      std::string optionName = option_name(it.first, protocol);
+      if (!options.key_comp()(optionName, name) && !options.key_comp()(name, optionName))
       {
           name = it.first;
           return true;
