@@ -297,7 +297,7 @@ namespace Stockfish::Tools
                 if (!fen.has_value())
                     return;
 
-                pos.set(pos.variant(), *fen, false, &si, &th);
+                pos.set(variants.find(Options["UCI_Variant"])->second, *fen, false, &si, &th);
                 pos.state()->rule50 = 0;
 
 

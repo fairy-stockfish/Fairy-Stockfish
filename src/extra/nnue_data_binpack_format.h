@@ -7804,7 +7804,7 @@ namespace binpack
 
             if (key == "e"sv)
             {
-                e.move = chess::uci::uciToMove(e.pos, move);
+                e.move = chess::Move::null();
                 if (validate && !e.isValid())
                 {
                     std::cerr << "Illegal move " << chess::uci::moveToUci(e.pos, e.move) << " for position " << e.pos.fen() << '\n';
