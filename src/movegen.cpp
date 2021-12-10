@@ -108,8 +108,7 @@ namespace {
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    Bitboard TRank8BB = pos.mandatory_pawn_promotion() ? rank_bb(relative_rank(Us, pos.promotion_rank(), pos.max_rank()))
-                                                       : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
+    Bitboard TRank8BB = pos.sittuyin_promotion() ? Bitboard(0) : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
     Bitboard TRank7BB = shift<Down>(TRank8BB);
     // Define squares a pawn can pass during a double step
     Bitboard  TRank3BB =  forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_min(), pos.max_rank()))

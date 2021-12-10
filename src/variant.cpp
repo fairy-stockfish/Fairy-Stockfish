@@ -512,7 +512,6 @@ namespace {
         v->whiteDropRegion = Rank1BB | Rank2BB | Rank3BB;
         v->blackDropRegion = Rank8BB | Rank7BB | Rank6BB;
         v->sittuyinRookDrop = true;
-        v->promotionRank = RANK_1; // no regular promotions
         v->sittuyinPromotion = true;
         v->promotionLimit[FERS] = 1;
         v->immobilityIllegal = false;
