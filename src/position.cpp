@@ -918,6 +918,18 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
   return attackers_to(s, occupied, WHITE) | attackers_to(s, occupied, BLACK);
 }
 
+/// Position::attackers_to_pseudo_royals computes a bitboard of all pieces
+/// of a particular color attacking at least one opposing pseudo-royal piece
+Bitboard Position::attackers_to_pseudo_royals(Color c) const {
+  Bitboard attackers = 0;
+  Bitboard pseudoRoyals = st->pseudoRoyals & pieces(~c);
+  while (pseudoRoyals) {
+      Square sr = pop_lsb(pseudoRoyals);
+      attackers |= attackers_to(sr, c);
+  }
+  return attackers;
+}
+
 
 /// Position::legal() tests whether a pseudo-legal move is legal
 
@@ -1315,7 +1327,6 @@ bool Position::gives_check(Move m) const {
   }
   }
 }
-
 
 /// Position::do_move() makes a move, and saves all information necessary
 /// to a StateInfo object. The move is assumed to be legal. Pseudo-legal

@@ -707,6 +707,19 @@ class TestPyffish(unittest.TestCase):
         result = sf.gives_check("capablanca", CAPA, moves)
         self.assertTrue(result)
 
+        # Test giving check to pseudo royal piece
+        result = sf.gives_check("atomic", CHESS, [])
+        self.assertFalse(result)
+
+        result = sf.gives_check("atomic", CHESS, ["e2e4"])
+        self.assertFalse(result)
+
+        result = sf.gives_check("atomic", CHESS, ["e2e4", "d7d5", "f1b5"])
+        self.assertTrue(result)
+
+        result = sf.gives_check("atomic", "rnbqkbnr/ppp2ppp/8/8/8/8/PPP2PPP/RNBQKBNR w KQkq - 0 4", ["d1d7"])
+        self.assertTrue(result)
+
     def test_game_result(self):
         result = sf.game_result("chess", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
         self.assertEqual(result, -sf.VALUE_MATE)
