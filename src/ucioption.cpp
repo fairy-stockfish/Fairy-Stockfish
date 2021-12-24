@@ -256,8 +256,7 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
               // UCI dialects do not allow spaces
               if (Options["Protocol"] == "ucci" || Options["Protocol"] == "usi")
               {
-                  string name = it.first;
-                  std::replace(name.begin(), name.end(), ' ', '_');
+                  string name = option_name(it.first, Options["Protocol"]);
                   // UCCI skips "name"
                   os << "\noption " << (Options["Protocol"] == "ucci" ? "" : "name ") << name << " type " << o.type;
               }

@@ -476,6 +476,15 @@ describe('board.isCheck()', function () {
     board.pushSan("Qxf7#");
     chai.expect(board.isCheck()).to.equal(true);
     board.delete();
+
+    board = new ffish.Board("atomic");
+    chai.expect(board.isCheck()).to.equal(false);
+    board.setFen("rnbqkbnr/ppp1pppp/8/1B1p4/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 3 2");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.setFen("rnbqkbnr/ppp2ppp/8/8/8/8/PPP2PPP/RNBQKBNR w KQkq - 0 4");
+    board.pushSan("Qd7");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.delete();
   });
 });
 

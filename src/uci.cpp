@@ -115,9 +115,8 @@ namespace {
 
     if (Options.count(name))
         Options[name] = value;
-    // UCI dialects do not allow spaces
-    else if (   (Options["Protocol"] == "ucci" || Options["Protocol"] == "usi")
-             && (std::replace(name.begin(), name.end(), '_', ' '), Options.count(name)))
+    // Deal with option name aliases in UCI dialects
+    else if (is_valid_option(Options, name))
         Options[name] = value;
     else
         sync_cout << "No such option: " << name << sync_endl;
@@ -419,7 +418,7 @@ string UCI::value(Value v) {
   } else
 
   if (abs(v) < VALUE_MATE_IN_MAX_PLY)
-      ss << "cp " << v * 100 / PawnValueEg;
+      ss << (Options["Protocol"] == "ucci" ? "" : "cp ") << v * 100 / PawnValueEg;
   else if (Options["Protocol"] == "usi")
       // In USI, mate distance is given in ply
       ss << "mate " << (v > 0 ? VALUE_MATE - v : -VALUE_MATE - v);
@@ -548,6 +547,35 @@ Move UCI::to_move(const Position& pos, string& str) {
           return m;
 
   return MOVE_NONE;
+}
+
+std::string UCI::option_name(std::string name, std::string protocol) {
+  if (protocol == "ucci" && name == "Hash")
+      return "hashsize";
+  if (protocol == "usi")
+  {
+      if (name == "Hash" || name == "Ponder" || name == "MultiPV")
+          return "USI_" + name;
+      if (name.substr(0, 4) == "UCI_")
+          name = "USI_" + name.substr(4);
+  }
+  if (protocol == "ucci" || protocol == "usi")
+      std::replace(name.begin(), name.end(), ' ', '_');
+  return name;
+}
+
+bool UCI::is_valid_option(UCI::OptionsMap& options, std::string& name) {
+  std::string protocol = options["Protocol"];
+  for (const auto& it : options)
+  {
+      std::string optionName = option_name(it.first, protocol);
+      if (!options.key_comp()(optionName, name) && !options.key_comp()(name, optionName))
+      {
+          name = it.first;
+          return true;
+      }
+  }
+  return false;
 }
 
 } // namespace Stockfish
