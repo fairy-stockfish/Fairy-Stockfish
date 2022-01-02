@@ -1502,7 +1502,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           Bitboard b = attacks_bb(us, QUEEN, to, board_bb() & ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
           while(b)
-              st->flippedPieces |= between_bb(to, pop_lsb(b));
+              st->flippedPieces |= between_bb(pop_lsb(b), to) ^ to;
       }
       else
       {
