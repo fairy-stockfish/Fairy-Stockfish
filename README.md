@@ -2,7 +2,7 @@
 
 ## Overview
 
-[![Build Status](https://github.com/ianfab/Fairy-Stockfish/workflows/build/badge.svg?branch=master)](https://github.com/ianfab/Fairy-Stockfish/actions?query=workflow%3Abuild)
+[![Build Status](https://github.com/ianfab/Fairy-Stockfish/workflows/Release/badge.svg?branch=master)](https://github.com/ianfab/Fairy-Stockfish/actions?query=workflow%3ARelease)
 [![Build Status](https://github.com/ianfab/Fairy-Stockfish/workflows/fairy/badge.svg?branch=master)](https://github.com/ianfab/Fairy-Stockfish/actions?query=workflow%3Afairy)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/ianfab/Fairy-Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/ianfab/Fairy-Stockfish/branch/master)
 [![PyPI version](https://badge.fury.io/py/pyffish.svg)](https://badge.fury.io/py/pyffish)
