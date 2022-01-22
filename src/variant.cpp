@@ -296,10 +296,10 @@ namespace {
         v->variantTemplate = "giveaway";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
-        v->castlingKingPiece = COMMONER;
+        v->castling = false;
         v->promotionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->stalemateValue = VALUE_MATE;
-        v->extinctionValue = VALUE_MATE;
+        v->stalemateValue = loss;
+        v->extinctionValue = loss;
         v->extinctionPieceTypes = {ALL_PIECES};
         v->mustCapture = true;
         v->nnueAlias = "antichess";
