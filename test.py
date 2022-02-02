@@ -532,6 +532,11 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("kyotoshogi", fen, "a4b2+", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
         self.assertEqual(result, "N52-44+")
 
+        # Demotion
+        fen = "p+nks+l/5/5/L4/1SK+NP[-] b 0 1"
+        result = sf.get_san("kyotoshogi", fen, "e5e4-", False, sf.NOTATION_SAN)
+        self.assertEqual(result, "Ge4=L")
+
         fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -"
         result = sf.get_san("shogi", fen, "b2h8", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "Bx2b=")
