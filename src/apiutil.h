@@ -29,6 +29,7 @@
 
 #include "types.h"
 #include "position.h"
+#include "bitboard.h"
 #include "variant.h"
 
 namespace Stockfish {
@@ -359,6 +360,9 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
 }
 
 inline bool is_check(const Position& pos) {
+    Color c = pos.side_to_move();
+    Bitboard pseudoRoyals = pos.pseudo_royal_pieces(c);
+    attacks_bb<KING>(pseudoRoyals) & pos.pseudo_royal_pieces(~c);
     return pos.checkers()
         || (pos.extinction_pseudo_royal() && pos.attackers_to_pseudo_royals(~pos.side_to_move()));
 }
