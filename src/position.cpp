@@ -923,8 +923,13 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 Bitboard Position::attackers_to_pseudo_royals(Color c) const {
   Bitboard attackers = 0;
   Bitboard pseudoRoyals = st->pseudoRoyals & pieces(~c);
+  Bitboard opponentPseudoRoyals = st->pseudoRoyals & pieces(c);
   while (pseudoRoyals) {
       Square sr = pop_lsb(pseudoRoyals);
+      if (blast_on_capture()
+          && (opponentPseudoRoyals & attacks_bb<KING>(sr)) == opponentPseudoRoyals)
+          // skip if capturing this piece would blast all of the attacker's pseudo-royal pieces
+          continue;
       attackers |= attackers_to(sr, c);
   }
   return attackers;
