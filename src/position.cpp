@@ -1081,7 +1081,8 @@ bool Position::legal(Move m) const {
           return true;
 
       for (Square s = to; s != from; s += step)
-          if (attackers_to(s, ~us))
+          if (attackers_to(s, ~us)
+              || (var->flyingGeneral && (attacks_bb(~us, ROOK, s, pieces() ^ from) & pieces(~us, KING))))
               return false;
 
       // In case of Chess960, verify if the Rook blocks some checks
