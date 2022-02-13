@@ -227,7 +227,6 @@ public:
   template<PieceType Pt> Square square(Color c) const;
   Square square(Color c, PieceType pt) const;
   bool is_on_semiopen_file(Color c, Square s) const;
-  Bitboard pseudo_royal_pieces(Color c) const;
 
   // Castling
   CastlingRights castling_rights(Color c) const;
@@ -1031,10 +1030,6 @@ inline Bitboard Position::gates(Color c) const {
 
 inline bool Position::is_on_semiopen_file(Color c, Square s) const {
   return !((pieces(c, PAWN) | pieces(c, SHOGI_PAWN, SOLDIER)) & file_bb(s));
-}
-
-inline Bitboard Position::pseudo_royal_pieces(Color c) const {
-  return st->pseudoRoyals & pieces(c);
 }
 
 inline bool Position::can_castle(CastlingRights cr) const {
