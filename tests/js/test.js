@@ -484,6 +484,8 @@ describe('board.isCheck()', function () {
     board.setFen("rnbqkbnr/ppp2ppp/8/8/8/8/PPP2PPP/RNBQKBNR w KQkq - 0 4");
     board.pushSan("Qd7");
     chai.expect(board.isCheck()).to.equal(true);
+    board.setFen("8/8/kK6/8/8/8/Q7/8 b - - 0 1")
+    chai.expect(board.isCheck()).to.equal(false);
     board.delete();
   });
 });

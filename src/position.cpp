@@ -923,8 +923,13 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 Bitboard Position::attackers_to_pseudo_royals(Color c) const {
   Bitboard attackers = 0;
   Bitboard pseudoRoyals = st->pseudoRoyals & pieces(~c);
+  Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(c);
   while (pseudoRoyals) {
       Square sr = pop_lsb(pseudoRoyals);
+      if (blast_on_capture()
+          && pseudoRoyalsTheirs & attacks_bb<KING>(sr))
+          // skip if capturing this piece would blast all of the attacker's pseudo-royal pieces
+          continue;
       attackers |= attackers_to(sr, c);
   }
   return attackers;
@@ -1081,7 +1086,8 @@ bool Position::legal(Move m) const {
           return true;
 
       for (Square s = to; s != from; s += step)
-          if (attackers_to(s, ~us))
+          if (attackers_to(s, ~us)
+              || (var->flyingGeneral && (attacks_bb(~us, ROOK, s, pieces() ^ from) & pieces(~us, KING))))
               return false;
 
       // In case of Chess960, verify if the Rook blocks some checks
