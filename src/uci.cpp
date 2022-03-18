@@ -128,8 +128,6 @@ namespace {
         Options[name] = value;
     else
         sync_cout << "No such option: " << name << sync_endl;
-
-    UCI::setoption(name, value);
   }
 
 

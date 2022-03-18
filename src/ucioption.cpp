@@ -83,6 +83,10 @@ void on_variant_change(const Option &o) {
     on_variant_set(o);
 
     const Variant* v = variants.find(o)->second;
+    std::cerr << "Piece values:" << std::endl;
+    for (PieceType pt : v->pieceTypes)
+        if (pt != v->nnueKing)
+            std::cerr << v->pieceIndex[pt] + 1 << ": " << PieceValue[MG][pt] << "," << std::endl;
     // Do not send setup command for known variants
     if (standard_variants.find(o) != standard_variants.end())
         return;
