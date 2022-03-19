@@ -1,6 +1,6 @@
 /*
   ffish.js, a JavaScript chess variant library derived from Fairy-Stockfish
-  Copyright (C) 2021 Fabian Fichter, Johannes Czech
+  Copyright (C) 2022 Fabian Fichter, Johannes Czech
 
   ffish.js is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
