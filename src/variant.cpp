@@ -848,6 +848,36 @@ namespace {
         v->blackFlag = Rank1BB;
         return v;
     }
+    Variant* breakthrough5_variant() {
+        Variant* v = breakthrough_variant();
+        v->maxRank = RANK_5;
+        v->maxFile = FILE_E;
+        v->startFen = "ppppp/ppppp/5/PPPPP/PPPPP w 0 1";
+        v->whiteFlag = Rank5BB;
+        v->blackFlag = Rank1BB;
+        v->nnueAlias = "breakthrough";
+        return v;
+    }
+    Variant* breakthrough6_variant() {
+        Variant* v = breakthrough_variant();
+        v->maxRank = RANK_6;
+        v->maxFile = FILE_F;
+        v->startFen = "pppppp/pppppp/6/6/PPPPPP/PPPPPP w 0 1";
+        v->whiteFlag = Rank6BB;
+        v->blackFlag = Rank1BB;
+        v->nnueAlias = "breakthrough";
+        return v;
+    }
+    Variant* breakthrough7_variant() {
+        Variant* v = breakthrough_variant();
+        v->maxRank = RANK_7;
+        v->maxFile = FILE_G;
+        v->startFen = "ppppppp/ppppppp/7/7/7/PPPPPPP/PPPPPPP w 0 1";
+        v->whiteFlag = Rank7BB;
+        v->blackFlag = Rank1BB;
+        v->nnueAlias = "breakthrough";
+        return v;
+    }
     // Ataxx
     // https://en.wikipedia.org/wiki/Ataxx
     Variant* ataxx_variant() {
@@ -1427,6 +1457,9 @@ void VariantMap::init() {
     add("coregal", coregal_variant());
     add("clobber", clobber_variant());
     add("breakthrough", breakthrough_variant());
+    add("breakthrough5", breakthrough5_variant());
+    add("breakthrough6", breakthrough6_variant());
+    add("breakthrough7", breakthrough7_variant());
     add("ataxx", ataxx_variant());
     add("minixiangqi", minixiangqi_variant());
 #ifdef LARGEBOARDS
