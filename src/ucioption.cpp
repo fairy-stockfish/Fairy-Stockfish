@@ -83,10 +83,30 @@ void on_variant_change(const Option &o) {
     on_variant_set(o);
 
     const Variant* v = variants.find(o)->second;
-    std::cerr << "Piece values:" << std::endl;
+
+    std::cerr << "lib/nnue_training_data_formats.h:" << std::endl
+    << "#define FILES " << v->maxFile + 1 << std::endl
+    << "#define RANKS " << v->maxRank + 1 << std::endl
+    << "#define PIECE_TYPES " << v->pieceTypes.size() << std::endl
+    << "#define PIECE_COUNT " << v->nnueMaxPieces << std::endl
+    << "#define POCKETS " << (v->nnueUsePockets ? "true" : "false") << std::endl
+    << "#define KING_SQUARES " << v->nnueKingSquare << std::endl;
+
+    std::cerr << std::endl << "variant.py:" << std::endl
+    << "RANKS = " << v->maxRank + 1 << std::endl
+    << "FILES = " << v->maxFile + 1 << std::endl
+    << "SQUARES = RANKS * FILES" << std::endl
+    << "KING_SQUARES = " << v->nnueKingSquare << std::endl
+    << "PIECE_TYPES = " << v->pieceTypes.size() << std::endl
+    << "PIECES = 2 * PIECE_TYPES" << std::endl
+    << "USE_POCKETS = " << (v->nnueUsePockets ? "True" : "False") << std::endl
+    << "POCKETS = 2 * FILES if USE_POCKETS else 0" << std::endl
+    << std::endl
+    << "PIECE_VALUES = {" << std::endl;
     for (PieceType pt : v->pieceTypes)
         if (pt != v->nnueKing)
-            std::cerr << v->pieceIndex[pt] + 1 << ": " << PieceValue[MG][pt] << "," << std::endl;
+            std::cerr << "  " << v->pieceIndex[pt] + 1 << ": " << PieceValue[MG][pt] << "," << std::endl;
+    std::cerr << "}" << std::endl;
     // Do not send setup command for known variants
     if (standard_variants.find(o) != standard_variants.end())
         return;
