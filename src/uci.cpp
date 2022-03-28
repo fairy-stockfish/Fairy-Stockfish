@@ -249,9 +249,29 @@ namespace {
 
     string token;
     std::getline(is >> std::ws, token);
-    std::size_t end = token.find_last_not_of(' ');
-    if (end != std::string::npos)
-        Options["VariantPath"] = token.erase(end + 1);
+
+    // The argument to load either is a here-doc or a file path
+    if (token.rfind("<<", 0) == 0)
+    {
+        // Trim the EOF marker
+        if (!(stringstream(token.substr(2)) >> token))
+            token = "";
+
+        // Parse variant config till EOF marker
+        stringstream ss;
+        std::string line;
+        while (std::getline(cin, line) && line != token)
+            ss << line << std::endl;
+        variants.parse_istream<false>(ss);
+        Options["UCI_Variant"].set_combo(variants.get_keys());
+    }
+    else
+    {
+        // store path if non-empty after trimming
+        std::size_t end = token.find_last_not_of(' ');
+        if (end != std::string::npos)
+            Options["VariantPath"] = token.erase(end + 1);
+    }
   }
 
   // check() is called when engine receives the "check" command.
