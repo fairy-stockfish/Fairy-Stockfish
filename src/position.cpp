@@ -1092,7 +1092,7 @@ bool Position::legal(Move m) const {
 
       // In case of Chess960, verify if the Rook blocks some checks
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-      return !chess960 || !attackers_to(to, pieces() ^ to_sq(m), ~us);
+      return !attackers_to(to, pieces() ^ to_sq(m), ~us);
   }
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
