@@ -15,8 +15,8 @@ The goal of the project is to create an engine supporting a large variety of che
 ## Installation
 You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64.exe) or [Linux binary](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64) from the [latest release](https://github.com/ianfab/Fairy-Stockfish/releases/latest) or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you perhaps want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Graphical-user-interfaces), or [play against it online](https://github.com/ianfab/Fairy-Stockfish/wiki/Online) at [pychess](https://www.pychess.org/), [lishogi](https://lishogi.org/@/Fairy-Stockfish), [xichess](http://www.xichess.com/), or [lichess](https://lichess.org/@/Fairy-Stockfish). Read more about [how to use](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) Fairy-Stockfish in the wiki.
 
-Optional NNUE evaluation parameter files to improve playing strength for many variants can be obtained via [patreon](https://www.patreon.com/ianfab), also see the [variant NNUE overview](https://docs.google.com/spreadsheets/d/1fgGvBKleUOI1wZZbiNhpT98qhQ7mYuQ5kar1lTQ9g3w/edit?usp=sharing).
-See the [wiki](https://github.com/ianfab/Fairy-Stockfish/wiki/NNUE) for more details on NNUE.
+Optional NNUE evaluation parameter files to improve playing strength for many variants are in the [list of NNUE networks](https://github.com/ianfab/Fairy-Stockfish/wiki/List-of-networks).
+For the regional variants Xiangqi, Janggi, and Makruk [dedicated releases with built-in NNUE networks](https://github.com/ianfab/Fairy-Stockfish-NNUE) are available. See the [wiki](https://github.com/ianfab/Fairy-Stockfish/wiki/NNUE) for more details on NNUE.
 
 ## Contributing
 

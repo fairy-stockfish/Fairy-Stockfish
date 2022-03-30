@@ -8,62 +8,41 @@ on:
 
 jobs:
   windows:
-    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        arch: ["x86-64-bmi2", "x86-64-modern", "x86-64"]
+    runs-on: windows-2022
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: install
-        run: sudo apt install mingw-w64
+      - name: make
+        run: cd src && make clean && make -j build COMP=mingw ARCH=${{ matrix.arch }} EXE=fairy-stockfish_${{ matrix.arch }}.exe && strip fairy-stockfish_${{ matrix.arch }}.exe
 
-      - name: make x86-64
-        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64 EXE=fairy-stockfish_x86-64.exe && strip fairy-stockfish_x86-64.exe
+      - name: make largeboards
+        run: cd src && make clean && make -j build COMP=mingw ARCH=${{ matrix.arch }} EXE=fairy-stockfish-largeboards_${{ matrix.arch }}.exe largeboards=yes && strip fairy-stockfish-largeboards_${{ matrix.arch }}.exe
 
-      - name: make x86-64-modern
-        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64-modern EXE=fairy-stockfish_x86-64-modern.exe && strip fairy-stockfish_x86-64-modern.exe
-
-      - name: make x86-64-bmi2
-        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64-bmi2 EXE=fairy-stockfish_x86-64-bmi2.exe && strip fairy-stockfish_x86-64-bmi2.exe
-
-      - name: make largeboards x86-64
-        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64 EXE=fairy-stockfish-largeboards_x86-64.exe largeboards=yes && strip fairy-stockfish-largeboards_x86-64.exe
-
-      - name: make largeboards x86-64-modern
-        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64-modern EXE=fairy-stockfish-largeboards_x86-64-modern.exe largeboards=yes && strip fairy-stockfish-largeboards_x86-64-modern.exe
-
-      - name: make largeboards x86-64-bmi2
-        run: cd src && make clean && make -j build COMP=mingw ARCH=x86-64-bmi2 EXE=fairy-stockfish-largeboards_x86-64-bmi2.exe largeboards=yes && strip fairy-stockfish-largeboards_x86-64-bmi2.exe
-
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: fairy-stockfish
           path: src/fairy-stockfish*.exe
 
   linux:
+    strategy:
+      matrix:
+        arch: ["x86-64-bmi2", "x86-64-modern", "x86-64"]
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: make x86-64
-        run: cd src && make clean && make -j build COMP=gcc ARCH=x86-64 EXE=fairy-stockfish_x86-64 && strip fairy-stockfish_x86-64
+      - name: make
+        run: cd src && make clean && make -j build COMP=gcc ARCH=${{ matrix.arch }} EXE=fairy-stockfish_${{ matrix.arch }} && strip fairy-stockfish_${{ matrix.arch }}
 
-      - name: make x86-64-modern
-        run: cd src && make clean && make -j build COMP=gcc ARCH=x86-64-modern EXE=fairy-stockfish_x86-64-modern && strip fairy-stockfish_x86-64-modern
+      - name: make largeboards
+        run: cd src && make clean && make -j build COMP=gcc ARCH=${{ matrix.arch }} EXE=fairy-stockfish-largeboards_${{ matrix.arch }} largeboards=yes && strip fairy-stockfish-largeboards_${{ matrix.arch }}
 
-      - name: make x86-64-bmi2
-        run: cd src && make clean && make -j build COMP=gcc ARCH=x86-64-bmi2 EXE=fairy-stockfish_x86-64-bmi2 && strip fairy-stockfish_x86-64-bmi2
-
-      - name: make largeboards x86-64
-        run: cd src && make clean && make -j build COMP=gcc ARCH=x86-64 EXE=fairy-stockfish-largeboards_x86-64 largeboards=yes && strip fairy-stockfish-largeboards_x86-64
-
-      - name: make largeboards x86-64-modern
-        run: cd src && make clean && make -j build COMP=gcc ARCH=x86-64-modern EXE=fairy-stockfish-largeboards_x86-64-modern largeboards=yes && strip fairy-stockfish-largeboards_x86-64-modern
-
-      - name: make largeboards x86-64-bmi2
-        run: cd src && make clean && make -j build COMP=gcc ARCH=x86-64-bmi2 EXE=fairy-stockfish-largeboards_x86-64-bmi2 largeboards=yes && strip fairy-stockfish-largeboards_x86-64-bmi2
-
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: fairy-stockfish
           path: src/fairy-stockfish*
