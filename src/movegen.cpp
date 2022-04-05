@@ -263,15 +263,6 @@ namespace {
         Bitboard b2 = promPt && (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
 
-        if (Checks)
-        {
-            b1 &= pos.check_squares(Pt);
-            if (b2)
-                b2 &= pos.check_squares(pos.promoted_piece_type(Pt));
-            if (b3)
-                b3 &= pos.check_squares(type_of(pos.unpromoted_piece_on(from)));
-        }
-
         // Restrict target squares considering promotion zone
         if (b2 | b3)
         {
@@ -290,6 +281,15 @@ namespace {
                 b2 &= promotion_zone;
                 b3 &= promotion_zone;
             }
+        }
+
+        if (Checks)
+        {
+            b1 &= pos.check_squares(Pt);
+            if (b2)
+                b2 &= pos.check_squares(pos.promoted_piece_type(Pt));
+            if (b3)
+                b3 &= pos.check_squares(type_of(pos.unpromoted_piece_on(from)));
         }
 
         while (b1)
