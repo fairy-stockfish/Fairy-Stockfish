@@ -91,7 +91,7 @@ The javascript binding ffish.js contributed by [@QueensGambit](https://github.co
 
 ### WASM
 
-A port of Fairy-Stockfish to WebAssembly is maintained at https://github.com/ianfab/stockfish.wasm.
+A port of Fairy-Stockfish to WebAssembly is maintained at https://github.com/ianfab/fairy-stockfish.wasm. It is e.g. used for local analysis on [pychess.org](https://www.pychess.org/).
 
 # Stockfish
 ## Overview
