@@ -1,6 +1,6 @@
 {
   "name": "ffish",
-  "version": "0.6.3",
+  "version": "0.6.7",
   "description": "A high performance WebAssembly chess variant library based on Fairy-Stockfish",
   "main": "ffish.js",
   "scripts": {
@@ -21,7 +21,12 @@
     "type": "git",
     "url": "git+https://github.com/ianfab/Fairy-Stockfish.git"
   },
-  "keywords": ["wasm", "library", "chess-variants", "fairy-stockfish"],
+  "keywords": [
+    "wasm",
+    "library",
+    "chess-variants",
+    "fairy-stockfish"
+  ],
   "license": "GPL-3.0",
   "homepage": "https://github.com/ianfab/Fairy-Stockfish/tree/master/tests/js#readme",
   "dependencies": {},

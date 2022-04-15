@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2021 Fabian Fichter
+  Copyright (C) 2018-2022 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -206,8 +206,11 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
     while (b)
     {
         Square s = pop_lsb(b);
-        if (   pos.pseudo_legal(make_move(s, to))
-               && pos.legal(make_move(s, to))
+        // Construct a potential move with identical special move flags
+        // and only a different "from" square.
+        Move testMove = Move(m ^ make_move(from, to) ^ make_move(s, to));
+        if (      pos.pseudo_legal(testMove)
+               && pos.legal(testMove)
                && !(is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
             others |= s;
     }
@@ -251,7 +254,7 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
 
         if (is_gating(m))
         {
-            san += std::string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
+            san += std::string("/") + (char)toupper(pos.piece_to_char()[make_piece(us, gating_type(m))]);
             san += square(pos, gating_square(m), n);
         }
     }
@@ -289,15 +292,15 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
 
         // Suffix
         if (type_of(m) == PROMOTION)
-            san += std::string("=") + pos.piece_to_char()[make_piece(WHITE, promotion_type(m))];
+            san += std::string("=") + (char)toupper(pos.piece_to_char()[make_piece(us, promotion_type(m))]);
         else if (type_of(m) == PIECE_PROMOTION)
-            san += is_shogi(n) ? std::string("+") : std::string("=") + pos.piece_to_char()[make_piece(WHITE, pos.promoted_piece_type(type_of(pos.moved_piece(m))))];
+            san += is_shogi(n) ? std::string("+") : std::string("=") + (char)toupper(pos.piece_to_char()[make_piece(us, pos.promoted_piece_type(type_of(pos.moved_piece(m))))]);
         else if (type_of(m) == PIECE_DEMOTION)
-            san += is_shogi(n) ? std::string("-") : std::string("=") + std::string(1, pos.piece_to_char()[pos.unpromoted_piece_on(from)]);
+            san += is_shogi(n) ? std::string("-") : std::string("=") + std::string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
         else if (type_of(m) == NORMAL && is_shogi(n) && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
             san += std::string("=");
         if (is_gating(m))
-            san += std::string("/") + pos.piece_to_char()[make_piece(WHITE, gating_type(m))];
+            san += std::string("/") + (char)toupper(pos.piece_to_char()[make_piece(us, gating_type(m))]);
     }
 
     // Check and checkmate
@@ -353,6 +356,11 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
         return false;
 
     return true;
+}
+
+inline bool is_check(const Position& pos) {
+    return pos.checkers()
+        || (pos.extinction_pseudo_royal() && pos.attackers_to_pseudo_royals(~pos.side_to_move()));
 }
 
 namespace FEN {

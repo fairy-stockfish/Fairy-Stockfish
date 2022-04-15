@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -207,6 +207,7 @@ void init(OptionsMap& o) {
 #endif
   o["TsumeMode"]             << Option(false);
   o["VariantPath"]           << Option("<empty>", on_variant_path);
+  o["usemillisec"]           << Option(true); // time unit for UCCI
 }
 
 
@@ -255,8 +256,7 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
               // UCI dialects do not allow spaces
               if (Options["Protocol"] == "ucci" || Options["Protocol"] == "usi")
               {
-                  string name = it.first;
-                  std::replace(name.begin(), name.end(), ' ', '_');
+                  string name = option_name(it.first, Options["Protocol"]);
                   // UCCI skips "name"
                   os << "\noption " << (Options["Protocol"] == "ucci" ? "" : "name ") << name << " type " << o.type;
               }

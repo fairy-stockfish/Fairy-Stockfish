@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2021 Fabian Fichter
+  Copyright (C) 2018-2022 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -512,7 +512,6 @@ namespace {
         v->whiteDropRegion = Rank1BB | Rank2BB | Rank3BB;
         v->blackDropRegion = Rank8BB | Rank7BB | Rank6BB;
         v->sittuyinRookDrop = true;
-        v->promotionRank = RANK_1; // no regular promotions
         v->sittuyinPromotion = true;
         v->promotionLimit[FERS] = 1;
         v->immobilityIllegal = false;

@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -536,7 +536,6 @@ void Position::set_check_info(StateInfo* si) const {
       if (AttackRiderTypes[pt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
   }
-  si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
   si->legalCapture = NO_VALUE;
@@ -918,6 +917,23 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
   return attackers_to(s, occupied, WHITE) | attackers_to(s, occupied, BLACK);
 }
 
+/// Position::attackers_to_pseudo_royals computes a bitboard of all pieces
+/// of a particular color attacking at least one opposing pseudo-royal piece
+Bitboard Position::attackers_to_pseudo_royals(Color c) const {
+  Bitboard attackers = 0;
+  Bitboard pseudoRoyals = st->pseudoRoyals & pieces(~c);
+  Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(c);
+  while (pseudoRoyals) {
+      Square sr = pop_lsb(pseudoRoyals);
+      if (blast_on_capture()
+          && pseudoRoyalsTheirs & attacks_bb<KING>(sr))
+          // skip if capturing this piece would blast all of the attacker's pseudo-royal pieces
+          continue;
+      attackers |= attackers_to(sr, c);
+  }
+  return attackers;
+}
+
 
 /// Position::legal() tests whether a pseudo-legal move is legal
 
@@ -1069,12 +1085,13 @@ bool Position::legal(Move m) const {
           return true;
 
       for (Square s = to; s != from; s += step)
-          if (attackers_to(s, ~us))
+          if (attackers_to(s, ~us)
+              || (var->flyingGeneral && (attacks_bb(~us, ROOK, s, pieces() ^ from) & pieces(~us, KING))))
               return false;
 
       // In case of Chess960, verify if the Rook blocks some checks
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-      return !chess960 || !attackers_to(to, pieces() ^ to_sq(m), ~us);
+      return !attackers_to(to, pieces() ^ to_sq(m), ~us);
   }
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
@@ -1170,7 +1187,7 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 8th/1st rank.
-      if (mandatory_pawn_promotion() && rank_of(to) == relative_rank(us, promotion_rank(), max_rank()))
+      if (mandatory_pawn_promotion() && rank_of(to) == relative_rank(us, promotion_rank(), max_rank()) && !sittuyin_promotion())
           return false;
 
       if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to) // Not a capture
@@ -1232,7 +1249,7 @@ bool Position::gives_check(Move m) const {
       return false;
 
   // Is there a direct check?
-  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION)
+  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING)
   {
       PieceType pt = type_of(moved_piece(m));
       if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
@@ -1315,7 +1332,6 @@ bool Position::gives_check(Move m) const {
   }
   }
 }
-
 
 /// Position::do_move() makes a move, and saves all information necessary
 /// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
@@ -1491,7 +1507,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           Bitboard b = attacks_bb(us, QUEEN, to, board_bb() & ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
           while(b)
-              st->flippedPieces |= between_bb(to, pop_lsb(b));
+              st->flippedPieces |= between_bb(pop_lsb(b), to) ^ to;
       }
       else
       {

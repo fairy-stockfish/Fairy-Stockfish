@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -108,8 +108,7 @@ namespace {
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    Bitboard TRank8BB = pos.mandatory_pawn_promotion() ? rank_bb(relative_rank(Us, pos.promotion_rank(), pos.max_rank()))
-                                                       : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
+    Bitboard TRank8BB = pos.sittuyin_promotion() ? Bitboard(0) : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
     Bitboard TRank7BB = shift<Down>(TRank8BB);
     // Define squares a pawn can pass during a double step
     Bitboard  TRank3BB =  forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_min(), pos.max_rank()))
@@ -264,15 +263,6 @@ namespace {
         Bitboard b2 = promPt && (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
 
-        if (Checks)
-        {
-            b1 &= pos.check_squares(Pt);
-            if (b2)
-                b2 &= pos.check_squares(pos.promoted_piece_type(Pt));
-            if (b3)
-                b3 &= pos.check_squares(type_of(pos.unpromoted_piece_on(from)));
-        }
-
         // Restrict target squares considering promotion zone
         if (b2 | b3)
         {
@@ -291,6 +281,15 @@ namespace {
                 b2 &= promotion_zone;
                 b3 &= promotion_zone;
             }
+        }
+
+        if (Checks)
+        {
+            b1 &= pos.check_squares(Pt);
+            if (b2)
+                b2 &= pos.check_squares(pos.promoted_piece_type(Pt));
+            if (b3)
+                b3 &= pos.check_squares(type_of(pos.unpromoted_piece_on(from)));
         }
 
         while (b1)
