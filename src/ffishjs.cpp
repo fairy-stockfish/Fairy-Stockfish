@@ -1,6 +1,6 @@
 /*
   ffish.js, a JavaScript chess variant library derived from Fairy-Stockfish
-  Copyright (C) 2021 Fabian Fichter, Johannes Czech
+  Copyright (C) 2022 Fabian Fichter, Johannes Czech
 
   ffish.js is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -175,6 +175,10 @@ public:
     return this->pos.fen();
   }
 
+  std::string fen(bool showPromoted, int countStarted) const {
+    return this->pos.fen(false, showPromoted, countStarted);
+  }
+
   void set_fen(std::string fen) {
     resetStates();
     moveStack.clear();
@@ -263,14 +267,65 @@ public:
     return pos.game_ply();
   }
 
+  bool has_insufficient_material(bool turn) const {
+    return Stockfish::has_insufficient_material(turn ? WHITE : BLACK, pos);
+  }
+
+  bool is_insufficient_material() const {
+    return Stockfish::has_insufficient_material(WHITE, pos) && Stockfish::has_insufficient_material(BLACK, pos);
+  }
+
   bool is_game_over() const {
-    for (const ExtMove& move: MoveList<LEGAL>(pos))
-      return false;
-    return true;
+    return is_game_over(false);
+  }
+
+  bool is_game_over(bool claim_draw) const {
+    if (is_insufficient_material())
+      return true;
+    if (claim_draw && pos.is_optional_game_end())
+      return true;
+    return MoveList<LEGAL>(pos).size() == 0;
+  }
+
+  std::string result() const {
+    return result(false);
+  }
+
+  std::string result(bool claim_draw) const {
+    Value result;
+    bool gameEnd = pos.is_immediate_game_end(result);
+    if (!gameEnd) {
+      if (is_insufficient_material()) {
+        gameEnd = true;
+        result = VALUE_DRAW;
+      }
+    }
+    if (!gameEnd && MoveList<LEGAL>(pos).size() == 0) {
+      gameEnd = true;
+      result = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
+    }
+    if (!gameEnd && claim_draw)
+      gameEnd = pos.is_optional_game_end(result);
+
+    if (!gameEnd)
+      return "*";
+    if (result == 0) {
+      if (pos.material_counting())
+        result = pos.material_counting_result();
+
+      if (result == 0)
+        return "1/2-1/2";
+    }
+    if (pos.side_to_move() == BLACK)
+      result = -result;
+    if (result > 0)
+      return "1-0";
+    else
+      return "0-1";
   }
 
   bool is_check() const {
-    return pos.checkers();
+    return Stockfish::is_check(pos);
   }
 
   bool is_bikjang() const {
@@ -372,6 +427,7 @@ private:
       Board::sfInitialized = true;
     }
     v = get_variant(uciVariant);
+    UCI::init_variant(v);
     this->resetStates();
     if (fen == "")
       fen = v->startFen;
@@ -614,7 +670,8 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("pop", &Board::pop)
     .function("reset", &Board::reset)
     .function("is960", &Board::is_960)
-    .function("fen", &Board::fen)
+    .function("fen", select_overload<std::string()const>(&Board::fen))
+    .function("fen", select_overload<std::string(bool, int)const>(&Board::fen))
     .function("setFen", &Board::set_fen)
     .function("sanMove", select_overload<std::string(std::string)>(&Board::san_move))
     .function("sanMove", select_overload<std::string(std::string, Notation)>(&Board::san_move))
@@ -625,7 +682,12 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("fullmoveNumber", &Board::fullmove_number)
     .function("halfmoveClock", &Board::halfmove_clock)
     .function("gamePly", &Board::game_ply)
-    .function("isGameOver", &Board::is_game_over)
+    .function("hasInsufficientMaterial", &Board::has_insufficient_material)
+    .function("isInsufficientMaterial", &Board::is_insufficient_material)
+    .function("isGameOver", select_overload<bool() const>(&Board::is_game_over))
+    .function("isGameOver", select_overload<bool(bool) const>(&Board::is_game_over))
+    .function("result", select_overload<std::string() const>(&Board::result))
+    .function("result", select_overload<std::string(bool) const>(&Board::result))
     .function("isCheck", &Board::is_check)
     .function("isBikjang", &Board::is_bikjang)
     .function("moveStack", &Board::move_stack)
@@ -650,6 +712,15 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .value("SHOGI_HODGES_NUMBER", NOTATION_SHOGI_HODGES_NUMBER)
     .value("JANGGI", NOTATION_JANGGI)
     .value("XIANGQI_WXF", NOTATION_XIANGQI_WXF);
+  // usage: e.g. ffish.Termination.CHECKMATE
+  enum_<Termination>("Termination")
+    .value("ONGOING", ONGOING)
+    .value("CHECKMATE", CHECKMATE)
+    .value("STALEMATE", STALEMATE)
+    .value("INSUFFICIENT_MATERIAL", INSUFFICIENT_MATERIAL)
+    .value("N_MOVE_RULE", N_MOVE_RULE)
+    .value("N_FOLD_REPETITION", N_FOLD_REPETITION)
+    .value("VARIANT_END", VARIANT_END);
   function("info", &ffish::info);
   function("setOption", &ffish::set_option<std::string>);
   function("setOptionInt", &ffish::set_option<int>);

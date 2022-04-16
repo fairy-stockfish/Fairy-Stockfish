@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -290,14 +290,15 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           put_piece(Piece(idx), sq, token == '~');
           ++sq;
       }
+
       // Promoted shogi pieces
-      else if (token == '+')
+      else if (token == '+' && (idx = piece_to_char().find(ss.peek())) != string::npos)
       {
           ss >> token;
-          idx = piece_to_char().find(token);
           put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
           ++sq;
       }
+
       // Stop before pieces in hand
       else if (token == '[')
           break;
@@ -493,8 +494,6 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   tsumeMode = Options["TsumeMode"];
   thisThread = th;
   set_state(st);
-  st->accumulator.state[WHITE] = Eval::NNUE::INIT;
-  st->accumulator.state[BLACK] = Eval::NNUE::INIT;
 
   assert(pos_is_ok());
 
@@ -542,7 +541,6 @@ void Position::set_check_info(StateInfo* si) const {
       if (AttackRiderTypes[pt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
   }
-  si->checkSquares[KING]   = 0;
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
   si->legalCapture = NO_VALUE;
@@ -723,7 +721,11 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   if (gating() && gates(WHITE) && (!seirawan_gating() || count_in_hand(WHITE, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
-          if (gates(WHITE) & file_bb(f))
+          if (   (gates(WHITE) & file_bb(f))
+              // skip gating flags redundant with castling flags
+              && !(!chess960 && can_castle(WHITE_CASTLING) && f == file_of(castling_king_square(WHITE)))
+              && !(can_castle(WHITE_OO ) && f == file_of(castling_rook_square(WHITE_OO )))
+              && !(can_castle(WHITE_OOO) && f == file_of(castling_rook_square(WHITE_OOO))))
               ss << char('A' + f);
 
   // Disambiguation for chess960 "king" square
@@ -738,7 +740,11 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   if (gating() && gates(BLACK) && (!seirawan_gating() || count_in_hand(BLACK, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
-          if (gates(BLACK) & file_bb(f))
+          if (   (gates(BLACK) & file_bb(f))
+              // skip gating flags redundant with castling flags
+              && !(!chess960 && can_castle(BLACK_CASTLING) && f == file_of(castling_king_square(BLACK)))
+              && !(can_castle(BLACK_OO ) && f == file_of(castling_rook_square(BLACK_OO )))
+              && !(can_castle(BLACK_OOO) && f == file_of(castling_rook_square(BLACK_OOO))))
               ss << char('a' + f);
 
   if (!can_castle(ANY_CASTLING) && !(gating() && (gates(WHITE) | gates(BLACK))))
@@ -916,6 +922,23 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
   return attackers_to(s, occupied, WHITE) | attackers_to(s, occupied, BLACK);
 }
 
+/// Position::attackers_to_pseudo_royals computes a bitboard of all pieces
+/// of a particular color attacking at least one opposing pseudo-royal piece
+Bitboard Position::attackers_to_pseudo_royals(Color c) const {
+  Bitboard attackers = 0;
+  Bitboard pseudoRoyals = st->pseudoRoyals & pieces(~c);
+  Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(c);
+  while (pseudoRoyals) {
+      Square sr = pop_lsb(pseudoRoyals);
+      if (blast_on_capture()
+          && pseudoRoyalsTheirs & attacks_bb<KING>(sr))
+          // skip if capturing this piece would blast all of the attacker's pseudo-royal pieces
+          continue;
+      attackers |= attackers_to(sr, c);
+  }
+  return attackers;
+}
+
 
 /// Position::legal() tests whether a pseudo-legal move is legal
 
@@ -964,13 +987,13 @@ bool Position::legal(Move m) const {
       {
           Bitboard remaining = drop_region(us, BISHOP) & ~pieces() & ~square_bb(to);
           // Are enough squares available to drop bishops on opposite colors?
-          if (  (!( DarkSquares & pieces(us, BISHOP)) && ( DarkSquares & remaining))
-              + (!(~DarkSquares & pieces(us, BISHOP)) && (~DarkSquares & remaining)) < count_in_hand(us, BISHOP))
+          if (   popcount( DarkSquares & (pieces(us, BISHOP) | remaining)) < count_with_hand(us, BISHOP) / 2
+              || popcount(~DarkSquares & (pieces(us, BISHOP) | remaining)) < count_with_hand(us, BISHOP) / 2)
               return false;
       }
       else
           // Drop resulting in same-colored bishops
-          if ((DarkSquares & to ? DarkSquares : ~DarkSquares) & pieces(us, BISHOP))
+          if (popcount((DarkSquares & to ? DarkSquares : ~DarkSquares) & pieces(us, BISHOP)) + 1 > (count_with_hand(us, BISHOP) + 1) / 2)
               return false;
   }
 
@@ -1031,17 +1054,21 @@ bool Position::legal(Move m) const {
           }
   }
 
-  // st->previous->blockersForKing consider capsq as empty.
-  // If pinned, it has to move along the king ray.
-  if (type_of(m) == EN_PASSANT)
+  // En passant captures are a tricky special case. Because they are rather
+  // uncommon, we do it simply by testing whether the king is attacked after
+  // the move is made.
+  if (type_of(m) == EN_PASSANT && count<KING>(us))
   {
-      if (!count<KING>(us))
-          return true;
-
+      Square ksq = square<KING>(us);
       Square capsq = to - pawn_push(us);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
-      return !(attackers_to(square<KING>(us), occupied, ~us) & occupied);
+      assert(to == ep_square());
+      assert(moved_piece(m) == make_piece(us, PAWN));
+      assert(piece_on(capsq) == make_piece(~us, PAWN));
+      assert(piece_on(to) == NO_PIECE);
+
+      return !(attackers_to(ksq, occupied, ~us) & occupied);
   }
 
   // Castling moves generation does not check if the castling path is clear of
@@ -1063,12 +1090,13 @@ bool Position::legal(Move m) const {
           return true;
 
       for (Square s = to; s != from; s += step)
-          if (attackers_to(s, ~us))
+          if (attackers_to(s, ~us)
+              || (var->flyingGeneral && (attacks_bb(~us, ROOK, s, pieces() ^ from) & pieces(~us, KING))))
               return false;
 
       // In case of Chess960, verify if the Rook blocks some checks
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-      return !chess960 || !attackers_to(to, pieces() ^ to_sq(m), ~us);
+      return !attackers_to(to, pieces() ^ to_sq(m), ~us);
   }
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
@@ -1088,14 +1116,14 @@ bool Position::legal(Move m) const {
   if (var->makpongRule && checkers() && type_of(moved_piece(m)) == KING && (checkers() ^ to))
       return false;
 
-  // Return early when without king
-  if (!count<KING>(us))
-      return true;
-
   // If the moving piece is a king, check whether the destination square is
   // attacked by the opponent.
   if (type_of(moved_piece(m)) == KING)
       return !attackers_to(to, occupied, ~us);
+
+  // Return early when without king
+  if (!count<KING>(us))
+      return true;
 
   Bitboard janggiCannons = pieces(JANGGI_CANNON);
   if (type_of(moved_piece(m)) == JANGGI_CANNON)
@@ -1164,7 +1192,7 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 8th/1st rank.
-      if (mandatory_pawn_promotion() && rank_of(to) == relative_rank(us, promotion_rank(), max_rank()))
+      if (mandatory_pawn_promotion() && rank_of(to) == relative_rank(us, promotion_rank(), max_rank()) && !sittuyin_promotion())
           return false;
 
       if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to) // Not a capture
@@ -1226,7 +1254,7 @@ bool Position::gives_check(Move m) const {
       return false;
 
   // Is there a direct check?
-  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION)
+  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING)
   {
       PieceType pt = type_of(moved_piece(m));
       if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
@@ -1285,10 +1313,10 @@ bool Position::gives_check(Move m) const {
   case PIECE_DEMOTION:
       return attacks_bb(sideToMove, type_of(unpromoted_piece_on(from)), to, pieces() ^ from) & square<KING>(~sideToMove);
 
-  // The double-pushed pawn blocked a check? En Passant will remove the blocker.
-  // The only discovery check that wasn't handle is through capsq and fromsq
-  // So the King must be in the same rank as fromsq to consider this possibility.
-  // st->previous->blockersForKing consider capsq as empty.
+  // En passant capture with check? We have already handled the case
+  // of direct checks and ordinary discovered check, so the only case we
+  // need to handle is the unusual case of a discovered check through
+  // the captured pawn.
   case EN_PASSANT:
   {
       Square capsq = make_square(file_of(to), rank_of(from));
@@ -1309,7 +1337,6 @@ bool Position::gives_check(Move m) const {
   }
   }
 }
-
 
 /// Position::do_move() makes a move, and saves all information necessary
 /// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
@@ -1342,8 +1369,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       ++st->countingPly;
 
   // Used by NNUE
-  st->accumulator.state[WHITE] = Eval::NNUE::EMPTY;
-  st->accumulator.state[BLACK] = Eval::NNUE::EMPTY;
+  st->accumulator.computed[WHITE] = false;
+  st->accumulator.computed[BLACK] = false;
   auto& dp = st->dirtyPiece;
   dp.dirty_num = 1;
 
@@ -1469,7 +1496,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Update castling rights if needed
-  if (type_of(m) != DROP && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
+  if (type_of(m) != DROP && !is_pass(m) && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
   {
       k ^= Zobrist::castling[st->castlingRights];
       st->castlingRights &= ~(castlingRightsMask[from] | castlingRightsMask[to]);
@@ -1485,7 +1512,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           Bitboard b = attacks_bb(us, QUEEN, to, board_bb() & ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
           while(b)
-              st->flippedPieces |= between_bb(to, pop_lsb(b));
+              st->flippedPieces |= between_bb(pop_lsb(b), to) ^ to;
       }
       else
       {
@@ -1776,9 +1803,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           // Update castling rights if needed
           if (st->castlingRights && castlingRightsMask[bsq])
           {
-              int cr = castlingRightsMask[bsq];
-              k ^= Zobrist::castling[st->castlingRights & cr];
-              st->castlingRights &= ~cr;
+             k ^= Zobrist::castling[st->castlingRights];
+             st->castlingRights &= ~castlingRightsMask[bsq];
+             k ^= Zobrist::castling[st->castlingRights];
           }
       }
   }
@@ -2009,8 +2036,8 @@ void Position::do_null_move(StateInfo& newSt) {
   // Used by NNUE
   st->dirtyPiece.dirty_num = 0;
   st->dirtyPiece.piece[0] = NO_PIECE; // Avoid checks in UpdateAccumulator()
-  st->accumulator.state[WHITE] = Eval::NNUE::EMPTY;
-  st->accumulator.state[BLACK] = Eval::NNUE::EMPTY;
+  st->accumulator.computed[WHITE] = false;
+  st->accumulator.computed[BLACK] = false;
 
   if (st->epSquare != SQ_NONE)
   {
@@ -2584,13 +2611,13 @@ int Position::counting_limit() const {
       return 64;
 
   case ASEAN_COUNTING:
-      if (count<ALL_PIECES>(sideToMove) > 1)
+      if (count<PAWN>() || count<ALL_PIECES>(sideToMove) > 1)
           return 0;
       if (count<ROOK>(~sideToMove))
           return 16;
-      if (count<KHON>(~sideToMove) && count<MET>(~sideToMove))
+      if (count<KHON>(~sideToMove))
           return 44;
-      if (count<KNIGHT>(~sideToMove) && count<MET>(~sideToMove))
+      if (count<KNIGHT>(~sideToMove))
           return 64;
 
       return 0;

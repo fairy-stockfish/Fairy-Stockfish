@@ -2,7 +2,7 @@
 
 ## Overview
 
-[![Build Status](https://github.com/ianfab/Fairy-Stockfish/workflows/build/badge.svg?branch=master)](https://github.com/ianfab/Fairy-Stockfish/actions?query=workflow%3Abuild)
+[![Build Status](https://github.com/ianfab/Fairy-Stockfish/workflows/Release/badge.svg?branch=master)](https://github.com/ianfab/Fairy-Stockfish/actions?query=workflow%3ARelease)
 [![Build Status](https://github.com/ianfab/Fairy-Stockfish/workflows/fairy/badge.svg?branch=master)](https://github.com/ianfab/Fairy-Stockfish/actions?query=workflow%3Afairy)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/ianfab/Fairy-Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/ianfab/Fairy-Stockfish/branch/master)
 [![PyPI version](https://badge.fury.io/py/pyffish.svg)](https://badge.fury.io/py/pyffish)
@@ -13,10 +13,10 @@ Fairy-Stockfish is a chess variant engine derived from [Stockfish](https://githu
 The goal of the project is to create an engine supporting a large variety of chess-like games, equipped with the powerful search of Stockfish. Despite its generality the [playing strength](https://github.com/ianfab/Fairy-Stockfish/wiki/Playing-strength) is on a very high level in almost all supported variants. Due to its multi-protocol support Fairy-Stockfish works with almost any chess variant GUI.
 
 ## Installation
-You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64.exe) or [Linux binary](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64) from the [latest release](https://github.com/ianfab/Fairy-Stockfish/releases/latest) or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you perhaps want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Graphical-user-interfaces), or [play against it online](https://github.com/ianfab/Fairy-Stockfish/wiki/Online) at [pychess](https://www.pychess.org/), [lishogi](https://lishogi.org/), [xichess](http://www.xichess.com/), or [lichess](https://lichess.org/@/Fairy-Stockfish). Read more about [how to use](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) Fairy-Stockfish in the wiki.
+You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64.exe) or [Linux binary](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64) from the [latest release](https://github.com/ianfab/Fairy-Stockfish/releases/latest) or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you perhaps want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Graphical-user-interfaces), or [play against it online](https://github.com/ianfab/Fairy-Stockfish/wiki/Online) at [pychess](https://www.pychess.org/), [lishogi](https://lishogi.org/@/Fairy-Stockfish), [xichess](http://www.xichess.com/), or [lichess](https://lichess.org/@/Fairy-Stockfish). Read more about [how to use](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) Fairy-Stockfish in the wiki.
 
-Optional NNUE evaluation parameter files to improve playing strength for selected variants can be obtained via [patreon](https://www.patreon.com/ianfab), also see the [variant NNUE overview](https://docs.google.com/spreadsheets/d/1fgGvBKleUOI1wZZbiNhpT98qhQ7mYuQ5kar1lTQ9g3w/edit?usp=sharing).
-When NNUE evaluation is used, the `EvalFile` parameter needs to be adjusted accordingly as explained in the [wiki](https://github.com/ianfab/Fairy-Stockfish/wiki/Settings#evalfile).
+Optional NNUE evaluation parameter files to improve playing strength for many variants are in the [list of NNUE networks](https://github.com/ianfab/Fairy-Stockfish/wiki/List-of-networks).
+For the regional variants Xiangqi, Janggi, and Makruk [dedicated releases with built-in NNUE networks](https://github.com/ianfab/Fairy-Stockfish-NNUE) are available. See the [wiki](https://github.com/ianfab/Fairy-Stockfish/wiki/NNUE) for more details on NNUE.
 
 ## Contributing
 
@@ -91,7 +91,7 @@ The javascript binding ffish.js contributed by [@QueensGambit](https://github.co
 
 ### WASM
 
-A port of Fairy-Stockfish to WebAssembly is maintained at https://github.com/ianfab/stockfish.wasm.
+A port of Fairy-Stockfish to WebAssembly is maintained at https://github.com/ianfab/fairy-stockfish.wasm. It is e.g. used for local analysis on [pychess.org](https://www.pychess.org/).
 
 # Stockfish
 ## Overview
@@ -131,12 +131,14 @@ This distribution of Stockfish consists of the following files:
 
 ## The UCI protocol and available options
 
-The Universal Chess Interface (UCI) is a standard protocol used to communicate with a chess engine,
-and is the recommended way to do so for typical graphical user interfaces (GUI) or chess tools.
+The Universal Chess Interface (UCI) is a standard protocol used to communicate with
+a chess engine, and is the recommended way to do so for typical graphical user interfaces
+(GUI) or chess tools. Stockfish implements the majority of it options as described
+in [the UCI protocol](https://www.shredderchess.com/download/div/uci.zip).
 
-Stockfish implements most commands as described in [the UCI protocol](https://www.shredderchess.com/download/div/uci.zip)
-
-For users, the following UCI options, which can typically be set via a GUI, are available in Stockfish:
+Developers can see the default values for UCI options available in Stockfish by typing
+`./stockfish uci` in a terminal, but the majority of users will typically see them and
+change them via a chess GUI. This is a list of available UCI options in Stockfish:
 
   * #### Threads
     The number of CPU threads used for searching a position. For best performance, set
@@ -214,14 +216,6 @@ For users, the following UCI options, which can typically be set via a GUI, are 
     Limit Syzygy tablebase probing to positions with at most this many pieces left
     (including kings and pawns).
 
-  * #### Contempt
-    A positive value for contempt favors middle game positions and avoids draws,
-    effective for the classical evaluation only.
-
-  * #### Analysis Contempt
-    By default, contempt is set to prefer the side to move. Set this option to "White"
-    or "Black" to analyse with contempt for that side, or "Off" to disable contempt.
-
   * #### Move Overhead
     Assume a time delay of x ms due to network and GUI overheads. This is useful to
     avoid losses on time in those cases.
@@ -239,9 +233,9 @@ For users, the following UCI options, which can typically be set via a GUI, are 
 
 For developers the following non-standard commands might be of interest, mainly useful for debugging:
 
-  * #### bench ttSize threads limit fenFile limitType evalType
-    Performs a standard benchmark using various options. The signature or standard node
-    count is obtained using all defaults. `bench` is currently `bench 16 1 13 default depth mixed`.
+  * #### bench *ttSize threads limit fenFile limitType evalType*
+    Performs a standard benchmark using various options. The signature of a version (standard node
+    count) is obtained using all defaults. `bench` is currently `bench 16 1 13 default depth mixed`.
 
   * #### compiler
     Give information about the compiler and environment used for building a binary.

@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -118,6 +118,8 @@ public:
   const Variant* variant() const;
   Rank max_rank() const;
   File max_file() const;
+  int ranks() const;
+  int files() const;
   bool two_boards() const;
   Bitboard board_bb() const;
   Bitboard board_bb(Color c, PieceType pt) const;
@@ -190,6 +192,7 @@ public:
   bool extinction_single_piece() const;
   int extinction_piece_count() const;
   int extinction_opponent_piece_count() const;
+  bool extinction_pseudo_royal() const;
   PieceType capture_the_flag_piece() const;
   Bitboard capture_the_flag(Color c) const;
   bool flag_move() const;
@@ -239,6 +242,7 @@ public:
   Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
   Bitboard pinners(Color c) const;
+  Bitboard attackers_to_pseudo_royals(Color c) const;
 
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
@@ -294,6 +298,7 @@ public:
   bool is_optional_game_end(Value& result, int ply = 0, int countStarted = 0) const;
   bool is_game_end(Value& result, int ply = 0) const;
   Value material_counting_result() const;
+  bool is_draw(int ply) const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
   int counting_limit() const;
@@ -332,6 +337,9 @@ public:
   // Returns the position of the ball on the c side.
   Square king_square(Color c) const { return lsb(pieces(c, nnue_king())); }
 
+  void put_piece(Piece pc, Square s, bool isPromoted = false, Piece unpromotedPc = NO_PIECE);
+  void remove_piece(Square s);
+
 private:
   // Initialization helpers (used while setting up a position)
   void set_castling_right(Color c, Square rfrom);
@@ -339,8 +347,6 @@ private:
   void set_check_info(StateInfo* si) const;
 
   // Other helpers
-  void put_piece(Piece pc, Square s, bool isPromoted = false, Piece unpromotedPc = NO_PIECE);
-  void remove_piece(Square s);
   void move_piece(Square from, Square to);
   template<bool Do>
   void do_castling(Color us, Square from, Square& to, Square& rfrom, Square& rto);
@@ -388,6 +394,16 @@ inline Rank Position::max_rank() const {
 inline File Position::max_file() const {
   assert(var != nullptr);
   return var->maxFile;
+}
+
+inline int Position::ranks() const {
+  assert(var != nullptr);
+  return var->maxRank + 1;
+}
+
+inline int Position::files() const {
+  assert(var != nullptr);
+  return var->maxFile + 1;
 }
 
 inline bool Position::two_boards() const {
@@ -884,6 +900,11 @@ inline int Position::extinction_opponent_piece_count() const {
   return var->extinctionOpponentPieceCount;
 }
 
+inline bool Position::extinction_pseudo_royal() const {
+  assert(var != nullptr);
+  return var->extinctionPseudoRoyal;
+}
+
 inline PieceType Position::capture_the_flag_piece() const {
   assert(var != nullptr);
   return var->flagPiece;
@@ -931,6 +952,11 @@ inline bool Position::is_immediate_game_end() const {
 inline bool Position::is_optional_game_end() const {
   Value result;
   return is_optional_game_end(result);
+}
+
+inline bool Position::is_draw(int ply) const {
+  Value result;
+  return is_optional_game_end(result, ply);
 }
 
 inline bool Position::is_game_end(Value& result, int ply) const {
@@ -1177,7 +1203,7 @@ inline int Position::game_ply() const {
 }
 
 inline int Position::counting_ply(int countStarted) const {
-  return countStarted == 0 ? st->countingPly : std::min(st->countingPly, std::max(1 + gamePly - countStarted, 0));
+  return countStarted == 0 || (count<ALL_PIECES>(WHITE) <= 1 || count<ALL_PIECES>(BLACK) <= 1) ? st->countingPly : countStarted < 0 ? 0 : std::min(st->countingPly, std::max(1 + gamePly - countStarted, 0));
 }
 
 inline int Position::rule50_count() const {
@@ -1241,7 +1267,7 @@ inline void Position::remove_piece(Square s) {
   byTypeBB[ALL_PIECES] ^= s;
   byTypeBB[type_of(pc)] ^= s;
   byColorBB[color_of(pc)] ^= s;
-  /* board[s] = NO_PIECE;  Not needed, overwritten by the capturing one */
+  board[s] = NO_PIECE;
   pieceCount[pc]--;
   pieceCount[make_piece(color_of(pc), ALL_PIECES)]--;
   psq -= PSQT::psq[pc][s];

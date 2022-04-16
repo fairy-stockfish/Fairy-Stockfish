@@ -14,7 +14,7 @@ SITTUYIN = "8/8/4pppp/pppp4/4PPPP/PPPP4/8/8[KFRRSSNNkfrrssnn] w - - 0 1"
 MAKRUK = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1"
 SHOGI = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1"
 SHOGI_SFEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
-SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1"
+SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[EHeh] w KQBCDFGkqbcdfg - 0 1"
 GRAND = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1"
 GRANDHOUSE = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R[] w - - 0 1"
 XIANGQI = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
@@ -68,6 +68,17 @@ castling = true
 castlingKingsideFile = e
 castlingQueensideFile = b
 startFen = rbnkbr/pppppp/6/6/PPPPPP/RBNKBR w KQkq - 0 1
+
+[passchess:chess]
+pass = true
+
+[makhouse:makruk]
+startFen = rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR[] w - - 0 1
+pieceDrops = true
+capturesToHand = true
+firstRankPawnDrops = true
+promotionZonePawnDrops = true
+immobilityIllegal = true
 """
 
 sf.load_variant_config(ini_text)
@@ -94,9 +105,16 @@ variant_positions = {
     },
     "atomic": {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": (False, False),  # startpos
+        "8/8/8/8/3K4/3k4/8/8 b - - 0 1": (True, True),  # K vs K
+        "k7/p7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KP
+        "k7/q7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KQ
+    },
+    "crazyhouse": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 0 1": (False, False),  # lichess style startpos
     },
     "3check": {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1": (False, False),  # startpos
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 +0+2": (False, False),  # lichess style check count
         "k7/n7/8/8/8/8/8/K7 w - - 1+2 0 1": (True, False),  # K vs KN
         "k7/b7/8/8/8/8/8/K7 w - - 3+1 0 1": (True, False),  # K vs KB
     },
@@ -132,6 +150,11 @@ variant_positions = {
         "k6P/8/8/8/8/8/8/K6p[] w - - 0 1": (False, False),  # KP vs KP
         "k7/8/8/8/8/8/8/KFF5[] w - - 0 1": (False, True),  # KFF vs K
         "k7/8/8/8/8/8/8/KS6[] w - - 0 1": (False, True),  # KS vs K
+    },
+    "makpong": {
+        "8/8/8/4k2K/5m~2/4m~3/8/8 w - 128 8 58": (True, False),  # KFF vs K
+        "k7/n7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KN
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, True),  # K vs K
     },
     "xiangqi": {
         "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1": (False, False),  # startpos
@@ -181,16 +204,19 @@ invalid_variant_positions = {
         "rnbqkbnr/pppppppp/7/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # invalid file count
         "rnbqkbnr/pppppppp/9/7/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # invalid file count
         "rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # invalid rank count
-        "1nbqkbn1/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # missing castling rook
-        "rnbqkbnr/pppppppp/8/8/4K3/PPPPPPPP/RNBQ1BNR w KQkq - 0 1",  # king not on castling rank
-        "rnbqkbnr/pppppppp/8/8/RNBQKBNR/PPPPPPPP/8 w KQkq - 0 1",  # not on castling rank
-        "8/pppppppp/rnbqkbnr/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # not on castling rank
+        "rnbqkbn1/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # missing castling rook
+        "1nbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # missing castling rook
+        "rnbqkbnr/pppppppp/8/8/8/4K3/PPPPPPPP/RNBQ1BNR w KQkq - 0 1",  # king not on castling rank
+        "rnbqkbnr/pppppppp/8/8/8/RNBQKBNR/PPPPPPPP/8 w KQkq - 0 1",  # not on castling rank
+        "8/pppppppp/rnbqkbnr/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # not on castling rank
     ),
     "atomic": (
         "rnbqkbnr/pppppppp/8/8/8/RNBQKBNR/PPPPPPPP/8 w KQkq - 0 1",  # wrong castling rank
     ),
     "3check": (
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+a 0 1",  # invalid check count
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 +a+2",  # invalid lichess check count
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 +1+4",  # invalid lichess check count
     ),
     "horde": (
         "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPK w kq - 0 1",  # wrong king count
@@ -201,6 +227,10 @@ invalid_variant_positions = {
     ),
     "shako": {
         "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/C8C/ERNBQKBNRE w KQkq - 0 1",  # not on castling rank
+    },
+    "seirawan": {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK1NR[HEhe] w KQBCDFGkqbcdfg - 0 1",  # white gating flag
+        "rnbqkb1r/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1",  # black gating flag
     }
 }
 
@@ -264,6 +294,11 @@ class TestPyffish(unittest.TestCase):
         result = sf.legal_moves("janggi", fen, [])
         self.assertEqual(result, ["e10e10"])
 
+        # pawn promotion of dropped pawns beyond promotion rank
+        result = sf.legal_moves("makhouse", "rnsmksnr/8/1ppP1ppp/p3p3/8/PPP1PPPP/8/RNSKMSNR[p] w - - 0 4", [])
+        self.assertIn("d6d7m", result)
+        self.assertNotIn("d6d7", result)
+
     def test_short_castling(self):
         legals = ['f5f4', 'a7a6', 'b7b6', 'c7c6', 'd7d6', 'e7e6', 'i7i6', 'j7j6', 'a7a5', 'b7b5', 'c7c5', 'e7e5', 'i7i5', 'j7j5', 'b8a6', 'b8c6', 'h6g4', 'h6i4', 'h6j5', 'h6f7', 'h6g8', 'h6i8', 'd5a2', 'd5b3', 'd5f3', 'd5c4', 'd5e4', 'd5c6', 'd5e6', 'd5f7', 'd5g8', 'j8g8', 'j8h8', 'j8i8', 'e8f7', 'c8b6', 'c8d6', 'g6g2', 'g6g3', 'g6f4', 'g6g4', 'g6h4', 'g6e5', 'g6g5', 'g6i5', 'g6a6', 'g6b6', 'g6c6', 'g6d6', 'g6e6', 'g6f6', 'g6h8', 'f8f7', 'f8g8', 'f8i8']
         moves = ['b2b4', 'f7f5', 'c2c3', 'g8d5', 'a2a4', 'h8g6', 'f2f3', 'i8h6', 'h2h3']
@@ -283,6 +318,11 @@ class TestPyffish(unittest.TestCase):
         # d1e1 is a normal king move, so castling has to be d1f1
         result = sf.legal_moves("diana", "rbnk1r/pppbpp/3p2/5P/PPPPPB/RBNK1R w KQkq - 2 3", [])
         self.assertIn("d1f1", result)
+
+        # Test configurable piece perft
+        legals = ['a3a4', 'b3b4', 'c3c4', 'd3d4', 'e3e4', 'f3f4', 'g3g4', 'e1e2', 'f1f2', 'b1a2', 'b1b2', 'b1c2', 'c1b2', 'c1c2', 'c1d2', 'a1a2', 'g1g2', 'd1c2', 'd1d2', 'd1e2']
+        result = sf.legal_moves("yarishogi", sf.start_fen("yarishogi"), [])
+        self.assertCountEqual(legals, result)
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
@@ -306,6 +346,14 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("xiangqi", XIANGQI, [])
         self.assertEqual(result, XIANGQI)
 
+        result = sf.get_fen("seirawan", SEIRAWAN, [])
+        self.assertEqual(result, SEIRAWAN)
+
+        # test idempotence for S-Chess960 gating flags
+        fen1 = sf.get_fen("seirawan", SEIRAWAN, [], True)
+        fen2 = sf.get_fen("seirawan", fen1, [], True)
+        self.assertEqual(fen1, fen2)
+
         fen = "rnab1kbcnr/ppppPppppp/10/4q5/10/10/PPPPP1PPPP/RNABQKBCNR[p] b KQkq - 0 3"
         result = sf.get_fen("capahouse", CAPA, ["f2f4", "e7e5", "f4e5", "e8e5", "P@e7"])
         self.assertEqual(result, fen)
@@ -322,7 +370,12 @@ class TestPyffish(unittest.TestCase):
         fen = "rbkqnrbn/pppppppp/8/8/8/8/PPPPPPPP/RBKQNRBN w AFaf - 0 1"
         moves = ["d2d4", "f7f5", "e1f3", "h8g6", "h1g3", "c7c6", "c2c3", "e7e6", "b1d3", "d7d5", "d1c2", "b8d6", "e2e3", "d8d7", "c1a1"]
         result = sf.get_fen("chess", fen, moves, True, False, False)
-        self.assertEqual(result, "r1k1nrb1/pp1q2pp/2pbp1n1/3p1p2/3P4/2PBPNN1/PPQ2PPP/2KR1RB1 b fa - 2 8", CHESS960)
+        self.assertEqual(result, "r1k1nrb1/pp1q2pp/2pbp1n1/3p1p2/3P4/2PBPNN1/PPQ2PPP/2KR1RB1 b fa - 2 8")
+
+        # passing should not affect castling rights
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        result = sf.get_fen("passchess", fen, ["e1e1", "e8e8"])
+        self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 2 2")
 
         # SFEN
         result = sf.get_fen("shogi", SHOGI, [], False, True)
@@ -345,6 +398,17 @@ class TestPyffish(unittest.TestCase):
         moves = ["e5f6"]
         result = sf.get_fen("makruk", fen, moves, False, False, True)
         self.assertEqual(result, "8/2K3k1/5S2/6S1/8/8/8/8 b - 44 8 1")
+
+        # ignore count_started for piece honor counting
+        fen = "8/3k4/8/2K1S1P1/8/8/8/8 w - - 0 1"
+        moves = ["g5g6m"]
+        result = sf.get_fen("makruk", fen, moves, False, False, True, -1)
+        self.assertEqual(result, "8/3k4/6M~1/2K1S3/8/8/8/8 b - 88 8 1")
+
+        fen = "8/2K3k1/5m2/4S1S1/8/8/8/8 w - 128 1 30"
+        moves = ["e5f6"]
+        result = sf.get_fen("makruk", fen, moves, False, False, True, 58)
+        self.assertEqual(result, "8/2K3k1/5S2/6S1/8/8/8/8 b - 44 8 30")
 
         # makruk board honor counting
         fen = "3k4/2m5/8/4MP2/3KS3/8/8/8 w - - 0 1"
@@ -371,6 +435,32 @@ class TestPyffish(unittest.TestCase):
         moves = ["d4d5"]
         result = sf.get_fen("makruk", fen, moves, False, False, True, 58)
         self.assertEqual(result, "3k4/2m5/5M~2/3KM3/4S3/8/8/8 b - 128 8 33")
+
+        # asean counting
+        fen = "4k3/3r4/2K5/8/3R4/8/8/8 w - - 0 1"
+        moves = ["d4d7"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "4k3/3R4/2K5/8/8/8/8/8 b - 32 0 1")
+
+        fen = "4k3/3r4/2K5/8/3R4/1P6/8/8 w - - 0 1"
+        moves = ["d4d7"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "4k3/3R4/2K5/8/8/1P6/8/8 b - - 0 1")
+
+        fen = "8/2P1k3/2K5/8/8/8/8/8 w - - 0 1"
+        moves = ["c7c8b"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "2B5/4k3/2K5/8/8/8/8/8 b - 88 0 1")
+
+        fen = "8/8/4K3/3Q4/1k1N4/5b2/8/8 w - - 0 1"
+        moves = ["d4f3"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "8/8/4K3/3Q4/1k6/5N2/8/8 b - 128 0 1")
+
+        fen = "3Q4/4P3/4K3/3Q4/1k6/8/8/8 w - - 0 1"
+        moves = ["e7e8q"]
+        result = sf.get_fen("asean", fen, moves, False, False, False)
+        self.assertEqual(result, "3QQ3/8/4K3/3Q4/1k6/8/8/8 b - - 0 1")
 
     def test_get_san(self):
         fen = "4k3/8/3R4/8/1R3R2/8/3R4/4K3 w - - 0 1"
@@ -435,6 +525,18 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", SHOGI, "f1e2", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
         self.assertEqual(result, "G49-58")
 
+        # Disambiguation of promotion moves
+        fen = "p1ksS/n1n2/4P/5/+L1K1+L[] b - - 3 9"
+        result = sf.get_san("kyotoshogi", fen, "c4b2+", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
+        self.assertEqual(result, "N32-44+")
+        result = sf.get_san("kyotoshogi", fen, "a4b2+", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
+        self.assertEqual(result, "N52-44+")
+
+        # Demotion
+        fen = "p+nks+l/5/5/L4/1SK+NP[-] b 0 1"
+        result = sf.get_san("kyotoshogi", fen, "e5e4-", False, sf.NOTATION_SAN)
+        self.assertEqual(result, "Ge4=L")
+
         fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -"
         result = sf.get_san("shogi", fen, "b2h8", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "Bx2b=")
@@ -476,19 +578,45 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", XIANGQI, "h3h5")
         self.assertEqual(result, "Ch5")
 
+        # WXF notation does not denote check or checkmate
+        fen = "4k4/4a3R/9/9/9/9/9/9/4K4/9 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "i9e9", False)
+        self.assertEqual(result, "Rxe9+")
+        result = sf.get_san("xiangqi", fen, "i9e9", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "R1=5")
+        result = sf.get_san("xiangqi", fen, "i9i10", False)
+        self.assertEqual(result, "Ri10#")
+        result = sf.get_san("xiangqi", fen, "i9i10", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "R1+1")
+
         # skip disambiguation for elephants and advisors, but not for pieces that require it
-        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/1NB6/P1P1P1P1P/1C1A3C1/9/RNBAK21R w - - 0 1"
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/4P4/1NB6/P1P1P3P/1C1A3C1/9/RNBAK4 w - - 0 1"
         result = sf.get_san("xiangqi", fen, "c5e3", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "E7-5")
         result = sf.get_san("xiangqi", fen, "d1e2", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "A6+5")
         result = sf.get_san("xiangqi", fen, "b5c7", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "H++7")
+        result = sf.get_san("xiangqi", fen, "e6e7", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "P++1")
+        result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "P-+1")
 
         # Tandem pawns
         fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
         result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "15=6")
+        result = sf.get_san("xiangqi", fen, "e6d6", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "25=6")
+        result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "35+1")
+
+        # use tandem pawn notation for pair of tandem pawns
+        fen = "5k3/9/3P5/3P1P1P1/5P3/9/9/9/9/4K4 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "d7e7", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "26=5")
+        result = sf.get_san("xiangqi", fen, "f6e6", False, sf.NOTATION_XIANGQI_WXF)
+        self.assertEqual(result, "24=5")
 
         fen = "1rb1ka2r/4a4/2ncb1nc1/p1p1p1p1p/9/2P6/P3PNP1P/2N1C2C1/9/R1BAKAB1R w - - 1 7"
         result = sf.get_san("xiangqi", fen, "c3e2")
@@ -545,6 +673,13 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("seirawan", fen, "h1e1e")
         self.assertEqual(result, "O-O/Eh1")
 
+        # Disambiguation only when necessary
+        fen = "rnbqkb1r/ppp1pppp/5n2/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R[EHeh] w KQABCDEFHkqabcdefh - 2 3"
+        result = sf.get_san("seirawan", fen, "b1d2e")
+        self.assertEqual(result, "Nd2/E")
+        result = sf.get_san("seirawan", fen, "b1d2")
+        self.assertEqual(result, "Nbd2")
+
     def test_get_san_moves(self):
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
         SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]
@@ -576,6 +711,22 @@ class TestPyffish(unittest.TestCase):
         moves = ["g2g3", "d7d5", "a2a3", "c8h3"]
         result = sf.gives_check("capablanca", CAPA, moves)
         self.assertTrue(result)
+
+        # Test giving check to pseudo royal piece
+        result = sf.gives_check("atomic", CHESS, [])
+        self.assertFalse(result)
+
+        result = sf.gives_check("atomic", CHESS, ["e2e4"])
+        self.assertFalse(result)
+
+        result = sf.gives_check("atomic", CHESS, ["e2e4", "d7d5", "f1b5"])
+        self.assertTrue(result)
+
+        result = sf.gives_check("atomic", "rnbqkbnr/ppp2ppp/8/8/8/8/PPP2PPP/RNBQKBNR w KQkq - 0 4", ["d1d7"])
+        self.assertTrue(result)
+
+        result = sf.gives_check("atomic", "8/8/kK6/8/8/8/Q7/8 b - - 0 1", [])
+        self.assertFalse(result)
 
     def test_game_result(self):
         result = sf.game_result("chess", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
@@ -622,6 +773,11 @@ class TestPyffish(unittest.TestCase):
     def test_is_optional_game_end(self):
         result = sf.is_optional_game_end("capablanca", CAPA, [])
         self.assertFalse(result[0])
+
+        # sittuyin stalemate due to optional promotion
+        result = sf.is_optional_game_end("sittuyin", "1k4PK/3r4/8/8/8/8/8/8[] w - - 0 1", [])
+        self.assertTrue(result[0])
+        self.assertEqual(result[1], sf.VALUE_DRAW)
 
     def test_has_insufficient_material(self):
         for variant, positions in variant_positions.items():

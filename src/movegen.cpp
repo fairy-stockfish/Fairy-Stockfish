@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -108,16 +108,14 @@ namespace {
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    Bitboard TRank8BB = pos.mandatory_pawn_promotion() ? rank_bb(relative_rank(Us, pos.promotion_rank(), pos.max_rank()))
-                                                       : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
+    Bitboard TRank8BB = pos.sittuyin_promotion() ? Bitboard(0) : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
     Bitboard TRank7BB = shift<Down>(TRank8BB);
     // Define squares a pawn can pass during a double step
     Bitboard  TRank3BB =  forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_min(), pos.max_rank()))
                         & ~shift<Up>(forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_max(), pos.max_rank())));
 
-    const Square ksq = pos.count<KING>(Them) ? pos.square<KING>(Them) : SQ_NONE;
-    const Bitboard emptySquares = Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces();
-    const Bitboard enemies      = Type == EVASIONS ? pos.checkers()
+    const Bitboard emptySquares = Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces() & pos.board_bb();
+    const Bitboard enemies      = Type == EVASIONS ? (pos.checkers() & pos.non_sliding_riders() ? pos.pieces(Them) : pos.checkers())
                                 : Type == CAPTURES ? target : pos.pieces(Them);
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
@@ -140,6 +138,7 @@ namespace {
             // To make a quiet check, you either make a direct check by pushing a pawn
             // or push a blocker pawn that is not on the same file as the enemy king.
             // Discovered check promotion has been already generated amongst the captures.
+            Square ksq = pos.square<KING>(Them);
             Bitboard dcCandidatePawns = pos.blockers_for_king(Them) & ~file_bb(ksq);
             b1 &= pawn_attacks_bb(Them, ksq) | shift<   Up>(dcCandidatePawns);
             b2 &= pawn_attacks_bb(Them, ksq) | shift<Up+Up>(dcCandidatePawns);
@@ -264,15 +263,6 @@ namespace {
         Bitboard b2 = promPt && (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
 
-        if (Checks)
-        {
-            b1 &= pos.check_squares(Pt);
-            if (b2)
-                b2 &= pos.check_squares(pos.promoted_piece_type(Pt));
-            if (b3)
-                b3 &= pos.check_squares(type_of(pos.unpromoted_piece_on(from)));
-        }
-
         // Restrict target squares considering promotion zone
         if (b2 | b3)
         {
@@ -291,6 +281,15 @@ namespace {
                 b2 &= promotion_zone;
                 b3 &= promotion_zone;
             }
+        }
+
+        if (Checks)
+        {
+            b1 &= pos.check_squares(Pt);
+            if (b2)
+                b2 &= pos.check_squares(pos.promoted_piece_type(Pt));
+            if (b3)
+                b3 &= pos.check_squares(type_of(pos.unpromoted_piece_on(from)));
         }
 
         while (b1)
@@ -407,10 +406,10 @@ namespace {
 } // namespace
 
 
-/// <CAPTURES>     Generates all pseudo-legal captures plus queen and checking knight promotions
-/// <QUIETS>       Generates all pseudo-legal non-captures and underpromotions (except checking knight)
+/// <CAPTURES>     Generates all pseudo-legal captures plus queen promotions
+/// <QUIETS>       Generates all pseudo-legal non-captures and underpromotions
 /// <EVASIONS>     Generates all pseudo-legal check evasions when the side to move is in check
-/// <QUIET_CHECKS> Generates all pseudo-legal non-captures giving check, except castling
+/// <QUIET_CHECKS> Generates all pseudo-legal non-captures giving check, except castling and promotions
 /// <NON_EVASIONS> Generates all pseudo-legal captures and non-captures
 ///
 /// Returns a pointer to the end of the move list.

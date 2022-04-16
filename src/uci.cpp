@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdlib>
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -122,9 +123,8 @@ namespace {
 
     if (Options.count(name))
         Options[name] = value;
-    // UCI dialects do not allow spaces
-    else if (   (Options["Protocol"] == "ucci" || Options["Protocol"] == "usi")
-             && (std::replace(name.begin(), name.end(), '_', ' '), Options.count(name)))
+    // Deal with option name aliases in UCI dialects
+    else if (is_valid_option(Options, name))
         Options[name] = value;
     else
         sync_cout << "No such option: " << name << sync_endl;
@@ -145,6 +145,7 @@ namespace {
 
     limits.banmoves = banmoves;
     bool isUsi = Options["Protocol"] == "usi";
+    int secResolution = Options["usemillisec"] ? 1 : 1000;
 
     while (is >> token)
         if (token == "searchmoves") // Needs to be the last command on the line
@@ -164,10 +165,10 @@ namespace {
         else if (token == "infinite")  limits.infinite = 1;
         else if (token == "ponder")    ponderMode = true;
         // UCCI commands
-        else if (token == "time")      is >> limits.time[pos.side_to_move()];
-        else if (token == "opptime")   is >> limits.time[~pos.side_to_move()];
-        else if (token == "increment") is >> limits.inc[pos.side_to_move()];
-        else if (token == "oppinc")    is >> limits.inc[~pos.side_to_move()];
+        else if (token == "time")         is >> limits.time[pos.side_to_move()], limits.time[pos.side_to_move()] *= secResolution;
+        else if (token == "opptime")      is >> limits.time[~pos.side_to_move()], limits.time[~pos.side_to_move()] *= secResolution;
+        else if (token == "increment")    is >> limits.inc[pos.side_to_move()], limits.inc[pos.side_to_move()] *= secResolution;
+        else if (token == "oppincrement") is >> limits.inc[~pos.side_to_move()], limits.inc[~pos.side_to_move()] *= secResolution;
         // USI commands
         else if (token == "byoyomi")
         {
@@ -322,24 +323,46 @@ void search_mcts_cmd(Position& pos, istringstream& is)
   cout << endl;
 }
 
-  // load() is called when engine receives the "load" command.
+  // load() is called when engine receives the "load" or "check" command.
   // The function reads variant configuration files.
 
-  void load(istringstream& is) {
+  void load(istringstream& is, bool check = false) {
 
     string token;
-    while (is >> token)
-        Options["VariantPath"] = token;
-  }
+    std::getline(is >> std::ws, token);
 
-  // check() is called when engine receives the "check" command.
-  // The function reads variant configuration files and validates them.
+    // The argument to load either is a here-doc or a file path
+    if (token.rfind("<<", 0) == 0)
+    {
+        // Trim the EOF marker
+        if (!(stringstream(token.substr(2)) >> token))
+            token = "";
 
-  void check(istringstream& is) {
-
-    string token;
-    while (is >> token)
-        variants.parse<true>(token);
+        // Parse variant config till EOF marker
+        stringstream ss;
+        std::string line;
+        while (std::getline(cin, line) && line != token)
+            ss << line << std::endl;
+        if (check)
+            variants.parse_istream<true>(ss);
+        else
+        {
+            variants.parse_istream<false>(ss);
+            Options["UCI_Variant"].set_combo(variants.get_keys());
+        }
+    }
+    else
+    {
+        // store path if non-empty after trimming
+        std::size_t end = token.find_last_not_of(' ');
+        if (end != std::string::npos)
+        {
+            if (check)
+                variants.parse<true>(token.erase(end + 1));
+            else
+                Options["VariantPath"] = token.erase(end + 1);
+        }
+    }
   }
 
 
@@ -365,6 +388,19 @@ void UCI::loop(int argc, char* argv[]) {
   XBoard::stateMachine = new XBoard::StateMachine(pos, states);
   // UCCI banmoves state
   std::vector<Move> banmoves = {};
+
+  if (argc > 1 && (std::strcmp(argv[1], "noautoload") == 0))
+  {
+      cmd = "";
+      argc = 1;
+  }
+  else if (argc == 1 || !(std::strcmp(argv[1], "load") == 0))
+  {
+      // Check environment for variants.ini file
+      char *envVariantPath = std::getenv("FAIRY_STOCKFISH_VARIANT_PATH");
+      if (envVariantPath != NULL)
+          Options["VariantPath"] = std::string(envVariantPath);
+  }
 
   do {
       if (argc == 1 && !getline(cin, cmd)) // Block here waiting for input or EOF
@@ -427,16 +463,16 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "d")        sync_cout << pos << sync_endl;
       else if (token == "eval")     trace_eval(pos);
       else if (token == "compiler") sync_cout << compiler_info() << sync_endl;
-      else if (token == "export_net") {
+      else if (token == "export_net")
+      {
           std::optional<std::string> filename;
           std::string f;
-          if (is >> skipws >> f) {
-            filename = f;
-          }
-          Eval::NNUE::export_net(filename);
+          if (is >> skipws >> f)
+              filename = f;
+          Eval::NNUE::save_eval(filename);
       }
       else if (token == "load")     { load(is); argc = 1; } // continue reading stdin
-      else if (token == "check")    check(is);
+      else if (token == "check")    load(is, true);
       // UCI-Cyclone omits the "position" keyword
       else if (token == "fen" || token == "startpos")
       {
@@ -499,7 +535,7 @@ string UCI::value(Value v) {
   } else
 
   if (abs(v) < VALUE_MATE_IN_MAX_PLY)
-      ss << "cp " << v * 100 / PawnValueEg;
+      ss << (Options["Protocol"] == "ucci" ? "" : "cp ") << v * 100 / PawnValueEg;
   else if (Options["Protocol"] == "usi")
       // In USI, mate distance is given in ply
       ss << "mate " << (v > 0 ? VALUE_MATE - v : -VALUE_MATE - v);
@@ -628,6 +664,35 @@ Move UCI::to_move(const Position& pos, string& str) {
           return m;
 
   return MOVE_NONE;
+}
+
+std::string UCI::option_name(std::string name, std::string protocol) {
+  if (protocol == "ucci" && name == "Hash")
+      return "hashsize";
+  if (protocol == "usi")
+  {
+      if (name == "Hash" || name == "Ponder" || name == "MultiPV")
+          return "USI_" + name;
+      if (name.substr(0, 4) == "UCI_")
+          name = "USI_" + name.substr(4);
+  }
+  if (protocol == "ucci" || protocol == "usi")
+      std::replace(name.begin(), name.end(), ' ', '_');
+  return name;
+}
+
+bool UCI::is_valid_option(UCI::OptionsMap& options, std::string& name) {
+  std::string protocol = options["Protocol"];
+  for (const auto& it : options)
+  {
+      std::string optionName = option_name(it.first, protocol);
+      if (!options.key_comp()(optionName, name) && !options.key_comp()(name, optionName))
+      {
+          name = it.first;
+          return true;
+      }
+  }
+  return false;
 }
 
 } // namespace Stockfish

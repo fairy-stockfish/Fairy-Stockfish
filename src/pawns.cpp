@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -165,11 +165,11 @@ namespace {
 
         // Passed pawns will be properly scored later in evaluation when we have
         // full attack info.
-        if (passed && is_ok(s + Up) && (r < pos.promotion_rank() || !pos.mandatory_pawn_promotion()))
+        if (passed && is_ok(s + Up) && !pos.sittuyin_promotion())
             e->passedPawns[Us] |= s;
 
         // Score this pawn
-        if ((support | phalanx) && (r < pos.promotion_rank() || !pos.mandatory_pawn_promotion()))
+        if ((support | phalanx) && !pos.sittuyin_promotion())
         {
             int v =  Connected[r] * (2 + bool(phalanx) - bool(opposed)) * (r == RANK_2 && pos.captures_to_hand() ? 3 : 1)
                    + 22 * popcount(support);

@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2021 Fabian Fichter
+  Copyright (C) 2018-2022 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -137,6 +137,7 @@ struct Variant {
   // Derived properties
   bool fastAttacks = true;
   bool fastAttacks2 = true;
+  std::string nnueAlias = "";
   PieceType nnueKing = KING;
   int pieceIndex[PIECE_TYPE_NB];
   int nnueDimensions;
@@ -175,6 +176,12 @@ struct Variant {
       pieceToChar = std::string(PIECE_NB, ' ');
       pieceToCharSynonyms = std::string(PIECE_NB, ' ');
       pieceTypes.clear();
+  }
+
+  // Reset values that always need to be redefined
+  Variant* init() {
+      nnueAlias = "";
+      return this;
   }
 
   // Pre-calculate derived properties
@@ -293,7 +300,7 @@ public:
   std::vector<std::string> get_keys();
 
 private:
-  void add(std::string s, const Variant* v);
+  void add(std::string s, Variant* v);
 };
 
 extern VariantMap variants;

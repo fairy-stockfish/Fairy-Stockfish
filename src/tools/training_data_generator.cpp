@@ -802,7 +802,6 @@ namespace Stockfish::Tools
                 is >> params.seed;
             else if (token == "set_recommended_uci_options")
             {
-                UCI::setoption("Contempt", "0");
                 UCI::setoption("Skill Level", "20");
                 UCI::setoption("UCI_Chess960", "false");
                 UCI::setoption("UCI_AnalyseMode", "false");

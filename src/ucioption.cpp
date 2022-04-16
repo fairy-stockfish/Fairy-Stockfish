@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,6 +52,11 @@ std::set<string> standard_variants = {
     "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi"
 };
 
+void init_variant(const Variant* v) {
+    pieceMap.init(v);
+    Bitboards::init_pieces();
+}
+
 /// 'On change' actions, triggered by an option's value change
 void on_clear_hash(const Option&) { Search::clear(); }
 void on_hash_size(const Option& o) { TT.resize(size_t(o)); }
@@ -68,14 +73,21 @@ void on_enable_transposition_table(const Option& o) {
     TranspositionTable::enable_transposition_table = o;
 }
 
-void on_variant_path(const Option& o) { variants.parse<false>(o); Options["UCI_Variant"].set_combo(variants.get_keys()); }
+void on_variant_path(const Option& o) {
+    std::stringstream ss((std::string)o);
+    std::string path;
+
+    while (std::getline(ss, path, SepChar))
+        variants.parse<false>(path);
+
+    Options["UCI_Variant"].set_combo(variants.get_keys());
+}
 void on_variant_set(const Option &o) {
     // Re-initialize NNUE
     Eval::NNUE::init();
 
     const Variant* v = variants.find(o)->second;
-    pieceMap.init(v);
-    Bitboards::init_pieces();
+    init_variant(v);
     PSQT::init(v);
 }
 void on_variant_change(const Option &o) {
@@ -199,8 +211,6 @@ void init(OptionsMap& o) {
 
   o["Protocol"]              << Option("uci", {"uci", "usi", "ucci", "ucicyclone", "xboard"});
   o["Debug Log File"]        << Option("", on_logger);
-  o["Contempt"]              << Option(24, -100, 100);
-  o["Analysis Contempt"]     << Option("Both", {"Both", "Off", "White", "Black"});
   o["Threads"]               << Option(1, 1, 512, on_threads);
   o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]            << Option(on_clear_hash);
@@ -228,6 +238,7 @@ void init(OptionsMap& o) {
 #endif
   o["TsumeMode"]             << Option(false);
   o["VariantPath"]           << Option("<empty>", on_variant_path);
+  o["usemillisec"]           << Option(true); // time unit for UCCI
   // When the evaluation function is loaded at the ucinewgame timing, it is necessary to convert the new evaluation function.
   // I want to hit the test eval convert command, but there is no new evaluation function
   // It ends abnormally before executing this command.
@@ -290,8 +301,7 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
               // UCI dialects do not allow spaces
               if (Options["Protocol"] == "ucci" || Options["Protocol"] == "usi")
               {
-                  string name = it.first;
-                  std::replace(name.begin(), name.end(), ' ', '_');
+                  string name = option_name(it.first, Options["Protocol"]);
                   // UCCI skips "name"
                   os << "\noption " << (Options["Protocol"] == "ucci" ? "" : "name ") << name << " type " << o.type;
               }

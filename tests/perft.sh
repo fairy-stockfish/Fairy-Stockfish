@@ -42,6 +42,7 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp makruk startpos 4 273026 > /dev/null
   expect perft.exp cambodian startpos 4 361793 > /dev/null
   expect perft.exp cambodian "fen r1s1ks1r/3nm3/pppNpppp/3n4/5P2/PPPPPNPP/8/R1SKMS1R b DEe 0 0 5" 2 72 > /dev/null
+  expect perft.exp karouk "fen rn1mksnr/3s4/pppppppp/8/4N3/PPPPPPPP/8/R1SKMSNR b DEde - 3 2" 4 358535 > /dev/null
   expect perft.exp makpong "fen 3mk3/r3s1R1/1psppnp1/p1pn4/1P2NP2/P1PPP1P1/4NS2/R1SKM3 w - - 0 1" 4 593103 > /dev/null
   expect perft.exp asean startpos 4 273026 > /dev/null
   expect perft.exp ai-wok startpos 4 485045 > /dev/null
@@ -50,6 +51,8 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp sittuyin "fen 8/8/6R1/s3r3/P5R1/1KP3p1/1F2kr2/8[] b - - 0 72" 4 652686 > /dev/null
   expect perft.exp sittuyin "fen 2r5/6k1/6p1/3s2P1/3npR2/8/p2N2F1/3K4[] w - - 1 50" 4 373984 > /dev/null
   expect perft.exp sittuyin "fen 8/6s1/5P2/3n4/pR2K2S/1P6/1k4p1/8[] w - - 1 50" 4 268869 > /dev/null
+  expect perft.exp sittuyin "fen 1k5K/3r2P1/8/8/8/8/8/8[] w - - 0 1" 5 68662 > /dev/null
+  expect perft.exp shatar startpos 4 177344 > /dev/null
   expect perft.exp shatranj startpos 4 68122 > /dev/null
   expect perft.exp amazon startpos 4 318185 > /dev/null
   expect perft.exp nightrider startpos 4 419019 > /dev/null
@@ -85,6 +88,8 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp coregal "fen r3kb1r/1pp1pppp/p1q2n2/3P4/6b1/2N2N2/PPP2PPP/R1BQ1RK1 b kq - 0 9" 4 136511 > /dev/null
   expect perft.exp knightmate startpos 4 139774 > /dev/null
   expect perft.exp losers startpos 4 152955 > /dev/null
+  expect perft.exp kinglet startpos 4 197742 > /dev/null
+  expect perft.exp threekings startpos 4 199514 > /dev/null
   # pockets
   expect perft.exp crazyhouse startpos 4 197281 > /dev/null
   expect perft.exp crazyhouse "fen 2k5/8/8/8/8/8/8/4K3[QRBNPqrbnp] w - - 0 1" 2 75353 > /dev/null
@@ -102,6 +107,7 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp placement "fen r3k3/pppppppp/8/8/8/8/PPPPPPPP/R6R[Kr] w q - 0 1" 4 18492 > /dev/null
   expect perft.exp seirawan startpos 4 782599 > /dev/null
   expect perft.exp seirawan "fen reb1k2r/ppppqppp/2nb1n2/4p3/4P3/N1P2N2/PB1PQPPP/RE2KBHR[h] b KQkqc - 3 7" 4 890467 > /dev/null
+  expect perft.exp shouse startpos 3 546694 > /dev/null
   expect perft.exp euroshogi startpos 4 380499 > /dev/null
   expect perft.exp minishogi startpos 5 533203 > /dev/null
   expect perft.exp kyotoshogi startpos 5 225903 > /dev/null
@@ -109,6 +115,9 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   # non-chess
   expect perft.exp ataxx startpos 4 155888 > /dev/null
   expect perft.exp ataxx "fen 7/7/7/7/ppppppp/ppppppp/PPPPPPP[PPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppp] w 0 1" 5 452980 > /dev/null
+  expect perft.exp breakthrough startpos 4 256036 > /dev/null
+  expect perft.exp breakthrough "fen 1p2pp1p/2p2ppp/2P5/8/8/3P2P1/1p1P2PP/1PP1PP1P w - - 1 26" 4 121264 > /dev/null
+  expect perft.exp clobber startpos 3 80063 > /dev/null
   # 960 variants
   expect perft.exp atomic "fen 8/8/8/8/8/8/2k5/rR4KR w KQ - 0 1" 4 61401 true > /dev/null
   expect perft.exp atomic "fen r3k1rR/5K2/8/8/8/8/8/8 b kq - 0 1" 4 98729 true > /dev/null
@@ -132,9 +141,15 @@ if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp grand startpos 3 259514 > /dev/null
   expect perft.exp grand "fen r8r/1nbqkcabn1/ppp2ppppp/3p6/4pP4/10/10/PPPPP1PPPP/1NBQKCABN1/R8R w - e7 0 3" 2 5768 > /dev/null
   expect perft.exp opulent startpos 3 133829 > /dev/null
+  expect perft.exp tencubed startpos 3 68230 > /dev/null
+  expect perft.exp centaur startpos 3 24490 > /dev/null
+  expect perft.exp shako "fen 4kc3c/ernbq1b1re/ppp3p1pp/3p2pp2/4p5/5P4/2PN2P3/PP1PP2PPP/ER1BQKBNR1/5C3C w KQ - 0 9" 3 26325 > /dev/null
+  expect perft.exp shako "fen 4ncr1k1/1cr2P4/pp2p2pp1/P7PN/2Ep1p4/B3P1eN2/2P1n1P3/1B1P1K4/9p/5C2CR w - - 0 1" 3 180467 > /dev/null
+  expect perft.exp shako "fen r5k3/4q2c2/1ebppnp3/1pp3BeEQ/10/2PE2P3/1P3P4/5NP2P/rR3KB3/7C2 w Q - 3 35" 2 4940 > /dev/null
   expect perft.exp xiangqi startpos 4 3290240 > /dev/null
   expect perft.exp xiangqi "fen 1rbaka2R/5r3/6n2/2p1p1p2/4P1bP1/PpC3Bc1/1nPR2P2/2N2AN2/1c2K1p2/2BAC4 w - - 0 1" 4 4485547 > /dev/null
   expect perft.exp xiangqi "fen 4kcP1N/8n/3rb4/9/9/9/9/3p1A3/4K4/5CB2 w - - 0 1" 4 92741 > /dev/null
+  expect perft.exp manchu startpos 4 798554 > /dev/null
   expect perft.exp janggi startpos 4 1065277 > /dev/null
   expect perft.exp janggi "fen 1n1kaabn1/cr2N4/5C1c1/p1pNp3p/9/9/P1PbP1P1P/3r1p3/4A4/R1BA1KB1R b - - 0 1" 4 76763 > /dev/null
   expect perft.exp janggi "fen 1Pbcka3/3nNn1c1/N2CaC3/1pB6/9/9/5P3/9/4K4/9 w - - 0 23" 4 151202 > /dev/null

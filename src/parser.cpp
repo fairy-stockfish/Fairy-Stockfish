@@ -1,6 +1,6 @@
 /*
   Fairy-Stockfish, a UCI chess variant playing engine derived from Stockfish
-  Copyright (C) 2018-2021 Fabian Fichter
+  Copyright (C) 2018-2022 Fabian Fichter
 
   Fairy-Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -164,6 +164,10 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     // piece types
     for (PieceType pt = PAWN; pt <= KING; ++pt)
     {
+        if (pt == CUSTOM_PIECES_ROYAL)
+            // reserved custom royal/king slot
+            continue;
+
         // piece char
         std::string name = piece_name(pt);
 
@@ -185,6 +189,17 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                     v->customPiece[pt - CUSTOM_PIECES] = keyValue->second.substr(2);
                 else if (DoCheck)
                     std::cerr << name << " - Missing Betza move notation" << std::endl;
+            }
+            else if (pt == KING)
+            {
+                if (keyValue->second.size() > 1)
+                {
+                    // custom royal piece
+                    v->customPiece[CUSTOM_PIECES_ROYAL - CUSTOM_PIECES] = keyValue->second.substr(2);
+                    v->kingType = CUSTOM_PIECES_ROYAL;
+                }
+                else
+                    v->kingType = KING;
             }
         }
         // mobility region
@@ -281,7 +296,6 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("castlingKingFile", v->castlingKingFile);
     parse_attribute("castlingKingPiece", v->castlingKingPiece, v->pieceToChar);
     parse_attribute("castlingRookPiece", v->castlingRookPiece, v->pieceToChar);
-    parse_attribute("kingType", v->kingType, v->pieceToChar);
     parse_attribute("checking", v->checking);
     parse_attribute("dropChecks", v->dropChecks);
     parse_attribute("mustCapture", v->mustCapture);
@@ -415,7 +429,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                 std::cerr << "Can not use kings with blastOnCapture." << std::endl;
             if (v->flipEnclosedPieces)
                 std::cerr << "Can not use kings with flipEnclosedPieces." << std::endl;
-            // We can not fully check custom king movements at this point
+            // We can not fully check support for custom king movements at this point,
+            // since custom pieces are only initialized on loading of the variant.
+            // We will assume this is valid, but it might cause problems later if it's not.
             if (!is_custom(v->kingType))
             {
                 const PieceInfo* pi = pieceMap.find(v->kingType)->second;
