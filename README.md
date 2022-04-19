@@ -85,13 +85,13 @@ The python binding [pyffish](https://pypi.org/project/pyffish/) contributed by [
 
 ### Javascript
 
-The javascript binding ffish.js contributed by [@QueensGambit](https://github.com/QueensGambit) is implemented in [ffishjs.cpp](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/ffishjs.cpp). The compilation/binding to javascript is done using emscripten, see the [readme](https://github.com/ianfab/Fairy-Stockfish/tree/master/tests/js).
+The javascript binding [ffish.js](https://www.npmjs.com/package/ffish) contributed by [@QueensGambit](https://github.com/QueensGambit) is implemented in [ffishjs.cpp](https://github.com/ianfab/Fairy-Stockfish/blob/master/src/ffishjs.cpp). The compilation/binding to javascript is done using emscripten, see the [readme](https://github.com/ianfab/Fairy-Stockfish/tree/master/tests/js).
 
 ## Ports
 
 ### WASM
 
-A port of Fairy-Stockfish to WebAssembly is maintained at https://github.com/ianfab/fairy-stockfish.wasm. It is e.g. used for local analysis on [pychess.org](https://www.pychess.org/).
+For in-browser use a [port of Fairy-Stockfish to WebAssembly](https://github.com/ianfab/fairy-stockfish.wasm) is available at [npm](https://www.npmjs.com/package/fairy-stockfish-nnue.wasm). It is e.g. used for local analysis on [pychess.org](https://www.pychess.org/analysis/chess). Also see the [Fairy-Stockfish WASM demo](https://github.com/ianfab/fairy-stockfish-nnue-wasm-demo) available at https://fairy-stockfish-nnue-wasm.vercel.app/.
 
 # Stockfish
 ## Overview
