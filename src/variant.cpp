@@ -1482,6 +1482,8 @@ void VariantMap::parse_istream(std::istream& file) {
         Config attribs = {};
         while (file.peek() != '[' && std::getline(file, input))
         {
+            if (!input.empty() && input.back() == '\r')
+                input.pop_back();
             std::stringstream ss(input);
             if (ss.peek() != ';' && ss.peek() != '#')
             {
