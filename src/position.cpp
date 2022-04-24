@@ -2547,6 +2547,9 @@ Bitboard Position::chased() const {
       {
           // Exclude attacks on unpromoted soldiers and checks
           attacks &= ~(pieces(sideToMove, KING, SOLDIER) ^ promoted_soldiers(sideToMove));
+          // Restrict to pinners if pinned
+          if (blockers_for_king(~sideToMove) & attackerSq)
+              attacks &= pinners(sideToMove);
           // Attacks against stronger pieces
           if (attackerType == HORSE || attackerType == CANNON)
               b |= attacks & pieces(sideToMove, ROOK);
@@ -2593,6 +2596,7 @@ Bitboard Position::chased() const {
   }
 
   // Discovered attacks
+  Bitboard previousOccupancy = (captured_piece() ? pieces() : pieces() ^ to) ^ from;
   Bitboard discoveryCandidates =  (PseudoAttacks[WHITE][WAZIR][from] & pieces(~sideToMove, HORSE))
                                 | (PseudoAttacks[WHITE][FERS][from] & pieces(~sideToMove, ELEPHANT))
                                 | (PseudoAttacks[WHITE][ROOK][from] & pieces(~sideToMove, CANNON, ROOK))
@@ -2603,8 +2607,38 @@ Bitboard Position::chased() const {
       PieceType discoveryPiece = type_of(piece_on(s));
       Bitboard discoveries =   pieces(sideToMove)
                             &  attacks_bb(~sideToMove, discoveryPiece, s, pieces())
-                            & ~attacks_bb(~sideToMove, discoveryPiece, s, (captured_piece() ? pieces() : pieces() ^ to) ^ from);
+                            & ~attacks_bb(~sideToMove, discoveryPiece, s, previousOccupancy);
       addChased(s, discoveryPiece, discoveries);
+  }
+
+  // Undermined root
+  Bitboard undermineCandidates = 0;
+  if (PseudoAttacks[WHITE][WAZIR][to] & pieces(sideToMove, HORSE))
+      undermineCandidates |= PseudoAttacks[WHITE][FERS][to] & pieces(sideToMove);
+  if (PseudoAttacks[WHITE][FERS][to] & pieces(sideToMove, ELEPHANT))
+      undermineCandidates |= PseudoAttacks[WHITE][FERS][to] & pieces(sideToMove);
+  Bitboard fileAttacks = file_bb(to) & pieces(sideToMove);
+  if (more_than_one(fileAttacks) && (fileAttacks & pieces(sideToMove, ROOK, CANNON)))
+      undermineCandidates |= fileAttacks & pieces(sideToMove);
+  Bitboard rankAttacks = rank_bb(to) & pieces(sideToMove);
+  if (more_than_one(rankAttacks) && (rankAttacks & pieces(sideToMove, ROOK, CANNON)))
+      undermineCandidates |= rankAttacks & pieces(sideToMove);
+  if (PseudoAttacks[WHITE][ROOK][from] & pieces(sideToMove, CANNON))
+      undermineCandidates |= PseudoAttacks[WHITE][ROOK][from] & pieces(sideToMove);
+  while (undermineCandidates)
+  {
+      Square s = pop_lsb(undermineCandidates);
+      // Ignore pinned attackers unless they capture the pinner
+      Bitboard attackers = attackers_to(s, ~sideToMove) & (pinners(sideToMove) & s ? AllSquares : ~blockers_for_king(~sideToMove));
+      while (attackers)
+      {
+          Square s2 = pop_lsb(attackers);
+          if (!(attackers_to(s, pieces() ^ s2, sideToMove) & ~pins) && (attackers_to(s, previousOccupancy ^ s2, sideToMove) & ~pins))
+          {
+              b |= s;
+              break;
+          }
+      }
   }
 
   // Changes in real roots and discovered checks
@@ -2626,6 +2660,9 @@ Bitboard Position::chased() const {
                   b |= s2;
           }
       }
+      // New unpinned
+      // TODO
+
       // Discovered checks
       Bitboard newDiscoverers = st->blockersForKing[sideToMove] & ~st->previous->blockersForKing[sideToMove] & pieces(~sideToMove);
       while (newDiscoverers)
