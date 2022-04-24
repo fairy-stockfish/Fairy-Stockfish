@@ -2612,19 +2612,21 @@ Bitboard Position::chased() const {
   }
 
   // Undermined root
+  Bitboard rootCandidates =  (PseudoAttacks[WHITE][WAZIR][to] & pieces(sideToMove, HORSE))
+                           | (PseudoAttacks[WHITE][FERS][to] & pieces(sideToMove, ELEPHANT))
+                           | (PseudoAttacks[WHITE][ROOK][to] & pieces(sideToMove, ROOK, CANNON))
+                           | (PseudoAttacks[WHITE][ROOK][from] & pieces(sideToMove, CANNON));
   Bitboard undermineCandidates = 0;
-  if (PseudoAttacks[WHITE][WAZIR][to] & pieces(sideToMove, HORSE))
-      undermineCandidates |= PseudoAttacks[WHITE][FERS][to] & pieces(sideToMove);
-  if (PseudoAttacks[WHITE][FERS][to] & pieces(sideToMove, ELEPHANT))
-      undermineCandidates |= PseudoAttacks[WHITE][FERS][to] & pieces(sideToMove);
-  Bitboard fileAttacks = file_bb(to) & pieces(sideToMove);
-  if (more_than_one(fileAttacks) && (fileAttacks & pieces(sideToMove, ROOK, CANNON)))
-      undermineCandidates |= fileAttacks & pieces(sideToMove);
-  Bitboard rankAttacks = rank_bb(to) & pieces(sideToMove);
-  if (more_than_one(rankAttacks) && (rankAttacks & pieces(sideToMove, ROOK, CANNON)))
-      undermineCandidates |= rankAttacks & pieces(sideToMove);
-  if (PseudoAttacks[WHITE][ROOK][from] & pieces(sideToMove, CANNON))
-      undermineCandidates |= PseudoAttacks[WHITE][ROOK][from] & pieces(sideToMove);
+  // Discover changed roots
+  while (rootCandidates)
+  {
+      Square s = pop_lsb(rootCandidates);
+      PieceType rootPiece = type_of(piece_on(s));
+      undermineCandidates |=   pieces(sideToMove)
+                            & (  attacks_bb(sideToMove, rootPiece, s, pieces())
+                               ^ attacks_bb(sideToMove, rootPiece, s, previousOccupancy));
+  }
+  // Validate effect of changed roots
   while (undermineCandidates)
   {
       Square s = pop_lsb(undermineCandidates);
