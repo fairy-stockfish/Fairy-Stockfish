@@ -75,6 +75,7 @@ struct StateInfo {
   bool       capturedpromoted;
   bool       shak;
   bool       bikjang;
+  Bitboard   chased;
   bool       pass;
   Move       move;
   int        repetition;
@@ -298,6 +299,7 @@ public:
   bool is_draw(int ply) const;
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
+  Bitboard chased() const;
   int counting_limit() const;
   int counting_ply(int countStarted) const;
   int rule50_count() const;

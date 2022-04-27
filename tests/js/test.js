@@ -605,7 +605,7 @@ describe('board.toVerboseString()', function () {
                                                   "   a   b   c   d   e   f   g   h\n\n" +
                                                   "Fen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3\n" +
                                                   "Sfen: rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR b - 5\n" +
-                                                  "Key: 39B6F80E84D75BFB\nCheckers: ")
+                                                  "Key: 39B6F80E84D75BFB\nCheckers: \nChased: ")
     board.delete();
     const board2 = new ffish.Board("xiangqi");
     chai.expect(board2.toVerboseString()).to.equal("\n +---+---+---+---+---+---+---+---+---+\n" +
@@ -632,7 +632,7 @@ describe('board.toVerboseString()', function () {
                                                    "   a   b   c   d   e   f   g   h   i\n\n" +
                                                    "Fen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1\n" +
                                                    "Sfen: rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR b - 1\n" +
-                                                   "Key: CF494C075A7D927E\nCheckers: ");
+                                                   "Key: CF494C075A7D927E\nCheckers: \nChased: ");
     board2.delete();
   });
 });

@@ -195,6 +195,11 @@ constexpr bool more_than_one(Bitboard b) {
   return b & (b - 1);
 }
 
+
+inline Bitboard undo_move_board(Bitboard b, Move m) {
+  return (from_sq(m) != SQ_NONE && (b & to_sq(m))) ? (b ^ to_sq(m)) | from_sq(m) : b;
+}
+
 /// board_size_bb() returns a bitboard representing all the squares
 /// on a board with given size.
 
