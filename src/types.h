@@ -296,6 +296,10 @@ enum CountingRule {
   NO_COUNTING, MAKRUK_COUNTING, ASEAN_COUNTING
 };
 
+enum ChasingRule {
+  NO_CHASING, AXF_CHASING
+};
+
 enum EnclosingRule {
   NO_ENCLOSING, REVERSI, ATAXX
 };
