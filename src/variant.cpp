@@ -1261,7 +1261,8 @@ namespace {
 #endif
     // Xiangqi (Chinese chess)
     // https://en.wikipedia.org/wiki/Xiangqi
-    Variant* xiangqi_variant() {
+    // Xiangqi base variant for inheriting rules without chasing rules
+    Variant* xiangqi_variant_base() {
         Variant* v = minixiangqi_variant()->init();
         v->pieceToCharTable = "PN.R.AB..K.C..........pn.r.ab..k.c..........";
         v->maxRank = RANK_10;
@@ -1278,11 +1279,16 @@ namespace {
         v->soldierPromotionRank = RANK_6;
         return v;
     }
+    Variant* xiangqi_variant() {
+        Variant* v = xiangqi_variant_base()->init();
+        v->chasingRule = AXF_CHASING;
+        return v;
+    }
     // Manchu/Yitong chess
     // Asymmetric Xiangqi variant with a super-piece
     // https://en.wikipedia.org/wiki/Manchu_chess
     Variant* manchu_variant() {
-        Variant* v = xiangqi_variant()->init();
+        Variant* v = xiangqi_variant_base()->init();
         v->pieceToCharTable = "PN.R.AB..K.C....M.....pn.r.ab..k.c..........";
         v->add_piece(BANNER, 'm');
         v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/9/9/M1BAKAB2 w - - 0 1";
@@ -1291,7 +1297,7 @@ namespace {
     // Supply chess
     // https://en.wikipedia.org/wiki/Xiangqi#Variations
     Variant* supply_variant() {
-        Variant* v = xiangqi_variant()->init();
+        Variant* v = xiangqi_variant_base()->init();
         v->variantTemplate = "bughouse";
         v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR[] w - - 0 1";
         v->twoBoards = true;
@@ -1305,7 +1311,7 @@ namespace {
     // https://en.wikipedia.org/wiki/Janggi
     // Official tournament rules with bikjang and material counting.
     Variant* janggi_variant() {
-        Variant* v = xiangqi_variant()->init();
+        Variant* v = xiangqi_variant_base()->init();
         v->variantTemplate = "janggi";
         v->pieceToCharTable = ".N.R.AB.P..C.........K.n.r.ab.p..c.........k";
         v->remove_piece(FERS);
