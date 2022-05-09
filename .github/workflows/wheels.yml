@@ -1,9 +1,10 @@
-name: Build
+name: Wheels
 
 on: 
     push:
       branches:
         - master
+        - wheels
 
 jobs:
   build_wheels:
