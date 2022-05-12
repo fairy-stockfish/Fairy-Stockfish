@@ -747,13 +747,14 @@ describe('ffish.validateFen(fen, uciVariant, chess960)', function () {
 describe('ffish.readGamePGN(pgn)', function () {
   it("it reads a pgn string and returns a game object", () => {
      fs = require('fs');
-     let pgnFiles = ['deep_blue_kasparov_1997.pgn', 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn', 'c60_ruy_lopez.pgn', 'pychess-variants_zJxHRVm1.pgn', 'Syrov - Dgebuadze.pgn']
+     let pgnFiles = ['deep_blue_kasparov_1997.pgn', 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn', 'c60_ruy_lopez.pgn', 'pychess-variants_zJxHRVm1.pgn', 'Syrov - Dgebuadze.pgn', 'pychess-variants_YHEWvfWF.pgn']
 
      let expectedFens = ["1r6/5kp1/RqQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 b - - 14 45",
                          "3r2kr/2pb1Q2/4ppp1/3pN2p/1P1P4/3PbP2/P1P3PP/6NK[PPqrrbbnn] b - - 1 37",
                          "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
                          "r1bQkb1r/ppp1pppp/2P5/2n2q2/8/2N2N2/PPP2PPP/R1BEKB1R[Hh] b KQCFkqcf - 0 8",
-                         "5rk1/4p3/2p3rR/2p1P3/2Pp1B2/1P1P2P1/2N1n3/6K1 w - - 1 44"]
+                         "5rk1/4p3/2p3rR/2p1P3/2Pp1B2/1P1P2P1/2N1n3/6K1 w - - 1 44",
+                         "r1q3r1/pp3p2/2kN1bp1/8/3P1H2/6P1/PPP2BKP/R2E1R2[h] b acg - 0 20"]
 
      for (let idx = 0; idx < pgnFiles.length; ++idx) {
      let pgnFilePath = pgnDir + pgnFiles[idx];
@@ -764,12 +765,14 @@ describe('ffish.readGamePGN(pgn)', function () {
        }
        let game = ffish.readGamePGN(data);
 
-       const variant = game.headers("Variant").toLowerCase();
-       let board = new ffish.Board(variant);
+       const is960 = game.headers('Variant').endsWith('960');
+       const variant = game.headers('Variant').toLowerCase().replace('960', '');
+       const fen = game.headers('FEN');
+       let board = new ffish.Board(variant, fen, is960);
        const mainlineMoves = game.mainlineMoves().split(" ");
        for (let idx2 = 0; idx2 < mainlineMoves.length; ++idx2) {
            board.push(mainlineMoves[idx2]);
-           chai.expect(ffish.validateFen(board.fen(), variant)).to.equal(1);
+           chai.expect(ffish.validateFen(board.fen(), variant, is960)).to.equal(1);
        }
        chai.expect(board.fen()).to.equal(expectedFens[idx]);
        board.delete();

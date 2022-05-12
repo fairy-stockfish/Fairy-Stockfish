@@ -1,0 +1,15 @@
+[Event "PyChess rated game"]
+[Site "https://www.pychess.org/YHEWvfWF"]
+[Date "2021.07.03"]
+[Round "-"]
+[White "TheFinnisher"]
+[Black "SmartAlice"]
+[Result "1-0"]
+[TimeControl "180+2"]
+[WhiteElo "1947?"]
+[BlackElo "1592"]
+[Variant "Seirawan960"]
+[FEN "rnqkbnrb/pppppppp/8/8/8/8/PPPPPPPP/RNQKBNRB[HEhe] w HECBFQKhecbfqk - 0 1"]
+[SetUp "1"]
+
+1. g3 g6 2. Nc3 Nc6 3. f4 e5 4. fxe5 Nxe5 5. d4 Nc4 6. e3 Ne6 7. Bf2 c6 8. Nd2 Nxd2 9. Qxd2/H d5 10. O-O/Ed1 Ng5 11. Bg2 Bd7 12. e4 h6 13. exd5 Bh3 14. Qxg5+ hxg5 15. Hxg5+ Kc7/E 16. dxc6 Bxg2 17. Kxg2 Bf6 18. Hf4+ Ed6 19. Nb5+ Kxc6 20. Nxd6 1-0

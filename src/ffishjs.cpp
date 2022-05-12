@@ -562,10 +562,14 @@ Game read_game_pgn(std::string pgn) {
         headersParsed = true;
         auto it = game.header.find("Variant");
         if (it != game.header.end()) {
-          game.variant = it->second;
+          game.is960 = it->second.find("960") != std::string::npos;
+          if (game.is960) {
+            game.variant = it->second.substr(0, it->second.length() - 3);
+          } else {
+            game.variant = it->second;
+          }
           std::transform(game.variant.begin(), game.variant.end(), game.variant.begin(),
           [](unsigned char c){ return std::tolower(c); });
-          game.is960 = it->second.find("960") != std::string::npos;
         }
 
         it = game.header.find("FEN");
