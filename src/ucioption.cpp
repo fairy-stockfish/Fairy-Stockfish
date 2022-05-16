@@ -92,7 +92,7 @@ void on_variant_change(const Option &o) {
     if (standard_variants.find(o) != standard_variants.end())
         return;
     int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0;
-    if (Options["Protocol"] == "xboard")
+    if (CurrentProtocol == XBOARD)
     {
         // Overwrite setup command for Janggi variants
         auto itJanggi = variants.find("janggi");
@@ -178,7 +178,6 @@ void init(OptionsMap& o) {
 
   constexpr int MaxHashMB = Is64Bit ? 33554432 : 2048;
 
-  o["Protocol"]              << Option("uci", {"uci", "usi", "ucci", "ucicyclone", "xboard"});
   o["Debug Log File"]        << Option("", on_logger);
   o["Threads"]               << Option(1, 1, 512, on_threads);
   o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);
@@ -216,12 +215,11 @@ void init(OptionsMap& o) {
 
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
-  if (Options["Protocol"] == "xboard")
+  if (CurrentProtocol == XBOARD)
   {
       for (size_t idx = 0; idx < om.size(); ++idx)
           for (const auto& it : om)
-              if (it.second.idx == idx && it.first != "Protocol" && it.first != "UCI_Variant"
-                                       && it.first != "Threads" && it.first != "Hash")
+              if (it.second.idx == idx && it.first != "UCI_Variant" && it.first != "Threads" && it.first != "Hash")
               {
                   const Option& o = it.second;
                   os << "\nfeature option=\"" << it.first << " -" << o.type;
@@ -254,11 +252,11 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
           {
               const Option& o = it.second;
               // UCI dialects do not allow spaces
-              if (Options["Protocol"] == "ucci" || Options["Protocol"] == "usi")
+              if (CurrentProtocol == UCCI || CurrentProtocol == USI)
               {
-                  string name = option_name(it.first, Options["Protocol"]);
+                  string name = option_name(it.first);
                   // UCCI skips "name"
-                  os << "\noption " << (Options["Protocol"] == "ucci" ? "" : "name ") << name << " type " << o.type;
+                  os << "\noption " << (CurrentProtocol == UCCI ? "" : "name ") << name << " type " << o.type;
               }
               else
                   os << "\noption name " << it.first << " type " << o.type;
