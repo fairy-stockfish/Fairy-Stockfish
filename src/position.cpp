@@ -396,7 +396,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 #ifdef LARGEBOARDS
           // Consider different rank numbering in CECP
-          if (max_rank() == RANK_10 && Options["Protocol"] == "xboard")
+          if (max_rank() == RANK_10 && CurrentProtocol == XBOARD)
               st->epSquare += NORTH;
 #endif
 
