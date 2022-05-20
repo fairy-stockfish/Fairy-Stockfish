@@ -871,6 +871,38 @@ namespace {
         v->materialCounting = UNWEIGHTED_MATERIAL;
         return v;
     }
+    // Flipersi
+    // https://en.wikipedia.org/wiki/Reversi
+    Variant* flipersi_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->pieceToCharTable = "P.................p.................";
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_H;
+        v->reset_pieces();
+        v->add_piece(IMMOBILE_PIECE, 'p');
+        v->startFen = "8/8/8/8/8/8/8/8[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppp] w 0 1";
+        v->promotionPieceTypes = {};
+        v->pieceDrops = true;
+        v->doubleStep = false;
+        v->castling = false;
+        v->immobilityIllegal = false;
+        v->stalemateValue = -VALUE_MATE;
+        v->stalematePieceCount = true;
+        v->passOnStalemate = false;
+        v->enclosingDrop = REVERSI;
+        v->enclosingDropStart = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
+        v->flipEnclosedPieces = REVERSI;
+        v->materialCounting = UNWEIGHTED_MATERIAL;
+        return v;
+    }
+    // Flipello
+    // https://en.wikipedia.org/wiki/Reversi#Othello
+    Variant* flipello_variant() {
+        Variant* v = flipersi_variant()->init();
+        v->startFen = "8/8/8/3pP3/3Pp3/8/8/8[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppp] w 0 1";
+        v->passOnStalemate = true;
+        return v;
+    }
     // Minixiangqi
     // http://mlwi.magix.net/bg/minixiangqi.htm
     Variant* minixiangqi_variant() {
@@ -1232,7 +1264,7 @@ namespace {
         return v;
     }
     // Clobber 10x10
-    // Clobber on a 10x10, mainly played by computers
+    // Clobber on a 10x10 board, mainly played by computers
     // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber10_variant() {
         Variant* v = clobber_variant()->init();
@@ -1240,6 +1272,17 @@ namespace {
         v->maxFile = FILE_J;
         v->startFen = "PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/"
                       "pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP w 0 1";
+        return v;
+    }
+    // Flipello 10x10
+    // Othello on a 10x10 board, mainly played by computers
+    // https://en.wikipedia.org/wiki/Reversi
+    Variant* flipello10_variant() {
+        Variant* v = flipello_variant()->init();
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_J;
+        v->startFen = "10/10/10/10/4pP4/4Pp4/10/10/10/10[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp] w - - 0 1";
+        v->enclosingDropStart = make_bitboard(SQ_E5, SQ_F5, SQ_E6, SQ_F6);
         return v;
     }
 #ifdef ALLVARS
@@ -1434,6 +1477,8 @@ void VariantMap::init() {
     add("clobber", clobber_variant());
     add("breakthrough", breakthrough_variant());
     add("ataxx", ataxx_variant());
+    add("flipersi", flipersi_variant());
+    add("flipello", flipello_variant());
     add("minixiangqi", minixiangqi_variant());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
@@ -1456,6 +1501,7 @@ void VariantMap::init() {
     add("tencubed", tencubed_variant());
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
+    add("flipello10", flipello10_variant());
 #ifdef ALLVARS
     add("amazons", amazons_variant());
 #endif

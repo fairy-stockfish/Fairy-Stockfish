@@ -62,7 +62,7 @@ namespace Stockfish::Eval::NNUE::Features {
     }
 
     // Maximum number of simultaneously active features.
-    static constexpr IndexType MaxActiveDimensions = 64;
+    static constexpr IndexType MaxActiveDimensions = 128;
 
     // Get a list of indices for active features
     static void append_active_indices(
