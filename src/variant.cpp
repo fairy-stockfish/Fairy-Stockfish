@@ -869,6 +869,7 @@ namespace {
         v->enclosingDrop = ATAXX;
         v->flipEnclosedPieces = ATAXX;
         v->materialCounting = UNWEIGHTED_MATERIAL;
+        v->nMoveRule = 0;
         return v;
     }
     // Flipersi
