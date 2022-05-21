@@ -34,6 +34,8 @@ namespace Stockfish {
 
 /// Variant struct stores information needed to determine the rules of a variant.
 
+constexpr int START_MULTIMOVES = 16;
+
 struct Variant {
   std::string variantTemplate = "fairy";
   std::string pieceToCharTable = "-";
@@ -101,6 +103,9 @@ struct Variant {
   Bitboard diagonalLines = 0;
   bool pass = false;
   bool passOnStalemate = false;
+  std::vector<int> multimoves = {};
+  bool multimoveCheck = true;
+  bool multimoveCapture = true;
   bool makpongRule = false;
   bool flyingGeneral = false;
   Rank soldierPromotionRank = RANK_1;
@@ -147,6 +152,10 @@ struct Variant {
   int kingSquareIndex[SQUARE_NB];
   int nnueMaxPieces;
   bool endgameEval = false;
+  bool multimovePass[START_MULTIMOVES]; // irregular pattern of multimove passes at game start
+  int multimoveOffset; // end of multimoveStart sequence
+  int multimoveCycle; // length in ply of both players once playing a multimove
+  int multimoveCycleShift; // phase shift in multimove cycle when switching color
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
@@ -285,6 +294,26 @@ struct Variant {
                     && !capturesToHand
                     && !twoBoards
                     && kingType == KING;
+
+      // Initialize multimove passing parameters
+      multimoveOffset = 0;
+      for (int j : multimoves)
+      {
+          if (multimoveOffset + 2 * j - 1 >= START_MULTIMOVES)
+              break;
+          // Initialize alternating non-passing/passing moves
+          for (int k = 0; k < 2 * j - 1; k++)
+              multimovePass[multimoveOffset + k] = k % 2;
+          multimoveOffset += 2 * j - 1;
+      }
+      int firstMultimove =  multimoves.size() >= 2 ? multimoves[multimoves.size() - 2]
+                          : multimoves.size() == 1 ? multimoves[multimoves.size() - 1]
+                          : 1;
+      int secondMultimove =  multimoves.size() >= 1 ? multimoves[multimoves.size() - 1]
+                           : 1;
+      multimoveCycle = 2 * firstMultimove - 1 + 2 * secondMultimove - 1;
+      multimoveCycleShift = 2 * firstMultimove - 1;
+
       return this;
   }
 };

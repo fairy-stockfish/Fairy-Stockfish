@@ -35,6 +35,16 @@ namespace {
         return !ss.fail();
     }
 
+    template <> bool set(const std::string& value, std::vector<int>& target)
+    {
+        std::stringstream ss(value);
+        int i;
+        target.clear();
+        while (ss >> i)
+            target.push_back(i);
+        return ss.eof();
+    }
+
     template <> bool set(const std::string& value, Rank& target) {
         std::stringstream ss(value);
         int i;
@@ -138,6 +148,7 @@ template <class T> void VariantParser<DoCheck>::parse_attribute(const std::strin
                                   : std::is_same<T, ChasingRule>() ? "ChasingRule"
                                   : std::is_same<T, EnclosingRule>() ? "EnclosingRule"
                                   : std::is_same<T, Bitboard>() ? "Bitboard"
+                                  : std::is_same<T, std::vector<int>>() ? "vector<int>"
                                   : typeid(T).name();
             std::cerr << key << " - Invalid value " << it->second << " for type " << typeName << std::endl;
         }
@@ -332,6 +343,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("diagonalLines", v->diagonalLines);
     parse_attribute("pass", v->pass);
     parse_attribute("passOnStalemate", v->passOnStalemate);
+    parse_attribute("multimoves", v->multimoves);
+    parse_attribute("multimoveCheck", v->multimoveCheck);
+    parse_attribute("multimoveCapture", v->multimoveCapture);
     parse_attribute("makpongRule", v->makpongRule);
     parse_attribute("flyingGeneral", v->flyingGeneral);
     parse_attribute("soldierPromotionRank", v->soldierPromotionRank);

@@ -176,6 +176,7 @@ public:
   Bitboard diagonal_lines() const;
   bool pass() const;
   bool pass_on_stalemate() const;
+  bool multimove_pass(int ply) const;
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
   EnclosingRule flip_enclosed_pieces() const;
@@ -741,12 +742,19 @@ inline Bitboard Position::diagonal_lines() const {
 
 inline bool Position::pass() const {
   assert(var != nullptr);
-  return var->pass || var->passOnStalemate;
+  return var->pass || var->passOnStalemate || var->multimoveOffset;
 }
 
 inline bool Position::pass_on_stalemate() const {
   assert(var != nullptr);
   return var->passOnStalemate;
+}
+
+// Returns whether current move is a mandatory pass to simulate multimoves
+inline bool Position::multimove_pass(int ply) const {
+  assert(var != nullptr);
+  int phase = (ply - var->multimoveOffset) % var->multimoveCycle;
+  return ply < var->multimoveOffset ? var->multimovePass[ply] : (phase + (phase >= var->multimoveCycleShift)) % 2;
 }
 
 inline Bitboard Position::promoted_soldiers(Color c) const {
