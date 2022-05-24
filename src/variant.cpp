@@ -857,7 +857,7 @@ namespace {
         v->maxFile = FILE_G;
         v->reset_pieces();
         v->add_piece(CUSTOM_PIECES, 'p', "mDmNmA");
-        v->startFen = "P5p/7/7/7/7/7/p5P[PPPPPPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppppppp] w 0 1";
+        v->startFen = "P5p/7/7/7/7/7/p5P w 0 1";
         v->promotionPieceTypes = {};
         v->pieceDrops = true;
         v->doubleStep = false;
@@ -870,6 +870,7 @@ namespace {
         v->flipEnclosedPieces = ATAXX;
         v->materialCounting = UNWEIGHTED_MATERIAL;
         v->nMoveRule = 0;
+        v->freeDrops = true;
         return v;
     }
     // Flipersi
