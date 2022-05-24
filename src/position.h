@@ -1341,41 +1341,32 @@ inline Value Position::material_counting_result() const {
 }
 
 inline void Position::add_to_hand(Piece pc) {
+  if (variant()->freeDrops) return;
   pieceCountInHand[color_of(pc)][type_of(pc)]++;
   pieceCountInHand[color_of(pc)][ALL_PIECES]++;
   psq += PSQT::psq[pc][SQ_NONE];
 }
 
 inline void Position::remove_from_hand(Piece pc) {
+  if (variant()->freeDrops) return;
   pieceCountInHand[color_of(pc)][type_of(pc)]--;
   pieceCountInHand[color_of(pc)][ALL_PIECES]--;
   psq -= PSQT::psq[pc][SQ_NONE];
 }
 
 inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s) {
-  if (variant()->freeDrops) {
-    assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] == 0);
-    put_piece(pc_drop, s, pc_drop != pc_hand, pc_drop != pc_hand ? pc_hand : NO_PIECE);
-  } else {
-    assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] > 0 || var->twoBoards);
-    put_piece(pc_drop, s, pc_drop != pc_hand, pc_drop != pc_hand ? pc_hand : NO_PIECE);
-    remove_from_hand(pc_hand);
-    virtualPieces += (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
-  }
+  assert(can_drop(color_of(pc_hand), type_of(pc_hand)) || var->twoBoards);
+  put_piece(pc_drop, s, pc_drop != pc_hand, pc_drop != pc_hand ? pc_hand : NO_PIECE);
+  remove_from_hand(pc_hand);
+  virtualPieces += (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
 }
 
 inline void Position::undrop_piece(Piece pc_hand, Square s) {
-  if (variant()->freeDrops) {
-    remove_piece(s);
-    board[s] = NO_PIECE;
-    assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] == 0);
-  } else {
-    virtualPieces -= (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
-    remove_piece(s);
-    board[s] = NO_PIECE;
-    add_to_hand(pc_hand);
-    assert(pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] > 0 || var->twoBoards);
-  }
+  virtualPieces -= (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
+  remove_piece(s);
+  board[s] = NO_PIECE;
+  add_to_hand(pc_hand);
+  assert(can_drop(color_of(pc_hand), type_of(pc_hand)) || var->twoBoards);
 }
 
 inline bool Position::can_drop(Color c, PieceType pt) const {
