@@ -132,6 +132,7 @@ namespace {
     Search::LimitsType limits;
     string token;
     bool ponderMode = false;
+    bool brainMode = false;
 
     limits.startTime = now(); // As early as possible!
 
@@ -156,6 +157,7 @@ namespace {
         else if (token == "perft")     is >> limits.perft;
         else if (token == "infinite")  limits.infinite = 1;
         else if (token == "ponder")    ponderMode = true;
+        else if (token == "brain")     brainMode = true;
         // UCCI commands
         else if (token == "time")         is >> limits.time[pos.side_to_move()], limits.time[pos.side_to_move()] *= secResolution;
         else if (token == "opptime")      is >> limits.time[~pos.side_to_move()], limits.time[~pos.side_to_move()] *= secResolution;
@@ -171,7 +173,7 @@ namespace {
             limits.time[BLACK] += byoyomi;
         }
 
-    Threads.start_thinking(pos, states, limits, ponderMode);
+    Threads.start_thinking(pos, states, limits, ponderMode,brainMode);
   }
 
   // bench() is called when engine receives the "bench" command. Firstly
