@@ -93,6 +93,7 @@ struct MainThread : public Thread {
   int callsCnt;
   bool stopOnPonderhit;
   std::atomic_bool ponder;
+  std::atomic_bool brain;
   Thread* bestThread; // to fetch best move when in XBoard mode
 };
 
