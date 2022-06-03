@@ -173,7 +173,7 @@ namespace {
             limits.time[BLACK] += byoyomi;
         }
 
-    Threads.start_thinking(pos, states, limits, ponderMode,brainMode);
+    Threads.start_thinking(pos, states, limits, ponderMode, brainMode);
   }
 
   // bench() is called when engine receives the "bench" command. Firstly
