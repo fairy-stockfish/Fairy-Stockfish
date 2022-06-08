@@ -799,6 +799,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
       slidingSnipers = snipers;
   }
   else
+  {
       for (PieceType pt : piece_types())
       {
           Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
@@ -821,6 +822,21 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
                   slidingSnipers |= snipers & pieces(pt);
           }
       }
+      // Diagonal rook pins in Janggi palace
+      if (diagonal_lines() & s)
+      {
+          Bitboard diags = diagonal_lines() & PseudoAttacks[~c][BISHOP][s] & sliders & pieces(c, ROOK);
+          while (diags)
+          {
+              Square s2 = pop_lsb(diags);
+              if (!(attacks_from(c, ROOK, s2) & s))
+              {
+                  snipers |= s2;
+                  slidingSnipers |= s2;
+              }
+          }
+      }
+  }
   Bitboard occupancy = pieces() ^ slidingSnipers;
 
   while (snipers)
@@ -1339,6 +1355,12 @@ bool Position::gives_check(Move m) const {
       Square rfrom = to;
       Square kto = make_square(rfrom > kfrom ? castling_kingside_file() : castling_queenside_file(), castling_rank(sideToMove));
       Square rto = kto + (rfrom > kfrom ? WEST : EAST);
+
+      // Is there a discovered check?
+      if (   castling_rank(WHITE) > RANK_1
+          && ((blockers_for_king(~sideToMove) & rfrom) || (non_sliding_riders() & pieces(sideToMove)))
+          && attackers_to(square<KING>(~sideToMove), (pieces() ^ kfrom ^ rfrom) | rto | kto, sideToMove))
+          return true;
 
       return   (PseudoAttacks[sideToMove][type_of(piece_on(rfrom))][rto] & square<KING>(~sideToMove))
             && (attacks_bb(sideToMove, type_of(piece_on(rfrom)), rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));

@@ -728,6 +728,14 @@ class TestPyffish(unittest.TestCase):
         result = sf.gives_check("atomic", "8/8/kK6/8/8/8/Q7/8 b - - 0 1", [])
         self.assertFalse(result)
 
+        # Shako castling discovered check
+        result = sf.gives_check("shako", "10/5r4/2p3pBk1/1p6Pr/p3p5/9e/1PP2P4/P2P2PP2/ER3K2R1/8C1 w K - 7 38", ["f2h2"])
+        self.assertTrue(result)
+
+        # Janggi palace discovered check
+        result = sf.gives_check("janggi", "4ka3/4a4/9/4R4/2B6/9/9/5K3/4p4/3r5 b - - 0 113", ["e2f2"])
+        self.assertTrue(result)
+
     def test_game_result(self):
         result = sf.game_result("chess", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
         self.assertEqual(result, -sf.VALUE_MATE)
