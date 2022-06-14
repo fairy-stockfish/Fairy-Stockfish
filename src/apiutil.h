@@ -467,10 +467,21 @@ inline std::ostream& operator<<(std::ostream& os, const CharBoard& board) {
     return os;
 }
 
-inline Validation check_for_valid_characters(const std::string& firstFenPart, const std::string& validSpecialCharacters, const Variant* v) {
+inline bool in_any(const std::vector<std::string>& vec, char c) {
+    for (std::string str : vec)
+        if (contains(str, c))
+            return true;
+    return false;
+}
+
+inline bool contains(const std::string& str, char c) {
+    return str.find(c) != std::string::npos;
+}
+
+inline Validation check_for_valid_characters(const std::string& firstFenPart, const std::string& validSpecialCharactersFirstField, const Variant* v) {
     for (char c : firstFenPart)
     {
-        if (!isdigit(c) && v->pieceToChar.find(c) == std::string::npos && v->pieceToCharSynonyms.find(c) == std::string::npos && validSpecialCharacters.find(c) == std::string::npos)
+        if (!isdigit(c) && !in_any({v->pieceToChar, v->pieceToCharSynonyms, validSpecialCharactersFirstField}, c))
         {
             std::cerr << "Invalid piece character: '" << c << "'." << std::endl;
             return NOK;
@@ -489,7 +500,7 @@ inline std::vector<std::string> get_fen_parts(const std::string& fullFen, char d
 }
 
 /// fills the character board according to a given FEN string
-inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard, const std::string& validSpecialCharacters, const Variant* v) {
+inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard, const std::string& validSpecialCharactersFirstField, const Variant* v) {
     int rankIdx = 0;
     int fileIdx = 0;
 
@@ -517,7 +528,7 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
                 break;
             fileIdx = 0;
         }
-        else if (validSpecialCharacters.find(c) == std::string::npos)
+        else if (!contains(validSpecialCharactersFirstField, c))
         {  // normal piece
             if (fileIdx == board.get_nb_files())
             {
@@ -726,7 +737,7 @@ inline Validation check_pocket_info(const std::string& fenBoard, int nbRanks, co
             return OK;
         if (c != '-')
         {
-            if (v->pieceToChar.find(c) == std::string::npos && v->pieceToCharSynonyms.find(c) == std::string::npos)
+            if (!in_any({v->pieceToChar, v->pieceToCharSynonyms}, c))
             {
                 std::cerr << "Invalid pocket piece: '" << c << "'." << std::endl;
                 return NOK;
@@ -831,20 +842,35 @@ inline Validation check_digit_field(const std::string& field) {
     return OK;
 }
 
+inline std::string get_valid_special_chars(const Variant* v) {
+    std::string validSpecialCharactersFirstField = "/";
+    // Whether or not '-', '+', '~', '[', ']' are valid depends on the variant being played.
+    if (v->variantTemplate == "shogi")
+    {
+        validSpecialCharactersFirstField += '+';
+        if (v->pieceDrops)
+            validSpecialCharactersFirstField += '-';
+    }
+    if (v->capturesToHand && v->nnueAlias != "crazyhouse") // Only 2 particular variants of crazyhouse have this alias.
+        validSpecialCharactersFirstField += '~';
+    if (!v->freeDrops && (v->pieceDrops || v->seirawanGating || v->arrowGating))
+        validSpecialCharactersFirstField += "[]";
+    return validSpecialCharactersFirstField;
+}
 
 inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool chess960 = false) {
 
-    const std::string validSpecialCharacters = "/+~[]-";
+    const std::string validSpecialCharactersFirstField = get_valid_special_chars(v);
     // 0) Layout
     // check for empty fen
-    if (fen.size() == 0)
+    if (fen.empty())
     {
         std::cerr << "Fen is empty." << std::endl;
         return FEN_EMPTY;
     }
 
     std::vector<std::string> fenParts = get_fen_parts(fen, ' ');
-    std::vector<std::string> starFenParts = get_fen_parts(v->startFen, ' ');
+    std::vector<std::string> startFenParts = get_fen_parts(v->startFen, ' ');
 
     // check for number of parts
     const unsigned int maxNumberFenParts = 6 + v->checkCounting;
@@ -857,7 +883,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
 
     // 1) Part
     // check for valid characters
-    if (check_for_valid_characters(fenParts[0], validSpecialCharacters, v) == NOK)
+    if (check_for_valid_characters(fenParts[0], validSpecialCharactersFirstField, v) == NOK)
         return FEN_INVALID_CHAR;
 
     // check for number of ranks
@@ -866,7 +892,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     const int nbFiles = v->maxFile + 1;
     CharBoard board(nbRanks, nbFiles);  // create a 2D character board for later geometry checks
 
-    if (fill_char_board(board, fenParts[0], validSpecialCharacters, v) == NOK)
+    if (fill_char_board(board, fenParts[0], validSpecialCharactersFirstField, v) == NOK)
         return FEN_INVALID_BOARD_GEOMETRY;
 
     // check for pocket
@@ -883,7 +909,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
         // we have a royal king in this variant,
         // ensure that each side has exactly as many kings as in the starting position
         // (variants like giveaway use the COMMONER piece type instead)
-        if (check_number_of_kings(fenParts[0], starFenParts[0], v) == NOK)
+        if (check_number_of_kings(fenParts[0], startFenParts[0], v) == NOK)
             return FEN_INVALID_NUMBER_OF_KINGS;
 
         // check for touching kings if there are exactly two royal kings on the board (excluding pocket)
@@ -925,7 +951,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
             kingPositions[BLACK] = board.get_square_for_piece(tolower(v->pieceToChar[v->castlingKingPiece]));
 
             CharBoard startBoard(board.get_nb_ranks(), board.get_nb_files());
-            fill_char_board(startBoard, v->startFen, validSpecialCharacters, v);
+            fill_char_board(startBoard, v->startFen, validSpecialCharactersFirstField, v);
 
             // Check pieces present on castling rank against castling/gating rights
             if (check_castling_rank(castlingInfoSplitted, board, kingPositions, v) == NOK)
