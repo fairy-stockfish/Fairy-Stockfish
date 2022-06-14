@@ -467,15 +467,15 @@ inline std::ostream& operator<<(std::ostream& os, const CharBoard& board) {
     return os;
 }
 
+inline bool contains(const std::string& str, char c) {
+    return str.find(c) != std::string::npos;
+}
+
 inline bool in_any(const std::vector<std::string>& vec, char c) {
     for (std::string str : vec)
         if (contains(str, c))
             return true;
     return false;
-}
-
-inline bool contains(const std::string& str, char c) {
-    return str.find(c) != std::string::npos;
 }
 
 inline Validation check_for_valid_characters(const std::string& firstFenPart, const std::string& validSpecialCharactersFirstField, const Variant* v) {
