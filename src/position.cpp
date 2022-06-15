@@ -31,7 +31,6 @@
 #include "tt.h"
 #include "uci.h"
 #include "syzygy/tbprobe.h"
-#include "apiutil.h"
 
 using std::string;
 
@@ -260,8 +259,6 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   ss >> std::noskipws;
 
   Square sq = SQ_A1 + max_rank() * NORTH;
-
-  FEN::validate_fen(fenStr, var, isChess960);
 
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))

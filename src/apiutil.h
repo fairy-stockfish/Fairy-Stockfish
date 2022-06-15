@@ -845,16 +845,12 @@ inline Validation check_digit_field(const std::string& field) {
 inline std::string get_valid_special_chars(const Variant* v) {
     std::string validSpecialCharactersFirstField = "/";
     // Whether or not '-', '+', '~', '[', ']' are valid depends on the variant being played.
-    if (v->variantTemplate == "shogi")
-    {
+    if (v->shogiStylePromotions)
         validSpecialCharactersFirstField += '+';
-        if (v->pieceDrops)
-            validSpecialCharactersFirstField += '-';
-    }
-    if (v->capturesToHand && v->nnueAlias != "crazyhouse") // Only 2 particular variants of crazyhouse have this alias.
+    if (!v->promotionPieceTypes.empty())
         validSpecialCharactersFirstField += '~';
     if (!v->freeDrops && (v->pieceDrops || v->seirawanGating || v->arrowGating))
-        validSpecialCharactersFirstField += "[]";
+        validSpecialCharactersFirstField += "[-]";
     return validSpecialCharactersFirstField;
 }
 
