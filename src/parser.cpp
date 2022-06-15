@@ -376,6 +376,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectN", v->connectN);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
+
+    v->conclude(); // In preparation for the consistency checks below, in case conclude() hasn't been called yet.
+
     // Report invalid options
     if (DoCheck)
     {
