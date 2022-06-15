@@ -148,6 +148,7 @@ struct Variant {
   int kingSquareIndex[SQUARE_NB];
   int nnueMaxPieces;
   bool endgameEval = false;
+  bool shogiStylePromotions = false;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
@@ -286,6 +287,15 @@ struct Variant {
                     && !capturesToHand
                     && !twoBoards
                     && kingType == KING;
+    
+      shogiStylePromotions = false;
+      for (PieceType current: promotedPieceType)
+          if (current != NO_PIECE_TYPE)
+          {
+              shogiStylePromotions = true;
+              break;
+          }
+
       return this;
   }
 };
