@@ -288,6 +288,7 @@ struct Variant {
                     && !twoBoards
                     && kingType == KING;
     
+      shogiStylePromotions = false;
       for (PieceType current: promotedPieceType)
           if (current != NO_PIECE_TYPE)
           {
