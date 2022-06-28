@@ -1490,6 +1490,7 @@ void VariantMap::init() {
     add("flipersi", flipersi_variant());
     add("flipello", flipello_variant());
     add("minixiangqi", minixiangqi_variant());
+    add("raazuvaa", raazuvaa_variant());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("shoshogi", shoshogi_variant());
