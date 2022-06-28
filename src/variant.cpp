@@ -79,6 +79,14 @@ namespace {
         v->add_piece(FERS, 'f');
         return v;
     }
+      // Raazuva (Maldivian Chess)
+    Variant* raazuvaa_variant() {
+        Variant* v = chess_variant()->init();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        v->castling = false;
+        v->doubleStep = false;
+        return v;
+    } 
     // Makruk (Thai Chess)
     // https://en.wikipedia.org/wiki/Makruk
     Variant* makruk_variant() {
