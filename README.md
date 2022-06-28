@@ -37,6 +37,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)
 - [Shatar](https://en.wikipedia.org/wiki/Shatar), [Jeson Mor](https://en.wikipedia.org/wiki/Jeson_Mor)
 - [Shatranj](https://en.wikipedia.org/wiki/Shatranj), [Courier](https://en.wikipedia.org/wiki/Courier_chess)
+- [Raazuvaa](https://www.reddit.com/r/chess/comments/sj7y3n/raazuvaa_the_chess_of_the_maldives)
 
 ### Chess variants
 - [Capablanca](https://en.wikipedia.org/wiki/Capablanca_Chess), [Janus](https://en.wikipedia.org/wiki/Janus_Chess), [Modern](https://en.wikipedia.org/wiki/Modern_Chess_(chess_variant)), [Chancellor](https://en.wikipedia.org/wiki/Chancellor_Chess), [Embassy](https://en.wikipedia.org/wiki/Embassy_Chess), [Gothic](https://www.chessvariants.com/large.dir/gothicchess.html), [Capablanca random chess](https://en.wikipedia.org/wiki/Capablanca_Random_Chess)
