@@ -86,7 +86,7 @@ namespace {
         v->castling = false;
         v->doubleStep = false;
         return v;
-    } 
+    }
     // Makruk (Thai Chess)
     // https://en.wikipedia.org/wiki/Makruk
     Variant* makruk_variant() {
@@ -550,6 +550,24 @@ namespace {
         v->variantTemplate = "crazyhouse";
         v->pieceDrops = true;
         v->capturesToHand = true;
+        return v;
+    }
+    // Dragon Chess
+    // 8x8 variant invented by Miguel Illescas:
+    // https://www.edami.com/dragonchess/
+    // Like regular chess, but with an extra piece, the dragon, which moves like
+    // an archbishop (i.e. bishop+knight). The dragon can be dropped at an empty
+    // square on the back rank instead of making a normal move.
+    Variant* dragon_variant() {
+        Variant *v = chess_variant_base()->init();
+        v->variantTemplate = "bughouse";
+        v->pieceToCharTable = "PNBRQ............D...Kpnbrq............d...k";
+        v->add_piece(ARCHBISHOP, 'd');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Dd] w KQkq - 0 1";
+        v->pieceDrops = true;
+        v->capturesToHand = false;
+        v->whiteDropRegion = Rank1BB;
+        v->blackDropRegion = Rank8BB;
         return v;
     }
     // Base used for most shogi variants
@@ -1469,6 +1487,7 @@ void VariantMap::init() {
     add("sittuyin", sittuyin_variant());
     add("seirawan", seirawan_variant());
     add("shouse", shouse_variant());
+    add("dragon", dragon_variant());
     add("minishogi", minishogi_variant());
     add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());
