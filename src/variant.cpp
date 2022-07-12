@@ -560,12 +560,14 @@ namespace {
     // square on the back rank instead of making a normal move.
     Variant* dragon_variant() {
         Variant *v = chess_variant_base()->init();
-        v->variantTemplate = "dragon";
+        v->variantTemplate = "bughouse";
         v->pieceToCharTable = "PNBRQ............D...Kpnbrq............d...k";
         v->add_piece(ARCHBISHOP, 'd');
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Dd] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = false;
+        v->whiteDropRegion = Rank1BB;
+        v->blackDropRegion = Rank8BB;
         return v;
     }
     // Base used for most shogi variants
