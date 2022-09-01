@@ -79,6 +79,14 @@ namespace {
         v->add_piece(FERS, 'f');
         return v;
     }
+      // Raazuva (Maldivian Chess)
+    Variant* raazuvaa_variant() {
+        Variant* v = chess_variant()->init();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        v->castling = false;
+        v->doubleStep = false;
+        return v;
+    }
     // Makruk (Thai Chess)
     // https://en.wikipedia.org/wiki/Makruk
     Variant* makruk_variant() {
@@ -544,6 +552,24 @@ namespace {
         v->capturesToHand = true;
         return v;
     }
+    // Dragon Chess
+    // 8x8 variant invented by Miguel Illescas:
+    // https://www.edami.com/dragonchess/
+    // Like regular chess, but with an extra piece, the dragon, which moves like
+    // an archbishop (i.e. bishop+knight). The dragon can be dropped at an empty
+    // square on the back rank instead of making a normal move.
+    Variant* dragon_variant() {
+        Variant *v = chess_variant_base()->init();
+        v->variantTemplate = "bughouse";
+        v->pieceToCharTable = "PNBRQ............D...Kpnbrq............d...k";
+        v->add_piece(ARCHBISHOP, 'd');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Dd] w KQkq - 0 1";
+        v->pieceDrops = true;
+        v->capturesToHand = false;
+        v->whiteDropRegion = Rank1BB;
+        v->blackDropRegion = Rank8BB;
+        return v;
+    }
     // Base used for most shogi variants
     Variant* minishogi_variant_base() {
         Variant* v = variant_base()->init();
@@ -857,7 +883,7 @@ namespace {
         v->maxFile = FILE_G;
         v->reset_pieces();
         v->add_piece(CUSTOM_PIECES, 'p', "mDmNmA");
-        v->startFen = "P5p/7/7/7/7/7/p5P[PPPPPPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppppppp] w 0 1";
+        v->startFen = "P5p/7/7/7/7/7/p5P w 0 1";
         v->promotionPieceTypes = {};
         v->pieceDrops = true;
         v->doubleStep = false;
@@ -869,6 +895,40 @@ namespace {
         v->enclosingDrop = ATAXX;
         v->flipEnclosedPieces = ATAXX;
         v->materialCounting = UNWEIGHTED_MATERIAL;
+        v->nMoveRule = 0;
+        v->freeDrops = true;
+        return v;
+    }
+    // Flipersi
+    // https://en.wikipedia.org/wiki/Reversi
+    Variant* flipersi_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->pieceToCharTable = "P.................p.................";
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_H;
+        v->reset_pieces();
+        v->add_piece(IMMOBILE_PIECE, 'p');
+        v->startFen = "8/8/8/8/8/8/8/8[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppp] w 0 1";
+        v->promotionPieceTypes = {};
+        v->pieceDrops = true;
+        v->doubleStep = false;
+        v->castling = false;
+        v->immobilityIllegal = false;
+        v->stalemateValue = -VALUE_MATE;
+        v->stalematePieceCount = true;
+        v->passOnStalemate = false;
+        v->enclosingDrop = REVERSI;
+        v->enclosingDropStart = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
+        v->flipEnclosedPieces = REVERSI;
+        v->materialCounting = UNWEIGHTED_MATERIAL;
+        return v;
+    }
+    // Flipello
+    // https://en.wikipedia.org/wiki/Reversi#Othello
+    Variant* flipello_variant() {
+        Variant* v = flipersi_variant()->init();
+        v->startFen = "8/8/8/3pP3/3Pp3/8/8/8[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppp] w 0 1";
+        v->passOnStalemate = true;
         return v;
     }
     // Minixiangqi
@@ -1232,7 +1292,7 @@ namespace {
         return v;
     }
     // Clobber 10x10
-    // Clobber on a 10x10, mainly played by computers
+    // Clobber on a 10x10 board, mainly played by computers
     // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber10_variant() {
         Variant* v = clobber_variant()->init();
@@ -1240,6 +1300,17 @@ namespace {
         v->maxFile = FILE_J;
         v->startFen = "PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/"
                       "pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP/PpPpPpPpPp/pPpPpPpPpP w 0 1";
+        return v;
+    }
+    // Flipello 10x10
+    // Othello on a 10x10 board, mainly played by computers
+    // https://en.wikipedia.org/wiki/Reversi
+    Variant* flipello10_variant() {
+        Variant* v = flipello_variant()->init();
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_J;
+        v->startFen = "10/10/10/10/4pP4/4Pp4/10/10/10/10[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp] w - - 0 1";
+        v->enclosingDropStart = make_bitboard(SQ_E5, SQ_F5, SQ_E6, SQ_F6);
         return v;
     }
 #ifdef ALLVARS
@@ -1261,7 +1332,8 @@ namespace {
 #endif
     // Xiangqi (Chinese chess)
     // https://en.wikipedia.org/wiki/Xiangqi
-    Variant* xiangqi_variant() {
+    // Xiangqi base variant for inheriting rules without chasing rules
+    Variant* xiangqi_variant_base() {
         Variant* v = minixiangqi_variant()->init();
         v->pieceToCharTable = "PN.R.AB..K.C..........pn.r.ab..k.c..........";
         v->maxRank = RANK_10;
@@ -1278,11 +1350,16 @@ namespace {
         v->soldierPromotionRank = RANK_6;
         return v;
     }
+    Variant* xiangqi_variant() {
+        Variant* v = xiangqi_variant_base()->init();
+        v->chasingRule = AXF_CHASING;
+        return v;
+    }
     // Manchu/Yitong chess
     // Asymmetric Xiangqi variant with a super-piece
     // https://en.wikipedia.org/wiki/Manchu_chess
     Variant* manchu_variant() {
-        Variant* v = xiangqi_variant()->init();
+        Variant* v = xiangqi_variant_base()->init();
         v->pieceToCharTable = "PN.R.AB..K.C....M.....pn.r.ab..k.c..........";
         v->add_piece(BANNER, 'm');
         v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/9/9/M1BAKAB2 w - - 0 1";
@@ -1291,7 +1368,7 @@ namespace {
     // Supply chess
     // https://en.wikipedia.org/wiki/Xiangqi#Variations
     Variant* supply_variant() {
-        Variant* v = xiangqi_variant()->init();
+        Variant* v = xiangqi_variant_base()->init();
         v->variantTemplate = "bughouse";
         v->startFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR[] w - - 0 1";
         v->twoBoards = true;
@@ -1305,7 +1382,7 @@ namespace {
     // https://en.wikipedia.org/wiki/Janggi
     // Official tournament rules with bikjang and material counting.
     Variant* janggi_variant() {
-        Variant* v = xiangqi_variant()->init();
+        Variant* v = xiangqi_variant_base()->init();
         v->variantTemplate = "janggi";
         v->pieceToCharTable = ".N.R.AB.P..C.........K.n.r.ab.p..c.........k";
         v->remove_piece(FERS);
@@ -1410,6 +1487,7 @@ void VariantMap::init() {
     add("sittuyin", sittuyin_variant());
     add("seirawan", seirawan_variant());
     add("shouse", shouse_variant());
+    add("dragon", dragon_variant());
     add("minishogi", minishogi_variant());
     add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());
@@ -1428,7 +1506,10 @@ void VariantMap::init() {
     add("clobber", clobber_variant());
     add("breakthrough", breakthrough_variant());
     add("ataxx", ataxx_variant());
+    add("flipersi", flipersi_variant());
+    add("flipello", flipello_variant());
     add("minixiangqi", minixiangqi_variant());
+    add("raazuvaa", raazuvaa_variant());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("shoshogi", shoshogi_variant());
@@ -1450,6 +1531,7 @@ void VariantMap::init() {
     add("tencubed", tencubed_variant());
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
+    add("flipello10", flipello10_variant());
 #ifdef ALLVARS
     add("amazons", amazons_variant());
 #endif

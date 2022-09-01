@@ -190,14 +190,14 @@ void MainThread::search() {
 
   Eval::NNUE::verify();
 
-  if (rootMoves.empty() || (Options["Protocol"] == "xboard" && rootPos.is_optional_game_end()))
+  if (rootMoves.empty() || (CurrentProtocol == XBOARD && rootPos.is_optional_game_end()))
   {
       rootMoves.emplace_back(MOVE_NONE);
       Value variantResult;
       Value result =  rootPos.is_game_end(variantResult) ? variantResult
                     : rootPos.checkers()                 ? rootPos.checkmate_value()
                                                          : rootPos.stalemate_value();
-      if (Options["Protocol"] == "xboard")
+      if (CurrentProtocol == XBOARD)
       {
           // rotate MOVE_NONE to front (for optional game end)
           std::rotate(rootMoves.rbegin(), rootMoves.rbegin() + 1, rootMoves.rend());
@@ -218,7 +218,7 @@ void MainThread::search() {
   }
 
   // Sit in bughouse variants if partner requested it or we are dead
-  if (rootPos.two_boards() && !Threads.abort && Options["Protocol"] == "xboard")
+  if (rootPos.two_boards() && !Threads.abort && CurrentProtocol == XBOARD)
   {
       while (!Threads.stop && (Partner.sitRequested || (Partner.weDead && !Partner.partnerDead)) && Time.elapsed() < Limits.time[us] - 1000)
       {}
@@ -259,7 +259,7 @@ void MainThread::search() {
   if (bestThread != this)
       sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
 
-  if (Options["Protocol"] == "xboard")
+  if (CurrentProtocol == XBOARD)
   {
       Move bestMove = bestThread->rootMoves[0].pv[0];
       // Wait for virtual drop to become real
@@ -539,7 +539,7 @@ void Thread::search() {
               totalTime = std::min(500.0, totalTime);
 
           // Update partner in bughouse variants
-          if (completedDepth >= 8 && rootPos.two_boards() && Options["Protocol"] == "xboard")
+          if (completedDepth >= 8 && rootPos.two_boards() && CurrentProtocol == XBOARD)
           {
               // Communicate clock times relevant for sitting decisions
               if (Limits.time[us])
@@ -1112,7 +1112,7 @@ moves_loop: // When in check, search starts from here
 
       ss->moveCount = ++moveCount;
 
-      if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000 && Options["Protocol"] != "xboard")
+      if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000 && is_uci_dialect(CurrentProtocol))
           sync_cout << "info depth " << depth
                     << " currmove " << UCI::move(pos, move)
                     << " currmovenumber " << moveCount + thisThread->pvIdx << sync_endl;
@@ -1989,7 +1989,7 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
       if (ss.rdbuf()->in_avail()) // Not at first line
           ss << "\n";
 
-      if (Options["Protocol"] == "xboard")
+      if (CurrentProtocol == XBOARD)
       {
           ss << d << " "
              << UCI::value(v) << " "

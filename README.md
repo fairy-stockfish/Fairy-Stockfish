@@ -13,9 +13,11 @@ Fairy-Stockfish is a chess variant engine derived from [Stockfish](https://githu
 The goal of the project is to create an engine supporting a large variety of chess-like games, equipped with the powerful search of Stockfish. Despite its generality the [playing strength](https://github.com/ianfab/Fairy-Stockfish/wiki/Playing-strength) is on a very high level in almost all supported variants. Due to its multi-protocol support Fairy-Stockfish works with almost any chess variant GUI.
 
 ## Installation
-You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64.exe) or [Linux binary](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64) from the [latest release](https://github.com/ianfab/Fairy-Stockfish/releases/latest) or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you perhaps want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Graphical-user-interfaces), or [play against it online](https://github.com/ianfab/Fairy-Stockfish/wiki/Online) at [pychess](https://www.pychess.org/), [lishogi](https://lishogi.org/@/Fairy-Stockfish), [xichess](http://www.xichess.com/), or [lichess](https://lichess.org/@/Fairy-Stockfish). Read more about [how to use](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) Fairy-Stockfish in the wiki.
+You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64.exe) or [Linux binary](https://github.com/ianfab/Fairy-Stockfish/releases/latest/download/fairy-stockfish-largeboard_x86-64) from the [latest release](https://github.com/ianfab/Fairy-Stockfish/releases/latest) or [compile the program from source](https://github.com/ianfab/Fairy-Stockfish#compiling-stockfish-yourself-from-the-sources). The program comes without a graphical user interface, so you perhaps want to use it together with a [compatible GUI](https://github.com/ianfab/Fairy-Stockfish/wiki/Graphical-user-interfaces), or [play against it online](https://github.com/ianfab/Fairy-Stockfish/wiki/Online) at [pychess](https://www.pychess.org/), [lishogi](https://lishogi.org/@/Fairy-Stockfish), or [lichess](https://lichess.org/@/Fairy-Stockfish). Read more about [how to use](https://github.com/ianfab/Fairy-Stockfish/wiki/Usage) Fairy-Stockfish in the wiki.
 
-Optional NNUE evaluation parameter files to improve playing strength for many variants are in the [list of NNUE networks](https://github.com/ianfab/Fairy-Stockfish/wiki/List-of-networks).
+If you want to preview the functionality of Fairy-Stockfish before downloading, you can try it out on the [Fairy-Stockfish playground](https://fairyground.vercel.app/) in the browser.
+
+Optional NNUE evaluation parameter files to improve playing strength for many variants are in the [list of NNUE networks](https://fairy-stockfish.github.io/nnue/#current-best-nnue-networks).
 For the regional variants Xiangqi, Janggi, and Makruk [dedicated releases with built-in NNUE networks](https://github.com/ianfab/Fairy-Stockfish-NNUE) are available. See the [wiki](https://github.com/ianfab/Fairy-Stockfish/wiki/NNUE) for more details on NNUE.
 
 ## Contributing
@@ -35,6 +37,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Sittuyin](https://en.wikipedia.org/wiki/Sittuyin)
 - [Shatar](https://en.wikipedia.org/wiki/Shatar), [Jeson Mor](https://en.wikipedia.org/wiki/Jeson_Mor)
 - [Shatranj](https://en.wikipedia.org/wiki/Shatranj), [Courier](https://en.wikipedia.org/wiki/Courier_chess)
+- [Raazuvaa](https://www.reddit.com/r/chess/comments/sj7y3n/raazuvaa_the_chess_of_the_maldives)
 
 ### Chess variants
 - [Capablanca](https://en.wikipedia.org/wiki/Capablanca_Chess), [Janus](https://en.wikipedia.org/wiki/Janus_Chess), [Modern](https://en.wikipedia.org/wiki/Modern_Chess_(chess_variant)), [Chancellor](https://en.wikipedia.org/wiki/Chancellor_Chess), [Embassy](https://en.wikipedia.org/wiki/Embassy_Chess), [Gothic](https://www.chessvariants.com/large.dir/gothicchess.html), [Capablanca random chess](https://en.wikipedia.org/wiki/Capablanca_Random_Chess)
@@ -53,6 +56,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Atomic](https://en.wikipedia.org/wiki/Atomic_chess)
 - [Horde](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess), [Maharajah and the Sepoys](https://en.wikipedia.org/wiki/Maharajah_and_the_Sepoys)
 - [Knightmate](https://www.chessvariants.com/diffobjective.dir/knightmate.html), [Nightrider](https://en.wikipedia.org/wiki/Nightrider_(chess)), [Grasshopper](https://en.wikipedia.org/wiki/Grasshopper_chess)
+- [Dragon Chess](https://www.edami.com/dragonchess/)
 
 ### Shogi variants
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi)
@@ -77,7 +81,7 @@ See the [Fairy-Stockfish Wiki](https://github.com/ianfab/Fairy-Stockfish/wiki) f
 
 ## Bindings
 
-Besides the C++ engine, this project also includes bindings for other programming languages in order to be able to use it as a library for chess variants. They support move, SAN, and FEN generation, as well as checking of game end conditions for all variants supported by Fairy-Stockfish. Since the bindings are using the C++ code, they are very performant compared to libraries directly written in the respective target language.  
+Besides the C++ engine, this project also includes bindings for other programming languages in order to be able to use it as a library for chess variants. They support move, SAN, and FEN generation, as well as checking of game end conditions for all variants supported by Fairy-Stockfish. Since the bindings are using the C++ code, they are very performant compared to libraries directly written in the respective target language.
 
 ### Python
 
@@ -89,7 +93,7 @@ The javascript binding [ffish.js](https://www.npmjs.com/package/ffish) contribut
 
 ## Ports
 
-### WASM
+### WebAssembly
 
 For in-browser use a [port of Fairy-Stockfish to WebAssembly](https://github.com/ianfab/fairy-stockfish.wasm) is available at [npm](https://www.npmjs.com/package/fairy-stockfish-nnue.wasm). It is e.g. used for local analysis on [pychess.org](https://www.pychess.org/analysis/chess). Also see the [Fairy-Stockfish WASM demo](https://github.com/ianfab/fairy-stockfish-nnue-wasm-demo) available at https://fairy-stockfish-nnue-wasm.vercel.app/.
 

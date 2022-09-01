@@ -95,6 +95,12 @@ namespace {
         return value == "makruk" || value == "asean" || value == "none";
     }
 
+    template <> bool set(const std::string& value, ChasingRule& target) {
+        target =  value == "axf"  ? AXF_CHASING
+                : NO_CHASING;
+        return value == "axf" || value == "none";
+    }
+
     template <> bool set(const std::string& value, EnclosingRule& target) {
         target =  value == "reversi"  ? REVERSI
                 : value == "ataxx" ? ATAXX
@@ -129,6 +135,8 @@ template <class T> void VariantParser<DoCheck>::parse_attribute(const std::strin
                                   : std::is_same<T, Value>() ? "Value"
                                   : std::is_same<T, MaterialCounting>() ? "MaterialCounting"
                                   : std::is_same<T, CountingRule>() ? "CountingRule"
+                                  : std::is_same<T, ChasingRule>() ? "ChasingRule"
+                                  : std::is_same<T, EnclosingRule>() ? "EnclosingRule"
                                   : std::is_same<T, Bitboard>() ? "Bitboard"
                                   : typeid(T).name();
             std::cerr << key << " - Invalid value " << it->second << " for type " << typeName << std::endl;
@@ -335,6 +343,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("nFoldValueAbsolute", v->nFoldValueAbsolute);
     parse_attribute("perpetualCheckIllegal", v->perpetualCheckIllegal);
     parse_attribute("moveRepetitionIllegal", v->moveRepetitionIllegal);
+    parse_attribute("chasingRule", v->chasingRule);
     parse_attribute("stalemateValue", v->stalemateValue);
     parse_attribute("stalematePieceCount", v->stalematePieceCount);
     parse_attribute("checkmateValue", v->checkmateValue);
@@ -367,6 +376,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectN", v->connectN);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
+
+    v->conclude(); // In preparation for the consistency checks below, in case conclude() hasn't been called yet.
+
     // Report invalid options
     if (DoCheck)
     {

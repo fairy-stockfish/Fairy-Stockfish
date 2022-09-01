@@ -114,10 +114,12 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp torishogi startpos 4 103857 > /dev/null
   # non-chess
   expect perft.exp ataxx startpos 4 155888 > /dev/null
-  expect perft.exp ataxx "fen 7/7/7/7/ppppppp/ppppppp/PPPPPPP[PPPPPPPPPPPPPPPPPPPPPppppppppppppppppppppp] w 0 1" 5 452980 > /dev/null
+  expect perft.exp ataxx "fen 7/7/7/7/ppppppp/ppppppp/PPPPPPP w 0 1" 5 452980 > /dev/null
   expect perft.exp breakthrough startpos 4 256036 > /dev/null
   expect perft.exp breakthrough "fen 1p2pp1p/2p2ppp/2P5/8/8/3P2P1/1p1P2PP/1PP1PP1P w - - 1 26" 4 121264 > /dev/null
   expect perft.exp clobber startpos 3 80063 > /dev/null
+  expect perft.exp flipello startpos 7 55092 > /dev/null
+  expect perft.exp flipersi startpos 9 38208 > /dev/null
   # 960 variants
   expect perft.exp atomic "fen 8/8/8/8/8/8/2k5/rR4KR w KQ - 0 1" 4 61401 true > /dev/null
   expect perft.exp atomic "fen r3k1rR/5K2/8/8/8/8/8/8 b kq - 0 1" 4 98729 true > /dev/null
@@ -154,6 +156,9 @@ if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp janggi "fen 1n1kaabn1/cr2N4/5C1c1/p1pNp3p/9/9/P1PbP1P1P/3r1p3/4A4/R1BA1KB1R b - - 0 1" 4 76763 > /dev/null
   expect perft.exp janggi "fen 1Pbcka3/3nNn1c1/N2CaC3/1pB6/9/9/5P3/9/4K4/9 w - - 0 23" 4 151202 > /dev/null
   expect perft.exp jesonmor startpos 3 27960 > /dev/null
+
+  # non-chess
+  expect perft.exp flipello10 startpos 7 55180 > /dev/null
 fi
 
 # special variants

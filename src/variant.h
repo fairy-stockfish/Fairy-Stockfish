@@ -105,6 +105,7 @@ struct Variant {
   bool flyingGeneral = false;
   Rank soldierPromotionRank = RANK_1;
   EnclosingRule flipEnclosedPieces = NO_ENCLOSING;
+  bool freeDrops = false;
 
   // game end
   int nMoveRule = 50;
@@ -113,6 +114,7 @@ struct Variant {
   bool nFoldValueAbsolute = false;
   bool perpetualCheckIllegal = false;
   bool moveRepetitionIllegal = false;
+  ChasingRule chasingRule = NO_CHASING;
   Value stalemateValue = VALUE_DRAW;
   bool stalematePieceCount = false; // multiply stalemate value by sign(count(~stm) - count(stm))
   Value checkmateValue = -VALUE_MATE;
@@ -146,6 +148,7 @@ struct Variant {
   int kingSquareIndex[SQUARE_NB];
   int nnueMaxPieces;
   bool endgameEval = false;
+  bool shogiStylePromotions = false;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
@@ -217,7 +220,7 @@ struct Variant {
               nnueKing = NO_PIECE_TYPE;
       }
       int nnueSquares = (maxRank + 1) * (maxFile + 1);
-      nnueUsePockets = (pieceDrops && (!mustDrop || capturesToHand)) || seirawanGating;
+      nnueUsePockets = (pieceDrops && (capturesToHand || (!mustDrop && !arrowGating && pieceTypes.size() != 1))) || seirawanGating;
       int nnuePockets = nnueUsePockets ? 2 * int(maxFile + 1) : 0;
       int nnueNonDropPieceIndices = (2 * pieceTypes.size() - (nnueKing != NO_PIECE_TYPE)) * nnueSquares;
       int nnuePieceIndices = nnueNonDropPieceIndices + 2 * (pieceTypes.size() - (nnueKing != NO_PIECE_TYPE)) * nnuePockets;
@@ -284,6 +287,15 @@ struct Variant {
                     && !capturesToHand
                     && !twoBoards
                     && kingType == KING;
+    
+      shogiStylePromotions = false;
+      for (PieceType current: promotedPieceType)
+          if (current != NO_PIECE_TYPE)
+          {
+              shogiStylePromotions = true;
+              break;
+          }
+
       return this;
   }
 };
