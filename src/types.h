@@ -293,7 +293,7 @@ enum MaterialCounting {
 };
 
 enum CountingRule {
-  NO_COUNTING, MAKRUK_COUNTING, ASEAN_COUNTING
+  NO_COUNTING, MAKRUK_COUNTING, CAMBODIAN_COUNTING, ASEAN_COUNTING
 };
 
 enum ChasingRule {
