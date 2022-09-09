@@ -121,6 +121,7 @@ namespace {
         v->startFen = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w DEde - 0 1";
         v->gating = true;
         v->cambodianMoves = true;
+        v->countingRule = CAMBODIAN_COUNTING;
         v->nnueAlias = "makruk";
         return v;
     }

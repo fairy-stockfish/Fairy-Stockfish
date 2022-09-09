@@ -90,6 +90,7 @@ namespace {
 
     template <> bool set(const std::string& value, CountingRule& target) {
         target =  value == "makruk"  ? MAKRUK_COUNTING
+                : value == "cambodian" ? CAMBODIAN_COUNTING
                 : value == "asean" ? ASEAN_COUNTING
                 : NO_COUNTING;
         return value == "makruk" || value == "asean" || value == "none";

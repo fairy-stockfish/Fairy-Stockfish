@@ -436,6 +436,66 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("makruk", fen, moves, False, False, True, 58)
         self.assertEqual(result, "3k4/2m5/5M~2/3KM3/4S3/8/8/8 b - 128 8 33")
 
+        # ouk piece honor counting
+        fen = "8/3k4/8/2K1S1P1/8/8/8/8 w - - 0 1"
+        moves = ["g5g6m"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True)
+        self.assertEqual(result, "8/3k4/6M~1/2K1S3/8/8/8/8 b - 86 8 1")
+
+        fen = "8/2K3k1/5m2/4S1S1/8/8/8/8 w - 128 97 1"
+        moves = ["e5f6"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True)
+        self.assertEqual(result, "8/2K3k1/5S2/6S1/8/8/8/8 b - 42 8 1")
+
+        # adjust to board honor counting if it's faster
+        fen = "8/3k4/8/2K1S1P1/8/8/8/8 w - - 0 1"
+        moves = ["g5g6m"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True, -1)
+        self.assertEqual(result, "8/3k4/6M~1/2K1S3/8/8/8/8 b - 86 8 1")
+
+        fen = "8/2K3k1/5m2/4S1S1/8/8/8/8 w - 126 101 80"
+        moves = ["e5f6"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True, 58)
+        self.assertEqual(result, "8/2K3k1/5S2/6S1/8/8/8/8 b - 126 102 80")
+
+        # pawn promotion triggers piece honor counting
+        fen = "8/8/4k3/5P2/8/2RMK3/8/8 w - 126 41 50"
+        moves = ["f5f6m"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True, 58)
+        self.assertEqual(result, "8/8/4kM~2/8/8/2RMK3/8/8 b - 30 10 50")
+
+        # king capturing the last unpromoted pawn triggers piece honor counting
+        fen = "8/8/4k3/5P2/8/2RMK3/8/8 b - 126 42 50"
+        moves = ["e6f5"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True, 58)
+        self.assertEqual(result, "8/8/8/5k2/8/2RMK3/8/8 w - 30 7 51")
+
+        # ouk board honor counting
+        fen = "3k4/2m5/8/4MP2/3KS3/8/8/8 w - - 0 1"
+        moves = ["f5f6m"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True)
+        self.assertEqual(result, "3k4/2m5/5M~2/4M3/3KS3/8/8/8 b - 126 0 1")
+
+        fen = "3k4/2m5/5M~2/4M3/3KS3/8/8/8 w - 126 0 33"
+        moves = ["d4d5"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True)
+        self.assertEqual(result, "3k4/2m5/5M~2/3KM3/4S3/8/8/8 b - 126 1 33")
+
+        fen = "3k4/2m5/5M~2/4M3/3KS3/8/8/8 w - 126 36 1"
+        moves = ["d4d5"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True)
+        self.assertEqual(result, "3k4/2m5/5M~2/3KM3/4S3/8/8/8 b - 126 37 1")
+
+        fen = "3k4/2m5/5M~2/4M3/3KS3/8/8/8 w - 126 0 33"
+        moves = ["d4d5"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True, -1)
+        self.assertEqual(result, "3k4/2m5/5M~2/3KM3/4S3/8/8/8 b - 126 0 33")
+
+        fen = "3k4/2m5/5M~2/4M3/3KS3/8/8/8 w - 126 7 33"
+        moves = ["d4d5"]
+        result = sf.get_fen("cambodian", fen, moves, False, False, True, 58)
+        self.assertEqual(result, "3k4/2m5/5M~2/3KM3/4S3/8/8/8 b - 126 8 33")
+
         # asean counting
         fen = "4k3/3r4/2K5/8/3R4/8/8/8 w - - 0 1"
         moves = ["d4d7"]
