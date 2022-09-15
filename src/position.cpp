@@ -1765,12 +1765,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Remove king leaping right when aimed by a rook
-  if (cambodian_moves())
-  {
-      Square king = square<KING>(them);
-      if ((king & gates(them)) && type_of(pc) == ROOK && (file_of(to) == file_of(king) || rank_of(to) == rank_of(king)))
-          st->gatesBB[them] ^= king;
-  }
+  if (cambodian_moves() && type_of(pc) == ROOK && (square<KING>(them) & gates(them) & attacks_bb<ROOK>(to)))
+      st->gatesBB[them] ^= square<KING>(them);
 
   // Remove the blast pieces
   if (captured && blast_on_capture())
