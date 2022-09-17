@@ -356,13 +356,13 @@ namespace {
         }
 
         // Special moves
-        if (pos.cambodian_moves() && pos.gates(Us))
+        if (pos.cambodian_moves() && pos.gates(Us) && Type != CAPTURES)
         {
-            if (Type != CAPTURES && Type != EVASIONS && (pos.pieces(Us, KING) & pos.gates(Us)))
+            if (Type != EVASIONS && (pos.pieces(Us, KING) & pos.gates(Us)))
             {
                 Square from = pos.square<KING>(Us);
                 Bitboard b = PseudoAttacks[WHITE][KNIGHT][from] & rank_bb(rank_of(from + (Us == WHITE ? NORTH : SOUTH)))
-                            & target & ~pos.pieces();
+                    & target & ~pos.pieces();
                 while (b)
                     moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, from, pop_lsb(b));
             }
@@ -372,7 +372,7 @@ namespace {
             {
                 Square from = pop_lsb(b);
                 Square to = from + 2 * (Us == WHITE ? NORTH : SOUTH);
-                if (is_ok(to) && (target & to))
+                if (is_ok(to) && (target & to & ~pos.pieces()))
                     moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, from, to);
             }
         }
