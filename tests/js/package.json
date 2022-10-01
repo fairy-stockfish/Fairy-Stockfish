@@ -1,6 +1,6 @@
 {
   "name": "ffish",
-  "version": "0.6.9",
+  "version": "0.7.0",
   "description": "A high performance WebAssembly chess variant library based on Fairy-Stockfish",
   "main": "ffish.js",
   "scripts": {
