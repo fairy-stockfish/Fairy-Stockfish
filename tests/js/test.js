@@ -684,6 +684,13 @@ describe('ffish.setOptionBool(name, value)', function () {
   });
 });
 
+describe('ffish.capturesToHand(uciVariant)', function () {
+    it("it checks if the given uci-variant rules contain capturesToHand", () => {
+      chai.expect(ffish.capturesToHand("seirawan")).to.equal(false);
+      chai.expect(ffish.capturesToHand("shouse")).to.equal(true);
+    });
+});
+
 describe('ffish.startingFen(uciVariant)', function () {
     it("it returns the starting fen for the given uci-variant.", () => {
       chai.expect(ffish.startingFen("chess")).to.equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");

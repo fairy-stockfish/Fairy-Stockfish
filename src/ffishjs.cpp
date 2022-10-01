@@ -469,6 +469,11 @@ namespace ffish {
     Board::sfInitialized = true;
   }
 
+  bool captures_to_hand(std::string uciVariant) {
+    const Variant* v = get_variant(uciVariant);
+    return v->capturesToHand;
+  }
+
   std::string starting_fen(std::string uciVariant) {
     const Variant* v = get_variant(uciVariant);
     return v->startFen;
@@ -732,6 +737,7 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
   function("readGamePGN", &read_game_pgn);
   function("variants", &ffish::available_variants);
   function("loadVariantConfig", &ffish::load_variant_config);
+  function("capturesToHand", &ffish::captures_to_hand);
   function("startingFen", &ffish::starting_fen);
   function("validateFen", select_overload<int(std::string)>(&ffish::validate_fen));
   function("validateFen", select_overload<int(std::string, std::string)>(&ffish::validate_fen));
