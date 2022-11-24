@@ -257,6 +257,10 @@ class TestPyffish(unittest.TestCase):
         self.assertFalse(sf.two_boards("chess"))
         self.assertTrue(sf.two_boards("bughouse"))
 
+    def test_captures_to_hand(self):
+        self.assertFalse(sf.captures_to_hand("seirawan"))
+        self.assertTrue(sf.captures_to_hand("shouse"))
+
     def test_start_fen(self):
         result = sf.start_fen("capablanca")
         self.assertEqual(result, CAPA)

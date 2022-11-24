@@ -54,7 +54,7 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
 }
 
 extern "C" PyObject* pyffish_version(PyObject* self) {
-    return Py_BuildValue("(iii)", 0, 0, 73);
+    return Py_BuildValue("(iii)", 0, 0, 74);
 }
 
 extern "C" PyObject* pyffish_info(PyObject* self) {
@@ -127,6 +127,17 @@ extern "C" PyObject* pyffish_twoBoards(PyObject* self, PyObject *args) {
     }
 
     return Py_BuildValue("O", variants.find(std::string(variant))->second->twoBoards ? Py_True : Py_False);
+}
+
+// INPUT variant
+extern "C" PyObject* pyffish_capturesToHand(PyObject* self, PyObject *args) {
+    const char *variant;
+
+    if (!PyArg_ParseTuple(args, "s", &variant)) {
+        return NULL;
+    }
+
+    return Py_BuildValue("O", variants.find(std::string(variant))->second->capturesToHand ? Py_True : Py_False);
 }
 
 // INPUT variant, fen, move
@@ -349,6 +360,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"load_variant_config", (PyCFunction)pyffish_loadVariantConfig, METH_VARARGS, "Load variant configuration."},
     {"start_fen", (PyCFunction)pyffish_startFen, METH_VARARGS, "Get starting position FEN."},
     {"two_boards", (PyCFunction)pyffish_twoBoards, METH_VARARGS, "Checks whether the variant is played on two boards."},
+    {"captures_to_hand", (PyCFunction)pyffish_capturesToHand, METH_VARARGS, "Checks whether the variant rules contains capturesToHand."},
     {"get_san", (PyCFunction)pyffish_getSAN, METH_VARARGS, "Get SAN move from given FEN and UCI move."},
     {"get_san_moves", (PyCFunction)pyffish_getSANmoves, METH_VARARGS, "Get SAN movelist from given FEN and UCI movelist."},
     {"legal_moves", (PyCFunction)pyffish_legalMoves, METH_VARARGS, "Get legal moves from given FEN and movelist."},
