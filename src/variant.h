@@ -96,6 +96,7 @@ struct Variant {
   bool immobilityIllegal = false;
   bool gating = false;
   bool arrowGating = false;
+  bool duck = false;
   bool seirawanGating = false;
   bool cambodianMoves = false;
   Bitboard diagonalLines = 0;

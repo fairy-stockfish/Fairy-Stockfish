@@ -259,6 +259,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   ss >> std::noskipws;
 
   Square sq = SQ_A1 + max_rank() * NORTH;
+  st->duckSq = SQ_NONE;
 
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
@@ -280,6 +281,14 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
           if (!is_ok(sq))
               break;
+      }
+
+      // Place duck
+      else if (var->duck && token == 'D')
+      {
+          st->duckSq = sq;
+          byTypeBB[ALL_PIECES] |= sq;
+          ++sq;
       }
 
       else if ((idx = piece_to_char().find(token)) != string::npos || (idx = piece_to_char_synonyms().find(token)) != string::npos)
@@ -573,7 +582,7 @@ void Position::set_state(StateInfo* si) const {
 
   set_check_info(si);
 
-  for (Bitboard b = pieces(); b; )
+  for (Bitboard b = pieces(WHITE) | pieces(BLACK); b; )
   {
       Square s = pop_lsb(b);
       Piece pc = piece_on(s);
@@ -648,7 +657,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   {
       for (File f = FILE_A; f <= max_file(); ++f)
       {
-          for (emptyCnt = 0; f <= max_file() && empty(make_square(f, r)); ++f)
+          for (emptyCnt = 0; f <= max_file() && empty(make_square(f, r)) && make_square(f, r) != st->duckSq; ++f)
               ++emptyCnt;
 
           if (emptyCnt)
@@ -656,7 +665,9 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
           if (f <= max_file())
           {
-              if (unpromoted_piece_on(make_square(f, r)))
+              if (make_square(f, r) == st->duckSq)
+                  ss << "D";
+              else if (unpromoted_piece_on(make_square(f, r)))
                   // Promoted shogi pieces, e.g., +r for dragon
                   ss << "+" << piece_to_char()[unpromoted_piece_on(make_square(f, r))];
               else
@@ -1183,6 +1194,10 @@ bool Position::pseudo_legal(const Move m) const {
       return checkers() ? MoveList<    EVASIONS>(*this).contains(m)
                         : MoveList<NON_EVASIONS>(*this).contains(m);
 
+  // Illegal duck placement
+  if (var->duck && (!((board_bb() & ~((pieces() ^ from) | to)) & gating_square(m)) || to == st->duckSq))
+      return false;
+
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
       && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)
@@ -1212,12 +1227,12 @@ bool Position::pseudo_legal(const Move m) const {
           return false;
 
       if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to) // Not a capture
-          && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
+          && !((from + pawn_push(us) == to) && empty(to) && to != st->duckSq)       // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
                && (   relative_rank(us, from, max_rank()) <= double_step_rank_max()
                    && relative_rank(us, from, max_rank()) >= double_step_rank_min())
-               && empty(to)
-               && empty(to - pawn_push(us))
+               && empty(to) && to != st->duckSq
+               && empty(to - pawn_push(us)) && to - pawn_push(us) != st->duckSq
                && double_step_enabled()))
           return false;
   }
@@ -1836,6 +1851,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       }
   }
 
+  if (var->duck)
+  {
+      if (st->previous->duckSq != SQ_NONE)
+          byTypeBB[ALL_PIECES] ^= st->previous->duckSq;
+      st->duckSq = gating_square(m);
+      byTypeBB[ALL_PIECES] |= gating_square(m);
+  }
+
   // Update the key with the final value
   st->key = k;
   // Calculate checkers bitboard (if move gives check)
@@ -1902,6 +1925,13 @@ void Position::undo_move(Move m) {
          || (type_of(m) == PROMOTION && sittuyin_promotion())
          || (is_pass(m) && pass()));
   assert(type_of(st->capturedPiece) != KING);
+
+  if (var->duck)
+  {
+      byTypeBB[ALL_PIECES] ^= st->duckSq;
+      if (st->previous->duckSq != SQ_NONE)
+          byTypeBB[ALL_PIECES] |= st->previous->duckSq;
+  }
 
   // Add the blast pieces
   if (st->capturedPiece && blast_on_capture())

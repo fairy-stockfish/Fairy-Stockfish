@@ -544,6 +544,10 @@ string UCI::move(const Position& pos, Move m) {
           move += UCI::square(pos, gating_square(m));
   }
 
+  // Duck square
+  if (pos.variant()->duck)
+      move += UCI::square(pos, gating_square(m));
+
   return move;
 }
 

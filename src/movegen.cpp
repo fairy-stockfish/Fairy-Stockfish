@@ -26,7 +26,7 @@ namespace Stockfish {
 namespace {
 
   template<MoveType T>
-  ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to) {
+  ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
     // Arrow gating moves
     if (pos.arrow_gating())
@@ -38,6 +38,15 @@ namespace {
                 while (b)
                     *moveList++ = make_gating<T>(from, to, pt_gating, pop_lsb(b));
             }
+        return moveList;
+    }
+
+    // Duck placing moves
+    if (pos.variant()->duck)
+    {
+        Bitboard b = pos.board_bb() & ~((pos.pieces() ^ from) | to);
+        while (b)
+            *moveList++ = make_gating<T>(from, to, pt, pop_lsb(b));
         return moveList;
     }
 
@@ -63,10 +72,10 @@ namespace {
     {
         for (PieceType pt : pos.promotion_piece_types())
             if (!pos.promotion_limit(pt) || pos.promotion_limit(pt) > pos.count(c, pt))
-                *moveList++ = make<PROMOTION>(to - D, to, pt);
+                moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), to - D, to, pt);
         PieceType pt = pos.promoted_piece_type(PAWN);
         if (pt && !(pos.piece_promotion_on_capture() && pos.empty(to)))
-            *moveList++ = make<PIECE_PROMOTION>(to - D, to);
+            moveList = make_move_and_gating<PIECE_PROMOTION>(pos, moveList, pos.side_to_move(), to - D, to);
     }
 
     return moveList;
@@ -147,13 +156,13 @@ namespace {
         while (b1)
         {
             Square to = pop_lsb(b1);
-            *moveList++ = make_move(to - Up, to);
+            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up, to);
         }
 
         while (b2)
         {
             Square to = pop_lsb(b2);
-            *moveList++ = make_move(to - Up - Up, to);
+            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up - Up, to);
         }
     }
 
@@ -216,13 +225,13 @@ namespace {
         while (b1)
         {
             Square to = pop_lsb(b1);
-            *moveList++ = make_move(to - UpRight, to);
+            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpRight, to);
         }
 
         while (b2)
         {
             Square to = pop_lsb(b2);
-            *moveList++ = make_move(to - UpLeft, to);
+            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpLeft, to);
         }
 
         if (pos.ep_square() != SQ_NONE)
@@ -238,7 +247,7 @@ namespace {
             assert(b1);
 
             while (b1)
-                *moveList++ = make<EN_PASSANT>(pop_lsb(b1), pos.ep_square());
+                moveList = make_move_and_gating<EN_PASSANT>(pos, moveList, Us, pop_lsb(b1), pos.ep_square());
         }
     }
 
@@ -324,6 +333,9 @@ namespace {
                : Type == NON_EVASIONS ? ~pos.pieces( Us)
                : Type == CAPTURES     ?  pos.pieces(~Us)
                                       : ~pos.pieces(   ); // QUIETS || QUIET_CHECKS
+
+        if (pos.state()->duckSq != SQ_NONE)
+            target &= ~square_bb(pos.state()->duckSq);
 
         if (Type == EVASIONS)
         {
