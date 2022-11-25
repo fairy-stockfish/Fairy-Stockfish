@@ -595,6 +595,9 @@ void Position::set_state(StateInfo* si) const {
           si->nonPawnMaterial[color_of(pc)] += PieceValue[MG][pc];
   }
 
+  if (st->duckSq != SQ_NONE)
+      si->key ^= Zobrist::psq[make_piece(WHITE, KING)][st->duckSq];
+
   if (si->epSquare != SQ_NONE)
       si->key ^= Zobrist::enpassant[file_of(si->epSquare)];
 
@@ -1854,9 +1857,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (var->duck)
   {
       if (st->previous->duckSq != SQ_NONE)
+      {
           byTypeBB[ALL_PIECES] ^= st->previous->duckSq;
+          k ^= Zobrist::psq[make_piece(WHITE, KING)][st->previous->duckSq];
+      }
       st->duckSq = gating_square(m);
       byTypeBB[ALL_PIECES] |= gating_square(m);
+      k ^= Zobrist::psq[make_piece(WHITE, KING)][gating_square(m)];
   }
 
   // Update the key with the final value
