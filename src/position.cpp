@@ -1641,7 +1641,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (   type_of(m) != DROP
           && std::abs(int(to) - int(from)) == 2 * NORTH
           && (var->enPassantRegion & (to - pawn_push(us)))
-          && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN)))
+          && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN))
+          && !(var->duck && gating_square(m) == to - pawn_push(us)))
       {
           st->epSquare = to - pawn_push(us);
           k ^= Zobrist::enpassant[file_of(st->epSquare)];
