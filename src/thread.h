@@ -71,6 +71,7 @@ public:
   Depth rootDepth, completedDepth;
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
+  DuckHistory duckHistory;
   LowPlyHistory lowPlyHistory;
   CapturePieceToHistory captureHistory;
   ContinuationHistory continuationHistory[2][2];
