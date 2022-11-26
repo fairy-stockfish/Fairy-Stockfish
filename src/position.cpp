@@ -2298,6 +2298,10 @@ bool Position::see_ge(Move m, Value threshold) const {
       if (pinners(~stm) & occupied)
           stmAttackers &= ~blockers_for_king(stm);
 
+      // Ignore distant sliders
+      if (var->duck)
+          stmAttackers &= attacks_bb<KING>(to) | ~(pieces(BISHOP, ROOK) | pieces(QUEEN));
+
       if (!stmAttackers)
           break;
 
