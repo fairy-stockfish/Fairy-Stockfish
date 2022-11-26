@@ -45,6 +45,15 @@ namespace {
     if (pos.variant()->duck)
     {
         Bitboard b = pos.board_bb() & ~((pos.pieces() ^ from) | to);
+        if (T == CASTLING)
+        {
+            Square kto = make_square(to > from ? pos.castling_kingside_file() : pos.castling_queenside_file(), pos.castling_rank(us));
+            Direction step = kto > from ? EAST : WEST;
+            Square rto = kto - step;
+            b ^= square_bb(to) ^ kto ^ rto;
+        }
+        if (T == EN_PASSANT)
+            b ^= to - pawn_push(us);
         while (b)
             *moveList++ = make_gating<T>(from, to, pt, pop_lsb(b));
         return moveList;
