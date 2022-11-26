@@ -1866,6 +1866,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       byTypeBB[ALL_PIECES] |= gating_square(m);
       k ^= Zobrist::psq[make_piece(WHITE, KING)][gating_square(m)];
   }
+  else
+      st->duckSq = SQ_NONE;
 
   // Update the key with the final value
   st->key = k;
