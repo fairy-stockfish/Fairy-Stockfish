@@ -230,7 +230,7 @@ constexpr int SQUARE_BITS = 6;
 #ifdef ALLVARS
 constexpr int MAX_MOVES = 4096;
 #else
-constexpr int MAX_MOVES = 4096;
+constexpr int MAX_MOVES = 8192;
 #endif
 constexpr int MAX_PLY   = 246;
 
