@@ -380,6 +380,17 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
               go(analysisLimits);
       }
   }
+  else if (token == "remove")
+  {
+      stop();
+      if (moveList.size())
+      {
+          undo_move();
+          undo_move();
+          if (Options["UCI_AnalyseMode"])
+              go(analysisLimits);
+      }
+  }
   // Bughouse commands
   else if (token == "partner")
       Partner.parse_partner(is);

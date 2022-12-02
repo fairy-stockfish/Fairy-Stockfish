@@ -753,7 +753,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   // Counting limit or ep-square
   if (st->countingLimit)
-      ss << " " << st->countingLimit << " ";
+      ss << " " << counting_limit(countStarted) << " ";
   else
       ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ");
 
@@ -910,14 +910,6 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
           else
               b |= attacks_bb(~c, move_pt, s, occupied) & pieces(c, pt);
       }
-
-  // Consider special move of neang in cambodian chess
-  if (cambodian_moves())
-  {
-      Square fers_sq = s + 2 * (c == WHITE ? SOUTH : NORTH);
-      if (is_ok(fers_sq))
-          b |= pieces(c, FERS) & gates(c) & fers_sq;
-  }
 
   // Janggi palace moves
   if (diagonal_lines() & s)
@@ -1772,6 +1764,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->gatesBB[us] = 0;
   }
 
+  // Remove king leaping right when aimed by a rook
+  if (cambodian_moves() && type_of(pc) == ROOK && (square<KING>(them) & gates(them) & attacks_bb<ROOK>(to)))
+      st->gatesBB[them] ^= square<KING>(them);
+
   // Remove the blast pieces
   if (captured && blast_on_capture())
   {
@@ -1847,12 +1843,19 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   sideToMove = ~sideToMove;
 
-  if (   counting_rule()
-      && (!st->countingLimit || (captured && count<ALL_PIECES>(sideToMove) == 1))
-      && counting_limit())
+  if (counting_rule())
   {
-      st->countingLimit = 2 * counting_limit();
-      st->countingPly = counting_rule() == MAKRUK_COUNTING && count<ALL_PIECES>(sideToMove) == 1 ? 2 * count<ALL_PIECES>() : 0;
+      if (counting_rule() != ASEAN_COUNTING && type_of(captured) == PAWN && count<ALL_PIECES>(~sideToMove) == 1 && !count<PAWN>() && count_limit(~sideToMove))
+      {
+          st->countingLimit = 2 * count_limit(~sideToMove);
+          st->countingPly = 2 * count<ALL_PIECES>() - 1;
+      }
+
+      if ((!st->countingLimit || ((captured || type_of(m) == PROMOTION) && count<ALL_PIECES>(sideToMove) == 1)) && count_limit(sideToMove))
+      {
+          st->countingLimit = 2 * count_limit(sideToMove);
+          st->countingPly = counting_rule() == ASEAN_COUNTING || count<ALL_PIECES>(sideToMove) > 1 ? 0 : 2 * count<ALL_PIECES>();
+      }
   }
 
   // Update king attacks used for fast check detection
@@ -2435,7 +2438,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
   // counting rules
   if (   counting_rule()
       && st->countingLimit
-      && counting_ply(countStarted) > st->countingLimit
+      && counting_ply(countStarted) > counting_limit(countStarted)
       && (!checkers() || MoveList<LEGAL>(*this).size()))
   {
       result = VALUE_DRAW;
@@ -2756,9 +2759,9 @@ bool Position::has_game_cycle(int ply) const {
 }
 
 
-/// Position::counting_limit() returns the counting limit in full moves.
+/// Position::count_limit() returns the counting limit in full moves.
 
-int Position::counting_limit() const {
+int Position::count_limit(Color sideToCount) const {
 
   assert(counting_rule());
 
@@ -2766,33 +2769,56 @@ int Position::counting_limit() const {
   {
   case MAKRUK_COUNTING:
       // No counting for side to move
-      if (count<PAWN>() || count<ALL_PIECES>(~sideToMove) == 1)
+      if (count<PAWN>() || count<ALL_PIECES>(~sideToCount) == 1)
           return 0;
       // Board's honor rule
-      if (count<ALL_PIECES>(sideToMove) > 1)
+      if (count<ALL_PIECES>(sideToCount) > 1)
           return 64;
       // Pieces' honor rule
-      if (count<ROOK>(~sideToMove) > 1)
+      if (count<ROOK>(~sideToCount) > 1)
           return 8;
-      if (count<ROOK>(~sideToMove) == 1)
+      if (count<ROOK>(~sideToCount) == 1)
           return 16;
-      if (count<KHON>(~sideToMove) > 1)
+      if (count<KHON>(~sideToCount) > 1)
           return 22;
-      if (count<KNIGHT>(~sideToMove) > 1)
+      if (count<KNIGHT>(~sideToCount) > 1)
           return 32;
-      if (count<KHON>(~sideToMove) == 1)
+      if (count<KHON>(~sideToCount) == 1)
           return 44;
 
       return 64;
 
-  case ASEAN_COUNTING:
-      if (count<PAWN>() || count<ALL_PIECES>(sideToMove) > 1)
+  case CAMBODIAN_COUNTING:
+      // No counting for side to move
+      if (count<ALL_PIECES>(sideToCount) > 3 || count<ALL_PIECES>(~sideToCount) == 1)
           return 0;
-      if (count<ROOK>(~sideToMove))
+      // Board's honor rule
+      if (count<ALL_PIECES>(sideToCount) > 1)
+          return 63;
+      // Pieces' honor rule
+      if (count<PAWN>())
+          return 0;
+      if (count<ROOK>(~sideToCount) > 1)
+          return 7;
+      if (count<ROOK>(~sideToCount) == 1)
+          return 15;
+      if (count<KHON>(~sideToCount) > 1)
+          return 21;
+      if (count<KNIGHT>(~sideToCount) > 1)
+          return 31;
+      if (count<KHON>(~sideToCount) == 1)
+          return 43;
+
+      return 63;
+
+  case ASEAN_COUNTING:
+      if (count<PAWN>() || count<ALL_PIECES>(sideToCount) > 1)
+          return 0;
+      if (count<ROOK>(~sideToCount))
           return 16;
-      if (count<KHON>(~sideToMove))
+      if (count<KHON>(~sideToCount))
           return 44;
-      if (count<KNIGHT>(~sideToMove))
+      if (count<KNIGHT>(~sideToCount))
           return 64;
 
       return 0;

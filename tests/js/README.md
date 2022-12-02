@@ -287,4 +287,4 @@ A simple toy website which demonstrates the core functionality of ffish.js and [
 
 Source code: https://github.com/thearst3rd/ffish-test
 
-See it deployed at: https://ffish-test.herokuapp.com
+See it deployed at: https://thearst3rd.github.io/ffish-test/

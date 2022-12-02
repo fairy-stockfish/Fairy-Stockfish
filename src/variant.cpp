@@ -121,6 +121,7 @@ namespace {
         v->startFen = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w DEde - 0 1";
         v->gating = true;
         v->cambodianMoves = true;
+        v->countingRule = CAMBODIAN_COUNTING;
         v->nnueAlias = "makruk";
         return v;
     }
@@ -676,12 +677,15 @@ namespace {
         v->add_piece(KING, 'l');
         v->startFen = "gle/1c1/1C1/ELG[-] w 0 1";
         v->promotionRank = RANK_4;
+        v->mandatoryPiecePromotion = true;
         v->immobilityIllegal = false;
         v->shogiPawnDropMateIllegal = false;
         v->flagPiece = KING;
         v->whiteFlag = Rank4BB;
         v->blackFlag = Rank1BB;
         v->dropNoDoubled = NO_PIECE_TYPE;
+        v->nFoldValue = VALUE_DRAW;
+        v->perpetualCheckIllegal = false;
         return v;
     }
     // Goro goro shogi
