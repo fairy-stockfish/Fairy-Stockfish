@@ -303,6 +303,10 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
             san += std::string("/") + (char)toupper(pos.piece_to_char()[make_piece(us, gating_type(m))]);
     }
 
+    // Duck square
+    if (pos.variant()->duck)
+        san += "," + square(pos, gating_square(m), n);
+
     // Check and checkmate
     if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
     {

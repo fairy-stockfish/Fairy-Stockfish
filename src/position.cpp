@@ -284,7 +284,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       }
 
       // Place duck
-      else if (var->duck && token == 'D')
+      else if (var->duck && token == '*')
       {
           st->duckSq = sq;
           byTypeBB[ALL_PIECES] |= sq;
@@ -669,7 +669,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
           if (f <= max_file())
           {
               if (make_square(f, r) == st->duckSq)
-                  ss << "D";
+                  ss << "*";
               else if (unpromoted_piece_on(make_square(f, r)))
                   // Promoted shogi pieces, e.g., +r for dragon
                   ss << "+" << piece_to_char()[unpromoted_piece_on(make_square(f, r))];
