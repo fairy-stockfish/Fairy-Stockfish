@@ -59,7 +59,7 @@ namespace {
         return moveList;
     }
 
-    *moveList++ = make<T>(from, to);
+    *moveList++ = make<T>(from, to, pt);
 
     // Gating moves
     if (pos.seirawan_gating() && (pos.gates(us) & from))
