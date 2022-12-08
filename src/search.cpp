@@ -280,7 +280,14 @@ void MainThread::search() {
       // Send move only when not in analyze mode and not at game end
       if (!Limits.infinite && !ponder && rootMoves[0].pv[0] != MOVE_NONE && !Threads.abort.exchange(true))
       {
-          sync_cout << "move " << UCI::move(rootPos, bestMove) << sync_endl;
+          std::string move = UCI::move(rootPos, bestMove);
+          if (rootPos.variant()->duck)
+          {
+              sync_cout << "move " << move.substr(0, move.find(",")) << "," << sync_endl;
+              sync_cout << "move " << move.substr(move.find(",") + 1) << sync_endl;
+          }
+          else
+              sync_cout << "move " << UCI::move(rootPos, bestMove) << sync_endl;
           if (XBoard::stateMachine->moveAfterSearch)
           {
               XBoard::stateMachine->do_move(bestMove);
