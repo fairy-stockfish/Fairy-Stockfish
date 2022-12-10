@@ -241,8 +241,10 @@ struct Variant {
       // Map king squares to enumeration of actually available squares.
       // E.g., for xiangqi map from 0-89 to 0-8.
       // Variants might be initialized before bitboards, so do not rely on precomputed bitboards (like SquareBB).
+      // Furthermore conclude() might be called on invalid configuration during validation,
+      // therefore skip proper initialization in case of invalid board size.
       int nnueKingSquare = 0;
-      if (nnueKing)
+      if (nnueKing && nnueSquares <= SQUARE_NB)
           for (Square s = SQ_A1; s < nnueSquares; ++s)
           {
               Square bitboardSquare = Square(s + s / (maxFile + 1) * (FILE_MAX - maxFile));

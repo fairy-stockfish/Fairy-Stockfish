@@ -582,6 +582,16 @@ namespace {
         v->blackDropRegion = Rank8BB;
         return v;
     }
+    // Paradigm chess30
+    // 8x8 variant with a bishop+horse hybrid piece replacing bishops
+    // https://www.chessvariants.com/rules/paradigm-chess30
+    Variant* paradigm_variant() {
+        Variant *v = chess_variant_base()->init();
+        v->remove_piece(BISHOP);
+        v->add_piece(CUSTOM_PIECES, 'b', "BnN");
+        v->promotionPieceTypes = {QUEEN, CUSTOM_PIECES, ROOK, KNIGHT};
+        return v;
+    }
     // Base used for most shogi variants
     Variant* minishogi_variant_base() {
         Variant* v = variant_base()->init();
@@ -688,12 +698,15 @@ namespace {
         v->add_piece(KING, 'l');
         v->startFen = "gle/1c1/1C1/ELG[-] w 0 1";
         v->promotionRank = RANK_4;
+        v->mandatoryPiecePromotion = true;
         v->immobilityIllegal = false;
         v->shogiPawnDropMateIllegal = false;
         v->flagPiece = KING;
         v->whiteFlag = Rank4BB;
         v->blackFlag = Rank1BB;
         v->dropNoDoubled = NO_PIECE_TYPE;
+        v->nFoldValue = VALUE_DRAW;
+        v->perpetualCheckIllegal = false;
         return v;
     }
     // Goro goro shogi
@@ -1501,6 +1514,7 @@ void VariantMap::init() {
     add("seirawan", seirawan_variant());
     add("shouse", shouse_variant());
     add("dragon", dragon_variant());
+    add("paradigm", paradigm_variant());
     add("minishogi", minishogi_variant());
     add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());

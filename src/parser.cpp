@@ -378,8 +378,6 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
 
-    v->conclude(); // In preparation for the consistency checks below, in case conclude() hasn't been called yet.
-
     // Report invalid options
     if (DoCheck)
     {
@@ -398,6 +396,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                 if (std::count(v->pieceToChar.begin(), v->pieceToChar.end(), v->pieceToChar[make_piece(c, pt)]) != 1)
                     std::cerr << piece_name(pt) << " - Ambiguous piece character: " << v->pieceToChar[make_piece(c, pt)] << std::endl;
         }
+
+        v->conclude(); // In preparation for the consistency checks below
 
         // startFen
         if (FEN::validate_fen(v->startFen, v, v->chess960) != FEN::FEN_OK)
