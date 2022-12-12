@@ -571,6 +571,16 @@ namespace {
         v->blackDropRegion = Rank8BB;
         return v;
     }
+    // Paradigm chess30
+    // 8x8 variant with a bishop+horse hybrid piece replacing bishops
+    // https://www.chessvariants.com/rules/paradigm-chess30
+    Variant* paradigm_variant() {
+        Variant *v = chess_variant_base()->init();
+        v->remove_piece(BISHOP);
+        v->add_piece(CUSTOM_PIECES, 'b', "BnN");
+        v->promotionPieceTypes = {QUEEN, CUSTOM_PIECES, ROOK, KNIGHT};
+        return v;
+    }
     // Base used for most shogi variants
     Variant* minishogi_variant_base() {
         Variant* v = variant_base()->init();
@@ -1492,6 +1502,7 @@ void VariantMap::init() {
     add("seirawan", seirawan_variant());
     add("shouse", shouse_variant());
     add("dragon", dragon_variant());
+    add("paradigm", paradigm_variant());
     add("minishogi", minishogi_variant());
     add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());
