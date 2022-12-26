@@ -724,31 +724,58 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("janggi", fen, "f8f10", False, sf.NOTATION_SAN)
         self.assertEqual(result, "Cfxf10")
 
+        result = sf.get_san("makruk", MAKRUK, "e3e4")
+        self.assertEqual(result, "e4")
+        result = sf.get_san("makruk", MAKRUK, "e3e4", False, sf.NOTATION_THAI_SAN)
+        self.assertEqual(result, "จ๔")
+        result = sf.get_san("makruk", MAKRUK, "e3e4", False, sf.NOTATION_THAI_LAN)
+        self.assertEqual(result, "บ จ๓-จ๔")
+
+        fen = "r1smksnr/3n4/pppp1ppp/4p3/4PP2/PPPP2PP/8/RNSKMSNR w - - 0 1"
+        result = sf.get_san("makruk", fen, "f4e5")
+        self.assertEqual(result, "fxe5")
+        result = sf.get_san("makruk", fen, "f4e5", False, sf.NOTATION_THAI_SAN)
+        self.assertEqual(result, "ฉxจ๕")
+        result = sf.get_san("makruk", fen, "f4e5", False, sf.NOTATION_THAI_LAN)
+        self.assertEqual(result, "บ ฉ๔xจ๕")
+
         fen = "rnsm1s1r/4n1k1/1ppppppp/p7/2PPP3/PP3PPP/4N2R/RNSKMS2 b - - 1 5"
         result = sf.get_san("makruk", fen, "f8f7")
         self.assertEqual(result, "Sf7")
         result = sf.get_san("makruk", fen, "f8f7", False, sf.NOTATION_THAI_SAN)
-        self.assertEqual(result, "คฉ๗")
+        self.assertEqual(result, "ค-ฉ๗")
+        result = sf.get_san("makruk", fen, "f8f7", False, sf.NOTATION_THAI_LAN)
+        self.assertEqual(result, "ค ฉ๘-ฉ๗")
 
         fen = "4k3/8/8/4S3/8/2S5/8/4K3 w - - 0 1"
         result = sf.get_san("makruk", fen, "e5d4")
         self.assertEqual(result, "Sed4")
-
         result = sf.get_san("makruk", fen, "c3d4")
         self.assertEqual(result, "Scd4")
-
         result = sf.get_san("makruk", fen, "e5d4", False, sf.NOTATION_THAI_SAN)
-        self.assertEqual(result, "คจง๔")
-
+        self.assertEqual(result, "คจ-ง๔")
         result = sf.get_san("makruk", fen, "c3d4", False, sf.NOTATION_THAI_SAN)
-        self.assertEqual(result, "คคง๔")
+        self.assertEqual(result, "คค-ง๔")
+        result = sf.get_san("makruk", fen, "e5d4", False, sf.NOTATION_THAI_LAN)
+        self.assertEqual(result, "ค จ๕-ง๔")
+        result = sf.get_san("makruk", fen, "c3d4", False, sf.NOTATION_THAI_LAN)
+        self.assertEqual(result, "ค ค๓-ง๔")
+
+        # Distinction between the regular met and the promoted pawn
+        fen = "4k3/8/4M3/4S3/8/2S5/8/4K3 w - - 0 1"
+        result = sf.get_san("makruk", fen, "e6d5", False, sf.NOTATION_THAI_SAN)
+        self.assertEqual(result, "ม็-ง๕")
+        fen = "4k3/8/4M~3/4S3/8/2S5/8/4K3 w - - 0 1"
+        result = sf.get_san("makruk", fen, "e6d5", False, sf.NOTATION_THAI_SAN)
+        self.assertEqual(result, "ง-ง๕")
 
         fen = "4k3/8/8/3S4/8/3S4/8/4K3 w - - 0 1"
         result = sf.get_san("makruk", fen, "d3d4")
         self.assertEqual(result, "Sd4")
-
         result = sf.get_san("makruk", fen, "d3d4", False, sf.NOTATION_THAI_SAN)
-        self.assertEqual(result, "คง๔")
+        self.assertEqual(result, "ค-ง๔")
+        result = sf.get_san("makruk", fen, "d3d4", False, sf.NOTATION_THAI_LAN)
+        self.assertEqual(result, "ค ง๓-ง๔")
 
 
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
