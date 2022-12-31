@@ -46,6 +46,9 @@ enum Notation {
     NOTATION_JANGGI,
     // https://en.wikipedia.org/wiki/Xiangqi#Notation
     NOTATION_XIANGQI_WXF,
+    // https://web.archive.org/web/20180817205956/http://bgsthai.com/2018/05/07/lawofthaichessc/
+    NOTATION_THAI_SAN,
+    NOTATION_THAI_LAN,
 };
 
 inline Notation default_notation(const Variant* v) {
@@ -64,6 +67,9 @@ enum Termination {
     VARIANT_END,
 };
 
+const std::array<std::string, 12> THAI_FILES = {"ก", "ข", "ค", "ง", "จ", "ฉ", "ช", "ญ", "ต", "ถ", "ธ", "น"};
+const std::array<std::string, 12> THAI_RANKS = {"๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙", "๑๐", "๑๑", "๑๒"};
+
 namespace SAN {
 
 enum Disambiguation {
@@ -77,6 +83,10 @@ inline bool is_shogi(Notation n) {
     return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES || n == NOTATION_SHOGI_HODGES_NUMBER;
 }
 
+inline bool is_thai(Notation n) {
+    return n == NOTATION_THAI_SAN || n == NOTATION_THAI_LAN;
+}
+
 // is there more than one file with a pair of pieces?
 inline bool multi_tandem(Bitboard b) {
     int tandems = 0;
@@ -86,13 +96,34 @@ inline bool multi_tandem(Bitboard b) {
     return tandems >= 2;
 }
 
+inline std::string piece_to_thai_char(Piece pc, bool promoted) {
+    switch(type_of(pc)) {
+        case KING:
+            return "ข";
+        case KHON:
+            return "ค";
+        case FERS:
+            return promoted ? "ง" : "ม็";
+        case KNIGHT:
+            return "ม";
+        case ROOK:
+            return "ร";
+        case PAWN:
+            return "บ";
+        case AIWOK:
+            return "ว";
+        default:
+            return "X";
+    }
+}
+
 inline std::string piece(const Position& pos, Move m, Notation n) {
     Color us = pos.side_to_move();
     Square from = from_sq(m);
     Piece pc = pos.moved_piece(m);
     PieceType pt = type_of(pc);
     // Quiet pawn moves
-    if ((n == NOTATION_SAN || n == NOTATION_LAN) && type_of(pc) == PAWN && type_of(m) != DROP)
+    if ((n == NOTATION_SAN || n == NOTATION_LAN || n == NOTATION_THAI_SAN) && type_of(pc) == PAWN && type_of(m) != DROP)
         return "";
     // Tandem pawns
     else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
@@ -103,6 +134,8 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     // Promoted drops
     else if (is_shogi(n) && type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
         return "+" + std::string(1, toupper(pos.piece_to_char()[in_hand_piece_type(m)]));
+    else if (is_thai(n))
+        return piece_to_thai_char(pc, pos.is_promoted(from));
     else if (pos.piece_to_char_synonyms()[pc] != ' ')
         return std::string(1, toupper(pos.piece_to_char_synonyms()[pc]));
     else
@@ -120,6 +153,9 @@ inline std::string file(const Position& pos, Square s, Notation n) {
         return std::to_string(file_of(s) + 1);
     case NOTATION_XIANGQI_WXF:
         return std::to_string((pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s)) + 1);
+    case NOTATION_THAI_SAN:
+    case NOTATION_THAI_LAN:
+        return THAI_FILES[file_of(s)];
     default:
         return std::string(1, char('a' + file_of(s)));
     }
@@ -145,6 +181,9 @@ inline std::string rank(const Position& pos, Square s, Notation n) {
         else
             return "+";
     }
+    case NOTATION_THAI_SAN:
+    case NOTATION_THAI_LAN:
+        return THAI_RANKS[rank_of(s)];
     default:
         return std::to_string(rank_of(s) + 1);
     }
@@ -166,7 +205,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
         return NO_DISAMBIGUATION;
 
     // NOTATION_LAN and Janggi always use disambiguation
-    if (n == NOTATION_LAN || n == NOTATION_JANGGI)
+    if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || n == NOTATION_JANGGI)
         return SQUARE_DISAMBIGUATION;
 
     Color us = pos.side_to_move();
@@ -190,7 +229,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
     }
 
     // Pawn captures always use disambiguation
-    if (n == NOTATION_SAN && pt == PAWN)
+    if ((n == NOTATION_SAN || n == NOTATION_THAI_SAN) && pt == PAWN)
     {
         if (pos.capture(m))
             return FILE_DISAMBIGUATION;
@@ -263,6 +302,9 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         // Piece
         san += piece(pos, m, n);
 
+        if (n == NOTATION_THAI_LAN)
+            san += " ";
+
         // Origin square, disambiguation
         Disambiguation d = disambiguation_level(pos, m, n);
         san += disambiguation(pos, from, n, d);
@@ -281,7 +323,7 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         }
         else if (pos.capture(m))
             san += 'x';
-        else if (n == NOTATION_LAN || (is_shogi(n) && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION)) || n == NOTATION_JANGGI)
+        else if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || (is_shogi(n) && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION)) || n == NOTATION_JANGGI || (n == NOTATION_THAI_SAN && type_of(pos.moved_piece(m)) != PAWN))
             san += '-';
 
         // Destination square
