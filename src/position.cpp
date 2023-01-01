@@ -44,6 +44,7 @@ namespace Zobrist {
   Key side, noPawns;
   Key inHand[PIECE_NB][SQUARE_NB];
   Key checks[COLOR_NB][CHECKS_NB];
+  Key wall[SQUARE_NB];
 }
 
 
@@ -172,6 +173,9 @@ void Position::init() {
           for (int n = 0; n < SQUARE_NB; ++n)
               Zobrist::inHand[make_piece(c, pt)][n] = rng.rand<Key>();
 
+  for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+      Zobrist::wall[s] = rng.rand<Key>();
+
   // Prepare the cuckoo tables
   std::memset(cuckoo, 0, sizeof(cuckoo));
   std::memset(cuckooMove, 0, sizeof(cuckooMove));
@@ -283,10 +287,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
               break;
       }
 
-      // Place duck
-      else if (var->duck && token == '*')
+      // Wall square
+      else if (token == '*')
       {
-          st->duckSq = sq;
+          if (var->duck)
+              st->duckSq = sq;
           byTypeBB[ALL_PIECES] |= sq;
           ++sq;
       }
@@ -582,21 +587,21 @@ void Position::set_state(StateInfo* si) const {
 
   set_check_info(si);
 
-  for (Bitboard b = pieces(WHITE) | pieces(BLACK); b; )
+  for (Bitboard b = pieces(); b; )
   {
       Square s = pop_lsb(b);
       Piece pc = piece_on(s);
       si->key ^= Zobrist::psq[pc][s];
 
-      if (type_of(pc) == PAWN)
+      if (!pc)
+          si->key ^= Zobrist::wall[s];
+
+      else if (type_of(pc) == PAWN)
           si->pawnKey ^= Zobrist::psq[pc][s];
 
       else if (type_of(pc) != KING)
           si->nonPawnMaterial[color_of(pc)] += PieceValue[MG][pc];
   }
-
-  if (st->duckSq != SQ_NONE)
-      si->key ^= Zobrist::psq[make_piece(WHITE, KING)][st->duckSq];
 
   if (si->epSquare != SQ_NONE)
       si->key ^= Zobrist::enpassant[file_of(si->epSquare)];
@@ -660,7 +665,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   {
       for (File f = FILE_A; f <= max_file(); ++f)
       {
-          for (emptyCnt = 0; f <= max_file() && empty(make_square(f, r)) && make_square(f, r) != st->duckSq; ++f)
+          for (emptyCnt = 0; f <= max_file() && !(pieces() & make_square(f, r)); ++f)
               ++emptyCnt;
 
           if (emptyCnt)
@@ -668,7 +673,8 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
           if (f <= max_file())
           {
-              if (make_square(f, r) == st->duckSq)
+              if (empty(make_square(f, r)))
+                  // Wall square
                   ss << "*";
               else if (unpromoted_piece_on(make_square(f, r)))
                   // Promoted shogi pieces, e.g., +r for dragon
@@ -1229,13 +1235,13 @@ bool Position::pseudo_legal(const Move m) const {
       if (mandatory_pawn_promotion() && rank_of(to) == relative_rank(us, promotion_rank(), max_rank()) && !sittuyin_promotion())
           return false;
 
-      if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to) // Not a capture
-          && !((from + pawn_push(us) == to) && empty(to) && to != st->duckSq)       // Not a single push
-          && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
+      if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to)     // Not a capture
+          && !((from + pawn_push(us) == to) && !(pieces() & to)) // Not a single push
+          && !(   (from + 2 * pawn_push(us) == to)               // Not a double push
                && (   relative_rank(us, from, max_rank()) <= double_step_rank_max()
                    && relative_rank(us, from, max_rank()) >= double_step_rank_min())
-               && empty(to) && to != st->duckSq
-               && empty(to - pawn_push(us)) && to - pawn_push(us) != st->duckSq
+               && !(pieces() & to)
+               && !(pieces() & (to - pawn_push(us)))
                && double_step_enabled()))
           return false;
   }
@@ -1860,11 +1866,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (st->previous->duckSq != SQ_NONE)
       {
           byTypeBB[ALL_PIECES] ^= st->previous->duckSq;
-          k ^= Zobrist::psq[make_piece(WHITE, KING)][st->previous->duckSq];
+          k ^= Zobrist::wall[st->previous->duckSq];
       }
       st->duckSq = gating_square(m);
       byTypeBB[ALL_PIECES] |= gating_square(m);
-      k ^= Zobrist::psq[make_piece(WHITE, KING)][gating_square(m)];
+      k ^= Zobrist::wall[gating_square(m)];
   }
   else
       st->duckSq = SQ_NONE;
