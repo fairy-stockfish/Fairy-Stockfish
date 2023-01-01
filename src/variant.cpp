@@ -414,7 +414,7 @@ namespace {
         v->castlingKingPiece = COMMONER;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER};
-        v->duck = true;
+        v->duckGating = true;
         return v;
     }
 #endif
@@ -1345,13 +1345,12 @@ namespace {
     // https://en.wikipedia.org/wiki/Game_of_the_Amazons
     Variant* amazons_variant() {
         Variant* v = chess_variant_base()->init();
-        v->pieceToCharTable = "P...Q.................p...q.................";
+        v->pieceToCharTable = "....Q.....................q.................";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->reset_pieces();
         v->add_piece(CUSTOM_PIECES, 'q', "mQ");
-        v->add_piece(IMMOBILE_PIECE, 'p');
-        v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppppppppppppppppp] w - - 0 1";
+        v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
         v->arrowGating = true;
         return v;

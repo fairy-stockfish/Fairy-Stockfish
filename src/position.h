@@ -54,6 +54,7 @@ struct StateInfo {
   CheckCount checksRemaining[COLOR_NB];
   Square epSquare;
   Square castlingKingSquare[COLOR_NB];
+  Bitboard wallSquares;
   Bitboard gatesBB[COLOR_NB];
 
   // Not copied when making a move (will be recomputed anyhow)
@@ -68,7 +69,6 @@ struct StateInfo {
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
   Piece      capturedPiece;
-  Square     duckSq;
   Bitboard   nonSlidingRiders;
   Bitboard   flippedPieces;
   Bitboard   pseudoRoyals;
@@ -172,7 +172,7 @@ public:
   PieceType drop_no_doubled() const;
   bool immobility_illegal() const;
   bool gating() const;
-  bool arrow_gating() const;
+  bool wall_gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
@@ -724,9 +724,9 @@ inline bool Position::gating() const {
   return var->gating;
 }
 
-inline bool Position::arrow_gating() const {
+inline bool Position::wall_gating() const {
   assert(var != nullptr);
-  return var->arrowGating;
+  return var->arrowGating || var->duckGating;
 }
 
 inline bool Position::seirawan_gating() const {

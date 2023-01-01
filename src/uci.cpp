@@ -531,8 +531,8 @@ string UCI::move(const Position& pos, Move m) {
   string move = (type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (CurrentProtocol == USI ? '*' : '@')
                                     : UCI::square(pos, from)) + UCI::square(pos, to);
 
-  // Duck square
-  if (pos.variant()->duck && CurrentProtocol == XBOARD)
+  // Wall square
+  if (pos.wall_gating() && CurrentProtocol == XBOARD)
       move += "," + UCI::square(pos, to) + UCI::square(pos, gating_square(m));
 
   if (type_of(m) == PROMOTION)
@@ -548,8 +548,8 @@ string UCI::move(const Position& pos, Move m) {
           move += UCI::square(pos, gating_square(m));
   }
 
-  // Duck square
-  if (pos.variant()->duck && CurrentProtocol != XBOARD)
+  // Wall square
+  if (pos.wall_gating() && CurrentProtocol != XBOARD)
       move += "," + UCI::square(pos, to) + UCI::square(pos, gating_square(m));
 
   return move;

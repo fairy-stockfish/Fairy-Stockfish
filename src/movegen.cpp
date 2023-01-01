@@ -28,21 +28,8 @@ namespace {
   template<MoveType T>
   ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
-    // Arrow gating moves
-    if (pos.arrow_gating())
-    {
-        for (PieceType pt_gating : pos.piece_types())
-            if (pos.can_drop(us, pt_gating))
-            {
-                Bitboard b = pos.drop_region(us, pt_gating) & moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from) & ~(pos.pieces() ^ from);
-                while (b)
-                    *moveList++ = make_gating<T>(from, to, pt_gating, pop_lsb(b));
-            }
-        return moveList;
-    }
-
-    // Duck placing moves
-    if (pos.variant()->duck)
+    // Wall placing moves
+    if (pos.wall_gating())
     {
         Bitboard b = pos.board_bb() & ~((pos.pieces() ^ from) | to);
         if (T == CASTLING)
@@ -54,6 +41,8 @@ namespace {
         }
         if (T == EN_PASSANT)
             b ^= to - pawn_push(us);
+        if (pos.variant()->arrowGating)
+            b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
         while (b)
             *moveList++ = make_gating<T>(from, to, pt, pop_lsb(b));
         return moveList;
@@ -343,8 +332,8 @@ namespace {
                : Type == CAPTURES     ?  pos.pieces(~Us)
                                       : ~pos.pieces(   ); // QUIETS || QUIET_CHECKS
 
-        if (pos.state()->duckSq != SQ_NONE)
-            target &= ~square_bb(pos.state()->duckSq);
+        // Remove wall squares
+        target &= ~pos.state()->wallSquares;
 
         if (Type == EVASIONS)
         {

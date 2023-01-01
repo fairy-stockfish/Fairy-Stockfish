@@ -281,7 +281,7 @@ void MainThread::search() {
       if (!Limits.infinite && !ponder && rootMoves[0].pv[0] != MOVE_NONE && !Threads.abort.exchange(true))
       {
           std::string move = UCI::move(rootPos, bestMove);
-          if (rootPos.variant()->duck)
+          if (rootPos.wall_gating())
           {
               sync_cout << "move " << move.substr(0, move.find(",")) << "," << sync_endl;
               sync_cout << "move " << move.substr(move.find(",") + 1) << sync_endl;
@@ -999,7 +999,7 @@ namespace {
     {
         assert(probCutBeta < VALUE_INFINITE);
 
-        MovePicker mp(pos, ttMove, probCutBeta - ss->staticEval, &thisThread->duckHistory, &captureHistory);
+        MovePicker mp(pos, ttMove, probCutBeta - ss->staticEval, &thisThread->gateHistory, &captureHistory);
         int probCutCount = 0;
         bool ttPv = ss->ttPv;
         ss->ttPv = false;
@@ -1078,7 +1078,7 @@ moves_loop: // When in check, search starts from here
     Move countermove = thisThread->counterMoves[pos.piece_on(prevSq)][prevSq];
 
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory,
-                                      &thisThread->duckHistory,
+                                      &thisThread->gateHistory,
                                       &thisThread->lowPlyHistory,
                                       &captureHistory,
                                       contHist,
@@ -1183,7 +1183,7 @@ moves_loop: // When in check, search starts from here
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
-              if (!pos.variant()->duck && !pos.see_ge(move, Value(-(30 - std::min(lmrDepth, 18) + 10 * !!pos.capture_the_flag_piece()) * lmrDepth * lmrDepth)))
+              if (!pos.variant()->duckGating && !pos.see_ge(move, Value(-(30 - std::min(lmrDepth, 18) + 10 * !!pos.capture_the_flag_piece()) * lmrDepth * lmrDepth)))
                   continue;
           }
       }
@@ -1323,7 +1323,7 @@ moves_loop: // When in check, search starts from here
                   r++;
 
               ss->statScore =  thisThread->mainHistory[us][from_to(move)]
-                             + thisThread->duckHistory[us][gating_square(move)] * 3
+                             + thisThread->gateHistory[us][gating_square(move)] * 3
                              + (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
                              + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
                              + (*contHist[3])[history_slot(movedPiece)][to_sq(move)]
@@ -1624,7 +1624,7 @@ moves_loop: // When in check, search starts from here
     // queen promotions, and other checks (only if depth >= DEPTH_QS_CHECKS)
     // will be generated.
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory,
-                                      &thisThread->duckHistory,
+                                      &thisThread->gateHistory,
                                       &thisThread->captureHistory,
                                       contHist,
                                       to_sq((ss-1)->currentMove));
@@ -1823,8 +1823,8 @@ moves_loop: // When in check, search starts from here
         {
             if (from_to(quietsSearched[i]) != from_to(bestMove))
                 thisThread->mainHistory[us][from_to(quietsSearched[i])] << -bonus2;
-            if (pos.variant()->duck)
-                thisThread->duckHistory[us][gating_square(quietsSearched[i])] << -bonus2;
+            if (pos.wall_gating())
+                thisThread->gateHistory[us][gating_square(quietsSearched[i])] << -bonus2;
             update_continuation_histories(ss, pos.moved_piece(quietsSearched[i]), to_sq(quietsSearched[i]), -bonus2);
         }
     }
@@ -1832,8 +1832,8 @@ moves_loop: // When in check, search starts from here
     {
         // Increase stats for the best move in case it was a capture move
         captureHistory[moved_piece][to_sq(bestMove)][captured] << bonus1;
-        if (pos.variant()->duck)
-            thisThread->duckHistory[us][gating_square(bestMove)] << bonus1;
+        if (pos.wall_gating())
+            thisThread->gateHistory[us][gating_square(bestMove)] << bonus1;
     }
 
     // Extra penalty for a quiet early move that was not a TT move or
@@ -1849,8 +1849,8 @@ moves_loop: // When in check, search starts from here
         captured = type_of(pos.piece_on(to_sq(capturesSearched[i])));
         if (from_to(capturesSearched[i]) != from_to(bestMove))
             captureHistory[moved_piece][to_sq(capturesSearched[i])][captured] << -bonus1;
-        if (pos.variant()->duck)
-            thisThread->duckHistory[us][gating_square(capturesSearched[i])] << -bonus1;
+        if (pos.wall_gating())
+            thisThread->gateHistory[us][gating_square(capturesSearched[i])] << -bonus1;
     }
   }
 
@@ -1885,8 +1885,8 @@ moves_loop: // When in check, search starts from here
     Color us = pos.side_to_move();
     Thread* thisThread = pos.this_thread();
     thisThread->mainHistory[us][from_to(move)] << bonus;
-    if (pos.variant()->duck)
-        thisThread->duckHistory[us][gating_square(move)] << bonus;
+    if (pos.wall_gating())
+        thisThread->gateHistory[us][gating_square(move)] << bonus;
     update_continuation_histories(ss, pos.moved_piece(move), to_sq(move), bonus);
 
     // Penalty for reversed move in case of moved piece not being a pawn

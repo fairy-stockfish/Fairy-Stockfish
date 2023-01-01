@@ -60,7 +60,9 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
   for (Rank r = pos.max_rank(); r >= RANK_1; --r)
   {
       for (File f = FILE_A; f <= pos.max_file(); ++f)
-          if (pos.unpromoted_piece_on(make_square(f, r)))
+          if (pos.state()->wallSquares & make_square(f, r))
+              os << " | *";
+          else if (pos.unpromoted_piece_on(make_square(f, r)))
               os << " |+" << pos.piece_to_char()[pos.unpromoted_piece_on(make_square(f, r))];
           else
               os << " | " << pos.piece_to_char()[pos.piece_on(make_square(f, r))];
@@ -73,7 +75,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
               os << " *";
           else
               os << "  ";
-          if (!pos.variant()->freeDrops && (pos.piece_drops() || pos.seirawan_gating() || pos.arrow_gating()))
+          if (!pos.variant()->freeDrops && (pos.piece_drops() || pos.seirawan_gating()))
           {
               os << " [";
               for (PieceType pt = KING; pt >= PAWN; --pt)
@@ -263,7 +265,6 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   ss >> std::noskipws;
 
   Square sq = SQ_A1 + max_rank() * NORTH;
-  st->duckSq = SQ_NONE;
 
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
@@ -290,8 +291,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       // Wall square
       else if (token == '*')
       {
-          if (var->duck)
-              st->duckSq = sq;
+          st->wallSquares |= sq;
           byTypeBB[ALL_PIECES] |= sq;
           ++sq;
       }
@@ -619,7 +619,7 @@ void Position::set_state(StateInfo* si) const {
           for (int cnt = 0; cnt < pieceCount[pc]; ++cnt)
               si->materialKey ^= Zobrist::psq[pc][cnt];
 
-          if (piece_drops() || seirawan_gating() || arrow_gating())
+          if (piece_drops() || seirawan_gating())
               si->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
       }
 
@@ -713,7 +713,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   }
 
   // pieces in hand
-  if (!variant()->freeDrops && (piece_drops() || seirawan_gating() || arrow_gating()))
+  if (!variant()->freeDrops && (piece_drops() || seirawan_gating()))
   {
       ss << '[';
       if (holdings != "-")
@@ -1199,12 +1199,18 @@ bool Position::pseudo_legal(const Move m) const {
 
   // Use a slower but simpler function for uncommon cases
   // yet we skip the legality check of MoveList<LEGAL>().
-  if (type_of(m) != NORMAL || is_gating(m) || arrow_gating())
+  if (type_of(m) != NORMAL || is_gating(m))
       return checkers() ? MoveList<    EVASIONS>(*this).contains(m)
                         : MoveList<NON_EVASIONS>(*this).contains(m);
 
-  // Illegal duck placement
-  if (var->duck && (!((board_bb() & ~((pieces() ^ from) | to)) & gating_square(m)) || to == st->duckSq))
+  // Illegal wall square usage
+  if (st->wallSquares & to)
+      return false;
+
+  // Illegal wall square placement
+  if (wall_gating() && !((board_bb() & ~((pieces() ^ from) | to)) & gating_square(m)))
+      return false;
+  if (var->arrowGating && !(moves_bb(us, type_of(pc), to, pieces() ^ from) & gating_square(m)))
       return false;
 
   // Handle the case where a mandatory piece promotion/demotion is not taken
@@ -1648,7 +1654,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           && std::abs(int(to) - int(from)) == 2 * NORTH
           && (var->enPassantRegion & (to - pawn_push(us)))
           && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN))
-          && !(var->duck && gating_square(m) == to - pawn_push(us)))
+          && !(wall_gating() && gating_square(m) == to - pawn_push(us)))
       {
           st->epSquare = to - pawn_push(us);
           k ^= Zobrist::enpassant[file_of(st->epSquare)];
@@ -1861,19 +1867,21 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       }
   }
 
-  if (var->duck)
+  if (wall_gating())
   {
-      if (st->previous->duckSq != SQ_NONE)
+      // Reset wall squares for duck gating
+      if (var->duckGating)
       {
-          byTypeBB[ALL_PIECES] ^= st->previous->duckSq;
-          k ^= Zobrist::wall[st->previous->duckSq];
+          Bitboard b = st->previous->wallSquares;
+          byTypeBB[ALL_PIECES] ^= b;
+          while (b)
+              k ^= Zobrist::wall[pop_lsb(b)];
+          st->wallSquares = 0;
       }
-      st->duckSq = gating_square(m);
+      st->wallSquares |= gating_square(m);
       byTypeBB[ALL_PIECES] |= gating_square(m);
       k ^= Zobrist::wall[gating_square(m)];
   }
-  else
-      st->duckSq = SQ_NONE;
 
   // Update the key with the final value
   st->key = k;
@@ -1942,12 +1950,9 @@ void Position::undo_move(Move m) {
          || (is_pass(m) && pass()));
   assert(type_of(st->capturedPiece) != KING);
 
-  if (var->duck)
-  {
-      byTypeBB[ALL_PIECES] ^= st->duckSq;
-      if (st->previous->duckSq != SQ_NONE)
-          byTypeBB[ALL_PIECES] |= st->previous->duckSq;
-  }
+  // Reset wall squares
+  if (wall_gating())
+      byTypeBB[ALL_PIECES] ^= st->wallSquares ^ st->previous->wallSquares;
 
   // Add the blast pieces
   if (st->capturedPiece && blast_on_capture())
@@ -2307,7 +2312,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           stmAttackers &= ~blockers_for_king(stm);
 
       // Ignore distant sliders
-      if (var->duck)
+      if (var->duckGating)
           stmAttackers &= attacks_bb<KING>(to) | ~(pieces(BISHOP, ROOK) | pieces(QUEEN));
 
       if (!stmAttackers)
@@ -2769,7 +2774,7 @@ bool Position::has_game_cycle(int ply) const {
 
   int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
-  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal || var->materialCounting || var->moveRepetitionIllegal || var->duck)
+  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal || var->materialCounting || var->moveRepetitionIllegal || var->duckGating)
     return false;
 
   Key originalKey = st->key;

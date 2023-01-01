@@ -163,6 +163,7 @@ fi
 
 # special variants
 if [[ $1 == "all" ]]; then
+  expect perft.exp duck startpos 1 640 > /dev/null
   expect perft.exp amazons startpos 1 2176 > /dev/null
 fi
 
