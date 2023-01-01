@@ -555,7 +555,9 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
     {
         if (c == ' ' || c == '[')
             break;
-        if (isdigit(c))
+        if (c == '*')
+            ++fileIdx;
+        else if (isdigit(c))
         {
             fileIdx += c - '0';
             // if we have multiple digits attached we can add multiples of 9 to compute the resulting number (e.g. -> 21 = 2 + 2 * 9 + 1)
