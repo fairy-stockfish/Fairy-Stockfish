@@ -405,6 +405,7 @@ namespace {
         v->extinctionPseudoRoyal = true;
         return v;
     }
+#ifdef ALLVARS
     // Duck chess
     Variant* duck_variant() {
         Variant* v = chess_variant_base()->init();
@@ -416,6 +417,7 @@ namespace {
         v->duck = true;
         return v;
     }
+#endif
     // Three-check chess
     // Check the king three times to win
     // https://lichess.org/variant/threeCheck
@@ -1500,7 +1502,9 @@ void VariantMap::init() {
     add("horde", horde_variant());
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
+#ifdef ALLVARS
     add("duck", duck_variant());
+#endif
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
     add("crazyhouse", crazyhouse_variant());
