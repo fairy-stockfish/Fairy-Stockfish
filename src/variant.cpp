@@ -1188,6 +1188,21 @@ namespace {
         v->promotionPieceTypes = {CENTAUR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Gustav III chess
+    // 10x8 variant with an amazon piece and wall squares
+    // https://www.chessvariants.com/play/gustav-iiis-chess
+    Variant* gustav3_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->pieceToCharTable = "PNBRQ.............AKpnbrq.............ak";
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_J;
+        v->castlingKingsideFile = FILE_H;
+        v->castlingQueensideFile = FILE_D;
+        v->add_piece(AMAZON, 'a');
+        v->startFen = "arnbqkbnra/*pppppppp*/*8*/*8*/*8*/*8*/*PPPPPPPP*/ARNBQKBNRA w KQkq - 0 1";
+        v->promotionPieceTypes = {AMAZON, QUEEN, ROOK, BISHOP, KNIGHT};
+        return v;
+    }
     // Jeson mor
     // Mongolian chess variant with knights only and a king of the hill like goal
     // https://en.wikipedia.org/wiki/Jeson_Mor
@@ -1554,6 +1569,7 @@ void VariantMap::init() {
     add("chancellor", chancellor_variant());
     add("embassy", embassy_variant());
     add("centaur", centaur_variant());
+    add("gustav3", gustav3_variant());
     add("jesonmor", jesonmor_variant());
     add("courier", courier_variant());
     add("grand", grand_variant());
