@@ -345,6 +345,10 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
             san += std::string("/") + (char)toupper(pos.piece_to_char()[make_piece(us, gating_type(m))]);
     }
 
+    // Wall square
+    if (pos.wall_gating())
+        san += "," + square(pos, gating_square(m), n);
+
     // Check and checkmate
     if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
     {
@@ -885,13 +889,13 @@ inline Validation check_digit_field(const std::string& field) {
 }
 
 inline std::string get_valid_special_chars(const Variant* v) {
-    std::string validSpecialCharactersFirstField = "/";
+    std::string validSpecialCharactersFirstField = "/*";
     // Whether or not '-', '+', '~', '[', ']' are valid depends on the variant being played.
     if (v->shogiStylePromotions)
         validSpecialCharactersFirstField += '+';
     if (!v->promotionPieceTypes.empty())
         validSpecialCharactersFirstField += '~';
-    if (!v->freeDrops && (v->pieceDrops || v->seirawanGating || v->arrowGating))
+    if (!v->freeDrops && (v->pieceDrops || v->seirawanGating))
         validSpecialCharactersFirstField += "[-]";
     return validSpecialCharactersFirstField;
 }
@@ -935,7 +939,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
 
     // check for pocket
     std::string pocket = "";
-    if (v->pieceDrops || v->seirawanGating || v->arrowGating)
+    if (v->pieceDrops || v->seirawanGating)
     {
         if (check_pocket_info(fenParts[0], nbRanks, v, pocket) == NOK)
             return FEN_INVALID_POCKET_INFO;

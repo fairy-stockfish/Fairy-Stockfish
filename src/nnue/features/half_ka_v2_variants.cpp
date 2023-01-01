@@ -53,7 +53,7 @@ namespace Stockfish::Eval::NNUE::Features {
     ValueListInserter<IndexType> active
   ) {
     Square oriented_ksq = orient(perspective, pos.nnue_king_square(perspective), pos);
-    Bitboard bb = pos.pieces();
+    Bitboard bb = pos.pieces(WHITE) | pos.pieces(BLACK);
     while (bb)
     {
       Square s = pop_lsb(bb);

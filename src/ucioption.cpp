@@ -48,7 +48,7 @@ namespace UCI {
 std::set<string> standard_variants = {
     "normal", "nocastle", "fischerandom", "knightmate", "3check", "makruk", "shatranj",
     "asean", "seirawan", "crazyhouse", "bughouse", "suicide", "giveaway", "losers", "atomic",
-    "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi"
+    "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi", "duck"
 };
 
 void init_variant(const Variant* v) {
