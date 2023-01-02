@@ -415,6 +415,7 @@ namespace {
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER};
         v->duckGating = true;
+        v->stalemateValue = VALUE_MATE;
         return v;
     }
 #endif
