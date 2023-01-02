@@ -415,6 +415,8 @@ namespace {
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = {COMMONER};
         v->duckGating = true;
+        //the stalemated side wins in Duck Chess, https://www.chess.com/terms/duck-chess#rules
+        v->stalemateValue = VALUE_MATE; 
         return v;
     }
 #endif
