@@ -1313,6 +1313,26 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Omicron chess
+    // Omega chess on a 12x10 board
+    // http://www.eglebbk.dds.nl/program/chess-omicron.html
+    Variant* omicron_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->pieceToCharTable = "PNBRQ..C.W...........Kpnbrq..c.w...........k";
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_L;
+        v->startFen = "w**********w/*crnbqkbnrc*/*pppppppppp*/*10*/*10*/*10*/*10*/*PPPPPPPPPP*/*CRNBQKBNRC*/W**********W w KQkq - 0 1";
+        v->add_piece(CUSTOM_PIECES, 'c', "DAW"); // Champion
+        v->add_piece(CUSTOM_PIECES + 1, 'w', "CF"); // Wizard
+        v->castlingKingsideFile = FILE_I;
+        v->castlingQueensideFile = FILE_E;
+        v->castlingRank = RANK_2;
+        v->promotionRank = RANK_9;
+        v->promotionPieceTypes = {CUSTOM_PIECES + 1, CUSTOM_PIECES, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->doubleStepRank = RANK_3;
+        v->doubleStepRankMin = RANK_3;
+        return v;
+    }
     // Shako
     // 10x10 variant with cannons by Jean-Louis Cazaux
     // https://www.chessvariants.com/large.dir/shako.html
@@ -1575,6 +1595,7 @@ void VariantMap::init() {
     add("grand", grand_variant());
     add("opulent", opulent_variant());
     add("tencubed", tencubed_variant());
+    add("omicron", omicron_variant());
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
     add("flipello10", flipello10_variant());
