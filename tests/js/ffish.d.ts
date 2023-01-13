@@ -40,7 +40,7 @@ export interface Board {
     hasInsufficientMaterial(turn: boolean): boolean;
     isInsufficientMaterial(): boolean;
     isGameOver(claimDraw: boolean): boolean;
-    result(claimDraw: boolean): boolean;
+    result(claimDraw: boolean): string;
     isCheck(): boolean;
     isBikjang(): boolean;
     moveStack(): string;
