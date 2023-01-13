@@ -328,6 +328,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("immobilityIllegal", v->immobilityIllegal);
     parse_attribute("gating", v->gating);
     parse_attribute("arrowGating", v->arrowGating);
+    parse_attribute("duckGating", v->duckGating);
     parse_attribute("seirawanGating", v->seirawanGating);
     parse_attribute("cambodianMoves", v->cambodianMoves);
     parse_attribute("diagonalLines", v->diagonalLines);
@@ -434,7 +435,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             std::cerr << "Inconsistent settings: castlingQueensideFile > castlingKingsideFile." << std::endl;
 
         // Check for limitations
-
+        if (v->pieceDrops && (v->arrowGating || v->duckGating))
+            std::cerr << "pieceDrops and arrowGating/duckGating are incompatible." << std::endl;
         // Options incompatible with royal kings
         if (v->pieceTypes.find(KING) != v->pieceTypes.end())
         {
@@ -442,6 +444,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                 std::cerr << "Can not use kings with blastOnCapture." << std::endl;
             if (v->flipEnclosedPieces)
                 std::cerr << "Can not use kings with flipEnclosedPieces." << std::endl;
+            if (v->duckGating)
+                std::cerr << "Can not use kings with duckGating." << std::endl;
             // We can not fully check support for custom king movements at this point,
             // since custom pieces are only initialized on loading of the variant.
             // We will assume this is valid, but it might cause problems later if it's not.
