@@ -112,6 +112,8 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp minishogi startpos 5 533203 > /dev/null
   expect perft.exp kyotoshogi startpos 5 225903 > /dev/null
   expect perft.exp torishogi startpos 4 103857 > /dev/null
+  expect perft.exp koedem "fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB2BNR[KQ] w kq - 0 1" 1 34 > /dev/null
+  expect perft.exp koedem "fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1KBNR[Q] w KQkq - 0 1" 1 54 > /dev/null
   # non-chess
   expect perft.exp ataxx startpos 4 155888 > /dev/null
   expect perft.exp ataxx "fen 7/7/7/7/ppppppp/ppppppp/PPPPPPP w 0 1" 5 452980 > /dev/null
