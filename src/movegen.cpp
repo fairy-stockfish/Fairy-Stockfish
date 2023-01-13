@@ -114,9 +114,9 @@ namespace {
     Bitboard  TRank3BB =  forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_min(), pos.max_rank()))
                         & ~shift<Up>(forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_max(), pos.max_rank())));
 
-    const Bitboard emptySquares = Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces() & pos.board_bb();
-    const Bitboard enemies      = Type == EVASIONS ? (pos.checkers() & pos.non_sliding_riders() ? pos.pieces(Them) : pos.checkers())
-                                : Type == CAPTURES ? target : pos.pieces(Them);
+    const Bitboard emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces()) & pos.board_bb(Us, PAWN);
+    const Bitboard enemies      = (Type == EVASIONS ? (pos.checkers() & pos.non_sliding_riders() ? pos.pieces(Them) : pos.checkers())
+                                 : Type == CAPTURES ? target : pos.pieces(Them)) & pos.board_bb(Us, PAWN);
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank7BB : AllSquares);
