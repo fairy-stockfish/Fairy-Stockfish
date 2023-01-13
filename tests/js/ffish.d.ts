@@ -53,6 +53,7 @@ export interface Board {
 }
 
 export interface Game {
+    delete(): void;
     headerKeys(): string;
     headers(item: string): string;
     mainlineMoves(): string;
