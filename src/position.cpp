@@ -1090,6 +1090,10 @@ bool Position::legal(Move m) const {
           }
   }
 
+  // Petrifying the king is illegal
+  if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) == KING)
+      return false;
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
@@ -1183,7 +1187,7 @@ bool Position::pseudo_legal(const Move m) const {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
 
-  // Illegal moves to squares outside of board
+  // Illegal moves to squares outside of board or to wall squares
   if (!(board_bb() & to))
       return false;
 
@@ -1202,10 +1206,6 @@ bool Position::pseudo_legal(const Move m) const {
   if (type_of(m) != NORMAL || is_gating(m))
       return checkers() ? MoveList<    EVASIONS>(*this).contains(m)
                         : MoveList<NON_EVASIONS>(*this).contains(m);
-
-  // Illegal wall square usage
-  if (st->wallSquares & to)
-      return false;
 
   // Illegal wall square placement
   if (wall_gating() && !((board_bb() & ~((pieces() ^ from) | to)) & gating_square(m)))
@@ -1300,7 +1300,8 @@ bool Position::gives_check(Move m) const {
       return false;
 
   // Is there a direct check?
-  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING)
+  if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING
+      && !(var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) != PAWN))
   {
       PieceType pt = type_of(moved_piece(m));
       if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
@@ -1328,6 +1329,10 @@ bool Position::gives_check(Move m) const {
   if (    is_gating(m)
       && attacks_bb(sideToMove, gating_type(m), gating_square(m), (pieces() ^ from) | to) & square<KING>(~sideToMove))
       return true;
+
+  // Petrified piece can't give check
+  if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) != PAWN)
+      return false;
 
   // Is there a check by special diagonal moves?
   if (more_than_one(diagonal_lines() & (to | square<KING>(~sideToMove))))
@@ -1800,11 +1805,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->gatesBB[them] ^= square<KING>(them);
 
   // Remove the blast pieces
-  if (captured && blast_on_capture())
+  if (captured && (blast_on_capture() || var->petrifyOnCapture))
   {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
-      Bitboard blast = (attacks_bb<KING>(to) & (pieces() ^ pieces(PAWN))) | to;
+      Bitboard blast =  blast_on_capture() ? (attacks_bb<KING>(to) & (pieces() ^ pieces(PAWN))) | to
+                      : type_of(pc) != PAWN ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);
@@ -1864,9 +1870,18 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
              st->castlingRights &= ~castlingRightsMask[bsq];
              k ^= Zobrist::castling[st->castlingRights];
           }
+
+          // Make a wall square where the piece was
+          if (var->petrifyOnCapture)
+          {
+              st->wallSquares |= bsq;
+              byTypeBB[ALL_PIECES] |= bsq;
+              k ^= Zobrist::wall[bsq];
+          }
       }
   }
 
+  // Add gated wall square
   if (wall_gating())
   {
       // Reset wall squares for duck gating
@@ -1951,11 +1966,10 @@ void Position::undo_move(Move m) {
   assert(type_of(st->capturedPiece) != KING);
 
   // Reset wall squares
-  if (wall_gating())
-      byTypeBB[ALL_PIECES] ^= st->wallSquares ^ st->previous->wallSquares;
+  byTypeBB[ALL_PIECES] ^= st->wallSquares ^ st->previous->wallSquares;
 
   // Add the blast pieces
-  if (st->capturedPiece && blast_on_capture())
+  if (st->capturedPiece && (blast_on_capture() || var->petrifyOnCapture))
   {
       Bitboard blast = attacks_bb<KING>(to) | to;
       while (blast)

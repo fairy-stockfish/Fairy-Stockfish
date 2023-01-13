@@ -332,9 +332,6 @@ namespace {
                : Type == CAPTURES     ?  pos.pieces(~Us)
                                       : ~pos.pieces(   ); // QUIETS || QUIET_CHECKS
 
-        // Remove wall squares
-        target &= ~pos.state()->wallSquares;
-
         if (Type == EVASIONS)
         {
             if (pos.checkers() & pos.non_sliding_riders())
@@ -345,6 +342,7 @@ namespace {
                 target = pos.checkers();
         }
 
+        // Remove inaccesible squares (outside board + wall squares)
         target &= pos.board_bb();
 
         moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);

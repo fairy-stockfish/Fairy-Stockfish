@@ -395,7 +395,7 @@ inline bool Position::two_boards() const {
 
 inline Bitboard Position::board_bb() const {
   assert(var != nullptr);
-  return board_size_bb(var->maxFile, var->maxRank);
+  return board_size_bb(var->maxFile, var->maxRank) & ~st->wallSquares;
 }
 
 inline Bitboard Position::board_bb(Color c, PieceType pt) const {
