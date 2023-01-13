@@ -980,9 +980,14 @@ bool Position::legal(Move m) const {
       return false;
 
   // Illegal non-drop moves
-  if (must_drop() && type_of(m) != DROP && count_in_hand(us, var->mustDropType) > 0)
+  if (must_drop() && count_in_hand(us, var->mustDropType) > 0)
   {
-      if (checkers())
+      if (type_of(m) == DROP)
+      {
+          if (var->mustDropType != ALL_PIECES && var->mustDropType != in_hand_piece_type(m))
+              return false;
+      }
+      else if (checkers())
       {
           for (const auto& mevasion : MoveList<EVASIONS>(*this))
               if (type_of(mevasion) == DROP && legal(mevasion))
