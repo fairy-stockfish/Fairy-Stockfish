@@ -39,8 +39,8 @@ export interface Board {
     gamePly(): number;
     hasInsufficientMaterial(turn: boolean): boolean;
     isInsufficientMaterial(): boolean;
-    isGameOver(claimDraw: boolean): boolean;
-    result(claimDraw: boolean): string;
+    isGameOver(claimDraw?: boolean): boolean;
+    result(claimDraw?: boolean): string;
     isCheck(): boolean;
     isBikjang(): boolean;
     moveStack(): string;
