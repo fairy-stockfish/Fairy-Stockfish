@@ -116,46 +116,54 @@ namespace {
 
     constexpr Color     Them     = ~Us;
     constexpr Direction Up       = pawn_push(Us);
-    constexpr Direction Down     = -pawn_push(Us);
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    Bitboard TRank8BB = pos.sittuyin_promotion() ? Bitboard(0) : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
-    Bitboard TRank7BB = shift<Down>(TRank8BB);
-    // Define squares a pawn can pass during a double step
-    Bitboard  TRank3BB =  forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_min(), pos.max_rank()))
-                        & ~shift<Up>(forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_max(), pos.max_rank())));
+    const Bitboard promotionRegion = pos.sittuyin_promotion() ? Bitboard(0) : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
+    const Bitboard doubleStepRegion = !pos.double_step_enabled() ? Bitboard(0)
+                                     :   zone_bb(Us, pos.double_step_rank_min(), pos.max_rank())
+                                      & ~forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_max(), pos.max_rank()));
 
-    const Bitboard emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces()) & pos.board_bb(Us, PAWN);
-    const Bitboard enemies      = (Type == EVASIONS ? (pos.checkers() & pos.non_sliding_riders() ? pos.pieces(Them) : pos.checkers())
-                                 : Type == CAPTURES ? target : pos.pieces(Them)) & pos.board_bb(Us, PAWN);
+    const Bitboard pawns      = pos.pieces(Us, PAWN);
+    const Bitboard movable    = pos.board_bb(Us, PAWN) & ~pos.pieces();
+    const Bitboard capturable = pos.board_bb(Us, PAWN) &  pos.pieces(Them);
 
-    Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
-    Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & (pos.mandatory_pawn_promotion() ? ~TRank7BB : AllSquares);
+    target = Type == EVASIONS ? target : AllSquares;
+
+    // Define single and double push, left and right capture, as well as respective promotion moves
+    Bitboard b1 = shift<Up>(pawns) & movable & target;
+    Bitboard b2 = shift<Up>(shift<Up>(pawns & doubleStepRegion) & movable) & movable & target;
+    Bitboard brc = shift<UpRight>(pawns) & capturable & target;
+    Bitboard blc = shift<UpLeft >(pawns) & capturable & target;
+
+    Bitboard b1p = b1 & promotionRegion;
+    Bitboard b2p = b2 & promotionRegion;
+    Bitboard brcp = brc & promotionRegion;
+    Bitboard blcp = blc & promotionRegion;
+
+    // Restrict regions based on rules and move generation type
+    if (pos.mandatory_pawn_promotion())
+    {
+        b1 &= ~promotionRegion;
+        b2 &= ~promotionRegion;
+        brc &= ~promotionRegion;
+        blc &= ~promotionRegion;
+    }
+
+    if (Type == QUIET_CHECKS && pos.count<KING>(Them))
+    {
+        // To make a quiet check, you either make a direct check by pushing a pawn
+        // or push a blocker pawn that is not on the same file as the enemy king.
+        // Discovered check promotion has been already generated amongst the captures.
+        Square ksq = pos.square<KING>(Them);
+        Bitboard dcCandidatePawns = pos.blockers_for_king(Them) & ~file_bb(ksq);
+        b1 &= pawn_attacks_bb(Them, ksq) | shift<   Up>(dcCandidatePawns);
+        b2 &= pawn_attacks_bb(Them, ksq) | shift<Up+Up>(dcCandidatePawns);
+    }
 
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
-        Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
-        Bitboard b2 = pos.double_step_enabled() ? shift<Up>(b1 & TRank3BB) & emptySquares : Bitboard(0);
-
-        if (Type == EVASIONS) // Consider only blocking squares
-        {
-            b1 &= target;
-            b2 &= target;
-        }
-
-        if (Type == QUIET_CHECKS && pos.count<KING>(Them))
-        {
-            // To make a quiet check, you either make a direct check by pushing a pawn
-            // or push a blocker pawn that is not on the same file as the enemy king.
-            // Discovered check promotion has been already generated amongst the captures.
-            Square ksq = pos.square<KING>(Them);
-            Bitboard dcCandidatePawns = pos.blockers_for_king(Them) & ~file_bb(ksq);
-            b1 &= pawn_attacks_bb(Them, ksq) | shift<   Up>(dcCandidatePawns);
-            b2 &= pawn_attacks_bb(Them, ksq) | shift<Up+Up>(dcCandidatePawns);
-        }
-
         while (b1)
         {
             Square to = pop_lsb(b1);
@@ -170,45 +178,35 @@ namespace {
     }
 
     // Promotions and underpromotions
-    if (pawnsOn7)
-    {
-        Bitboard b1 = shift<UpRight>(pawnsOn7) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsOn7) & enemies;
-        Bitboard b3 = shift<Up     >(pawnsOn7) & emptySquares;
+    while (brcp)
+        moveList = make_promotions<Us, Type, UpRight>(pos, moveList, pop_lsb(brcp));
 
-        if (Type == EVASIONS)
-            b3 &= target;
+    while (blcp)
+        moveList = make_promotions<Us, Type, UpLeft >(pos, moveList, pop_lsb(blcp));
 
-        while (b1)
-            moveList = make_promotions<Us, Type, UpRight>(pos, moveList, pop_lsb(b1));
+    while (b1p)
+        moveList = make_promotions<Us, Type, Up     >(pos, moveList, pop_lsb(b1p));
 
-        while (b2)
-            moveList = make_promotions<Us, Type, UpLeft >(pos, moveList, pop_lsb(b2));
-
-        while (b3)
-            moveList = make_promotions<Us, Type, Up     >(pos, moveList, pop_lsb(b3));
-    }
+    while (b2p)
+        moveList = make_promotions<Us, Type, Up+Up  >(pos, moveList, pop_lsb(b2p));
 
     // Sittuyin promotions
     if (pos.sittuyin_promotion() && (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS))
     {
-        Bitboard pawns = pos.pieces(Us, PAWN);
+        Bitboard promotionPawns = pawns;
         // Pawns need to be on diagonals on opponent's half if there is more than one pawn
         if (pos.count<PAWN>(Us) > 1)
-            pawns &=  (  PseudoAttacks[Us][BISHOP][make_square(FILE_A, relative_rank(Us, RANK_1, pos.max_rank()))]
-                       | PseudoAttacks[Us][BISHOP][make_square(pos.max_file(), relative_rank(Us, RANK_1, pos.max_rank()))])
-                    & forward_ranks_bb(Us, relative_rank(Us, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
-        while (pawns)
+            promotionPawns &=  (  PseudoAttacks[Us][BISHOP][make_square(FILE_A, relative_rank(Us, RANK_1, pos.max_rank()))]
+                                | PseudoAttacks[Us][BISHOP][make_square(pos.max_file(), relative_rank(Us, RANK_1, pos.max_rank()))])
+                             & forward_ranks_bb(Us, relative_rank(Us, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
+        while (promotionPawns)
         {
-            Square from = pop_lsb(pawns);
+            Square from = pop_lsb(promotionPawns);
             for (PieceType pt : pos.promotion_piece_types())
             {
                 if (pos.promotion_limit(pt) && pos.promotion_limit(pt) <= pos.count(Us, pt))
                     continue;
-                Bitboard b = (pos.attacks_from(Us, pt, from) & ~pos.pieces()) | from;
-                if (Type == EVASIONS)
-                    b &= target;
-
+                Bitboard b = ((pos.attacks_from(Us, pt, from) & ~pos.pieces()) | from) & target;
                 while (b)
                 {
                     Square to = pop_lsb(b);
@@ -222,18 +220,15 @@ namespace {
     // Standard and en passant captures
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
     {
-        Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsNotOn7) & enemies;
-
-        while (b1)
+        while (brc)
         {
-            Square to = pop_lsb(b1);
+            Square to = pop_lsb(brc);
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpRight, to);
         }
 
-        while (b2)
+        while (blc)
         {
-            Square to = pop_lsb(b2);
+            Square to = pop_lsb(blc);
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpLeft, to);
         }
 
@@ -245,12 +240,12 @@ namespace {
             if (Type == EVASIONS && (target & (pos.ep_square() + Up)))
                 return moveList;
 
-            b1 = pawnsNotOn7 & pawn_attacks_bb(Them, pos.ep_square());
+            Bitboard b = pawns & pawn_attacks_bb(Them, pos.ep_square());
 
-            assert(b1);
+            assert(b);
 
-            while (b1)
-                moveList = make_move_and_gating<EN_PASSANT>(pos, moveList, Us, pop_lsb(b1), pos.ep_square());
+            while (b)
+                moveList = make_move_and_gating<EN_PASSANT>(pos, moveList, Us, pop_lsb(b), pos.ep_square());
         }
     }
 
