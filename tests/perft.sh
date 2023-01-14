@@ -147,6 +147,8 @@ if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp opulent startpos 3 133829 > /dev/null
   expect perft.exp tencubed startpos 3 68230 > /dev/null
   expect perft.exp centaur startpos 3 24490 > /dev/null
+  expect perft.exp gustav3 startpos 4 331659 > /dev/null
+  expect perft.exp omicron startpos 4 967381 > /dev/null
   expect perft.exp shako "fen 4kc3c/ernbq1b1re/ppp3p1pp/3p2pp2/4p5/5P4/2PN2P3/PP1PP2PPP/ER1BQKBNR1/5C3C w KQ - 0 9" 3 26325 > /dev/null
   expect perft.exp shako "fen 4ncr1k1/1cr2P4/pp2p2pp1/P7PN/2Ep1p4/B3P1eN2/2P1n1P3/1B1P1K4/9p/5C2CR w - - 0 1" 3 180467 > /dev/null
   expect perft.exp shako "fen r5k3/4q2c2/1ebppnp3/1pp3BeEQ/10/2PE2P3/1P3P4/5NP2P/rR3KB3/7C2 w Q - 3 35" 2 4940 > /dev/null
@@ -165,6 +167,7 @@ fi
 
 # special variants
 if [[ $1 == "all" ]]; then
+  expect perft.exp duck startpos 1 640 > /dev/null
   expect perft.exp amazons startpos 1 2176 > /dev/null
 fi
 

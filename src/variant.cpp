@@ -405,6 +405,20 @@ namespace {
         v->extinctionPseudoRoyal = true;
         return v;
     }
+#ifdef ALLVARS
+    // Duck chess
+    Variant* duck_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece = COMMONER;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = {COMMONER};
+        v->duckGating = true;
+        v->stalemateValue = VALUE_MATE;
+        return v;
+    }
+#endif
     // Three-check chess
     // Check the king three times to win
     // https://lichess.org/variant/threeCheck
@@ -1175,6 +1189,21 @@ namespace {
         v->promotionPieceTypes = {CENTAUR, QUEEN, ROOK, BISHOP, KNIGHT};
         return v;
     }
+    // Gustav III chess
+    // 10x8 variant with an amazon piece and wall squares
+    // https://www.chessvariants.com/play/gustav-iiis-chess
+    Variant* gustav3_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->pieceToCharTable = "PNBRQ.............AKpnbrq.............ak";
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_J;
+        v->castlingKingsideFile = FILE_H;
+        v->castlingQueensideFile = FILE_D;
+        v->add_piece(AMAZON, 'a');
+        v->startFen = "arnbqkbnra/*pppppppp*/*8*/*8*/*8*/*8*/*PPPPPPPP*/ARNBQKBNRA w KQkq - 0 1";
+        v->promotionPieceTypes = {AMAZON, QUEEN, ROOK, BISHOP, KNIGHT};
+        return v;
+    }
     // Jeson mor
     // Mongolian chess variant with knights only and a king of the hill like goal
     // https://en.wikipedia.org/wiki/Jeson_Mor
@@ -1285,6 +1314,26 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Omicron chess
+    // Omega chess on a 12x10 board
+    // http://www.eglebbk.dds.nl/program/chess-omicron.html
+    Variant* omicron_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->pieceToCharTable = "PNBRQ..C.W...........Kpnbrq..c.w...........k";
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_L;
+        v->startFen = "w**********w/*crnbqkbnrc*/*pppppppppp*/*10*/*10*/*10*/*10*/*PPPPPPPPPP*/*CRNBQKBNRC*/W**********W w KQkq - 0 1";
+        v->add_piece(CUSTOM_PIECES, 'c', "DAW"); // Champion
+        v->add_piece(CUSTOM_PIECES + 1, 'w', "CF"); // Wizard
+        v->castlingKingsideFile = FILE_I;
+        v->castlingQueensideFile = FILE_E;
+        v->castlingRank = RANK_2;
+        v->promotionRank = RANK_9;
+        v->promotionPieceTypes = {CUSTOM_PIECES + 1, CUSTOM_PIECES, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->doubleStepRank = RANK_3;
+        v->doubleStepRankMin = RANK_3;
+        return v;
+    }
     // Shako
     // 10x10 variant with cannons by Jean-Louis Cazaux
     // https://www.chessvariants.com/large.dir/shako.html
@@ -1332,13 +1381,12 @@ namespace {
     // https://en.wikipedia.org/wiki/Game_of_the_Amazons
     Variant* amazons_variant() {
         Variant* v = chess_variant_base()->init();
-        v->pieceToCharTable = "P...Q.................p...q.................";
+        v->pieceToCharTable = "....Q.....................q.................";
         v->maxRank = RANK_10;
         v->maxFile = FILE_J;
         v->reset_pieces();
         v->add_piece(CUSTOM_PIECES, 'q', "mQ");
-        v->add_piece(IMMOBILE_PIECE, 'p');
-        v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppppppppppppppppp] w - - 0 1";
+        v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
         v->arrowGating = true;
         return v;
@@ -1489,6 +1537,9 @@ void VariantMap::init() {
     add("horde", horde_variant());
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
+#ifdef ALLVARS
+    add("duck", duck_variant());
+#endif
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
     add("crazyhouse", crazyhouse_variant());
@@ -1539,11 +1590,13 @@ void VariantMap::init() {
     add("chancellor", chancellor_variant());
     add("embassy", embassy_variant());
     add("centaur", centaur_variant());
+    add("gustav3", gustav3_variant());
     add("jesonmor", jesonmor_variant());
     add("courier", courier_variant());
     add("grand", grand_variant());
     add("opulent", opulent_variant());
     add("tencubed", tencubed_variant());
+    add("omicron", omicron_variant());
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
     add("flipello10", flipello10_variant());
