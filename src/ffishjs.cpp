@@ -720,7 +720,9 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .value("SHOGI_HODGES", NOTATION_SHOGI_HODGES)
     .value("SHOGI_HODGES_NUMBER", NOTATION_SHOGI_HODGES_NUMBER)
     .value("JANGGI", NOTATION_JANGGI)
-    .value("XIANGQI_WXF", NOTATION_XIANGQI_WXF);
+    .value("XIANGQI_WXF", NOTATION_XIANGQI_WXF)
+    .value("THAI_SAN", NOTATION_THAI_SAN)
+    .value("THAI_LAN", NOTATION_THAI_LAN);
   // usage: e.g. ffish.Termination.CHECKMATE
   enum_<Termination>("Termination")
     .value("ONGOING", ONGOING)
