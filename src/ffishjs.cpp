@@ -332,6 +332,10 @@ public:
     return pos.bikjang();
   }
 
+  bool is_capture(std::string uciMove) const {
+    return pos.capture(UCI::to_move(pos, uciMove));
+  }
+
   std::string move_stack() const {
     std::string moves;
     for(auto it = std::begin(moveStack); it != std::end(moveStack); ++it) {
@@ -699,6 +703,7 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("result", select_overload<std::string(bool) const>(&Board::result))
     .function("isCheck", &Board::is_check)
     .function("isBikjang", &Board::is_bikjang)
+    .function("isCapture", &Board::is_capture)
     .function("moveStack", &Board::move_stack)
     .function("pushMoves", &Board::push_moves)
     .function("pushSanMoves", select_overload<void(std::string)>(&Board::push_san_moves))
