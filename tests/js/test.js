@@ -490,6 +490,29 @@ describe('board.isCheck()', function () {
   });
 });
 
+describe('board.isCapture(move)', function() {
+  it("it checks if the move is a capture", () => {
+    let board = new ffish.Board();
+    chai.expect(board.isCapture("e2e4")).to.equal(false);
+    board.pushMoves("e2e4 e7e5 g1f3 b8c6 f1c4 f8c5");
+    chai.expect(board.isCapture("e1g1")).to.equal(false);
+    board.reset();
+    board.pushMoves("e2e4 g8f6 e4e5 d7d5");
+    chai.expect(board.isCapture("e5f6")).to.equal(true);
+    chai.expect(board.isCapture("e5d6")).to.equal(true);
+    board.delete();
+
+    board = new ffish.Board("chess", "bqrbkrnn/pppppppp/8/8/8/8/PPPPPPPP/BQRBKRNN w CFcf - 0 1", true);
+    board.pushMoves("g1f3 h8g6");
+    chai.expect(board.isCapture("e1f1")).to.equal(false);
+    board.delete();
+
+    board = new ffish.Board("sittuyin", "8/2k5/8/4P3/4P1N1/5K2/8/8[] w - - 0 1");
+    chai.expect(board.isCapture("e5e5f")).to.equal(false);
+    board.delete();
+  });
+});
+
 describe('board.isBikjang()', function () {
   it("it checks if a player is in bikjang (only relevant for janggi)", () => {
     let board = new ffish.Board("janggi");
