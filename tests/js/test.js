@@ -491,7 +491,7 @@ describe('board.isCheck()', function () {
 });
 
 describe('board.isCapture(move)', function() {
-  it("it checks if the move is a capture", () => {
+  it("it checks if a move is a capture", () => {
     let board = new ffish.Board();
     chai.expect(board.isCapture("e2e4")).to.equal(false);
     board.pushMoves("e2e4 e7e5 g1f3 b8c6 f1c4 f8c5");
