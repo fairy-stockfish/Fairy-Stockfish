@@ -43,6 +43,7 @@ export interface Board {
     result(claimDraw?: boolean): string;
     isCheck(): boolean;
     isBikjang(): boolean;
+    isCapture(uciMove: string): boolean;
     moveStack(): string;
     pushMoves(uciMoves: string): void;
     pushSanMoves(sanMoves: string, notation?: Notation): void;
