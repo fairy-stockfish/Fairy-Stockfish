@@ -1,5 +1,23 @@
-export function ffishFactory(): Promise<FairyStockfish>;
+export function ffishFactory(opts?: ModuleOptions): Promise<FairyStockfish>;
 export default ffishFactory;
+
+export interface ModuleOptions {
+    arguments?: string[];
+    buffer?: ArrayBuffer | SharedArrayBuffer;
+    wasmMemory?: WebAssembly.Memory;
+    locateFile?: (file: string, prefix: string) => string;
+    logReadFiles?: boolean;
+    printWithColors?: boolean;
+    onAbort?: (status: string | number) => void;
+    onRuntimeInitialized?: (loadedModule: FairyStockfish) => void;
+    noExitRuntime?: boolean;
+    noInitialRun?: boolean;
+    preInit?: () => void | (() => void)[];
+    preRun?: () => void | (() => void)[];
+    print?: (text: string) => void;
+    printErr?: (text: string) => void;
+    mainScriptUrlOrBlob?: string;
+}
 
 export interface FairyStockfish {
     Board: Board;
