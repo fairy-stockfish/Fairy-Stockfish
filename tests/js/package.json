@@ -3,6 +3,7 @@
   "version": "0.7.3",
   "description": "A high performance WebAssembly chess variant library based on Fairy-Stockfish",
   "main": "ffish.js",
+  "types": "ffish.d.ts",
   "scripts": {
     "test": "mocha --timeout 80000",
     "dev": "node index"
