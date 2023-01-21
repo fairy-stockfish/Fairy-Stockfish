@@ -1,5 +1,5 @@
-export function ffishFactory(opts?: ModuleOptions): Promise<FairyStockfish>;
-export default ffishFactory;
+export function Module(opts?: ModuleOptions): Promise<FairyStockfish>;
+export default Module;
 
 export interface ModuleOptions {
     arguments?: string[];
