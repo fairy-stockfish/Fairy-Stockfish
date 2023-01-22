@@ -1,4 +1,4 @@
-export function Module(opts?: ModuleOptions): Promise<FairyStockfish>;
+export declare function Module(opts?: ModuleOptions): Promise<FairyStockfish>;
 export default Module;
 
 export interface ModuleOptions {
@@ -78,7 +78,7 @@ export interface Game {
     mainlineMoves(): string;
 }
 
-export enum Notation {
+export declare enum Notation {
     DEFAULT,
     SAN,
     LAN,
@@ -91,7 +91,7 @@ export enum Notation {
     THAI_LAN,
 }
 
-export enum Termination {
+export declare enum Termination {
     ONGOING,
     CHECKMATE,
     STALEMATE,
