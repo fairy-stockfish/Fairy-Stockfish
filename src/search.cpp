@@ -80,7 +80,7 @@ namespace {
   }
 
   int futility_move_count(bool improving, Depth depth, const Position& pos) {
-    return (3 + depth * depth + 2 * pos.blast_on_capture()) / (2 - improving + pos.blast_on_capture());
+    return (3 + depth * depth * (1 + pos.wall_gating()) + 2 * pos.blast_on_capture()) / (2 - improving + pos.blast_on_capture());
   }
 
   // History and stats update bonus, based on depth
