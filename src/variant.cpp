@@ -463,8 +463,6 @@ namespace {
         v->pastGating = true;
         return v;
     }
-
-
 #endif
     // Three-check chess
     // Check the king three times to win
@@ -1590,9 +1588,7 @@ void VariantMap::init() {
     add("snailtrail", snailtrail_variant());
     add("duck", duck_variant());
     add("joust", joust_variant());
-
 #endif
-
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
     add("crazyhouse", crazyhouse_variant());
