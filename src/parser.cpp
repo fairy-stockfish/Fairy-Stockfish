@@ -330,6 +330,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("gating", v->gating);
     parse_attribute("arrowGating", v->arrowGating);
     parse_attribute("duckGating", v->duckGating);
+	parse_attribute("staticGating", v->staticGating);
+	parse_attribute("pastGating", v->pastGating);
+	parse_attribute("staticGatingRegion", v->staticGatingRegion);
     parse_attribute("seirawanGating", v->seirawanGating);
     parse_attribute("cambodianMoves", v->cambodianMoves);
     parse_attribute("diagonalLines", v->diagonalLines);
@@ -436,7 +439,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             std::cerr << "Inconsistent settings: castlingQueensideFile > castlingKingsideFile." << std::endl;
 
         // Check for limitations
-        if (v->pieceDrops && (v->arrowGating || v->duckGating))
+        if (v->pieceDrops && (v->arrowGating || v->duckGating || v->staticGating || v->pastGating))
             std::cerr << "pieceDrops and arrowGating/duckGating are incompatible." << std::endl;
         // Options incompatible with royal kings
         if (v->pieceTypes.find(KING) != v->pieceTypes.end())

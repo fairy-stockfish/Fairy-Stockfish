@@ -43,6 +43,11 @@ namespace {
             b ^= to - pawn_push(us);
         if (pos.variant()->arrowGating)
             b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
+        if (pos.variant()->staticGating)
+            b &= pos.variant()->staticGatingRegion;
+        if (pos.variant()->pastGating)
+            b &= square_bb(from);
+
         while (b)
             *moveList++ = make_gating<T>(from, to, pt, pop_lsb(b));
         return moveList;
