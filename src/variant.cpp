@@ -418,6 +418,53 @@ namespace {
         v->stalemateValue = VALUE_MATE;
         return v;
     }
+	
+    Variant* isolation_variant() { //https://boardgamegeek.com/boardgame/1875/isolation
+        Variant* v = chess_variant_base()->init();
+        v->maxRank = RANK_8;
+        v->maxFile = FILE_F;
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECES, 'p', "mK"); //move as a King, but can't capture
+        v->startFen = "2p3/6/6/6/6/6/6/3P2 w - - 0 1";
+        v->stalemateValue = -VALUE_MATE;
+        v->staticGating = true;
+        v->staticGatingRegion = AllSquares ^ make_bitboard(SQ_C1, SQ_D8);
+        return v;
+    }
+
+    Variant* isolation7x7_variant() {
+        Variant* v = isolation_variant()->init();
+        v->maxRank = RANK_7;
+        v->maxFile = FILE_G;
+        v->startFen = "3p3/7/7/7/7/7/3P3 w - - 0 1";
+        v->staticGatingRegion = AllSquares ^ make_bitboard(SQ_D1, SQ_D7);
+        return v;
+    }
+
+    Variant* snailtrail_variant() { //https://boardgamegeek.com/boardgame/37135/snailtrail
+        Variant* v = chess_variant_base()->init();
+        v->maxRank = RANK_7;
+        v->maxFile = FILE_G;
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECES, 'p', "mK"); //move as a King, but can't capture
+        v->startFen = "6p/7/7/7/7/7/P6 w - - 0 1";
+        v->stalemateValue = -VALUE_MATE;
+        v->pastGating = true;
+        return v;
+    }
+
+    Variant* joust_variant() { //https://www.chessvariants.com/programs.dir/joust.html
+        //This page mainly describes a variant where position on home row is randomized, but also a variant where they start in the centre(implemented here)
+        Variant* v = chess_variant_base()->init();
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECES, 'n', "mN"); //move as a Knight, but can't capture
+        v->startFen = "8/8/8/4n3/3N4/8/8/8 w - - 0 1";
+        v->stalemateValue = -VALUE_MATE;
+        v->pastGating = true;
+        return v;
+    }
+
+
 #endif
     // Three-check chess
     // Check the king three times to win
@@ -1538,8 +1585,14 @@ void VariantMap::init() {
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
 #ifdef ALLVARS
+    add("isolation", isolation_variant());
+    add("isolation7x7", isolation7x7_variant());
+    add("snailtrail", snailtrail_variant());
     add("duck", duck_variant());
+    add("joust", joust_variant());
+
 #endif
+
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
     add("crazyhouse", crazyhouse_variant());

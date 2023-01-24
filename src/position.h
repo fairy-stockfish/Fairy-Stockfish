@@ -726,7 +726,7 @@ inline bool Position::gating() const {
 
 inline bool Position::wall_gating() const {
   assert(var != nullptr);
-  return var->arrowGating || var->duckGating;
+  return var->arrowGating || var->duckGating || var->staticGating || var->pastGating;
 }
 
 inline bool Position::seirawan_gating() const {
