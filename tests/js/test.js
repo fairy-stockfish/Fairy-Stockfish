@@ -200,6 +200,14 @@ describe('board.fen()', function () {
   });
 });
 
+describe('board.fen(showPromoted)', function () {
+  it("it returns the current position in fen format. showPromoted makes promoted pieces always followed by the symbol ~ regardless of variant.", () => {
+    let board = new ffish.Board("makruk", "8/6ks/3M~2r1/2K1M3/8/3R4/8/8 w - 128 18 50");
+    chai.expect(board.fen(true)).to.equal("8/6ks/3M~2r1/2K1M3/8/3R4/8/8 w - 128 18 50");
+    chai.expect(board.fen(false)).to.equal("8/6ks/3M2r1/2K1M3/8/3R4/8/8 w - 128 18 50");
+  });
+});
+
 describe('board.fen(showPromoted, countStarted)', function () {
   it("it returns the current position in fen format. showPromoted makes promoted pieces always followed by the symbol ~ regardless of variant. countStarted overwrites the start of makruk's board honor counting.", () => {
     let board = new ffish.Board("makruk", "8/6ks/3M~2r1/2K1M3/8/3R4/8/8 w - 128 18 50");
@@ -496,6 +504,29 @@ describe('board.isBikjang()', function () {
     chai.expect(board.isBikjang()).to.equal(false);
     board.setFen("rnba1abnr/4k4/1c5c1/p1p3p1p/9/9/P1P3P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1");
     chai.expect(board.isBikjang()).to.equal(true);
+    board.delete();
+  });
+});
+
+describe('board.isCapture(move)', function() {
+  it("it checks if a move is a capture", () => {
+    let board = new ffish.Board();
+    chai.expect(board.isCapture("e2e4")).to.equal(false);
+    board.pushMoves("e2e4 e7e5 g1f3 b8c6 f1c4 f8c5");
+    chai.expect(board.isCapture("e1g1")).to.equal(false);
+    board.reset();
+    board.pushMoves("e2e4 g8f6 e4e5 d7d5");
+    chai.expect(board.isCapture("e5f6")).to.equal(true);
+    chai.expect(board.isCapture("e5d6")).to.equal(true);
+    board.delete();
+
+    board = new ffish.Board("chess", "bqrbkrnn/pppppppp/8/8/8/8/PPPPPPPP/BQRBKRNN w CFcf - 0 1", true);
+    board.pushMoves("g1f3 h8g6");
+    chai.expect(board.isCapture("e1f1")).to.equal(false);
+    board.delete();
+
+    board = new ffish.Board("sittuyin", "8/2k5/8/4P3/4P1N1/5K2/8/8[] w - - 0 1");
+    chai.expect(board.isCapture("e5e5f")).to.equal(false);
     board.delete();
   });
 });
