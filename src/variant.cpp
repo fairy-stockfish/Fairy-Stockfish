@@ -419,7 +419,7 @@ namespace {
         return v;
     }
 	
-    Variant* isolation_variant() {
+    Variant* isolation_variant() { //https://boardgamegeek.com/boardgame/1875/isolation
         Variant* v = chess_variant_base()->init();
         v->maxRank = RANK_8;
         v->maxFile = FILE_F;
@@ -441,7 +441,7 @@ namespace {
         return v;
     }
 
-    Variant* snailtrail_variant() {
+    Variant* snailtrail_variant() { //https://boardgamegeek.com/boardgame/37135/snailtrail
         Variant* v = chess_variant_base()->init();
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
@@ -453,7 +453,8 @@ namespace {
         return v;
     }
 
-    Variant* joust_variant() {
+    Variant* joust_variant() { //https://www.chessvariants.com/programs.dir/joust.html
+        //This page mainly describes a variant where position on home row is randomized, but also a variant where they start in the centre(implemented here)
         Variant* v = chess_variant_base()->init();
         v->reset_pieces();
         v->add_piece(CUSTOM_PIECES, 'n', "mN"); //move as a Knight, but can't capture
@@ -462,6 +463,7 @@ namespace {
         v->pastGating = true;
         return v;
     }
+
 
 #endif
     // Three-check chess
@@ -1590,6 +1592,7 @@ void VariantMap::init() {
     add("joust", joust_variant());
 
 #endif
+
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
     add("crazyhouse", crazyhouse_variant());
