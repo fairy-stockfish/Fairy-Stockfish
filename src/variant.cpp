@@ -405,6 +405,15 @@ namespace {
         v->extinctionPseudoRoyal = true;
         return v;
     }
+    // Nuclear chess
+    // https://www.chessvariants.com/difftaking.dir/deadsquare.html
+    Variant* nuclear_variant() {
+        Variant* v = atomic_variant()->init();
+        v->pawnsGetBlast = true;
+        v->captureMakesWall = true;
+        v->enPassantRegion = 0;
+        return v;
+    }
 #ifdef ALLVARS
     // Duck chess
     Variant* duck_variant() {
@@ -1582,6 +1591,8 @@ void VariantMap::init() {
     add("horde", horde_variant());
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
+    add("nuclear", nuclear_variant());
+
 #ifdef ALLVARS
     add("isolation", isolation_variant());
     add("isolation7x7", isolation7x7_variant());
