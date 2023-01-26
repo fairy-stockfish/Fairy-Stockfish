@@ -62,7 +62,7 @@ struct Variant {
   bool blastOnCapture = false;
   bool petrifyOnCapture = false;
   bool pawnsGetBlast = false;
-  bool captureMakesWall = false;
+  bool pawnsCanPetrify = false;
   bool doubleStep = true;
   Rank doubleStepRank = RANK_2;
   Rank doubleStepRankMin = RANK_2;

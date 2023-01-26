@@ -1310,7 +1310,7 @@ bool Position::gives_check(Move m) const {
 
   // Is there a direct check?
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING
-      && !(var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) != PAWN))
+      && !(var->petrifyOnCapture && capture(m) && ((type_of(moved_piece(m)) != PAWN) || var->pawnsCanPetrify)))
   {
       PieceType pt = type_of(moved_piece(m));
       if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
@@ -1340,7 +1340,7 @@ bool Position::gives_check(Move m) const {
       return true;
 
   // Petrified piece can't give check
-  if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) != PAWN)
+  if (var->petrifyOnCapture && capture(m) && ((type_of(moved_piece(m)) != PAWN) || var->pawnsCanPetrify))
       return false;
 
   // Is there a check by special diagonal moves?
@@ -1819,7 +1819,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
       Bitboard blast =  blast_on_capture() ? (attacks_bb<KING>(to) & (pieces() ^ (pawns_get_blast() ? Bitboard(0) : pieces(PAWN)))) | to
-                      : type_of(pc) != PAWN ? square_bb(to) : Bitboard(0);
+                      : (var->pawnsCanPetrify || type_of(pc) != PAWN) ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);
@@ -1881,26 +1881,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           }
 
           // Make a wall square where the piece was
-          if (var->petrifyOnCapture)
+          if (var->petrifyOnCapture && to==bsq)
           {
               st->wallSquares |= bsq;
               byTypeBB[ALL_PIECES] |= bsq;
               k ^= Zobrist::wall[bsq];
           }
-      }
-  }
-
-  // Add wall squares to surrounding square on capture
-  // Note that this will not overwrite any pieces or pawns
-  if (captured && (var->captureMakesWall))
-  {
-      Bitboard blast = (attacks_bb<KING>(to) | square_bb(to)) & ~(byTypeBB[ALL_PIECES]);
-      while (blast)
-      {
-          Square bsq = pop_lsb(blast);
-          st->wallSquares |= bsq;
-          byTypeBB[ALL_PIECES] |= bsq;
-          k ^= Zobrist::wall[bsq];
       }
   }
 

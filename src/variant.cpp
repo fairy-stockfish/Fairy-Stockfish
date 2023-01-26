@@ -410,7 +410,8 @@ namespace {
     Variant* nuclear_variant() {
         Variant* v = atomic_variant()->init();
         v->pawnsGetBlast = true;
-        v->captureMakesWall = true;
+        v->petrifyOnCapture = true;
+        v->pawnsCanPetrify = true;
         v->enPassantRegion = 0;
         return v;
     }
