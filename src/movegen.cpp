@@ -122,6 +122,7 @@ namespace {
     const Bitboard promotionZone = pos.promotion_zone(Us);
     const Bitboard standardPromotionZone = pos.sittuyin_promotion() ? Bitboard(0) : promotionZone;
     const Bitboard doubleStepRegion = pos.double_step_region(Us);
+    const Bitboard tripleStepRegion = pos.triple_step_region(Us);
 
     const Bitboard pawns      = pos.pieces(Us, PAWN);
     const Bitboard movable    = pos.board_bb(Us, PAWN) & ~pos.pieces();
@@ -132,11 +133,13 @@ namespace {
     // Define single and double push, left and right capture, as well as respective promotion moves
     Bitboard b1 = shift<Up>(pawns) & movable & target;
     Bitboard b2 = shift<Up>(shift<Up>(pawns & doubleStepRegion) & movable) & movable & target;
+    Bitboard b3 = shift<Up>(shift<Up>(shift<Up>(pawns & tripleStepRegion) & movable) & movable) & movable & target;
     Bitboard brc = shift<UpRight>(pawns) & capturable & target;
     Bitboard blc = shift<UpLeft >(pawns) & capturable & target;
 
     Bitboard b1p = b1 & standardPromotionZone;
     Bitboard b2p = b2 & standardPromotionZone;
+    Bitboard b3p = b3 & standardPromotionZone;
     Bitboard brcp = brc & standardPromotionZone;
     Bitboard blcp = blc & standardPromotionZone;
 
@@ -145,6 +148,7 @@ namespace {
     {
         b1 &= ~standardPromotionZone;
         b2 &= ~standardPromotionZone;
+        b3 &= ~standardPromotionZone;
         brc &= ~standardPromotionZone;
         blc &= ~standardPromotionZone;
     }
@@ -174,6 +178,12 @@ namespace {
             Square to = pop_lsb(b2);
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up - Up, to);
         }
+
+        while (b3)
+        {
+            Square to = pop_lsb(b3);
+            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up - Up - Up, to);
+        }
     }
 
     // Promotions and underpromotions
@@ -188,6 +198,9 @@ namespace {
 
     while (b2p)
         moveList = make_promotions<Us, Type, Up+Up  >(pos, moveList, pop_lsb(b2p));
+
+    while (b3p)
+        moveList = make_promotions<Us, Type, Up+Up+Up>(pos, moveList, pop_lsb(b3p));
 
     // Sittuyin promotions
     if (pos.sittuyin_promotion() && (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS))

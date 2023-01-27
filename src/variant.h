@@ -64,6 +64,7 @@ struct Variant {
   bool doubleStep = true;
   Rank doubleStepRank = RANK_2;
   Rank doubleStepRankMin = RANK_2;
+  Bitboard tripleStepRegion[COLOR_NB] = {};
   Bitboard enPassantRegion = AllSquares;
   bool castling = true;
   bool castlingDroppedPiece = false;

@@ -1255,7 +1255,12 @@ bool Position::pseudo_legal(const Move m) const {
           && !(   (from + 2 * pawn_push(us) == to)               // Not a double push
                && (double_step_region(us) & from)
                && !(pieces() & to)
-               && !(pieces() & (to - pawn_push(us)))))
+               && !(pieces() & (to - pawn_push(us))))
+          && !(   (from + 3 * pawn_push(us) == to)               // Not a triple push
+               && (triple_step_region(us) & from)
+               && !(pieces() & to)
+               && !(pieces() & (to - pawn_push(us)))
+               && !(pieces() & (to - 2 * pawn_push(us)))))
           return false;
   }
   else if (!((capture(m) ? attacks_from(us, type_of(pc), from) : moves_from(us, type_of(pc), from)) & to))

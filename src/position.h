@@ -138,6 +138,7 @@ public:
   bool blast_on_capture() const;
   bool endgame_eval() const;
   Bitboard double_step_region(Color c) const;
+  Bitboard triple_step_region(Color c) const;
   bool castling_enabled() const;
   bool castling_dropped_piece() const;
   File castling_kingside_file() const;
@@ -488,6 +489,11 @@ inline Bitboard Position::double_step_region(Color c) const {
   return !var->doubleStep ? Bitboard(0)
                           :   zone_bb(c, var->doubleStepRankMin, var->maxRank)
                            & ~forward_ranks_bb(c, relative_rank(c, var->doubleStepRank, var->maxRank));
+}
+
+inline Bitboard Position::triple_step_region(Color c) const {
+  assert(var != nullptr);
+  return var->tripleStepRegion[c];
 }
 
 inline bool Position::castling_enabled() const {
