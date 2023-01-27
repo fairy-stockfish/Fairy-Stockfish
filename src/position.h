@@ -52,7 +52,7 @@ struct StateInfo {
   int    countingPly;
   int    countingLimit;
   CheckCount checksRemaining[COLOR_NB];
-  Square epSquare;
+  Bitboard epSquares;
   Square castlingKingSquare[COLOR_NB];
   Bitboard wallSquares;
   Bitboard gatesBB[COLOR_NB];
@@ -220,7 +220,7 @@ public:
   Bitboard non_sliding_riders() const;
   Piece piece_on(Square s) const;
   Piece unpromoted_piece_on(Square s) const;
-  Square ep_square() const;
+  Bitboard ep_squares() const;
   Square castling_king_square(Color c) const;
   Bitboard gates(Color c) const;
   bool empty(Square s) const;
@@ -1030,8 +1030,8 @@ inline Square Position::square(Color c, PieceType pt) const {
   return lsb(pieces(c, pt));
 }
 
-inline Square Position::ep_square() const {
-  return st->epSquare;
+inline Bitboard Position::ep_squares() const {
+  return st->epSquares;
 }
 
 inline Square Position::castling_king_square(Color c) const {

@@ -240,20 +240,21 @@ namespace {
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpLeft, to);
         }
 
-        if (pos.ep_square() != SQ_NONE)
+        for (Bitboard epSquares = pos.ep_squares(); epSquares; )
         {
-            assert(pos.double_step_region(Them) & (pos.ep_square() + Up));
+            Square epSquare = pop_lsb(epSquares);
+            assert(pos.double_step_region(Them) & (epSquare + Up));
 
             // An en passant capture cannot resolve a discovered check
-            if (Type == EVASIONS && (target & (pos.ep_square() + Up)))
+            if (Type == EVASIONS && (target & (epSquare + Up)))
                 return moveList;
 
-            Bitboard b = pawns & pawn_attacks_bb(Them, pos.ep_square());
+            Bitboard b = pawns & pawn_attacks_bb(Them, epSquare);
 
             assert(b);
 
             while (b)
-                moveList = make_move_and_gating<EN_PASSANT>(pos, moveList, Us, pop_lsb(b), pos.ep_square());
+                moveList = make_move_and_gating<EN_PASSANT>(pos, moveList, Us, pop_lsb(b), epSquare);
         }
     }
 

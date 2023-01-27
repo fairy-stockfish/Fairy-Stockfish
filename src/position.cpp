@@ -332,7 +332,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   ss >> token;
 
   // 3-4. Skip parsing castling and en passant flags if not present
-  st->epSquare = SQ_NONE;
+  st->epSquares = 0;
   st->castlingKingSquare[WHITE] = st->castlingKingSquare[BLACK] = SQ_NONE;
   if (!isdigit(ss.peek()) && !sfen)
   {
@@ -407,11 +407,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       else if (   ((ss >> col) && (col >= 'a' && col <= 'a' + max_file()))
                && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
       {
-          st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
+          Square epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 #ifdef LARGEBOARDS
           // Consider different rank numbering in CECP
           if (max_rank() == RANK_10 && CurrentProtocol == XBOARD)
-              st->epSquare += NORTH;
+              epSquare += NORTH;
 #endif
 
           // En passant square will be considered only if
@@ -419,11 +419,12 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           // b) there is an enemy pawn in front of epSquare
           // c) there is no piece on epSquare or behind epSquare
           bool enpassant;
-          enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
-                  && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
-                  && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))));
+          enpassant = pawn_attacks_bb(~sideToMove, epSquare) & pieces(sideToMove, PAWN)
+                  && (pieces(~sideToMove, PAWN) & (epSquare + pawn_push(~sideToMove)))
+                  && !(pieces() & (epSquare | (epSquare + pawn_push(sideToMove))));
           if (!enpassant)
-              st->epSquare = SQ_NONE;
+              epSquare = SQ_NONE;
+          st->epSquares |= epSquare;
       }
   }
 
@@ -603,8 +604,8 @@ void Position::set_state(StateInfo* si) const {
           si->nonPawnMaterial[color_of(pc)] += PieceValue[MG][pc];
   }
 
-  if (si->epSquare != SQ_NONE)
-      si->key ^= Zobrist::enpassant[file_of(si->epSquare)];
+  for (Bitboard b = si->epSquares; b; )
+      si->key ^= Zobrist::enpassant[file_of(pop_lsb(b))];
 
   if (sideToMove == BLACK)
       si->key ^= Zobrist::side;
@@ -774,8 +775,15 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   // Counting limit or ep-square
   if (st->countingLimit)
       ss << " " << counting_limit(countStarted) << " ";
+  else if (!ep_squares())
+      ss << " - ";
   else
-      ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ");
+  {
+      ss << " ";
+      for (Bitboard b = ep_squares(); b; )
+          ss << UCI::square(*this, pop_lsb(b));
+      ss << " ";
+  }
 
   // Check count
   if (check_counting())
@@ -1108,7 +1116,7 @@ bool Position::legal(Move m) const {
       Square capsq = to - pawn_push(us);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
-      assert(to == ep_square());
+      assert(ep_squares() & to);
       assert(moved_piece(m) == make_piece(us, PAWN));
       assert(piece_on(capsq) == make_piece(~us, PAWN));
       assert(piece_on(to) == NO_PIECE);
@@ -1490,7 +1498,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               capsq -= pawn_push(us);
 
               assert(pc == make_piece(us, PAWN));
-              assert(to == st->epSquare);
+              assert(st->epSquares & to);
               assert((var->enPassantRegion & to) && (double_step_region(them) & (to + pawn_push(us))));
               assert(piece_on(to) == NO_PIECE);
               assert(piece_on(capsq) == make_piece(them, PAWN));
@@ -1555,12 +1563,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else
       k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
 
-  // Reset en passant square
-  if (st->epSquare != SQ_NONE)
-  {
-      k ^= Zobrist::enpassant[file_of(st->epSquare)];
-      st->epSquare = SQ_NONE;
-  }
+  // Reset en passant squares
+  while (st->epSquares)
+      k ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];
 
   // Update castling rights if needed
   if (type_of(m) != DROP && !is_pass(m) && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
@@ -1671,8 +1676,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN))
           && !(wall_gating() && gating_square(m) == to - pawn_push(us)))
       {
-          st->epSquare = to - pawn_push(us);
-          k ^= Zobrist::enpassant[file_of(st->epSquare)];
+          st->epSquares |= to - pawn_push(us);
+          k ^= Zobrist::enpassant[file_of(to)];
       }
 
       else if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
@@ -2059,7 +2064,7 @@ void Position::undo_move(Move m) {
               capsq -= pawn_push(us);
 
               assert(type_of(pc) == PAWN);
-              assert(to == st->previous->epSquare);
+              assert(st->previous->epSquares & to);
               assert(double_step_region(~us) & (to + pawn_push(us)));
               assert(piece_on(capsq) == NO_PIECE);
               assert(st->capturedPiece == make_piece(~us, PAWN));
@@ -2146,11 +2151,8 @@ void Position::do_null_move(StateInfo& newSt) {
   st->accumulator.computed[WHITE] = false;
   st->accumulator.computed[BLACK] = false;
 
-  if (st->epSquare != SQ_NONE)
-  {
-      st->key ^= Zobrist::enpassant[file_of(st->epSquare)];
-      st->epSquare = SQ_NONE;
-  }
+  while (st->epSquares)
+      st->key ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];
 
   st->key ^= Zobrist::side;
   prefetch(TT.first_entry(key()));
@@ -2956,8 +2958,7 @@ bool Position::pos_is_ok() const {
   if (   (sideToMove != WHITE && sideToMove != BLACK)
       || (count<KING>(WHITE) && piece_on(square<KING>(WHITE)) != make_piece(WHITE, KING))
       || (count<KING>(BLACK) && piece_on(square<KING>(BLACK)) != make_piece(BLACK, KING))
-      || (   ep_square() != SQ_NONE
-          && !(double_step_region(~sideToMove) & (ep_square() + pawn_push(sideToMove)))))
+      || ((sideToMove == WHITE ? shift<NORTH>(ep_squares()) : shift<SOUTH>(ep_squares())) & ~double_step_region(~sideToMove)))
       assert(0 && "pos_is_ok: Default");
 
   if (Fast)
