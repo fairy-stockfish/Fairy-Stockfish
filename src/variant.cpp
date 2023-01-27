@@ -415,6 +415,14 @@ namespace {
         v->enPassantRegion = 0;
         return v;
     }
+    // Atomar chess
+    // https://chronatog.com/wp-content/uploads/2021/09/atomar-chess-rules.pdf
+    Variant* atomar_variant() {
+        Variant* v = nocheckatomic_variant()->init();
+        v->kingsGetBlast = false;
+        v->kingDiplomacy = true;
+        return v;
+    }
 #ifdef ALLVARS
     // Duck chess
     Variant* duck_variant() {
@@ -1593,6 +1601,7 @@ void VariantMap::init() {
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
     add("nuclear", nuclear_variant());
+    add("atomar", atomar_variant());
 
 #ifdef ALLVARS
     add("isolation", isolation_variant());

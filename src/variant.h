@@ -62,6 +62,8 @@ struct Variant {
   bool blastOnCapture = false;
   bool petrifyOnCapture = false;
   bool pawnsGetBlast = false;
+  bool kingsGetBlast = true;
+  bool kingDiplomacy = false;
   bool pawnsCanPetrify = false;
   bool doubleStep = true;
   Rank doubleStepRank = RANK_2;

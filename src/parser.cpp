@@ -294,6 +294,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("pieceDemotion", v->pieceDemotion);
     parse_attribute("blastOnCapture", v->blastOnCapture);
     parse_attribute("pawnsGetBlast", v->pawnsGetBlast);
+    parse_attribute("kingsGetBlast", v->kingsGetBlast);
+    parse_attribute("kingDiplomacy", v->kingDiplomacy);
     parse_attribute("petrifyOnCapture", v->petrifyOnCapture);
     parse_attribute("pawnsCanPetrify", v->pawnsCanPetrify);
     parse_attribute("doubleStep", v->doubleStep);

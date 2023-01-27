@@ -1099,6 +1099,11 @@ bool Position::legal(Move m) const {
   if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) == KING)
       return false;
 
+  // King Diplomacy -- In no-check Atomic, kings are actually commoners that can be beside each other, but in Atomar, diplomacy prevents them from actually taking
+  if (var->kingDiplomacy && capture(m) && (type_of(moved_piece(m)) == COMMONER) && (type_of(piece_on(to)) == COMMONER))
+      return false;
+
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
@@ -1818,8 +1823,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
-      Bitboard blast =  blast_on_capture() ? (attacks_bb<KING>(to) & (pieces() ^ (pawns_get_blast() ? Bitboard(0) : pieces(PAWN)))) | to
-                      : (var->pawnsCanPetrify || type_of(pc) != PAWN) ? square_bb(to) : Bitboard(0);
+      Bitboard blast =  blast_on_capture() ? (attacks_bb<KING>(to) & (pieces() ^
+                        (pawns_get_blast() ? Bitboard(0) : pieces(PAWN)) ^
+                        (kings_get_blast() ? Bitboard(0) : pieces(COMMONER))))
+                        | to : (var->pawnsCanPetrify || type_of(pc) != PAWN) ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);

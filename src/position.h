@@ -136,6 +136,8 @@ public:
   bool piece_demotion() const;
   bool blast_on_capture() const;
   bool pawns_get_blast() const;
+  bool kings_get_blast() const;
+  bool king_diplomacy() const;
   bool endgame_eval() const;
   bool double_step_enabled() const;
   Rank double_step_rank_max() const;
@@ -472,6 +474,16 @@ inline bool Position::blast_on_capture() const {
 inline bool Position::pawns_get_blast() const {
   assert(var != nullptr);
   return var->pawnsGetBlast;
+}
+
+inline bool Position::kings_get_blast() const {
+  assert(var != nullptr);
+  return var->kingsGetBlast;
+}
+
+inline bool Position::king_diplomacy() const {
+  assert(var != nullptr);
+  return var->kingDiplomacy;
 }
 
 inline bool Position::endgame_eval() const {
