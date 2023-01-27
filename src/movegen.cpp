@@ -40,7 +40,7 @@ namespace {
             b ^= square_bb(to) ^ kto ^ rto;
         }
         if (T == EN_PASSANT)
-            b ^= to - pawn_push(us);
+            b ^= pos.empty(to - pawn_push(us)) ? to - 2 * pawn_push(us) : to - pawn_push(us);
         if (pos.variant()->arrowGating)
             b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
         if (pos.variant()->staticGating)
@@ -243,10 +243,9 @@ namespace {
         for (Bitboard epSquares = pos.ep_squares(); epSquares; )
         {
             Square epSquare = pop_lsb(epSquares);
-            assert(pos.double_step_region(Them) & (epSquare + Up));
 
-            // An en passant capture cannot resolve a discovered check
-            if (Type == EVASIONS && (target & (epSquare + Up)))
+            // An en passant capture cannot resolve a discovered check (unless there non-sliding riders)
+            if (Type == EVASIONS && (target & (epSquare + Up)) && !pos.non_sliding_riders())
                 return moveList;
 
             Bitboard b = pawns & pawn_attacks_bb(Them, epSquare);

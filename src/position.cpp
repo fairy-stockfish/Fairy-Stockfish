@@ -404,28 +404,29 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
       // 4. En passant square.
       // Ignore if square is invalid or not on side to move relative rank 6.
-      else if (   ((ss >> col) && (col >= 'a' && col <= 'a' + max_file()))
-               && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
-      {
-          Square epSquare = make_square(File(col - 'a'), Rank(row - '1'));
+      else
+          while (   ((ss >> col) && (col >= 'a' && col <= 'a' + max_file()))
+                 && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
+          {
+              Square epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 #ifdef LARGEBOARDS
-          // Consider different rank numbering in CECP
-          if (max_rank() == RANK_10 && CurrentProtocol == XBOARD)
-              epSquare += NORTH;
+              // Consider different rank numbering in CECP
+              if (max_rank() == RANK_10 && CurrentProtocol == XBOARD)
+                  epSquare += NORTH;
 #endif
 
-          // En passant square will be considered only if
-          // a) side to move have a pawn threatening epSquare
-          // b) there is an enemy pawn in front of epSquare
-          // c) there is no piece on epSquare or behind epSquare
-          bool enpassant;
-          enpassant = pawn_attacks_bb(~sideToMove, epSquare) & pieces(sideToMove, PAWN)
-                  && (pieces(~sideToMove, PAWN) & (epSquare + pawn_push(~sideToMove)))
-                  && !(pieces() & (epSquare | (epSquare + pawn_push(sideToMove))));
-          if (!enpassant)
-              epSquare = SQ_NONE;
-          st->epSquares |= epSquare;
-      }
+              // En passant square will be considered only if
+              // a) side to move have a pawn threatening epSquare
+              // b) epSquare is within enPassantRegion
+              // c) there is an enemy pawn one or two (for triple steps) squares in front of epSquare
+              // d) there is no piece on epSquare or behind epSquare
+              if (   pawn_attacks_bb(~sideToMove, epSquare) & pieces(sideToMove, PAWN)
+                  && (var->enPassantRegion & epSquare)
+                  && (   (pieces(~sideToMove, PAWN) & (epSquare + pawn_push(~sideToMove)))
+                      || (pieces(~sideToMove, PAWN) & (epSquare + 2 * pawn_push(~sideToMove))))
+                  && !(pieces() & (epSquare | (epSquare + pawn_push(sideToMove)))))
+                  st->epSquares |= epSquare;
+          }
   }
 
   // Check counter for nCheck
@@ -1079,7 +1080,7 @@ bool Position::legal(Move m) const {
           occupied = (pieces() ^ from ^ to) | kto | rto;
       }
       if (type_of(m) == EN_PASSANT)
-          occupied &= ~square_bb(kto - pawn_push(us));
+          occupied &= ~square_bb(empty(kto - pawn_push(us)) ? kto - 2 * pawn_push(us) : kto - pawn_push(us));
       if (capture(m) && blast_on_capture())
           occupied &= ~((attacks_bb<KING>(kto) & (pieces() ^ pieces(PAWN))) | kto);
       Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
@@ -1114,6 +1115,8 @@ bool Position::legal(Move m) const {
   {
       Square ksq = square<KING>(us);
       Square capsq = to - pawn_push(us);
+      while (piece_on(capsq) != make_piece(~us, PAWN))
+          capsq -= pawn_push(us);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
       assert(ep_squares() & to);
@@ -1262,13 +1265,10 @@ bool Position::pseudo_legal(const Move m) const {
           && !((from + pawn_push(us) == to) && !(pieces() & to)) // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)               // Not a double push
                && (double_step_region(us) & from)
-               && !(pieces() & to)
-               && !(pieces() & (to - pawn_push(us))))
+               && !(pieces() & (to | (to - pawn_push(us)))))
           && !(   (from + 3 * pawn_push(us) == to)               // Not a triple push
                && (triple_step_region(us) & from)
-               && !(pieces() & to)
-               && !(pieces() & (to - pawn_push(us)))
-               && !(pieces() & (to - 2 * pawn_push(us)))))
+               && !(pieces() & (to | (to - pawn_push(us)) | (to - 2 * pawn_push(us))))))
           return false;
   }
   else if (!((capture(m) ? attacks_from(us, type_of(pc), from) : moves_from(us, type_of(pc), from)) & to))
@@ -1495,11 +1495,15 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           if (type_of(m) == EN_PASSANT)
           {
-              capsq -= pawn_push(us);
+              while (piece_on(capsq) != make_piece(them, PAWN))
+                  capsq -= pawn_push(us);
+              st->captureSquare = capsq;
 
               assert(pc == make_piece(us, PAWN));
               assert(st->epSquares & to);
-              assert((var->enPassantRegion & to) && (double_step_region(them) & (to + pawn_push(us))));
+              assert(var->enPassantRegion & to);
+              assert(   (double_step_region(them) & (capsq + 2 * pawn_push(us)))
+                     || (triple_step_region(them) & (capsq + 3 * pawn_push(us))));
               assert(piece_on(to) == NO_PIECE);
               assert(piece_on(capsq) == make_piece(them, PAWN));
           }
@@ -1669,18 +1673,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // If the moving piece is a pawn do some special extra work
   if (type_of(pc) == PAWN)
   {
-      // Set en passant square if the moved pawn can be captured
-      if (   type_of(m) != DROP
-          && std::abs(int(to) - int(from)) == 2 * NORTH
-          && (var->enPassantRegion & (to - pawn_push(us)))
-          && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN))
-          && !(wall_gating() && gating_square(m) == to - pawn_push(us)))
-      {
-          st->epSquares |= to - pawn_push(us);
-          k ^= Zobrist::enpassant[file_of(to)];
-      }
-
-      else if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
+      if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
       {
           Piece promotion = make_piece(us, type_of(m) == PROMOTION ? promotion_type(m) : promoted_piece_type(PAWN));
 
@@ -1710,6 +1703,28 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           // Update material
           st->nonPawnMaterial[us] += PieceValue[MG][promotion];
+      }
+
+      // Set en passant square(s) if the moved pawn can be captured
+      else if (   type_of(m) != DROP
+          && (   std::abs(int(to) - int(from)) == 2 * NORTH
+              || std::abs(int(to) - int(from)) == 3 * NORTH))
+      {
+          if (   (var->enPassantRegion & (to - pawn_push(us)))
+              && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN))
+              && !(wall_gating() && gating_square(m) == to - pawn_push(us)))
+          {
+              st->epSquares |= to - pawn_push(us);
+              k ^= Zobrist::enpassant[file_of(to)];
+          }
+          if (   std::abs(int(to) - int(from)) == 3 * NORTH
+              && (var->enPassantRegion & (to - 2 * pawn_push(us)))
+              && (pawn_attacks_bb(us, to - 2 * pawn_push(us)) & pieces(them, PAWN))
+              && !(wall_gating() && gating_square(m) == to - 2 * pawn_push(us)))
+          {
+              st->epSquares |= to - 2 * pawn_push(us);
+              k ^= Zobrist::enpassant[file_of(to)];
+          }
       }
 
       // Update pawn hash key
@@ -2061,11 +2076,13 @@ void Position::undo_move(Move m) {
 
           if (type_of(m) == EN_PASSANT)
           {
-              capsq -= pawn_push(us);
+              capsq = st->captureSquare;
 
               assert(type_of(pc) == PAWN);
               assert(st->previous->epSquares & to);
-              assert(double_step_region(~us) & (to + pawn_push(us)));
+              assert(var->enPassantRegion & to);
+              assert(   (double_step_region(~us) & (capsq + 2 * pawn_push(us)))
+                     || (triple_step_region(~us) & (capsq + 3 * pawn_push(us))));
               assert(piece_on(capsq) == NO_PIECE);
               assert(st->capturedPiece == make_piece(~us, PAWN));
           }

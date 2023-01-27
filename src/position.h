@@ -69,6 +69,7 @@ struct StateInfo {
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
   Piece      capturedPiece;
+  Square     captureSquare; // when != to_sq, e.g., en passant
   Bitboard   nonSlidingRiders;
   Bitboard   flippedPieces;
   Bitboard   pseudoRoyals;
