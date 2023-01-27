@@ -165,7 +165,7 @@ namespace {
 
         // Passed pawns will be properly scored later in evaluation when we have
         // full attack info.
-        if (passed && is_ok(s + Up) && !pos.sittuyin_promotion())
+        if (passed && pos.promotion_square(Us, s) != SQ_NONE && !pos.sittuyin_promotion())
             e->passedPawns[Us] |= s;
 
         // Score this pawn

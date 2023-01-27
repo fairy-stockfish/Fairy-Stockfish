@@ -73,7 +73,7 @@ namespace {
 
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
     {
-        for (PieceType pt : pos.promotion_piece_types())
+        for (PieceType pt : pos.promotion_piece_types(c))
             if (!pos.promotion_limit(pt) || pos.promotion_limit(pt) > pos.count(c, pt))
                 moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), to - D, to, pt);
         PieceType pt = pos.promoted_piece_type(PAWN);
@@ -119,10 +119,8 @@ namespace {
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    const Bitboard promotionRegion = pos.sittuyin_promotion() ? Bitboard(0) : zone_bb(Us, pos.promotion_rank(), pos.max_rank());
-    const Bitboard doubleStepRegion = !pos.double_step_enabled() ? Bitboard(0)
-                                     :   zone_bb(Us, pos.double_step_rank_min(), pos.max_rank())
-                                      & ~forward_ranks_bb(Us, relative_rank(Us, pos.double_step_rank_max(), pos.max_rank()));
+    const Bitboard promotionRegion = pos.sittuyin_promotion() ? Bitboard(0) : pos.promotion_zone(Us);
+    const Bitboard doubleStepRegion = pos.double_step_region(Us);
 
     const Bitboard pawns      = pos.pieces(Us, PAWN);
     const Bitboard movable    = pos.board_bb(Us, PAWN) & ~pos.pieces();
@@ -202,7 +200,7 @@ namespace {
         while (promotionPawns)
         {
             Square from = pop_lsb(promotionPawns);
-            for (PieceType pt : pos.promotion_piece_types())
+            for (PieceType pt : pos.promotion_piece_types(Us))
             {
                 if (pos.promotion_limit(pt) && pos.promotion_limit(pt) <= pos.count(Us, pt))
                     continue;
@@ -234,7 +232,7 @@ namespace {
 
         if (pos.ep_square() != SQ_NONE)
         {
-            assert(relative_rank(Them, rank_of(pos.ep_square()), pos.max_rank()) <= Rank(pos.double_step_rank_max() + 1));
+            assert(pos.double_step_region(Them) & (pos.ep_square() + Up));
 
             // An en passant capture cannot resolve a discovered check
             if (Type == EVASIONS && (target & (pos.ep_square() + Up)))
@@ -273,7 +271,7 @@ namespace {
         // Restrict target squares considering promotion zone
         if (b2 | b3)
         {
-            Bitboard promotion_zone = zone_bb(Us, pos.promotion_rank(), pos.max_rank());
+            Bitboard promotion_zone = pos.promotion_zone(Us);
             if (pos.mandatory_piece_promotion())
                 b1 &= (promotion_zone & from ? Bitboard(0) : ~promotion_zone) | (pos.piece_promotion_on_capture() ? ~pos.pieces() : Bitboard(0));
             // Exclude quiet promotions/demotions

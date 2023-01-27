@@ -125,8 +125,9 @@ public:
   const std::set<PieceType>& piece_types() const;
   const std::string& piece_to_char() const;
   const std::string& piece_to_char_synonyms() const;
-  Rank promotion_rank() const;
-  const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types() const;
+  Bitboard promotion_zone(Color c) const;
+  Square promotion_square(Color c, Square s) const;
+  const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types(Color c) const;
   bool sittuyin_promotion() const;
   int promotion_limit(PieceType pt) const;
   PieceType promoted_piece_type(PieceType pt) const;
@@ -136,9 +137,7 @@ public:
   bool piece_demotion() const;
   bool blast_on_capture() const;
   bool endgame_eval() const;
-  bool double_step_enabled() const;
-  Rank double_step_rank_max() const;
-  Rank double_step_rank_min() const;
+  Bitboard double_step_region(Color c) const;
   bool castling_enabled() const;
   bool castling_dropped_piece() const;
   File castling_kingside_file() const;
@@ -418,13 +417,20 @@ inline const std::string& Position::piece_to_char_synonyms() const {
   return var->pieceToCharSynonyms;
 }
 
-inline Rank Position::promotion_rank() const {
+inline Bitboard Position::promotion_zone(Color c) const {
   assert(var != nullptr);
-  return var->promotionRank;
+  return zone_bb(c, var->promotionRank, var->maxRank);
 }
 
-inline const std::set<PieceType, std::greater<PieceType> >& Position::promotion_piece_types() const {
+inline Square Position::promotion_square(Color c, Square s) const {
   assert(var != nullptr);
+  Bitboard b = promotion_zone(c) & forward_file_bb(c, s);
+  return !b ? SQ_NONE : c == WHITE ? lsb(b) : msb(b);
+}
+
+inline const std::set<PieceType, std::greater<PieceType> >& Position::promotion_piece_types(Color c) const {
+  assert(var != nullptr);
+  assert(c == WHITE || c == BLACK);
   return var->promotionPieceTypes;
 }
 
@@ -473,19 +479,11 @@ inline bool Position::endgame_eval() const {
   return var->endgameEval && !count_in_hand(ALL_PIECES) && count<KING>() == 2;
 }
 
-inline bool Position::double_step_enabled() const {
+inline Bitboard Position::double_step_region(Color c) const {
   assert(var != nullptr);
-  return var->doubleStep;
-}
-
-inline Rank Position::double_step_rank_max() const {
-  assert(var != nullptr);
-  return var->doubleStepRank;
-}
-
-inline Rank Position::double_step_rank_min() const {
-  assert(var != nullptr);
-  return var->doubleStepRankMin;
+  return !var->doubleStep ? Bitboard(0)
+                          :   zone_bb(c, var->doubleStepRankMin, var->maxRank)
+                           & ~forward_ranks_bb(c, relative_rank(c, var->doubleStepRank, var->maxRank));
 }
 
 inline bool Position::castling_enabled() const {
@@ -643,7 +641,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   if (pt == PAWN)
   {
       if (!var->promotionZonePawnDrops)
-          b &= ~zone_bb(c, promotion_rank(), max_rank());
+          b &= ~promotion_zone(c);
       if (!first_rank_pawn_drops())
           b &= ~rank_bb(relative_rank(c, RANK_1, max_rank()));
   }
