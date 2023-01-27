@@ -419,6 +419,10 @@ inline const std::string& Position::piece_to_char_synonyms() const {
 
 inline Bitboard Position::promotion_zone(Color c) const {
   assert(var != nullptr);
+  if (var->sittuyinPromotion)
+      return (  PseudoAttacks[c][BISHOP][make_square(FILE_A, relative_rank(c, RANK_1, max_rank()))]
+                                | PseudoAttacks[c][BISHOP][make_square(max_file(), relative_rank(c, RANK_1, max_rank()))])
+            & forward_ranks_bb(c, relative_rank(c, Rank((max_rank() - 1) / 2), max_rank()));
   return zone_bb(c, var->promotionRank, var->maxRank);
 }
 

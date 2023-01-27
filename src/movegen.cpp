@@ -119,7 +119,8 @@ namespace {
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    const Bitboard promotionRegion = pos.sittuyin_promotion() ? Bitboard(0) : pos.promotion_zone(Us);
+    const Bitboard promotionZone = pos.promotion_zone(Us);
+    const Bitboard standardPromotionZone = pos.sittuyin_promotion() ? Bitboard(0) : promotionZone;
     const Bitboard doubleStepRegion = pos.double_step_region(Us);
 
     const Bitboard pawns      = pos.pieces(Us, PAWN);
@@ -134,18 +135,18 @@ namespace {
     Bitboard brc = shift<UpRight>(pawns) & capturable & target;
     Bitboard blc = shift<UpLeft >(pawns) & capturable & target;
 
-    Bitboard b1p = b1 & promotionRegion;
-    Bitboard b2p = b2 & promotionRegion;
-    Bitboard brcp = brc & promotionRegion;
-    Bitboard blcp = blc & promotionRegion;
+    Bitboard b1p = b1 & standardPromotionZone;
+    Bitboard b2p = b2 & standardPromotionZone;
+    Bitboard brcp = brc & standardPromotionZone;
+    Bitboard blcp = blc & standardPromotionZone;
 
     // Restrict regions based on rules and move generation type
     if (pos.mandatory_pawn_promotion())
     {
-        b1 &= ~promotionRegion;
-        b2 &= ~promotionRegion;
-        brc &= ~promotionRegion;
-        blc &= ~promotionRegion;
+        b1 &= ~standardPromotionZone;
+        b2 &= ~standardPromotionZone;
+        brc &= ~standardPromotionZone;
+        blc &= ~standardPromotionZone;
     }
 
     if (Type == QUIET_CHECKS && pos.count<KING>(Them))
@@ -191,12 +192,8 @@ namespace {
     // Sittuyin promotions
     if (pos.sittuyin_promotion() && (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS))
     {
-        Bitboard promotionPawns = pawns;
-        // Pawns need to be on diagonals on opponent's half if there is more than one pawn
-        if (pos.count<PAWN>(Us) > 1)
-            promotionPawns &=  (  PseudoAttacks[Us][BISHOP][make_square(FILE_A, relative_rank(Us, RANK_1, pos.max_rank()))]
-                                | PseudoAttacks[Us][BISHOP][make_square(pos.max_file(), relative_rank(Us, RANK_1, pos.max_rank()))])
-                             & forward_ranks_bb(Us, relative_rank(Us, Rank((pos.max_rank() - 1) / 2), pos.max_rank()));
+        // Pawns need to be in promotion zone if there is more than one pawn
+        Bitboard promotionPawns = pos.count<PAWN>(Us) > 1 ? pawns & promotionZone : pawns;
         while (promotionPawns)
         {
             Square from = pop_lsb(promotionPawns);
