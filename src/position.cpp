@@ -1823,10 +1823,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
-      Bitboard blast =  blast_on_capture() ? (attacks_bb<KING>(to) & (pieces() ^
-                        (pawns_get_blast() ? Bitboard(0) : pieces(PAWN)) ^
-                        (kings_get_blast() ? Bitboard(0) : pieces(COMMONER))))
-                        | to : (var->pawnsCanPetrify || type_of(pc) != PAWN) ? square_bb(to) : Bitboard(0);
+      Bitboard blast =  blast_on_capture() ? ((attacks_bb<KING>(to) & (pieces() ^
+                        (pawns_get_blast() ? Bitboard(0) : pieces(PAWN)))) | to ) &
+                        (pieces() ^ (kings_get_blast() ? Bitboard(0) : pieces(COMMONER)))
+                        : (var->pawnsCanPetrify || type_of(pc) != PAWN) ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);
