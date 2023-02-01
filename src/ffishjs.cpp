@@ -175,6 +175,10 @@ public:
     return this->pos.fen();
   }
 
+  std::string fen(bool showPromoted) const {
+    return this->pos.fen(false, showPromoted);
+  }
+
   std::string fen(bool showPromoted, int countStarted) const {
     return this->pos.fen(false, showPromoted, countStarted);
   }
@@ -330,6 +334,10 @@ public:
 
   bool is_bikjang() const {
     return pos.bikjang();
+  }
+
+  bool is_capture(std::string uciMove) const {
+    return pos.capture(UCI::to_move(pos, uciMove));
   }
 
   std::string move_stack() const {
@@ -680,6 +688,7 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("reset", &Board::reset)
     .function("is960", &Board::is_960)
     .function("fen", select_overload<std::string()const>(&Board::fen))
+    .function("fen", select_overload<std::string(bool)const>(&Board::fen))
     .function("fen", select_overload<std::string(bool, int)const>(&Board::fen))
     .function("setFen", &Board::set_fen)
     .function("sanMove", select_overload<std::string(std::string)>(&Board::san_move))
@@ -699,6 +708,7 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("result", select_overload<std::string(bool) const>(&Board::result))
     .function("isCheck", &Board::is_check)
     .function("isBikjang", &Board::is_bikjang)
+    .function("isCapture", &Board::is_capture)
     .function("moveStack", &Board::move_stack)
     .function("pushMoves", &Board::push_moves)
     .function("pushSanMoves", select_overload<void(std::string)>(&Board::push_san_moves))

@@ -863,6 +863,28 @@ class TestPyffish(unittest.TestCase):
         result = sf.gives_check("janggi", "4ka3/4a4/9/4R4/2B6/9/9/5K3/4p4/3r5 b - - 0 113", ["e2f2"])
         self.assertTrue(result)
 
+    def test_is_capture(self):
+        result = sf.is_capture("chess", CHESS, [], "e2e4")
+        self.assertFalse(result)
+
+        result = sf.is_capture("chess", CHESS, ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5"], "e1g1")
+        self.assertFalse(result)
+
+        result = sf.is_capture("chess", CHESS, ["e2e4", "g8f6", "e4e5", "d7d5"], "e5f6")
+        self.assertTrue(result)
+
+        # en passant
+        result = sf.is_capture("chess", CHESS, ["e2e4", "g8f6", "e4e5", "d7d5"], "e5d6")
+        self.assertTrue(result)
+
+        # 960 castling
+        result = sf.is_capture("chess", "bqrbkrnn/pppppppp/8/8/8/8/PPPPPPPP/BQRBKRNN w CFcf - 0 1", ["g1f3", "h8g6"], "e1f1", True)
+        self.assertFalse(result)
+
+        # Sittuyin in-place promotion
+        result = sf.is_capture("sittuyin", "8/2k5/8/4P3/4P1N1/5K2/8/8[] w - - 0 1", [], "e5e5f")
+        self.assertFalse(result)
+
     def test_game_result(self):
         result = sf.game_result("chess", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
         self.assertEqual(result, -sf.VALUE_MATE)

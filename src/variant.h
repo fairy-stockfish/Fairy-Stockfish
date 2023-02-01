@@ -98,6 +98,9 @@ struct Variant {
   bool gating = false;
   bool arrowGating = false;
   bool duckGating = false;
+  bool staticGating = false;
+  bool pastGating = false;
+  Bitboard staticGatingRegion = AllSquares;
   bool seirawanGating = false;
   bool cambodianMoves = false;
   Bitboard diagonalLines = 0;
