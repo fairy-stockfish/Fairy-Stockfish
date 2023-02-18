@@ -229,10 +229,11 @@ constexpr int SQUARE_BITS = 6;
 
 #ifdef ALLVARS
 constexpr int MAX_MOVES = 8192;
+constexpr int MAX_PLY   = 60;
 #else
 constexpr int MAX_MOVES = 1024;
-#endif
 constexpr int MAX_PLY   = 246;
+#endif
 
 /// A move needs 16 bits to be stored
 ///
