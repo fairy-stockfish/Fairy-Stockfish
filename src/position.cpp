@@ -1080,7 +1080,7 @@ bool Position::legal(Move m) const {
           occupied = (pieces() ^ from ^ to) | kto | rto;
       }
       if (type_of(m) == EN_PASSANT)
-          occupied &= ~square_bb(empty(kto - pawn_push(us)) ? kto - 2 * pawn_push(us) : kto - pawn_push(us));
+          occupied &= ~square_bb(capture_square(kto));
       if (capture(m) && blast_on_capture())
           occupied &= ~((attacks_bb<KING>(kto) & (pieces() ^ pieces(PAWN))) | kto);
       Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
@@ -1114,9 +1114,7 @@ bool Position::legal(Move m) const {
   if (type_of(m) == EN_PASSANT && count<KING>(us))
   {
       Square ksq = square<KING>(us);
-      Square capsq = to - pawn_push(us);
-      while (piece_on(capsq) != make_piece(~us, PAWN))
-          capsq -= pawn_push(us);
+      Square capsq = capture_square(to);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
       assert(ep_squares() & to);
@@ -1390,7 +1388,7 @@ bool Position::gives_check(Move m) const {
   // the captured pawn.
   case EN_PASSANT:
   {
-      Square capsq = make_square(file_of(to), rank_of(from));
+      Square capsq = capture_square(to);
       Bitboard b = (pieces() ^ from ^ capsq) | to;
 
       return attackers_to(square<KING>(~sideToMove), b) & pieces(sideToMove) & b;
@@ -1495,8 +1493,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           if (type_of(m) == EN_PASSANT)
           {
-              while (piece_on(capsq) != make_piece(them, PAWN))
-                  capsq -= pawn_push(us);
+              capsq = capture_square(to);
               st->captureSquare = capsq;
 
               assert(pc == make_piece(us, PAWN));

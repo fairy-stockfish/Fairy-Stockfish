@@ -40,7 +40,7 @@ namespace {
             b ^= square_bb(to) ^ kto ^ rto;
         }
         if (T == EN_PASSANT)
-            b ^= pos.empty(to - pawn_push(us)) ? to - 2 * pawn_push(us) : to - pawn_push(us);
+            b ^= pos.capture_square(to);
         if (pos.variant()->arrowGating)
             b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
         if (pos.variant()->staticGating)

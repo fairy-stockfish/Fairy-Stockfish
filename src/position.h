@@ -261,6 +261,7 @@ public:
   bool virtual_drop(Move m) const;
   bool capture(Move m) const;
   bool capture_or_promotion(Move m) const;
+  Square capture_square(Square to) const;
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
@@ -1240,6 +1241,13 @@ inline bool Position::capture(Move m) const {
   assert(is_ok(m));
   // Castling is encoded as "king captures rook"
   return (!empty(to_sq(m)) && type_of(m) != CASTLING && from_sq(m) != to_sq(m)) || type_of(m) == EN_PASSANT;
+}
+
+inline Square Position::capture_square(Square to) const {
+  assert(is_ok(to));
+  // The capture square of en passant is the closest piece behind the target square
+  Bitboard b = pieces(~sideToMove) & forward_file_bb(~sideToMove, to);
+  return sideToMove == WHITE ? msb(b) : lsb(b);
 }
 
 inline bool Position::virtual_drop(Move m) const {
