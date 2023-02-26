@@ -18,7 +18,7 @@ You can download the [Windows executable](https://github.com/ianfab/Fairy-Stockf
 If you want to preview the functionality of Fairy-Stockfish before downloading, you can try it out on the [Fairy-Stockfish playground](https://fairyground.vercel.app/) in the browser.
 
 Optional NNUE evaluation parameter files to improve playing strength for many variants are in the [list of NNUE networks](https://fairy-stockfish.github.io/nnue/#current-best-nnue-networks).
-For the regional variants Xiangqi, Janggi, and Makruk [dedicated releases with built-in NNUE networks](https://github.com/ianfab/Fairy-Stockfish-NNUE) are available. See the [wiki](https://github.com/ianfab/Fairy-Stockfish/wiki/NNUE) for more details on NNUE.
+For the regional variants Xiangqi, Janggi, and Makruk [dedicated releases with built-in NNUE networks](https://github.com/fairy-stockfish/Fairy-Stockfish-NNUE) are available. See the [wiki](https://github.com/ianfab/Fairy-Stockfish/wiki/NNUE) for more details on NNUE.
 
 ## Contributing
 
@@ -95,7 +95,7 @@ The javascript binding [ffish.js](https://www.npmjs.com/package/ffish) contribut
 
 ### WebAssembly
 
-For in-browser use a [port of Fairy-Stockfish to WebAssembly](https://github.com/ianfab/fairy-stockfish.wasm) is available at [npm](https://www.npmjs.com/package/fairy-stockfish-nnue.wasm). It is e.g. used for local analysis on [pychess.org](https://www.pychess.org/analysis/chess). Also see the [Fairy-Stockfish WASM demo](https://github.com/ianfab/fairy-stockfish-nnue-wasm-demo) available at https://fairy-stockfish-nnue-wasm.vercel.app/.
+For in-browser use a [port of Fairy-Stockfish to WebAssembly](https://github.com/fairy-stockfish/fairy-stockfish.wasm) is available at [npm](https://www.npmjs.com/package/fairy-stockfish-nnue.wasm). It is e.g. used for local analysis on [pychess.org](https://www.pychess.org/analysis/chess). Also see the [Fairy-Stockfish WASM demo](https://github.com/ianfab/fairy-stockfish-nnue-wasm-demo) available at https://fairy-stockfish-nnue-wasm.vercel.app/.
 
 # Stockfish
 ## Overview
