@@ -895,7 +895,7 @@ inline std::string get_valid_special_chars(const Variant* v) {
     // Whether or not '-', '+', '~', '[', ']' are valid depends on the variant being played.
     if (v->shogiStylePromotions)
         validSpecialCharactersFirstField += '+';
-    if (!v->promotionPieceTypes.empty())
+    if (!v->promotionPieceTypes[WHITE].empty() || !v->promotionPieceTypes[BLACK].empty())
         validSpecialCharactersFirstField += '~';
     if (!v->freeDrops && (v->pieceDrops || v->seirawanGating))
         validSpecialCharactersFirstField += "[-]";

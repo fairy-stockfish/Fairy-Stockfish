@@ -122,11 +122,13 @@ namespace {
 } // namespace
 
 template <bool DoCheck>
-template <class T> void VariantParser<DoCheck>::parse_attribute(const std::string& key, T& target) {
+template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(const std::string& key, T& target) {
     const auto& it = config.find(key);
     if (it != config.end())
     {
         bool valid = set(it->second, target);
+        if (DoCheck && !Current)
+            std::cerr << key << " - Deprecated option might be removed in future version." << std::endl;
         if (DoCheck && !valid)
         {
             std::string typeName =  std::is_same<T, int>() ? "int"
@@ -142,7 +144,9 @@ template <class T> void VariantParser<DoCheck>::parse_attribute(const std::strin
                                   : typeid(T).name();
             std::cerr << key << " - Invalid value " << it->second << " for type " << typeName << std::endl;
         }
+        return valid;
     }
+    return false;
 }
 
 template <bool DoCheck>
@@ -161,15 +165,34 @@ void VariantParser<DoCheck>::parse_attribute(const std::string& key, PieceType& 
 }
 
 template <bool DoCheck>
+void VariantParser<DoCheck>::parse_attribute(const std::string& key, std::set<PieceType, std::greater<PieceType> >& target, std::string pieceToChar) {
+    const auto& it = config.find(key);
+    if (it != config.end())
+    {
+        target = {};
+        char token;
+        size_t idx = 0;
+        std::stringstream ss(it->second);
+        while (ss >> token && ((idx = pieceToChar.find(toupper(token))) != std::string::npos))
+            target.insert(PieceType(idx));
+        if (DoCheck && idx == std::string::npos && token != '-')
+            std::cerr << key << " - Invalid piece type: " << token << std::endl;
+    }
+}
+
+template <bool DoCheck>
 Variant* VariantParser<DoCheck>::parse() {
     Variant* v = new Variant();
     v->reset_pieces();
-    v->promotionPieceTypes = {};
+    v->promotionPieceTypes[WHITE] = {};
+    v->promotionPieceTypes[BLACK] = {};
     return parse(v);
 }
 
 template <bool DoCheck>
 Variant* VariantParser<DoCheck>::parse(Variant* v) {
+    parse_attribute("maxRank", v->maxRank);
+    parse_attribute("maxFile", v->maxFile);
     // piece types
     for (PieceType pt = PAWN; pt <= KING; ++pt)
     {
@@ -238,28 +261,39 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                 std::cerr << optionName << " - Invalid piece value for type: " << v->pieceToChar[idx] << std::endl;
         }
     }
+
+    // Parse deprecate values for backwards compatibility
+    Rank promotionRank = RANK_8;
+    if (parse_attribute<false>("promotionRank", promotionRank))
+    {
+        for (Color c : {WHITE, BLACK})
+            v->promotionRegion[c] = zone_bb(c, promotionRank, v->maxRank);
+    }
+    Rank doubleStepRank = RANK_2;
+    Rank doubleStepRankMin = RANK_2;
+    if (   parse_attribute<false>("doubleStepRank", doubleStepRank)
+        || parse_attribute<false>("doubleStepRankMin", doubleStepRankMin))
+    {
+        for (Color c : {WHITE, BLACK})
+            v->doubleStepRegion[c] =   zone_bb(c, doubleStepRankMin, v->maxRank)
+                                    & ~forward_ranks_bb(c, relative_rank(c, doubleStepRank, v->maxRank));
+    }
+    parse_attribute<false>("whiteFlag", v->flagRegion[WHITE]);
+    parse_attribute<false>("blackFlag", v->flagRegion[BLACK]);
+
+    // Parse the official config options
     parse_attribute("variantTemplate", v->variantTemplate);
     parse_attribute("pieceToCharTable", v->pieceToCharTable);
     parse_attribute("pocketSize", v->pocketSize);
-    parse_attribute("maxRank", v->maxRank);
-    parse_attribute("maxFile", v->maxFile);
     parse_attribute("chess960", v->chess960);
     parse_attribute("twoBoards", v->twoBoards);
     parse_attribute("startFen", v->startFen);
-    parse_attribute("promotionRank", v->promotionRank);
-    // promotion piece types
-    const auto& it_prom = config.find("promotionPieceTypes");
-    if (it_prom != config.end())
-    {
-        v->promotionPieceTypes = {};
-        char token;
-        size_t idx = 0;
-        std::stringstream ss(it_prom->second);
-        while (ss >> token && ((idx = v->pieceToChar.find(toupper(token))) != std::string::npos))
-            v->promotionPieceTypes.insert(PieceType(idx));
-        if (DoCheck && idx == std::string::npos && token != '-')
-            std::cerr << "promotionPieceTypes - Invalid piece type: " << token << std::endl;
-    }
+    parse_attribute("promotionRegionWhite", v->promotionRegion[WHITE]);
+    parse_attribute("promotionRegionBlack", v->promotionRegion[BLACK]);
+    parse_attribute("promotionPieceTypes", v->promotionPieceTypes[WHITE], v->pieceToChar);
+    parse_attribute("promotionPieceTypes", v->promotionPieceTypes[BLACK], v->pieceToChar);
+    parse_attribute("promotionPieceTypesWhite", v->promotionPieceTypes[WHITE], v->pieceToChar);
+    parse_attribute("promotionPieceTypesWhite", v->promotionPieceTypes[BLACK], v->pieceToChar);
     parse_attribute("sittuyinPromotion", v->sittuyinPromotion);
     // promotion limit
     const auto& it_prom_limit = config.find("promotionLimit");
@@ -295,8 +329,10 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("blastOnCapture", v->blastOnCapture);
     parse_attribute("petrifyOnCapture", v->petrifyOnCapture);
     parse_attribute("doubleStep", v->doubleStep);
-    parse_attribute("doubleStepRank", v->doubleStepRank);
-    parse_attribute("doubleStepRankMin", v->doubleStepRankMin);
+    parse_attribute("doubleStepRegionWhite", v->doubleStepRegion[WHITE]);
+    parse_attribute("doubleStepRegionBlack", v->doubleStepRegion[BLACK]);
+    parse_attribute("tripleStepRegionWhite", v->tripleStepRegion[WHITE]);
+    parse_attribute("tripleStepRegionBlack", v->tripleStepRegion[BLACK]);
     parse_attribute("enPassantRegion", v->enPassantRegion);
     parse_attribute("castling", v->castling);
     parse_attribute("castlingDroppedPiece", v->castlingDroppedPiece);
@@ -375,8 +411,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("extinctionPieceCount", v->extinctionPieceCount);
     parse_attribute("extinctionOpponentPieceCount", v->extinctionOpponentPieceCount);
     parse_attribute("flagPiece", v->flagPiece, v->pieceToChar);
-    parse_attribute("whiteFlag", v->whiteFlag);
-    parse_attribute("blackFlag", v->blackFlag);
+    parse_attribute("flagRegionWhite", v->flagRegion[WHITE]);
+    parse_attribute("flagRegionBlack", v->flagRegion[BLACK]);
     parse_attribute("flagMove", v->flagMove);
     parse_attribute("checkCounting", v->checkCounting);
     parse_attribute("connectN", v->connectN);
@@ -431,8 +467,6 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         // Contradictory options
         if (!v->checking && v->checkCounting)
             std::cerr << "checkCounting=true requires checking=true." << std::endl;
-        if (v->doubleStep && v->doubleStepRankMin > v->doubleStepRank)
-            std::cerr << "Inconsistent settings: doubleStepRankMin > doubleStepRank." << std::endl;
         if (v->castling && v->castlingRank > v->maxRank)
             std::cerr << "Inconsistent settings: castlingRank > maxRank." << std::endl;
         if (v->castling && v->castlingQueensideFile > v->castlingKingsideFile)

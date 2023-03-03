@@ -50,8 +50,9 @@ public:
 
 private:
     Config config;
-    template <class T> void parse_attribute(const std::string& key, T& target);
+    template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target);
     void parse_attribute(const std::string& key, PieceType& target, std::string pieceToChar);
+    void parse_attribute(const std::string& key, std::set<PieceType, std::greater<PieceType> >& target, std::string pieceToChar);
 };
 
 } // namespace Stockfish

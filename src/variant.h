@@ -50,8 +50,9 @@ struct Variant {
   std::string pieceToCharSynonyms = std::string(PIECE_NB, ' ');
   std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   Bitboard mobilityRegion[COLOR_NB][PIECE_TYPE_NB] = {};
-  Rank promotionRank = RANK_8;
-  std::set<PieceType, std::greater<PieceType> > promotionPieceTypes = { QUEEN, ROOK, BISHOP, KNIGHT };
+  Bitboard promotionRegion[COLOR_NB] = {Rank8BB, Rank1BB};
+  std::set<PieceType, std::greater<PieceType> > promotionPieceTypes[2] = {{ QUEEN, ROOK, BISHOP, KNIGHT },
+                                                                          { QUEEN, ROOK, BISHOP, KNIGHT }};
   bool sittuyinPromotion = false;
   int promotionLimit[PIECE_TYPE_NB] = {}; // 0 means unlimited
   PieceType promotedPieceType[PIECE_TYPE_NB] = {};
@@ -62,8 +63,7 @@ struct Variant {
   bool blastOnCapture = false;
   bool petrifyOnCapture = false;
   bool doubleStep = true;
-  Rank doubleStepRank = RANK_2;
-  Rank doubleStepRankMin = RANK_2;
+  Bitboard doubleStepRegion[COLOR_NB] = {Rank2BB, Rank7BB};
   Bitboard tripleStepRegion[COLOR_NB] = {};
   Bitboard enPassantRegion = AllSquares;
   bool castling = true;
@@ -134,8 +134,7 @@ struct Variant {
   int extinctionPieceCount = 0;
   int extinctionOpponentPieceCount = 0;
   PieceType flagPiece = NO_PIECE_TYPE;
-  Bitboard whiteFlag = 0;
-  Bitboard blackFlag = 0;
+  Bitboard flagRegion[COLOR_NB] = {};
   bool flagMove = false;
   bool checkCounting = false;
   int connectN = 0;
@@ -193,6 +192,12 @@ struct Variant {
 
   // Pre-calculate derived properties
   Variant* conclude() {
+      // Enforce consistency to allow runtime optimizations
+      if (!doubleStep)
+          doubleStepRegion[WHITE] = doubleStepRegion[BLACK] = 0;
+      if (!doubleStepRegion[WHITE] && !doubleStepRegion[BLACK])
+          doubleStep = false;
+
       fastAttacks = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
                                     return (   pt < FAIRY_PIECES
                                             || pt == COMMONER || pt == IMMOBILE_PIECE

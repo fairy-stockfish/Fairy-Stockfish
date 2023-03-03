@@ -196,7 +196,7 @@ void init(const Variant* v) {
   }
 
   Value maxPromotion = VALUE_ZERO;
-  for (PieceType pt : v->promotionPieceTypes)
+  for (PieceType pt : v->promotionPieceTypes[WHITE])
       maxPromotion = std::max(maxPromotion, PieceValue[EG][pt]);
 
   for (PieceType pt = PAWN; pt <= KING; ++pt)

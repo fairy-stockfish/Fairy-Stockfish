@@ -38,7 +38,8 @@ centaur = g
 archbishop = a
 chancellor = m
 fers = f
-promotionRank = 6
+promotionRegionWhite = *6 *7 *8
+promotionRegionBlack = *3 *2 *1
 promotionLimit = g:1 a:1 m:1 q:1
 promotionPieceTypes = -
 promotedPieceType = p:c n:g b:a r:m f:q
@@ -58,8 +59,8 @@ kniroo = l
 silver = y
 promotionPieceTypes = qh
 flagPiece = k
-whiteFlag = *8
-blackFlag = *1
+flagRegionWhite = *8
+flagRegionBlack = *1
 
 [diana:losalamos]
 pieceToCharTable = PNBRQ................Kpnbrq................k

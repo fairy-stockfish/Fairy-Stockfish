@@ -422,11 +422,7 @@ inline const std::string& Position::piece_to_char_synonyms() const {
 
 inline Bitboard Position::promotion_zone(Color c) const {
   assert(var != nullptr);
-  if (var->sittuyinPromotion)
-      return (  PseudoAttacks[c][BISHOP][make_square(FILE_A, relative_rank(c, RANK_1, max_rank()))]
-                                | PseudoAttacks[c][BISHOP][make_square(max_file(), relative_rank(c, RANK_1, max_rank()))])
-            & forward_ranks_bb(c, relative_rank(c, Rank((max_rank() - 1) / 2), max_rank()));
-  return zone_bb(c, var->promotionRank, var->maxRank);
+  return var->promotionRegion[c];
 }
 
 inline Square Position::promotion_square(Color c, Square s) const {
@@ -437,8 +433,7 @@ inline Square Position::promotion_square(Color c, Square s) const {
 
 inline const std::set<PieceType, std::greater<PieceType> >& Position::promotion_piece_types(Color c) const {
   assert(var != nullptr);
-  assert(c == WHITE || c == BLACK);
-  return var->promotionPieceTypes;
+  return var->promotionPieceTypes[c];
 }
 
 inline bool Position::sittuyin_promotion() const {
@@ -488,9 +483,7 @@ inline bool Position::endgame_eval() const {
 
 inline Bitboard Position::double_step_region(Color c) const {
   assert(var != nullptr);
-  return !var->doubleStep ? Bitboard(0)
-                          :   zone_bb(c, var->doubleStepRankMin, var->maxRank)
-                           & ~forward_ranks_bb(c, relative_rank(c, var->doubleStepRank, var->maxRank));
+  return var->doubleStepRegion[c];
 }
 
 inline Bitboard Position::triple_step_region(Color c) const {
@@ -904,7 +897,7 @@ inline PieceType Position::capture_the_flag_piece() const {
 
 inline Bitboard Position::capture_the_flag(Color c) const {
   assert(var != nullptr);
-  return c == WHITE ? var->whiteFlag : var->blackFlag;
+  return var->flagRegion[c];
 }
 
 inline bool Position::flag_move() const {
