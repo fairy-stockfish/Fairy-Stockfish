@@ -759,6 +759,7 @@ namespace {
         v->promotedPieceType[SHOGI_KNIGHT] = NO_PIECE_TYPE;
         return v;
     }
+	
     // Dobutsu
     // Educational shogi variant on a 3x4 board
     // https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi
@@ -955,6 +956,23 @@ namespace {
         v->extinctionPieceCount = 64; // no matter how many queens, all are royal
         return v;
     }
+	Variant* legan_variant() {
+	    Variant* v =  chess_variant_base()->init();
+	    v->remove_piece(PAWN); 
+		v->add_piece(CUSTOM_PIECES, 'p', "flmFflcW");		 
+		  v->promotionRegion[WHITE] = make_bitboard(SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_A7, SQ_A6, SQ_A5);
+        v->promotionRegion[BLACK] = make_bitboard(SQ_E1, SQ_F1, SQ_G1, SQ_H1, SQ_H2, SQ_H3, SQ_H4);
+	    v->startFen = "knbrp3/bqpp4/npp5/rp1p3P/p3P1PR/5PPN/4PPQB/3PRBNK w - - 0 1";
+        v->promotedPieceType[KING]         = NO_PIECE_TYPE;
+		v->promotedPieceType[KNIGHT]         = NO_PIECE_TYPE;
+		v->promotedPieceType[BISHOP]         = NO_PIECE_TYPE;
+		v->promotedPieceType[ROOK]         = NO_PIECE_TYPE;
+     v->promotedPieceType[CUSTOM_PIECES] = QUEEN;
+        v->promotionPieceTypes[WHITE] = {};
+        v->promotionPieceTypes[BLACK] = {};
+		v->doubleStep = false; 
+       return v;
+    } 
     // Clobber
     // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber_variant() {
@@ -1657,7 +1675,8 @@ void VariantMap::init() {
     add("horde", horde_variant());
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
-#ifdef ALLVARS
+	add("legan", legan_variant());
+	#ifdef ALLVARS
     add("isolation", isolation_variant());
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
