@@ -261,7 +261,7 @@ namespace {
   }
 
 
-  template<Color Us, bool Checks>
+  template<Color Us, GenType Type>
   ExtMove* generate_moves(const Position& pos, ExtMove* moveList, PieceType Pt, Bitboard target) {
 
     assert(Pt != KING && Pt != PAWN);
@@ -274,14 +274,17 @@ namespace {
 
         Bitboard b1 = (  (pos.attacks_from(Us, Pt, from) & pos.pieces())
                        | (pos.moves_from(Us, Pt, from) & ~pos.pieces())) & target;
+        Bitboard promotion_zone = pos.promotion_zone(Us);
         PieceType promPt = pos.promoted_piece_type(Pt);
         Bitboard b2 = promPt && (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
+        Bitboard b4 = Pt == pos.promotion_pawn_type(Us) ? b1 & promotion_zone : Bitboard(0);
 
         // Restrict target squares considering promotion zone
         if (b2 | b3)
         {
-            Bitboard promotion_zone = pos.promotion_zone(Us);
+            if (pos.mandatory_pawn_promotion())
+                b1 &= ~b4;
             if (pos.mandatory_piece_promotion())
                 b1 &= (promotion_zone & from ? Bitboard(0) : ~promotion_zone) | (pos.piece_promotion_on_capture() ? ~pos.pieces() : Bitboard(0));
             // Exclude quiet promotions/demotions
@@ -298,7 +301,7 @@ namespace {
             }
         }
 
-        if (Checks)
+        if (Type == QUIET_CHECKS)
         {
             b1 &= pos.check_squares(Pt);
             if (b2)
@@ -317,6 +320,13 @@ namespace {
         // Piece demotions
         while (b3)
             *moveList++ = make<PIECE_DEMOTION>(from, pop_lsb(b3));
+
+        // Pawn-style promotions
+        if ((Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS) && b4)
+            for (PieceType promPt : pos.promotion_piece_types(Us))
+                if (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt))
+                    for (Bitboard promotions = b4; promotions; )
+                        moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), from, pop_lsb(promotions), promPt);
     }
 
     return moveList;
@@ -356,7 +366,7 @@ namespace {
         moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
         for (PieceType pt : pos.piece_types())
             if (pt != PAWN && pt != KING)
-                moveList = generate_moves<Us, Checks>(pos, moveList, pt, target);
+                moveList = generate_moves<Us, Type>(pos, moveList, pt, target);
         // generate drops
         if (pos.piece_drops() && Type != CAPTURES && (pos.can_drop(Us, ALL_PIECES) || pos.two_boards()))
             for (PieceType pt : pos.piece_types())

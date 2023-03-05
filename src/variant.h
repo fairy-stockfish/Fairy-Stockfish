@@ -51,8 +51,9 @@ struct Variant {
   std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   Bitboard mobilityRegion[COLOR_NB][PIECE_TYPE_NB] = {};
   Bitboard promotionRegion[COLOR_NB] = {Rank8BB, Rank1BB};
-  std::set<PieceType, std::greater<PieceType> > promotionPieceTypes[2] = {{ QUEEN, ROOK, BISHOP, KNIGHT },
-                                                                          { QUEEN, ROOK, BISHOP, KNIGHT }};
+  PieceType promotionPawnType[COLOR_NB] = {PAWN, PAWN};
+  std::set<PieceType, std::greater<PieceType> > promotionPieceTypes[COLOR_NB] = {{ QUEEN, ROOK, BISHOP, KNIGHT },
+                                                                                 { QUEEN, ROOK, BISHOP, KNIGHT }};
   bool sittuyinPromotion = false;
   int promotionLimit[PIECE_TYPE_NB] = {}; // 0 means unlimited
   PieceType promotedPieceType[PIECE_TYPE_NB] = {};

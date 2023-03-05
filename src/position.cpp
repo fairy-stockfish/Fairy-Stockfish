@@ -1730,12 +1730,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Reset rule 50 draw counter
       st->rule50 = 0;
   }
-  else if (type_of(m) == PIECE_PROMOTION)
+  else if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
   {
-      Piece promotion = make_piece(us, promoted_piece_type(type_of(pc)));
+      Piece promotion = make_piece(us, type_of(m) == PROMOTION ? promotion_type(m) : promoted_piece_type(type_of(pc)));
 
       remove_piece(to);
-      put_piece(promotion, to, true, pc);
+      put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
 
       if (Eval::useNNUE)
       {
@@ -2037,7 +2037,7 @@ void Position::undo_move(Move m) {
       assert(type_of(pc) >= KNIGHT && type_of(pc) < KING);
 
       remove_piece(to);
-      pc = make_piece(us, PAWN);
+      pc = make_piece(us, promotion_pawn_type(us));
       put_piece(pc, to);
   }
   else if (type_of(m) == PIECE_PROMOTION)
@@ -2087,7 +2087,7 @@ void Position::undo_move(Move m) {
           put_piece(st->capturedPiece, capsq, st->capturedpromoted, st->unpromotedCapturedPiece); // Restore the captured piece
           if (captures_to_hand())
               remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
-                                                                                                   : make_piece(~color_of(st->capturedPiece), PAWN))
+                                                                                                   : make_piece(~color_of(st->capturedPiece), promotion_pawn_type(us)))
                                                                     : ~st->capturedPiece);
       }
   }
@@ -2212,7 +2212,7 @@ Key Position::key_after(Move m) const {
       k ^= Zobrist::psq[captured][to];
       if (captures_to_hand())
       {
-          Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
+          Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), promotion_pawn_type(color_of(captured))) : ~captured;
           k ^= Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)] + 1]
               ^ Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)]];
       }

@@ -290,6 +290,10 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("startFen", v->startFen);
     parse_attribute("promotionRegionWhite", v->promotionRegion[WHITE]);
     parse_attribute("promotionRegionBlack", v->promotionRegion[BLACK]);
+    parse_attribute("promotionPawnType", v->promotionPawnType[WHITE], v->pieceToChar);
+    parse_attribute("promotionPawnType", v->promotionPawnType[BLACK], v->pieceToChar);
+    parse_attribute("promotionPawnTypeWhite", v->promotionPawnType[WHITE], v->pieceToChar);
+    parse_attribute("promotionPawnTypeBlack", v->promotionPawnType[BLACK], v->pieceToChar);
     parse_attribute("promotionPieceTypes", v->promotionPieceTypes[WHITE], v->pieceToChar);
     parse_attribute("promotionPieceTypes", v->promotionPieceTypes[BLACK], v->pieceToChar);
     parse_attribute("promotionPieceTypesWhite", v->promotionPieceTypes[WHITE], v->pieceToChar);

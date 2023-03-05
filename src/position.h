@@ -128,6 +128,7 @@ public:
   const std::string& piece_to_char_synonyms() const;
   Bitboard promotion_zone(Color c) const;
   Square promotion_square(Color c, Square s) const;
+  PieceType promotion_pawn_type(Color c) const;
   const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types(Color c) const;
   bool sittuyin_promotion() const;
   int promotion_limit(PieceType pt) const;
@@ -429,6 +430,11 @@ inline Square Position::promotion_square(Color c, Square s) const {
   assert(var != nullptr);
   Bitboard b = promotion_zone(c) & forward_file_bb(c, s);
   return !b ? SQ_NONE : c == WHITE ? lsb(b) : msb(b);
+}
+
+inline PieceType Position::promotion_pawn_type(Color c) const {
+  assert(var != nullptr);
+  return var->promotionPawnType[c];
 }
 
 inline const std::set<PieceType, std::greater<PieceType> >& Position::promotion_piece_types(Color c) const {
