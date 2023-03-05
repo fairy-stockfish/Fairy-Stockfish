@@ -323,10 +323,10 @@ namespace {
 
         // Pawn-style promotions
         if ((Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS) && b4)
-            for (PieceType promPt : pos.promotion_piece_types(Us))
-                if (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt))
+            for (PieceType ptP : pos.promotion_piece_types(Us))
+                if (!pos.promotion_limit(ptP) || pos.promotion_limit(ptP) > pos.count(Us, ptP))
                     for (Bitboard promotions = b4; promotions; )
-                        moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), from, pop_lsb(promotions), promPt);
+                        moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), from, pop_lsb(promotions), ptP);
     }
 
     return moveList;
