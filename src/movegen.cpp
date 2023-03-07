@@ -114,6 +114,9 @@ namespace {
   template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
+    if (!pos.pieces(Us, PAWN))
+        return moveList;
+
     constexpr Color     Them     = ~Us;
     constexpr Direction Up       = pawn_push(Us);
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
@@ -240,7 +243,7 @@ namespace {
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpLeft, to);
         }
 
-        for (Bitboard epSquares = pos.ep_squares(); epSquares; )
+        for (Bitboard epSquares = pos.ep_squares() & ~pos.pieces(); epSquares; )
         {
             Square epSquare = pop_lsb(epSquares);
 
@@ -272,19 +275,23 @@ namespace {
     {
         Square from = pop_lsb(bb);
 
-        Bitboard b1 = (  (pos.attacks_from(Us, Pt, from) & pos.pieces())
+        Bitboard attacks = pos.attacks_from(Us, Pt, from);
+        Bitboard b1 = (  (attacks & pos.pieces())
                        | (pos.moves_from(Us, Pt, from) & ~pos.pieces())) & target;
         Bitboard promotion_zone = pos.promotion_zone(Us);
         PieceType promPt = pos.promoted_piece_type(Pt);
         Bitboard b2 = promPt && (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
-        Bitboard b4 = Pt == pos.promotion_pawn_type(Us) ? b1 & promotion_zone : Bitboard(0);
+        Bitboard pawnPromotions = Pt == pos.promotion_pawn_type(Us) ? b1 & promotion_zone : Bitboard(0);
+        Bitboard epSquares = attacks & ~b1 & pos.ep_squares() & ~pos.pieces();
+
+        // target squares considering pawn promotions
+        if (pawnPromotions && pos.mandatory_pawn_promotion())
+            b1 &= ~pawnPromotions;
 
         // Restrict target squares considering promotion zone
         if (b2 | b3)
         {
-            if (pos.mandatory_pawn_promotion())
-                b1 &= ~b4;
             if (pos.mandatory_piece_promotion())
                 b1 &= (promotion_zone & from ? Bitboard(0) : ~promotion_zone) | (pos.piece_promotion_on_capture() ? ~pos.pieces() : Bitboard(0));
             // Exclude quiet promotions/demotions
@@ -322,11 +329,16 @@ namespace {
             *moveList++ = make<PIECE_DEMOTION>(from, pop_lsb(b3));
 
         // Pawn-style promotions
-        if ((Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS) && b4)
+        if ((Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS) && pawnPromotions)
             for (PieceType ptP : pos.promotion_piece_types(Us))
                 if (!pos.promotion_limit(ptP) || pos.promotion_limit(ptP) > pos.count(Us, ptP))
-                    for (Bitboard promotions = b4; promotions; )
+                    for (Bitboard promotions = pawnPromotions; promotions; )
                         moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), from, pop_lsb(promotions), ptP);
+
+        // En passant captures
+        if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
+            while (epSquares)
+                moveList = make_move_and_gating<EN_PASSANT>(pos, moveList, Us, from, pop_lsb(epSquares));
     }
 
     return moveList;

@@ -1104,6 +1104,9 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
 
   PieceType movePt = pt == KING ? king_type() : pt;
   Bitboard b = moves_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
+  // Add initial moves
+  if (double_step_region(c) & s)
+      b |= moves_bb<true>(c, movePt, s, byTypeBB[ALL_PIECES]);
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
@@ -1244,8 +1247,8 @@ inline bool Position::capture(Move m) const {
 
 inline Square Position::capture_square(Square to) const {
   assert(is_ok(to));
-  // The capture square of en passant is the closest piece behind the target square
-  Bitboard b = pieces(~sideToMove) & forward_file_bb(~sideToMove, to);
+  // The capture square of en passant is either the marked ep piece or the closest piece behind the target square
+  Bitboard b = ep_squares() & pieces() ? ep_squares() & pieces() : pieces(~sideToMove) & forward_file_bb(~sideToMove, to);
   return sideToMove == WHITE ? msb(b) : lsb(b);
 }
 

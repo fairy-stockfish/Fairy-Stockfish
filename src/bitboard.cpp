@@ -33,12 +33,12 @@ Bitboard SquareBB[SQUARE_NB];
 Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 Bitboard PseudoAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
-Bitboard PseudoMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Bitboard PseudoMoves[2][COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
-Bitboard LeaperMoves[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Bitboard LeaperMoves[2][COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard BoardSizeBB[FILE_NB][RANK_NB];
 RiderType AttackRiderTypes[PIECE_TYPE_NB];
-RiderType MoveRiderTypes[PIECE_TYPE_NB];
+RiderType MoveRiderTypes[2][PIECE_TYPE_NB];
 
 Magic RookMagicsH[SQUARE_NB];
 Magic RookMagicsV[SQUARE_NB];
@@ -232,36 +232,42 @@ void Bitboards::init_pieces() {
       // Detect rider types
       for (auto modality : {MODALITY_QUIET, MODALITY_CAPTURE})
       {
-          auto& riderTypes = modality == MODALITY_CAPTURE ? AttackRiderTypes[pt] : MoveRiderTypes[pt];
-          riderTypes = NO_RIDER;
-          for (auto const& [d, limit] : pi->steps[modality])
+          for (bool initial : {false, true})
           {
-              if (limit && HorseDirections.find(d) != HorseDirections.end())
-                  riderTypes |= RIDER_HORSE;
-              if (limit && ElephantDirections.find(d) != ElephantDirections.end())
-                  riderTypes |= RIDER_ELEPHANT;
-              if (limit && JanggiElephantDirections.find(d) != JanggiElephantDirections.end())
-                  riderTypes |= RIDER_JANGGI_ELEPHANT;
-          }
-          for (auto const& [d, limit] : pi->slider[modality])
-          {
-              if (BishopDirections.find(d) != BishopDirections.end())
-                  riderTypes |= RIDER_BISHOP;
-              if (RookDirectionsH.find(d) != RookDirectionsH.end())
-                  riderTypes |= RIDER_ROOK_H;
-              if (RookDirectionsV.find(d) != RookDirectionsV.end())
-                  riderTypes |= RIDER_ROOK_V;
-              if (HorseDirections.find(d) != HorseDirections.end())
-                  riderTypes |= RIDER_NIGHTRIDER;
-          }
-          for (auto const& [d, limit] : pi->hopper[modality])
-          {
-              if (RookDirectionsH.find(d) != RookDirectionsH.end())
-                  riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_H : RIDER_CANNON_H;
-              if (RookDirectionsV.find(d) != RookDirectionsV.end())
-                  riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_V : RIDER_CANNON_V;
-              if (BishopDirections.find(d) != BishopDirections.end())
-                  riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_D : RIDER_CANNON_DIAG;
+              // We do not support initial captures
+              if (modality == MODALITY_CAPTURE && initial)
+                  continue;
+              auto& riderTypes = modality == MODALITY_CAPTURE ? AttackRiderTypes[pt] : MoveRiderTypes[initial][pt];
+              riderTypes = NO_RIDER;
+              for (auto const& [d, limit] : pi->steps[initial][modality])
+              {
+                  if (limit && HorseDirections.find(d) != HorseDirections.end())
+                      riderTypes |= RIDER_HORSE;
+                  if (limit && ElephantDirections.find(d) != ElephantDirections.end())
+                      riderTypes |= RIDER_ELEPHANT;
+                  if (limit && JanggiElephantDirections.find(d) != JanggiElephantDirections.end())
+                      riderTypes |= RIDER_JANGGI_ELEPHANT;
+              }
+              for (auto const& [d, limit] : pi->slider[initial][modality])
+              {
+                  if (BishopDirections.find(d) != BishopDirections.end())
+                      riderTypes |= RIDER_BISHOP;
+                  if (RookDirectionsH.find(d) != RookDirectionsH.end())
+                      riderTypes |= RIDER_ROOK_H;
+                  if (RookDirectionsV.find(d) != RookDirectionsV.end())
+                      riderTypes |= RIDER_ROOK_V;
+                  if (HorseDirections.find(d) != HorseDirections.end())
+                      riderTypes |= RIDER_NIGHTRIDER;
+              }
+              for (auto const& [d, limit] : pi->hopper[initial][modality])
+              {
+                  if (RookDirectionsH.find(d) != RookDirectionsH.end())
+                      riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_H : RIDER_CANNON_H;
+                  if (RookDirectionsV.find(d) != RookDirectionsV.end())
+                      riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_V : RIDER_CANNON_V;
+                  if (BishopDirections.find(d) != BishopDirections.end())
+                      riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_D : RIDER_CANNON_DIAG;
+              }
           }
       }
 
@@ -272,18 +278,24 @@ void Bitboards::init_pieces() {
           {
               for (auto modality : {MODALITY_QUIET, MODALITY_CAPTURE})
               {
-                  auto& pseudo = modality == MODALITY_CAPTURE ? PseudoAttacks[c][pt][s] : PseudoMoves[c][pt][s];
-                  auto& leaper = modality == MODALITY_CAPTURE ? LeaperAttacks[c][pt][s] : LeaperMoves[c][pt][s];
-                  pseudo = 0;
-                  leaper = 0;
-                  for (auto const& [d, limit] : pi->steps[modality])
+                  for (bool initial : {false, true})
                   {
-                      pseudo |= safe_destination(s, c == WHITE ? d : -d);
-                      if (!limit)
-                          leaper |= safe_destination(s, c == WHITE ? d : -d);
+                      // We do not support initial captures
+                      if (modality == MODALITY_CAPTURE && initial)
+                          continue;
+                      auto& pseudo = modality == MODALITY_CAPTURE ? PseudoAttacks[c][pt][s] : PseudoMoves[initial][c][pt][s];
+                      auto& leaper = modality == MODALITY_CAPTURE ? LeaperAttacks[c][pt][s] : LeaperMoves[initial][c][pt][s];
+                      pseudo = 0;
+                      leaper = 0;
+                      for (auto const& [d, limit] : pi->steps[initial][modality])
+                      {
+                          pseudo |= safe_destination(s, c == WHITE ? d : -d);
+                          if (!limit)
+                              leaper |= safe_destination(s, c == WHITE ? d : -d);
+                      }
+                      pseudo |= sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
+                      pseudo |= sliding_attack<UNLIMITED_RIDER>(pi->hopper[initial][modality], s, 0, c);
                   }
-                  pseudo |= sliding_attack<RIDER>(pi->slider[modality], s, 0, c);
-                  pseudo |= sliding_attack<UNLIMITED_RIDER>(pi->hopper[modality], s, 0, c);
               }
           }
       }

@@ -74,9 +74,17 @@ namespace {
     }
     // Torpedo Chess
     Variant* torpedo_variant() {
-        Variant* v = chess_variant()->init();
+        Variant* v = chess_variant_base()->init();
         v->doubleStepRegion[WHITE] = AllSquares;
         v->doubleStepRegion[BLACK] = AllSquares;
+        return v;
+    }
+    // Berolina Chess
+    Variant* berolina_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->remove_piece(PAWN);
+        v->add_piece(CUSTOM_PIECES, 'p', "mfFcfWinA");
+        v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECES;
         return v;
     }
     // Pseudo-variant only used for endgame initialization
@@ -88,7 +96,7 @@ namespace {
     }
       // Raazuva (Maldivian Chess)
     Variant* raazuvaa_variant() {
-        Variant* v = chess_variant()->init();
+        Variant* v = chess_variant_base()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
         v->castling = false;
         v->doubleStep = false;
@@ -1629,6 +1637,7 @@ void VariantMap::init() {
     add("nocastle", nocastle_variant());
     add("armageddon", armageddon_variant());
     add("torpedo", torpedo_variant());
+    add("berolina", berolina_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("makpong", makpong_variant());

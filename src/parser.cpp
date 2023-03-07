@@ -494,11 +494,11 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             if (!is_custom(v->kingType))
             {
                 const PieceInfo* pi = pieceMap.find(v->kingType)->second;
-                if (   pi->hopper[MODALITY_QUIET].size()
-                    || pi->hopper[MODALITY_CAPTURE].size()
-                    || std::any_of(pi->steps[MODALITY_CAPTURE].begin(),
-                                pi->steps[MODALITY_CAPTURE].end(),
-                                [](const std::pair<const Direction, int>& d) { return d.second; }))
+                if (   pi->hopper[0][MODALITY_QUIET].size()
+                    || pi->hopper[0][MODALITY_CAPTURE].size()
+                    || std::any_of(pi->steps[0][MODALITY_CAPTURE].begin(),
+                                   pi->steps[0][MODALITY_CAPTURE].end(),
+                                   [](const std::pair<const Direction, int>& d) { return d.second; }))
                     std::cerr << piece_name(v->kingType) << " is not supported as kingType." << std::endl;
             }
         }

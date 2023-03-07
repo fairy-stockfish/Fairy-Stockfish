@@ -1194,7 +1194,7 @@ namespace {
             {
                 Square s = pop_lsb(current);
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
-                                    | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
+                                    | (PseudoMoves[0][Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
                 ctfPieces |= attacks & ~blocked;
                 onHold |= attacks & ~doubleBlocked;
                 onHold2 |= attacks & ~inaccessible;

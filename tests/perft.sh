@@ -41,6 +41,8 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   # fairy
   expect perft.exp torpedo startpos 4 209719 > /dev/null
   expect perft.exp torpedo "fen rnbqkbnr/1ppppppp/8/6P1/p7/8/PPPPPP1P/RNBQKBNR w KQkq - 0 1" 4 232819 > /dev/null
+  expect perft.exp berolina "fen rnbqkbnr/pppp1ppp/8/2p5/5P2/8/PPP1PPPP/RNBQKBNR w KQkq c5d6 2 2" 3 46643 > /dev/null
+  expect perft.exp berolina "fen k7/6P1/8/8/8/2K2p2/4p3/8 w - - 0 1" 3 1983 > /dev/null
   expect perft.exp makruk startpos 4 273026 > /dev/null
   expect perft.exp cambodian startpos 4 361719 > /dev/null
   expect perft.exp cambodian "fen r1s1ks1r/3nm3/pppNpppp/3n4/5P2/PPPPPNPP/8/R1SKMS1R b DEe 0 0 5" 2 72 > /dev/null

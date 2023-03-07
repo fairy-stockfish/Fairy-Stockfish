@@ -1048,7 +1048,7 @@ bool Position::legal(Move m) const {
   }
 
   // No legal moves from target square
-  if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(PseudoMoves[us][type_of(moved_piece(m))][to] & board_bb()))
+  if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(PseudoMoves[0][us][type_of(moved_piece(m))][to] & board_bb()))
       return false;
 
   // Illegal king passing move
@@ -1118,8 +1118,6 @@ bool Position::legal(Move m) const {
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
       assert(ep_squares() & to);
-      assert(moved_piece(m) == make_piece(us, PAWN));
-      assert(piece_on(capsq) == make_piece(~us, PAWN));
       assert(piece_on(to) == NO_PIECE);
 
       return !(attackers_to(ksq, occupied, ~us) & occupied);
@@ -1454,7 +1452,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Square from = from_sq(m);
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
-  Piece captured = type_of(m) == EN_PASSANT ? make_piece(them, PAWN) : piece_on(to);
+  Piece captured = piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to);
   if (to == from)
   {
       assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && pass()));
@@ -1487,26 +1485,20 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       Square capsq = to;
 
+      if (type_of(m) == EN_PASSANT)
+      {
+          capsq = capture_square(to);
+          st->captureSquare = capsq;
+
+          assert(st->epSquares & to);
+          assert(var->enPassantRegion & to);
+          assert(piece_on(to) == NO_PIECE);
+      }
+
       // If the captured piece is a pawn, update pawn hash key, otherwise
       // update non-pawn material.
       if (type_of(captured) == PAWN)
-      {
-          if (type_of(m) == EN_PASSANT)
-          {
-              capsq = capture_square(to);
-              st->captureSquare = capsq;
-
-              assert(pc == make_piece(us, PAWN));
-              assert(st->epSquares & to);
-              assert(var->enPassantRegion & to);
-              assert(   (double_step_region(them) & (capsq + 2 * pawn_push(us)))
-                     || (triple_step_region(them) & (capsq + 3 * pawn_push(us))));
-              assert(piece_on(to) == NO_PIECE);
-              assert(piece_on(capsq) == make_piece(them, PAWN));
-          }
-
           st->pawnKey ^= Zobrist::psq[captured][capsq];
-      }
       else
           st->nonPawnMaterial[them] -= PieceValue[MG][captured];
 
@@ -1783,6 +1775,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       // Update material
       st->nonPawnMaterial[us] += PieceValue[MG][demotion] - PieceValue[MG][pc];
+  }
+  // Set en passant square(s) if the moved piece can be captured
+  else if (   type_of(m) != DROP
+           && ((PseudoMoves[1][us][type_of(pc)][from] & ~PseudoMoves[0][us][type_of(pc)][from]) & to))
+  {
+      st->epSquares = between_bb(from, to) & var->enPassantRegion;
+      for (Bitboard b = st->epSquares; b; )
+          k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
   }
 
   // Set capture piece
@@ -2075,13 +2075,9 @@ void Position::undo_move(Move m) {
           {
               capsq = st->captureSquare;
 
-              assert(type_of(pc) == PAWN);
               assert(st->previous->epSquares & to);
               assert(var->enPassantRegion & to);
-              assert(   (double_step_region(~us) & (capsq + 2 * pawn_push(us)))
-                     || (triple_step_region(~us) & (capsq + 3 * pawn_push(us))));
               assert(piece_on(capsq) == NO_PIECE);
-              assert(st->capturedPiece == make_piece(~us, PAWN));
           }
 
           put_piece(st->capturedPiece, capsq, st->capturedpromoted, st->unpromotedCapturedPiece); // Restore the captured piece
@@ -2972,7 +2968,7 @@ bool Position::pos_is_ok() const {
   if (   (sideToMove != WHITE && sideToMove != BLACK)
       || (count<KING>(WHITE) && piece_on(square<KING>(WHITE)) != make_piece(WHITE, KING))
       || (count<KING>(BLACK) && piece_on(square<KING>(BLACK)) != make_piece(BLACK, KING))
-      || ((sideToMove == WHITE ? shift<NORTH>(ep_squares()) : shift<SOUTH>(ep_squares())) & ~double_step_region(~sideToMove)))
+      || (ep_squares() & ~var->enPassantRegion))
       assert(0 && "pos_is_ok: Default");
 
   if (Fast)
