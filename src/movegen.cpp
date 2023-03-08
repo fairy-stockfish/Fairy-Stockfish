@@ -276,14 +276,15 @@ namespace {
         Square from = pop_lsb(bb);
 
         Bitboard attacks = pos.attacks_from(Us, Pt, from);
+        Bitboard quiets = pos.moves_from(Us, Pt, from);
         Bitboard b1 = (  (attacks & pos.pieces())
-                       | (pos.moves_from(Us, Pt, from) & ~pos.pieces())) & target;
+                       | (quiets & ~pos.pieces())) & target;
         Bitboard promotion_zone = pos.promotion_zone(Us);
         PieceType promPt = pos.promoted_piece_type(Pt);
         Bitboard b2 = promPt && (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
         Bitboard pawnPromotions = Pt == pos.promotion_pawn_type(Us) ? b1 & promotion_zone : Bitboard(0);
-        Bitboard epSquares = attacks & ~b1 & pos.ep_squares() & ~pos.pieces();
+        Bitboard epSquares = attacks & ~quiets & pos.ep_squares() & ~pos.pieces();
 
         // target squares considering pawn promotions
         if (pawnPromotions && pos.mandatory_pawn_promotion())
