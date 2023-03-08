@@ -1521,7 +1521,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
                              : unpromotedCaptured ? ~unpromotedCaptured
-                                                  : make_piece(~color_of(captured), PAWN);
+                                                  : make_piece(~color_of(captured), promotion_pawn_type(color_of(captured)));
           add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
@@ -1780,6 +1780,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else if (   type_of(m) != DROP
            && ((PseudoMoves[1][us][type_of(pc)][from] & ~PseudoMoves[0][us][type_of(pc)][from]) & to))
   {
+      assert(type_of(pc) != PAWN);
       st->epSquares = between_bb(from, to) & var->enPassantRegion;
       for (Bitboard b = st->epSquares; b; )
           k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
