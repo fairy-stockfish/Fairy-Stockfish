@@ -277,13 +277,14 @@ namespace {
 
         Bitboard attacks = pos.attacks_from(Us, Pt, from);
         Bitboard quiets = pos.moves_from(Us, Pt, from);
-        Bitboard b1 = (  (attacks & pos.pieces())
-                       | (quiets & ~pos.pieces())) & target;
+        Bitboard b = (  (attacks & pos.pieces())
+                       | (quiets & ~pos.pieces()));
+        Bitboard b1 = b & target;
         Bitboard promotion_zone = pos.promotion_zone(Us);
         PieceType promPt = pos.promoted_piece_type(Pt);
         Bitboard b2 = promPt && (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
-        Bitboard pawnPromotions = Pt == pos.promotion_pawn_type(Us) ? b1 & promotion_zone : Bitboard(0);
+        Bitboard pawnPromotions = Pt == pos.promotion_pawn_type(Us) ? b & (Type == EVASIONS ? target : AllSquares) & promotion_zone : Bitboard(0);
         Bitboard epSquares = attacks & ~quiets & pos.ep_squares() & ~pos.pieces();
 
         // target squares considering pawn promotions
