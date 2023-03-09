@@ -87,6 +87,17 @@ namespace {
         v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECES;
         return v;
     }
+	Variant* legan_variant() {
+	    Variant* v =  chess_variant_base()->init();
+	    v->remove_piece(PAWN); 
+		v->add_piece(CUSTOM_PIECES, 'p', "mflFcflW");		 
+		v->promotionRegion[WHITE] = make_bitboard(SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_A7, SQ_A6, SQ_A5);
+        v->promotionRegion[BLACK] = make_bitboard(SQ_E1, SQ_F1, SQ_G1, SQ_H1, SQ_H2, SQ_H3, SQ_H4);
+	    v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECES;
+		v->startFen = "knbrp3/bqpp4/npp5/rp1p3P/p3P1PR/5PPN/4PPQB/3PRBNK w - - 0 1";
+        v->doubleStep = false; 
+       return v;
+    } 
     // Pseudo-variant only used for endgame initialization
     Variant* fairy_variant() {
         Variant* v = chess_variant_base()->init();
@@ -1638,6 +1649,7 @@ void VariantMap::init() {
     add("armageddon", armageddon_variant());
     add("torpedo", torpedo_variant());
     add("berolina", berolina_variant());
+	 add("legan", legan_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("makpong", makpong_variant());
