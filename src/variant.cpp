@@ -98,6 +98,24 @@ namespace {
         v->doubleStep = false; 
        return v;
     } 
+	// Pawnsideways
+	Variant* pawnsideways_variant() {
+	  Variant* v = chess_variant_base()->init();
+        v->remove_piece(PAWN);
+        v->add_piece(CUSTOM_PIECES, 'p', "fsmWfceFifR2");
+	    v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECES;
+        return v;
+    }
+	// Pawnback
+	Variant* pawnback_variant() {
+	  Variant* v = chess_variant_base()->init();
+        v->remove_piece(PAWN);
+        v->add_piece(CUSTOM_PIECES, 'p', "fbmWfceFifR2");
+		v->mobilityRegion[WHITE][CUSTOM_PIECES] = (Rank2BB | Rank3BB | Rank4BB | Rank5BB | Rank6BB | Rank7BB | Rank8BB);
+        v->mobilityRegion[BLACK][CUSTOM_PIECES] = (Rank7BB | Rank6BB | Rank5BB | Rank4BB | Rank3BB | Rank2BB | Rank1BB);
+	    v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECES;
+        return v;
+    }	
     // Pseudo-variant only used for endgame initialization
     Variant* fairy_variant() {
         Variant* v = chess_variant_base()->init();
@@ -1650,7 +1668,9 @@ void VariantMap::init() {
     add("torpedo", torpedo_variant());
     add("berolina", berolina_variant());
 	 add("legan", legan_variant());
-    add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
+    add("pawnsideways", pawnsideways_variant());
+	add("pawnback", pawnback_variant());
+	add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("makpong", makpong_variant());
     add("cambodian", cambodian_variant());
