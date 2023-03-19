@@ -115,7 +115,11 @@ namespace {
         std::stringstream ss(value);
         target = 0;
         while (!ss.eof() && ss >> file && ss >> rank)
+        {
+            if (Rank(rank - 1) > RANK_MAX || (file != '*' && File(tolower(file) - 'a') > FILE_MAX))
+                return false;
             target |= file == '*' ? rank_bb(Rank(rank - 1)) : square_bb(make_square(File(tolower(file) - 'a'), Rank(rank - 1)));
+        }
         return !ss.fail();
     }
 
