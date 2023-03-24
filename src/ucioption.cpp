@@ -48,7 +48,8 @@ namespace UCI {
 std::set<string> standard_variants = {
     "normal", "nocastle", "fischerandom", "knightmate", "3check", "makruk", "shatranj",
     "asean", "seirawan", "crazyhouse", "bughouse", "suicide", "giveaway", "losers", "atomic",
-    "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi", "duck"
+    "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi", "duck",
+    "berolina", "spartan"
 };
 
 void init_variant(const Variant* v) {
@@ -145,7 +146,7 @@ void on_variant_change(const Option &o) {
                     suffix += std::string(v->dropNoDoubledCount, 'f');
                 else if (pt == BISHOP && v->dropOppositeColoredBishop)
                     suffix += "s";
-                suffix += "@" + std::to_string(pt == PAWN && !v->promotionZonePawnDrops ? v->promotionRank : v->maxRank + 1);
+                suffix += "@" + std::to_string(pt == PAWN && !v->promotionZonePawnDrops && v->promotionRegion[WHITE] ? rank_of(lsb(v->promotionRegion[WHITE])) : v->maxRank + 1);
             }
             sync_cout << "piece " << v->pieceToChar[pt] << "& " << pieceMap.find(pt == KING ? v->kingType : pt)->second->betza << suffix << sync_endl;
             PieceType promType = v->promotedPieceType[pt];

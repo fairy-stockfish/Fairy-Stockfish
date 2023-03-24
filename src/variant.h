@@ -50,8 +50,11 @@ struct Variant {
   std::string pieceToCharSynonyms = std::string(PIECE_NB, ' ');
   std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   Bitboard mobilityRegion[COLOR_NB][PIECE_TYPE_NB] = {};
-  Rank promotionRank = RANK_8;
-  std::set<PieceType, std::greater<PieceType> > promotionPieceTypes = { QUEEN, ROOK, BISHOP, KNIGHT };
+  Bitboard promotionRegion[COLOR_NB] = {Rank8BB, Rank1BB};
+  PieceType promotionPawnType[COLOR_NB] = {PAWN, PAWN};
+  PieceSet promotionPawnTypes[COLOR_NB] = {piece_set(PAWN), piece_set(PAWN)};
+  std::set<PieceType, std::greater<PieceType> > promotionPieceTypes[COLOR_NB] = {{ QUEEN, ROOK, BISHOP, KNIGHT },
+                                                                                 { QUEEN, ROOK, BISHOP, KNIGHT }};
   bool sittuyinPromotion = false;
   int promotionLimit[PIECE_TYPE_NB] = {}; // 0 means unlimited
   PieceType promotedPieceType[PIECE_TYPE_NB] = {};
@@ -62,9 +65,10 @@ struct Variant {
   bool blastOnCapture = false;
   bool petrifyOnCapture = false;
   bool doubleStep = true;
-  Rank doubleStepRank = RANK_2;
-  Rank doubleStepRankMin = RANK_2;
+  Bitboard doubleStepRegion[COLOR_NB] = {Rank2BB, Rank7BB};
+  Bitboard tripleStepRegion[COLOR_NB] = {};
   Bitboard enPassantRegion = AllSquares;
+  PieceSet enPassantTypes[COLOR_NB] = {piece_set(PAWN), piece_set(PAWN)};
   bool castling = true;
   bool castlingDroppedPiece = false;
   File castlingKingsideFile = FILE_G;
@@ -113,6 +117,7 @@ struct Variant {
   bool freeDrops = false;
 
   // game end
+  PieceSet nMoveRuleTypes[COLOR_NB] = {piece_set(PAWN), piece_set(PAWN)};
   int nMoveRule = 50;
   int nFoldRule = 3;
   Value nFoldValue = VALUE_DRAW;
@@ -129,12 +134,12 @@ struct Variant {
   Value extinctionValue = VALUE_NONE;
   bool extinctionClaim = false;
   bool extinctionPseudoRoyal = false;
+  bool dupleCheck = false;
   std::set<PieceType> extinctionPieceTypes = {};
   int extinctionPieceCount = 0;
   int extinctionOpponentPieceCount = 0;
   PieceType flagPiece = NO_PIECE_TYPE;
-  Bitboard whiteFlag = 0;
-  Bitboard blackFlag = 0;
+  Bitboard flagRegion[COLOR_NB] = {};
   bool flagMove = false;
   bool checkCounting = false;
   int connectN = 0;
@@ -156,6 +161,11 @@ struct Variant {
   bool shogiStylePromotions = false;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
+      // Avoid ambiguous definition by removing existing piece with same letter
+      size_t idx;
+      if ((idx = pieceToChar.find(toupper(c))) != std::string::npos)
+          remove_piece(PieceType(idx));
+      // Now add new piece
       pieceToChar[make_piece(WHITE, pt)] = toupper(c);
       pieceToChar[make_piece(BLACK, pt)] = tolower(c);
       pieceToCharSynonyms[make_piece(WHITE, pt)] = toupper(c2);
@@ -176,12 +186,18 @@ struct Variant {
       pieceToCharSynonyms[make_piece(WHITE, pt)] = ' ';
       pieceToCharSynonyms[make_piece(BLACK, pt)] = ' ';
       pieceTypes.erase(pt);
+      // erase from promotion types to ensure consistency
+      promotionPieceTypes[WHITE].erase(pt);
+      promotionPieceTypes[BLACK].erase(pt);
   }
 
   void reset_pieces() {
       pieceToChar = std::string(PIECE_NB, ' ');
       pieceToCharSynonyms = std::string(PIECE_NB, ' ');
       pieceTypes.clear();
+      // clear promotion types to ensure consistency
+      promotionPieceTypes[WHITE].clear();
+      promotionPieceTypes[BLACK].clear();
   }
 
   // Reset values that always need to be redefined
@@ -192,6 +208,12 @@ struct Variant {
 
   // Pre-calculate derived properties
   Variant* conclude() {
+      // Enforce consistency to allow runtime optimizations
+      if (!doubleStep)
+          doubleStepRegion[WHITE] = doubleStepRegion[BLACK] = 0;
+      if (!doubleStepRegion[WHITE] && !doubleStepRegion[BLACK])
+          doubleStep = false;
+
       fastAttacks = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
                                     return (   pt < FAIRY_PIECES
                                             || pt == COMMONER || pt == IMMOBILE_PIECE

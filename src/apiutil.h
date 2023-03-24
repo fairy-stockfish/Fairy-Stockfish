@@ -386,7 +386,7 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
 
     // Mating pieces
     for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR })
-        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, PAWN) && pos.promotion_piece_types().find(pt) != pos.promotion_piece_types().end()))
+        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, pos.promotion_pawn_type(c)) && pos.promotion_piece_types(c).find(pt) != pos.promotion_piece_types(c).end()))
             return false;
 
     // Color-bound pieces
@@ -895,7 +895,7 @@ inline std::string get_valid_special_chars(const Variant* v) {
     // Whether or not '-', '+', '~', '[', ']' are valid depends on the variant being played.
     if (v->shogiStylePromotions)
         validSpecialCharactersFirstField += '+';
-    if (!v->promotionPieceTypes.empty())
+    if (!v->promotionPieceTypes[WHITE].empty() || !v->promotionPieceTypes[BLACK].empty())
         validSpecialCharactersFirstField += '~';
     if (!v->freeDrops && (v->pieceDrops || v->seirawanGating))
         validSpecialCharactersFirstField += "[-]";

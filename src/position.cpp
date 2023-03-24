@@ -332,7 +332,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   ss >> token;
 
   // 3-4. Skip parsing castling and en passant flags if not present
-  st->epSquare = SQ_NONE;
+  st->epSquares = 0;
   st->castlingKingSquare[WHITE] = st->castlingKingSquare[BLACK] = SQ_NONE;
   if (!isdigit(ss.peek()) && !sfen)
   {
@@ -404,27 +404,33 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
       // 4. En passant square.
       // Ignore if square is invalid or not on side to move relative rank 6.
-      else if (   ((ss >> col) && (col >= 'a' && col <= 'a' + max_file()))
-               && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
-      {
-          st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
+      else
+          while (   ((ss >> col) && (col >= 'a' && col <= 'a' + max_file()))
+                 && ((ss >> row) && (row >= '1' && row <= '1' + max_rank())))
+          {
+              Square epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 #ifdef LARGEBOARDS
-          // Consider different rank numbering in CECP
-          if (max_rank() == RANK_10 && CurrentProtocol == XBOARD)
-              st->epSquare += NORTH;
+              // Consider different rank numbering in CECP
+              if (max_rank() == RANK_10 && CurrentProtocol == XBOARD)
+                  epSquare += NORTH;
 #endif
 
-          // En passant square will be considered only if
-          // a) side to move have a pawn threatening epSquare
-          // b) there is an enemy pawn in front of epSquare
-          // c) there is no piece on epSquare or behind epSquare
-          bool enpassant;
-          enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
-                  && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
-                  && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))));
-          if (!enpassant)
-              st->epSquare = SQ_NONE;
-      }
+              // En passant square will be considered only if
+              // epSquare is within enPassantRegion and
+              // 1) variant has non-standard rules
+              // or
+              // 2)
+              // a) side to move have a pawn threatening epSquare
+              // b) there is an enemy pawn one or two (for triple steps) squares in front of epSquare
+              // c) there is no piece on epSquare or behind epSquare
+              if (   (var->enPassantRegion & epSquare)
+                  && (   !var->fastAttacks
+                      || (   pawn_attacks_bb(~sideToMove, epSquare) & pieces(sideToMove, PAWN)
+                          && (   (pieces(~sideToMove, PAWN) & (epSquare + pawn_push(~sideToMove)))
+                              || (pieces(~sideToMove, PAWN) & (epSquare + 2 * pawn_push(~sideToMove))))
+                          && !(pieces() & (epSquare | (epSquare + pawn_push(sideToMove)))))))
+                  st->epSquares |= epSquare;
+          }
   }
 
   // Check counter for nCheck
@@ -560,9 +566,11 @@ void Position::set_check_info(StateInfo* si) const {
   si->legalCapture = NO_VALUE;
   if (var->extinctionPseudoRoyal)
   {
+      si->pseudoRoyalCandidates = 0;
       si->pseudoRoyals = 0;
       for (PieceType pt : extinction_piece_types())
       {
+          si->pseudoRoyalCandidates |= pieces(pt);
           if (count(sideToMove, pt) <= var->extinctionPieceCount + 1)
               si->pseudoRoyals |= pieces(sideToMove, pt);
           if (count(~sideToMove, pt) <= var->extinctionPieceCount + 1)
@@ -603,8 +611,8 @@ void Position::set_state(StateInfo* si) const {
           si->nonPawnMaterial[color_of(pc)] += PieceValue[MG][pc];
   }
 
-  if (si->epSquare != SQ_NONE)
-      si->key ^= Zobrist::enpassant[file_of(si->epSquare)];
+  for (Bitboard b = si->epSquares; b; )
+      si->key ^= Zobrist::enpassant[file_of(pop_lsb(b))];
 
   if (sideToMove == BLACK)
       si->key ^= Zobrist::side;
@@ -774,8 +782,15 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   // Counting limit or ep-square
   if (st->countingLimit)
       ss << " " << counting_limit(countStarted) << " ";
+  else if (!ep_squares())
+      ss << " - ";
   else
-      ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(*this, ep_square()) + " ");
+  {
+      ss << " ";
+      for (Bitboard b = ep_squares(); b; )
+          ss << UCI::square(*this, pop_lsb(b));
+      ss << " ";
+  }
 
   // Check count
   if (check_counting())
@@ -1039,7 +1054,7 @@ bool Position::legal(Move m) const {
   }
 
   // No legal moves from target square
-  if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(PseudoMoves[us][type_of(moved_piece(m))][to] & board_bb()))
+  if (immobility_illegal() && (type_of(m) == DROP || type_of(m) == NORMAL) && !(PseudoMoves[0][us][type_of(moved_piece(m))][to] & board_bb()))
       return false;
 
   // Illegal king passing move
@@ -1071,7 +1086,7 @@ bool Position::legal(Move m) const {
           occupied = (pieces() ^ from ^ to) | kto | rto;
       }
       if (type_of(m) == EN_PASSANT)
-          occupied &= ~square_bb(kto - pawn_push(us));
+          occupied &= ~square_bb(capture_square(kto));
       if (capture(m) && blast_on_capture())
           occupied &= ~((attacks_bb<KING>(kto) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | kto);
       Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
@@ -1079,7 +1094,14 @@ bool Position::legal(Move m) const {
       if (is_ok(from) && (pseudoRoyals & from))
           pseudoRoyals ^= square_bb(from) ^ kto;
       if (type_of(m) == PROMOTION && extinction_piece_types().find(promotion_type(m)) != extinction_piece_types().end())
-          pseudoRoyals |= kto;
+      {
+          if (count(sideToMove, promotion_type(m)) > extinction_piece_count())
+              // increase in count leads to loss of pseudo-royalty
+              pseudoRoyals &= ~pieces(sideToMove, promotion_type(m));
+          else
+              // promoted piece is pseudo-royal
+              pseudoRoyals |= kto;
+      }
       // Self-explosions are illegal
       if (pseudoRoyals & ~occupied)
           return false;
@@ -1093,6 +1115,26 @@ bool Position::legal(Move m) const {
                   && (attackers_to(sr, occupied, ~us) & (occupied & ~square_bb(kto))))
                   return false;
           }
+      // Look for duple check
+      if (var->dupleCheck)
+      {
+          Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(sideToMove);
+          if (is_ok(from) && (pseudoRoyalCandidates & from))
+              pseudoRoyalCandidates ^= square_bb(from) ^ kto;
+          if (type_of(m) == PROMOTION && extinction_piece_types().find(promotion_type(m)) != extinction_piece_types().end())
+              pseudoRoyalCandidates |= kto;
+          bool allCheck = bool(pseudoRoyalCandidates);
+          while (allCheck && pseudoRoyalCandidates)
+          {
+              Square sr = pop_lsb(pseudoRoyalCandidates);
+              // Touching pseudo-royal pieces are immune
+              if (!(  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+                    && (attackers_to(sr, occupied, ~us) & (occupied & ~square_bb(kto)))))
+                  allCheck = false;
+          }
+          if (allCheck)
+              return false;
+      }
   }
 
   // Petrifying the king is illegal
@@ -1105,12 +1147,10 @@ bool Position::legal(Move m) const {
   if (type_of(m) == EN_PASSANT && count<KING>(us))
   {
       Square ksq = square<KING>(us);
-      Square capsq = to - pawn_push(us);
+      Square capsq = capture_square(to);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
-      assert(to == ep_square());
-      assert(moved_piece(m) == make_piece(us, PAWN));
-      assert(piece_on(capsq) == make_piece(~us, PAWN));
+      assert(ep_squares() & to);
       assert(piece_on(to) == NO_PIECE);
 
       return !(attackers_to(ksq, occupied, ~us) & occupied);
@@ -1225,7 +1265,7 @@ bool Position::pseudo_legal(const Move m) const {
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
       && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)
-      && (zone_bb(us, promotion_rank(), max_rank()) & (SquareBB[from] | to))
+      && (promotion_zone(us) & (SquareBB[from] | to))
       && (!piece_promotion_on_capture() || capture(m)))
       return false;
 
@@ -1247,17 +1287,17 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 8th/1st rank.
-      if (mandatory_pawn_promotion() && rank_of(to) == relative_rank(us, promotion_rank(), max_rank()) && !sittuyin_promotion())
+      if (mandatory_pawn_promotion() && (promotion_zone(us) & to) && !sittuyin_promotion())
           return false;
 
       if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to)     // Not a capture
           && !((from + pawn_push(us) == to) && !(pieces() & to)) // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)               // Not a double push
-               && (   relative_rank(us, from, max_rank()) <= double_step_rank_max()
-                   && relative_rank(us, from, max_rank()) >= double_step_rank_min())
-               && !(pieces() & to)
-               && !(pieces() & (to - pawn_push(us)))
-               && double_step_enabled()))
+               && (double_step_region(us) & from)
+               && !(pieces() & (to | (to - pawn_push(us)))))
+          && !(   (from + 3 * pawn_push(us) == to)               // Not a triple push
+               && (triple_step_region(us) & from)
+               && !(pieces() & (to | (to - pawn_push(us)) | (to - 2 * pawn_push(us))))))
           return false;
   }
   else if (!((capture(m) ? attacks_from(us, type_of(pc), from) : moves_from(us, type_of(pc), from)) & to))
@@ -1379,7 +1419,7 @@ bool Position::gives_check(Move m) const {
   // the captured pawn.
   case EN_PASSANT:
   {
-      Square capsq = make_square(file_of(to), rank_of(from));
+      Square capsq = capture_square(to);
       Bitboard b = (pieces() ^ from ^ capsq) | to;
 
       return attackers_to(square<KING>(~sideToMove), b) & pieces(sideToMove) & b;
@@ -1445,7 +1485,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Square from = from_sq(m);
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
-  Piece captured = type_of(m) == EN_PASSANT ? make_piece(them, PAWN) : piece_on(to);
+  Piece captured = piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to);
   if (to == from)
   {
       assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && pass()));
@@ -1478,25 +1518,20 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       Square capsq = to;
 
+      if (type_of(m) == EN_PASSANT)
+      {
+          capsq = capture_square(to);
+          st->captureSquare = capsq;
+
+          assert(st->epSquares & to);
+          assert(var->enPassantRegion & to);
+          assert(piece_on(to) == NO_PIECE);
+      }
+
       // If the captured piece is a pawn, update pawn hash key, otherwise
       // update non-pawn material.
       if (type_of(captured) == PAWN)
-      {
-          if (type_of(m) == EN_PASSANT)
-          {
-              capsq -= pawn_push(us);
-
-              assert(pc == make_piece(us, PAWN));
-              assert(to == st->epSquare);
-              assert((var->enPassantRegion & to)
-                      && relative_rank(~us, to, max_rank()) <= Rank(double_step_rank_max() + 1)
-                      && relative_rank(~us, to, max_rank()) > double_step_rank_min());
-              assert(piece_on(to) == NO_PIECE);
-              assert(piece_on(capsq) == make_piece(them, PAWN));
-          }
-
           st->pawnKey ^= Zobrist::psq[captured][capsq];
-      }
       else
           st->nonPawnMaterial[them] -= PieceValue[MG][captured];
 
@@ -1519,7 +1554,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
                              : unpromotedCaptured ? ~unpromotedCaptured
-                                                  : make_piece(~color_of(captured), PAWN);
+                                                  : make_piece(~color_of(captured), promotion_pawn_type(color_of(captured)));
           add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
@@ -1554,12 +1589,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else
       k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
 
-  // Reset en passant square
-  if (st->epSquare != SQ_NONE)
-  {
-      k ^= Zobrist::enpassant[file_of(st->epSquare)];
-      st->epSquare = SQ_NONE;
-  }
+  // Reset en passant squares
+  while (st->epSquares)
+      k ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];
 
   // Update castling rights if needed
   if (type_of(m) != DROP && !is_pass(m) && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
@@ -1663,24 +1695,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // If the moving piece is a pawn do some special extra work
   if (type_of(pc) == PAWN)
   {
-      // Set en passant square if the moved pawn can be captured
-      if (   type_of(m) != DROP
-          && std::abs(int(to) - int(from)) == 2 * NORTH
-          && (var->enPassantRegion & (to - pawn_push(us)))
-          && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN))
-          && !(wall_gating() && gating_square(m) == to - pawn_push(us)))
-      {
-          st->epSquare = to - pawn_push(us);
-          k ^= Zobrist::enpassant[file_of(st->epSquare)];
-      }
-
-      else if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
+      if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
       {
           Piece promotion = make_piece(us, type_of(m) == PROMOTION ? promotion_type(m) : promoted_piece_type(PAWN));
 
-          assert(relative_rank(us, to, max_rank()) >= promotion_rank() || sittuyin_promotion());
+          assert((promotion_zone(us) & to) || sittuyin_promotion());
           assert(type_of(promotion) >= KNIGHT && type_of(promotion) < KING);
 
+          st->promotionPawn = piece_on(to);
           remove_piece(to);
           put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
 
@@ -1706,18 +1728,38 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->nonPawnMaterial[us] += PieceValue[MG][promotion];
       }
 
+      // Set en passant square(s) if the moved pawn can be captured
+      else if (   type_of(m) != DROP
+          && (   std::abs(int(to) - int(from)) == 2 * NORTH
+              || std::abs(int(to) - int(from)) == 3 * NORTH))
+      {
+          if (   (var->enPassantRegion & (to - pawn_push(us)))
+              && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN))
+              && !(wall_gating() && gating_square(m) == to - pawn_push(us)))
+          {
+              st->epSquares |= to - pawn_push(us);
+              k ^= Zobrist::enpassant[file_of(to)];
+          }
+          if (   std::abs(int(to) - int(from)) == 3 * NORTH
+              && (var->enPassantRegion & (to - 2 * pawn_push(us)))
+              && (pawn_attacks_bb(us, to - 2 * pawn_push(us)) & pieces(them, PAWN))
+              && !(wall_gating() && gating_square(m) == to - 2 * pawn_push(us)))
+          {
+              st->epSquares |= to - 2 * pawn_push(us);
+              k ^= Zobrist::enpassant[file_of(to)];
+          }
+      }
+
       // Update pawn hash key
       st->pawnKey ^= (type_of(m) != DROP ? Zobrist::psq[pc][from] : 0) ^ Zobrist::psq[pc][to];
-
-      // Reset rule 50 draw counter
-      st->rule50 = 0;
   }
-  else if (type_of(m) == PIECE_PROMOTION)
+  else if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
   {
-      Piece promotion = make_piece(us, promoted_piece_type(type_of(pc)));
+      Piece promotion = make_piece(us, type_of(m) == PROMOTION ? promotion_type(m) : promoted_piece_type(type_of(pc)));
 
+      st->promotionPawn = piece_on(to);
       remove_piece(to);
-      put_piece(promotion, to, true, pc);
+      put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
 
       if (Eval::useNNUE)
       {
@@ -1766,6 +1808,19 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Update material
       st->nonPawnMaterial[us] += PieceValue[MG][demotion] - PieceValue[MG][pc];
   }
+  // Set en passant square(s) if the moved piece can be captured
+  else if (   type_of(m) != DROP
+           && ((PseudoMoves[1][us][type_of(pc)][from] & ~PseudoMoves[0][us][type_of(pc)][from]) & to))
+  {
+      assert(type_of(pc) != PAWN);
+      st->epSquares = between_bb(from, to) & var->enPassantRegion;
+      for (Bitboard b = st->epSquares; b; )
+          k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
+  }
+
+  // Reset rule 50 draw counter
+  if (var->nMoveRuleTypes[us] & type_of(pc))
+      st->rule50 = 0;
 
   // Set capture piece
   st->capturedPiece = captured;
@@ -2014,12 +2069,13 @@ void Position::undo_move(Move m) {
 
   if (type_of(m) == PROMOTION)
   {
-      assert(relative_rank(us, to, max_rank()) >= promotion_rank() || sittuyin_promotion());
+      assert((promotion_zone(us) & to) || sittuyin_promotion());
       assert(type_of(pc) == promotion_type(m));
       assert(type_of(pc) >= KNIGHT && type_of(pc) < KING);
+      assert(type_of(st->promotionPawn) == promotion_pawn_type(us) || !captures_to_hand());
 
       remove_piece(to);
-      pc = make_piece(us, PAWN);
+      pc = st->promotionPawn;
       put_piece(pc, to);
   }
   else if (type_of(m) == PIECE_PROMOTION)
@@ -2055,19 +2111,17 @@ void Position::undo_move(Move m) {
 
           if (type_of(m) == EN_PASSANT)
           {
-              capsq -= pawn_push(us);
+              capsq = st->captureSquare;
 
-              assert(type_of(pc) == PAWN);
-              assert(to == st->previous->epSquare);
-              assert(relative_rank(~us, to, max_rank()) <= Rank(double_step_rank_max() + 1));
+              assert(st->previous->epSquares & to);
+              assert(var->enPassantRegion & to);
               assert(piece_on(capsq) == NO_PIECE);
-              assert(st->capturedPiece == make_piece(~us, PAWN));
           }
 
           put_piece(st->capturedPiece, capsq, st->capturedpromoted, st->unpromotedCapturedPiece); // Restore the captured piece
           if (captures_to_hand())
               remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
-                                                                                                   : make_piece(~color_of(st->capturedPiece), PAWN))
+                                                                                                   : make_piece(~color_of(st->capturedPiece), promotion_pawn_type(us)))
                                                                     : ~st->capturedPiece);
       }
   }
@@ -2145,11 +2199,8 @@ void Position::do_null_move(StateInfo& newSt) {
   st->accumulator.computed[WHITE] = false;
   st->accumulator.computed[BLACK] = false;
 
-  if (st->epSquare != SQ_NONE)
-  {
-      st->key ^= Zobrist::enpassant[file_of(st->epSquare)];
-      st->epSquare = SQ_NONE;
-  }
+  while (st->epSquares)
+      st->key ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];
 
   st->key ^= Zobrist::side;
   prefetch(TT.first_entry(key()));
@@ -2195,7 +2246,7 @@ Key Position::key_after(Move m) const {
       k ^= Zobrist::psq[captured][to];
       if (captures_to_hand())
       {
-          Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
+          Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), promotion_pawn_type(color_of(captured))) : ~captured;
           k ^= Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)] + 1]
               ^ Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)]];
       }
@@ -2955,8 +3006,7 @@ bool Position::pos_is_ok() const {
   if (   (sideToMove != WHITE && sideToMove != BLACK)
       || (count<KING>(WHITE) && piece_on(square<KING>(WHITE)) != make_piece(WHITE, KING))
       || (count<KING>(BLACK) && piece_on(square<KING>(BLACK)) != make_piece(BLACK, KING))
-      || (   ep_square() != SQ_NONE
-          && relative_rank(~sideToMove, ep_square(), max_rank()) > Rank(double_step_rank_max() + 1)))
+      || (ep_squares() & ~var->enPassantRegion))
       assert(0 && "pos_is_ok: Default");
 
   if (Fast)
