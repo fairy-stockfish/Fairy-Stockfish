@@ -19,6 +19,7 @@
 #ifndef VARIANT_H_INCLUDED
 #define VARIANT_H_INCLUDED
 
+#include <bitset>
 #include <set>
 #include <map>
 #include <vector>
@@ -250,11 +251,12 @@ struct Variant {
               || std::count(fenBoard.begin(), fenBoard.end(), pieceToChar[make_piece(BLACK, nnueKing)]) != 1)
               nnueKing = NO_PIECE_TYPE;
       }
+      // We can not use popcount here yet, as the lookup tables are initialized after the variants
       int nnueSquares = (maxRank + 1) * (maxFile + 1);
-      nnueUsePockets = (pieceDrops && (capturesToHand || (!mustDrop && popcount(pieceTypes) != 1))) || seirawanGating;
+      nnueUsePockets = (pieceDrops && (capturesToHand || (!mustDrop && std::bitset<64>(pieceTypes).count() != 1))) || seirawanGating;
       int nnuePockets = nnueUsePockets ? 2 * int(maxFile + 1) : 0;
-      int nnueNonDropPieceIndices = (2 * popcount(pieceTypes) - (nnueKing != NO_PIECE_TYPE)) * nnueSquares;
-      int nnuePieceIndices = nnueNonDropPieceIndices + 2 * (popcount(pieceTypes) - (nnueKing != NO_PIECE_TYPE)) * nnuePockets;
+      int nnueNonDropPieceIndices = (2 * std::bitset<64>(pieceTypes).count() - (nnueKing != NO_PIECE_TYPE)) * nnueSquares;
+      int nnuePieceIndices = nnueNonDropPieceIndices + 2 * (std::bitset<64>(pieceTypes).count() - (nnueKing != NO_PIECE_TYPE)) * nnuePockets;
       int i = 0;
       for (PieceSet ps = pieceTypes; ps;)
       {
