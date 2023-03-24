@@ -69,8 +69,8 @@ namespace {
 
   // Helper used to detect a given material distribution
   bool is_KFsPsK(const Position& pos, Color us) {
-    return    pos.promotion_piece_types().size() == 1
-          &&  pos.promotion_piece_types().find(FERS) != pos.promotion_piece_types().end()
+    return    pos.promotion_piece_types(us).size() == 1
+          &&  pos.promotion_piece_types(us).find(FERS) != pos.promotion_piece_types(us).end()
           && !more_than_one(pos.pieces(~us))
           && (pos.count<FERS>(us) || pos.count<PAWN>(us))
           && !(pos.count<ALL_PIECES>(us) - pos.count<FERS>(us) - pos.count<PAWN>(us) - pos.count<KING>(us));

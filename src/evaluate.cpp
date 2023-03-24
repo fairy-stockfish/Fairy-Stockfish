@@ -494,7 +494,7 @@ namespace {
         // Piece promotion bonus
         if (pos.promoted_piece_type(Pt) != NO_PIECE_TYPE)
         {
-            Bitboard zone = zone_bb(Us, pos.promotion_rank(), pos.max_rank());
+            Bitboard zone = pos.promotion_zone(Us);
             if (zone & (b | s))
                 score += make_score(PieceValue[MG][pos.promoted_piece_type(Pt)] - PieceValue[MG][Pt],
                                     PieceValue[EG][pos.promoted_piece_type(Pt)] - PieceValue[EG][Pt]) / (zone & s && b ? 6 : 12);
@@ -734,7 +734,7 @@ namespace {
             if (pos.promoted_piece_type(pt))
             {
                 otherChecks = attacks_bb(Us, pos.promoted_piece_type(pt), ksq, pos.pieces()) & attackedBy[Them][pt]
-                                 & zone_bb(Them, pos.promotion_rank(), pos.max_rank()) & pos.board_bb();
+                                 & pos.promotion_zone(Them) & pos.board_bb();
                 if (otherChecks & safe)
                     kingDanger += SafeCheck[FAIRY_PIECES][more_than_one(otherChecks & safe)];
                 else
@@ -1016,7 +1016,7 @@ namespace {
 
         assert(!(pos.pieces(Them, PAWN) & forward_file_bb(Us, s + Up)));
 
-        int r = std::max(RANK_8 - std::max(pos.promotion_rank() - relative_rank(Us, s, pos.max_rank()), 0), 0);
+        int r = std::max(RANK_8 - std::max(relative_rank(Us, pos.promotion_square(Us, s), pos.max_rank()) - relative_rank(Us, s, pos.max_rank()), 0), 0);
 
         Score bonus = PassedRank[r];
 
@@ -1067,7 +1067,7 @@ namespace {
 
     // Scale by maximum promotion piece value
     Value maxMg = VALUE_ZERO, maxEg = VALUE_ZERO;
-    for (PieceType pt : pos.promotion_piece_types())
+    for (PieceType pt : pos.promotion_piece_types(Us))
     {
         maxMg = std::max(maxMg, PieceValue[MG][pt]);
         maxEg = std::max(maxEg, PieceValue[EG][pt]);
@@ -1083,11 +1083,11 @@ namespace {
         while (b)
         {
             Square s = pop_lsb(b);
-            if ((pos.pieces(Them, SHOGI_PAWN) & forward_file_bb(Us, s)) || relative_rank(Us, s, pos.max_rank()) == pos.max_rank())
+            if ((pos.pieces(Them, SHOGI_PAWN) & forward_file_bb(Us, s)) || pos.promotion_square(Us, s) == SQ_NONE)
                 continue;
 
             Square blockSq = s + Up;
-            int d = 2 * std::max(pos.promotion_rank() - relative_rank(Us, s, pos.max_rank()), 1);
+            int d = 2 * std::max(relative_rank(Us, pos.promotion_square(Us, s), pos.max_rank()) - relative_rank(Us, s, pos.max_rank()), 1);
             d += !!(attackedBy[Them][ALL_PIECES] & ~attackedBy2[Us] & blockSq);
             score += make_score(PieceValue[MG][pt], PieceValue[EG][pt]) / (d * d);
         }
@@ -1111,7 +1111,7 @@ namespace {
     bool pawnsOnly = !(pos.pieces(Us) ^ pos.pieces(Us, PAWN));
 
     // Early exit if, for example, both queens or 6 minor pieces have been exchanged
-    if (pos.non_pawn_material() < SpaceThreshold && !pawnsOnly && pos.double_step_enabled())
+    if (pos.non_pawn_material() < SpaceThreshold && !pawnsOnly && pos.double_step_region(Us))
         return SCORE_ZERO;
 
     constexpr Color Them     = ~Us;
@@ -1194,7 +1194,7 @@ namespace {
             {
                 Square s = pop_lsb(current);
                 Bitboard attacks = (  (PseudoAttacks[Us][ptCtf][s] & pos.pieces())
-                                    | (PseudoMoves[Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
+                                    | (PseudoMoves[0][Us][ptCtf][s] & ~pos.pieces())) & ~processed & pos.board_bb();
                 ctfPieces |= attacks & ~blocked;
                 onHold |= attacks & ~doubleBlocked;
                 onHold2 |= attacks & ~inaccessible;
@@ -1345,7 +1345,8 @@ namespace {
 
     // Compute the initiative bonus for the attacking side
     complexity =       9 * pe->passed_count()
-                    + 12 * pos.count<PAWN>()
+                    + 12 * pos.count(WHITE, pos.promotion_pawn_type(WHITE)) * bool(pos.promotion_pawn_type(WHITE))
+                    + 12 * pos.count(BLACK, pos.promotion_pawn_type(BLACK)) * bool(pos.promotion_pawn_type(BLACK))
                     + 15 * pos.count<SOLDIER>()
                     +  9 * outflanking
                     + 21 * pawnsOnBothFlanks

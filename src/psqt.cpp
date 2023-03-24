@@ -156,16 +156,16 @@ constexpr Score PBonus[RANK_NB][FILE_NB] =
 Value piece_value(Phase phase, PieceType pt)
 {
     const PieceInfo* pi = pieceMap.find(pt)->second;
-    int v0 =  (phase == MG ?  55 :  60) * pi->steps[MODALITY_CAPTURE].size()
-            + (phase == MG ?  30 :  40) * pi->steps[MODALITY_QUIET].size()
-            + (phase == MG ? 185 : 180) * pi->slider[MODALITY_CAPTURE].size()
-            + (phase == MG ?  55 :  50) * pi->slider[MODALITY_QUIET].size()
+    int v0 =  (phase == MG ?  55 :  60) * pi->steps[0][MODALITY_CAPTURE].size()
+            + (phase == MG ?  30 :  40) * pi->steps[0][MODALITY_QUIET].size()
+            + (phase == MG ? 185 : 180) * pi->slider[0][MODALITY_CAPTURE].size()
+            + (phase == MG ?  55 :  50) * pi->slider[0][MODALITY_QUIET].size()
             // Hoppers are more useful with more pieces on the board
-            + (phase == MG ? 100 :  80) * pi->hopper[MODALITY_CAPTURE].size()
-            + (phase == MG ?  80 :  60) * pi->hopper[MODALITY_QUIET].size()
+            + (phase == MG ? 100 :  80) * pi->hopper[0][MODALITY_CAPTURE].size()
+            + (phase == MG ?  80 :  60) * pi->hopper[0][MODALITY_QUIET].size()
             // Rook sliding directions are more valuable, especially in endgame
-            + (phase == MG ?  10 :  30) * std::count_if(pi->slider[MODALITY_CAPTURE].begin(), pi->slider[MODALITY_CAPTURE].end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; })
-            + (phase == MG ?  30 :  45) * std::count_if(pi->slider[MODALITY_QUIET].begin(), pi->slider[MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; });
+            + (phase == MG ?  10 :  30) * std::count_if(pi->slider[0][MODALITY_CAPTURE].begin(), pi->slider[0][MODALITY_CAPTURE].end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; })
+            + (phase == MG ?  30 :  45) * std::count_if(pi->slider[0][MODALITY_QUIET].begin(), pi->slider[0][MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; });
     return Value(v0 * exp(double(v0) / 10000));
 }
 
@@ -196,7 +196,7 @@ void init(const Variant* v) {
   }
 
   Value maxPromotion = VALUE_ZERO;
-  for (PieceType pt : v->promotionPieceTypes)
+  for (PieceType pt : v->promotionPieceTypes[WHITE])
       maxPromotion = std::max(maxPromotion, PieceValue[EG][pt]);
 
   for (PieceType pt = PAWN; pt <= KING; ++pt)
@@ -206,7 +206,7 @@ void init(const Variant* v) {
       Score score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
 
       // Consider promotion types in pawn score
-      if (pt == PAWN)
+      if (pt == v->promotionPawnType[WHITE])
       {
           score -= make_score(0, (QueenValueEg - maxPromotion) / 100);
           if (v->blastOnCapture)
@@ -214,9 +214,9 @@ void init(const Variant* v) {
       }
       
       const PieceInfo* pi = pieceMap.find(pt)->second;
-      bool isSlider = pi->slider[MODALITY_QUIET].size() || pi->slider[MODALITY_CAPTURE].size() || pi->hopper[MODALITY_QUIET].size() || pi->hopper[MODALITY_CAPTURE].size();
-      bool isPawn = !isSlider && pi->steps[MODALITY_QUIET].size() && !std::any_of(pi->steps[MODALITY_QUIET].begin(), pi->steps[MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return d.first < SOUTH / 2; });
-      bool isSlowLeaper = !isSlider && !std::any_of(pi->steps[MODALITY_QUIET].begin(), pi->steps[MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return dist(d.first) > 1; });
+      bool isSlider = pi->slider[0][MODALITY_QUIET].size() || pi->slider[0][MODALITY_CAPTURE].size() || pi->hopper[0][MODALITY_QUIET].size() || pi->hopper[0][MODALITY_CAPTURE].size();
+      bool isPawn = !isSlider && pi->steps[0][MODALITY_QUIET].size() && !std::any_of(pi->steps[0][MODALITY_QUIET].begin(), pi->steps[0][MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return d.first < SOUTH / 2; });
+      bool isSlowLeaper = !isSlider && !std::any_of(pi->steps[0][MODALITY_QUIET].begin(), pi->steps[0][MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return dist(d.first) > 1; });
 
       // Scale slider piece values with board size
       if (isSlider)
@@ -225,8 +225,8 @@ void init(const Variant* v) {
           constexpr int rm = 5;
           constexpr int r0 = rm + RANK_8;
           int r1 = rm + (v->maxRank + v->maxFile - 2 * v->capturesToHand) / 2;
-          int leaper = pi->steps[MODALITY_QUIET].size() + pi->steps[MODALITY_CAPTURE].size();
-          int slider = pi->slider[MODALITY_QUIET].size() + pi->slider[MODALITY_CAPTURE].size() + pi->hopper[MODALITY_QUIET].size() + pi->hopper[MODALITY_CAPTURE].size();
+          int leaper = pi->steps[0][MODALITY_QUIET].size() + pi->steps[0][MODALITY_CAPTURE].size();
+          int slider = pi->slider[0][MODALITY_QUIET].size() + pi->slider[0][MODALITY_CAPTURE].size() + pi->hopper[0][MODALITY_QUIET].size() + pi->hopper[0][MODALITY_CAPTURE].size();
           score = make_score(mg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider),
                              eg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider));
       }
@@ -249,7 +249,7 @@ void init(const Variant* v) {
       // Increase leapers' value in makpong
       else if (v->makpongRule)
       {
-          if (std::any_of(pi->steps[MODALITY_CAPTURE].begin(), pi->steps[MODALITY_CAPTURE].end(), [](const std::pair<const Direction, int>& d) { return dist(d.first) > 1 && !d.second; }))
+          if (std::any_of(pi->steps[0][MODALITY_CAPTURE].begin(), pi->steps[0][MODALITY_CAPTURE].end(), [](const std::pair<const Direction, int>& d) { return dist(d.first) > 1 && !d.second; }))
               score = make_score(mg_value(score) * 4200 / (3500 + mg_value(score)),
                                  eg_value(score) * 4700 / (3500 + mg_value(score)));
       }
@@ -272,7 +272,7 @@ void init(const Variant* v) {
 
       // For antichess variants, use negative piece values
       if (v->extinctionValue == VALUE_MATE)
-          score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->slider[MODALITY_CAPTURE].size()));
+          score = -make_score(mg_value(score) / 8, eg_value(score) / 8 / (1 + !pi->slider[0][MODALITY_CAPTURE].size()));
 
       // Override variant piece value
       if (v->pieceValue[MG][pt])

@@ -183,9 +183,9 @@ Value Endgame<KPK>::operator()(const Position& pos) const {
   Color us = strongSide == pos.side_to_move() ? WHITE : BLACK;
 
   // Non-standard promotion, evaluation unclear
-  if (   pos.promotion_rank() != RANK_8
+  if (   pos.promotion_zone(us) != rank_bb(relative_rank(us, RANK_8, pos.max_rank()))
       || RANK_MAX != RANK_8
-      || pos.promotion_piece_types().find(QUEEN) == pos.promotion_piece_types().end())
+      || pos.promotion_piece_types(us).find(QUEEN) == pos.promotion_piece_types(us).end())
   {
       Value result = PawnValueEg + Value(rank_of(strongPawn));
       return strongSide == pos.side_to_move() ? result : -result;
@@ -371,10 +371,14 @@ Value Endgame<KFsPsK>::operator()(const Position& pos) const {
       Bitboard b = pos.pieces(strongSide, PAWN);
       while (b && (!dark || !light))
       {
-          if (file_of(pop_lsb(b)) % 2 != relative_rank(strongSide, pos.promotion_rank(), pos.max_rank()) % 2)
-              light = true;
-          else
-              dark = true;
+          Square s = pos.promotion_square(strongSide, pop_lsb(b));
+          if (s != SQ_NONE)
+          {
+              if (DarkSquares & s)
+                  dark = true;
+              else
+                  light = true;
+          }
       }
       if (!dark || !light)
           return VALUE_DRAW; // we can not checkmate with same colored ferzes
@@ -933,9 +937,9 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
 
   // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
   // it's probably at least a draw even with the pawn.
-  if (   pos.promotion_rank() != RANK_8
+  if (   pos.promotion_zone(us) != rank_bb(relative_rank(us, RANK_8, pos.max_rank()))
       || RANK_MAX != RANK_8
-      || pos.promotion_piece_types().find(QUEEN) == pos.promotion_piece_types().end())
+      || pos.promotion_piece_types(us).find(QUEEN) == pos.promotion_piece_types(us).end())
       return SCALE_FACTOR_NONE;
 
   return Bitbases::probe(strongKing, strongPawn, weakKing, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
