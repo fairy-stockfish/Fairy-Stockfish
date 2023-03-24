@@ -76,8 +76,8 @@ struct Variant {
   File castlingQueensideFile = FILE_C;
   Rank castlingRank = RANK_1;
   File castlingKingFile = FILE_E;
-  PieceType castlingKingPiece = KING;
-  PieceType castlingRookPiece = ROOK;
+  PieceType castlingKingPiece[COLOR_NB] = {KING, KING};
+  PieceSet castlingRookPieces[COLOR_NB] = {piece_set(ROOK), piece_set(ROOK)};
   PieceType kingType = KING;
   bool checking = true;
   bool dropChecks = true;

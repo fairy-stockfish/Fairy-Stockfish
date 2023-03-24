@@ -316,7 +316,7 @@ namespace {
         v->remove_piece(KNIGHT);
         v->add_piece(ROOKNI, 'r');
         v->add_piece(KNIROO, 'n');
-        v->castlingRookPiece = ROOKNI;
+        v->castlingRookPieces[WHITE] = v->castlingRookPieces[BLACK] = piece_set(ROOKNI);
         v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOKNI | BISHOP | KNIROO;
         v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOKNI | BISHOP | KNIROO;
         return v;
@@ -352,7 +352,7 @@ namespace {
         v->remove_piece(KNIGHT);
         v->startFen = "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1";
         v->kingType = KNIGHT;
-        v->castlingKingPiece = KING;
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = KING;
         v->promotionPieceTypes[WHITE] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP;
         v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP;
         return v;
@@ -377,7 +377,7 @@ namespace {
         v->variantTemplate = "giveaway";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
-        v->castlingKingPiece = COMMONER;
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->promotionPieceTypes[WHITE] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT;
         v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT;
         v->stalemateValue = VALUE_MATE;
@@ -420,7 +420,7 @@ namespace {
         Variant* v = chess_variant_base()->init();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
-        v->castlingKingPiece = COMMONER;
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->promotionPieceTypes[WHITE] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT;
         v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT;
         v->extinctionValue = -VALUE_MATE;
@@ -442,7 +442,7 @@ namespace {
         Variant* v = chess_variant_base()->init();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
-        v->castlingKingPiece = COMMONER;
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->startFen = "knbqkbnk/pppppppp/8/8/8/8/PPPPPPPP/KNBQKBNK w - - 0 1";
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(COMMONER);
@@ -467,7 +467,7 @@ namespace {
         v->variantTemplate = "atomic";
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
-        v->castlingKingPiece = COMMONER;
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(COMMONER);
         v->blastOnCapture = true;
@@ -487,7 +487,7 @@ namespace {
         Variant* v = chess_variant_base()->init();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
-        v->castlingKingPiece = COMMONER;
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(COMMONER);
         v->duckGating = true;
@@ -603,7 +603,7 @@ namespace {
         Variant* v = bughouse_variant()->init();
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
-        v->castlingKingPiece = COMMONER;
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->mustDrop = true;
         v->mustDropType = COMMONER;
         v->extinctionValue = -VALUE_MATE;
@@ -975,6 +975,19 @@ namespace {
         v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISHOP;
         return v;
     }
+    // Perfect chess
+    // https://www.chessvariants.com/diffmove.dir/perfectchess.html
+    Variant* perfect_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->add_piece(CHANCELLOR, 'c');
+        v->add_piece(ARCHBISHOP, 'm');
+        v->add_piece(AMAZON, 'g');
+        v->startFen = "cmqgkbnr/pppppppp/8/8/8/8/PPPPPPPP/CMQGKBNR w KQkq - 0 1";
+        v->promotionPieceTypes[WHITE] = piece_set(AMAZON) | CHANCELLOR | ARCHBISHOP | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(AMAZON) | CHANCELLOR | ARCHBISHOP | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->castlingRookPieces[WHITE] = v->castlingRookPieces[BLACK] |= piece_set(CHANCELLOR);
+        return v;
+    }
     // Spartan chess
     // https://www.chessvariants.com/rules/spartan-chess
     Variant* spartan_variant() {
@@ -1167,7 +1180,7 @@ namespace {
         v->capturesToHand = false;
         v->pieceDrops = false;
         v->promotedPieceType[CUSTOM_PIECES] = COMMONER;
-        v->castlingKingPiece = COMMONER;
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(COMMONER);
         v->extinctionPseudoRoyal = true;
@@ -1791,6 +1804,7 @@ void VariantMap::init() {
     add("gardner", gardner_variant());
     add("almost", almost_variant());
     add("chigorin", chigorin_variant());
+    add("perfect", perfect_variant());
     add("spartan", spartan_variant());
     add("shatar", shatar_variant());
     add("coregal", coregal_variant());
