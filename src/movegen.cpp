@@ -57,13 +57,19 @@ namespace {
 
     // Gating moves
     if (pos.seirawan_gating() && (pos.gates(us) & from))
-        for (PieceType pt_gating : pos.piece_types())
+        for (PieceSet ps = pos.piece_types(); ps;)
+        {
+            PieceType pt_gating = pop_lsb(ps);
             if (pos.can_drop(us, pt_gating) && (pos.drop_region(us, pt_gating) & from))
                 *moveList++ = make_gating<T>(from, to, pt_gating, from);
+        }
     if (pos.seirawan_gating() && T == CASTLING && (pos.gates(us) & to))
-        for (PieceType pt_gating : pos.piece_types())
+        for (PieceSet ps = pos.piece_types(); ps;)
+        {
+            PieceType pt_gating = pop_lsb(ps);
             if (pos.can_drop(us, pt_gating) && (pos.drop_region(us, pt_gating) & to))
                 *moveList++ = make_gating<T>(from, to, pt_gating, to);
+        }
 
     return moveList;
   }
@@ -73,9 +79,12 @@ namespace {
 
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
     {
-        for (PieceType pt : pos.promotion_piece_types(c))
+        for (PieceSet promotions = pos.promotion_piece_types(c); promotions;)
+        {
+            PieceType pt = pop_msb(promotions);
             if (!pos.promotion_limit(pt) || pos.promotion_limit(pt) > pos.count(c, pt))
                 moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), to - D, to, pt);
+        }
         PieceType pt = pos.promoted_piece_type(PAWN);
         if (pt && !(pos.piece_promotion_on_capture() && pos.empty(to)))
             moveList = make_move_and_gating<PIECE_PROMOTION>(pos, moveList, pos.side_to_move(), to - D, to);
@@ -213,8 +222,9 @@ namespace {
         while (promotionPawns)
         {
             Square from = pop_lsb(promotionPawns);
-            for (PieceType pt : pos.promotion_piece_types(Us))
+            for (PieceSet ps = pos.promotion_piece_types(Us); ps;)
             {
+                PieceType pt = pop_msb(ps);
                 if (pos.promotion_limit(pt) && pos.promotion_limit(pt) <= pos.count(Us, pt))
                     continue;
                 Bitboard b = ((pos.attacks_from(Us, pt, from) & ~pos.pieces()) | from) & target;
@@ -332,10 +342,13 @@ namespace {
 
         // Pawn-style promotions
         if ((Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS) && pawnPromotions)
-            for (PieceType ptP : pos.promotion_piece_types(Us))
+            for (PieceSet ps = pos.promotion_piece_types(Us); ps;)
+            {
+                PieceType ptP = pop_msb(ps);
                 if (!pos.promotion_limit(ptP) || pos.promotion_limit(ptP) > pos.count(Us, ptP))
                     for (Bitboard promotions = pawnPromotions; promotions; )
                         moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), from, pop_lsb(promotions), ptP);
+            }
 
         // En passant captures
         if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
@@ -378,13 +391,12 @@ namespace {
         target &= pos.board_bb();
 
         moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
-        for (PieceType pt : pos.piece_types())
-            if (pt != PAWN && pt != KING)
-                moveList = generate_moves<Us, Type>(pos, moveList, pt, target);
+        for (PieceSet ps = pos.piece_types() & ~(piece_set(PAWN) | KING); ps;)
+            moveList = generate_moves<Us, Type>(pos, moveList, pop_lsb(ps), target);
         // generate drops
         if (pos.piece_drops() && Type != CAPTURES && (pos.can_drop(Us, ALL_PIECES) || pos.two_boards()))
-            for (PieceType pt : pos.piece_types())
-                moveList = generate_drops<Us, Type>(pos, moveList, pt, target & ~pos.pieces(~Us));
+            for (PieceSet ps = pos.piece_types(); ps;)
+                moveList = generate_drops<Us, Type>(pos, moveList, pop_lsb(ps), target & ~pos.pieces(~Us));
 
         // Castling with non-king piece
         if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(Us & ANY_CASTLING))

@@ -678,6 +678,90 @@ inline Square frontmost_sq(Color c, Bitboard b) {
   return c == WHITE ? msb(b) : lsb(b);
 }
 
+
+/// lsb() and msb() return the least/most significant bit in a non-zero piece set
+
+#if defined(__GNUC__)  // GCC, Clang, ICC
+
+inline PieceType lsb(PieceSet ps) {
+  assert(ps);
+  return PieceType(__builtin_ctzll(ps));
+}
+
+inline PieceType msb(PieceSet ps) {
+  assert(ps);
+  return PieceType((PIECE_TYPE_NB - 1) ^ __builtin_clzll(ps));
+}
+
+#elif defined(_MSC_VER)  // MSVC
+
+#ifdef _WIN64  // MSVC, WIN64
+
+inline PieceType lsb(PieceSet ps) {
+  assert(ps);
+  unsigned long idx;
+  _BitScanForward64(&idx, ps);
+  return (PieceType) idx;
+}
+
+inline PieceType msb(PieceSet ps) {
+  assert(ps);
+  unsigned long idx;
+  _BitScanReverse64(&idx, ps);
+  return (PieceType) idx;
+}
+
+#else  // MSVC, WIN32
+
+inline PieceType lsb(PieceSet ps) {
+  assert(ps);
+  unsigned long idx;
+
+  if (ps & 0xffffffff) {
+      _BitScanForward(&idx, uint32_t(ps));
+      return PieceType(idx);
+  } else {
+      _BitScanForward(&idx, uint32_t(ps >> 32));
+      return PieceType(idx + 32);
+  }
+}
+
+inline PieceType msb(PieceSet ps) {
+  assert(ps);
+  unsigned long idx;
+  if (ps >> 32) {
+      _BitScanReverse(&idx, uint32_t(ps >> 32));
+      return PieceType(idx + 32);
+  } else {
+      _BitScanReverse(&idx, uint32_t(ps));
+      return PieceType(idx);
+  }
+}
+
+#endif
+
+#else  // Compiler is neither GCC nor MSVC compatible
+
+#error "Compiler not supported."
+
+#endif
+
+/// pop_lsb() and pop_msb() find and clear the least/most significant bit in a non-zero piece set
+
+inline PieceType pop_lsb(PieceSet& ps) {
+  assert(ps);
+  const PieceType pt = lsb(ps);
+  ps &= PieceSet(ps - 1);
+  return pt;
+}
+
+inline PieceType pop_msb(PieceSet& ps) {
+  assert(ps);
+  const PieceType pt = msb(ps);
+  ps &= ~piece_set(pt);
+  return pt;
+}
+
 } // namespace Stockfish
 
 #endif // #ifndef BITBOARD_H_INCLUDED

@@ -92,7 +92,7 @@ void on_variant_change(const Option &o) {
     // Do not send setup command for known variants
     if (standard_variants.find(o) != standard_variants.end())
         return;
-    int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0;
+    int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : popcount(v->pieceTypes)) : 0;
     if (CurrentProtocol == XBOARD)
     {
         // Overwrite setup command for Janggi variants
@@ -115,8 +115,9 @@ void on_variant_change(const Option &o) {
                   << sync_endl;
         // Send piece command with Betza notation
         // https://www.gnu.org/software/xboard/Betza.html
-        for (PieceType pt : v->pieceTypes)
+        for (PieceSet ps = v->pieceTypes; ps;)
         {
+            PieceType pt = pop_lsb(ps);
             string suffix =   pt == PAWN && v->doubleStep     ? "ifmnD"
                             : pt == KING && v->cambodianMoves ? "ismN"
                             : pt == FERS && v->cambodianMoves ? "ifD"

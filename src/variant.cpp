@@ -161,8 +161,8 @@ namespace {
         v->startFen = "rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR w - - 0 1";
         v->promotionRegion[WHITE] = Rank6BB | Rank7BB | Rank8BB;
         v->promotionRegion[BLACK] = Rank3BB | Rank2BB | Rank1BB;
-        v->promotionPieceTypes[WHITE] = {MET};
-        v->promotionPieceTypes[BLACK] = {MET};
+        v->promotionPieceTypes[WHITE] = piece_set(MET);
+        v->promotionPieceTypes[BLACK] = piece_set(MET);
         v->doubleStep = false;
         v->castling = false;
         v->nMoveRule = 0;
@@ -206,8 +206,8 @@ namespace {
         v->add_piece(KHON, 'b');
         v->add_piece(MET, 'q');
         v->startFen = "rnbqkbnr/8/pppppppp/8/8/PPPPPPPP/8/RNBQKBNR w - - 0 1";
-        v->promotionPieceTypes[WHITE] = {ROOK, KNIGHT, KHON, MET};
-        v->promotionPieceTypes[BLACK] = {ROOK, KNIGHT, KHON, MET};
+        v->promotionPieceTypes[WHITE] = piece_set(ROOK) | KNIGHT | KHON | MET;
+        v->promotionPieceTypes[BLACK] = piece_set(ROOK) | KNIGHT | KHON | MET;
         v->doubleStep = false;
         v->castling = false;
         v->countingRule = ASEAN_COUNTING;
@@ -221,8 +221,8 @@ namespace {
         v->remove_piece(MET);
         v->add_piece(AIWOK, 'a');
         v->startFen = "rnsaksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKASNR w - - 0 1";
-        v->promotionPieceTypes[WHITE] = {AIWOK};
-        v->promotionPieceTypes[BLACK] = {AIWOK};
+        v->promotionPieceTypes[WHITE] = piece_set(AIWOK);
+        v->promotionPieceTypes[BLACK] = piece_set(AIWOK);
         return v;
     }
     // Shatranj
@@ -237,13 +237,13 @@ namespace {
         v->add_piece(ALFIL, 'b');
         v->add_piece(FERS, 'q');
         v->startFen = "rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR w - - 0 1";
-        v->promotionPieceTypes[WHITE] = {FERS};
-        v->promotionPieceTypes[BLACK] = {FERS};
+        v->promotionPieceTypes[WHITE] = piece_set(FERS);
+        v->promotionPieceTypes[BLACK] = piece_set(FERS);
         v->doubleStep = false;
         v->castling = false;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionClaim = true;
-        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceTypes = piece_set(ALL_PIECES);
         v->extinctionPieceCount = 1;
         v->extinctionOpponentPieceCount = 2;
         v->stalemateValue = -VALUE_MATE;
@@ -269,8 +269,8 @@ namespace {
         v->remove_piece(QUEEN);
         v->add_piece(AMAZON, 'a');
         v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = {AMAZON, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {AMAZON, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(AMAZON) | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(AMAZON) | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Nightrider chess
@@ -280,8 +280,8 @@ namespace {
         Variant* v = chess_variant_base()->init();
         v->remove_piece(KNIGHT);
         v->add_piece(CUSTOM_PIECES, 'n', "NN");
-        v->promotionPieceTypes[WHITE] = {QUEEN, ROOK, BISHOP, CUSTOM_PIECES};
-        v->promotionPieceTypes[BLACK] = {QUEEN, ROOK, BISHOP, CUSTOM_PIECES};
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOK | BISHOP | CUSTOM_PIECES;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISHOP | CUSTOM_PIECES;
         return v;
     }
     // Grasshopper chess
@@ -289,8 +289,8 @@ namespace {
     Variant* grasshopper_variant() {
         Variant* v = chess_variant_base()->init();
         v->add_piece(CUSTOM_PIECES, 'g', "gQ");
-        v->promotionPieceTypes[WHITE].insert(CUSTOM_PIECES);
-        v->promotionPieceTypes[BLACK].insert(CUSTOM_PIECES);
+        v->promotionPieceTypes[WHITE] |= CUSTOM_PIECES;
+        v->promotionPieceTypes[BLACK] |= CUSTOM_PIECES;
         v->startFen = "rnbqkbnr/gggggggg/pppppppp/8/8/PPPPPPPP/GGGGGGGG/RNBQKBNR w KQkq - 0 1";
         v->doubleStep = false;
         return v;
@@ -304,8 +304,8 @@ namespace {
         v->remove_piece(BISHOP);
         v->add_piece(KNIBIS, 'n');
         v->add_piece(BISKNI, 'b');
-        v->promotionPieceTypes[WHITE] = {QUEEN, ROOK, BISKNI, KNIBIS};
-        v->promotionPieceTypes[BLACK] = {QUEEN, ROOK, BISKNI, KNIBIS};
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOK | BISKNI | KNIBIS;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISKNI | KNIBIS;
         return v;
     }
     // New Zealand
@@ -317,8 +317,8 @@ namespace {
         v->add_piece(ROOKNI, 'r');
         v->add_piece(KNIROO, 'n');
         v->castlingRookPiece = ROOKNI;
-        v->promotionPieceTypes[WHITE] = {QUEEN, ROOKNI, BISHOP, KNIROO};
-        v->promotionPieceTypes[BLACK] = {QUEEN, ROOKNI, BISHOP, KNIROO};
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOKNI | BISHOP | KNIROO;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOKNI | BISHOP | KNIROO;
         return v;
     }
     // King of the Hill
@@ -353,8 +353,8 @@ namespace {
         v->startFen = "rmbqkbmr/pppppppp/8/8/8/8/PPPPPPPP/RMBQKBMR w KQkq - 0 1";
         v->kingType = KNIGHT;
         v->castlingKingPiece = KING;
-        v->promotionPieceTypes[WHITE] = {COMMONER, QUEEN, ROOK, BISHOP};
-        v->promotionPieceTypes[BLACK] = {COMMONER, QUEEN, ROOK, BISHOP};
+        v->promotionPieceTypes[WHITE] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP;
+        v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP;
         return v;
     }
     // Losers chess
@@ -364,7 +364,7 @@ namespace {
         v->checkmateValue = VALUE_MATE;
         v->stalemateValue = VALUE_MATE;
         v->extinctionValue = VALUE_MATE;
-        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceTypes = piece_set(ALL_PIECES);
         v->extinctionPieceCount = 1;
         v->mustCapture = true;
         return v;
@@ -378,11 +378,11 @@ namespace {
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
         v->castlingKingPiece = COMMONER;
-        v->promotionPieceTypes[WHITE] = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT;
         v->stalemateValue = VALUE_MATE;
         v->extinctionValue = VALUE_MATE;
-        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceTypes = piece_set(ALL_PIECES);
         v->mustCapture = true;
         v->nnueAlias = "antichess";
         return v;
@@ -409,9 +409,9 @@ namespace {
     // http://www.binnewirtz.com/Schlagschach1.htm
     Variant* codrus_variant() {
         Variant* v = giveaway_variant()->init();
-        v->promotionPieceTypes[WHITE] = {QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {QUEEN, ROOK, BISHOP, KNIGHT};
-        v->extinctionPieceTypes = {COMMONER};
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT;
+        v->extinctionPieceTypes = piece_set(COMMONER);
         return v;
     }
     // Extinction chess
@@ -421,19 +421,19 @@ namespace {
         v->remove_piece(KING);
         v->add_piece(COMMONER, 'k');
         v->castlingKingPiece = COMMONER;
-        v->promotionPieceTypes[WHITE] = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT;
         v->extinctionValue = -VALUE_MATE;
-        v->extinctionPieceTypes = {COMMONER, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
+        v->extinctionPieceTypes = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT | PAWN;
         return v;
     }
     // Kinglet
     // https://en.wikipedia.org/wiki/V._R._Parton#Kinglet_chess
     Variant* kinglet_variant() {
         Variant* v = extinction_variant()->init();
-        v->promotionPieceTypes[WHITE] = {COMMONER};
-        v->promotionPieceTypes[BLACK] = {COMMONER};
-        v->extinctionPieceTypes = {PAWN};
+        v->promotionPieceTypes[WHITE] = piece_set(COMMONER);
+        v->promotionPieceTypes[BLACK] = piece_set(COMMONER);
+        v->extinctionPieceTypes = piece_set(PAWN);
         return v;
     }
     // Three Kings Chess
@@ -445,7 +445,7 @@ namespace {
         v->castlingKingPiece = COMMONER;
         v->startFen = "knbqkbnk/pppppppp/8/8/8/8/PPPPPPPP/KNBQKBNK w - - 0 1";
         v->extinctionValue = -VALUE_MATE;
-        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPieceTypes = piece_set(COMMONER);
         v->extinctionPieceCount = 2;
         return v;
     }
@@ -457,7 +457,7 @@ namespace {
         v->doubleStepRegion[WHITE] |= Rank1BB;
         v->enPassantRegion = Rank3BB | Rank6BB; // exclude en passant on second rank
         v->extinctionValue = -VALUE_MATE;
-        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceTypes = piece_set(ALL_PIECES);
         return v;
     }
     // Atomic chess without checks (ICC rules)
@@ -469,7 +469,7 @@ namespace {
         v->add_piece(COMMONER, 'k');
         v->castlingKingPiece = COMMONER;
         v->extinctionValue = -VALUE_MATE;
-        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPieceTypes = piece_set(COMMONER);
         v->blastOnCapture = true;
         v->nnueAlias = "atomic";
         return v;
@@ -489,7 +489,7 @@ namespace {
         v->add_piece(COMMONER, 'k');
         v->castlingKingPiece = COMMONER;
         v->extinctionValue = -VALUE_MATE;
-        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPieceTypes = piece_set(COMMONER);
         v->duckGating = true;
         v->stalemateValue = VALUE_MATE;
         return v;
@@ -607,7 +607,7 @@ namespace {
         v->mustDrop = true;
         v->mustDropType = COMMONER;
         v->extinctionValue = -VALUE_MATE;
-        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPieceTypes = piece_set(COMMONER);
         v->extinctionOpponentPieceCount = 2; // own all kings/commoners
         return v;
     }
@@ -676,8 +676,8 @@ namespace {
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1";
         v->gating = true;
         v->seirawanGating = true;
-        v->promotionPieceTypes[WHITE] = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(ARCHBISHOP) | CHANCELLOR | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | CHANCELLOR | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // S-House
@@ -715,8 +715,8 @@ namespace {
         Variant *v = chess_variant_base()->init();
         v->remove_piece(BISHOP);
         v->add_piece(CUSTOM_PIECES, 'b', "BnN");
-        v->promotionPieceTypes[WHITE] = {QUEEN, CUSTOM_PIECES, ROOK, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {QUEEN, CUSTOM_PIECES, ROOK, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | CUSTOM_PIECES | ROOK | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | CUSTOM_PIECES | ROOK | KNIGHT;
         return v;
     }
     // Base used for most shogi variants
@@ -931,8 +931,8 @@ namespace {
         v->startFen = "rnqknr/pppppp/6/6/PPPPPP/RNQKNR w - - 0 1";
         v->promotionRegion[WHITE] = Rank6BB;
         v->promotionRegion[BLACK] = Rank1BB;
-        v->promotionPieceTypes[WHITE] = {QUEEN, ROOK, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {QUEEN, ROOK, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOK | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | KNIGHT;
         v->doubleStep = false;
         v->castling = false;
         return v;
@@ -959,8 +959,8 @@ namespace {
         v->remove_piece(QUEEN);
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rnbckbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBCKBNR w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = {CHANCELLOR, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {CHANCELLOR, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(CHANCELLOR) | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(CHANCELLOR) | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Chigorin chess
@@ -971,8 +971,8 @@ namespace {
         v->pieceToCharTable = "PNBR............CKpnbrq............k";
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rbbqkbbr/pppppppp/8/8/8/8/PPPPPPPP/RNNCKNNR w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = {CHANCELLOR, ROOK, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {QUEEN, ROOK, BISHOP};
+        v->promotionPieceTypes[WHITE] = piece_set(CHANCELLOR) | ROOK | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISHOP;
         return v;
     }
     // Spartan chess
@@ -988,7 +988,7 @@ namespace {
         v->promotionPawnType[BLACK] = CUSTOM_PIECES;
         v->promotionPawnTypes[BLACK] = piece_set(CUSTOM_PIECES);
         v->nMoveRuleTypes[BLACK] = piece_set(CUSTOM_PIECES);
-        v->promotionPieceTypes[BLACK] = {COMMONER, DRAGON, ARCHBISHOP, CUSTOM_PIECES + 1, CUSTOM_PIECES + 2};
+        v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | DRAGON | ARCHBISHOP | (CUSTOM_PIECES + 1) | (CUSTOM_PIECES + 2);
         v->promotionLimit[COMMONER] = 2;
         v->enPassantRegion = 0;
         v->extinctionPieceCount = 0;
@@ -1004,12 +1004,12 @@ namespace {
         v->remove_piece(QUEEN);
         v->add_piece(BERS, 'j');
         v->startFen = "rnbjkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBJKBNR w - - 0 1";
-        v->promotionPieceTypes[WHITE] = {BERS};
-        v->promotionPieceTypes[BLACK] = {BERS};
+        v->promotionPieceTypes[WHITE] = piece_set(BERS);
+        v->promotionPieceTypes[BLACK] = piece_set(BERS);
         v->doubleStep = false;
         v->castling = false;
         v->extinctionValue = VALUE_DRAW; // Robado
-        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceTypes = piece_set(ALL_PIECES);
         v->extinctionPieceCount = 1;
         v->shatarMateRule = true;
         return v;
@@ -1020,7 +1020,7 @@ namespace {
     Variant* coregal_variant() {
         Variant* v = chess_variant_base()->init();
         v->extinctionValue = -VALUE_MATE;
-        v->extinctionPieceTypes = {QUEEN};
+        v->extinctionPieceTypes = piece_set(QUEEN);
         v->extinctionPseudoRoyal = true;
         v->extinctionPieceCount = 64; // no matter how many queens, all are royal
         return v;
@@ -1169,7 +1169,7 @@ namespace {
         v->promotedPieceType[CUSTOM_PIECES] = COMMONER;
         v->castlingKingPiece = COMMONER;
         v->extinctionValue = -VALUE_MATE;
-        v->extinctionPieceTypes = {COMMONER};
+        v->extinctionPieceTypes = piece_set(COMMONER);
         v->extinctionPseudoRoyal = true;
         v->extinctionPieceCount = 0;
         return v;
@@ -1239,8 +1239,8 @@ namespace {
         v->add_piece(ARCHBISHOP, 'a');
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rnabqkbcnr/pppppppppp/10/10/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(ARCHBISHOP) | CHANCELLOR | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | CHANCELLOR | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Capahouse
@@ -1283,8 +1283,8 @@ namespace {
         v->castlingQueensideFile = FILE_B;
         v->add_piece(ARCHBISHOP, 'j');
         v->startFen = "rjnbkqbnjr/pppppppppp/10/10/10/10/PPPPPPPPPP/RJNBKQBNJR w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Modern chess
@@ -1303,8 +1303,8 @@ namespace {
         v->castlingQueensideFile = FILE_C;
         v->add_piece(ARCHBISHOP, 'm');
         v->startFen = "rnbqkmbnr/ppppppppp/9/9/9/9/9/PPPPPPPPP/RNBMKQBNR w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {ARCHBISHOP, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Chancellor chess
@@ -1323,8 +1323,8 @@ namespace {
         v->castlingQueensideFile = FILE_C;
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "rnbqkcnbr/ppppppppp/9/9/9/9/9/PPPPPPPPP/RNBQKCNBR w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = {CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(CHANCELLOR) | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(CHANCELLOR) | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Embassy chess
@@ -1350,8 +1350,8 @@ namespace {
         v->castlingQueensideFile = FILE_C;
         v->add_piece(CENTAUR, 'c');
         v->startFen = "rcnbqkbncr/pppppppppp/10/10/10/10/PPPPPPPPPP/RCNBQKBNCR w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = {CENTAUR, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {CENTAUR, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(CENTAUR) | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(CENTAUR) | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Gustav III chess
@@ -1366,8 +1366,8 @@ namespace {
         v->castlingQueensideFile = FILE_D;
         v->add_piece(AMAZON, 'a');
         v->startFen = "arnbqkbnra/*pppppppp*/*8*/*8*/*8*/*8*/*PPPPPPPP*/ARNBQKBNRA w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = {AMAZON, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {AMAZON, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(AMAZON) | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(AMAZON) | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Jeson mor
@@ -1402,13 +1402,13 @@ namespace {
         v->add_piece(COMMONER, 'm');
         v->add_piece(WAZIR, 'w');
         v->startFen = "rnebmk1wbenr/1ppppp1pppp1/6f5/p5p4p/P5P4P/6F5/1PPPPP1PPPP1/RNEBMK1WBENR w - - 0 1";
-        v->promotionPieceTypes[WHITE] = {FERS};
-        v->promotionPieceTypes[BLACK] = {FERS};
+        v->promotionPieceTypes[WHITE] = piece_set(FERS);
+        v->promotionPieceTypes[BLACK] = piece_set(FERS);
         v->doubleStep = false;
         v->castling = false;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionClaim = true;
-        v->extinctionPieceTypes = {ALL_PIECES};
+        v->extinctionPieceTypes = piece_set(ALL_PIECES);
         v->extinctionPieceCount = 1;
         v->extinctionOpponentPieceCount = 2;
         v->stalemateValue = -VALUE_MATE;
@@ -1426,8 +1426,8 @@ namespace {
         v->add_piece(ARCHBISHOP, 'a');
         v->add_piece(CHANCELLOR, 'c');
         v->startFen = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1";
-        v->promotionPieceTypes[WHITE] = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {ARCHBISHOP, CHANCELLOR, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(ARCHBISHOP) | CHANCELLOR | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | CHANCELLOR | QUEEN | ROOK | BISHOP | KNIGHT;
         v->promotionRegion[WHITE] = Rank8BB | Rank9BB | Rank10BB;
         v->promotionRegion[BLACK] = Rank3BB | Rank2BB | Rank1BB;
         v->promotionLimit[ARCHBISHOP] = 1;
@@ -1454,10 +1454,10 @@ namespace {
         v->add_piece(CUSTOM_PIECES + 1, 'w', "CF");
         v->add_piece(CUSTOM_PIECES + 2, 'l', "FDH");
         v->startFen = "rw6wr/clbnqknbla/pppppppppp/10/10/10/10/PPPPPPPPPP/CLBNQKNBLA/RW6WR w - - 0 1";
-        v->promotionPieceTypes[WHITE].erase(KNIGHT);
-        v->promotionPieceTypes[WHITE].insert(CUSTOM_PIECES);
-        v->promotionPieceTypes[WHITE].insert(CUSTOM_PIECES + 1);
-        v->promotionPieceTypes[WHITE].insert(CUSTOM_PIECES + 2);
+        v->promotionPieceTypes[WHITE] &= ~piece_set(KNIGHT);
+        v->promotionPieceTypes[WHITE] |= CUSTOM_PIECES;
+        v->promotionPieceTypes[WHITE] |= CUSTOM_PIECES + 1;
+        v->promotionPieceTypes[WHITE] |= CUSTOM_PIECES + 2;
         v->promotionPieceTypes[BLACK] = v->promotionPieceTypes[WHITE];
         v->promotionLimit[CUSTOM_PIECES] = 2;
         v->promotionLimit[CUSTOM_PIECES + 1] = 2;
@@ -1476,8 +1476,8 @@ namespace {
         v->add_piece(CHANCELLOR, 'm');
         v->add_piece(CUSTOM_PIECES, 'c', "DAW"); // Champion
         v->add_piece(CUSTOM_PIECES + 1, 'w', "CF"); // Wizard
-        v->promotionPieceTypes[WHITE] = {ARCHBISHOP, CHANCELLOR, QUEEN};
-        v->promotionPieceTypes[BLACK] = {ARCHBISHOP, CHANCELLOR, QUEEN};
+        v->promotionPieceTypes[WHITE] = piece_set(ARCHBISHOP) | CHANCELLOR | QUEEN;
+        v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | CHANCELLOR | QUEEN;
         v->promotionRegion[WHITE] = Rank10BB;
         v->promotionRegion[BLACK] = Rank1BB;
         v->doubleStepRegion[WHITE] = Rank3BB;
@@ -1501,8 +1501,8 @@ namespace {
         v->castlingRank = RANK_2;
         v->promotionRegion[WHITE] = Rank9BB | Rank10BB;
         v->promotionRegion[BLACK] = Rank2BB | Rank1BB;
-        v->promotionPieceTypes[WHITE] = {CUSTOM_PIECES + 1, CUSTOM_PIECES, QUEEN, ROOK, BISHOP, KNIGHT};
-        v->promotionPieceTypes[BLACK] = {CUSTOM_PIECES + 1, CUSTOM_PIECES, QUEEN, ROOK, BISHOP, KNIGHT};
+        v->promotionPieceTypes[WHITE] = piece_set(CUSTOM_PIECES + 1) | CUSTOM_PIECES | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(CUSTOM_PIECES + 1) | CUSTOM_PIECES | QUEEN | ROOK | BISHOP | KNIGHT;
         v->doubleStepRegion[WHITE] = Rank3BB;
         v->doubleStepRegion[BLACK] = Rank8BB;
         return v;
@@ -1535,8 +1535,8 @@ namespace {
         v->startFen = "qwfrbbnk/pssppssp/1pp2pp1/8/8/8/8/1PP2PP1/PSSPPSSP/KNBBRFWQ w - - 0 1";
         v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = PAWN;
         v->promotionPawnTypes[WHITE] = v->promotionPawnTypes[BLACK] = piece_set(PAWN) | piece_set(CUSTOM_PIECES);
-        v->promotionPieceTypes[WHITE] = {QUEEN, CHANCELLOR, ARCHBISHOP, ROOK, BISHOP};
-        v->promotionPieceTypes[BLACK] = {QUEEN, CHANCELLOR, ARCHBISHOP, ROOK, BISHOP};
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | CHANCELLOR | ARCHBISHOP | ROOK | BISHOP;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | CHANCELLOR | ARCHBISHOP | ROOK | BISHOP;
         v->promotedPieceType[PAWN] = CUSTOM_PIECES + 2;
         v->promotionRegion[WHITE] = Rank10BB;
         v->promotionRegion[BLACK] = Rank1BB;
@@ -1558,8 +1558,8 @@ namespace {
         v->add_piece(FERS_ALFIL, 'e');
         v->add_piece(CANNON, 'c');
         v->startFen = "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/ERNBQKBNRE/C8C w KQkq - 0 1";
-        v->promotionPieceTypes[WHITE] = { QUEEN, ROOK, BISHOP, KNIGHT, CANNON, FERS_ALFIL };
-        v->promotionPieceTypes[BLACK] = { QUEEN, ROOK, BISHOP, KNIGHT, CANNON, FERS_ALFIL };
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT | CANNON | FERS_ALFIL ;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT | CANNON | FERS_ALFIL ;
         v->promotionRegion[WHITE] = Rank10BB;
         v->promotionRegion[BLACK] = Rank1BB;
         v->castlingKingsideFile = FILE_H;

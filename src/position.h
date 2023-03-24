@@ -125,13 +125,13 @@ public:
   bool two_boards() const;
   Bitboard board_bb() const;
   Bitboard board_bb(Color c, PieceType pt) const;
-  const std::set<PieceType>& piece_types() const;
+  PieceSet piece_types() const;
   const std::string& piece_to_char() const;
   const std::string& piece_to_char_synonyms() const;
   Bitboard promotion_zone(Color c) const;
   Square promotion_square(Color c, Square s) const;
   PieceType promotion_pawn_type(Color c) const;
-  const std::set<PieceType, std::greater<PieceType> >& promotion_piece_types(Color c) const;
+  PieceSet promotion_piece_types(Color c) const;
   bool sittuyin_promotion() const;
   int promotion_limit(PieceType pt) const;
   PieceType promoted_piece_type(PieceType pt) const;
@@ -192,7 +192,7 @@ public:
   Value checkmate_value(int ply = 0) const;
   Value extinction_value(int ply = 0) const;
   bool extinction_claim() const;
-  const std::set<PieceType>& extinction_piece_types() const;
+  PieceSet extinction_piece_types() const;
   bool extinction_single_piece() const;
   int extinction_piece_count() const;
   int extinction_opponent_piece_count() const;
@@ -408,7 +408,7 @@ inline Bitboard Position::board_bb(Color c, PieceType pt) const {
   return var->mobilityRegion[c][pt] ? var->mobilityRegion[c][pt] & board_bb() : board_bb();
 }
 
-inline const std::set<PieceType>& Position::piece_types() const {
+inline PieceSet Position::piece_types() const {
   assert(var != nullptr);
   return var->pieceTypes;
 }
@@ -439,7 +439,7 @@ inline PieceType Position::promotion_pawn_type(Color c) const {
   return var->promotionPawnType[c];
 }
 
-inline const std::set<PieceType, std::greater<PieceType> >& Position::promotion_piece_types(Color c) const {
+inline PieceSet Position::promotion_piece_types(Color c) const {
   assert(var != nullptr);
   return var->promotionPieceTypes[c];
 }
@@ -866,8 +866,11 @@ inline Value Position::checkmate_value(int ply) const {
   if (two_boards() && var->checkmateValue < VALUE_ZERO)
   {
       Value virtualMaterial = VALUE_ZERO;
-      for (PieceType pt : piece_types())
+      for (PieceSet ps = piece_types(); ps;)
+      {
+          PieceType pt = pop_lsb(ps);
           virtualMaterial += std::max(-count_in_hand(~sideToMove, pt), 0) * PieceValue[MG][pt];
+      }
 
       if (virtualMaterial > 0)
           return -VALUE_VIRTUAL_MATE + virtualMaterial / 20 + ply;
@@ -886,7 +889,7 @@ inline bool Position::extinction_claim() const {
   return var->extinctionClaim;
 }
 
-inline const std::set<PieceType>& Position::extinction_piece_types() const {
+inline PieceSet Position::extinction_piece_types() const {
   assert(var != nullptr);
   return var->extinctionPieceTypes;
 }
@@ -894,9 +897,7 @@ inline const std::set<PieceType>& Position::extinction_piece_types() const {
 inline bool Position::extinction_single_piece() const {
   assert(var != nullptr);
   return   var->extinctionValue == -VALUE_MATE
-        && std::any_of(var->extinctionPieceTypes.begin(),
-                       var->extinctionPieceTypes.end(),
-                       [](PieceType pt) { return pt != ALL_PIECES; });
+        && (var->extinctionPieceTypes & ~piece_set(ALL_PIECES));
 }
 
 inline int Position::extinction_piece_count() const {

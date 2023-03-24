@@ -419,7 +419,9 @@ enum Piece {
   PIECE_NB = 2 * PIECE_TYPE_NB
 };
 
-enum PieceSet : uint64_t {};
+enum PieceSet : uint64_t {
+  NO_PIECE_SET = 0
+};
 
 enum RiderType : int {
   NO_RIDER = 0,
@@ -629,11 +631,14 @@ constexpr PieceSet piece_set(PieceType pt) {
   return PieceSet(1ULL << pt);
 }
 
+constexpr PieceSet operator~ (PieceSet ps) { return (PieceSet)~(uint64_t)ps; }
 constexpr PieceSet operator| (PieceSet ps1, PieceSet ps2) { return (PieceSet)((uint64_t)ps1 | (uint64_t)ps2); }
+constexpr PieceSet operator| (PieceSet ps, PieceType pt) { return ps | piece_set(pt); }
 constexpr PieceSet operator& (PieceSet ps1, PieceSet ps2) { return (PieceSet)((uint64_t)ps1 & (uint64_t)ps2); }
 constexpr PieceSet operator& (PieceSet ps, PieceType pt) { return ps & piece_set(pt); }
 inline PieceSet& operator|= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 |= (uint64_t)ps2); }
 inline PieceSet& operator|= (PieceSet& ps, PieceType pt) { return ps |= piece_set(pt); }
+inline PieceSet& operator&= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 &= (uint64_t)ps2); }
 
 static_assert(piece_set(PAWN) & PAWN);
 static_assert(piece_set(KING) & KING);
