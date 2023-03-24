@@ -69,8 +69,7 @@ namespace {
 
   // Helper used to detect a given material distribution
   bool is_KFsPsK(const Position& pos, Color us) {
-    return    pos.promotion_piece_types(us).size() == 1
-          &&  pos.promotion_piece_types(us).find(FERS) != pos.promotion_piece_types(us).end()
+    return    (pos.promotion_piece_types(us) == piece_set(FERS))
           && !more_than_one(pos.pieces(~us))
           && (pos.count<FERS>(us) || pos.count<PAWN>(us))
           && !(pos.count<ALL_PIECES>(us) - pos.count<FERS>(us) - pos.count<PAWN>(us) - pos.count<KING>(us));
@@ -165,8 +164,11 @@ Entry* probe(const Position& pos) {
   if (pos.captures_to_hand() || pos.two_boards())
   {
       Value npm2 = VALUE_ZERO;
-      for (PieceType pt : pos.piece_types())
+      for (PieceSet ps = pos.piece_types(); ps;)
+      {
+          PieceType pt = pop_lsb(ps);
           npm2 += pos.count_in_hand(pt) * PieceValue[MG][make_piece(WHITE, pt)];
+      }
       e->gamePhase = Phase(PHASE_MIDGAME * npm / std::max(int(npm + npm2), 1));
       int countAll = pos.count_with_hand(WHITE, ALL_PIECES) + pos.count_with_hand(BLACK, ALL_PIECES);
       e->materialDensity = (npm + npm2 + pos.count<PAWN>() * PawnValueMg) * countAll / (pos.files() * pos.ranks());

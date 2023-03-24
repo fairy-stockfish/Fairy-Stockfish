@@ -553,8 +553,9 @@ void Position::set_check_info(StateInfo* si) const {
 
   // For unused piece types, the check squares are left uninitialized
   si->nonSlidingRiders = 0;
-  for (PieceType pt : piece_types())
+  for (PieceSet ps = piece_types(); ps;)
   {
+      PieceType pt = pop_lsb(ps);
       si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, pt, ksq, pieces()) : Bitboard(0);
       // Collect special piece types that require slower check and evasion detection
       if (AttackRiderTypes[pt] & NON_SLIDING_RIDERS)
@@ -568,8 +569,9 @@ void Position::set_check_info(StateInfo* si) const {
   {
       si->pseudoRoyalCandidates = 0;
       si->pseudoRoyals = 0;
-      for (PieceType pt : extinction_piece_types())
+      for (PieceSet ps = extinction_piece_types(); ps;)
       {
+          PieceType pt = pop_lsb(ps);
           si->pseudoRoyalCandidates |= pieces(pt);
           if (count(sideToMove, pt) <= var->extinctionPieceCount + 1)
               si->pseudoRoyals |= pieces(sideToMove, pt);
@@ -835,8 +837,9 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   }
   else
   {
-      for (PieceType pt : piece_types())
+      for (PieceSet ps = piece_types(); ps;)
       {
+          PieceType pt = pop_lsb(ps);
           Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
           if (b)
           {
@@ -925,7 +928,9 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
   }
 
   Bitboard b = 0;
-  for (PieceType pt : piece_types())
+  for (PieceSet ps = piece_types(); ps;)
+  {
+      PieceType pt = pop_lsb(ps);
       if (board_bb(c, pt) & s)
       {
           PieceType move_pt = pt == KING ? king_type() : pt;
@@ -945,6 +950,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
           else
               b |= attacks_bb(~c, move_pt, s, occupied) & pieces(c, pt);
       }
+  }
 
   // Janggi palace moves
   if (diagonal_lines() & s)
@@ -1093,7 +1099,7 @@ bool Position::legal(Move m) const {
       Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
       if (is_ok(from) && (pseudoRoyals & from))
           pseudoRoyals ^= square_bb(from) ^ kto;
-      if (type_of(m) == PROMOTION && extinction_piece_types().find(promotion_type(m)) != extinction_piece_types().end())
+      if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
       {
           if (count(sideToMove, promotion_type(m)) > extinction_piece_count())
               // increase in count leads to loss of pseudo-royalty
@@ -1121,7 +1127,7 @@ bool Position::legal(Move m) const {
           Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(sideToMove);
           if (is_ok(from) && (pseudoRoyalCandidates & from))
               pseudoRoyalCandidates ^= square_bb(from) ^ kto;
-          if (type_of(m) == PROMOTION && extinction_piece_types().find(promotion_type(m)) != extinction_piece_types().end())
+          if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
               pseudoRoyalCandidates |= kto;
           bool allCheck = bool(pseudoRoyalCandidates);
           while (allCheck && pseudoRoyalCandidates)
@@ -2282,7 +2288,7 @@ Value Position::blast_see(Move m) const {
       while (attackers)
       {
           Square s = pop_lsb(attackers);
-          if (extinction_piece_types().find(type_of(piece_on(s))) == extinction_piece_types().end())
+          if (!(extinction_piece_types() & type_of(piece_on(s))))
               minAttacker = std::min(minAttacker, blast & s ? VALUE_ZERO : CapturePieceValue[MG][piece_on(s)]);
       }
 
@@ -2298,7 +2304,7 @@ Value Position::blast_see(Move m) const {
   while (blast)
   {
       Piece bpc = piece_on(pop_lsb(blast));
-      if (extinction_piece_types().find(type_of(bpc)) != extinction_piece_types().end())
+      if (extinction_piece_types() & type_of(bpc))
           return color_of(bpc) == us ?  extinction_value()
                         : capture(m) ? -extinction_value()
                                      : VALUE_ZERO;
@@ -2334,9 +2340,9 @@ bool Position::see_ge(Move m, Value threshold) const {
   // Extinction
   if (   extinction_value() != VALUE_NONE
       && piece_on(to)
-      && (   (   extinction_piece_types().find(type_of(piece_on(to))) != extinction_piece_types().end()
+      && (   (   (extinction_piece_types() & type_of(piece_on(to)))
               && pieceCount[piece_on(to)] == extinction_piece_count() + 1)
-          || (   extinction_piece_types().find(ALL_PIECES) != extinction_piece_types().end()
+          || (   (extinction_piece_types() & ALL_PIECES)
               && count<ALL_PIECES>(~sideToMove) == extinction_piece_count() + 1)))
       return extinction_value() < VALUE_ZERO;
 
@@ -2608,13 +2614,16 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   if (extinction_value() != VALUE_NONE && (!var->extinctionPseudoRoyal || blast_on_capture()))
   {
       for (Color c : { ~sideToMove, sideToMove })
-          for (PieceType pt : extinction_piece_types())
+          for (PieceSet ps = extinction_piece_types(); ps;)
+          {
+              PieceType pt = pop_lsb(ps);
               if (   count_with_hand( c, pt) <= var->extinctionPieceCount
                   && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount + (extinction_claim() && c == sideToMove))
               {
                   result = c == sideToMove ? extinction_value(ply) : -extinction_value(ply);
                   return true;
               }
+          }
   }
   // capture the flag
   if (   capture_the_flag_piece()
@@ -2687,8 +2696,8 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   if (two_boards() && !checkers())
   {
       int virtualCount = 0;
-      for (PieceType pt : piece_types())
-          virtualCount += std::max(-count_in_hand(~sideToMove, pt), 0);
+      for (PieceSet ps = piece_types(); ps;)
+          virtualCount += std::max(-count_in_hand(~sideToMove, pop_lsb(ps)), 0);
 
       if (virtualCount > 0)
       {

@@ -1646,7 +1646,7 @@ moves_loop: // When in check, search starts from here
           && !givesCheck
           && !(   pos.extinction_value() == -VALUE_MATE
                && pos.piece_on(to_sq(move))
-               && pos.extinction_piece_types().find(type_of(pos.piece_on(to_sq(move)))) != pos.extinction_piece_types().end())
+               && (pos.extinction_piece_types() & type_of(pos.piece_on(to_sq(move)))))
           &&  futilityBase > -VALUE_KNOWN_WIN
           &&  type_of(move) != PROMOTION)
       {

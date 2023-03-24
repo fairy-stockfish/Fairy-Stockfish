@@ -678,6 +678,110 @@ inline Square frontmost_sq(Color c, Bitboard b) {
   return c == WHITE ? msb(b) : lsb(b);
 }
 
+
+/// popcount() counts the number of non-zero bits in a piece set
+
+inline int popcount(PieceSet ps) {
+
+#ifndef USE_POPCNT
+
+  union { uint64_t bb; uint16_t u[4]; } v = { (uint64_t)ps };
+  return PopCnt16[v.u[0]] + PopCnt16[v.u[1]] + PopCnt16[v.u[2]] + PopCnt16[v.u[3]];
+
+#elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+  return (int)_mm_popcnt_u64(ps);
+
+#else // Assumed gcc or compatible compiler
+
+  return __builtin_popcountll(ps);
+
+#endif
+}
+
+/// lsb() and msb() return the least/most significant bit in a non-zero piece set
+
+#if defined(__GNUC__)  // GCC, Clang, ICC
+
+inline PieceType lsb(PieceSet ps) {
+  assert(ps);
+  return PieceType(__builtin_ctzll(ps));
+}
+
+inline PieceType msb(PieceSet ps) {
+  assert(ps);
+  return PieceType((PIECE_TYPE_NB - 1) ^ __builtin_clzll(ps));
+}
+
+#elif defined(_MSC_VER)  // MSVC
+
+#ifdef _WIN64  // MSVC, WIN64
+
+inline PieceType lsb(PieceSet ps) {
+  assert(ps);
+  unsigned long idx;
+  _BitScanForward64(&idx, ps);
+  return (PieceType) idx;
+}
+
+inline PieceType msb(PieceSet ps) {
+  assert(ps);
+  unsigned long idx;
+  _BitScanReverse64(&idx, ps);
+  return (PieceType) idx;
+}
+
+#else  // MSVC, WIN32
+
+inline PieceType lsb(PieceSet ps) {
+  assert(ps);
+  unsigned long idx;
+
+  if (ps & 0xffffffff) {
+      _BitScanForward(&idx, uint32_t(ps));
+      return PieceType(idx);
+  } else {
+      _BitScanForward(&idx, uint32_t(ps >> 32));
+      return PieceType(idx + 32);
+  }
+}
+
+inline PieceType msb(PieceSet ps) {
+  assert(ps);
+  unsigned long idx;
+  if (ps >> 32) {
+      _BitScanReverse(&idx, uint32_t(ps >> 32));
+      return PieceType(idx + 32);
+  } else {
+      _BitScanReverse(&idx, uint32_t(ps));
+      return PieceType(idx);
+  }
+}
+
+#endif
+
+#else  // Compiler is neither GCC nor MSVC compatible
+
+#error "Compiler not supported."
+
+#endif
+
+/// pop_lsb() and pop_msb() find and clear the least/most significant bit in a non-zero piece set
+
+inline PieceType pop_lsb(PieceSet& ps) {
+  assert(ps);
+  const PieceType pt = lsb(ps);
+  ps &= PieceSet(ps - 1);
+  return pt;
+}
+
+inline PieceType pop_msb(PieceSet& ps) {
+  assert(ps);
+  const PieceType pt = msb(ps);
+  ps &= ~piece_set(pt);
+  return pt;
+}
+
 } // namespace Stockfish
 
 #endif // #ifndef BITBOARD_H_INCLUDED

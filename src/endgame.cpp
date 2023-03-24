@@ -185,7 +185,7 @@ Value Endgame<KPK>::operator()(const Position& pos) const {
   // Non-standard promotion, evaluation unclear
   if (   pos.promotion_zone(us) != rank_bb(relative_rank(us, RANK_8, pos.max_rank()))
       || RANK_MAX != RANK_8
-      || pos.promotion_piece_types(us).find(QUEEN) == pos.promotion_piece_types(us).end())
+      || !(pos.promotion_piece_types(us) & QUEEN))
   {
       Value result = PawnValueEg + Value(rank_of(strongPawn));
       return strongSide == pos.side_to_move() ? result : -result;
@@ -939,7 +939,7 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
   // it's probably at least a draw even with the pawn.
   if (   pos.promotion_zone(us) != rank_bb(relative_rank(us, RANK_8, pos.max_rank()))
       || RANK_MAX != RANK_8
-      || pos.promotion_piece_types(us).find(QUEEN) == pos.promotion_piece_types(us).end())
+      || !(pos.promotion_piece_types(us) & QUEEN))
       return SCALE_FACTOR_NONE;
 
   return Bitbases::probe(strongKing, strongPawn, weakKing, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;

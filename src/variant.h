@@ -19,6 +19,7 @@
 #ifndef VARIANT_H_INCLUDED
 #define VARIANT_H_INCLUDED
 
+#include <bitset>
 #include <set>
 #include <map>
 #include <vector>
@@ -44,7 +45,7 @@ struct Variant {
   bool twoBoards = false;
   int pieceValue[PHASE_NB][PIECE_TYPE_NB] = {};
   std::string customPiece[CUSTOM_PIECES_NB] = {};
-  std::set<PieceType> pieceTypes = { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
+  PieceSet pieceTypes = piece_set(PAWN) | KNIGHT | BISHOP | ROOK | QUEEN | KING;
   std::string pieceToChar =  " PNBRQ" + std::string(KING - QUEEN - 1, ' ') + "K" + std::string(PIECE_TYPE_NB - KING - 1, ' ')
                            + " pnbrq" + std::string(KING - QUEEN - 1, ' ') + "k" + std::string(PIECE_TYPE_NB - KING - 1, ' ');
   std::string pieceToCharSynonyms = std::string(PIECE_NB, ' ');
@@ -53,8 +54,8 @@ struct Variant {
   Bitboard promotionRegion[COLOR_NB] = {Rank8BB, Rank1BB};
   PieceType promotionPawnType[COLOR_NB] = {PAWN, PAWN};
   PieceSet promotionPawnTypes[COLOR_NB] = {piece_set(PAWN), piece_set(PAWN)};
-  std::set<PieceType, std::greater<PieceType> > promotionPieceTypes[COLOR_NB] = {{ QUEEN, ROOK, BISHOP, KNIGHT },
-                                                                                 { QUEEN, ROOK, BISHOP, KNIGHT }};
+  PieceSet promotionPieceTypes[COLOR_NB] = {piece_set(QUEEN) | ROOK | BISHOP | KNIGHT,
+                                            piece_set(QUEEN) | ROOK | BISHOP | KNIGHT};
   bool sittuyinPromotion = false;
   int promotionLimit[PIECE_TYPE_NB] = {}; // 0 means unlimited
   PieceType promotedPieceType[PIECE_TYPE_NB] = {};
@@ -135,7 +136,7 @@ struct Variant {
   bool extinctionClaim = false;
   bool extinctionPseudoRoyal = false;
   bool dupleCheck = false;
-  std::set<PieceType> extinctionPieceTypes = {};
+  PieceSet extinctionPieceTypes = NO_PIECE_SET;
   int extinctionPieceCount = 0;
   int extinctionOpponentPieceCount = 0;
   PieceType flagPiece = NO_PIECE_TYPE;
@@ -170,7 +171,7 @@ struct Variant {
       pieceToChar[make_piece(BLACK, pt)] = tolower(c);
       pieceToCharSynonyms[make_piece(WHITE, pt)] = toupper(c2);
       pieceToCharSynonyms[make_piece(BLACK, pt)] = tolower(c2);
-      pieceTypes.insert(pt);
+      pieceTypes |= pt;
       // Add betza notation for custom piece
       if (is_custom(pt))
           customPiece[pt - CUSTOM_PIECES] = betza;
@@ -185,19 +186,19 @@ struct Variant {
       pieceToChar[make_piece(BLACK, pt)] = ' ';
       pieceToCharSynonyms[make_piece(WHITE, pt)] = ' ';
       pieceToCharSynonyms[make_piece(BLACK, pt)] = ' ';
-      pieceTypes.erase(pt);
+      pieceTypes &= ~piece_set(pt);
       // erase from promotion types to ensure consistency
-      promotionPieceTypes[WHITE].erase(pt);
-      promotionPieceTypes[BLACK].erase(pt);
+      promotionPieceTypes[WHITE] &= ~piece_set(pt);
+      promotionPieceTypes[BLACK] &= ~piece_set(pt);
   }
 
   void reset_pieces() {
       pieceToChar = std::string(PIECE_NB, ' ');
       pieceToCharSynonyms = std::string(PIECE_NB, ' ');
-      pieceTypes.clear();
+      pieceTypes = NO_PIECE_SET;
       // clear promotion types to ensure consistency
-      promotionPieceTypes[WHITE].clear();
-      promotionPieceTypes[BLACK].clear();
+      promotionPieceTypes[WHITE] = NO_PIECE_SET;
+      promotionPieceTypes[BLACK] = NO_PIECE_SET;
   }
 
   // Reset values that always need to be redefined
@@ -214,29 +215,33 @@ struct Variant {
       if (!doubleStepRegion[WHITE] && !doubleStepRegion[BLACK])
           doubleStep = false;
 
-      fastAttacks = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
-                                    return (   pt < FAIRY_PIECES
-                                            || pt == COMMONER || pt == IMMOBILE_PIECE
-                                            || pt == ARCHBISHOP || pt == CHANCELLOR
-                                            || (pt == KING && kingType == KING))
-                                          && !(mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]);
-                                })
-                    && !cambodianMoves
-                    && !diagonalLines;
-      fastAttacks2 = std::all_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
-                                    return (   pt < FAIRY_PIECES
-                                            || pt == COMMONER || pt == FERS || pt == WAZIR || pt == BREAKTHROUGH_PIECE
-                                            || pt == SHOGI_PAWN || pt == GOLD || pt == SILVER || pt == SHOGI_KNIGHT
-                                            || pt == DRAGON || pt == DRAGON_HORSE || pt == LANCE
-                                            || (pt == KING && kingType == KING))
-                                          && !(mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]);
-                                })
-                    && !cambodianMoves
-                    && !diagonalLines;
+      fastAttacks = !cambodianMoves && !diagonalLines;
+      for (PieceSet ps = pieceTypes; fastAttacks && ps;)
+      {
+          PieceType pt = pop_lsb(ps);
+          if (!(   pt < FAIRY_PIECES
+                || pt == COMMONER || pt == IMMOBILE_PIECE
+                || pt == ARCHBISHOP || pt == CHANCELLOR
+                || (pt == KING && kingType == KING))
+              || (mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]))
+            fastAttacks = false;
+      }
+      fastAttacks2 = !cambodianMoves && !diagonalLines;
+      for (PieceSet ps = pieceTypes; fastAttacks2 && ps;)
+      {
+          PieceType pt = pop_lsb(ps);
+          if (!(   pt < FAIRY_PIECES
+                || pt == COMMONER || pt == FERS || pt == WAZIR || pt == BREAKTHROUGH_PIECE
+                || pt == SHOGI_PAWN || pt == GOLD || pt == SILVER || pt == SHOGI_KNIGHT
+                || pt == DRAGON || pt == DRAGON_HORSE || pt == LANCE
+                || (pt == KING && kingType == KING))
+              || (mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]))
+            fastAttacks2 = false;
+      }
 
       // Initialize calculated NNUE properties
-      nnueKing =  pieceTypes.find(KING) != pieceTypes.end() ? KING
-                : extinctionPieceCount == 0 && extinctionPieceTypes.find(COMMONER) != extinctionPieceTypes.end() ? COMMONER
+      nnueKing =  pieceTypes & KING ? KING
+                : extinctionPieceCount == 0 && (extinctionPieceTypes & COMMONER) ? COMMONER
                 : NO_PIECE_TYPE;
       if (nnueKing != NO_PIECE_TYPE)
       {
@@ -246,14 +251,16 @@ struct Variant {
               || std::count(fenBoard.begin(), fenBoard.end(), pieceToChar[make_piece(BLACK, nnueKing)]) != 1)
               nnueKing = NO_PIECE_TYPE;
       }
+      // We can not use popcount here yet, as the lookup tables are initialized after the variants
       int nnueSquares = (maxRank + 1) * (maxFile + 1);
-      nnueUsePockets = (pieceDrops && (capturesToHand || (!mustDrop && pieceTypes.size() != 1))) || seirawanGating;
+      nnueUsePockets = (pieceDrops && (capturesToHand || (!mustDrop && std::bitset<64>(pieceTypes).count() != 1))) || seirawanGating;
       int nnuePockets = nnueUsePockets ? 2 * int(maxFile + 1) : 0;
-      int nnueNonDropPieceIndices = (2 * pieceTypes.size() - (nnueKing != NO_PIECE_TYPE)) * nnueSquares;
-      int nnuePieceIndices = nnueNonDropPieceIndices + 2 * (pieceTypes.size() - (nnueKing != NO_PIECE_TYPE)) * nnuePockets;
+      int nnueNonDropPieceIndices = (2 * std::bitset<64>(pieceTypes).count() - (nnueKing != NO_PIECE_TYPE)) * nnueSquares;
+      int nnuePieceIndices = nnueNonDropPieceIndices + 2 * (std::bitset<64>(pieceTypes).count() - (nnueKing != NO_PIECE_TYPE)) * nnuePockets;
       int i = 0;
-      for (PieceType pt : pieceTypes)
+      for (PieceSet ps = pieceTypes; ps;)
       {
+          PieceType pt = pop_lsb(ps);
           for (Color c : { WHITE, BLACK})
           {
               pieceSquareIndex[c][make_piece(c, pt)] = 2 * i * nnueSquares;
@@ -300,10 +307,7 @@ struct Variant {
 
       // For endgame evaluation to be applicable, no special win rules must apply.
       // Furthermore, rules significantly changing game mechanics also invalidate it.
-      endgameEval = std::none_of(pieceTypes.begin(), pieceTypes.end(), [this](PieceType pt) {
-                                    return mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt];
-                                })
-                    && extinctionValue == VALUE_NONE
+      endgameEval = extinctionValue == VALUE_NONE
                     && checkmateValue == -VALUE_MATE
                     && stalemateValue == VALUE_DRAW
                     && !materialCounting
@@ -316,7 +320,13 @@ struct Variant {
                     && !capturesToHand
                     && !twoBoards
                     && kingType == KING;
-    
+      for (PieceSet ps = pieceTypes; endgameEval && ps;)
+      {
+          PieceType pt = pop_lsb(ps);
+          if (mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt])
+              endgameEval = false;
+      }
+
       shogiStylePromotions = false;
       for (PieceType current: promotedPieceType)
           if (current != NO_PIECE_TYPE)

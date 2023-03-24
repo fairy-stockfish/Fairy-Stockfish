@@ -174,7 +174,7 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
         char token;
         size_t idx;
         std::stringstream ss(it->second);
-        while (ss >> token && (idx = pieceToChar.find(toupper(token))) != std::string::npos)
+        while (ss >> token && (idx = token == '*' ? size_t(ALL_PIECES) : pieceToChar.find(toupper(token))) != std::string::npos)
             set(PieceType(idx), target);
         if (DoCheck && idx == std::string::npos && token != '-')
             std::cerr << key << " - Invalid piece type: " << token << std::endl;
@@ -433,18 +433,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("extinctionPseudoRoyal", v->extinctionPseudoRoyal);
     parse_attribute("dupleCheck", v->dupleCheck);
     // extinction piece types
-    const auto& it_ext = config.find("extinctionPieceTypes");
-    if (it_ext != config.end())
-    {
-        v->extinctionPieceTypes = {};
-        char token;
-        size_t idx = 0;
-        std::stringstream ss(it_ext->second);
-        while (ss >> token && (idx = token == '*' ? size_t(ALL_PIECES) : v->pieceToChar.find(toupper(token))) != std::string::npos)
-            v->extinctionPieceTypes.insert(PieceType(idx));
-        if (DoCheck && idx == std::string::npos)
-            std::cerr << "extinctionPieceTypes - Invalid piece type: " << token << std::endl;
-    }
+    parse_attribute("extinctionPieceTypes", v->extinctionPieceTypes, v->pieceToChar);
     parse_attribute("extinctionPieceCount", v->extinctionPieceCount);
     parse_attribute("extinctionOpponentPieceCount", v->extinctionOpponentPieceCount);
     parse_attribute("flagPiece", v->flagPiece, v->pieceToChar);
@@ -468,8 +457,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     if (DoCheck)
     {
         // pieces
-        for (PieceType pt : v->pieceTypes)
+        for (PieceSet ps = v->pieceTypes; ps;)
         {
+            PieceType pt = pop_lsb(ps);
             for (Color c : {WHITE, BLACK})
                 if (std::count(v->pieceToChar.begin(), v->pieceToChar.end(), v->pieceToChar[make_piece(c, pt)]) != 1)
                     std::cerr << piece_name(pt) << " - Ambiguous piece character: " << v->pieceToChar[make_piece(c, pt)] << std::endl;
@@ -490,8 +480,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             while (ss >> token)
                 if (isalpha(token) && v->pieceToChar.find(toupper(token)) == std::string::npos)
                     std::cerr << "pieceToCharTable - Invalid piece type: " << token << std::endl;
-            for (PieceType pt : v->pieceTypes)
+            for (PieceSet ps = v->pieceTypes; ps;)
             {
+                PieceType pt = pop_lsb(ps);
                 char ptl = tolower(v->pieceToChar[pt]);
                 if (v->pieceToCharTable.find(ptl) == std::string::npos && fenBoard.find(ptl) != std::string::npos)
                     std::cerr << "pieceToCharTable - Missing piece type: " << ptl << std::endl;
@@ -513,7 +504,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         if (v->pieceDrops && (v->arrowGating || v->duckGating || v->staticGating || v->pastGating))
             std::cerr << "pieceDrops and arrowGating/duckGating are incompatible." << std::endl;
         // Options incompatible with royal kings
-        if (v->pieceTypes.find(KING) != v->pieceTypes.end())
+        if (v->pieceTypes & KING)
         {
             if (v->blastOnCapture)
                 std::cerr << "Can not use kings with blastOnCapture." << std::endl;

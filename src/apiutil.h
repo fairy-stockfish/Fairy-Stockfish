@@ -375,18 +375,21 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     // Restricted pieces
     Bitboard restricted = pos.pieces(~c, KING);
     // Atomic kings can not help checkmating
-    if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && pos.extinction_piece_types().find(COMMONER) != pos.extinction_piece_types().end())
+    if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & COMMONER))
         restricted |= pos.pieces(c, COMMONER);
-    for (PieceType pt : pos.piece_types())
+    for (PieceSet ps = pos.piece_types(); ps;)
+    {
+        PieceType pt = pop_lsb(ps);
         if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)))
             restricted |= pos.pieces(c, pt);
         else if (is_custom(pt) && pos.count(c, pt) > 0)
             // to be conservative, assume any custom piece has mating potential
             return false;
+    }
 
     // Mating pieces
     for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR })
-        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, pos.promotion_pawn_type(c)) && pos.promotion_piece_types(c).find(pt) != pos.promotion_piece_types(c).end()))
+        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, pos.promotion_pawn_type(c)) && (pos.promotion_piece_types(c) & pt)))
             return false;
 
     // Color-bound pieces
@@ -895,7 +898,7 @@ inline std::string get_valid_special_chars(const Variant* v) {
     // Whether or not '-', '+', '~', '[', ']' are valid depends on the variant being played.
     if (v->shogiStylePromotions)
         validSpecialCharactersFirstField += '+';
-    if (!v->promotionPieceTypes[WHITE].empty() || !v->promotionPieceTypes[BLACK].empty())
+    if (v->promotionPieceTypes[WHITE] || v->promotionPieceTypes[BLACK])
         validSpecialCharactersFirstField += '~';
     if (!v->freeDrops && (v->pieceDrops || v->seirawanGating))
         validSpecialCharactersFirstField += "[-]";
@@ -948,7 +951,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     }
 
     // check for number of kings
-    if (v->pieceTypes.find(KING) != v->pieceTypes.end())
+    if (v->pieceTypes & KING)
     {
         // we have a royal king in this variant,
         // ensure that each side has exactly as many kings as in the starting position
@@ -1021,7 +1024,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     // check en-passant square
     if (fenParts.size() >= 4 && !skipCastlingAndEp)
     {
-        if (v->doubleStep && v->pieceTypes.find(PAWN) != v->pieceTypes.end())
+        if (v->doubleStep && (v->pieceTypes & PAWN))
         {
             if (check_en_passant_square(fenParts[3]) == NOK)
                 return FEN_INVALID_EN_PASSANT_SQ;
