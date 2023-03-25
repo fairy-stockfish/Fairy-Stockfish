@@ -495,12 +495,12 @@ public:
         return s;
     }
     /// Returns all square positions for a given piece
-    std::vector<CharSquare> get_squares_for_pieces(PieceSet ps, const std::string& pieceChars) const {
+    std::vector<CharSquare> get_squares_for_pieces(Color color, PieceSet ps, const std::string& pieceChars) const {
         std::vector<CharSquare> squares;
         size_t pcIdx;
         for (int r = 0; r < nbRanks; ++r)
             for (int c = 0; c < nbFiles; ++c)
-                if ((pcIdx = pieceChars.find(get_piece(r, c))) != std::string::npos && (ps & type_of(Piece(pcIdx))))
+                if ((pcIdx = pieceChars.find(get_piece(r, c))) != std::string::npos && (ps & type_of(Piece(pcIdx))) && color_of(Piece(pcIdx)) == color)
                     squares.emplace_back(CharSquare(r, c));
         return squares;
     }
@@ -703,7 +703,8 @@ inline Validation check_castling_rank(const std::array<std::string, 2>& castling
                 size_t pcIdx;
                 for (int f = kingside ? board.get_nb_files() - 1 : 0; f != kingPositions[c].fileIdx; kingside ? f-- : f++)
                     if (   (pcIdx = v->pieceToChar.find(board.get_piece(castlingRank, f))) != std::string::npos
-                        && v->castlingRookPieces[c] & type_of(Piece(pcIdx)))
+                        && (v->castlingRookPieces[c] & type_of(Piece(pcIdx)))
+                        && color_of(Piece(pcIdx)) == c)
                     {
                         castlingRook = true;
                         break;
@@ -746,7 +747,8 @@ inline Validation check_standard_castling(std::array<std::string, 2>& castlingIn
             if (castlingInfoSplitted[c].find(targetChar) != std::string::npos)
             {
                 if (   (pcIdx = v->pieceToChar.find(board.get_piece(rookStartingSquare.rowIdx, rookStartingSquare.fileIdx))) == std::string::npos
-                    || !(v->castlingRookPieces[c] & type_of(Piece(pcIdx))))
+                    || !(v->castlingRookPieces[c] & type_of(Piece(pcIdx)))
+                    || color_of(Piece(pcIdx)) != c)
                 {
                     std::cerr << "The " << color_to_string(c) << " ROOK on the "<<  castling_rights_to_string(castling) << " has moved. "
                               << castling_rights_to_string(castling) << " castling is no longer valid for " << color_to_string(c) << "." << std::endl;
@@ -1014,8 +1016,8 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
                 kingPositionsStart[WHITE] = startBoard.get_square_for_piece(v->pieceToChar[make_piece(WHITE, v->castlingKingPiece[WHITE])]);
                 kingPositionsStart[BLACK] = startBoard.get_square_for_piece(v->pieceToChar[make_piece(BLACK, v->castlingKingPiece[BLACK])]);
                 std::array<std::vector<CharSquare>, 2> rookPositionsStart;
-                rookPositionsStart[WHITE] = startBoard.get_squares_for_pieces(v->castlingRookPieces[WHITE], v->pieceToChar);
-                rookPositionsStart[BLACK] = startBoard.get_squares_for_pieces(v->castlingRookPieces[BLACK], v->pieceToChar);
+                rookPositionsStart[WHITE] = startBoard.get_squares_for_pieces(WHITE, v->castlingRookPieces[WHITE], v->pieceToChar);
+                rookPositionsStart[BLACK] = startBoard.get_squares_for_pieces(BLACK, v->castlingRookPieces[BLACK], v->pieceToChar);
 
                 if (check_standard_castling(castlingInfoSplitted, board, kingPositions, kingPositionsStart, rookPositionsStart, v) == NOK)
                     return FEN_INVALID_CASTLING_INFO;
