@@ -183,9 +183,9 @@ void Position::init() {
   std::memset(cuckooMove, 0, sizeof(cuckooMove));
   int count = 0;
   for (Color c : {WHITE, BLACK})
-      for (PieceType pt = KNIGHT; pt <= QUEEN || pt == KING; pt != QUEEN ? ++pt : pt = KING)
+      for (PieceSet ps = CHESS_PIECES & ~piece_set(PAWN); ps;)
       {
-      Piece pc = make_piece(c, pt);
+      Piece pc = make_piece(c, pop_lsb(ps));
       for (Square s1 = SQ_A1; s1 <= SQ_MAX; ++s1)
           for (Square s2 = Square(s1 + 1); s2 <= SQ_MAX; ++s2)
               if ((type_of(pc) != PAWN) && (attacks_bb(c, type_of(pc), s1, 0) & s2))

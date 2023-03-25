@@ -45,7 +45,7 @@ struct Variant {
   bool twoBoards = false;
   int pieceValue[PHASE_NB][PIECE_TYPE_NB] = {};
   std::string customPiece[CUSTOM_PIECES_NB] = {};
-  PieceSet pieceTypes = piece_set(PAWN) | KNIGHT | BISHOP | ROOK | QUEEN | KING;
+  PieceSet pieceTypes = CHESS_PIECES;
   std::string pieceToChar =  " PNBRQ" + std::string(KING - QUEEN - 1, ' ') + "K" + std::string(PIECE_TYPE_NB - KING - 1, ' ')
                            + " pnbrq" + std::string(KING - QUEEN - 1, ' ') + "k" + std::string(PIECE_TYPE_NB - KING - 1, ' ');
   std::string pieceToCharSynonyms = std::string(PIECE_NB, ' ');
@@ -215,29 +215,24 @@ struct Variant {
       if (!doubleStepRegion[WHITE] && !doubleStepRegion[BLACK])
           doubleStep = false;
 
-      fastAttacks = !cambodianMoves && !diagonalLines;
-      for (PieceSet ps = pieceTypes; fastAttacks && ps;)
+      // Determine optimizations
+      bool restrictedMobility = false;
+      for (PieceSet ps = pieceTypes; !restrictedMobility && ps;)
       {
           PieceType pt = pop_lsb(ps);
-          if (!(   pt < FAIRY_PIECES
-                || pt == COMMONER || pt == IMMOBILE_PIECE
-                || pt == ARCHBISHOP || pt == CHANCELLOR
-                || (pt == KING && kingType == KING))
-              || (mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]))
-            fastAttacks = false;
+          if (mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt])
+            restrictedMobility = true;
       }
-      fastAttacks2 = !cambodianMoves && !diagonalLines;
-      for (PieceSet ps = pieceTypes; fastAttacks2 && ps;)
-      {
-          PieceType pt = pop_lsb(ps);
-          if (!(   pt < FAIRY_PIECES
-                || pt == COMMONER || pt == FERS || pt == WAZIR || pt == BREAKTHROUGH_PIECE
-                || pt == SHOGI_PAWN || pt == GOLD || pt == SILVER || pt == SHOGI_KNIGHT
-                || pt == DRAGON || pt == DRAGON_HORSE || pt == LANCE
-                || (pt == KING && kingType == KING))
-              || (mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt]))
-            fastAttacks2 = false;
-      }
+      fastAttacks =  !(pieceTypes & ~(CHESS_PIECES | COMMON_FAIRY_PIECES))
+                   && kingType == KING
+                   && !restrictedMobility
+                   && !cambodianMoves
+                   && !diagonalLines;
+      fastAttacks2 =  !(pieceTypes & ~(SHOGI_PIECES | COMMON_STEP_PIECES))
+                    && kingType == KING
+                    && !restrictedMobility
+                    && !cambodianMoves
+                    && !diagonalLines;
 
       // Initialize calculated NNUE properties
       nnueKing =  pieceTypes & KING ? KING
@@ -319,13 +314,8 @@ struct Variant {
                     && !blastOnCapture
                     && !capturesToHand
                     && !twoBoards
+                    && !restrictedMobility
                     && kingType == KING;
-      for (PieceSet ps = pieceTypes; endgameEval && ps;)
-      {
-          PieceType pt = pop_lsb(ps);
-          if (mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt])
-              endgameEval = false;
-      }
 
       shogiStylePromotions = false;
       for (PieceType current: promotedPieceType)
