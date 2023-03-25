@@ -60,6 +60,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Berolina Chess](https://en.wikipedia.org/wiki/Berolina_pawn#Berolina_chess), [Pawn-Sideways](https://arxiv.org/abs/2009.04374), [Pawn-Back](https://arxiv.org/abs/2009.04374), [Torpedo](https://arxiv.org/abs/2009.04374), [Legan Chess](https://en.wikipedia.org/wiki/Legan_chess)
 - [Spartan Chess](https://www.chessvariants.com/rules/spartan-chess)
 - [Wolf Chess](https://en.wikipedia.org/wiki/Wolf_chess)
+- [Troitzky Chess](https://www.chessvariants.com/play/troitzky-chess)
 
 ### Shogi variants
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi)
