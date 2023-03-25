@@ -57,6 +57,9 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Horde](https://en.wikipedia.org/wiki/Dunsany%27s_Chess#Horde_Chess), [Maharajah and the Sepoys](https://en.wikipedia.org/wiki/Maharajah_and_the_Sepoys)
 - [Knightmate](https://www.chessvariants.com/diffobjective.dir/knightmate.html), [Nightrider](https://en.wikipedia.org/wiki/Nightrider_(chess)), [Grasshopper](https://en.wikipedia.org/wiki/Grasshopper_chess)
 - [Duck chess](https://duckchess.com/), [Omicron](http://www.eglebbk.dds.nl/program/chess-omicron.html), [Gustav III](https://www.chessvariants.com/play/gustav-iiis-chess)
+- [Berolina Chess](https://en.wikipedia.org/wiki/Berolina_pawn#Berolina_chess), [Pawn-Sideways](https://arxiv.org/abs/2009.04374), [Pawn-Back](https://arxiv.org/abs/2009.04374), [Torpedo](https://arxiv.org/abs/2009.04374), [Legan Chess](https://en.wikipedia.org/wiki/Legan_chess)
+- [Spartan Chess](https://www.chessvariants.com/rules/spartan-chess)
+- [Wolf Chess](https://en.wikipedia.org/wiki/Wolf_chess)
 
 ### Shogi variants
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi)
