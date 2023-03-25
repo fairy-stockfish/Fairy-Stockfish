@@ -149,8 +149,8 @@ public:
   File castling_queenside_file() const;
   Rank castling_rank(Color c) const;
   File castling_king_file() const;
-  PieceType castling_king_piece() const;
-  PieceType castling_rook_piece() const;
+  PieceType castling_king_piece(Color c) const;
+  PieceSet castling_rook_pieces(Color c) const;
   PieceType king_type() const;
   PieceType nnue_king() const;
   Square nnue_king_square(Color c) const;
@@ -529,14 +529,14 @@ inline File Position::castling_king_file() const {
   return var->castlingKingFile;
 }
 
-inline PieceType Position::castling_king_piece() const {
+inline PieceType Position::castling_king_piece(Color c) const {
   assert(var != nullptr);
-  return var->castlingKingPiece;
+  return var->castlingKingPiece[c];
 }
 
-inline PieceType Position::castling_rook_piece() const {
+inline PieceSet Position::castling_rook_pieces(Color c) const {
   assert(var != nullptr);
-  return var->castlingRookPiece;
+  return var->castlingRookPieces[c];
 }
 
 inline PieceType Position::king_type() const {

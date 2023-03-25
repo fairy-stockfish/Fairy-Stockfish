@@ -289,6 +289,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     }
     parse_attribute<false>("whiteFlag", v->flagRegion[WHITE]);
     parse_attribute<false>("blackFlag", v->flagRegion[BLACK]);
+    parse_attribute<false>("castlingRookPiece", v->castlingRookPieces[WHITE], v->pieceToChar);
+    parse_attribute<false>("castlingRookPiece", v->castlingRookPieces[BLACK], v->pieceToChar);
 
     // Parse aliases
     parse_attribute("pawnTypes", v->promotionPawnType[WHITE], v->pieceToChar);
@@ -372,8 +374,14 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("castlingQueensideFile", v->castlingQueensideFile);
     parse_attribute("castlingRank", v->castlingRank);
     parse_attribute("castlingKingFile", v->castlingKingFile);
-    parse_attribute("castlingKingPiece", v->castlingKingPiece, v->pieceToChar);
-    parse_attribute("castlingRookPiece", v->castlingRookPiece, v->pieceToChar);
+    parse_attribute("castlingKingPiece", v->castlingKingPiece[WHITE], v->pieceToChar);
+    parse_attribute("castlingKingPiece", v->castlingKingPiece[BLACK], v->pieceToChar);
+    parse_attribute("castlingKingPieceWhite", v->castlingKingPiece[WHITE], v->pieceToChar);
+    parse_attribute("castlingKingPieceBlack", v->castlingKingPiece[BLACK], v->pieceToChar);
+    parse_attribute("castlingRookPieces", v->castlingRookPieces[WHITE], v->pieceToChar);
+    parse_attribute("castlingRookPieces", v->castlingRookPieces[BLACK], v->pieceToChar);
+    parse_attribute("castlingRookPiecesWhite", v->castlingRookPieces[WHITE], v->pieceToChar);
+    parse_attribute("castlingRookPiecesBlack", v->castlingRookPieces[BLACK], v->pieceToChar);
     parse_attribute("checking", v->checking);
     parse_attribute("dropChecks", v->dropChecks);
     parse_attribute("mustCapture", v->mustCapture);
