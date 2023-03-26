@@ -1070,6 +1070,21 @@ namespace {
         score += bonus - PassedFile * edge_distance(file_of(s), pos.max_file());
     }
 
+    // Passed custom pawns
+    for (PieceSet ps = pos.variant()->promotionPawnTypes[Us] & ~piece_set(PAWN); ps;)
+    {
+        PieceType pt = pop_lsb(ps);
+        Bitboard b2 = pos.pieces(Us, pt);
+        while (b2)
+        {
+            Square s = pop_lsb(b2);
+            if (pos.promotion_square(Us, s) == SQ_NONE || (pos.pieces(Them, pt) & forward_file_bb(Us, s)))
+                continue;
+            int r = std::max(RANK_8 - std::max(relative_rank(Us, pos.promotion_square(Us, s), pos.max_rank()) - relative_rank(Us, s, pos.max_rank()), 0), 0);
+            score += PassedRank[r];
+        }
+    }
+
     // Scale by maximum promotion piece value
     Value maxMg = VALUE_ZERO, maxEg = VALUE_ZERO;
     for (PieceSet ps = pos.promotion_piece_types(Us); ps;)
