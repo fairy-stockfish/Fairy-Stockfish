@@ -156,16 +156,16 @@ constexpr Score PBonus[RANK_NB][FILE_NB] =
 Value piece_value(Phase phase, PieceType pt)
 {
     const PieceInfo* pi = pieceMap.find(pt)->second;
-    int v0 =  (phase == MG ?  55 :  60) * pi->steps[0][MODALITY_CAPTURE].size()
+    int v0 =  (phase == MG ?  60 :  60) * pi->steps[0][MODALITY_CAPTURE].size()
             + (phase == MG ?  30 :  40) * pi->steps[0][MODALITY_QUIET].size()
-            + (phase == MG ? 185 : 180) * pi->slider[0][MODALITY_CAPTURE].size()
-            + (phase == MG ?  55 :  50) * pi->slider[0][MODALITY_QUIET].size()
+            + (phase == MG ? 185 : 185) * pi->slider[0][MODALITY_CAPTURE].size()
+            + (phase == MG ?  55 :  45) * pi->slider[0][MODALITY_QUIET].size()
             // Hoppers are more useful with more pieces on the board
             + (phase == MG ? 100 :  80) * pi->hopper[0][MODALITY_CAPTURE].size()
-            + (phase == MG ?  80 :  60) * pi->hopper[0][MODALITY_QUIET].size()
+            + (phase == MG ?  85 :  60) * pi->hopper[0][MODALITY_QUIET].size()
             // Rook sliding directions are more valuable, especially in endgame
-            + (phase == MG ?  10 :  30) * std::count_if(pi->slider[0][MODALITY_CAPTURE].begin(), pi->slider[0][MODALITY_CAPTURE].end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; })
-            + (phase == MG ?  30 :  45) * std::count_if(pi->slider[0][MODALITY_QUIET].begin(), pi->slider[0][MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; });
+            + (phase == MG ?  15 :  15) * std::count_if(pi->slider[0][MODALITY_CAPTURE].begin(), pi->slider[0][MODALITY_CAPTURE].end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; })
+            + (phase == MG ?  30 :  50) * std::count_if(pi->slider[0][MODALITY_QUIET].begin(), pi->slider[0][MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return std::abs(d.first) == NORTH || std::abs(d.first) == 1; });
     return Value(v0 * exp(double(v0) / 10000));
 }
 
