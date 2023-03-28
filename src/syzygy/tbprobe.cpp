@@ -813,7 +813,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
     // Rs "together" in 62 * 61 / 2 ways (we divide by 2 because rooks can be
     // swapped and still get the same position.)
     //
-    // In case we have at least 3 unique pieces (inlcuded kings) we encode them
+    // In case we have at least 3 unique pieces (included kings) we encode them
     // together.
     if (entry->hasUniquePieces) {
 
@@ -828,7 +828,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
                    + (squares[1] - adjust1)) * 62
                    +  squares[2] - adjust2;
 
-        // First piece is on a1-h8 diagonal, second below: map this occurence to
+        // First piece is on a1-h8 diagonal, second below: map this occurrence to
         // 6 to differentiate from the above case, rank_of() maps a1-d4 diagonal
         // to 0...3 and finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
         else if (off_A1H8(squares[1]))
@@ -858,7 +858,7 @@ encode_remaining:
     idx *= d->groupIdx[0];
     Square* groupSq = squares + d->groupLen[0];
 
-    // Encode remainig pawns then pieces according to square, in ascending order
+    // Encode remaining pawns then pieces according to square, in ascending order
     bool remainingPawns = entry->hasPawns && entry->pawnCount[1];
 
     while (d->groupLen[++next])
@@ -886,7 +886,7 @@ encode_remaining:
 
 // Group together pieces that will be encoded together. The general rule is that
 // a group contains pieces of same type and color. The exception is the leading
-// group that, in case of positions withouth pawns, can be formed by 3 different
+// group that, in case of positions without pawns, can be formed by 3 different
 // pieces (default) or by the king pair when there is not a unique piece apart
 // from the kings. When there are pawns, pawns are always first in pieces[].
 //
@@ -918,7 +918,7 @@ void set_groups(T& e, PairsData* d, int order[], File f) {
     //
     // This ensures unique encoding for the whole position. The order of the
     // groups is a per-table parameter and could not follow the canonical leading
-    // pawns/pieces -> remainig pawns -> remaining pieces. In particular the
+    // pawns/pieces -> remaining pawns -> remaining pieces. In particular the
     // first group is at order[0] position and the remaining pawns, when present,
     // are at order[1] position.
     bool pp = e.hasPawns && e.pawnCount[1]; // Pawns on both sides
@@ -938,7 +938,7 @@ void set_groups(T& e, PairsData* d, int order[], File f) {
             d->groupIdx[1] = idx;
             idx *= Binomial[d->groupLen[1]][48 - d->groupLen[0]];
         }
-        else // Remainig pieces
+        else // Remaining pieces
         {
             d->groupIdx[next] = idx;
             idx *= Binomial[d->groupLen[next]][freeSquares];
@@ -948,7 +948,7 @@ void set_groups(T& e, PairsData* d, int order[], File f) {
     d->groupIdx[n] = idx;
 }
 
-// In Recursive Pairing each symbol represents a pair of childern symbols. So
+// In Recursive Pairing each symbol represents a pair of children symbols. So
 // read d->btree[] symbols data and expand each one in his left and right child
 // symbol until reaching the leafs that represent the symbol value.
 uint8_t set_symlen(PairsData* d, Sym s, std::vector<bool>& visited) {

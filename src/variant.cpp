@@ -481,6 +481,7 @@ namespace {
         v->extinctionPseudoRoyal = true;
         return v;
     }
+
 #ifdef ALLVARS
     // Duck chess
     Variant* duck_variant() {
@@ -494,7 +495,8 @@ namespace {
         v->stalemateValue = VALUE_MATE;
         return v;
     }
-    
+#endif
+
     Variant* isolation_variant() { //https://boardgamegeek.com/boardgame/1875/isolation
         Variant* v = chess_variant_base()->init();
         v->maxRank = RANK_8;
@@ -539,7 +541,7 @@ namespace {
         v->pastGating = true;
         return v;
     }
-#endif
+
     // Three-check chess
     // Check the king three times to win
     // https://lichess.org/variant/threeCheck
@@ -1770,13 +1772,13 @@ void VariantMap::init() {
     add("horde", horde_variant());
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
-#ifdef ALLVARS
     add("isolation", isolation_variant());
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
+#ifdef ALLVARS
     add("duck", duck_variant());
-    add("joust", joust_variant());
 #endif
+    add("joust", joust_variant());
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
     add("crazyhouse", crazyhouse_variant());
@@ -1879,7 +1881,7 @@ void VariantMap::parse_istream(std::istream& file) {
             if (ss.peek() != ';' && ss.peek() != '#')
             {
                 if (DoCheck && !input.empty() && input.find('=') == std::string::npos)
-                    std::cerr << "Invalid sytax: '" << input << "'." << std::endl;
+                    std::cerr << "Invalid syntax: '" << input << "'." << std::endl;
                 if (std::getline(std::getline(ss, key, '=') >> std::ws, value) && !key.empty())
                     attribs[key.erase(key.find_last_not_of(" ") + 1)] = value;
             }
