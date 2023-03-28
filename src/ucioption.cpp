@@ -48,7 +48,8 @@ namespace UCI {
 std::set<string> standard_variants = {
     "normal", "nocastle", "fischerandom", "knightmate", "3check", "makruk", "shatranj",
     "asean", "seirawan", "crazyhouse", "bughouse", "suicide", "giveaway", "losers", "atomic",
-    "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi", "duck"
+    "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi", "duck",
+    "berolina", "spartan"
 };
 
 void init_variant(const Variant* v) {
@@ -91,7 +92,7 @@ void on_variant_change(const Option &o) {
     // Do not send setup command for known variants
     if (standard_variants.find(o) != standard_variants.end())
         return;
-    int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : v->pieceTypes.size()) : 0;
+    int pocketsize = v->pieceDrops ? (v->pocketSize ? v->pocketSize : popcount(v->pieceTypes)) : 0;
     if (CurrentProtocol == XBOARD)
     {
         // Overwrite setup command for Janggi variants
@@ -114,8 +115,9 @@ void on_variant_change(const Option &o) {
                   << sync_endl;
         // Send piece command with Betza notation
         // https://www.gnu.org/software/xboard/Betza.html
-        for (PieceType pt : v->pieceTypes)
+        for (PieceSet ps = v->pieceTypes; ps;)
         {
+            PieceType pt = pop_lsb(ps);
             string suffix =   pt == PAWN && v->doubleStep     ? "ifmnD"
                             : pt == KING && v->cambodianMoves ? "ismN"
                             : pt == FERS && v->cambodianMoves ? "ifD"
@@ -145,7 +147,7 @@ void on_variant_change(const Option &o) {
                     suffix += std::string(v->dropNoDoubledCount, 'f');
                 else if (pt == BISHOP && v->dropOppositeColoredBishop)
                     suffix += "s";
-                suffix += "@" + std::to_string(pt == PAWN && !v->promotionZonePawnDrops ? v->promotionRank : v->maxRank + 1);
+                suffix += "@" + std::to_string(pt == PAWN && !v->promotionZonePawnDrops && v->promotionRegion[WHITE] ? rank_of(lsb(v->promotionRegion[WHITE])) : v->maxRank + 1);
             }
             sync_cout << "piece " << v->pieceToChar[pt] << "& " << pieceMap.find(pt == KING ? v->kingType : pt)->second->betza << suffix << sync_endl;
             PieceType promType = v->promotedPieceType[pt];

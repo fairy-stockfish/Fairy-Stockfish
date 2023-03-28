@@ -375,18 +375,21 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     // Restricted pieces
     Bitboard restricted = pos.pieces(~c, KING);
     // Atomic kings can not help checkmating
-    if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && pos.extinction_piece_types().find(COMMONER) != pos.extinction_piece_types().end())
+    if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & COMMONER))
         restricted |= pos.pieces(c, COMMONER);
-    for (PieceType pt : pos.piece_types())
+    for (PieceSet ps = pos.piece_types(); ps;)
+    {
+        PieceType pt = pop_lsb(ps);
         if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)))
             restricted |= pos.pieces(c, pt);
         else if (is_custom(pt) && pos.count(c, pt) > 0)
             // to be conservative, assume any custom piece has mating potential
             return false;
+    }
 
     // Mating pieces
     for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR })
-        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, PAWN) && pos.promotion_piece_types().find(pt) != pos.promotion_piece_types().end()))
+        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, pos.promotion_pawn_type(c)) && (pos.promotion_piece_types(c) & pt)))
             return false;
 
     // Color-bound pieces
@@ -492,11 +495,12 @@ public:
         return s;
     }
     /// Returns all square positions for a given piece
-    std::vector<CharSquare> get_squares_for_piece(char piece) const {
+    std::vector<CharSquare> get_squares_for_pieces(Color color, PieceSet ps, const std::string& pieceChars) const {
         std::vector<CharSquare> squares;
+        size_t pcIdx;
         for (int r = 0; r < nbRanks; ++r)
             for (int c = 0; c < nbFiles; ++c)
-                if (get_piece(r, c) == piece)
+                if ((pcIdx = pieceChars.find(get_piece(r, c))) != std::string::npos && (ps & type_of(Piece(pcIdx))) && color_of(Piece(pcIdx)) == color)
                     squares.emplace_back(CharSquare(r, c));
         return squares;
     }
@@ -685,7 +689,6 @@ inline Validation check_castling_rank(const std::array<std::string, 2>& castling
     for (Color c : {WHITE, BLACK})
     {
         const Rank castlingRank = relative_rank(c, v->castlingRank, v->maxRank);
-        char rookChar = v->pieceToChar[make_piece(c, v->castlingRookPiece)];
         for (char castlingFlag : castlingInfoSplitted[c])
         {
             if (tolower(castlingFlag) == 'k' || tolower(castlingFlag) == 'q')
@@ -697,8 +700,11 @@ inline Validation check_castling_rank(const std::array<std::string, 2>& castling
                 }
                 bool kingside = tolower(castlingFlag) == 'k';
                 bool castlingRook = false;
+                size_t pcIdx;
                 for (int f = kingside ? board.get_nb_files() - 1 : 0; f != kingPositions[c].fileIdx; kingside ? f-- : f++)
-                    if (board.get_piece(castlingRank, f) == rookChar)
+                    if (   (pcIdx = v->pieceToChar.find(board.get_piece(castlingRank, f))) != std::string::npos
+                        && (v->castlingRookPieces[c] & type_of(Piece(pcIdx)))
+                        && color_of(Piece(pcIdx)) == c)
                     {
                         castlingRook = true;
                         break;
@@ -737,10 +743,12 @@ inline Validation check_standard_castling(std::array<std::string, 2>& castlingIn
         {
             CharSquare rookStartingSquare = castling == QUEEN_SIDE ? rookPositionsStart[c][0] : rookPositionsStart[c][1];
             char targetChar = castling == QUEEN_SIDE ? 'q' : 'k';
-            char rookChar = v->pieceToChar[make_piece(c, v->castlingRookPiece)];
+            size_t pcIdx;
             if (castlingInfoSplitted[c].find(targetChar) != std::string::npos)
             {
-                if (board.get_piece(rookStartingSquare.rowIdx, rookStartingSquare.fileIdx) != rookChar)
+                if (   (pcIdx = v->pieceToChar.find(board.get_piece(rookStartingSquare.rowIdx, rookStartingSquare.fileIdx))) == std::string::npos
+                    || !(v->castlingRookPieces[c] & type_of(Piece(pcIdx)))
+                    || color_of(Piece(pcIdx)) != c)
                 {
                     std::cerr << "The " << color_to_string(c) << " ROOK on the "<<  castling_rights_to_string(castling) << " has moved. "
                               << castling_rights_to_string(castling) << " castling is no longer valid for " << color_to_string(c) << "." << std::endl;
@@ -895,7 +903,7 @@ inline std::string get_valid_special_chars(const Variant* v) {
     // Whether or not '-', '+', '~', '[', ']' are valid depends on the variant being played.
     if (v->shogiStylePromotions)
         validSpecialCharactersFirstField += '+';
-    if (!v->promotionPieceTypes.empty())
+    if (v->promotionPieceTypes[WHITE] || v->promotionPieceTypes[BLACK])
         validSpecialCharactersFirstField += '~';
     if (!v->freeDrops && (v->pieceDrops || v->seirawanGating))
         validSpecialCharactersFirstField += "[-]";
@@ -948,7 +956,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     }
 
     // check for number of kings
-    if (v->pieceTypes.find(KING) != v->pieceTypes.end())
+    if (v->pieceTypes & KING)
     {
         // we have a royal king in this variant,
         // ensure that each side has exactly as many kings as in the starting position
@@ -991,8 +999,8 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
         if (castlingInfoSplitted[WHITE].size() != 0 || castlingInfoSplitted[BLACK].size() != 0)
         {
             std::array<CharSquare, 2> kingPositions;
-            kingPositions[WHITE] = board.get_square_for_piece(toupper(v->pieceToChar[v->castlingKingPiece]));
-            kingPositions[BLACK] = board.get_square_for_piece(tolower(v->pieceToChar[v->castlingKingPiece]));
+            kingPositions[WHITE] = board.get_square_for_piece(toupper(v->pieceToChar[v->castlingKingPiece[WHITE]]));
+            kingPositions[BLACK] = board.get_square_for_piece(tolower(v->pieceToChar[v->castlingKingPiece[BLACK]]));
 
             CharBoard startBoard(board.get_nb_ranks(), board.get_nb_files());
             fill_char_board(startBoard, v->startFen, validSpecialCharactersFirstField, v);
@@ -1005,11 +1013,11 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
             if (!v->chess960 && !v->castlingDroppedPiece && !chess960)
             {
                 std::array<CharSquare, 2> kingPositionsStart;
-                kingPositionsStart[WHITE] = startBoard.get_square_for_piece(v->pieceToChar[make_piece(WHITE, v->castlingKingPiece)]);
-                kingPositionsStart[BLACK] = startBoard.get_square_for_piece(v->pieceToChar[make_piece(BLACK, v->castlingKingPiece)]);
+                kingPositionsStart[WHITE] = startBoard.get_square_for_piece(v->pieceToChar[make_piece(WHITE, v->castlingKingPiece[WHITE])]);
+                kingPositionsStart[BLACK] = startBoard.get_square_for_piece(v->pieceToChar[make_piece(BLACK, v->castlingKingPiece[BLACK])]);
                 std::array<std::vector<CharSquare>, 2> rookPositionsStart;
-                rookPositionsStart[WHITE] = startBoard.get_squares_for_piece(v->pieceToChar[make_piece(WHITE, v->castlingRookPiece)]);
-                rookPositionsStart[BLACK] = startBoard.get_squares_for_piece(v->pieceToChar[make_piece(BLACK, v->castlingRookPiece)]);
+                rookPositionsStart[WHITE] = startBoard.get_squares_for_pieces(WHITE, v->castlingRookPieces[WHITE], v->pieceToChar);
+                rookPositionsStart[BLACK] = startBoard.get_squares_for_pieces(BLACK, v->castlingRookPieces[BLACK], v->pieceToChar);
 
                 if (check_standard_castling(castlingInfoSplitted, board, kingPositions, kingPositionsStart, rookPositionsStart, v) == NOK)
                     return FEN_INVALID_CASTLING_INFO;
@@ -1021,7 +1029,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     // check en-passant square
     if (fenParts.size() >= 4 && !skipCastlingAndEp)
     {
-        if (v->doubleStep && v->pieceTypes.find(PAWN) != v->pieceTypes.end())
+        if (v->doubleStep && (v->pieceTypes & PAWN))
         {
             if (check_en_passant_square(fenParts[3]) == NOK)
                 return FEN_INVALID_EN_PASSANT_SQ;

@@ -229,10 +229,11 @@ constexpr int SQUARE_BITS = 6;
 
 #ifdef ALLVARS
 constexpr int MAX_MOVES = 8192;
+constexpr int MAX_PLY   = 60;
 #else
 constexpr int MAX_MOVES = 1024;
-#endif
 constexpr int MAX_PLY   = 246;
+#endif
 
 /// A move needs 16 bits to be stored
 ///
@@ -395,14 +396,19 @@ enum PieceType {
   SOLDIER, HORSE, ELEPHANT, JANGGI_ELEPHANT, BANNER,
   WAZIR, COMMONER, CENTAUR,
 
-  CUSTOM_PIECES,
-  FAIRY_PIECES = QUEEN + 1,
-  FAIRY_PIECES_END = CUSTOM_PIECES - 1,
+  CUSTOM_PIECE_1, CUSTOM_PIECE_2, CUSTOM_PIECE_3, CUSTOM_PIECE_4,
+  CUSTOM_PIECE_5, CUSTOM_PIECE_6, CUSTOM_PIECE_7, CUSTOM_PIECE_8,
+
   PIECE_TYPE_NB = 1 << PIECE_TYPE_BITS,
   KING = PIECE_TYPE_NB - 1,
+
+  // Aliases
+  CUSTOM_PIECES = CUSTOM_PIECE_1,
   CUSTOM_PIECES_END = KING - 1,
   CUSTOM_PIECES_ROYAL = CUSTOM_PIECES_END,
   CUSTOM_PIECES_NB = CUSTOM_PIECES_END - CUSTOM_PIECES + 1,
+  FAIRY_PIECES = QUEEN + 1,
+  FAIRY_PIECES_END = CUSTOM_PIECES - 1,
   ALL_PIECES = 0,
 };
 static_assert(KING < PIECE_TYPE_NB, "KING exceeds PIECE_TYPE_NB.");
@@ -418,6 +424,15 @@ enum Piece {
   PIECE_NB = 2 * PIECE_TYPE_NB
 };
 
+enum PieceSet : uint64_t {
+  NO_PIECE_SET = 0,
+  CHESS_PIECES = (1ULL << PAWN) | (1ULL << KNIGHT) | (1ULL << BISHOP) | (1ULL << ROOK) | (1ULL << QUEEN) | (1ULL << KING),
+  COMMON_FAIRY_PIECES = (1ULL << IMMOBILE_PIECE) | (1ULL << COMMONER) | (1ULL << ARCHBISHOP) | (1ULL << CHANCELLOR),
+  SHOGI_PIECES = (1ULL << SHOGI_PAWN) | (1ULL << GOLD) | (1ULL << SILVER) | (1ULL << SHOGI_KNIGHT) | (1ULL << LANCE)
+                | (1ULL << DRAGON)| (1ULL << DRAGON_HORSE) | (1ULL << KING),
+  COMMON_STEP_PIECES = (1ULL << COMMONER) | (1ULL << FERS) | (1ULL << WAZIR) | (1ULL << BREAKTHROUGH_PIECE),
+};
+
 enum RiderType : int {
   NO_RIDER = 0,
   RIDER_BISHOP = 1 << 0,
@@ -425,17 +440,18 @@ enum RiderType : int {
   RIDER_ROOK_V = 1 << 2,
   RIDER_CANNON_H = 1 << 3,
   RIDER_CANNON_V = 1 << 4,
-  RIDER_HORSE = 1 << 5,
-  RIDER_ELEPHANT = 1 << 6,
-  RIDER_JANGGI_ELEPHANT = 1 << 7,
-  RIDER_CANNON_DIAG = 1 << 8,
-  RIDER_NIGHTRIDER = 1 << 9,
-  RIDER_GRASSHOPPER_H = 1 << 10,
-  RIDER_GRASSHOPPER_V = 1 << 11,
-  RIDER_GRASSHOPPER_D = 1 << 12,
+  RIDER_LAME_DABBABA = 1 << 5,
+  RIDER_HORSE = 1 << 6,
+  RIDER_ELEPHANT = 1 << 7,
+  RIDER_JANGGI_ELEPHANT = 1 << 8,
+  RIDER_CANNON_DIAG = 1 << 9,
+  RIDER_NIGHTRIDER = 1 << 10,
+  RIDER_GRASSHOPPER_H = 1 << 11,
+  RIDER_GRASSHOPPER_V = 1 << 12,
+  RIDER_GRASSHOPPER_D = 1 << 13,
   HOPPING_RIDERS =  RIDER_CANNON_H | RIDER_CANNON_V | RIDER_CANNON_DIAG
                   | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
-  LAME_LEAPERS = RIDER_HORSE | RIDER_ELEPHANT | RIDER_JANGGI_ELEPHANT,
+  LAME_LEAPERS = RIDER_LAME_DABBABA | RIDER_HORSE | RIDER_ELEPHANT | RIDER_JANGGI_ELEPHANT,
   ASYMMETRICAL_RIDERS =  RIDER_HORSE | RIDER_JANGGI_ELEPHANT
                        | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
   NON_SLIDING_RIDERS = HOPPING_RIDERS | LAME_LEAPERS | RIDER_NIGHTRIDER,
@@ -620,6 +636,22 @@ ENABLE_BASE_OPERATORS_ON(RiderType)
 #undef ENABLE_INCR_OPERATORS_ON
 #undef ENABLE_BASE_OPERATORS_ON
 #undef ENABLE_BIT_OPERATORS_ON
+
+constexpr PieceSet piece_set(PieceType pt) {
+  return PieceSet(1ULL << pt);
+}
+
+constexpr PieceSet operator~ (PieceSet ps) { return (PieceSet)~(uint64_t)ps; }
+constexpr PieceSet operator| (PieceSet ps1, PieceSet ps2) { return (PieceSet)((uint64_t)ps1 | (uint64_t)ps2); }
+constexpr PieceSet operator| (PieceSet ps, PieceType pt) { return ps | piece_set(pt); }
+constexpr PieceSet operator& (PieceSet ps1, PieceSet ps2) { return (PieceSet)((uint64_t)ps1 & (uint64_t)ps2); }
+constexpr PieceSet operator& (PieceSet ps, PieceType pt) { return ps & piece_set(pt); }
+inline PieceSet& operator|= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 |= (uint64_t)ps2); }
+inline PieceSet& operator|= (PieceSet& ps, PieceType pt) { return ps |= piece_set(pt); }
+inline PieceSet& operator&= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 &= (uint64_t)ps2); }
+
+static_assert(piece_set(PAWN) & PAWN);
+static_assert(piece_set(KING) & KING);
 
 /// Additional operators to add a Direction to a Square
 constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d)); }

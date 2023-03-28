@@ -86,7 +86,7 @@ ffish['onRuntimeInitialized'] = () => {
 }
 ```
 
-Set a custom fen position including fen validiation:
+Set a custom fen position including fen validation:
 ```javascript
 fen = "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3";
 if (ffish.validateFen(fen) == 1) {  // ffish.validateFen(fen) can return different error codes, it returns 1 for FEN_OK

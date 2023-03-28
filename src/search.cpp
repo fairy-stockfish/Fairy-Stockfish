@@ -936,7 +936,7 @@ namespace {
         && (ss-1)->statScore < 23767
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 20 * depth - 22 * improving + 168 * ss->ttPv + 159 + 200 * (!pos.double_step_enabled() && pos.piece_to_char()[PAWN] != ' ')
+        &&  ss->staticEval >= beta - 20 * depth - 22 * improving + 168 * ss->ttPv + 159 + 200 * (!pos.double_step_region(pos.side_to_move()) && pos.piece_to_char()[PAWN] != ' ')
         && !excludedMove
         &&  pos.non_pawn_material(us)
         &&  pos.count<ALL_PIECES>(~us) != pos.count<PAWN>(~us)
@@ -1646,7 +1646,7 @@ moves_loop: // When in check, search starts from here
           && !givesCheck
           && !(   pos.extinction_value() == -VALUE_MATE
                && pos.piece_on(to_sq(move))
-               && pos.extinction_piece_types().find(type_of(pos.piece_on(to_sq(move)))) != pos.extinction_piece_types().end())
+               && (pos.extinction_piece_types() & type_of(pos.piece_on(to_sq(move)))))
           &&  futilityBase > -VALUE_KNOWN_WIN
           &&  type_of(move) != PROMOTION)
       {

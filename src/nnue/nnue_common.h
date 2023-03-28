@@ -109,7 +109,7 @@ namespace Stockfish::Eval::NNUE {
 
   // write_little_endian() is our utility to write an integer (signed or unsigned, any size)
   // to a stream in little-endian order. We swap the byte order before the write if
-  // necessary to always write in little endian order, independantly of the byte
+  // necessary to always write in little endian order, independently of the byte
   // ordering of the compiling machine.
   template <typename IntType>
   inline void write_little_endian(std::ostream& stream, IntType value) {
@@ -137,7 +137,7 @@ namespace Stockfish::Eval::NNUE {
       }
   }
 
-  // read_little_endian(s, out, N) : read integers in bulk from a little indian stream.
+  // read_little_endian(s, out, N) : read integers in bulk from a little endian stream.
   // This reads N integers from stream s and put them in array out.
   template <typename IntType>
   inline void read_little_endian(std::istream& stream, IntType* out, std::size_t count) {
@@ -148,7 +148,7 @@ namespace Stockfish::Eval::NNUE {
               out[i] = read_little_endian<IntType>(stream);
   }
 
-  // write_little_endian(s, values, N) : write integers in bulk to a little indian stream.
+  // write_little_endian(s, values, N) : write integers in bulk to a little endian stream.
   // This takes N integers from array values and writes them on stream s.
   template <typename IntType>
   inline void write_little_endian(std::ostream& stream, const IntType* values, std::size_t count) {
