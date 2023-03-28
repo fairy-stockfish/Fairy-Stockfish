@@ -574,7 +574,7 @@ describe('board.pushSanMoves(sanMoves, notation)', function () {
 });
 
 describe('board.pocket(turn)', function () {
-  it("it returns the pocket for the given player as a string with no delimeter. All pieces are returned in lower case.", () => {
+  it("it returns the pocket for the given player as a string with no delimiter. All pieces are returned in lower case.", () => {
     let board = new ffish.Board("crazyhouse", "rnb1kbnr/ppp1pppp/8/8/8/5q2/PPPP1PPP/RNBQKB1R/Pnp w KQkq - 0 4");
     chai.expect(board.pocket(WHITE)).to.equal("p");
     chai.expect(board.pocket(BLACK)).to.equal("np");

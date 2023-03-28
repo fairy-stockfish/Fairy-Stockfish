@@ -78,6 +78,10 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Clobber](https://en.wikipedia.org/wiki/Clobber)
 - [Cfour](https://en.wikipedia.org/wiki/Connect_Four), [Tic-tac-toe](https://en.wikipedia.org/wiki/Tic-tac-toe)
 - [Flipersi](https://en.wikipedia.org/wiki/Reversi), [Flipello](https://en.wikipedia.org/wiki/Reversi#Othello)
+- [Isolation](https://boardgamegeek.com/boardgame/1875/isolation)
+- [Joust](https://www.chessvariants.com/programs.dir/joust.html)
+- [Snailtrail](https://boardgamegeek.com/boardgame/37135/snailtrail)
+
 
 ## Help
 
