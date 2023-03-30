@@ -474,6 +474,20 @@ describe('board.result()', function () {
   })
 })
 
+describe('board.attackedPieces()', function () {
+  it("it returns the squares of all pieces currently attacked", () => {
+    let board = new ffish.Board();
+    chai.expect(board.attackedPieces()).to.equal("");
+    board.pushMoves("e2e4 d7d5");
+    chai.expect(board.attackedPieces()).to.equal("d5");
+    board.pushMoves("e4d5 d8d5 b1c3 d5a5");
+    chai.expect(board.attackedPieces()).to.equal("");
+    board.pushMoves("g1f3");
+    chai.expect(board.attackedPieces().split(' ')).to.equal("a2 c3".split(' '));
+    board.delete();
+  })
+})
+
 describe('board.isCheck()', function () {
   it("it checks if a player is in check", () => {
     let board = new ffish.Board();
