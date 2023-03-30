@@ -483,7 +483,7 @@ describe('board.attackedPieces()', function () {
     board.pushMoves("e4d5 d8d5 b1c3 d5a5");
     chai.expect(board.attackedPieces()).to.equal("");
     board.pushMoves("g1f3");
-    chai.expect(board.attackedPieces().split(' ')).to.equal("a2 c3".split(' '));
+    chai.expect(board.attackedPieces().split(' ').sort().join()).to.equal("a2 c3".split(' ').sort().join());
     board.delete();
   })
 })
