@@ -985,16 +985,36 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 /// Position::attackers_to_pseudo_royals computes a bitboard of all pieces
 /// of a particular color attacking at least one opposing pseudo-royal piece
 Bitboard Position::attackers_to_pseudo_royals(Color c) const {
+  assert(extinction_pseudo_royal());
   Bitboard attackers = 0;
   Bitboard pseudoRoyals = st->pseudoRoyals & pieces(~c);
   Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(c);
-  while (pseudoRoyals) {
+  while (pseudoRoyals)
+  {
       Square sr = pop_lsb(pseudoRoyals);
-      if (blast_on_capture()
+      if (   blast_on_capture()
           && pseudoRoyalsTheirs & attacks_bb<KING>(sr))
           // skip if capturing this piece would blast all of the attacker's pseudo-royal pieces
           continue;
       attackers |= attackers_to(sr, c);
+  }
+  // Look for duple check
+  if (var->dupleCheck)
+  {
+      Bitboard b;
+      Bitboard allAttackers = 0;
+      Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(~c);
+      while (pseudoRoyalCandidates)
+      {
+          Square sr = pop_lsb(pseudoRoyalCandidates);
+          if (!(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+              && (b = attackers_to(sr, c)))
+              allAttackers |= b;
+          else
+              // If at least one isn't attacked, it is not a duple check
+              return attackers;
+      }
+      attackers |= allAttackers;
   }
   return attackers;
 }

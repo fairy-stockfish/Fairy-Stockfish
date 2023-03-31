@@ -856,6 +856,14 @@ class TestPyffish(unittest.TestCase):
         result = sf.gives_check("atomic", "8/8/kK6/8/8/8/Q7/8 b - - 0 1", [])
         self.assertFalse(result)
 
+        # pseudo-royal duple check
+        result = sf.gives_check("spartan", "lgkcckw1/hhhhhhhh/1N3lN1/8/8/8/PPPPPPPP/R1BQKB1R b KQ - 11 6", [])
+        self.assertTrue(result)
+        result = sf.gives_check("spartan", "lgkcckwl/hhhhhhhh/6N1/8/8/8/PPPPPPPP/RNBQKB1R b KQ - 5 3", [])
+        self.assertFalse(result)
+        result = sf.gives_check("spartan", "lgkcckwl/hhhhhhhh/8/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1", [])
+        self.assertFalse(result)
+
         # Shako castling discovered check
         result = sf.gives_check("shako", "10/5r4/2p3pBk1/1p6Pr/p3p5/9e/1PP2P4/P2P2PP2/ER3K2R1/8C1 w K - 7 38", ["f2h2"])
         self.assertTrue(result)
