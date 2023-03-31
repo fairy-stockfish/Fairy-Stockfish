@@ -1594,9 +1594,20 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^=  Zobrist::psq[pc][to]
           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
+
+      // Reset rule 50 counter for irreversible drops
+      if (!captures_to_hand())
+          st->rule50 = 0;
   }
   else
+  {
       k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+
+      // Reset rule 50 draw counter for irreversible moves
+      if (    (var->nMoveRuleTypes[us] & type_of(pc))
+          && !(PseudoMoves[0][us][type_of(pc)][to] & from))
+          st->rule50 = 0;
+  }
 
   // Reset en passant squares
   while (st->epSquares)
@@ -1830,10 +1841,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       for (Bitboard b = st->epSquares; b; )
           k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
   }
-
-  // Reset rule 50 draw counter
-  if (var->nMoveRuleTypes[us] & type_of(pc))
-      st->rule50 = 0;
 
   // Set capture piece
   st->capturedPiece = captured;

@@ -367,7 +367,7 @@ class TestPyffish(unittest.TestCase):
         fen2 = sf.get_fen("seirawan", fen1, [], True)
         self.assertEqual(fen1, fen2)
 
-        fen = "rnab1kbcnr/ppppPppppp/10/4q5/10/10/PPPPP1PPPP/RNABQKBCNR[p] b KQkq - 0 3"
+        fen = "rnab1kbcnr/ppppPppppp/10/4q5/10/10/PPPPP1PPPP/RNABQKBCNR[p] b KQkq - 1 3"
         result = sf.get_fen("capahouse", CAPA, ["f2f4", "e7e5", "f4e5", "e8e5", "P@e7"])
         self.assertEqual(result, fen)
 
@@ -389,6 +389,13 @@ class TestPyffish(unittest.TestCase):
         fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
         result = sf.get_fen("passchess", fen, ["e1e1", "e8e8"])
         self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 2 2")
+
+        # only irreversible moves should reset 50 move rule counter
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        result = sf.get_fen("pawnsideways", fen, ["e2e4", "g8f6", "e4d4"])
+        self.assertEqual(result, "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPPP1PPP/RNBQKBNR b KQkq - 2 2")
+        result = sf.get_fen("pawnback", fen, ["e2e3", "e7e6"])
+        self.assertEqual(result, "rnbqkbnr/pppp1ppp/4p3/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 2 2")
 
         # SFEN
         result = sf.get_fen("shogi", SHOGI, [], False, True)
