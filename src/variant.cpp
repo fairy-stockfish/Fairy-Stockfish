@@ -460,6 +460,20 @@ namespace {
         v->extinctionPieceTypes = piece_set(ALL_PIECES);
         return v;
     }
+    // Petrified
+    // Sideways pawns + petrification on capture
+    // https://www.chess.com/variants/petrified
+    Variant* petrified_variant() {
+        Variant* v = pawnsideways_variant()->init();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = piece_set(COMMONER);
+        v->extinctionPseudoRoyal = true;
+        v->petrifyOnCaptureTypes = piece_set(COMMONER) | QUEEN | ROOK | BISHOP | KNIGHT;
+        return v;
+    }
     // Atomic chess without checks (ICC rules)
     // https://www.chessclub.com/help/atomic
     Variant* nocheckatomic_variant() {
@@ -493,6 +507,7 @@ namespace {
 
 #ifdef ALLVARS
     // Duck chess
+    // https://duckchess.com/
     Variant* duck_variant() {
         Variant* v = chess_variant_base()->init();
         v->remove_piece(KING);
@@ -1805,6 +1820,7 @@ void VariantMap::init() {
     add("kinglet", kinglet_variant());
     add("threekings", threekings_variant());
     add("horde", horde_variant());
+    add("petrified", petrified_variant());
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
     add("isolation", isolation_variant());
@@ -2013,6 +2029,7 @@ Variant* Variant::conclude() {
                   && !makpongRule
                   && !connectN
                   && !blastOnCapture
+                  && !petrifyOnCaptureTypes
                   && !capturesToHand
                   && !twoBoards
                   && !restrictedMobility

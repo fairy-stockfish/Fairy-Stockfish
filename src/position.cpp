@@ -1129,6 +1129,9 @@ bool Position::legal(Move m) const {
           occupied &= ~square_bb(capture_square(kto));
       if (capture(m) && blast_on_capture())
           occupied &= ~((attacks_bb<KING>(kto) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | kto);
+      // Petrifying a pseudo-royal piece is illegal
+      if (capture(m) && (var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && (st->pseudoRoyals & from))
+          return false;
       Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
       Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
       if (is_ok(from) && (pseudoRoyals & from))
@@ -1176,10 +1179,6 @@ bool Position::legal(Move m) const {
               return false;
       }
   }
-
-  // Petrifying the king is illegal
-  if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) == KING)
-      return false;
 
   // mutuallyImmuneTypes (diplomacy in Atomar)-- In no-check Atomic, kings can be beside each other, but in Atomar, this prevents them from actually taking.
   // Generalized to allow a custom set of pieces that can't capture a piece of the same type.
@@ -1405,7 +1404,7 @@ bool Position::gives_check(Move m) const {
 
   // Is there a direct check?
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING
-      && !(var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) != PAWN))
+      && !((var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && capture(m)))
   {
       PieceType pt = type_of(moved_piece(m));
       if (pt == JANGGI_CANNON)
@@ -1433,7 +1432,7 @@ bool Position::gives_check(Move m) const {
       return true;
 
   // Petrified piece can't give check
-  if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) != PAWN)
+  if ((var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && capture(m))
       return false;
 
   // Is there a check by special diagonal moves?
@@ -1946,7 +1945,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
 
   // Remove the blast pieces
-  if (captured && (blast_on_capture() || var->petrifyOnCapture))
+  if (captured && (blast_on_capture() || var->petrifyOnCaptureTypes))
   {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
@@ -1956,7 +1955,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           blastImmune |= pieces(pt);
       };
       Bitboard blast = blast_on_capture() ? ((attacks_bb<KING>(to) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to)
-                       & (pieces() ^ blastImmune) : type_of(pc) != PAWN ? square_bb(to) : Bitboard(0);
+                       & (pieces() ^ blastImmune) : var->petrifyOnCaptureTypes & type_of(pc) ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);
@@ -2018,7 +2017,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           }
 
           // Make a wall square where the piece was
-          if (bsq == to ? var->petrifyOnCapture : var->petrifyBlastPieces)
+          if (bsq == to ? bool(var->petrifyOnCaptureTypes & type_of(bpc)) : var->petrifyBlastPieces)
           {
               st->wallSquares |= bsq;
               byTypeBB[ALL_PIECES] |= bsq;
@@ -2116,7 +2115,7 @@ void Position::undo_move(Move m) {
   byTypeBB[ALL_PIECES] ^= st->wallSquares ^ st->previous->wallSquares;
 
   // Add the blast pieces
-  if (st->capturedPiece && (blast_on_capture() || var->petrifyOnCapture))
+  if (st->capturedPiece && (blast_on_capture() || var->petrifyOnCaptureTypes))
   {
       Bitboard blast = attacks_bb<KING>(to) | to;
       while (blast)
