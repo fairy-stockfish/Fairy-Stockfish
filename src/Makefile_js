@@ -78,7 +78,7 @@ help:
 	@echo ""
 
 objclean:
-	@rm -f $(EXE) *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
+	@rm -f $(EXE)
 
 clean: objclean
 
