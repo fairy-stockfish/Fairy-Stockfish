@@ -1603,8 +1603,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
 
       // Reset rule 50 draw counter for irreversible moves
-      if (    (var->nMoveRuleTypes[us] & type_of(pc))
-          && !(PseudoMoves[0][us][type_of(pc)][to] & from))
+      // - irreversible pawn/piece promotions
+      // - irreversible pawn moves
+      if (    type_of(m) == PROMOTION
+          || (type_of(m) == PIECE_PROMOTION && !piece_demotion())
+          || (    (var->nMoveRuleTypes[us] & type_of(pc))
+              && !(PseudoMoves[0][us][type_of(pc)][to] & from)))
           st->rule50 = 0;
   }
 
