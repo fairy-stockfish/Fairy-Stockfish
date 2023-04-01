@@ -475,15 +475,23 @@ describe('board.result()', function () {
 })
 
 describe('board.attackedPieces()', function () {
-  it("it returns the squares of all pieces currently attacked", () => {
+  it("it returns the squares occupied by a piece of the side to move that are currently attacked as a concatenated string", () => {
     let board = new ffish.Board();
     chai.expect(board.attackedPieces()).to.equal("");
     board.pushMoves("e2e4 d7d5");
+    chai.expect(board.attackedPieces()).to.equal("e4");
+    board.pushMoves("e4d5 d8d5 b1c3");
     chai.expect(board.attackedPieces()).to.equal("d5");
-    board.pushMoves("e4d5 d8d5 b1c3 d5a5");
+    board.pushMoves("d5a5");
+    chai.expect(board.attackedPieces().split(' ').sort().join()).to.equal("a2,c3");
+    board.delete();
+    board = new ffish.Board("xiangqi");
+    chai.expect(board.attackedPieces().split(' ').sort().join()).to.equal("b1,h1");
+    board.push("h3e3");
+    chai.expect(board.attackedPieces().split(' ').sort().join()).to.equal("b10,e7");
+    board.delete();
+    board = new ffish.Board("janggi");
     chai.expect(board.attackedPieces()).to.equal("");
-    board.pushMoves("g1f3");
-    chai.expect(board.attackedPieces().split(' ').sort().join()).to.equal("a2 c3".split(' ').sort().join());
     board.delete();
   })
 })
