@@ -1579,6 +1579,8 @@ namespace {
         v->promotionRegion[BLACK] = Rank1BB;
         v->castlingKingsideFile = FILE_H;
         v->castlingQueensideFile = FILE_D;
+        v->castlingRookKingsideFile = FILE_I;
+        v->castlingRookQueensideFile = FILE_B;
         v->castlingRank = RANK_2;
         v->doubleStepRegion[WHITE] = Rank3BB;
         v->doubleStepRegion[BLACK] = Rank8BB;

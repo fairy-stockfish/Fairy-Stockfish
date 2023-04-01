@@ -172,6 +172,7 @@ if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp shako "fen 4kc3c/ernbq1b1re/ppp3p1pp/3p2pp2/4p5/5P4/2PN2P3/PP1PP2PPP/ER1BQKBNR1/5C3C w KQ - 0 9" 3 26325 > /dev/null
   expect perft.exp shako "fen 4ncr1k1/1cr2P4/pp2p2pp1/P7PN/2Ep1p4/B3P1eN2/2P1n1P3/1B1P1K4/9p/5C2CR w - - 0 1" 3 180467 > /dev/null
   expect perft.exp shako "fen r5k3/4q2c2/1ebppnp3/1pp3BeEQ/10/2PE2P3/1P3P4/5NP2P/rR3KB3/7C2 w Q - 3 35" 2 4940 > /dev/null
+  expect perft.exp shako "fen 10/rr3k4/ppppp5/10/10/10/10/6PPPP/5K2RR/10 w Kq - 0 1" 2 460 > /dev/null
   expect perft.exp xiangqi startpos 4 3290240 > /dev/null
   expect perft.exp xiangqi "fen 1rbaka2R/5r3/6n2/2p1p1p2/4P1bP1/PpC3Bc1/1nPR2P2/2N2AN2/1c2K1p2/2BAC4 w - - 0 1" 4 4485547 > /dev/null
   expect perft.exp xiangqi "fen 4kcP1N/8n/3rb4/9/9/9/9/3p1A3/4K4/5CB2 w - - 0 1" 4 92741 > /dev/null
