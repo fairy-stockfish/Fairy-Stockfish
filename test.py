@@ -367,7 +367,7 @@ class TestPyffish(unittest.TestCase):
         fen2 = sf.get_fen("seirawan", fen1, [], True)
         self.assertEqual(fen1, fen2)
 
-        fen = "rnab1kbcnr/ppppPppppp/10/4q5/10/10/PPPPP1PPPP/RNABQKBCNR[p] b KQkq - 1 3"
+        fen = "rnab1kbcnr/ppppPppppp/10/4q5/10/10/PPPPP1PPPP/RNABQKBCNR[p] b KQkq - 0 3"
         result = sf.get_fen("capahouse", CAPA, ["f2f4", "e7e5", "f4e5", "e8e5", "P@e7"])
         self.assertEqual(result, fen)
 

@@ -1596,8 +1596,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
 
       // Reset rule 50 counter for irreversible drops
-      if (!captures_to_hand())
-          st->rule50 = 0;
+      st->rule50 = 0;
   }
   else
   {
