@@ -559,9 +559,10 @@ void Position::set_check_info(StateInfo* si) const {
   for (PieceSet ps = piece_types(); ps;)
   {
       PieceType pt = pop_lsb(ps);
-      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, pt, ksq, pieces()) : Bitboard(0);
+      PieceType movePt = pt == KING ? king_type() : pt;
+      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
       // Collect special piece types that require slower check and evasion detection
-      if (AttackRiderTypes[pt] & NON_SLIDING_RIDERS)
+      if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
   }
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
@@ -1377,14 +1378,25 @@ bool Position::gives_check(Move m) const {
   if (!count<KING>(~sideToMove))
       return false;
 
+  Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+  Bitboard janggiCannons = pieces(JANGGI_CANNON);
+  if (type_of(moved_piece(m)) == JANGGI_CANNON)
+      janggiCannons = (type_of(m) == DROP ? janggiCannons : janggiCannons ^ from) | to;
+  else if (janggiCannons & to)
+      janggiCannons ^= to;
+
   // Is there a direct check?
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING
       && !(var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) != PAWN))
   {
       PieceType pt = type_of(moved_piece(m));
-      if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
+      if (pt == JANGGI_CANNON)
       {
-          Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+          if (attacks_bb(sideToMove, pt, to, occupied) & attacks_bb(sideToMove, pt, to, occupied & ~janggiCannons) & square<KING>(~sideToMove))
+              return true;
+      }
+      else if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
+      {
           if (attacks_bb(sideToMove, pt, to, occupied) & square<KING>(~sideToMove))
               return true;
       }
@@ -1392,15 +1404,9 @@ bool Position::gives_check(Move m) const {
           return true;
   }
 
-  Bitboard janggiCannons = pieces(JANGGI_CANNON);
-  if (type_of(moved_piece(m)) == JANGGI_CANNON)
-      janggiCannons = (type_of(m) == DROP ? janggiCannons : janggiCannons ^ from) | to;
-  else if (janggiCannons & to)
-      janggiCannons ^= to;
-
   // Is there a discovered check?
   if (  ((type_of(m) != DROP && (blockers_for_king(~sideToMove) & from)) || (non_sliding_riders() & pieces(sideToMove)))
-      && attackers_to(square<KING>(~sideToMove), (type_of(m) == DROP ? pieces() : pieces() ^ from) | to, sideToMove, janggiCannons))
+      && attackers_to(square<KING>(~sideToMove), occupied, sideToMove, janggiCannons) & occupied)
       return true;
 
   // Is there a check by gated pieces?
@@ -1417,7 +1423,6 @@ bool Position::gives_check(Move m) const {
   {
       PieceType pt = type_of(moved_piece(m));
       PieceType diagType = pt == WAZIR ? FERS : pt == SOLDIER ? PAWN : pt == ROOK ? BISHOP : NO_PIECE_TYPE;
-      Bitboard occupied = type_of(m) == DROP ? pieces() : pieces() ^ from;
       if (diagType && (attacks_bb(sideToMove, diagType, to, occupied) & square<KING>(~sideToMove)))
           return true;
       else if (pt == JANGGI_CANNON && (  rider_attacks_bb<RIDER_CANNON_DIAG>(to, occupied)
@@ -1999,6 +2004,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->key = k;
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them), us) & pieces(us) : Bitboard(0);
+  assert(givesCheck == bool(st->checkersBB));
 
   sideToMove = ~sideToMove;
 
