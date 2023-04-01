@@ -559,9 +559,10 @@ void Position::set_check_info(StateInfo* si) const {
   for (PieceSet ps = piece_types(); ps;)
   {
       PieceType pt = pop_lsb(ps);
-      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, pt, ksq, pieces()) : Bitboard(0);
+      PieceType movePt = pt == KING ? king_type() : pt;
+      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
       // Collect special piece types that require slower check and evasion detection
-      if (AttackRiderTypes[pt] & NON_SLIDING_RIDERS)
+      if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
   }
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
