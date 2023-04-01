@@ -330,10 +330,10 @@ public:
 
   std::string attacked_pieces() const {
     std::string attacked;
-    Bitboard pieces = pos.pieces(~pos.side_to_move());
+    Bitboard pieces = pos.pieces(pos.side_to_move());
     while (pieces) {
       Square sr = pop_lsb(pieces);
-      if (pos.attackers_to(sr, pos.side_to_move())) {
+      if (pos.attackers_to(sr, ~pos.side_to_move())) {
         attacked += UCI::square(pos, sr);
         attacked += DELIM;
       }
