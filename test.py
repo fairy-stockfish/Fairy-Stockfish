@@ -394,8 +394,8 @@ class TestPyffish(unittest.TestCase):
         fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
         result = sf.get_fen("pawnsideways", fen, ["e2e4", "g8f6", "e4d4"])
         self.assertEqual(result, "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPPP1PPP/RNBQKBNR b KQkq - 2 2")
-        result = sf.get_fen("pawnback", fen, ["e2e3", "e7e6"])
-        self.assertEqual(result, "rnbqkbnr/pppp1ppp/4p3/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 2 2")
+        result = sf.get_fen("pawnback", fen, ["e2e4", "e7e6"])
+        self.assertEqual(result, "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 2 2")
 
         # SFEN
         result = sf.get_fen("shogi", SHOGI, [], False, True)
