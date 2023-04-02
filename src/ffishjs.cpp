@@ -329,7 +329,7 @@ public:
   }
 
   bool is_check() const {
-    return Stockfish::is_check(pos);
+    return Stockfish::checked(pos);
   }
 
   bool is_bikjang() const {

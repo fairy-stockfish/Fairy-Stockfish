@@ -983,41 +983,39 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
   return attackers_to(s, occupied, WHITE) | attackers_to(s, occupied, BLACK);
 }
 
-/// Position::attackers_to_pseudo_royals computes a bitboard of all pieces
-/// of a particular color attacking at least one opposing pseudo-royal piece
-Bitboard Position::attackers_to_pseudo_royals(Color c) const {
+/// Position::checked_pseudo_royals computes a bitboard of
+/// all pseudo-royal pieces of a particular color that are under attack
+Bitboard Position::checked_pseudo_royals(Color c) const {
   assert(extinction_pseudo_royal());
-  Bitboard attackers = 0;
-  Bitboard pseudoRoyals = st->pseudoRoyals & pieces(~c);
-  Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(c);
+  Bitboard checked = 0;
+  Bitboard pseudoRoyals = st->pseudoRoyals & pieces(c);
+  Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~c);
   while (pseudoRoyals)
   {
       Square sr = pop_lsb(pseudoRoyals);
-      if (   blast_on_capture()
-          && pseudoRoyalsTheirs & attacks_bb<KING>(sr))
-          // skip if capturing this piece would blast all of the attacker's pseudo-royal pieces
-          continue;
-      attackers |= attackers_to(sr, c);
+      // skip if capturing this piece would blast any of the attacker's pseudo-royal pieces
+      if (!(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+          && attackers_to(sr, ~c))
+          checked |= sr;
   }
   // Look for duple check
   if (var->dupleCheck)
   {
-      Bitboard b;
-      Bitboard allAttackers = 0;
-      Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(~c);
+      Bitboard allAttacked = 0;
+      Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(c);
       while (pseudoRoyalCandidates)
       {
           Square sr = pop_lsb(pseudoRoyalCandidates);
           if (!(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
-              && (b = attackers_to(sr, c)))
-              allAttackers |= b;
+              && attackers_to(sr, ~c))
+              allAttacked |= sr;
           else
               // If at least one isn't attacked, it is not a duple check
-              return attackers;
+              return checked;
       }
-      attackers |= allAttackers;
+      checked |= allAttacked;
   }
-  return attackers;
+  return checked;
 }
 
 
