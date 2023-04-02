@@ -495,8 +495,29 @@ describe('board.isCheck()', function () {
     board.setFen("8/8/kK6/8/8/8/Q7/8 b - - 0 1")
     chai.expect(board.isCheck()).to.equal(false);
     board.delete();
-  });
-});
+
+    board = new ffish.Board("spartan");
+    board.setFen("lgkcckw1/hhhhhhhh/1N3lN1/8/8/8/PPPPPPPP/R1BQKB1R b KQ - 11 6");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.setFen("lgkcckwl/hhhhhhhh/6N1/8/8/8/PPPPPPPP/RNBQKB1R b KQ - 5 3")
+    chai.expect(board.isCheck()).to.equal(false);
+    board.setFen("lgkcckwl/hhhhhhhh/8/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1")
+    chai.expect(board.isCheck()).to.equal(false);
+    board.delete();
+
+    board = new ffish.Board("shako");
+    board.setFen("10/5r4/2p3pBk1/1p6Pr/p3p5/9e/1PP2P4/P2P2PP2/ER3K2R1/8C1 w K - 7 38")
+    board.pushMoves("f2h2");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.delete();
+
+    board = new ffish.Board("janggi");
+    board.setFen("4ka3/4a4/9/4R4/2B6/9/9/5K3/4p4/3r5 b - - 0 113")
+    board.pushMoves("e2f2");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.delete();
+  })
+})
 
 describe('board.isBikjang()', function () {
   it("it checks if a player is in bikjang (only relevant for janggi)", () => {
