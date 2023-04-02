@@ -965,6 +965,18 @@ namespace {
         v->promotionPieceTypes[BLACK] = piece_set(CHANCELLOR) | ROOK | BISHOP | KNIGHT;
         return v;
     }
+    // Sort of almost chess
+    // One queen is replaced by a chancellor
+    // https://en.wikipedia.org/wiki/Almost_chess#Sort_of_almost_chess
+    Variant* sortofalmost_variant() {
+        Variant* v = chess_variant();
+        v->pieceToCharTable = "PNBRQ...........CKpnbrq...........ck";
+        v->add_piece(CHANCELLOR, 'c');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBCKBNR w KQkq - 0 1";
+        v->promotionPieceTypes[WHITE] = piece_set(CHANCELLOR) | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT;
+        return v;
+    }
     // Chigorin chess
     // Asymmetric variant with knight vs. bishop movements
     // https://www.chessvariants.com/diffsetup.dir/chigorin.html
@@ -1807,6 +1819,7 @@ void VariantMap::init() {
     add("losalamos", losalamos_variant());
     add("gardner", gardner_variant());
     add("almost", almost_variant());
+    add("sortofalmost", sortofalmost_variant());
     add("chigorin", chigorin_variant());
     add("perfect", perfect_variant());
     add("spartan", spartan_variant());

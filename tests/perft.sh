@@ -60,7 +60,12 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp sittuyin "fen 2r5/6k1/6p1/3s2P1/3npR2/8/p2N2F1/3K4[] w - - 1 50" 4 373984 > /dev/null
   expect perft.exp sittuyin "fen 8/6s1/5P2/3n4/pR2K2S/1P6/1k4p1/8[] w - - 1 50" 4 268869 > /dev/null
   expect perft.exp sittuyin "fen 1k5K/3r2P1/8/8/8/8/8/8[] w - - 0 1" 5 68662 > /dev/null
-  expect perft.exp chigorin "fen 8/7P/2k5/8/8/5K2/p7/8 w - - 0 1" 2 120 > /dev/null
+  expect perft.exp almost startpos 3 11895 > /dev/null
+  expect perft.exp almost "fen 8/1k5P/8/8/8/3K4/p7/8 b - - 0 1" 2 140 > /dev/null
+  expect perft.exp sortofalmost startpos 3 10815 > /dev/null
+  expect perft.exp sortofalmost "fen 8/1k5P/8/8/8/3K4/p7/8 b - - 0 1" 2 139 > /dev/null
+  expect perft.exp chigorin startpos 3 11408 > /dev/null
+  expect perft.exp chigorin "fen 8/1k5P/8/8/8/3K4/p7/8 b - - 0 1" 2 117 > /dev/null
   expect perft.exp perfect startpos 3 15082 > /dev/null
   expect perft.exp perfect "fen c3k2r/pppppppp/8/8/8/8/PPPPPPPP/C3K2R w KQkq - 0 1" 3 17500 > /dev/null
   expect perft.exp spartan startpos 3 14244 > /dev/null
