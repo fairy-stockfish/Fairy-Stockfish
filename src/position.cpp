@@ -1099,7 +1099,11 @@ bool Position::legal(Move m) const {
   if (var->extinctionPseudoRoyal)
   {
       Square kto = to;
-      Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | kto;
+      Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces());
+      if (var->duckGating)
+          occupied ^= st->wallSquares;
+      if (wall_gating() || is_gating(m))
+          occupied |= gating_square(m);
       if (type_of(m) == CASTLING)
       {
           // After castling, the rook and king final positions are the same in
@@ -1111,10 +1115,12 @@ bool Position::legal(Move m) const {
           if (st->pseudoRoyals & from)
               for (Square s = from; s != kto; s += step)
                   if (  !(blast_on_capture() && (attacks_bb<KING>(s) & st->pseudoRoyals & pieces(~sideToMove)))
-                      && attackers_to(s, pieces() ^ from, ~us))
+                      && attackers_to(s, occupied, ~us))
                       return false;
-          occupied = (pieces() ^ from ^ to) | kto | rto;
+          // Move the rook
+          occupied ^= to | rto;
       }
+      occupied |= kto;
       if (type_of(m) == EN_PASSANT)
           occupied &= ~square_bb(capture_square(kto));
       if (capture(m) && blast_on_capture())
