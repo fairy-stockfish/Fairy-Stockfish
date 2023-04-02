@@ -328,6 +328,18 @@ public:
       return "0-1";
   }
 
+  std::string checked_pieces() const {
+    Bitboard checked = Stockfish::checked(pos);
+    std::string squares;
+    while (checked) {
+      Square sr = pop_lsb(checked);
+      squares += UCI::square(pos, sr);
+      squares += DELIM;
+    }
+    save_pop_back(squares);
+    return squares;
+  }
+
   bool is_check() const {
     return Stockfish::checked(pos);
   }
@@ -706,6 +718,7 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("isGameOver", select_overload<bool(bool) const>(&Board::is_game_over))
     .function("result", select_overload<std::string() const>(&Board::result))
     .function("result", select_overload<std::string(bool) const>(&Board::result))
+    .function("checkedPieces", &Board::checked_pieces)
     .function("isCheck", &Board::is_check)
     .function("isBikjang", &Board::is_bikjang)
     .function("isCapture", &Board::is_capture)
