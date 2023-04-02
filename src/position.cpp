@@ -984,7 +984,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 }
 
 /// Position::checked_pseudo_royals computes a bitboard of
-/// all pseudo-royal pieces of a particular color that are under attack
+/// all pseudo-royal pieces of a particular color that are in check
 Bitboard Position::checked_pseudo_royals(Color c) const {
   assert(extinction_pseudo_royal());
   Bitboard checked = 0;
