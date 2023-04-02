@@ -474,6 +474,51 @@ describe('board.result()', function () {
   })
 })
 
+describe('board.checkedPieces()', function () {
+  it("it returns the squares of all checked royal pieces in a concatenated string", () => {
+    let board = new ffish.Board();
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.setFen("rnbqkb1r/pppp1Bpp/5n2/4p3/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 0 3");
+    chai.expect(board.checkedPieces()).to.equal("e8");
+    board.setFen("r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4");
+    board.pushSan("Qxf7#");
+    chai.expect(board.checkedPieces()).to.equal("e8");
+    board.delete();
+
+    board = new ffish.Board("atomic");
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.setFen("rnbqkbnr/ppp1pppp/8/1B1p4/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 3 2");
+    chai.expect(board.checkedPieces()).to.equal("e8");
+    board.setFen("rnbqkbnr/ppp2ppp/8/8/8/8/PPP2PPP/RNBQKBNR w KQkq - 0 4");
+    board.pushSan("Qd7");
+    chai.expect(board.checkedPieces()).to.equal("e8");
+    board.setFen("8/8/kK6/8/8/8/Q7/8 b - - 0 1")
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.delete();
+
+    board = new ffish.Board("spartan");
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.setFen("lgkcckw1/hhhhhhhh/1N3lN1/8/8/8/PPPPPPPP/R1BQKB1R b KQ - 11 6");
+    chai.expect(board.checkedPieces().split(' ').sort().join()).to.equal("c8,f8");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.setFen("lgkcckwl/hhhhhhhh/6N1/8/8/8/PPPPPPPP/RNBQKB1R b KQ - 5 3")
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.delete();
+
+    board = new ffish.Board("shako");
+    board.setFen("10/5r4/2p3pBk1/1p6Pr/p3p5/9e/1PP2P4/P2P2PP2/ER3K2R1/8C1 w K - 7 38")
+    board.pushMoves("f2h2");
+    chai.expect(board.checkedPieces()).to.equal("i8");
+    board.delete();
+
+    board = new ffish.Board("janggi");
+    board.setFen("4ka3/4a4/9/4R4/2B6/9/9/5K3/4p4/3r5 b - - 0 113")
+    board.pushMoves("e2f2");
+    chai.expect(board.checkedPieces()).to.equal("f3");
+    board.delete();
+  })
+})
+
 describe('board.isCheck()', function () {
   it("it checks if a player is in check", () => {
     let board = new ffish.Board();
