@@ -74,6 +74,9 @@ startFen = rbnkbr/pppppp/6/6/PPPPPP/RBNKBR w KQkq - 0 1
 [passchess:chess]
 pass = true
 
+[royalduck:duck]
+extinctionPseudoRoyal = true
+
 [makhouse:makruk]
 startFen = rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR[] w - - 0 1
 pieceDrops = true
@@ -935,6 +938,12 @@ class TestPyffish(unittest.TestCase):
         # stalemate
         result = sf.game_result("atomic", "KQ6/Rk6/2B5/8/8/8/8/8 b - - 0 1", [])
         self.assertEqual(result, sf.VALUE_DRAW)
+
+        # royalduck checkmate and stalemate
+        result = sf.game_result("royalduck", "r1bqkbnr/pp1*p1p1/n2p1pQp/1Bp5/8/2N1PN2/PPPP1PPP/R1B1K2R b KQkq - 1 6", [])
+        self.assertEqual(result, -sf.VALUE_MATE)
+        result = sf.game_result("royalduck", "rnbqk1nr/pppp1ppp/4p3/8/7P/5Pb1/PPPPP*P1/RNBQKBNR w KQkq - 1 4", [])
+        self.assertEqual(result, sf.VALUE_MATE)
 
     def test_is_immediate_game_end(self):
         result = sf.is_immediate_game_end("capablanca", CAPA, [])
