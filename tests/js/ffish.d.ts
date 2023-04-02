@@ -59,6 +59,7 @@ export interface Board {
     isInsufficientMaterial(): boolean;
     isGameOver(claimDraw?: boolean): boolean;
     result(claimDraw?: boolean): string;
+    checkedPieces(): string;
     isCheck(): boolean;
     isBikjang(): boolean;
     isCapture(uciMove: string): boolean;

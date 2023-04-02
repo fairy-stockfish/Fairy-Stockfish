@@ -407,9 +407,9 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     return true;
 }
 
-inline bool is_check(const Position& pos) {
-    return pos.checkers()
-        || (pos.extinction_pseudo_royal() && pos.attackers_to_pseudo_royals(~pos.side_to_move()));
+inline Bitboard checked(const Position& pos) {
+    return (pos.checkers() ? square_bb(pos.square<KING>(pos.side_to_move())) : Bitboard(0))
+        | (pos.extinction_pseudo_royal() ? pos.checked_pseudo_royals(pos.side_to_move()) : Bitboard(0));
 }
 
 namespace FEN {
