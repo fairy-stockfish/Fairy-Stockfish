@@ -2635,15 +2635,15 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   // capture the flag
   if (   capture_the_flag_piece()
       && flag_move()
-      && (popcount(capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece()))>=num_flag()))
+      && (popcount(capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece()))>=flag_piece_count()))
   {
-      result =  (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=num_flag())
+      result =  (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count())
               && sideToMove == WHITE ? VALUE_DRAW : mate_in(ply);
       return true;
   }
   if (   capture_the_flag_piece()
       && (!flag_move() || capture_the_flag_piece() == KING)
-      && (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=num_flag()) )
+      && (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count()) )
   {
       bool gameEnd = true;
       // Check whether king can move to CTF zone
