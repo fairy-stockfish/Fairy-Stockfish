@@ -141,6 +141,7 @@ struct Variant {
   int extinctionOpponentPieceCount = 0;
   PieceType flagPiece = NO_PIECE_TYPE;
   Bitboard flagRegion[COLOR_NB] = {};
+  int numFlag = 1;
   bool flagMove = false;
   bool checkCounting = false;
   int connectN = 0;
