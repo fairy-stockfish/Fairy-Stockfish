@@ -388,7 +388,7 @@ namespace {
                 target = pos.checkers();
         }
 
-        // Remove inaccesible squares (outside board + wall squares)
+        // Remove inaccessible squares (outside board + wall squares)
         target &= pos.board_bb();
 
         moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
