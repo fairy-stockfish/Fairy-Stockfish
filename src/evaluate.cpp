@@ -496,15 +496,15 @@ namespace {
         {
             Bitboard zone = pos.promotion_zone(Us);
             if (zone & (b | s))
-                score += make_score(EvalPieceValue[MG][pos.promoted_piece_type(Pt)] - EvalPieceValue[MG][Pt],
-                                    EvalPieceValue[EG][pos.promoted_piece_type(Pt)] - EvalPieceValue[EG][Pt]) / (zone & s && b ? 2 : 4);
+                score += make_score(PieceValue[MG][pos.promoted_piece_type(Pt)] - PieceValue[MG][Pt],
+                                    PieceValue[EG][pos.promoted_piece_type(Pt)] - PieceValue[EG][Pt]) / (zone & s && b ? 6 : 12);
         }
         else if (pos.piece_demotion() && pos.unpromoted_piece_on(s))
-            score -= make_score(EvalPieceValue[MG][Pt] - EvalPieceValue[MG][pos.unpromoted_piece_on(s)],
-                                EvalPieceValue[EG][Pt] - EvalPieceValue[EG][pos.unpromoted_piece_on(s)]) / 2;
+            score -= make_score(PieceValue[MG][Pt] - PieceValue[MG][pos.unpromoted_piece_on(s)],
+                                PieceValue[EG][Pt] - PieceValue[EG][pos.unpromoted_piece_on(s)]) / 4;
         else if (pos.captures_to_hand() && pos.unpromoted_piece_on(s))
-            score += make_score(EvalPieceValue[MG][Pt] - EvalPieceValue[MG][pos.unpromoted_piece_on(s)],
-                                EvalPieceValue[EG][Pt] - EvalPieceValue[EG][pos.unpromoted_piece_on(s)]) / 3;
+            score += make_score(PieceValue[MG][Pt] - PieceValue[MG][pos.unpromoted_piece_on(s)],
+                                PieceValue[EG][Pt] - PieceValue[EG][pos.unpromoted_piece_on(s)]) / 8;
 
         // Penalty if the piece is far from the kings in drop variants
         if ((pos.captures_to_hand() || pos.two_boards()) && pos.count<KING>(Them) && pos.count<KING>(Us))
@@ -639,8 +639,8 @@ namespace {
 
         // Bonus for Kyoto shogi style drops of promoted pieces
         if (pos.promoted_piece_type(pt) != NO_PIECE_TYPE && pos.drop_promoted())
-            score += make_score(std::max(EvalPieceValue[MG][pos.promoted_piece_type(pt)] - EvalPieceValue[MG][pt], VALUE_ZERO),
-                                std::max(EvalPieceValue[EG][pos.promoted_piece_type(pt)] - EvalPieceValue[EG][pt], VALUE_ZERO)) / 4 * pos.count_in_hand(Us, pt);
+            score += make_score(std::max(PieceValue[MG][pos.promoted_piece_type(pt)] - PieceValue[MG][pt], VALUE_ZERO),
+                                std::max(PieceValue[EG][pos.promoted_piece_type(pt)] - PieceValue[EG][pt], VALUE_ZERO)) / 4 * pos.count_in_hand(Us, pt);
 
         // Mobility bonus for reversi variants
         if (pos.enclosing_drop())
@@ -761,7 +761,7 @@ namespace {
             PieceType pt = pop_lsb(ps);
             if (pos.count_in_hand(Them, pt) <= 0 && (attacks_bb(Us, pt, ksq, pos.pieces()) & safe & pos.drop_region(Them, pt) & ~pos.pieces()))
             {
-                kingDanger += VirtualCheck * 500 / (500 + EvalPieceValue[MG][pt]);
+                kingDanger += VirtualCheck * 500 / (500 + PieceValue[MG][pt]);
                 // Presumably a mate threat
                 if (!(attackedBy[Us][KING] & ~(attackedBy[Them][ALL_PIECES] | pos.pieces(Us))))
                     kingDanger += 2000;
@@ -1093,8 +1093,8 @@ namespace {
         maxMg = std::max(maxMg, PieceValue[MG][pt]);
         maxEg = std::max(maxEg, PieceValue[EG][pt]);
     }
-    score = make_score(mg_value(score) * int(maxMg - PieceValue[MG][PAWN]) / (QueenValueMg - PawnValueMg),
-                       eg_value(score) * int(maxEg - PieceValue[EG][PAWN]) / (QueenValueEg - PawnValueEg));
+    score = make_score(mg_value(score) * int(maxMg - PawnValueMg) / (QueenValueMg - PawnValueMg),
+                       eg_value(score) * int(maxEg - PawnValueEg) / (QueenValueEg - PawnValueEg));
 
     // Score passed shogi pawns
     PieceType pt = pos.promoted_piece_type(SHOGI_PAWN);
@@ -1110,7 +1110,7 @@ namespace {
             Square blockSq = s + Up;
             int d = 2 * std::max(relative_rank(Us, pos.promotion_square(Us, s), pos.max_rank()) - relative_rank(Us, s, pos.max_rank()), 1);
             d += !!(attackedBy[Them][ALL_PIECES] & ~attackedBy2[Us] & blockSq);
-            score += make_score(EvalPieceValue[MG][pt], EvalPieceValue[EG][pt]) * 3 / (d * d);
+            score += make_score(PieceValue[MG][pt], PieceValue[EG][pt]) / (d * d);
         }
     }
 
@@ -1242,8 +1242,8 @@ namespace {
                 // Single piece type extinction bonus
                 int denom = std::max(pos.count(Us, pt) - pos.extinction_piece_count(), 1);
                 if (pos.count(Them, pt) >= pos.extinction_opponent_piece_count() || pos.two_boards())
-                    score += make_score(1000000 / (500 + EvalPieceValue[MG][pt]),
-                                        1000000 / (500 + EvalPieceValue[EG][pt])) / (denom * denom)
+                    score += make_score(1000000 / (500 + PieceValue[MG][pt]),
+                                        1000000 / (500 + PieceValue[EG][pt])) / (denom * denom)
                             * (pos.extinction_value() / VALUE_MATE);
             }
             else if (pos.extinction_value() == VALUE_MATE)
