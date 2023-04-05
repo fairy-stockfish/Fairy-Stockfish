@@ -2682,8 +2682,19 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       return true;
   }
   if (   capture_the_flag_piece()
-      && (!flag_move() || capture_the_flag_piece() == KING)
-      && (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count()) )
+      && (!flag_move() || capture_the_flag_piece() == KING) //if black doesn't get an extra move to draw, or flag piece is king,
+      && ( //-and-
+           (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count()) // you have >= number of pieces needed to win
+           || //-or-
+           (
+               (flag_piece_blocked_win()) //flagPieceBlockedWin variant option true
+             && //-and-
+               (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())) >=1) //at least one piece in flag zone
+             && //-and-
+               (popcount(capture_the_flag(~sideToMove) & ~pieces()) ==0) //no empty squares in flag zone
+           )
+         )
+     )
   {
       bool gameEnd = true;
       // Check whether king can move to CTF zone

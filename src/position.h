@@ -202,6 +202,7 @@ public:
   bool flag_move() const;
   bool check_counting() const;
   int flag_piece_count() const;
+  bool flag_piece_blocked_win() const;
   int connect_n() const;
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
@@ -934,6 +935,11 @@ inline bool Position::flag_move() const {
 inline int Position::flag_piece_count() const {
   assert(var != nullptr);
   return var->flagPieceCount;
+}
+
+inline bool Position::flag_piece_blocked_win() const {
+  assert(var != nullptr);
+  return var->flagPieceBlockedWin;
 }
 
 inline bool Position::check_counting() const {

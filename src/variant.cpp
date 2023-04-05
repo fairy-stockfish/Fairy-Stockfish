@@ -553,6 +553,7 @@ namespace {
         v->flagRegion[WHITE] = make_bitboard(SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_A4, SQ_E4);
         v->flagRegion[BLACK] = make_bitboard(SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_A2, SQ_E2);
         v->flagPieceCount = 7;
+        v->flagPieceBlockedWin = true;
         return v;
     }
 
