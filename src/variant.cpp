@@ -542,21 +542,6 @@ namespace {
         return v;
     }
 
-    Variant* kono_variant() { //https://en.wikipedia.org/wiki/Five_Field_Kono
-        Variant* v = chess_variant_base()->init();
-        v->maxRank = RANK_5;
-        v->maxFile = FILE_E;
-        v->reset_pieces();
-        v->add_piece(CUSTOM_PIECE_1, 'p', "mF"); //diagonally, no capture
-        v->startFen = "ppppp/p3p/5/P3P/PPPPP w - - 0 1";
-        v->flagPiece = CUSTOM_PIECE_1;
-        v->flagRegion[WHITE] = make_bitboard(SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_A4, SQ_E4);
-        v->flagRegion[BLACK] = make_bitboard(SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_A2, SQ_E2);
-        v->flagPieceCount = 7;
-        v->flagPieceBlockedWin = true;
-        return v;
-    }
-
     Variant* fox_and_hounds_variant() { //https://boardgamegeek.com/boardgame/148180/fox-and-hounds
         Variant* v = chess_variant_base()->init();
         v->reset_pieces();
@@ -1583,7 +1568,7 @@ namespace {
         v->remove_piece(KNIGHT);
         v->add_piece(CHANCELLOR, 'w'); // wolf
         v->add_piece(ARCHBISHOP, 'f'); // fox
-        v->add_piece(CUSTOM_PIECE_1, 's', "fKifmnD"); // seargent
+        v->add_piece(CUSTOM_PIECE_1, 's', "fKifmnD"); // sergeant
         v->add_piece(CUSTOM_PIECE_2, 'n', "NN"); // nightrider
         v->add_piece(CUSTOM_PIECE_3, 'e', "NNQ"); // elephant
         v->startFen = "qwfrbbnk/pssppssp/1pp2pp1/8/8/8/8/1PP2PP1/PSSPPSSP/KNBBRFWQ w - - 0 1";
@@ -1817,7 +1802,6 @@ void VariantMap::init() {
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
     add("fox-and-hounds", fox_and_hounds_variant());
-    add("kono", kono_variant());
 #ifdef ALLVARS
     add("duck", duck_variant());
 #endif

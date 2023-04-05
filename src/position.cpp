@@ -2675,10 +2675,36 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   // capture the flag
   if (   capture_the_flag_piece()
       && flag_move()
-      && (popcount(capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece()))>=flag_piece_count()))
+      && (
+           (popcount(capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece()))>=flag_piece_count()) // opponent has >= number of pieces needed to win
+           || //-or-
+           (
+             (flag_piece_blocked_win()) //flagPieceBlockedWin variant option true
+             && //-and-
+             (popcount(capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece())) >=1) //at least one piece in flag zone
+             && //-and-
+             (popcount(capture_the_flag(sideToMove) & ~pieces()) ==0) //no empty squares in flag zone
+           )
+         )
+     )
   {
-      result =  (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count())
-              && sideToMove == WHITE ? VALUE_DRAW : mate_in(ply);
+      result =
+           (
+             (
+               (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count()) // you have >= number of pieces needed to win
+               || //-or-
+               (
+                 (flag_piece_blocked_win()) //flagPieceBlockedWin variant option true
+                 && //-and-
+                 (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())) >=1) //at least one piece in flag zone
+                 && //-and-
+                 (popcount(capture_the_flag(~sideToMove) & ~pieces()) ==0) //no empty squares in flag zone
+               )
+             )
+             &&
+               (sideToMove == WHITE) //opponent is white
+           )
+           ? VALUE_DRAW : mate_in(ply); //then it's a draw, otherwise, win
       return true;
   }
   if (   capture_the_flag_piece()
