@@ -2552,8 +2552,8 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
       {
           StateInfo* stp = st->previous->previous;
           int cnt = 0;
-          bool perpetualThem = st->checkersBB && stp->checkersBB;
-          bool perpetualUs = st->previous->checkersBB && stp->previous->checkersBB;
+          bool perpetualThem = var->perpetualCheckIllegal && st->checkersBB && stp->checkersBB;
+          bool perpetualUs = var->perpetualCheckIllegal && st->previous->checkersBB && stp->previous->checkersBB;
           Bitboard chaseThem = undo_move_board(st->chased, st->previous->move) & stp->chased;
           Bitboard chaseUs = undo_move_board(st->previous->chased, stp->move) & stp->previous->chased;
           int moveRepetition = var->moveRepetitionIllegal
@@ -2597,10 +2597,10 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
               // Return a draw score if a position repeats once earlier but strictly
               // after the root, or repeats twice before or at the root.
               if (   stp->key == st->key
-                  && ++cnt + 1 == (ply > i && !var->moveRepetitionIllegal ? 2 : n_fold_rule()))
+                  && ++cnt + 1 >= (ply > i && !moveRepetition && !chaseUs && !chaseThem && !perpetualUs && !perpetualThem ? 2 : n_fold_rule()))
               {
-                  result = convert_mate_value(  var->perpetualCheckIllegal && (perpetualThem || perpetualUs) ? (!perpetualUs ? VALUE_MATE : !perpetualThem ? -VALUE_MATE : VALUE_DRAW)
-                                              : var->chasingRule && (chaseThem || chaseUs) ? (!chaseUs ? VALUE_MATE : !chaseThem ? -VALUE_MATE : VALUE_DRAW)
+                  result = convert_mate_value(  (perpetualThem || perpetualUs) ? (!perpetualUs ? VALUE_MATE : !perpetualThem ? -VALUE_MATE : VALUE_DRAW)
+                                              : (chaseThem || chaseUs) ? (!chaseUs ? VALUE_MATE : !chaseThem ? -VALUE_MATE : VALUE_DRAW)
                                               : var->nFoldValueAbsolute && sideToMove == BLACK ? -var->nFoldValue
                                               : var->nFoldValue, ply);
                   if (result == VALUE_DRAW && var->materialCounting)
