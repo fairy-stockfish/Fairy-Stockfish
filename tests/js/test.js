@@ -474,6 +474,51 @@ describe('board.result()', function () {
   })
 })
 
+describe('board.checkedPieces()', function () {
+  it("it returns the squares of all checked royal pieces in a concatenated string", () => {
+    let board = new ffish.Board();
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.setFen("rnbqkb1r/pppp1Bpp/5n2/4p3/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 0 3");
+    chai.expect(board.checkedPieces()).to.equal("e8");
+    board.setFen("r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4");
+    board.pushSan("Qxf7#");
+    chai.expect(board.checkedPieces()).to.equal("e8");
+    board.delete();
+
+    board = new ffish.Board("atomic");
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.setFen("rnbqkbnr/ppp1pppp/8/1B1p4/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 3 2");
+    chai.expect(board.checkedPieces()).to.equal("e8");
+    board.setFen("rnbqkbnr/ppp2ppp/8/8/8/8/PPP2PPP/RNBQKBNR w KQkq - 0 4");
+    board.pushSan("Qd7");
+    chai.expect(board.checkedPieces()).to.equal("e8");
+    board.setFen("8/8/kK6/8/8/8/Q7/8 b - - 0 1")
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.delete();
+
+    board = new ffish.Board("spartan");
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.setFen("lgkcckw1/hhhhhhhh/1N3lN1/8/8/8/PPPPPPPP/R1BQKB1R b KQ - 11 6");
+    chai.expect(board.checkedPieces().split(' ').sort().join()).to.equal("c8,f8");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.setFen("lgkcckwl/hhhhhhhh/6N1/8/8/8/PPPPPPPP/RNBQKB1R b KQ - 5 3")
+    chai.expect(board.checkedPieces()).to.equal("");
+    board.delete();
+
+    board = new ffish.Board("shako");
+    board.setFen("10/5r4/2p3pBk1/1p6Pr/p3p5/9e/1PP2P4/P2P2PP2/ER3K2R1/8C1 w K - 7 38")
+    board.pushMoves("f2h2");
+    chai.expect(board.checkedPieces()).to.equal("i8");
+    board.delete();
+
+    board = new ffish.Board("janggi");
+    board.setFen("4ka3/4a4/9/4R4/2B6/9/9/5K3/4p4/3r5 b - - 0 113")
+    board.pushMoves("e2f2");
+    chai.expect(board.checkedPieces()).to.equal("f3");
+    board.delete();
+  })
+})
+
 describe('board.isCheck()', function () {
   it("it checks if a player is in check", () => {
     let board = new ffish.Board();
@@ -495,8 +540,29 @@ describe('board.isCheck()', function () {
     board.setFen("8/8/kK6/8/8/8/Q7/8 b - - 0 1")
     chai.expect(board.isCheck()).to.equal(false);
     board.delete();
-  });
-});
+
+    board = new ffish.Board("spartan");
+    board.setFen("lgkcckw1/hhhhhhhh/1N3lN1/8/8/8/PPPPPPPP/R1BQKB1R b KQ - 11 6");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.setFen("lgkcckwl/hhhhhhhh/6N1/8/8/8/PPPPPPPP/RNBQKB1R b KQ - 5 3")
+    chai.expect(board.isCheck()).to.equal(false);
+    board.setFen("lgkcckwl/hhhhhhhh/8/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1")
+    chai.expect(board.isCheck()).to.equal(false);
+    board.delete();
+
+    board = new ffish.Board("shako");
+    board.setFen("10/5r4/2p3pBk1/1p6Pr/p3p5/9e/1PP2P4/P2P2PP2/ER3K2R1/8C1 w K - 7 38")
+    board.pushMoves("f2h2");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.delete();
+
+    board = new ffish.Board("janggi");
+    board.setFen("4ka3/4a4/9/4R4/2B6/9/9/5K3/4p4/3r5 b - - 0 113")
+    board.pushMoves("e2f2");
+    chai.expect(board.isCheck()).to.equal(true);
+    board.delete();
+  })
+})
 
 describe('board.isBikjang()', function () {
   it("it checks if a player is in bikjang (only relevant for janggi)", () => {
@@ -788,7 +854,7 @@ describe('ffish.readGamePGN(pgn)', function () {
      let pgnFiles = ['deep_blue_kasparov_1997.pgn', 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn', 'c60_ruy_lopez.pgn', 'pychess-variants_zJxHRVm1.pgn', 'Syrov - Dgebuadze.pgn', 'pychess-variants_YHEWvfWF.pgn']
 
      let expectedFens = ["1r6/5kp1/RqQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 b - - 14 45",
-                         "3r2kr/2pb1Q2/4ppp1/3pN2p/1P1P4/3PbP2/P1P3PP/6NK[PPqrrbbnn] b - - 1 37",
+                         "3r2kr/2pb1Q2/4ppp1/3pN2p/1P1P4/3PbP2/P1P3PP/6NK[PPqrrbbnn] b - - 0 37",
                          "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
                          "r1bQkb1r/ppp1pppp/2P5/2n2q2/8/2N2N2/PPP2PPP/R1BEKB1R[Hh] b KQCFkqcf - 0 8",
                          "5rk1/4p3/2p3rR/2p1P3/2Pp1B2/1P1P2P1/2N1n3/6K1 w - - 1 44",

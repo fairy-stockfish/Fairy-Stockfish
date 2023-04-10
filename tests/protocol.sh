@@ -49,6 +49,17 @@ cat << EOF > ucicyclone.exp
    expect eof
 EOF
 
+cat << EOF > ucicyclone2.exp
+   spawn ./stockfish ucicyclone
+   send "uci\\n"
+   expect "uciok"
+   send "position startpos\\n"
+   send "d\\n"
+   expect "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+   send "quit\\n"
+   expect eof
+EOF
+
 cat << EOF > xboard.exp
    spawn ./stockfish load variants.ini
    send "xboard\\n"
@@ -64,7 +75,7 @@ cat << EOF > xboard.exp
    expect eof
 EOF
 
-for exp in uci.exp ucci.exp usi.exp ucicyclone.exp xboard.exp
+for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp xboard.exp
 do
   echo "Testing $exp"
   timeout 5 expect $exp > /dev/null

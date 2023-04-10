@@ -77,6 +77,8 @@ struct Variant {
   Rank castlingRank = RANK_1;
   File castlingKingFile = FILE_E;
   PieceType castlingKingPiece[COLOR_NB] = {KING, KING};
+  File castlingRookKingsideFile = FILE_MAX; // only has to match if rook is not in corner in non-960 variants
+  File castlingRookQueensideFile = FILE_A; // only has to match if rook is not in corner in non-960 variants
   PieceSet castlingRookPieces[COLOR_NB] = {piece_set(ROOK), piece_set(ROOK)};
   PieceType kingType = KING;
   bool checking = true;
@@ -141,6 +143,7 @@ struct Variant {
   int extinctionOpponentPieceCount = 0;
   PieceType flagPiece = NO_PIECE_TYPE;
   Bitboard flagRegion[COLOR_NB] = {};
+  int flagPieceCount = 1;
   bool flagMove = false;
   bool checkCounting = false;
   int connectN = 0;

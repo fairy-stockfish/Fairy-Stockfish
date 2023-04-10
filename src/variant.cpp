@@ -115,7 +115,7 @@ namespace {
         v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECE_1;
         v->promotionPawnTypes[WHITE] = v->promotionPawnTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->enPassantTypes[WHITE] = v->enPassantTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
-        v->nMoveRuleTypes[WHITE] = v->nMoveRuleTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
+        v->nMoveRuleTypes[WHITE] = v->nMoveRuleTypes[BLACK] = NO_PIECE_SET; // backwards pawn moves are reversible
         return v;
     }
     // Legan Chess
@@ -542,6 +542,32 @@ namespace {
         return v;
     }
 
+    Variant* kono_variant() { //https://en.wikipedia.org/wiki/Five_Field_Kono
+        Variant* v = chess_variant_base()->init();
+        v->maxRank = RANK_5;
+        v->maxFile = FILE_E;
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECE_1, 'p', "mF"); //diagonally, no capture
+        v->startFen = "ppppp/p3p/5/P3P/PPPPP w - - 0 1";
+        v->flagPiece = CUSTOM_PIECE_1;
+        v->flagRegion[WHITE] = make_bitboard(SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_A4, SQ_E4);
+        v->flagRegion[BLACK] = make_bitboard(SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_A2, SQ_E2);
+        v->flagPieceCount = 7;
+        return v;
+    }
+
+    Variant* fox_and_hounds_variant() { //https://boardgamegeek.com/boardgame/148180/fox-and-hounds
+        Variant* v = chess_variant_base()->init();
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECE_1, 'h', "mfF"); //Hound
+        v->add_piece(CUSTOM_PIECE_2, 'f', "mF"); //Fox
+        v->startFen = "1h1h1h1h/8/8/8/8/8/8/4F3 w - - 0 1";
+        v->stalemateValue = -VALUE_MATE;
+        v->flagPiece = CUSTOM_PIECE_2;
+        v->flagRegion[WHITE] = Rank8BB;
+        return v;
+    }
+
     // Three-check chess
     // Check the king three times to win
     // https://lichess.org/variant/threeCheck
@@ -963,6 +989,18 @@ namespace {
         v->startFen = "rnbckbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBCKBNR w KQkq - 0 1";
         v->promotionPieceTypes[WHITE] = piece_set(CHANCELLOR) | ROOK | BISHOP | KNIGHT;
         v->promotionPieceTypes[BLACK] = piece_set(CHANCELLOR) | ROOK | BISHOP | KNIGHT;
+        return v;
+    }
+    // Sort of almost chess
+    // One queen is replaced by a chancellor
+    // https://en.wikipedia.org/wiki/Almost_chess#Sort_of_almost_chess
+    Variant* sortofalmost_variant() {
+        Variant* v = chess_variant();
+        v->pieceToCharTable = "PNBRQ...........CKpnbrq...........ck";
+        v->add_piece(CHANCELLOR, 'c');
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBCKBNR w KQkq - 0 1";
+        v->promotionPieceTypes[WHITE] = piece_set(CHANCELLOR) | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Chigorin chess
@@ -1579,6 +1617,8 @@ namespace {
         v->promotionRegion[BLACK] = Rank1BB;
         v->castlingKingsideFile = FILE_H;
         v->castlingQueensideFile = FILE_D;
+        v->castlingRookKingsideFile = FILE_I;
+        v->castlingRookQueensideFile = FILE_B;
         v->castlingRank = RANK_2;
         v->doubleStepRegion[WHITE] = Rank3BB;
         v->doubleStepRegion[BLACK] = Rank8BB;
@@ -1775,6 +1815,8 @@ void VariantMap::init() {
     add("isolation", isolation_variant());
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
+    add("fox-and-hounds", fox_and_hounds_variant());
+    add("kono", kono_variant());
 #ifdef ALLVARS
     add("duck", duck_variant());
 #endif
@@ -1805,6 +1847,7 @@ void VariantMap::init() {
     add("losalamos", losalamos_variant());
     add("gardner", gardner_variant());
     add("almost", almost_variant());
+    add("sortofalmost", sortofalmost_variant());
     add("chigorin", chigorin_variant());
     add("perfect", perfect_variant());
     add("spartan", spartan_variant());

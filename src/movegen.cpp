@@ -263,7 +263,8 @@ namespace {
 
             Bitboard b = pawns & pawn_attacks_bb(Them, epSquare);
 
-            assert(b);
+            // En passant square is already disabled for non-fairy variants if there is no attacker
+            assert(b || !pos.variant()->fastAttacks);
 
             while (b)
                 moveList = make_move_and_gating<EN_PASSANT>(pos, moveList, Us, pop_lsb(b), epSquare);
@@ -387,7 +388,7 @@ namespace {
                 target = pos.checkers();
         }
 
-        // Remove inaccesible squares (outside board + wall squares)
+        // Remove inaccessible squares (outside board + wall squares)
         target &= pos.board_bb();
 
         moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);

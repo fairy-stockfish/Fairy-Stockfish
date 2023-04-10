@@ -60,7 +60,12 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp sittuyin "fen 2r5/6k1/6p1/3s2P1/3npR2/8/p2N2F1/3K4[] w - - 1 50" 4 373984 > /dev/null
   expect perft.exp sittuyin "fen 8/6s1/5P2/3n4/pR2K2S/1P6/1k4p1/8[] w - - 1 50" 4 268869 > /dev/null
   expect perft.exp sittuyin "fen 1k5K/3r2P1/8/8/8/8/8/8[] w - - 0 1" 5 68662 > /dev/null
-  expect perft.exp chigorin "fen 8/7P/2k5/8/8/5K2/p7/8 w - - 0 1" 2 120 > /dev/null
+  expect perft.exp almost startpos 3 11895 > /dev/null
+  expect perft.exp almost "fen 8/1k5P/8/8/8/3K4/p7/8 b - - 0 1" 2 140 > /dev/null
+  expect perft.exp sortofalmost startpos 3 10815 > /dev/null
+  expect perft.exp sortofalmost "fen 8/1k5P/8/8/8/3K4/p7/8 b - - 0 1" 2 139 > /dev/null
+  expect perft.exp chigorin startpos 3 11408 > /dev/null
+  expect perft.exp chigorin "fen 8/1k5P/8/8/8/3K4/p7/8 b - - 0 1" 2 117 > /dev/null
   expect perft.exp perfect startpos 3 15082 > /dev/null
   expect perft.exp perfect "fen c3k2r/pppppppp/8/8/8/8/PPPPPPPP/C3K2R w KQkq - 0 1" 3 17500 > /dev/null
   expect perft.exp spartan startpos 3 14244 > /dev/null
@@ -172,6 +177,7 @@ if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp shako "fen 4kc3c/ernbq1b1re/ppp3p1pp/3p2pp2/4p5/5P4/2PN2P3/PP1PP2PPP/ER1BQKBNR1/5C3C w KQ - 0 9" 3 26325 > /dev/null
   expect perft.exp shako "fen 4ncr1k1/1cr2P4/pp2p2pp1/P7PN/2Ep1p4/B3P1eN2/2P1n1P3/1B1P1K4/9p/5C2CR w - - 0 1" 3 180467 > /dev/null
   expect perft.exp shako "fen r5k3/4q2c2/1ebppnp3/1pp3BeEQ/10/2PE2P3/1P3P4/5NP2P/rR3KB3/7C2 w Q - 3 35" 2 4940 > /dev/null
+  expect perft.exp shako "fen 10/rr3k4/ppppp5/10/10/10/10/6PPPP/5K2RR/10 w Kq - 0 1" 2 460 > /dev/null
   expect perft.exp xiangqi startpos 4 3290240 > /dev/null
   expect perft.exp xiangqi "fen 1rbaka2R/5r3/6n2/2p1p1p2/4P1bP1/PpC3Bc1/1nPR2P2/2N2AN2/1c2K1p2/2BAC4 w - - 0 1" 4 4485547 > /dev/null
   expect perft.exp xiangqi "fen 4kcP1N/8n/3rb4/9/9/9/9/3p1A3/4K4/5CB2 w - - 0 1" 4 92741 > /dev/null

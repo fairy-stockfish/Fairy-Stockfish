@@ -259,7 +259,7 @@ extern "C" PyObject* pyffish_givesCheck(PyObject* self, PyObject *args) {
 
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
-    return Py_BuildValue("O", Stockfish::is_check(pos) ? Py_True : Py_False);
+    return Py_BuildValue("O", Stockfish::checked(pos) ? Py_True : Py_False);
 }
 
 // INPUT variant, fen, move list, move
