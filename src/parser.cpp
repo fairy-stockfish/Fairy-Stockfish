@@ -449,6 +449,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("flagPiece", v->flagPiece, v->pieceToChar);
     parse_attribute("flagRegionWhite", v->flagRegion[WHITE]);
     parse_attribute("flagRegionBlack", v->flagRegion[BLACK]);
+    parse_attribute("flagPieceCount", v->flagPieceCount);
     parse_attribute("flagMove", v->flagMove);
     parse_attribute("checkCounting", v->checkCounting);
     parse_attribute("connectN", v->connectN);
