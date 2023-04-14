@@ -646,9 +646,14 @@ constexpr PieceSet operator| (PieceSet ps1, PieceSet ps2) { return (PieceSet)((u
 constexpr PieceSet operator| (PieceSet ps, PieceType pt) { return ps | piece_set(pt); }
 constexpr PieceSet operator& (PieceSet ps1, PieceSet ps2) { return (PieceSet)((uint64_t)ps1 & (uint64_t)ps2); }
 constexpr PieceSet operator& (PieceSet ps, PieceType pt) { return ps & piece_set(pt); }
+constexpr PieceSet operator^ (PieceSet ps1, PieceSet ps2) { return (PieceSet)((uint64_t)ps1 ^ (uint64_t)ps2); }
+constexpr PieceSet operator^ (PieceSet ps, PieceType pt) { return ps ^ piece_set(pt); }
 inline PieceSet& operator|= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 |= (uint64_t)ps2); }
 inline PieceSet& operator|= (PieceSet& ps, PieceType pt) { return ps |= piece_set(pt); }
 inline PieceSet& operator&= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 &= (uint64_t)ps2); }
+//inline PieceSet& operator&= (PieceSet& ps, PieceType pt) does not make sense
+inline PieceSet& operator^= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 ^= (uint64_t)ps2); }
+inline PieceSet& operator^= (PieceSet& ps, PieceType pt) { return ps ^= piece_set(pt); }
 
 static_assert(piece_set(PAWN) & PAWN);
 static_assert(piece_set(KING) & KING);
