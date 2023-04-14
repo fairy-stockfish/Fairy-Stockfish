@@ -258,7 +258,11 @@ struct Variant {
       int i = 0;
       for (PieceSet ps = pieceTypes; ps;)
       {
-          PieceType pt = pop_lsb(ps);
+          // Make sure that the nnueKing type gets the last index, since the NNUE architecture relies on that
+          PieceType pt = lsb(ps != piece_set(nnueKing) ? ps & ~piece_set(nnueKing) : ps);
+          ps ^= pt;
+          assert(pt != nnueKing || !ps);
+
           for (Color c : { WHITE, BLACK})
           {
               pieceSquareIndex[c][make_piece(c, pt)] = 2 * i * nnueSquares;
