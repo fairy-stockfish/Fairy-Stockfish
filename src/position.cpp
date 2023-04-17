@@ -2681,9 +2681,9 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
            (
              (flag_piece_blocked_win()) //flagPieceBlockedWin variant option true
              && //-and-
-             (popcount(capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece())) >=1) //at least one piece in flag zone
+             (capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece())) //at least one piece in flag zone
              && //-and-
-             (popcount(capture_the_flag(sideToMove) & ~pieces()) ==0) //no empty squares in flag zone
+             !(capture_the_flag(sideToMove) & ~pieces()) //no empty squares in flag zone
            )
          )
      )
@@ -2696,9 +2696,9 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
                (
                  (flag_piece_blocked_win()) //flagPieceBlockedWin variant option true
                  && //-and-
-                 (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())) >=1) //at least one piece in flag zone
+                 (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())) //at least one piece in flag zone
                  && //-and-
-                 (popcount(capture_the_flag(~sideToMove) & ~pieces()) ==0) //no empty squares in flag zone
+                 !(capture_the_flag(~sideToMove) & ~pieces()) //no empty squares in flag zone
                )
              )
              &&
@@ -2715,9 +2715,9 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
            (
                (flag_piece_blocked_win()) //flagPieceBlockedWin variant option true
              && //-and-
-               (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())) >=1) //at least one piece in flag zone
+               (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())) //at least one piece in flag zone
              && //-and-
-               (popcount(capture_the_flag(~sideToMove) & ~pieces()) ==0) //no empty squares in flag zone
+               !(capture_the_flag(~sideToMove) & ~pieces()) //no empty squares in flag zone
            )
          )
      )
