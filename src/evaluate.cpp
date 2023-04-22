@@ -1349,10 +1349,15 @@ namespace {
   template<Tracing T>
   Value Evaluation<T>::winnable(Score score) const {
 
-    // No initiative bonus for extinction variants
+    // No initiative bonus for variants that do not require sufficient mating material, e.g., extinction variants.
+    // This protects them from misidentification as drawish.
     int complexity = 0;
     bool pawnsOnBothFlanks = true;
-    if (pos.extinction_value() == VALUE_NONE && !pos.captures_to_hand() && !pos.connect_n() && !pos.material_counting())
+    if (   pos.extinction_value() == VALUE_NONE
+        && !pos.captures_to_hand()
+        && !pos.connect_n()
+        && !pos.material_counting()
+        && !(pos.flag_region(WHITE) || pos.flag_region(BLACK)))
     {
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
                      :  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
