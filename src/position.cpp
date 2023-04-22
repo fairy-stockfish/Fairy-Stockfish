@@ -2673,64 +2673,28 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
   }
   // capture the flag
-  if (   capture_the_flag_piece()
-      && flag_move()
-      && (
-           (popcount(capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece()))>=flag_piece_count()) // opponent has >= number of pieces needed to win
-           || //-or-
-           (
-             (flag_piece_blocked_win()) //flagPieceBlockedWin variant option true
-             && //-and-
-             (capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece())) //at least one piece in flag zone
-             && //-and-
-             !(capture_the_flag(sideToMove) & ~pieces()) //no empty squares in flag zone
-           )
-         )
-     )
+  // A flag win by the side to move is only possible if flagMove is enabled
+  // and they already reached the flag region the move before.
+  // In the case both colors reached it, it is a draw if white was first.
+  if (flag_move() && flag_reached(sideToMove))
   {
-      result =
-           (
-             (
-               (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count()) // you have >= number of pieces needed to win
-               || //-or-
-               (
-                 (flag_piece_blocked_win()) //flagPieceBlockedWin variant option true
-                 && //-and-
-                 (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())) //at least one piece in flag zone
-                 && //-and-
-                 !(capture_the_flag(~sideToMove) & ~pieces()) //no empty squares in flag zone
-               )
-             )
-             &&
-               (sideToMove == WHITE) //opponent is white
-           )
-           ? VALUE_DRAW : mate_in(ply); //then it's a draw, otherwise, win
+      result = sideToMove == WHITE && flag_reached(BLACK) ? VALUE_DRAW : mate_in(ply);
       return true;
   }
-  if (   capture_the_flag_piece()
-      && (!flag_move() || capture_the_flag_piece() == KING) //if black doesn't get an extra move to draw, or flag piece is king,
-      && ( //-and-
-           (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count()) // you have >= number of pieces needed to win
-           || //-or-
-           (
-               (flag_piece_blocked_win()) //flagPieceBlockedWin variant option true
-             && //-and-
-               (capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece())) //at least one piece in flag zone
-             && //-and-
-               !(capture_the_flag(~sideToMove) & ~pieces()) //no empty squares in flag zone
-           )
-         )
-     )
+  // A direct flag win is possible if the opponent does not get an extra flag move
+  // or we can detect early for kings that they won't be able to reach the flag region
+  // Note: This condition has to be after the above, since both might be true e.g. in racing kings.
+  if (   (!flag_move() || flag_piece(sideToMove) == KING) // we can do early win detection only for the king
+       && flag_reached(~sideToMove))
   {
       bool gameEnd = true;
-      // Check whether king can move to CTF zone
+      // Check whether king can move to CTF zone (racing kings) to draw
       if (   flag_move() && sideToMove == BLACK && !checkers() && count<KING>(sideToMove)
-          && (capture_the_flag(sideToMove) & attacks_from(sideToMove, KING, square<KING>(sideToMove))))
+          && (flag_region(sideToMove) & attacks_from(sideToMove, KING, square<KING>(sideToMove))))
       {
-          assert(capture_the_flag_piece() == KING);
-          gameEnd = true;
+          assert(flag_piece(sideToMove) == KING);
           for (const auto& m : MoveList<NON_EVASIONS>(*this))
-              if (type_of(moved_piece(m)) == KING && (capture_the_flag(sideToMove) & to_sq(m)) && legal(m))
+              if (type_of(moved_piece(m)) == KING && (flag_region(sideToMove) & to_sq(m)) && legal(m))
               {
                   gameEnd = false;
                   break;

@@ -1163,8 +1163,8 @@ namespace {
     int weight = pos.count<ALL_PIECES>(Us) - 3 + std::min(pe->blocked_count(), 9);
     Score score = make_score(bonus * weight * weight / 16, 0);
 
-    if (pos.capture_the_flag(Us))
-        score += make_score(200, 200) * popcount(behind & safe & pos.capture_the_flag(Us));
+    if (pos.flag_region(Us))
+        score += make_score(200, 200) * popcount(behind & safe & pos.flag_region(Us));
 
     if constexpr (T)
         Trace::add(SPACE, Us, score);
@@ -1184,11 +1184,10 @@ namespace {
     Score score = SCORE_ZERO;
 
     // Capture the flag
-    if (pos.capture_the_flag(Us))
+    if (pos.flag_region(Us))
     {
-        PieceType ptCtf = pos.capture_the_flag_piece();
-        Bitboard ctfPieces = pos.pieces(Us, ptCtf);
-        Bitboard ctfTargets = pos.capture_the_flag(Us) & pos.board_bb();
+        Bitboard ctfPieces = pos.pieces(Us, pos.flag_piece(Us));
+        Bitboard ctfTargets = pos.flag_region(Us) & pos.board_bb();
         Bitboard onHold = 0;
         Bitboard onHold2 = 0;
         Bitboard processed = 0;
@@ -1201,6 +1200,8 @@ namespace {
         // Traverse all paths of the CTF pieces to the CTF targets.
         // Put squares that are attacked or occupied on hold for one iteration.
         // This reflects that likely a move will be needed to block or capture the attack.
+        // If all piece types are eligible, use the king path as a proxy for distance.
+        PieceType ptCtf = pos.flag_piece(Us) == ALL_PIECES ? KING : pos.flag_piece(Us);
         for (int dist = 0; (ctfPieces || onHold || onHold2) && (ctfTargets & ~processed); dist++)
         {
             int wins = popcount(ctfTargets & ctfPieces);

@@ -325,7 +325,7 @@ namespace {
     // https://lichess.org/variant/kingOfTheHill
     Variant* kingofthehill_variant() {
         Variant* v = chess_variant_base()->init();
-        v->flagPiece = KING;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = KING;
         v->flagRegion[WHITE] = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
         v->flagRegion[BLACK] = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
         v->flagMove = false;
@@ -336,7 +336,7 @@ namespace {
     Variant* racingkings_variant() {
         Variant* v = chess_variant_base()->init();
         v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
-        v->flagPiece = KING;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = KING;
         v->flagRegion[WHITE] = Rank8BB;
         v->flagRegion[BLACK] = Rank8BB;
         v->flagMove = true;
@@ -549,7 +549,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_2, 'f', "mF"); //Fox
         v->startFen = "1h1h1h1h/8/8/8/8/8/8/4F3 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->flagPiece = CUSTOM_PIECE_2;
+        v->flagPiece[WHITE] = CUSTOM_PIECE_2;
         v->flagRegion[WHITE] = Rank8BB;
         return v;
     }
@@ -845,7 +845,7 @@ namespace {
         v->mandatoryPiecePromotion = true;
         v->immobilityIllegal = false;
         v->shogiPawnDropMateIllegal = false;
-        v->flagPiece = KING;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = KING;
         v->flagRegion[WHITE] = Rank4BB;
         v->flagRegion[BLACK] = Rank1BB;
         v->dropNoDoubled = NO_PIECE_TYPE;
@@ -1091,7 +1091,7 @@ namespace {
         v->doubleStep = false;
         v->castling = false;
         v->stalemateValue = -VALUE_MATE;
-        v->flagPiece = BREAKTHROUGH_PIECE;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = BREAKTHROUGH_PIECE;
         v->flagRegion[WHITE] = Rank8BB;
         v->flagRegion[BLACK] = Rank1BB;
         return v;
@@ -1422,7 +1422,7 @@ namespace {
         v->doubleStep = false;
         v->castling = false;
         v->stalemateValue = -VALUE_MATE;
-        v->flagPiece = KNIGHT;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = KNIGHT;
         v->flagRegion[WHITE] = make_bitboard(SQ_E5);
         v->flagRegion[BLACK] = make_bitboard(SQ_E5);
         v->flagMove = true;

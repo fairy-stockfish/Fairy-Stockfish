@@ -446,7 +446,12 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("extinctionPieceTypes", v->extinctionPieceTypes, v->pieceToChar);
     parse_attribute("extinctionPieceCount", v->extinctionPieceCount);
     parse_attribute("extinctionOpponentPieceCount", v->extinctionOpponentPieceCount);
-    parse_attribute("flagPiece", v->flagPiece, v->pieceToChar);
+    parse_attribute("flagPiece", v->flagPiece[WHITE], v->pieceToChar);
+    parse_attribute("flagPiece", v->flagPiece[BLACK], v->pieceToChar);
+    parse_attribute("flagPieceWhite", v->flagPiece[WHITE], v->pieceToChar);
+    parse_attribute("flagPieceBlack", v->flagPiece[BLACK], v->pieceToChar);
+    parse_attribute("flagRegion", v->flagRegion[WHITE]);
+    parse_attribute("flagRegion", v->flagRegion[BLACK]);
     parse_attribute("flagRegionWhite", v->flagRegion[WHITE]);
     parse_attribute("flagRegionBlack", v->flagRegion[BLACK]);
     parse_attribute("flagPieceCount", v->flagPieceCount);
