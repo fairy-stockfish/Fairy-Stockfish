@@ -148,6 +148,7 @@ struct Variant {
   bool flagMove = false;
   bool checkCounting = false;
   int connectN = 0;
+  bool connectOrthoOnly = false;
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
 

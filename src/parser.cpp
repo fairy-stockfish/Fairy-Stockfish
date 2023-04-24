@@ -459,6 +459,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("flagMove", v->flagMove);
     parse_attribute("checkCounting", v->checkCounting);
     parse_attribute("connectN", v->connectN);
+    parse_attribute("connectOrthoOnly", v->connectOrthoOnly);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
 

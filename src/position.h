@@ -203,6 +203,7 @@ public:
   bool flag_reached(Color c) const;
   bool check_counting() const;
   int connect_n() const;
+  bool connect_ortho_only() const;
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
   CountingRule counting_rule() const;
@@ -946,6 +947,11 @@ inline bool Position::check_counting() const {
 inline int Position::connect_n() const {
   assert(var != nullptr);
   return var->connectN;
+}
+
+inline bool Position::connect_ortho_only() const {
+  assert(var != nullptr);
+  return var->connectOrthoOnly;
 }
 
 inline CheckCount Position::checks_remaining(Color c) const {
