@@ -1280,13 +1280,21 @@ namespace {
     // Connect-n
     if (pos.connect_n() > 0)
     {
-        std::vector<Direction> connect_directions = {NORTH, NORTH_EAST, EAST, SOUTH_EAST};
+        std::vector<Direction> connect_directions;
 
-        if (pos.connect_ortho_only())
+        if (pos.connect_horizontal())
         {
-            connect_directions = {NORTH, SOUTH};
+            connect_directions.push_back(EAST);
         }
-
+        if (pos.connect_vertical())
+        {
+            connect_directions.push_back(NORTH);
+        }
+        if (pos.connect_diagonal())
+        {
+            connect_directions.push_back(NORTH_EAST);
+            connect_directions.push_back(SOUTH_EAST);
+        }
         for (Direction d : connect_directions)
         {
             // Find sufficiently large gaps

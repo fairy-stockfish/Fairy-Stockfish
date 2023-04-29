@@ -148,7 +148,9 @@ struct Variant {
   bool flagMove = false;
   bool checkCounting = false;
   int connectN = 0;
-  bool connectOrthoOnly = false;
+  bool connectHorizontal = true;
+  bool connectVertical = true;
+  bool connectDiagonal = true;
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
 

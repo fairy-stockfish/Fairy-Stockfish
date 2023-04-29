@@ -203,7 +203,11 @@ public:
   bool flag_reached(Color c) const;
   bool check_counting() const;
   int connect_n() const;
-  bool connect_ortho_only() const;
+  bool connect_horizontal() const;
+  bool connect_vertical() const;
+  bool connect_diagonal() const;
+
+  const std::vector<Direction>& connect_directions() const;
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
   CountingRule counting_rule() const;
@@ -949,10 +953,19 @@ inline int Position::connect_n() const {
   return var->connectN;
 }
 
-inline bool Position::connect_ortho_only() const {
+inline bool Position::connect_horizontal() const {
   assert(var != nullptr);
-  return var->connectOrthoOnly;
+  return var->connectHorizontal;
 }
+inline bool Position::connect_vertical() const {
+  assert(var != nullptr);
+  return var->connectVertical;
+}
+inline bool Position::connect_diagonal() const {
+  assert(var != nullptr);
+  return var->connectDiagonal;
+}
+
 
 inline CheckCount Position::checks_remaining(Color c) const {
   return st->checksRemaining[c];
