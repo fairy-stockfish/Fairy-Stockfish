@@ -2538,7 +2538,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
       }
       if (st->rule50 - offset > (2 * n_move_rule() - 1))
       {
-          result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;
+          result = convert_mate_value((var->materialCounting ? material_counting_result() : (var->nMoveValueAbsolute && sideToMove == BLACK) ? -var->nMoveValue : var->nMoveValue), ply);
           return true;
       }
   }
