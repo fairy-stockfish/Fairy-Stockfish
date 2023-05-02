@@ -207,7 +207,6 @@ public:
   bool connect_vertical() const;
   bool connect_diagonal() const;
 
-  const std::vector<Direction>& connect_directions() const;
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
   CountingRule counting_rule() const;
