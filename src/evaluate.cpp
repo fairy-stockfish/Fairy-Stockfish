@@ -1280,7 +1280,22 @@ namespace {
     // Connect-n
     if (pos.connect_n() > 0)
     {
-        for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST})
+        std::vector<Direction> connect_directions;
+
+        if (pos.connect_horizontal())
+        {
+            connect_directions.push_back(EAST);
+        }
+        if (pos.connect_vertical())
+        {
+            connect_directions.push_back(NORTH);
+        }
+        if (pos.connect_diagonal())
+        {
+            connect_directions.push_back(NORTH_EAST);
+            connect_directions.push_back(SOUTH_EAST);
+        }
+        for (Direction d : connect_directions)
         {
             // Find sufficiently large gaps
             Bitboard b = pos.board_bb() & ~pos.pieces(Them);
