@@ -47,7 +47,7 @@ before_build:
            'add_compile_definitions(NNUE_EMBEDDING_OFF)',
            'add_executable(stockfish ${source_files})'
 
-      # Write CMakeLists.txt withouth BOM
+      # Write CMakeLists.txt without BOM
       $MyPath = (Get-Item -Path "." -Verbose).FullName + '\CMakeLists.txt'
       $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
       [System.IO.File]::WriteAllLines($MyPath, $t, $Utf8NoBomEncoding)

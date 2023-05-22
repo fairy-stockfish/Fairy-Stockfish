@@ -770,7 +770,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
         goto encode_remaining; // With pawns we have finished special treatments
     }
 
-    // In positions withouth pawns, we further flip the squares to ensure leading
+    // In positions without pawns, we further flip the squares to ensure leading
     // piece is below RANK_5.
     if (rank_of(squares[0]) > RANK_4)
         for (int i = 0; i < size; ++i)
