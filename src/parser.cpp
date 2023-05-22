@@ -426,8 +426,6 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("nMoveRuleTypesWhite", v->nMoveRuleTypes[WHITE], v->pieceToChar);
     parse_attribute("nMoveRuleTypesBlack", v->nMoveRuleTypes[BLACK], v->pieceToChar);
     parse_attribute("nMoveRule", v->nMoveRule);
-    parse_attribute("nMoveValue", v->nMoveValue);
-    parse_attribute("nMoveValueAbsolute", v->nMoveValueAbsolute);
     parse_attribute("nFoldRule", v->nFoldRule);
     parse_attribute("nFoldValue", v->nFoldValue);
     parse_attribute("nFoldValueAbsolute", v->nFoldValueAbsolute);
