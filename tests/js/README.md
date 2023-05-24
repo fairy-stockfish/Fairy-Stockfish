@@ -229,7 +229,7 @@ let configFilePath = './variants.ini';
 
 For an example of each available function see [test.js](https://github.com/ianfab/Fairy-Stockfish/blob/master/tests/js/test.js).
 
-## Build instuctions
+## Build instructions
 
 It is built using emscripten/Embind from C++ source code.
 
