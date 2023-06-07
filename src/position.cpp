@@ -1660,7 +1660,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Find end of rows to be flipped
       if (flip_enclosed_pieces() == REVERSI)
       {
-          Bitboard b = attacks_bb(us, QUEEN, to, board_bb() & ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
+          Bitboard b = attacks_bb(us, QUEEN, to, ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
           while(b)
               st->flippedPieces |= between_bb(pop_lsb(b), to) ^ to;
       }
