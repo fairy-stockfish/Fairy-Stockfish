@@ -1175,6 +1175,14 @@ bool Position::legal(Move m) const {
   if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) == KING)
       return false;
 
+  // Diplomacy -- In no-check Atomic, kings are actually commoners that can be beside each other, but in Atomar, diplomacy prevents them from actually taking
+  // Generalized to allow a custom set of pieces that can't capture a piece of the same type.
+  if (capture(m) &&
+      (diplomacy_types() & type_of(moved_piece(m))) &&
+      (type_of(moved_piece(m)) == type_of(piece_on(to)))
+  )
+  return false;
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
@@ -1920,13 +1928,19 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (cambodian_moves() && type_of(pc) == ROOK && (square<KING>(them) & gates(them) & attacks_bb<ROOK>(to)))
       st->gatesBB[them] ^= square<KING>(them);
 
+
   // Remove the blast pieces
   if (captured && (blast_on_capture() || var->petrifyOnCapture))
   {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
-      Bitboard blast =  blast_on_capture() ? (attacks_bb<KING>(to) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to
-                      : type_of(pc) != PAWN ? square_bb(to) : Bitboard(0);
+      Bitboard blastImmune = 0;
+      for (PieceSet ps = blast_immune_types(); ps;){
+          PieceType pt = pop_lsb(ps);
+          blastImmune |= pieces(pt);
+      };
+      Bitboard blast = blast_on_capture() ? ((attacks_bb<KING>(to) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to)
+                       & (pieces() ^ blastImmune) : type_of(pc) != PAWN ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);
