@@ -2026,6 +2026,20 @@ Variant* Variant::conclude() {
             break;
         }
 
+    if (connectHorizontal)
+    {
+        connect_directions.push_back(EAST);
+    }
+    if (connectVertical)
+    {
+        connect_directions.push_back(NORTH);
+    }
+    if (connectDiagonal)
+    {
+        connect_directions.push_back(NORTH_EAST);
+        connect_directions.push_back(SOUTH_EAST);
+    }
+
     return this;
 }
 

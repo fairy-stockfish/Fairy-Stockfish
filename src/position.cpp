@@ -2730,22 +2730,8 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   if (connect_n() > 0)
   {
       Bitboard b;
-      std::vector<Direction> connect_directions;
 
-      if (connect_horizontal())
-      {
-          connect_directions.push_back(EAST);
-      }
-      if (connect_vertical())
-      {
-          connect_directions.push_back(NORTH);
-      }
-      if (connect_diagonal())
-      {
-          connect_directions.push_back(NORTH_EAST);
-          connect_directions.push_back(SOUTH_EAST);
-      }
-      for (Direction d : connect_directions)
+      for (Direction d : var->connect_directions)
       {
           b = pieces(~sideToMove);
           for (int i = 1; i < connect_n() && b; i++)

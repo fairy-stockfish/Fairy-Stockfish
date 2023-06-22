@@ -169,6 +169,7 @@ struct Variant {
   int nnueMaxPieces;
   bool endgameEval = false;
   bool shogiStylePromotions = false;
+  std::vector<Direction> connect_directions;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
       // Avoid ambiguous definition by removing existing piece with same letter
