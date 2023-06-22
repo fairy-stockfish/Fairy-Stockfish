@@ -208,6 +208,7 @@ public:
   bool connect_horizontal() const;
   bool connect_vertical() const;
   bool connect_diagonal() const;
+  std::vector<Direction> getConnectDirections() const;
 
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
@@ -977,6 +978,10 @@ inline bool Position::connect_diagonal() const {
   return var->connectDiagonal;
 }
 
+inline std::vector<Direction> Position::getConnectDirections() const {
+    assert(var != nullptr);
+    return var->connect_directions;
+}
 
 inline CheckCount Position::checks_remaining(Color c) const {
   return st->checksRemaining[c];
