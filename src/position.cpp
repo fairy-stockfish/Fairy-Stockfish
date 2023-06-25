@@ -698,7 +698,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
                   ss << piece_to_char()[piece_on(make_square(f, r))];
 
                   // Set promoted pieces
-                  if (((captures_to_hand() && !drop_loop()) || showPromoted) && is_promoted(make_square(f, r)))
+                  if (((captures_to_hand() && !drop_loop()) || two_boards() ||  showPromoted) && is_promoted(make_square(f, r)))
                       ss << "~";
               }
           }
