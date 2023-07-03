@@ -1163,8 +1163,8 @@ namespace {
     int weight = pos.count<ALL_PIECES>(Us) - 3 + std::min(pe->blocked_count(), 9);
     Score score = make_score(bonus * weight * weight / 16, 0);
 
-    if (pos.capture_the_flag(Us))
-        score += make_score(200, 200) * popcount(behind & safe & pos.capture_the_flag(Us));
+    if (pos.flag_region(Us))
+        score += make_score(200, 200) * popcount(behind & safe & pos.flag_region(Us));
 
     if constexpr (T)
         Trace::add(SPACE, Us, score);
@@ -1184,11 +1184,10 @@ namespace {
     Score score = SCORE_ZERO;
 
     // Capture the flag
-    if (pos.capture_the_flag(Us))
+    if (pos.flag_region(Us))
     {
-        PieceType ptCtf = pos.capture_the_flag_piece();
-        Bitboard ctfPieces = pos.pieces(Us, ptCtf);
-        Bitboard ctfTargets = pos.capture_the_flag(Us) & pos.board_bb();
+        Bitboard ctfPieces = pos.pieces(Us, pos.flag_piece(Us));
+        Bitboard ctfTargets = pos.flag_region(Us) & pos.board_bb();
         Bitboard onHold = 0;
         Bitboard onHold2 = 0;
         Bitboard processed = 0;
@@ -1201,6 +1200,8 @@ namespace {
         // Traverse all paths of the CTF pieces to the CTF targets.
         // Put squares that are attacked or occupied on hold for one iteration.
         // This reflects that likely a move will be needed to block or capture the attack.
+        // If all piece types are eligible, use the king path as a proxy for distance.
+        PieceType ptCtf = pos.flag_piece(Us) == ALL_PIECES ? KING : pos.flag_piece(Us);
         for (int dist = 0; (ctfPieces || onHold || onHold2) && (ctfTargets & ~processed); dist++)
         {
             int wins = popcount(ctfTargets & ctfPieces);
@@ -1279,7 +1280,22 @@ namespace {
     // Connect-n
     if (pos.connect_n() > 0)
     {
-        for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST})
+        std::vector<Direction> connect_directions;
+
+        if (pos.connect_horizontal())
+        {
+            connect_directions.push_back(EAST);
+        }
+        if (pos.connect_vertical())
+        {
+            connect_directions.push_back(NORTH);
+        }
+        if (pos.connect_diagonal())
+        {
+            connect_directions.push_back(NORTH_EAST);
+            connect_directions.push_back(SOUTH_EAST);
+        }
+        for (Direction d : connect_directions)
         {
             // Find sufficiently large gaps
             Bitboard b = pos.board_bb() & ~pos.pieces(Them);
@@ -1348,10 +1364,15 @@ namespace {
   template<Tracing T>
   Value Evaluation<T>::winnable(Score score) const {
 
-    // No initiative bonus for extinction variants
+    // No initiative bonus for variants that do not require sufficient mating material, e.g., extinction variants.
+    // This protects them from misidentification as drawish.
     int complexity = 0;
     bool pawnsOnBothFlanks = true;
-    if (pos.extinction_value() == VALUE_NONE && !pos.captures_to_hand() && !pos.connect_n() && !pos.material_counting())
+    if (   pos.extinction_value() == VALUE_NONE
+        && !pos.captures_to_hand()
+        && !pos.connect_n()
+        && !pos.material_counting()
+        && !(pos.flag_region(WHITE) || pos.flag_region(BLACK)))
     {
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
                      :  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))

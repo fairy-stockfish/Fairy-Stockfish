@@ -698,7 +698,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
                   ss << piece_to_char()[piece_on(make_square(f, r))];
 
                   // Set promoted pieces
-                  if (((captures_to_hand() && !drop_loop()) || showPromoted) && is_promoted(make_square(f, r)))
+                  if (((captures_to_hand() && !drop_loop()) || two_boards() ||  showPromoted) && is_promoted(make_square(f, r)))
                       ss << "~";
               }
           }
@@ -1660,7 +1660,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Find end of rows to be flipped
       if (flip_enclosed_pieces() == REVERSI)
       {
-          Bitboard b = attacks_bb(us, QUEEN, to, board_bb() & ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
+          Bitboard b = attacks_bb(us, QUEEN, to, ~pieces(~us)) & ~PseudoAttacks[us][KING][to] & pieces(us);
           while(b)
               st->flippedPieces |= between_bb(pop_lsb(b), to) ^ to;
       }
@@ -2673,27 +2673,28 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
   }
   // capture the flag
-  if (   capture_the_flag_piece()
-      && flag_move()
-      && (popcount(capture_the_flag(sideToMove) & pieces(sideToMove, capture_the_flag_piece()))>=flag_piece_count()))
+  // A flag win by the side to move is only possible if flagMove is enabled
+  // and they already reached the flag region the move before.
+  // In the case both colors reached it, it is a draw if white was first.
+  if (flag_move() && flag_reached(sideToMove))
   {
-      result =  (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count())
-              && sideToMove == WHITE ? VALUE_DRAW : mate_in(ply);
+      result = sideToMove == WHITE && flag_reached(BLACK) ? VALUE_DRAW : mate_in(ply);
       return true;
   }
-  if (   capture_the_flag_piece()
-      && (!flag_move() || capture_the_flag_piece() == KING)
-      && (popcount(capture_the_flag(~sideToMove) & pieces(~sideToMove, capture_the_flag_piece()))>=flag_piece_count()) )
+  // A direct flag win is possible if the opponent does not get an extra flag move
+  // or we can detect early for kings that they won't be able to reach the flag region
+  // Note: This condition has to be after the above, since both might be true e.g. in racing kings.
+  if (   (!flag_move() || flag_piece(sideToMove) == KING) // we can do early win detection only for the king
+       && flag_reached(~sideToMove))
   {
       bool gameEnd = true;
-      // Check whether king can move to CTF zone
+      // Check whether king can move to CTF zone (racing kings) to draw
       if (   flag_move() && sideToMove == BLACK && !checkers() && count<KING>(sideToMove)
-          && (capture_the_flag(sideToMove) & attacks_from(sideToMove, KING, square<KING>(sideToMove))))
+          && (flag_region(sideToMove) & attacks_from(sideToMove, KING, square<KING>(sideToMove))))
       {
-          assert(capture_the_flag_piece() == KING);
-          gameEnd = true;
+          assert(flag_piece(sideToMove) == KING);
           for (const auto& m : MoveList<NON_EVASIONS>(*this))
-              if (type_of(moved_piece(m)) == KING && (capture_the_flag(sideToMove) & to_sq(m)) && legal(m))
+              if (type_of(moved_piece(m)) == KING && (flag_region(sideToMove) & to_sq(m)) && legal(m))
               {
                   gameEnd = false;
                   break;
@@ -2715,7 +2716,22 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   if (connect_n() > 0)
   {
       Bitboard b;
-      for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST})
+      std::vector<Direction> connect_directions;
+
+      if (connect_horizontal())
+      {
+          connect_directions.push_back(EAST);
+      }
+      if (connect_vertical())
+      {
+          connect_directions.push_back(NORTH);
+      }
+      if (connect_diagonal())
+      {
+          connect_directions.push_back(NORTH_EAST);
+          connect_directions.push_back(SOUTH_EAST);
+      }
+      for (Direction d : connect_directions)
       {
           b = pieces(~sideToMove);
           for (int i = 1; i < connect_n() && b; i++)

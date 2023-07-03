@@ -325,7 +325,7 @@ namespace {
     // https://lichess.org/variant/kingOfTheHill
     Variant* kingofthehill_variant() {
         Variant* v = chess_variant_base()->init();
-        v->flagPiece = KING;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = KING;
         v->flagRegion[WHITE] = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
         v->flagRegion[BLACK] = (Rank4BB | Rank5BB) & (FileDBB | FileEBB);
         v->flagMove = false;
@@ -336,7 +336,7 @@ namespace {
     Variant* racingkings_variant() {
         Variant* v = chess_variant_base()->init();
         v->startFen = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
-        v->flagPiece = KING;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = KING;
         v->flagRegion[WHITE] = Rank8BB;
         v->flagRegion[BLACK] = Rank8BB;
         v->flagMove = true;
@@ -542,20 +542,6 @@ namespace {
         return v;
     }
 
-    Variant* kono_variant() { //https://en.wikipedia.org/wiki/Five_Field_Kono
-        Variant* v = chess_variant_base()->init();
-        v->maxRank = RANK_5;
-        v->maxFile = FILE_E;
-        v->reset_pieces();
-        v->add_piece(CUSTOM_PIECE_1, 'p', "mF"); //diagonally, no capture
-        v->startFen = "ppppp/p3p/5/P3P/PPPPP w - - 0 1";
-        v->flagPiece = CUSTOM_PIECE_1;
-        v->flagRegion[WHITE] = make_bitboard(SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_A4, SQ_E4);
-        v->flagRegion[BLACK] = make_bitboard(SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_A2, SQ_E2);
-        v->flagPieceCount = 7;
-        return v;
-    }
-
     Variant* fox_and_hounds_variant() { //https://boardgamegeek.com/boardgame/148180/fox-and-hounds
         Variant* v = chess_variant_base()->init();
         v->reset_pieces();
@@ -563,7 +549,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_2, 'f', "mF"); //Fox
         v->startFen = "1h1h1h1h/8/8/8/8/8/8/4F3 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->flagPiece = CUSTOM_PIECE_2;
+        v->flagPiece[WHITE] = CUSTOM_PIECE_2;
         v->flagRegion[WHITE] = Rank8BB;
         return v;
     }
@@ -859,7 +845,7 @@ namespace {
         v->mandatoryPiecePromotion = true;
         v->immobilityIllegal = false;
         v->shogiPawnDropMateIllegal = false;
-        v->flagPiece = KING;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = KING;
         v->flagRegion[WHITE] = Rank4BB;
         v->flagRegion[BLACK] = Rank1BB;
         v->dropNoDoubled = NO_PIECE_TYPE;
@@ -1105,7 +1091,7 @@ namespace {
         v->doubleStep = false;
         v->castling = false;
         v->stalemateValue = -VALUE_MATE;
-        v->flagPiece = BREAKTHROUGH_PIECE;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = BREAKTHROUGH_PIECE;
         v->flagRegion[WHITE] = Rank8BB;
         v->flagRegion[BLACK] = Rank1BB;
         return v;
@@ -1436,7 +1422,7 @@ namespace {
         v->doubleStep = false;
         v->castling = false;
         v->stalemateValue = -VALUE_MATE;
-        v->flagPiece = KNIGHT;
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = KNIGHT;
         v->flagRegion[WHITE] = make_bitboard(SQ_E5);
         v->flagRegion[BLACK] = make_bitboard(SQ_E5);
         v->flagMove = true;
@@ -1582,7 +1568,7 @@ namespace {
         v->remove_piece(KNIGHT);
         v->add_piece(CHANCELLOR, 'w'); // wolf
         v->add_piece(ARCHBISHOP, 'f'); // fox
-        v->add_piece(CUSTOM_PIECE_1, 's', "fKifmnD"); // seargent
+        v->add_piece(CUSTOM_PIECE_1, 's', "fKifmnD"); // sergeant
         v->add_piece(CUSTOM_PIECE_2, 'n', "NN"); // nightrider
         v->add_piece(CUSTOM_PIECE_3, 'e', "NNQ"); // elephant
         v->startFen = "qwfrbbnk/pssppssp/1pp2pp1/8/8/8/8/1PP2PP1/PSSPPSSP/KNBBRFWQ w - - 0 1";
@@ -1816,7 +1802,6 @@ void VariantMap::init() {
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
     add("fox-and-hounds", fox_and_hounds_variant());
-    add("kono", kono_variant());
 #ifdef ALLVARS
     add("duck", duck_variant());
 #endif
@@ -1897,6 +1882,141 @@ void VariantMap::init() {
     add("janggimodern", janggi_modern_variant());
     add("janggicasual", janggi_casual_variant());
 #endif
+}
+
+
+// Pre-calculate derived properties
+Variant* Variant::conclude() {
+    // Enforce consistency to allow runtime optimizations
+    if (!doubleStep)
+        doubleStepRegion[WHITE] = doubleStepRegion[BLACK] = 0;
+    if (!doubleStepRegion[WHITE] && !doubleStepRegion[BLACK])
+        doubleStep = false;
+
+    // Determine optimizations
+    bool restrictedMobility = false;
+    for (PieceSet ps = pieceTypes; !restrictedMobility && ps;)
+    {
+        PieceType pt = pop_lsb(ps);
+        if (mobilityRegion[WHITE][pt] || mobilityRegion[BLACK][pt])
+          restrictedMobility = true;
+    }
+    fastAttacks =  !(pieceTypes & ~(CHESS_PIECES | COMMON_FAIRY_PIECES))
+                  && kingType == KING
+                  && !restrictedMobility
+                  && !cambodianMoves
+                  && !diagonalLines;
+    fastAttacks2 =  !(pieceTypes & ~(SHOGI_PIECES | COMMON_STEP_PIECES))
+                  && kingType == KING
+                  && !restrictedMobility
+                  && !cambodianMoves
+                  && !diagonalLines;
+
+    // Initialize calculated NNUE properties
+    nnueKing =  pieceTypes & KING ? KING
+              : extinctionPieceCount == 0 && (extinctionPieceTypes & COMMONER) ? COMMONER
+              : NO_PIECE_TYPE;
+    // The nnueKing has to present exactly once and must not change in count
+    if (nnueKing != NO_PIECE_TYPE)
+    {
+        // If the nnueKing is involved in promotion, count might change
+        if (   ((promotionPawnTypes[WHITE] | promotionPawnTypes[BLACK]) & nnueKing)
+            || ((promotionPieceTypes[WHITE] | promotionPieceTypes[BLACK]) & nnueKing)
+            || std::find(std::begin(promotedPieceType), std::end(promotedPieceType), nnueKing) != std::end(promotedPieceType))
+            nnueKing = NO_PIECE_TYPE;
+    }
+    if (nnueKing != NO_PIECE_TYPE)
+    {
+        std::string fenBoard = startFen.substr(0, startFen.find(' '));
+        // Switch NNUE from KA to A if there is no unique piece
+        if (   std::count(fenBoard.begin(), fenBoard.end(), pieceToChar[make_piece(WHITE, nnueKing)]) != 1
+            || std::count(fenBoard.begin(), fenBoard.end(), pieceToChar[make_piece(BLACK, nnueKing)]) != 1)
+            nnueKing = NO_PIECE_TYPE;
+    }
+    // We can not use popcount here yet, as the lookup tables are initialized after the variants
+    int nnueSquares = (maxRank + 1) * (maxFile + 1);
+    nnueUsePockets = (pieceDrops && (capturesToHand || (!mustDrop && std::bitset<64>(pieceTypes).count() != 1))) || seirawanGating;
+    int nnuePockets = nnueUsePockets ? 2 * int(maxFile + 1) : 0;
+    int nnueNonDropPieceIndices = (2 * std::bitset<64>(pieceTypes).count() - (nnueKing != NO_PIECE_TYPE)) * nnueSquares;
+    int nnuePieceIndices = nnueNonDropPieceIndices + 2 * (std::bitset<64>(pieceTypes).count() - (nnueKing != NO_PIECE_TYPE)) * nnuePockets;
+    int i = 0;
+    for (PieceSet ps = pieceTypes; ps;)
+    {
+        // Make sure that the nnueKing type gets the last index, since the NNUE architecture relies on that
+        PieceType pt = lsb(ps != piece_set(nnueKing) ? ps & ~piece_set(nnueKing) : ps);
+        ps ^= pt;
+        assert(pt != nnueKing || !ps);
+
+        for (Color c : { WHITE, BLACK})
+        {
+            pieceSquareIndex[c][make_piece(c, pt)] = 2 * i * nnueSquares;
+            pieceSquareIndex[c][make_piece(~c, pt)] = (2 * i + (pt != nnueKing)) * nnueSquares;
+            pieceHandIndex[c][make_piece(c, pt)] = 2 * i * nnuePockets + nnueNonDropPieceIndices;
+            pieceHandIndex[c][make_piece(~c, pt)] = (2 * i + 1) * nnuePockets + nnueNonDropPieceIndices;
+        }
+        i++;
+    }
+
+    // Map king squares to enumeration of actually available squares.
+    // E.g., for xiangqi map from 0-89 to 0-8.
+    // Variants might be initialized before bitboards, so do not rely on precomputed bitboards (like SquareBB).
+    // Furthermore conclude() might be called on invalid configuration during validation,
+    // therefore skip proper initialization in case of invalid board size.
+    int nnueKingSquare = 0;
+    if (nnueKing && nnueSquares <= SQUARE_NB)
+        for (Square s = SQ_A1; s < nnueSquares; ++s)
+        {
+            Square bitboardSquare = Square(s + s / (maxFile + 1) * (FILE_MAX - maxFile));
+            if (   !mobilityRegion[WHITE][nnueKing] || !mobilityRegion[BLACK][nnueKing]
+                || (mobilityRegion[WHITE][nnueKing] & make_bitboard(bitboardSquare))
+                || (mobilityRegion[BLACK][nnueKing] & make_bitboard(relative_square(BLACK, bitboardSquare, maxRank))))
+            {
+                kingSquareIndex[s] = nnueKingSquare++ * nnuePieceIndices;
+            }
+        }
+    else
+        kingSquareIndex[SQ_A1] = nnueKingSquare++ * nnuePieceIndices;
+    nnueDimensions = nnueKingSquare * nnuePieceIndices;
+
+    // Determine maximum piece count
+    std::istringstream ss(startFen);
+    ss >> std::noskipws;
+    unsigned char token;
+    nnueMaxPieces = 0;
+    while ((ss >> token) && !isspace(token))
+    {
+        if (pieceToChar.find(token) != std::string::npos || pieceToCharSynonyms.find(token) != std::string::npos)
+            nnueMaxPieces++;
+    }
+    if (twoBoards)
+        nnueMaxPieces *= 2;
+
+    // For endgame evaluation to be applicable, no special win rules must apply.
+    // Furthermore, rules significantly changing game mechanics also invalidate it.
+    endgameEval = extinctionValue == VALUE_NONE
+                  && checkmateValue == -VALUE_MATE
+                  && stalemateValue == VALUE_DRAW
+                  && !materialCounting
+                  && !(flagRegion[WHITE] || flagRegion[BLACK])
+                  && !mustCapture
+                  && !checkCounting
+                  && !makpongRule
+                  && !connectN
+                  && !blastOnCapture
+                  && !capturesToHand
+                  && !twoBoards
+                  && !restrictedMobility
+                  && kingType == KING;
+
+    shogiStylePromotions = false;
+    for (PieceType current: promotedPieceType)
+        if (current != NO_PIECE_TYPE)
+        {
+            shogiStylePromotions = true;
+            break;
+        }
+
+    return this;
 }
 
 

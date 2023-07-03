@@ -369,7 +369,7 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     if (   pos.captures_to_hand()
         || pos.count_in_hand(c, ALL_PIECES)
         || (pos.extinction_value() != VALUE_NONE && !pos.extinction_pseudo_royal())
-        || (pos.capture_the_flag_piece() && pos.count(c, pos.capture_the_flag_piece())))
+        || (pos.flag_region(c) && pos.count(c, pos.flag_piece(c))))
         return false;
 
     // Restricted pieces

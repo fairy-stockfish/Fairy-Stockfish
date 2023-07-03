@@ -197,12 +197,16 @@ public:
   int extinction_piece_count() const;
   int extinction_opponent_piece_count() const;
   bool extinction_pseudo_royal() const;
-  PieceType capture_the_flag_piece() const;
-  Bitboard capture_the_flag(Color c) const;
+  PieceType flag_piece(Color c) const;
+  Bitboard flag_region(Color c) const;
   bool flag_move() const;
+  bool flag_reached(Color c) const;
   bool check_counting() const;
-  int flag_piece_count() const;
   int connect_n() const;
+  bool connect_horizontal() const;
+  bool connect_vertical() const;
+  bool connect_diagonal() const;
+
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
   CountingRule counting_rule() const;
@@ -916,12 +920,12 @@ inline bool Position::extinction_pseudo_royal() const {
   return var->extinctionPseudoRoyal;
 }
 
-inline PieceType Position::capture_the_flag_piece() const {
+inline PieceType Position::flag_piece(Color c) const {
   assert(var != nullptr);
-  return var->flagPiece;
+  return var->flagPiece[c];
 }
 
-inline Bitboard Position::capture_the_flag(Color c) const {
+inline Bitboard Position::flag_region(Color c) const {
   assert(var != nullptr);
   return var->flagRegion[c];
 }
@@ -931,9 +935,11 @@ inline bool Position::flag_move() const {
   return var->flagMove;
 }
 
-inline int Position::flag_piece_count() const {
+inline bool Position::flag_reached(Color c) const {
   assert(var != nullptr);
-  return var->flagPieceCount;
+  return   (flag_region(c) & pieces(c, flag_piece(c)))
+        && (   popcount(flag_region(c) & pieces(c, flag_piece(c))) >= var->flagPieceCount
+            || (var->flagPieceBlockedWin && !(flag_region(c) & ~pieces())));
 }
 
 inline bool Position::check_counting() const {
@@ -945,6 +951,20 @@ inline int Position::connect_n() const {
   assert(var != nullptr);
   return var->connectN;
 }
+
+inline bool Position::connect_horizontal() const {
+  assert(var != nullptr);
+  return var->connectHorizontal;
+}
+inline bool Position::connect_vertical() const {
+  assert(var != nullptr);
+  return var->connectVertical;
+}
+inline bool Position::connect_diagonal() const {
+  assert(var != nullptr);
+  return var->connectDiagonal;
+}
+
 
 inline CheckCount Position::checks_remaining(Color c) const {
   return st->checksRemaining[c];
