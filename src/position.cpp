@@ -348,10 +348,10 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
           token = char(toupper(token));
 
-          if (token == 'K')
+          if (castling_enabled() && token == 'K')
               for (rsq = make_square(var->castlingRookKingsideFile, castling_rank(c)); !(castling_rook_pieces(c) & type_of(piece_on(rsq))) || color_of(piece_on(rsq)) != c; --rsq) {}
 
-          else if (token == 'Q')
+          else if (castling_enabled() && token == 'Q')
               for (rsq = make_square(var->castlingRookQueensideFile, castling_rank(c)); !(castling_rook_pieces(c) & type_of(piece_on(rsq))) || color_of(piece_on(rsq)) != c; ++rsq) {}
 
           else if (token >= 'A' && token <= 'A' + max_file())
@@ -698,7 +698,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
                   ss << piece_to_char()[piece_on(make_square(f, r))];
 
                   // Set promoted pieces
-                  if (((captures_to_hand() && !drop_loop()) || showPromoted) && is_promoted(make_square(f, r)))
+                  if (((captures_to_hand() && !drop_loop()) || two_boards() ||  showPromoted) && is_promoted(make_square(f, r)))
                       ss << "~";
               }
           }
