@@ -487,7 +487,7 @@ namespace {
     Variant* atomar_variant() {
         Variant* v = nocheckatomic_variant()->init();
         v->blastImmuneTypes = piece_set(COMMONER);
-        v->diplomacyTypes = piece_set(COMMONER);
+        v->mutuallyImmuneTypes = piece_set(COMMONER);
         return v;
     }
 
@@ -2026,6 +2026,7 @@ Variant* Variant::conclude() {
             break;
         }
 
+    connect_directions.clear();
     if (connectHorizontal)
     {
         connect_directions.push_back(EAST);

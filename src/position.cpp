@@ -1175,10 +1175,10 @@ bool Position::legal(Move m) const {
   if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) == KING)
       return false;
 
-  // Diplomacy -- In no-check Atomic, kings are actually commoners that can be beside each other, but in Atomar, diplomacy prevents them from actually taking
+  // mutuallyImmuneTypes (diplomacy in Atomar)-- In no-check Atomic, kings can be beside each other, but in Atomar, this prevents them from actually taking.
   // Generalized to allow a custom set of pieces that can't capture a piece of the same type.
   if (capture(m) &&
-      (diplomacy_types() & type_of(moved_piece(m))) &&
+      (mutually_immune_types() & type_of(moved_piece(m))) &&
       (type_of(moved_piece(m)) == type_of(piece_on(to)))
   )
   return false;

@@ -141,7 +141,7 @@ public:
   bool piece_demotion() const;
   bool blast_on_capture() const;
   PieceSet blast_immune_types() const;
-  PieceSet diplomacy_types() const;
+  PieceSet mutually_immune_types() const;
   bool endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
@@ -497,9 +497,9 @@ inline PieceSet Position::blast_immune_types() const {
   return var->blastImmuneTypes;
 }
 
-inline PieceSet Position::diplomacy_types() const {
+inline PieceSet Position::mutually_immune_types() const {
   assert(var != nullptr);
-  return var->diplomacyTypes;
+  return var->mutuallyImmuneTypes;
 }
 
 inline bool Position::endgame_eval() const {
