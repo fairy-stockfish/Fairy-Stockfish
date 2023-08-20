@@ -84,6 +84,13 @@ capturesToHand = true
 firstRankPawnDrops = true
 promotionZonePawnDrops = true
 immobilityIllegal = true
+
+[wazirking:chess]
+fers = q
+king = k:W
+startFen = 7k/5Kq1/8/8/8/8/8/8 w - - 0 1
+stalemateValue = loss
+nFoldValue = loss
 """
 
 sf.load_variant_config(ini_text)
@@ -192,6 +199,9 @@ variant_positions = {
         "2cwamwc2/1rnbqkbnr1/pppppppppp/10/10/10/10/PPPPPPPPPP/1RNBQKBNR1/2CWAMWC2 w - - 0 1":  (False, False),  # startpos
         "10/5k4/10/10/10/10/10/10/5KC3/10 w - - 0 1":  (False, True),  # KC vs K
         "10/5k4/10/10/10/10/10/10/5K4/10 w - - 0 1":  (True, True),  # K vs K
+    },
+    "wazirking": {
+        "7k/6K1/8/8/8/8/8/8 b - - 0 1": (False, False),  # K vs K
     },
 }
 

@@ -404,6 +404,11 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     if ((pos.pieces(c) & unbound) && (popcount(pos.pieces() ^ restricted) >= 2 || pos.stalemate_value() != VALUE_DRAW || pos.check_counting() || pos.makpong()))
         return false;
 
+    // Non-draw stalemate with lone custom king
+    if (   pos.stalemate_value() != VALUE_DRAW && pos.king_type() != KING
+        && pos.pieces(c, KING) && (pos.board_bb(c, KING) & pos.board_bb(~c, KING)))
+        return false;
+
     return true;
 }
 
