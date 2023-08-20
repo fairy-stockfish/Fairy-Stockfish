@@ -428,6 +428,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
               // c) there is no piece on epSquare or behind epSquare
               if (   (var->enPassantRegion & epSquare)
                   && (   !var->fastAttacks
+                      || (var->enPassantTypes[sideToMove] & ~piece_set(PAWN))
                       || (   pawn_attacks_bb(~sideToMove, epSquare) & pieces(sideToMove, PAWN)
                           && (   (pieces(~sideToMove, PAWN) & (epSquare + pawn_push(~sideToMove)))
                               || (pieces(~sideToMove, PAWN) & (epSquare + 2 * pawn_push(~sideToMove))))
@@ -1790,7 +1791,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               || std::abs(int(to) - int(from)) == 3 * NORTH))
       {
           if (   (var->enPassantRegion & (to - pawn_push(us)))
-              && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN))
+              && ((pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN)) || var->enPassantTypes[them] & ~piece_set(PAWN))
               && !(wall_gating() && gating_square(m) == to - pawn_push(us)))
           {
               st->epSquares |= to - pawn_push(us);
@@ -1798,7 +1799,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           }
           if (   std::abs(int(to) - int(from)) == 3 * NORTH
               && (var->enPassantRegion & (to - 2 * pawn_push(us)))
-              && (pawn_attacks_bb(us, to - 2 * pawn_push(us)) & pieces(them, PAWN))
+              && ((pawn_attacks_bb(us, to - 2 * pawn_push(us)) & pieces(them, PAWN)) || var->enPassantTypes[them] & ~piece_set(PAWN))
               && !(wall_gating() && gating_square(m) == to - 2 * pawn_push(us)))
           {
               st->epSquares |= to - 2 * pawn_push(us);
