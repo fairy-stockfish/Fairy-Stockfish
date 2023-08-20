@@ -460,6 +460,11 @@ namespace {
         v->extinctionPieceTypes = piece_set(ALL_PIECES);
         return v;
     }
+    Variant* hordetest_variant() {
+        Variant* v = horde_variant()->init();
+        v->add_piece(PAWN, 'p', 'h');
+        return v;
+    }
     // Atomic chess without checks (ICC rules)
     // https://www.chessclub.com/help/atomic
     Variant* nocheckatomic_variant() {
@@ -1796,6 +1801,7 @@ void VariantMap::init() {
     add("kinglet", kinglet_variant());
     add("threekings", threekings_variant());
     add("horde", horde_variant());
+    add("hordetest", hordetest_variant());
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
     add("isolation", isolation_variant());
