@@ -172,7 +172,7 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
     {
         target = T();
         char token;
-        size_t idx;
+        size_t idx = std::string::npos;
         std::stringstream ss(it->second);
         while (ss >> token && (idx = token == '*' ? size_t(ALL_PIECES) : pieceToChar.find(toupper(token))) != std::string::npos)
             set(PieceType(idx), target);
