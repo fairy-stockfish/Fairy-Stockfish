@@ -460,6 +460,16 @@ namespace {
         v->extinctionPieceTypes = piece_set(ALL_PIECES);
         return v;
     }
+    Variant* hordenew_variant() {
+        Variant* v = horde_variant()->init();
+        v->add_piece(CUSTOM_PIECE_1, 'h', "fmWfceFifmnD", 'p');
+        v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
+        v->promotionPawnTypes[WHITE] = v->promotionPawnTypes[BLACK] = piece_set(PAWN) | piece_set(CUSTOM_PIECE_1);
+        v->enPassantTypes[WHITE] = v->enPassantTypes[BLACK] = piece_set(PAWN) | piece_set(CUSTOM_PIECE_1);
+        v->nMoveRuleTypes[WHITE] = v->nMoveRuleTypes[BLACK] = piece_set(PAWN) | piece_set(CUSTOM_PIECE_1);
+        v->pieceToChar[make_piece(WHITE, PAWN)] = ' ';
+        return v;
+    }
     Variant* hordetest_variant() {
         Variant* v = horde_variant()->init();
         v->add_piece(PAWN, 'p', 'h');
@@ -1800,7 +1810,8 @@ void VariantMap::init() {
     add("extinction", extinction_variant());
     add("kinglet", kinglet_variant());
     add("threekings", threekings_variant());
-    add("horde", horde_variant());
+    add("horde", hordenew_variant());
+    add("hordeold", horde_variant());
     add("hordetest", hordetest_variant());
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
