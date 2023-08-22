@@ -1280,7 +1280,8 @@ namespace {
     // Connect-n
     if (pos.connect_n() > 0)
     {
-        for (Direction d : pos.getConnectDirections())
+        for (const Direction& d : pos.getConnectDirections())
+
         {
             // Find sufficiently large gaps
             Bitboard b = pos.board_bb() & ~pos.pieces(Them);
