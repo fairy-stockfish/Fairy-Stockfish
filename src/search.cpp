@@ -936,7 +936,7 @@ namespace {
         && (ss-1)->statScore < 23767
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 20 * depth - 22 * improving + 168 * ss->ttPv + 159 + 200 * (!pos.double_step_region(pos.side_to_move()) && pos.piece_to_char()[PAWN] != ' ')
+        &&  ss->staticEval >= beta - 20 * depth - 22 * improving + 168 * ss->ttPv + 159 + 200 * (!pos.double_step_region(pos.side_to_move()) && (pos.piece_types() & PAWN))
         && !excludedMove
         &&  pos.non_pawn_material(us)
         &&  pos.count<ALL_PIECES>(~us) != pos.count<PAWN>(~us)
