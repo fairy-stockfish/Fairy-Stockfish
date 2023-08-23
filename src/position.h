@@ -140,6 +140,8 @@ public:
   bool mandatory_piece_promotion() const;
   bool piece_demotion() const;
   bool blast_on_capture() const;
+  PieceSet blast_immune_types() const;
+  PieceSet mutually_immune_types() const;
   bool endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
@@ -206,6 +208,7 @@ public:
   bool connect_horizontal() const;
   bool connect_vertical() const;
   bool connect_diagonal() const;
+  const std::vector<Direction>& getConnectDirections() const;
 
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
@@ -487,6 +490,16 @@ inline bool Position::piece_demotion() const {
 inline bool Position::blast_on_capture() const {
   assert(var != nullptr);
   return var->blastOnCapture;
+}
+
+inline PieceSet Position::blast_immune_types() const {
+  assert(var != nullptr);
+  return var->blastImmuneTypes;
+}
+
+inline PieceSet Position::mutually_immune_types() const {
+  assert(var != nullptr);
+  return var->mutuallyImmuneTypes;
 }
 
 inline bool Position::endgame_eval() const {
@@ -965,6 +978,10 @@ inline bool Position::connect_diagonal() const {
   return var->connectDiagonal;
 }
 
+inline const std::vector<Direction>& Position::getConnectDirections() const {
+    assert(var != nullptr);
+    return var->connect_directions;
+}
 
 inline CheckCount Position::checks_remaining(Color c) const {
   return st->checksRemaining[c];
@@ -1391,18 +1408,18 @@ inline bool Position::allow_virtual_drop(Color c, PieceType pt) const {
 }
 
 inline Value Position::material_counting_result() const {
-  auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
+  auto weight_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
   int materialCount;
   Value result;
   switch (var->materialCounting)
   {
   case JANGGI_MATERIAL:
-      materialCount =  weigth_count(ROOK, 13)
-                     + weigth_count(JANGGI_CANNON, 7)
-                     + weigth_count(HORSE, 5)
-                     + weigth_count(JANGGI_ELEPHANT, 3)
-                     + weigth_count(WAZIR, 3)
-                     + weigth_count(SOLDIER, 2)
+      materialCount =  weight_count(ROOK, 13)
+                     + weight_count(JANGGI_CANNON, 7)
+                     + weight_count(HORSE, 5)
+                     + weight_count(JANGGI_ELEPHANT, 3)
+                     + weight_count(WAZIR, 3)
+                     + weight_count(SOLDIER, 2)
                      - 1;
       result = materialCount > 0 ? VALUE_MATE : -VALUE_MATE;
       break;

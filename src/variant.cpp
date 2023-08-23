@@ -482,6 +482,15 @@ namespace {
         return v;
     }
 
+    // Atomar chess
+    // https://web.archive.org/web/20230519082613/https://chronatog.com/wp-content/uploads/2021/09/atomar-chess-rules.pdf
+    Variant* atomar_variant() {
+        Variant* v = nocheckatomic_variant()->init();
+        v->blastImmuneTypes = piece_set(COMMONER);
+        v->mutuallyImmuneTypes = piece_set(COMMONER);
+        return v;
+    }
+
 #ifdef ALLVARS
     // Duck chess
     Variant* duck_variant() {
@@ -1802,6 +1811,7 @@ void VariantMap::init() {
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
     add("fox-and-hounds", fox_and_hounds_variant());
+    add("atomar", atomar_variant());
 #ifdef ALLVARS
     add("duck", duck_variant());
 #endif
@@ -2015,6 +2025,21 @@ Variant* Variant::conclude() {
             shogiStylePromotions = true;
             break;
         }
+
+    connect_directions.clear();
+    if (connectHorizontal)
+    {
+        connect_directions.push_back(EAST);
+    }
+    if (connectVertical)
+    {
+        connect_directions.push_back(NORTH);
+    }
+    if (connectDiagonal)
+    {
+        connect_directions.push_back(NORTH_EAST);
+        connect_directions.push_back(SOUTH_EAST);
+    }
 
     return this;
 }

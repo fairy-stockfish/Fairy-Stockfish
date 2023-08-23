@@ -64,6 +64,8 @@ struct Variant {
   bool mandatoryPiecePromotion = false;
   bool pieceDemotion = false;
   bool blastOnCapture = false;
+  PieceSet blastImmuneTypes = NO_PIECE_SET;
+  PieceSet mutuallyImmuneTypes = NO_PIECE_SET;
   bool petrifyOnCapture = false;
   bool doubleStep = true;
   Bitboard doubleStepRegion[COLOR_NB] = {Rank2BB, Rank7BB};
@@ -167,6 +169,7 @@ struct Variant {
   int nnueMaxPieces;
   bool endgameEval = false;
   bool shogiStylePromotions = false;
+  std::vector<Direction> connect_directions;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
       // Avoid ambiguous definition by removing existing piece with same letter
