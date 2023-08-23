@@ -137,6 +137,10 @@ variant_positions = {
         "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1": (False, False),  # startpos
         "8/8/8/8/8/8/K6k/8 w - - 0 1": (False, False),  # KvK
     },
+    "dodochess": {
+        "8/8/8/8/8/8/RBN2nbr/KBN2nbk w - - 0 1": (False, False),  # startpos
+        "8/8/8/8/8/8/K6k/8 w - - 0 1": (False, False),  # KvK
+    },
     "placement": {
         "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - - 0 1": (False, False),  # startpos
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1": (False, False),  # chess startpos
