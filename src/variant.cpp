@@ -344,6 +344,19 @@ namespace {
         v->checking = false;
         return v;
     }
+    // Dodo Chess
+    // https://www.evochess.com/chess-variant/dodo
+    Variant* dodochess_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->startFen = "8/8/8/8/8/8/RBN2nbr/KBN2nbk w - - 0 1";
+        v->flagPiece[WHITE] = v->flagPiece[BLACK] = KING;
+        v->flagRegion[WHITE] = Rank8BB;
+        v->flagRegion[BLACK] = Rank8BB;
+        v->flagMove = true;
+        v->castling = false;
+        v->checking = false;
+        return v;
+    }
     // Knightmate
     // https://www.chessvariants.com/diffobjective.dir/knightmate.html
     Variant* knightmate_variant() {
@@ -1786,6 +1799,7 @@ void VariantMap::init() {
     add("newzealand", newzealand_variant());
     add("kingofthehill", kingofthehill_variant());
     add("racingkings", racingkings_variant());
+	add("dodochess", dodochess_variant());
     add("knightmate", knightmate_variant());
     add("losers", losers_variant());
     add("giveaway", giveaway_variant());

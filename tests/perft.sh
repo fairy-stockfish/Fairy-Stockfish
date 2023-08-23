@@ -85,6 +85,10 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp racingkings "fen 6r1/2K5/5k2/8/3R4/8/8/8 w - - 0 1" 4 86041 > /dev/null
   expect perft.exp racingkings "fen 6R1/2k5/5K2/8/3r4/8/8/8 b - - 0 1" 4 86009 > /dev/null
   expect perft.exp racingkings "fen 4brn1/2K2k2/8/8/8/8/8/8 w - - 0 1" 6 265932 > /dev/null
+  expect perft.exp dodochess startpos 4 296242 > /dev/null
+  expect perft.exp dodochess "fen 6r1/2K5/5k2/8/3R4/8/8/8 w - - 0 1" 4 86041 > /dev/null
+  expect perft.exp dodochess "fen 6R1/2k5/5K2/8/3r4/8/8/8 b - - 0 1" 4 86009 > /dev/null
+  expect perft.exp dodochess "fen 4brn1/2K2k2/8/8/8/8/8/8 w - - 0 1" 6 265932 > /dev/null
   expect perft.exp kingofthehill "fen rnb2b1r/ppp2ppp/3k4/8/1PKp1pn1/3Pq3/PBP1P2P/RN1Q1B1R w - - 4 12" 3 19003 > /dev/null
   expect perft.exp 3check "fen 7r/1p4p1/pk3p2/RN6/8/P5Pp/3p1P1P/4R1K1 w - - 1+3 1 39" 3 12407 > /dev/null
   expect perft.exp 3check "fen 7r/1p4p1/pk3p2/RN6/8/P5Pp/3p1P1P/4R1K1 w - - 1 39 +2+0" 3 12407 > /dev/null
