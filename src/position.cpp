@@ -2003,7 +2003,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           }
 
           // Make a wall square where the piece was
-          if (var->petrifyOnCapture)
+          if ((var->petrifyOnCapture) && (var->petrifyBlastPieces || bsq==to))
           {
               st->wallSquares |= bsq;
               byTypeBB[ALL_PIECES] |= bsq;
