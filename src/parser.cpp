@@ -114,7 +114,7 @@ namespace {
         int rank;
         std::stringstream ss(value);
         target = 0;
-        while (!ss.eof() && ss >> file && ss >> rank)
+        while (!ss.eof() && ss >> file && file != '-' && ss >> rank)
         {
             if (Rank(rank - 1) > RANK_MAX || (file != '*' && File(tolower(file) - 'a') > FILE_MAX))
                 return false;
