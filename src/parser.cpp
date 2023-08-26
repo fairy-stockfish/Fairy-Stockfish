@@ -105,8 +105,9 @@ namespace {
     template <> bool set(const std::string& value, EnclosingRule& target) {
         target =  value == "reversi"  ? REVERSI
                 : value == "ataxx" ? ATAXX
+                : value == "quadwrangle" ? QUADWRANGLE
                 : NO_ENCLOSING;
-        return value == "reversi" || value == "ataxx" || value == "none";
+        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value == "none";
     }
 
     template <> bool set(const std::string& value, Bitboard& target) {
