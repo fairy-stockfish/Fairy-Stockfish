@@ -108,6 +108,7 @@ struct Variant {
   bool gating = false;
   bool arrowGating = false;
   bool duckGating = false;
+  Bitboard duckRegion[COLOR_NB] = {AllSquares};
   bool staticGating = false;
   bool pastGating = false;
   Bitboard staticGatingRegion = AllSquares;

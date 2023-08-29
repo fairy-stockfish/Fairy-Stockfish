@@ -47,6 +47,8 @@ namespace {
             b &= pos.variant()->staticGatingRegion;
         if (pos.variant()->pastGating)
             b &= square_bb(from);
+        if (pos.variant()->duckGating)
+            b &= pos.variant()->duckRegion[us];
 
         while (b)
             *moveList++ = make_gating<T>(from, to, pt, pop_lsb(b));
