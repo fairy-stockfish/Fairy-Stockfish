@@ -411,11 +411,11 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("gating", v->gating);
     parse_attribute("arrowGating", v->arrowGating);
     parse_attribute("duckGating", v->duckGating);
-    parse_attribute("duckRegionWhite", v->duckRegion[WHITE]);
-    parse_attribute("duckRegionBlack", v->duckRegion[BLACK]);
+    parse_attribute("staticGatingRegionWhite", v->staticGatingRegion[WHITE]);
+    parse_attribute("staticGatingRegionBlack", v->staticGatingRegion[BLACK]);
     parse_attribute("staticGating", v->staticGating);
     parse_attribute("pastGating", v->pastGating);
-    parse_attribute("staticGatingRegion", v->staticGatingRegion);
+//    parse_attribute("staticGatingRegion", v->staticGatingRegion);
     parse_attribute("seirawanGating", v->seirawanGating);
     parse_attribute("cambodianMoves", v->cambodianMoves);
     parse_attribute("diagonalLines", v->diagonalLines);

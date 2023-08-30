@@ -43,12 +43,10 @@ namespace {
             b ^= pos.capture_square(to);
         if (pos.variant()->arrowGating)
             b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
-        if (pos.variant()->staticGating)
-            b &= pos.variant()->staticGatingRegion;
+        if ((pos.variant()->staticGating)||(pos.variant()->duckGating))
+            b &= pos.variant()->staticGatingRegion[us];
         if (pos.variant()->pastGating)
             b &= square_bb(from);
-        if (pos.variant()->duckGating)
-            b &= pos.variant()->duckRegion[us];
 
         while (b)
             *moveList++ = make_gating<T>(from, to, pt, pop_lsb(b));

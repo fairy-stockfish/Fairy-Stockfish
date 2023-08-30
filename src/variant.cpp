@@ -512,10 +512,10 @@ namespace {
         v->maxFile = FILE_F;
         v->reset_pieces();
         v->add_piece(CUSTOM_PIECE_1, 'p', "mK"); //move as a King, but can't capture
-        v->startFen = "2p3/6/6/6/6/6/6/3P2 w - - 0 1";
+        v->startFen = "3p2/6/6/6/6/6/6/2P3 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
         v->staticGating = true;
-        v->staticGatingRegion = AllSquares ^ make_bitboard(SQ_C1, SQ_D8);
+        v->staticGatingRegion[WHITE] = v->staticGatingRegion[BLACK] = AllSquares ^ make_bitboard(SQ_C1, SQ_D8);
         return v;
     }
 
@@ -524,7 +524,7 @@ namespace {
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
         v->startFen = "3p3/7/7/7/7/7/3P3 w - - 0 1";
-        v->staticGatingRegion = AllSquares ^ make_bitboard(SQ_D1, SQ_D7);
+        v->staticGatingRegion[WHITE] = v->staticGatingRegion[BLACK] = AllSquares ^ make_bitboard(SQ_D1, SQ_D7);
         return v;
     }
 

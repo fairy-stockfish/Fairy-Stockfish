@@ -1302,9 +1302,7 @@ bool Position::pseudo_legal(const Move m) const {
       return false;
   if (var->pastGating && (from != gating_square(m)))
       return false;
-  if (var->staticGating && !(var->staticGatingRegion & gating_square(m)))
-      return false;
-  if (var->duckGating && !(var->duckRegion[us] & gating_square(m)))
+  if ((var->staticGating || var->duckGating) && !(var->staticGatingRegion[us] & gating_square(m)))
       return false;
 
   // Handle the case where a mandatory piece promotion/demotion is not taken
