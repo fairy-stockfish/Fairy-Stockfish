@@ -1675,8 +1675,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       }
       else
       {
-          assert(flip_enclosed_pieces() == ATAXX);
-          st->flippedPieces = PseudoAttacks[us][KING][to] & pieces(~us);
+          assert((flip_enclosed_pieces() == ATAXX) || (flip_enclosed_pieces() == QUADWRANGLE));
+          if ((flip_enclosed_pieces() == ATAXX) || (flip_enclosed_pieces() == QUADWRANGLE && (PseudoAttacks[us][KING][to] & pieces(us) || type_of(m) == NORMAL)))
+          {
+              st->flippedPieces = PseudoAttacks[us][KING][to] & pieces(~us);
+          }
       }
 
       // Flip pieces
