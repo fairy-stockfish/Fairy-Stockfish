@@ -1173,7 +1173,7 @@ bool Position::legal(Move m) const {
   }
 
   // Petrifying the king is illegal
-  if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) == KING)
+  if (var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) == KING && !(petrify_immune_types() & KING))
       return false;
 
   // mutuallyImmuneTypes (diplomacy in Atomar)-- In no-check Atomic, kings can be beside each other, but in Atomar, this prevents them from actually taking.
@@ -1941,7 +1941,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           blastImmune |= pieces(pt);
       };
       Bitboard blast = blast_on_capture() ? ((attacks_bb<KING>(to) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to)
-                       & (pieces() ^ blastImmune) : type_of(pc) != PAWN ? square_bb(to) : Bitboard(0);
+                       & (pieces() ^ blastImmune) : type_of(pc) != PAWN && !(petrify_immune_types() & type_of(pc)) ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);

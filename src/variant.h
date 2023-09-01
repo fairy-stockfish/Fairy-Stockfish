@@ -68,6 +68,7 @@ struct Variant {
   PieceSet mutuallyImmuneTypes = NO_PIECE_SET;
   bool petrifyOnCapture = false;
   bool petrifyBlastPieces = false;
+  PieceSet petrifyImmuneTypes = NO_PIECE_SET;
   bool doubleStep = true;
   Bitboard doubleStepRegion[COLOR_NB] = {Rank2BB, Rank7BB};
   Bitboard tripleStepRegion[COLOR_NB] = {};

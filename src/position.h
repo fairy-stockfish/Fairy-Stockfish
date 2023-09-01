@@ -142,6 +142,7 @@ public:
   bool blast_on_capture() const;
   PieceSet blast_immune_types() const;
   PieceSet mutually_immune_types() const;
+  PieceSet petrify_immune_types() const;
   bool endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
@@ -501,6 +502,12 @@ inline PieceSet Position::mutually_immune_types() const {
   assert(var != nullptr);
   return var->mutuallyImmuneTypes;
 }
+
+inline PieceSet Position::petrify_immune_types() const {
+  assert(var != nullptr);
+  return var->petrifyImmuneTypes;
+}
+
 
 inline bool Position::endgame_eval() const {
   assert(var != nullptr);

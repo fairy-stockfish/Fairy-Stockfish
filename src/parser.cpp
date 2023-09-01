@@ -361,6 +361,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("mutuallyImmuneTypes", v->mutuallyImmuneTypes, v->pieceToChar);
     parse_attribute("petrifyOnCapture", v->petrifyOnCapture);
     parse_attribute("petrifyBlastPieces", v->petrifyBlastPieces);
+    parse_attribute("petrifyImmuneTypes", v->petrifyImmuneTypes, v->pieceToChar);
     parse_attribute("doubleStep", v->doubleStep);
     parse_attribute("doubleStepRegionWhite", v->doubleStepRegion[WHITE]);
     parse_attribute("doubleStepRegionBlack", v->doubleStepRegion[BLACK]);
