@@ -409,14 +409,14 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("dropNoDoubledCount", v->dropNoDoubledCount);
     parse_attribute("immobilityIllegal", v->immobilityIllegal);
     parse_attribute("gating", v->gating);
-    parse_attribute("arrowGating", v->arrowGating);
-    parse_attribute("duckGating", v->duckGating);
-    parse_attribute("gatingRegionWhite", v->gatingRegion[WHITE]);
-    parse_attribute("gatingRegionBlack", v->gatingRegion[BLACK]);
-    parse_attribute("gatingRegion", v->gatingRegion[WHITE]);
-    parse_attribute("gatingRegion", v->gatingRegion[BLACK]);
-    parse_attribute("staticGating", v->staticGating);
-    parse_attribute("pastGating", v->pastGating);
+    parse_attribute("arrowWalling", v->arrowWalling);
+    parse_attribute("duckWalling", v->duckWalling);
+    parse_attribute("wallingRegionWhite", v->wallingRegion[WHITE]);
+    parse_attribute("wallingRegionBlack", v->wallingRegion[BLACK]);
+    parse_attribute("wallingRegion", v->wallingRegion[WHITE]);
+    parse_attribute("wallingRegion", v->wallingRegion[BLACK]);
+    parse_attribute("staticWalling", v->staticWalling);
+    parse_attribute("pastWalling", v->pastWalling);
     parse_attribute("seirawanGating", v->seirawanGating);
     parse_attribute("cambodianMoves", v->cambodianMoves);
     parse_attribute("diagonalLines", v->diagonalLines);
@@ -527,8 +527,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             std::cerr << "Inconsistent settings: castlingQueensideFile > castlingKingsideFile." << std::endl;
 
         // Check for limitations
-        if (v->pieceDrops && (v->arrowGating || v->duckGating || v->staticGating || v->pastGating))
-            std::cerr << "pieceDrops and arrowGating/duckGating are incompatible." << std::endl;
+        if (v->pieceDrops && (v->arrowWalling || v->duckWalling || v->staticWalling || v->pastWalling))
+            std::cerr << "pieceDrops and arrowWalling/duckWalling are incompatible." << std::endl;
 
         // Options incompatible with royal kings
         if (v->pieceTypes & KING)
@@ -537,8 +537,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                 std::cerr << "Can not use kings with blastOnCapture." << std::endl;
             if (v->flipEnclosedPieces)
                 std::cerr << "Can not use kings with flipEnclosedPieces." << std::endl;
-            if (v->duckGating)
-                std::cerr << "Can not use kings with duckGating." << std::endl;
+            if (v->duckWalling)
+                std::cerr << "Can not use kings with duckWalling." << std::endl;
             // We can not fully check support for custom king movements at this point,
             // since custom pieces are only initialized on loading of the variant.
             // We will assume this is valid, but it might cause problems later if it's not.

@@ -29,7 +29,7 @@ namespace {
   ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
     // Wall placing moves
-    if (pos.wall_gating())
+    if (pos.walling())
     {
         Bitboard b = pos.board_bb() & ~((pos.pieces() ^ from) | to);
         if (T == CASTLING)
@@ -41,11 +41,11 @@ namespace {
         }
         if (T == EN_PASSANT)
             b ^= pos.capture_square(to);
-        if (pos.variant()->arrowGating)
+        if (pos.variant()->arrowWalling)
             b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
-        if ((pos.variant()->staticGating)||(pos.variant()->duckGating))
-            b &= pos.variant()->gatingRegion[us];
-        if (pos.variant()->pastGating)
+        if ((pos.variant()->staticWalling)||(pos.variant()->duckWalling))
+            b &= pos.variant()->wallingRegion[us];
+        if (pos.variant()->pastWalling)
             b &= square_bb(from);
 
         while (b)
