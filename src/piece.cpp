@@ -152,9 +152,9 @@ namespace {
                           v[Direction(atom.first * FILE_NB + atom.second)] = distance;
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("lb") || has_dir("lv") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
                           v[Direction(-atom.first * FILE_NB - atom.second)] = distance;
-                      if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("br") || has_dir("bs") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
+                      if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("br") || has_dir("bs") || has_dir("bh") || has_dir("rh") || has_dir("hr"))
                           v[Direction(-atom.second * FILE_NB + atom.first)] = distance;
-                      if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("fl") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hr"))
+                      if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("fl") || has_dir("fs") || has_dir("fh") || has_dir("lh") || has_dir("hr"))
                           v[Direction(atom.second * FILE_NB - atom.first)] = distance;
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("fr") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hl"))
                           v[Direction(atom.second * FILE_NB + atom.first)] = distance;

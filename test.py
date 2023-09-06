@@ -91,6 +91,15 @@ king = k:W
 startFen = 7k/5Kq1/8/8/8/8/8/8 w - - 0 1
 stalemateValue = loss
 nFoldValue = loss
+
+[betzatest]
+maxRank = 7
+maxFile = 7
+customPiece1 = a:lhN
+customPiece2 = b:rhN
+customPiece3 = c:hlN
+customPiece4 = d:hrN
+startFen = 7/7/7/3A3/7/7/7 w - - 0 1
 """
 
 sf.load_variant_config(ini_text)
@@ -329,6 +338,17 @@ class TestPyffish(unittest.TestCase):
         legals = ['a3a4', 'b3b4', 'c3c4', 'd3d4', 'e3e4', 'f3f4', 'g3g4', 'e1e2', 'f1f2', 'b1a2', 'b1b2', 'b1c2', 'c1b2', 'c1c2', 'c1d2', 'a1a2', 'g1g2', 'd1c2', 'd1d2', 'd1e2']
         result = sf.legal_moves("yarishogi", sf.start_fen("yarishogi"), [])
         self.assertCountEqual(legals, result)
+
+        # Test betza parsing
+        result = sf.legal_moves("betzatest", "7/7/7/3A3/7/7/7 w - - 0 1", [])
+        self.assertEqual(['d4c2', 'd4b3', 'd4b5', 'd4c6'], result)
+        result = sf.legal_moves("betzatest", "7/7/7/3B3/7/7/7 w - - 0 1", [])
+        self.assertEqual(['d4e2', 'd4f3', 'd4f5', 'd4e6'], result)
+        result = sf.legal_moves("betzatest", "7/7/7/3C3/7/7/7 w - - 0 1", [])
+        self.assertEqual(['d4e2', 'd4b3', 'd4f5', 'd4c6'], result)
+        result = sf.legal_moves("betzatest", "7/7/7/3D3/7/7/7 w - - 0 1", [])
+        self.assertEqual(['d4c2', 'd4f3', 'd4b5', 'd4e6'], result)
+
 
     def test_short_castling(self):
         legals = ['f5f4', 'a7a6', 'b7b6', 'c7c6', 'd7d6', 'e7e6', 'i7i6', 'j7j6', 'a7a5', 'b7b5', 'c7c5', 'e7e5', 'i7i5', 'j7j5', 'b8a6', 'b8c6', 'h6g4', 'h6i4', 'h6j5', 'h6f7', 'h6g8', 'h6i8', 'd5a2', 'd5b3', 'd5f3', 'd5c4', 'd5e4', 'd5c6', 'd5e6', 'd5f7', 'd5g8', 'j8g8', 'j8h8', 'j8i8', 'e8f7', 'c8b6', 'c8d6', 'g6g2', 'g6g3', 'g6f4', 'g6g4', 'g6h4', 'g6e5', 'g6g5', 'g6i5', 'g6a6', 'g6b6', 'g6c6', 'g6d6', 'g6e6', 'g6f6', 'g6h8', 'f8f7', 'f8g8', 'f8i8']
