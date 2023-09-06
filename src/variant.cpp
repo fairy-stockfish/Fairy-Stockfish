@@ -500,7 +500,7 @@ namespace {
         v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(COMMONER);
-        v->duckGating = true;
+        v->duckWalling = true;
         v->stalemateValue = VALUE_MATE;
         return v;
     }
@@ -512,10 +512,10 @@ namespace {
         v->maxFile = FILE_F;
         v->reset_pieces();
         v->add_piece(CUSTOM_PIECE_1, 'p', "mK"); //move as a King, but can't capture
-        v->startFen = "2p3/6/6/6/6/6/6/3P2 w - - 0 1";
+        v->startFen = "3p2/6/6/6/6/6/6/2P3 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->staticGating = true;
-        v->staticGatingRegion = AllSquares ^ make_bitboard(SQ_C1, SQ_D8);
+        v->staticWalling = true;
+        v->wallingRegion[WHITE] = v->wallingRegion[BLACK] = AllSquares ^ make_bitboard(SQ_C1, SQ_D8);
         return v;
     }
 
@@ -524,7 +524,7 @@ namespace {
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
         v->startFen = "3p3/7/7/7/7/7/3P3 w - - 0 1";
-        v->staticGatingRegion = AllSquares ^ make_bitboard(SQ_D1, SQ_D7);
+        v->wallingRegion[WHITE] = v->wallingRegion[BLACK] = AllSquares ^ make_bitboard(SQ_D1, SQ_D7);
         return v;
     }
 
@@ -536,7 +536,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'p', "mK"); //move as a King, but can't capture
         v->startFen = "6p/7/7/7/7/7/P6 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->pastGating = true;
+        v->pastWalling = true;
         return v;
     }
 
@@ -547,7 +547,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'n', "mN"); //move as a Knight, but can't capture
         v->startFen = "8/8/8/4n3/3N4/8/8/8 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->pastGating = true;
+        v->pastWalling = true;
         return v;
     }
 
@@ -1653,7 +1653,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'q', "mQ");
         v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->arrowGating = true;
+        v->arrowWalling = true;
         return v;
     }
 #endif

@@ -178,7 +178,7 @@ public:
   PieceType drop_no_doubled() const;
   bool immobility_illegal() const;
   bool gating() const;
-  bool wall_gating() const;
+  bool walling() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
@@ -753,9 +753,9 @@ inline bool Position::gating() const {
   return var->gating;
 }
 
-inline bool Position::wall_gating() const {
+inline bool Position::walling() const {
   assert(var != nullptr);
-  return var->arrowGating || var->duckGating || var->staticGating || var->pastGating;
+  return var->arrowWalling || var->duckWalling || var->staticWalling || var->pastWalling;
 }
 
 inline bool Position::seirawan_gating() const {
