@@ -1659,6 +1659,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       k ^= Zobrist::castling[st->castlingRights];
       st->castlingRights &= ~(castlingRightsMask[from] | castlingRightsMask[to]);
+
+      // Remove castling rights from opponent on the same side if oppositeCastling
+      if ((var->oppositeCastling) && (type_of(m) == CASTLING))
+      {
+        bool kingSide = to > from;
+        st->castlingRights &= ~(~us & (kingSide ? KING_SIDE : QUEEN_SIDE));
+      }
       k ^= Zobrist::castling[st->castlingRights];
   }
 
