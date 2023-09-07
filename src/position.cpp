@@ -264,7 +264,8 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
   ss >> std::noskipws;
 
-  Square sq = SQ_A1 + max_rank() * NORTH;
+  Rank r = max_rank();
+  Square sq = SQ_A1 + r * NORTH;
 
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
@@ -283,10 +284,18 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
       else if (token == '/')
       {
-          sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
+          sq = SQ_A1 + --r * NORTH;
           if (!is_ok(sq))
               break;
       }
+
+      // Stop before pieces in hand
+      else if (token == '[')
+          break;
+
+      // Ignore pieces outside the board and wait for next / or [ to return to a valid state
+      else if (!is_ok(sq) || file_of(sq) > max_file() || rank_of(sq) > r)
+          continue;
 
       // Wall square
       else if (token == '*')
@@ -311,10 +320,6 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
           ++sq;
       }
-
-      // Stop before pieces in hand
-      else if (token == '[')
-          break;
   }
   // Pieces in hand
   if (!isspace(token))
