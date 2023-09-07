@@ -1148,6 +1148,10 @@ bool Position::legal(Move m) const {
       // Self-explosions are illegal
       if (pseudoRoyals & ~occupied)
           return false;
+      // Petrifiable pseudo-royals can't capture
+      Bitboard attackerCandidatesTheirs = occupied & ~square_bb(kto);
+      for (PieceSet ps = var->petrifyOnCaptureTypes & extinction_piece_types(); ps;)
+          attackerCandidatesTheirs &= ~pieces(~us, pop_lsb(ps));
       // Check for legality unless we capture a pseudo-royal piece
       if (!(pseudoRoyalsTheirs & ~occupied))
           while (pseudoRoyals)
@@ -1155,7 +1159,7 @@ bool Position::legal(Move m) const {
               Square sr = pop_lsb(pseudoRoyals);
               // Touching pseudo-royal pieces are immune
               if (  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
-                  && (attackers_to(sr, occupied, ~us) & (occupied & ~square_bb(kto))))
+                  && (attackers_to(sr, occupied, ~us) & attackerCandidatesTheirs))
                   return false;
           }
       // Look for duple check
@@ -1172,7 +1176,7 @@ bool Position::legal(Move m) const {
               Square sr = pop_lsb(pseudoRoyalCandidates);
               // Touching pseudo-royal pieces are immune
               if (!(  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
-                    && (attackers_to(sr, occupied, ~us) & (occupied & ~square_bb(kto)))))
+                    && (attackers_to(sr, occupied, ~us) & attackerCandidatesTheirs)))
                   allCheck = false;
           }
           if (allCheck)
