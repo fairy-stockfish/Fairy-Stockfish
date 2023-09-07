@@ -83,6 +83,7 @@ struct Variant {
   File castlingRookKingsideFile = FILE_MAX; // only has to match if rook is not in corner in non-960 variants
   File castlingRookQueensideFile = FILE_A; // only has to match if rook is not in corner in non-960 variants
   PieceSet castlingRookPieces[COLOR_NB] = {piece_set(ROOK), piece_set(ROOK)};
+  bool oppositeCastling = false;
   PieceType kingType = KING;
   bool checking = true;
   bool dropChecks = true;
