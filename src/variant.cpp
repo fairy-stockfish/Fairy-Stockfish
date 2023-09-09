@@ -1807,11 +1807,11 @@ void VariantMap::init() {
     add("horde", horde_variant());
     add("nocheckatomic", nocheckatomic_variant());
     add("atomic", atomic_variant());
+    add("atomar", atomar_variant());
     add("isolation", isolation_variant());
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
     add("fox-and-hounds", fox_and_hounds_variant());
-    add("atomar", atomar_variant());
 #ifdef ALLVARS
     add("duck", duck_variant());
 #endif

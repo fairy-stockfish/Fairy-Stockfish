@@ -92,6 +92,10 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp atomic "fen rn2kb1r/1pp1p2p/p2q1pp1/3P4/2P3b1/4PN2/PP3PPP/R2QKB1R b KQkq - 0 1" 4 1434825 > /dev/null
   expect perft.exp atomic "fen rn1qkb1r/p5pp/2p5/3p4/N3P3/5P2/PPP4P/R1BQK3 w Qkq - 0 1" 4 714499 > /dev/null
   expect perft.exp atomic "fen r4b1r/2kb1N2/p2Bpnp1/8/2Pp3p/1P1PPP2/P5PP/R3K2R b KQ - 0 1" 2 148 > /dev/null
+  expect perft.exp atomar startpos 4 197779 > /dev/null
+  expect perft.exp atomar "fen 7r/6Pb/1np5/1p2kp2/P1P1n3/1P2KP1B/5N2/8 w - - 0 1" 3 24644 > /dev/null
+  expect perft.exp nocheckatomic startpos 4 197779 > /dev/null
+  expect perft.exp nocheckatomic "fen 7r/6Pb/1np5/1p2kp2/P1P1n3/1P2KP1B/5N2/8 w - - 0 1" 3 21347 > /dev/null
   expect perft.exp antichess startpos 4 153299 > /dev/null
   expect perft.exp giveaway startpos 4 153299 > /dev/null
   expect perft.exp giveaway "fen 8/1p6/8/8/8/8/P7/8 w - - 0 1" 4 3 > /dev/null
