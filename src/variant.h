@@ -157,6 +157,7 @@ struct Variant {
   bool connectDiagonal = true;
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
+  bool castleLongBlackWin = false;
 
   // Derived properties
   bool fastAttacks = true;

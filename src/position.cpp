@@ -2736,6 +2736,25 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           return true;
       }
   }
+
+  // Castle chess
+  if (var->castleLongBlackWin)
+  {
+      //check for victory first, because castling also removes castling rights.
+      if ((type_of(st->move) == CASTLING) && (from_sq(st->move) > to_sq(st->move)) && (sideToMove == WHITE))
+      {
+          result = mated_in(ply);
+          return true;
+      }
+      if (!(st->castlingRights & BLACK_OOO))
+      {
+          //black permanently losing castling rights. either through moving a castling piece,
+          //or having their rook captured. Either way, black lost.
+              result = sideToMove == WHITE ? mate_in(ply) : mated_in(ply);
+          return true;
+      }
+  }
+
   // nCheck
   if (check_counting() && checks_remaining(~sideToMove) == 0)
   {
