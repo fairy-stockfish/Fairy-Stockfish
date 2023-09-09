@@ -2438,6 +2438,10 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (swap <= 0)
       return true;
 
+  // Petrification ends SEE
+  if (var->petrifyOnCaptureTypes & type_of(moved_piece(m)) && capture(m))
+      return false;
+
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) ^ to;
   Color stm = color_of(moved_piece(m));
   Bitboard attackers = attackers_to(to, occupied);
