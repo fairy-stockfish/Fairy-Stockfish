@@ -472,8 +472,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectDiagonal", v->connectDiagonal);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
-    parse_attribute("castleLongBlackWin", v->castleLongBlackWin);
-
+    parse_attribute("castlingWins", v->castlingWins);
+    
     // Report invalid options
     if (DoCheck)
     {
