@@ -150,6 +150,7 @@ struct Variant {
   int flagPieceCount = 1;
   bool flagPieceBlockedWin = false;
   bool flagMove = false;
+  bool flagPieceSafe = false;
   bool checkCounting = false;
   int connectN = 0;
   bool connectHorizontal = true;
