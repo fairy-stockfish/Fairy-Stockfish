@@ -2751,19 +2751,25 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
       }
 
-      if (var->castlingWinConditions & BLACK_CASTLING & ~st->castlingRights)
+      if (var->castlingWinConditions & BLACK_CASTLING)
       {
-          //black permanently losing castling rights. either through moving a castling piece,
-          //or having their rook captured. Either way, black lost.
-          result = sideToMove == WHITE ? mate_in(ply) : mated_in(ply);
-          return true;
+          if (!(var->castlingWinConditions & BLACK_CASTLING & st->castlingRights))
+          {
+              //black permanently losing castling rights. either through moving a castling piece,
+              //or having their rook captured. Either way, black lost.
+              result = sideToMove == WHITE ? mate_in(ply) : mated_in(ply);
+              return true;
+          }
       }
-      if (var->castlingWinConditions & WHITE_CASTLING & ~st->castlingRights)
+      if (var->castlingWinConditions & WHITE_CASTLING)
       {
-          //white permanently losing castling rights. either through moving a castling piece,
-          //or having their rook captured. Either way, white lost.
-          result = sideToMove == BLACK ? mate_in(ply) : mated_in(ply);
-          return true;
+          if (!(var->castlingWinConditions & WHITE_CASTLING & st->castlingRights))
+          {
+              //white permanently losing castling rights. either through moving a castling piece,
+              //or having their rook captured. Either way, white lost.
+              result = sideToMove == BLACK ? mate_in(ply) : mated_in(ply);
+              return true;
+          }
       }
   }
 
