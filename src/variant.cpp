@@ -2041,15 +2041,6 @@ Variant* Variant::conclude() {
         connect_directions.push_back(SOUTH_EAST);
     }
 
-    for (char c : castlingWins) {
-        switch (c) {
-            case 'K': castlingWinConditions = static_cast<CastlingRights>(castlingWinConditions | WHITE_OO); break;
-            case 'Q': castlingWinConditions = static_cast<CastlingRights>(castlingWinConditions | WHITE_OOO); break;
-            case 'k': castlingWinConditions = static_cast<CastlingRights>(castlingWinConditions | BLACK_OO); break;
-            case 'q': castlingWinConditions = static_cast<CastlingRights>(castlingWinConditions | BLACK_OOO); break;
-        }
-    }
-
     return this;
 }
 

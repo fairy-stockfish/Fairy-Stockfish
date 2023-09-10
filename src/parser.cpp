@@ -124,6 +124,27 @@ namespace {
         return !ss.fail();
     }
 
+    template <> bool set(const std::string& value, CastlingRights& target) {
+        char c;
+        CastlingRights castlingRight;
+        std::stringstream ss(value);
+        target = NO_CASTLING;
+        bool valid = true;
+        while (ss >> c && c != '-')
+        {
+            castlingRight =  c == 'K' ? WHITE_OO
+                           : c == 'Q' ? WHITE_OOO
+                           : c == 'k' ? BLACK_OO
+                           : c == 'q' ? BLACK_OOO
+                           : NO_CASTLING;
+            if (castlingRight)
+                target = CastlingRights(target | castlingRight);
+            else
+                valid = false;
+        }
+        return valid;
+    }
+
     template <typename T> void set(PieceType pt, T& target) {
         target.insert(pt);
     }
@@ -158,6 +179,7 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
                                   : std::is_same<T, ChasingRule>() ? "ChasingRule"
                                   : std::is_same<T, EnclosingRule>() ? "EnclosingRule"
                                   : std::is_same<T, Bitboard>() ? "Bitboard"
+                                  : std::is_same<T, CastlingRights>() ? "CastlingRights"
                                   : typeid(T).name();
             std::cerr << key << " - Invalid value " << it->second << " for type " << typeName << std::endl;
         }

@@ -2738,32 +2738,28 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   }
 
   // Castle chess
-  if (var->castlingWinConditions) {
-      if (type_of(st->move) == CASTLING)
+  if (var->castlingWins)
+  {
+      if (st->pliesFromNull > 0 && type_of(st->move) == CASTLING)
       {
-          //check for victory first, because castling also removes castling rights.
-          CastlingRights justCastled = static_cast<CastlingRights>((sideToMove == BLACK ? WHITE_OOO : BLACK_OOO)
-                                       >> ((from_sq(st->move) < to_sq(st->move)) ? 1 : 0));
-          if (var->castlingWinConditions & justCastled)
+          // check for victory first, because castling also removes castling rights.
+          CastlingRights justCastled = ~sideToMove & ((from_sq(st->move) < to_sq(st->move)) ? KING_SIDE : QUEEN_SIDE);
+          if (var->castlingWins & justCastled)
           {
               result = mated_in(ply);
               return true;
           }
       }
-      if ((var->castlingWinConditions & BLACK_CASTLING) && (!(var->castlingWinConditions & BLACK_CASTLING & st->castlingRights)))
-      {
-          //black permanently losing castling rights. either through moving a castling piece,
-          //or having their rook captured. Either way, black lost.
-          result = sideToMove == WHITE ? mate_in(ply) : mated_in(ply);
-          return true;
-      }
-      if ((var->castlingWinConditions & WHITE_CASTLING) && (!(var->castlingWinConditions & WHITE_CASTLING & st->castlingRights)))
-      {
-          //white permanently losing castling rights. either through moving a castling piece,
-          //or having their rook captured. Either way, white lost.
-          result = sideToMove == BLACK ? mate_in(ply) : mated_in(ply);
-          return true;
-      }
+      // We check the opponent side first, because a rook capturing a rook could remove both sides castling rights,
+      // which should likely be seen as losing, analogous to extinction rules.
+      for (Color c : { ~sideToMove, sideToMove })
+          if ((c & var->castlingWins) && !(c & var->castlingWins & st->castlingRights))
+          {
+              // player permanently losing castling rights. either through moving a castling piece,
+              // or having their rook captured.
+              result = c == sideToMove ? mated_in(ply) : mate_in(ply);
+              return true;
+          }
   }
 
   // nCheck
