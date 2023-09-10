@@ -157,6 +157,7 @@ struct Variant {
   bool connectDiagonal = true;
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
+  std::string castlingWins = "";
 
   // Derived properties
   bool fastAttacks = true;
@@ -172,6 +173,7 @@ struct Variant {
   bool endgameEval = false;
   bool shogiStylePromotions = false;
   std::vector<Direction> connect_directions;
+  CastlingRights castlingWinConditions = NO_CASTLING;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
       // Avoid ambiguous definition by removing existing piece with same letter
