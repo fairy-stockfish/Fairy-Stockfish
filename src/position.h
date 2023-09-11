@@ -953,7 +953,7 @@ inline bool Position::flag_reached(Color c) const {
   bool simpleResult = 
         (flag_region(c) & pieces(c, flag_piece(c)))
         && (   popcount(flag_region(c) & pieces(c, flag_piece(c))) >= var->flagPieceCount
-        || (var->flagPieceBlockedWin && !(flag_region(c) & ~pieces())));
+            || (var->flagPieceBlockedWin && !(flag_region(c) & ~pieces())));
       
   if (simpleResult&&var->flagPieceSafe)
   {
@@ -969,6 +969,17 @@ inline bool Position::flag_reached(Color c) const {
       {
           Square sr = pop_lsb(piecesInFlagZone);
           Bitboard flagAttackers = attackers_to(sr, ~c);
+          
+          while (flagAttackers)
+          {
+              Square currentAttack = pop_lsb(flagAttackers);
+              if (legal(make_move(currentAttack, sr)))
+              {
+                  potentialPieces--;
+                  break;
+              }
+          }
+          /*
           Bitboard flagDefenders = attackers_to(sr, c);
           Bitboard royalAttackers = flagAttackers & (st->pseudoRoyals | square<KING>(~c));
           Bitboard nonRoyalAttackers = flagAttackers & (~royalAttackers);
@@ -986,6 +997,7 @@ inline bool Position::flag_reached(Color c) const {
                   potentialPieces--;
               }
           }
+          */
       }
       return potentialPieces >= var->flagPieceCount;
   }
