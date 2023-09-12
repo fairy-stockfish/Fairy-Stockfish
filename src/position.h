@@ -979,25 +979,6 @@ inline bool Position::flag_reached(Color c) const {
                   break;
               }
           }
-          /*
-          Bitboard flagDefenders = attackers_to(sr, c);
-          Bitboard royalAttackers = flagAttackers & (st->pseudoRoyals | square<KING>(~c));
-          Bitboard nonRoyalAttackers = flagAttackers & (~royalAttackers);
-          //If square is protected by current player, and only opponent piece that could capture is
-          //royal, then count it as safe.
-          //printf ("flagAttackers: %d flagDefenders: %d royalAttackers: %d nonRoyalAttackers: %d\n", popcount(flagAttackers), popcount(flagDefenders), popcount(royalAttackers), popcount(nonRoyalAttackers));
-          if (nonRoyalAttackers) 
-          {
-              potentialPieces--;
-          }
-          else
-          {
-              if (royalAttackers && !flagDefenders)
-              {
-                  potentialPieces--;
-              }
-          }
-          */
       }
       return potentialPieces >= var->flagPieceCount;
   }

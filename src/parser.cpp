@@ -590,13 +590,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             if (v->mutuallyImmuneTypes)
                 std::cerr << "Can not use kings or pseudo-royal with mutuallyImmuneTypes." << std::endl;
         }
-        if (v->flagPieceSafe)
-        {
-            if (v->blastOnCapture || v->mutuallyImmuneTypes)
-                std::cerr << "Can not use flagPieceSafe with blastOnCapture or mutuallyImmuneTypes (flagPieceSafe uses simple assessment that does not see fully)." << std::endl;
-            if (v->extinctionPseudoRoyal || (v->pieceTypes & KING))
-                std::cerr << "Can not use flagPieceSafe with kings or pseudo-royal (could see moving into check as real threat to flag piece) (if your flag piece is royal, you don't need flagPieceSafe)." << std::endl;
-        }
+        if (v->flagPieceSafe && v->blastOnCapture)
+            std::cerr << "Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast)." << std::endl;
     }
     return v;
 }
