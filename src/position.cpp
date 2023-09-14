@@ -1946,7 +1946,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
 
   // Remove the blast pieces
-  if (captured && (blast_on_capture() || var->petrifyOnCapture))
+  if (captured && (blast_on_capture() || var->petrifyOnCapture || (mutual_capture_types() & type_of(pc) & type_of(captured))))
   {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
@@ -1956,7 +1956,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           blastImmune |= pieces(pt);
       };
       Bitboard blast = blast_on_capture() ? ((attacks_bb<KING>(to) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to)
-                       & (pieces() ^ blastImmune) : type_of(pc) != PAWN ? square_bb(to) : Bitboard(0);
+                       & (pieces() ^ blastImmune) : ((type_of(pc) != PAWN) | (mutual_capture_types() & type_of(pc) & type_of(captured)) ) ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);

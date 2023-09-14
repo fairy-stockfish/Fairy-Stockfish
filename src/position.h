@@ -142,6 +142,7 @@ public:
   bool blast_on_capture() const;
   PieceSet blast_immune_types() const;
   PieceSet mutually_immune_types() const;
+  PieceSet mutual_capture_types() const;
   bool endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
@@ -502,6 +503,11 @@ inline PieceSet Position::mutually_immune_types() const {
   return var->mutuallyImmuneTypes;
 }
 
+inline PieceSet Position::mutual_capture_types() const {
+  assert(var != nullptr);
+  return var->mutualCaptureTypes;
+}
+
 inline bool Position::endgame_eval() const {
   assert(var != nullptr);
   return var->endgameEval && !count_in_hand(ALL_PIECES) && count<KING>() == 2;
@@ -707,6 +713,12 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
                   if (!(attacks_bb(c, QUEEN, s, board_bb() & ~pieces(~c)) & ~PseudoAttacks[c][KING][s] & pieces(c)))
                       b ^= s;
               }
+          }
+          else if (enclosing_drop() == SNORT)
+          {
+              Bitboard theirs = pieces(~c);
+              b =   ~(shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
+                  | shift<EAST      >(theirs) | shift<WEST      >(theirs));
           }
           else
           {

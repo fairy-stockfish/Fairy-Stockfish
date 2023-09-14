@@ -106,8 +106,9 @@ namespace {
         target =  value == "reversi"  ? REVERSI
                 : value == "ataxx" ? ATAXX
                 : value == "quadwrangle" ? QUADWRANGLE
+                : value == "snort" ? SNORT
                 : NO_ENCLOSING;
-        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value == "none";
+        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value == "none";
     }
 
     template <> bool set(const std::string& value, Bitboard& target) {
@@ -382,6 +383,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("blastOnCapture", v->blastOnCapture);
     parse_attribute("blastImmuneTypes", v->blastImmuneTypes, v->pieceToChar);
     parse_attribute("mutuallyImmuneTypes", v->mutuallyImmuneTypes, v->pieceToChar);
+    parse_attribute("mutualCaptureTypes", v->mutualCaptureTypes, v->pieceToChar);
     parse_attribute("petrifyOnCapture", v->petrifyOnCapture);
     parse_attribute("petrifyBlastPieces", v->petrifyBlastPieces);
     parse_attribute("doubleStep", v->doubleStep);
