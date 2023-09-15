@@ -1190,33 +1190,6 @@ bool Position::legal(Move m) const {
           return false;
       }
 
-  //With mutualCaptureTypes, make sure not in discovered check (both attacker and defender removed).
-  if (capture(m) && (count<KING>(us) || var->extinctionPseudoRoyal) &&
-      (mutual_capture_types() &
-       type_of(piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to)) &
-       type_of(moved_piece(m))
-      )
-     )
-  {
-      Bitboard occupied = pieces() & ~square_bb(from) & ~square_bb((type_of(m) == EN_PASSANT ? capture_square(to) : to));
-      Square ksq = square<KING>(us);
-      if (attackers_to(ksq, occupied, ~us))
-      {
-          return false;
-      }
-      if (var->extinctionPseudoRoyal)
-      {
-          Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
-          while (pseudoRoyals)
-          {
-              if (attackers_to(pop_lsb(pseudoRoyals), occupied, ~us))
-              {
-                  return false;
-              }
-          }
-      }
-  }
-
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
@@ -1974,7 +1947,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
 
   // Remove the blast pieces
-  if (captured && (blast_on_capture() || var->petrifyOnCapture || (mutual_capture_types() & type_of(pc) & type_of(captured))))
+  if (captured && (blast_on_capture() || var->petrifyOnCapture ))
   {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
@@ -1983,8 +1956,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           PieceType pt = pop_lsb(ps);
           blastImmune |= pieces(pt);
       };
-      Bitboard blast = blast_on_capture() ? ((attacks_bb<KING>(to) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to)
-                       & (pieces() ^ blastImmune) : ((type_of(pc) != PAWN) | (mutual_capture_types() & type_of(pc) & type_of(captured)) ) ? square_bb(to) : Bitboard(0);
+      Bitboard blast = blast_on_capture() ? ((attacks_bb<KING>(to) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to) & (pieces() ^ blastImmune) : (type_of(pc) != PAWN) ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);
