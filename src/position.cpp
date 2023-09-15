@@ -1185,10 +1185,9 @@ bool Position::legal(Move m) const {
   // Generalized to allow a custom set of pieces that can't capture a piece of the same type.
   if (capture(m) &&
       (mutually_immune_types() & type_of(moved_piece(m))) &&
-      (type_of(moved_piece(m)) == type_of(piece_on(to))))
-      {
-          return false;
-      }
+      (type_of(moved_piece(m)) == type_of(piece_on(to)))
+  )
+  return false;
 
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
@@ -1947,7 +1946,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
 
   // Remove the blast pieces
-  if (captured && (blast_on_capture() || var->petrifyOnCapture ))
+  if (captured && (blast_on_capture() || var->petrifyOnCapture))
   {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
@@ -1956,7 +1955,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           PieceType pt = pop_lsb(ps);
           blastImmune |= pieces(pt);
       };
-      Bitboard blast = blast_on_capture() ? ((attacks_bb<KING>(to) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to) & (pieces() ^ blastImmune) : (type_of(pc) != PAWN) ? square_bb(to) : Bitboard(0);
+      Bitboard blast = blast_on_capture() ? ((attacks_bb<KING>(to) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to)
+                       & (pieces() ^ blastImmune) : type_of(pc) != PAWN ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);
