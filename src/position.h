@@ -969,7 +969,8 @@ inline bool Position::flag_reached(Color c) const {
       {
           Square sr = pop_lsb(piecesInFlagZone);
           Bitboard flagAttackers = attackers_to(sr, ~c);
-          
+
+          if ((potentialPieces < var->flagPieceCount) || (potentialPieces >= var->flagPieceCount + 1)) break;
           while (flagAttackers)
           {
               Square currentAttack = pop_lsb(flagAttackers);
