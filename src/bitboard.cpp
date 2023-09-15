@@ -220,7 +220,7 @@ std::string Bitboards::pretty(Bitboard b) {
 
       s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+---+---+---+---+\n";
   }
-  s += "  a   b   c   d   e   f   g   h   i   j   k\n";
+  s += "  a   b   c   d   e   f   g   h   i   j   k   l\n";
 
   return s;
 }

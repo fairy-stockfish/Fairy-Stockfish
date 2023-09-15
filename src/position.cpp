@@ -1185,9 +1185,37 @@ bool Position::legal(Move m) const {
   // Generalized to allow a custom set of pieces that can't capture a piece of the same type.
   if (capture(m) &&
       (mutually_immune_types() & type_of(moved_piece(m))) &&
-      (type_of(moved_piece(m)) == type_of(piece_on(to)))
-  )
-  return false;
+      (type_of(moved_piece(m)) == type_of(piece_on(to))))
+      {
+          return false;
+      }
+
+  //With mutualCaptureTypes, make sure not in discovered check (both attacker and defender removed).
+  if (capture(m) && (count<KING>(us) || var->extinctionPseudoRoyal) &&
+      (mutual_capture_types() &
+       type_of(piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to)) &
+       type_of(moved_piece(m))
+      )
+     )
+  {
+      Bitboard occupied = pieces() & ~square_bb(from) & ~square_bb((type_of(m) == EN_PASSANT ? capture_square(to) : to));
+      Square ksq = square<KING>(us);
+      if (attackers_to(ksq, occupied, ~us))
+      {
+          return false;
+      }
+      if (var->extinctionPseudoRoyal)
+      {
+          Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
+          while (pseudoRoyals)
+          {
+              if (attackers_to(pop_lsb(pseudoRoyals), occupied, ~us))
+              {
+                  return false;
+              }
+          }
+      }
+  }
 
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
