@@ -708,6 +708,12 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
                       b ^= s;
               }
           }
+          else if (enclosing_drop() == SNORT)
+          {
+              Bitboard theirs = pieces(~c);
+              b &=   ~(shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
+                  | shift<EAST      >(theirs) | shift<WEST      >(theirs));
+          }
           else
           {
               assert(enclosing_drop() == ATAXX);

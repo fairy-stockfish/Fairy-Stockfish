@@ -106,8 +106,9 @@ namespace {
         target =  value == "reversi"  ? REVERSI
                 : value == "ataxx" ? ATAXX
                 : value == "quadwrangle" ? QUADWRANGLE
+                : value == "snort" ? SNORT
                 : NO_ENCLOSING;
-        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value == "none";
+        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value == "none";
     }
 
     template <> bool set(const std::string& value, Bitboard& target) {

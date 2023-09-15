@@ -64,7 +64,7 @@ namespace {
 // Some magics need to be split in order to reduce memory consumption.
 // Otherwise on a 12x10 board they can be >100 MB.
 #ifdef LARGEBOARDS
-  Bitboard RookTableH[0x11800];  // To store horizontalrook attacks
+  Bitboard RookTableH[0x11800];  // To store horizontal rook attacks
   Bitboard RookTableV[0x4800];  // To store vertical rook attacks
   Bitboard BishopTable[0x33C00]; // To store bishop attacks
   Bitboard CannonTableH[0x11800];  // To store horizontal cannon attacks
@@ -220,7 +220,7 @@ std::string Bitboards::pretty(Bitboard b) {
 
       s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+---+---+---+---+\n";
   }
-  s += "  a   b   c   d   e   f   g   h   i   j   k\n";
+  s += "  a   b   c   d   e   f   g   h   i   j   k   l\n";
 
   return s;
 }
