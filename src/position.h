@@ -179,6 +179,7 @@ public:
   bool immobility_illegal() const;
   bool gating() const;
   bool walling() const;
+  WallingRule walling_rule() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
@@ -761,7 +762,12 @@ inline bool Position::gating() const {
 
 inline bool Position::walling() const {
   assert(var != nullptr);
-  return var->arrowWalling || var->duckWalling || var->staticWalling || var->pastWalling;
+  return var->wallingRule != NO_WALLING;
+}
+
+inline WallingRule Position::walling_rule() const {
+  assert(var != nullptr);
+  return var->wallingRule;
 }
 
 inline bool Position::seirawan_gating() const {
