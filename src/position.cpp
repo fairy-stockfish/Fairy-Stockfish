@@ -22,6 +22,7 @@
 #include <cstring> // For std::memset, std::memcmp
 #include <iomanip>
 #include <sstream>
+#include <stack>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -2789,6 +2790,37 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           {
               result = mated_in(ply);
               return true;
+          }
+      }
+  }
+  if (var->connectRegion1[~sideToMove])
+  {
+      std::stack<Square> dfsStack;
+      Bitboard visited = 0;
+      Bitboard b = var->connectRegion1[~sideToMove];
+
+      // Initialize stack with starting zone squares
+      while (b) {
+          Square s = pop_lsb(b);
+          dfsStack.push(s);
+          visited |= square_bb(s);
+      }
+      while (!dfsStack.empty()) {
+          Square current = dfsStack.top();
+          dfsStack.pop();
+          // Check if we've reached the end zone
+          if (square_bb(current) & var->connectRegion2[~sideToMove]) {
+              result = mated_in(ply);
+              return true;
+          }
+          // Explore neighbors
+          for (Direction d : var->connect_directions) {
+              Bitboard neighbors = shift(d, square_bb(current)) & pieces(~sideToMove) & ~visited;
+              while (neighbors) {
+                  Square neighbor = pop_lsb(neighbors);
+                  dfsStack.push(neighbor);
+                  visited |= square_bb(neighbor);
+              }
           }
       }
   }

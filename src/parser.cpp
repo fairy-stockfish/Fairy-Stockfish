@@ -493,6 +493,10 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectHorizontal", v->connectHorizontal);
     parse_attribute("connectVertical", v->connectVertical);
     parse_attribute("connectDiagonal", v->connectDiagonal);
+    parse_attribute("connectRegion1White", v->connectRegion1[WHITE]);
+    parse_attribute("connectRegion2White", v->connectRegion2[WHITE]);
+    parse_attribute("connectRegion1Black", v->connectRegion1[BLACK]);
+    parse_attribute("connectRegion2Black", v->connectRegion2[BLACK]);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
     parse_attribute("castlingWins", v->castlingWins);
