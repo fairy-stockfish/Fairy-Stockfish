@@ -112,15 +112,33 @@ namespace {
     }
 
     template <> bool set(const std::string& value, Bitboard& target) {
-        char file;
-        int rank;
+        char symbol;
+        std::string next;
         std::stringstream ss(value);
         target = 0;
-        while (!ss.eof() && ss >> file && file != '-' && ss >> rank)
+        while (!ss.eof() && ss >> symbol && symbol != '-')
         {
-            if (Rank(rank - 1) > RANK_MAX || (file != '*' && File(tolower(file) - 'a') > FILE_MAX))
+            if (symbol == '*') {
+                ss >> next;
+                if (isdigit(next[0])) {
+                    int rank = std::stoi(next);
+                    if (Rank(rank - 1) > RANK_MAX) return false;
+                    target |= rank_bb(Rank(rank - 1));
+                } else if (isalpha(next[0])) {
+                    char file = tolower(next[0]);
+                    if (File(file - 'a') > FILE_MAX) return false;
+                    target |= file_bb(File(file - 'a'));
+                } else {
+                    return false;
+                }
+            } else if (isalpha(symbol)) {
+                ss >> next;
+                int rank = std::stoi(next);
+                if (Rank(rank - 1) > RANK_MAX || File(tolower(symbol) - 'a') > FILE_MAX) return false;
+                target |= square_bb(make_square(File(tolower(symbol) - 'a'), Rank(rank - 1)));
+            } else {
                 return false;
-            target |= file == '*' ? rank_bb(Rank(rank - 1)) : square_bb(make_square(File(tolower(file) - 'a'), Rank(rank - 1)));
+            }
         }
         return !ss.fail();
     }
