@@ -107,10 +107,7 @@ struct Variant {
   int dropNoDoubledCount = 1;
   bool immobilityIllegal = false;
   bool gating = false;
-  bool arrowWalling = false;
-  bool duckWalling = false;
-  bool staticWalling = false;
-  bool pastWalling = false;
+  WallingRule wallingRule = NO_WALLING;
   Bitboard wallingRegion[COLOR_NB] = {AllSquares, AllSquares};
   bool seirawanGating = false;
   bool cambodianMoves = false;
