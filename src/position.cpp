@@ -1303,7 +1303,8 @@ bool Position::pseudo_legal(const Move m) const {
       return checkers() ? MoveList<    EVASIONS>(*this).contains(m)
                         : MoveList<NON_EVASIONS>(*this).contains(m);
 
-  if (walling())
+  //if walling, and walling is not optional, or they didn't move, do the checks.
+  if (walling() && (!var->wallOrMove || (from==to)))
   {
       Bitboard wallsquares = st->wallSquares;
 
@@ -2045,7 +2046,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Add gated wall square
-  if (walling())
+  // if wallOrMove, only actually place the wall if they gave up their move
+  if (walling() && (!var->wallOrMove || (from==to)))
   {
       // Reset wall squares for duck walling
       if (walling_rule() == DUCK)
