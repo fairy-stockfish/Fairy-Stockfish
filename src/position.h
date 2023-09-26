@@ -962,9 +962,40 @@ inline bool Position::flag_move() const {
 
 inline bool Position::flag_reached(Color c) const {
   assert(var != nullptr);
-  return   (flag_region(c) & pieces(c, flag_piece(c)))
+  bool simpleResult = 
+        (flag_region(c) & pieces(c, flag_piece(c)))
         && (   popcount(flag_region(c) & pieces(c, flag_piece(c))) >= var->flagPieceCount
             || (var->flagPieceBlockedWin && !(flag_region(c) & ~pieces())));
+      
+  if (simpleResult&&var->flagPieceSafe)
+  {
+      Bitboard piecesInFlagZone = flag_region(c) & pieces(c, flag_piece(c));
+      int potentialPieces = (popcount(piecesInFlagZone));
+      /*
+      There isn't a variant that uses it, but in the hypothetical game where the rules say I need 3
+      pieces in the flag zone and they need to be safe: If I have 3 pieces there, but one is under
+      threat, I don't think I can declare victory. If I have 4 there, but one is under threat, I
+      think that's victory.
+      */      
+      while (piecesInFlagZone)
+      {
+          Square sr = pop_lsb(piecesInFlagZone);
+          Bitboard flagAttackers = attackers_to(sr, ~c);
+
+          if ((potentialPieces < var->flagPieceCount) || (potentialPieces >= var->flagPieceCount + 1)) break;
+          while (flagAttackers)
+          {
+              Square currentAttack = pop_lsb(flagAttackers);
+              if (legal(make_move(currentAttack, sr)))
+              {
+                  potentialPieces--;
+                  break;
+              }
+          }
+      }
+      return potentialPieces >= var->flagPieceCount;
+  }
+  return simpleResult;
 }
 
 inline bool Position::check_counting() const {

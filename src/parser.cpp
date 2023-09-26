@@ -496,6 +496,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("flagPieceCount", v->flagPieceCount);
     parse_attribute("flagPieceBlockedWin", v->flagPieceBlockedWin);
     parse_attribute("flagMove", v->flagMove);
+    parse_attribute("flagPieceSafe", v->flagPieceSafe);
     parse_attribute("checkCounting", v->checkCounting);
     parse_attribute("connectN", v->connectN);
     parse_attribute("connectHorizontal", v->connectHorizontal);
@@ -598,6 +599,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             if (v->mutuallyImmuneTypes)
                 std::cerr << "Can not use kings or pseudo-royal with mutuallyImmuneTypes." << std::endl;
         }
+        if (v->flagPieceSafe && v->blastOnCapture)
+            std::cerr << "Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast)." << std::endl;
     }
     return v;
 }
