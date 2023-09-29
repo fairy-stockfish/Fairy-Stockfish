@@ -736,7 +736,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
               b &=   ~(shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
                   | shift<EAST      >(theirs) | shift<WEST      >(theirs));
           }
-          else if (enclosing_drop() == ROLL)
+          else if (enclosing_drop() == ANYSIDE)
           {
               Bitboard occupied = pieces();
               b = 0ULL;

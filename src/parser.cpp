@@ -107,9 +107,9 @@ namespace {
                 : value == "ataxx" ? ATAXX
                 : value == "quadwrangle" ? QUADWRANGLE
                 : value == "snort" ? SNORT
-                : value == "roll" ? ROLL
+                : value == "anyside" ? ANYSIDE
                 : NO_ENCLOSING;
-        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value =="roll" || value == "none";
+        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value =="anyside" || value == "none";
     }
 
     template <> bool set(const std::string& value, WallingRule& target) {
