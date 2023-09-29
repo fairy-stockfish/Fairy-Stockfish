@@ -739,8 +739,9 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
           else if (enclosing_drop() == ROLL)
           {
               Bitboard occupied = pieces();
+              b = 0ULL;
               for (Square s = SQ_A1; s <= make_square(max_file(), RANK_1); ++s) // From SOUTH to NORTH
-                  b = find_drop_region(NORTH, s, occupied); //intentionally not ORed
+                  b |= find_drop_region(NORTH, s, occupied);
               for (Square s = make_square(FILE_A, max_rank()); s <= make_square(max_file(), max_rank()); ++s) // From NORTH to SOUTH
                   b |= find_drop_region(SOUTH, s, occupied);
               for (Square s = SQ_A1; s <= make_square(FILE_A, max_rank()); s += NORTH) // From WEST to EAST
