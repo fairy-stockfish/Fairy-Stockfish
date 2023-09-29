@@ -210,6 +210,7 @@ public:
   bool connect_vertical() const;
   bool connect_diagonal() const;
   const std::vector<Direction>& getConnectDirections() const;
+  bool connect_2x2() const;
 
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
@@ -373,6 +374,7 @@ private:
   void remove_from_hand(Piece pc);
   void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
   void undrop_piece(Piece pc_hand, Square s);
+  Bitboard find_drop_region(Direction dir, Square s, Bitboard occupied) const;
 };
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
@@ -663,6 +665,25 @@ inline Bitboard Position::drop_region(Color c) const {
   return c == WHITE ? var->whiteDropRegion : var->blackDropRegion;
 }
 
+inline Bitboard Position::find_drop_region(Direction dir, Square s, Bitboard occupied) const {
+    while (!(occupied & s)) { //early out if entry square already full. not the primary way the loop exits
+        Square next_s;
+        switch (dir) {
+            case NORTH: if (rank_of(s) == max_rank()) next_s = SQ_NONE; else next_s = s + NORTH; break;
+            case SOUTH: if (rank_of(s) == RANK_1) next_s = SQ_NONE; else next_s = s + SOUTH; break;
+            case EAST: if (file_of(s) == max_file()) next_s = SQ_NONE; else next_s = s + EAST; break;
+            case WEST: if (file_of(s) == FILE_A) next_s = SQ_NONE; else next_s = s + WEST; break;
+            default: next_s = SQ_NONE;
+        }
+        //Break loop if piece reached the opposite side without meeting any pieces (SQ_NONE)
+        if (next_s == SQ_NONE) break;
+        //Break loop if next square occupied
+        if (occupied & next_s) break;
+        s = next_s;
+    }
+    return s & (~occupied);
+}
+
 inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   Bitboard b = drop_region(c) & board_bb(c, pt);
 
@@ -686,7 +707,6 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   if (pt == ROOK && sittuyin_rook_drop())
       b &= rank_bb(relative_rank(c, RANK_1, max_rank()));
 
-  // Filter out squares where the drop does not enclose at least one opponent's piece
   if (enclosing_drop())
   {
       // Reversi start
@@ -696,6 +716,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
       {
           if (enclosing_drop() == REVERSI)
           {
+              // Filter out squares where the drop does not enclose at least one opponent's piece
               Bitboard theirs = pieces(~c);
               b &=  shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
                   | shift<NORTH_EAST>(theirs) | shift<SOUTH_WEST>(theirs)
@@ -714,6 +735,18 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
               Bitboard theirs = pieces(~c);
               b &=   ~(shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
                   | shift<EAST      >(theirs) | shift<WEST      >(theirs));
+          }
+          else if (enclosing_drop() == ROLL)
+          {
+              Bitboard occupied = pieces();
+              for (Square s = SQ_A1; s <= make_square(max_file(), RANK_1); ++s) // From SOUTH to NORTH
+                  b = find_drop_region(NORTH, s, occupied); //intentionally not ORed
+              for (Square s = make_square(FILE_A, max_rank()); s <= make_square(max_file(), max_rank()); ++s) // From NORTH to SOUTH
+                  b |= find_drop_region(SOUTH, s, occupied);
+              for (Square s = SQ_A1; s <= make_square(FILE_A, max_rank()); s += NORTH) // From WEST to EAST
+                  b |= find_drop_region(EAST, s, occupied);
+              for (Square s = make_square(max_file(), RANK_1); s <= make_square(max_file(), max_rank()); s += NORTH) // From EAST to WEST
+                  b |= find_drop_region(WEST, s, occupied);
           }
           else
           {
@@ -1024,6 +1057,11 @@ inline bool Position::connect_diagonal() const {
 inline const std::vector<Direction>& Position::getConnectDirections() const {
     assert(var != nullptr);
     return var->connect_directions;
+}
+
+inline bool Position::connect_2x2() const {
+  assert(var != nullptr);
+  return var->connect2x2;
 }
 
 inline CheckCount Position::checks_remaining(Color c) const {

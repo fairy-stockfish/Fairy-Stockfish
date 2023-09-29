@@ -107,8 +107,9 @@ namespace {
                 : value == "ataxx" ? ATAXX
                 : value == "quadwrangle" ? QUADWRANGLE
                 : value == "snort" ? SNORT
+                : value == "roll" ? ROLL
                 : NO_ENCLOSING;
-        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value == "none";
+        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value =="roll" || value == "none";
     }
 
     template <> bool set(const std::string& value, WallingRule& target) {
@@ -502,6 +503,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectHorizontal", v->connectHorizontal);
     parse_attribute("connectVertical", v->connectVertical);
     parse_attribute("connectDiagonal", v->connectDiagonal);
+    parse_attribute("connect2x2", v->connect2x2);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
     parse_attribute("castlingWins", v->castlingWins);

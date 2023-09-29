@@ -302,7 +302,7 @@ enum ChasingRule {
 };
 
 enum EnclosingRule {
-  NO_ENCLOSING, REVERSI, ATAXX, QUADWRANGLE, SNORT
+  NO_ENCLOSING, REVERSI, ATAXX, QUADWRANGLE, SNORT, ROLL
 };
 
 enum WallingRule {

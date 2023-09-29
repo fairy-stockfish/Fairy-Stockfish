@@ -153,6 +153,7 @@ struct Variant {
   bool connectHorizontal = true;
   bool connectVertical = true;
   bool connectDiagonal = true;
+  bool connect2x2 = false;
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
   CastlingRights castlingWins = NO_CASTLING;
