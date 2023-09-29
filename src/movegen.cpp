@@ -41,13 +41,23 @@ namespace {
         }
         if (T == EN_PASSANT)
             b ^= pos.capture_square(to);
-        if (pos.variant()->arrowWalling)
-            b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
-        if ((pos.variant()->staticWalling)||(pos.variant()->duckWalling))
-            b &= pos.variant()->wallingRegion[us];
-        if (pos.variant()->pastWalling)
-            b &= square_bb(from);
 
+        if (pos.walling_rule() == ARROW)
+            b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
+
+        //Any current or future wall variant must follow the walling region rule if set:
+        b &= pos.variant()->wallingRegion[us];
+
+        if (pos.walling_rule() == PAST)
+            b &= square_bb(from);
+        if (pos.walling_rule() == EDGE)
+        {
+            Bitboard wallsquares = pos.state()->wallSquares;
+
+            b &= (FileABB | file_bb(pos.max_file()) | Rank1BB | rank_bb(pos.max_rank())) |
+               ( shift<NORTH     >(wallsquares) | shift<SOUTH     >(wallsquares)
+               | shift<EAST      >(wallsquares) | shift<WEST      >(wallsquares));
+        }
         while (b)
             *moveList++ = make_gating<T>(from, to, pt, pop_lsb(b));
         return moveList;

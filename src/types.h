@@ -305,6 +305,10 @@ enum EnclosingRule {
   NO_ENCLOSING, REVERSI, ATAXX, QUADWRANGLE, SNORT
 };
 
+enum WallingRule {
+  NO_WALLING, ARROW, DUCK, EDGE, PAST, STATIC
+};
+
 enum OptBool {
   NO_VALUE, VALUE_FALSE, VALUE_TRUE
 };
