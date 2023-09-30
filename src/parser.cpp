@@ -112,36 +112,35 @@ namespace {
     }
 
     template <> bool set(const std::string& value, Bitboard& target) {
-        char symbol;
-        std::string next;
+        std::string symbol;
         std::stringstream ss(value);
         target = 0;
-        while (!ss.eof() && ss >> symbol && symbol != '-')
+        while (!ss.eof() && ss >> symbol && symbol != "-")
         {
-            if (symbol == '*') {
-                ss >> next;
-                if (isdigit(next[0])) {
-                    int rank = std::stoi(next);
-                    if (Rank(rank - 1) > RANK_MAX) return false;
-                    target |= rank_bb(Rank(rank - 1));
-                } else if (isalpha(next[0])) {
-                    char file = tolower(next[0]);
+            if (symbol.back() == '*') {
+                if (isalpha(symbol[0]) && symbol.length() == 2) {
+                    char file = tolower(symbol[0]);
                     if (File(file - 'a') > FILE_MAX) return false;
                     target |= file_bb(File(file - 'a'));
                 } else {
                     return false;
                 }
-            } else if (isalpha(symbol)) {
-                ss >> next;
-                int rank = std::stoi(next);
-                if (Rank(rank - 1) > RANK_MAX || File(tolower(symbol) - 'a') > FILE_MAX) return false;
-                target |= square_bb(make_square(File(tolower(symbol) - 'a'), Rank(rank - 1)));
+            } else if (symbol[0] == '*') {
+                int rank = std::stoi(symbol.substr(1));
+                if (Rank(rank - 1) > RANK_MAX) return false;
+                target |= rank_bb(Rank(rank - 1));
+            } else if (isalpha(symbol[0]) && symbol.length() > 1) {
+                char file = tolower(symbol[0]);
+                int rank = std::stoi(symbol.substr(1));
+                if (Rank(rank - 1) > RANK_MAX || File(file - 'a') > FILE_MAX) return false;
+                target |= square_bb(make_square(File(file - 'a'), Rank(rank - 1)));
             } else {
                 return false;
             }
         }
         return !ss.fail();
     }
+
 
     template <> bool set(const std::string& value, CastlingRights& target) {
         char c;
