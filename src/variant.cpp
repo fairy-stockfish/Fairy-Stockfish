@@ -515,7 +515,7 @@ namespace {
         v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(COMMONER);
-        v->duckWalling = true;
+        v->wallingRule = DUCK;
         v->stalemateValue = VALUE_MATE;
         return v;
     }
@@ -529,7 +529,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'p', "mK"); //move as a King, but can't capture
         v->startFen = "3p2/6/6/6/6/6/6/2P3 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->staticWalling = true;
+        v->wallingRule = STATIC;
         v->wallingRegion[WHITE] = v->wallingRegion[BLACK] = AllSquares ^ make_bitboard(SQ_C1, SQ_D8);
         return v;
     }
@@ -551,7 +551,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'p', "mK"); //move as a King, but can't capture
         v->startFen = "6p/7/7/7/7/7/P6 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->pastWalling = true;
+        v->wallingRule = PAST;
         return v;
     }
 
@@ -562,7 +562,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'n', "mN"); //move as a Knight, but can't capture
         v->startFen = "8/8/8/4n3/3N4/8/8/8 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->pastWalling = true;
+        v->wallingRule = PAST;
         return v;
     }
 
@@ -1668,7 +1668,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'q', "mQ");
         v->startFen = "3q2q3/10/10/q8q/10/10/Q8Q/10/10/3Q2Q3 w - - 0 1";
         v->stalemateValue = -VALUE_MATE;
-        v->arrowWalling = true;
+        v->wallingRule = ARROW;
         return v;
     }
 #endif

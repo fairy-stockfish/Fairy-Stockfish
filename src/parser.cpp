@@ -111,6 +111,16 @@ namespace {
         return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value == "none";
     }
 
+    template <> bool set(const std::string& value, WallingRule& target) {
+        target =  value == "arrow"  ? ARROW
+                : value == "duck" ? DUCK
+                : value == "edge" ? EDGE
+                : value == "past" ? PAST
+                : value == "static" ? STATIC
+                : NO_WALLING;
+        return value == "arrow" || value == "duck" || value == "edge" || value =="past" || value == "static" || value == "none";
+    }
+
     template <> bool set(const std::string& value, Bitboard& target) {
         std::string symbol;
         std::stringstream ss(value);
@@ -198,6 +208,7 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
                                   : std::is_same<T, EnclosingRule>() ? "EnclosingRule"
                                   : std::is_same<T, Bitboard>() ? "Bitboard"
                                   : std::is_same<T, CastlingRights>() ? "CastlingRights"
+                                  : std::is_same<T, WallingRule>() ? "WallingRule"
                                   : typeid(T).name();
             std::cerr << key << " - Invalid value " << it->second << " for type " << typeName << std::endl;
         }
@@ -451,14 +462,11 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("dropNoDoubledCount", v->dropNoDoubledCount);
     parse_attribute("immobilityIllegal", v->immobilityIllegal);
     parse_attribute("gating", v->gating);
-    parse_attribute("arrowWalling", v->arrowWalling);
-    parse_attribute("duckWalling", v->duckWalling);
+    parse_attribute("wallingRule", v->wallingRule);
     parse_attribute("wallingRegionWhite", v->wallingRegion[WHITE]);
     parse_attribute("wallingRegionBlack", v->wallingRegion[BLACK]);
     parse_attribute("wallingRegion", v->wallingRegion[WHITE]);
     parse_attribute("wallingRegion", v->wallingRegion[BLACK]);
-    parse_attribute("staticWalling", v->staticWalling);
-    parse_attribute("pastWalling", v->pastWalling);
     parse_attribute("seirawanGating", v->seirawanGating);
     parse_attribute("cambodianMoves", v->cambodianMoves);
     parse_attribute("diagonalLines", v->diagonalLines);
@@ -505,6 +513,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("flagPieceCount", v->flagPieceCount);
     parse_attribute("flagPieceBlockedWin", v->flagPieceBlockedWin);
     parse_attribute("flagMove", v->flagMove);
+    parse_attribute("flagPieceSafe", v->flagPieceSafe);
     parse_attribute("checkCounting", v->checkCounting);
     parse_attribute("connectN", v->connectN);
     parse_attribute("connectHorizontal", v->connectHorizontal);
@@ -574,8 +583,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             std::cerr << "Inconsistent settings: castlingQueensideFile > castlingKingsideFile." << std::endl;
 
         // Check for limitations
-        if (v->pieceDrops && (v->arrowWalling || v->duckWalling || v->staticWalling || v->pastWalling))
-            std::cerr << "pieceDrops and arrowWalling/duckWalling are incompatible." << std::endl;
+        if (v->pieceDrops && v->wallingRule)
+            std::cerr << "pieceDrops and any walling are incompatible." << std::endl;
 
         // Options incompatible with royal kings
         if (v->pieceTypes & KING)
@@ -584,8 +593,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                 std::cerr << "Can not use kings with blastOnCapture." << std::endl;
             if (v->flipEnclosedPieces)
                 std::cerr << "Can not use kings with flipEnclosedPieces." << std::endl;
-            if (v->duckWalling)
-                std::cerr << "Can not use kings with duckWalling." << std::endl;
+            if (v->wallingRule==DUCK)
+                std::cerr << "Can not use kings with wallingRule = duck." << std::endl;
             // We can not fully check support for custom king movements at this point,
             // since custom pieces are only initialized on loading of the variant.
             // We will assume this is valid, but it might cause problems later if it's not.
@@ -611,6 +620,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             if (v->mutuallyImmuneTypes)
                 std::cerr << "Can not use kings or pseudo-royal with mutuallyImmuneTypes." << std::endl;
         }
+        if (v->flagPieceSafe && v->blastOnCapture)
+            std::cerr << "Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast)." << std::endl;
     }
     return v;
 }

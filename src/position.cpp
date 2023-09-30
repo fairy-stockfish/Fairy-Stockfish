@@ -1105,7 +1105,7 @@ bool Position::legal(Move m) const {
   {
       Square kto = to;
       Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces());
-      if (var->duckWalling)
+      if (walling_rule() == DUCK)
           occupied ^= st->wallSquares;
       if (walling() || is_gating(m))
           occupied |= gating_square(m);
@@ -1304,15 +1304,29 @@ bool Position::pseudo_legal(const Move m) const {
       return checkers() ? MoveList<    EVASIONS>(*this).contains(m)
                         : MoveList<NON_EVASIONS>(*this).contains(m);
 
-  // Illegal wall square placement
-  if (walling() && !((board_bb() & ~((pieces() ^ from) | to)) & gating_square(m)))
-      return false;
-  if (var->arrowWalling && !(moves_bb(us, type_of(pc), to, pieces() ^ from) & gating_square(m)))
-      return false;
-  if (var->pastWalling && (from != gating_square(m)))
-      return false;
-  if ((var->staticWalling || var->duckWalling) && !(var->wallingRegion[us] & gating_square(m)))
-      return false;
+  if (walling())
+  {
+      Bitboard wallsquares = st->wallSquares;
+
+      // Illegal wall square placement
+      if (!((board_bb() & ~((pieces() ^ from) | to)) & gating_square(m)))
+          return false;
+      if (!(var->wallingRegion[us] & gating_square(m)) || //putting a wall on disallowed square
+          wallsquares & gating_square(m)) //or square already with a wall
+          return false;
+      if (walling_rule() == ARROW && !(moves_bb(us, type_of(pc), to, pieces() ^ from) & gating_square(m)))
+          return false;
+      if (walling_rule() == PAST && (from != gating_square(m)))
+          return false;
+      if (walling_rule() == EDGE)
+      {
+          Bitboard validsquares = board_bb() &
+                  ((FileABB | file_bb(max_file()) | Rank1BB | rank_bb(max_rank())) |
+                  ( shift<NORTH     >(wallsquares) | shift<SOUTH     >(wallsquares)
+                  | shift<EAST      >(wallsquares) | shift<WEST      >(wallsquares)));
+          if (!(validsquares & gating_square(m))) return false;
+      };
+  }
 
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
@@ -2035,7 +2049,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (walling())
   {
       // Reset wall squares for duck walling
-      if (var->duckWalling)
+      if (walling_rule() == DUCK)
       {
           Bitboard b = st->previous->wallSquares;
           byTypeBB[ALL_PIECES] ^= b;
@@ -2477,7 +2491,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           stmAttackers &= ~blockers_for_king(stm);
 
       // Ignore distant sliders
-      if (var->duckWalling)
+      if (walling_rule() == DUCK)
           stmAttackers &= attacks_bb<KING>(to) | ~(pieces(BISHOP, ROOK) | pieces(QUEEN));
 
       if (!stmAttackers)
@@ -3001,7 +3015,7 @@ bool Position::has_game_cycle(int ply) const {
 
   int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
-  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal || var->materialCounting || var->moveRepetitionIllegal || var->duckWalling)
+  if (end < 3 || var->nFoldValue != VALUE_DRAW || var->perpetualCheckIllegal || var->materialCounting || var->moveRepetitionIllegal || walling_rule() == DUCK)
     return false;
 
   Key originalKey = st->key;
