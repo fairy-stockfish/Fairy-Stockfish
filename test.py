@@ -75,7 +75,8 @@ startFen = rbnkbr/pppppp/6/6/PPPPPP/RBNKBR w KQkq - 0 1
 pass = true
 
 [royalduck:duck]
-extinctionPseudoRoyal = true
+extinctionValue = none
+pseudoRoyalTypes = k
 
 [makhouse:makruk]
 startFen = rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR[] w - - 0 1
