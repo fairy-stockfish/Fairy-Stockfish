@@ -22,7 +22,6 @@
 #include <cstring> // For std::memset, std::memcmp
 #include <iomanip>
 #include <sstream>
-#include <stack>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -2807,37 +2806,35 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
       }
   }
-  if (var->connectRegion1[~sideToMove])
-  {
-      std::stack<Square> dfsStack;
-      Bitboard visited = 0;
-      Bitboard b = var->connectRegion1[~sideToMove];
 
-      // Initialize stack with starting zone squares
-      while (b) {
-          Square s = pop_lsb(b);
-          dfsStack.push(s);
-          visited |= square_bb(s);
-      }
-      while (!dfsStack.empty()) {
-          Square current = dfsStack.top();
-          dfsStack.pop();
-          // Check if we've reached the end zone
-          if (square_bb(current) & var->connectRegion2[~sideToMove]) {
+
+
+  if ((var->connectRegion1[~sideToMove] & pieces(~sideToMove)) && (var->connectRegion2[~sideToMove] & pieces(~sideToMove)))
+  {
+      Bitboard target = var->connectRegion2[~sideToMove];
+      Bitboard current = var->connectRegion1[~sideToMove] & pieces(~sideToMove);
+
+      while (true) {
+          Bitboard newBitboard = 0;
+          for (Direction d : var->connect_directions) {
+              newBitboard |= shift(d, current | newBitboard) & pieces(~sideToMove); // the "| newBitboard" here probably saves a few loops
+          }
+
+          if (newBitboard & target) {
+              // A connection has been made
               result = mated_in(ply);
               return true;
           }
-          // Explore neighbors
-          for (Direction d : var->connect_directions) {
-              Bitboard neighbors = shift(d, square_bb(current)) & pieces(~sideToMove) & ~visited;
-              while (neighbors) {
-                  Square neighbor = pop_lsb(neighbors);
-                  dfsStack.push(neighbor);
-                  visited |= square_bb(neighbor);
-              }
+
+          if (!(newBitboard & ~current)) {
+              // The expansion got stuck; no further squares to explore
+              break;
           }
+
+          current |= newBitboard;
       }
   }
+
   // Check for bikjang rule (Janggi) and double passing
   if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
   {

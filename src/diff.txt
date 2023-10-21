@@ -1,0 +1,209 @@
+diff --git a/src/parser.cpp b/src/parser.cpp
+index 48b8cc9a..6b0c9bb3 100644
+--- a/src/parser.cpp
++++ b/src/parser.cpp
+@@ -117,29 +117,46 @@ namespace {
+                 : value == "edge" ? EDGE
+                 : value == "past" ? PAST
+                 : value == "static" ? STATIC
+                 : NO_WALLING;
+         return value == "arrow" || value == "duck" || value == "edge" || value =="past" || value == "static" || value == "none";
+     }
+ 
+     template <> bool set(const std::string& value, Bitboard& target) {
+-        char file;
+-        int rank;
++        std::string symbol;
+         std::stringstream ss(value);
+         target = 0;
+-        while (!ss.eof() && ss >> file && file != '-' && ss >> rank)
++        while (!ss.eof() && ss >> symbol && symbol != "-")
+         {
+-            if (Rank(rank - 1) > RANK_MAX || (file != '*' && File(tolower(file) - 'a') > FILE_MAX))
++            if (symbol.back() == '*') {
++                if (isalpha(symbol[0]) && symbol.length() == 2) {
++                    char file = tolower(symbol[0]);
++                    if (File(file - 'a') > FILE_MAX) return false;
++                    target |= file_bb(File(file - 'a'));
++                } else {
++                    return false;
++                }
++            } else if (symbol[0] == '*') {
++                int rank = std::stoi(symbol.substr(1));
++                if (Rank(rank - 1) > RANK_MAX) return false;
++                target |= rank_bb(Rank(rank - 1));
++            } else if (isalpha(symbol[0]) && symbol.length() > 1) {
++                char file = tolower(symbol[0]);
++                int rank = std::stoi(symbol.substr(1));
++                if (Rank(rank - 1) > RANK_MAX || File(file - 'a') > FILE_MAX) return false;
++                target |= square_bb(make_square(File(file - 'a'), Rank(rank - 1)));
++            } else {
+                 return false;
+-            target |= file == '*' ? rank_bb(Rank(rank - 1)) : square_bb(make_square(File(tolower(file) - 'a'), Rank(rank - 1)));
++            }
+         }
+         return !ss.fail();
+     }
+ 
++
+     template <> bool set(const std::string& value, CastlingRights& target) {
+         char c;
+         CastlingRights castlingRight;
+         std::stringstream ss(value);
+         target = NO_CASTLING;
+         bool valid = true;
+         while (ss >> c && c != '-')
+         {
+@@ -497,16 +514,20 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
+     parse_attribute("flagPieceBlockedWin", v->flagPieceBlockedWin);
+     parse_attribute("flagMove", v->flagMove);
+     parse_attribute("flagPieceSafe", v->flagPieceSafe);
+     parse_attribute("checkCounting", v->checkCounting);
+     parse_attribute("connectN", v->connectN);
+     parse_attribute("connectHorizontal", v->connectHorizontal);
+     parse_attribute("connectVertical", v->connectVertical);
+     parse_attribute("connectDiagonal", v->connectDiagonal);
++    parse_attribute("connectRegion1White", v->connectRegion1[WHITE]);
++    parse_attribute("connectRegion2White", v->connectRegion2[WHITE]);
++    parse_attribute("connectRegion1Black", v->connectRegion1[BLACK]);
++    parse_attribute("connectRegion2Black", v->connectRegion2[BLACK]);
+     parse_attribute("materialCounting", v->materialCounting);
+     parse_attribute("countingRule", v->countingRule);
+     parse_attribute("castlingWins", v->castlingWins);
+     
+     // Report invalid options
+     if (DoCheck)
+     {
+         const std::set<std::string>& parsedKeys = config.get_comsumed_keys();
+diff --git a/src/position.cpp b/src/position.cpp
+index 39f4888e..f333a056 100644
+--- a/src/position.cpp
++++ b/src/position.cpp
+@@ -2801,16 +2801,49 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
+               b &= shift(d, b);
+           if (b)
+           {
+               result = mated_in(ply);
+               return true;
+           }
+       }
+   }
++
++
++
++  if (var->connectRegion1[~sideToMove])
++  {
++    Bitboard target = var->connectRegion2[~sideToMove];
++    Bitboard current = var->connectRegion1[~sideToMove] & pieces(~sideToMove);
++
++    if ((var->connectRegion1[~sideToMove] & pieces(~sideToMove)) &&
++        (var->connectRegion2[~sideToMove] & pieces(~sideToMove))) {
++
++        while (true) {
++            Bitboard new = 0;
++            for (Direction d : var->connect_directions) {
++                new |= shift(d, current | new) & pieces(~sideToMove); // the "| new" here probably saves a few loops
++            }
++
++            if (new & target) {
++                // A connection has been made
++                result = mated_in(ply);
++                return true;
++            }
++
++            if (!(new & ~current)) {
++                // The expansion got stuck; no further squares to explore
++                break;  // Exit the while loop, and continue with other game end checks
++            }
++
++            current |= new;
++        }
++    }
++  }
++
+   // Check for bikjang rule (Janggi) and double passing
+   if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
+   {
+       result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;
+       return true;
+   }
+   // Tsume mode: Assume that side with king wins when not in check
+   if (tsumeMode && !count<KING>(~sideToMove) && count<KING>(sideToMove) && !checkers())
+diff --git a/src/variant.h b/src/variant.h
+index e8899f39..4d329779 100644
+--- a/src/variant.h
++++ b/src/variant.h
+@@ -148,16 +148,18 @@ struct Variant {
+   bool flagPieceBlockedWin = false;
+   bool flagMove = false;
+   bool flagPieceSafe = false;
+   bool checkCounting = false;
+   int connectN = 0;
+   bool connectHorizontal = true;
+   bool connectVertical = true;
+   bool connectDiagonal = true;
++  Bitboard connectRegion1[COLOR_NB] = {};
++  Bitboard connectRegion2[COLOR_NB] = {};
+   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
+   CountingRule countingRule = NO_COUNTING;
+   CastlingRights castlingWins = NO_CASTLING;
+ 
+   // Derived properties
+   bool fastAttacks = true;
+   bool fastAttacks2 = true;
+   std::string nnueAlias = "";
+diff --git a/src/variants.ini b/src/variants.ini
+index 104b038c..0a567942 100644
+--- a/src/variants.ini
++++ b/src/variants.ini
+@@ -264,16 +264,20 @@
+ # flagPieceBlockedWin: for flagPieceCount > 1, win if at least one flag piece in flag zone and all others occupied by pieces [bool] (default: false)
+ # flagMove: the other side gets one more move after one reaches the flag zone [bool] (default: false)
+ # flagPieceSafe: the flag piece must be safe to win [bool] (default: false)
+ # checkCounting: enable check count win rule (check count is communicated via FEN, see 3check) [bool] (default: false)
+ # connectN: number of aligned pieces for win [int] (default: 0)
+ # connectVertical: connectN looks at Vertical rows [bool] (default: true)
+ # connectHorizontal: connectN looks at Horizontal rows [bool] (default: true)
+ # connectDiagonal: connectN looks at Diagonal rows [bool] (default: true)
++# connectRegion1White: connect Region 1 to Region 2 for win. obeys connectVertical, connectHorizontal, connectDiagonal [Bitboard] (default: -)
++# connectRegion2White: "
++# connectRegion1Black: "
++# connectRegion2Black: "
+ # materialCounting: enable material counting rules [MaterialCounting] (default: none)
+ # countingRule: enable counting rules [CountingRule] (default: none)
+ # castlingWins: Specified castling moves are win conditions. Losing these rights is losing. [CastlingRights] (default: -)
+ 
+ ################################################
+ ### Example for minishogi configuration that would be equivalent to the built-in variant:
+ 
+ # [minishogi]
+@@ -1767,16 +1771,29 @@ pieceDrops = true
+ capturesToHand = true
+ dropPromoted = true
+ immobilityIllegal = false
+ extinctionValue = loss
+ extinctionPieceTypes = kq
+ extinctionPseudoRoyal = true
+ stalemateValue = loss
+ 
++#https://www.ludii.games/details.php?keyword=Gale
++[gale:snort]
++maxRank = 9
++maxFile = 9
++startFen = 1p1p1p1p1/P1P1P1P1P/1p1p1p1p1/P1P1P1P1P/1p1p1p1p1/P1P1P1P1P/1p1p1p1p1/P1P1P1P1P/1p1p1p1p1
++enclosingDrop = none
++connectRegion1White = a*
++connectRegion2White = i*
++connectRegion1Black = *1
++connectRegion2Black = *9
++#should be impossible anyway
++connectDiagonal = false
++
+ #https://www.chessvariants.com/boardrules.dir/atlantis.html
+ [atlantis:chess]
+ wallingRule = edge
+ #not ready yet. Other wall variants are "move and wall", this is "move or wall".
+ #need to figure out way to do this ie. write code for:
+ #wallOrMove = true
+ 
+ #https://www.chessvariants.com/rules/ajax-orthodox-chess
