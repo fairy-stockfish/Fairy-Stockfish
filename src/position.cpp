@@ -2806,30 +2806,19 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
       }
   }
-  if (connect_2x2())
+
+  if (connect_nxn())
   {
-      Bitboard sidePieces = pieces(~sideToMove);
-      while (sidePieces)
+      Bitboard connectors = pieces(~sideToMove);
+      for (int i = 1; i < connect_nxn() && connectors; i++)
+          connectors &= shift<SOUTH>(connectors) & shift<EAST>(connectors) & shift<SOUTH_EAST>(connectors);
+      if (connectors)
       {
-          Square s = pop_lsb(sidePieces);
-          Rank r = rank_of(s);
-          File f = file_of(s);
-          if (f < max_file() && r < max_rank())
-          {
-              Square s1 = make_square(File(f + 1), r);
-              Square s2 = make_square(f, Rank(r + 1));
-              Square s3 = make_square(File(f + 1), Rank(r + 1));
-
-              Bitboard four_bb = s | s1 | s2 | s3;
-
-              if ((pieces(~sideToMove) & four_bb) == four_bb)
-              {
-                  result = mated_in(ply);
-                  return true;
-              }
-          }
+          result = mated_in(ply);
+          return true;
       }
   }
+
   // Check for bikjang rule (Janggi) and double passing
   if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
   {
