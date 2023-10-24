@@ -2806,6 +2806,19 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
       }
   }
+
+  if (connect_nxn())
+  {
+      Bitboard connectors = pieces(~sideToMove);
+      for (int i = 1; i < connect_nxn() && connectors; i++)
+          connectors &= shift<SOUTH>(connectors) & shift<EAST>(connectors) & shift<SOUTH_EAST>(connectors);
+      if (connectors)
+      {
+          result = mated_in(ply);
+          return true;
+      }
+  }
+
   // Check for bikjang rule (Janggi) and double passing
   if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
   {
