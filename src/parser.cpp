@@ -107,8 +107,10 @@ namespace {
                 : value == "ataxx" ? ATAXX
                 : value == "quadwrangle" ? QUADWRANGLE
                 : value == "snort" ? SNORT
+                : value == "anyside" ? ANYSIDE
+                : value == "top" ? TOP
                 : NO_ENCLOSING;
-        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value == "none";
+        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value =="anyside" || value =="top" || value == "none";
     }
 
     template <> bool set(const std::string& value, WallingRule& target) {
@@ -344,6 +346,10 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute<false>("castlingRookPiece", v->castlingRookPieces[WHITE], v->pieceToChar);
     parse_attribute<false>("castlingRookPiece", v->castlingRookPieces[BLACK], v->pieceToChar);
 
+    bool dropOnTop = false;
+    parse_attribute<false>("dropOnTop", dropOnTop);
+    if (dropOnTop) v->enclosingDrop=TOP;
+
     // Parse aliases
     parse_attribute("pawnTypes", v->promotionPawnType[WHITE], v->pieceToChar);
     parse_attribute("pawnTypes", v->promotionPawnType[BLACK], v->pieceToChar);
@@ -450,7 +456,6 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("capturesToHand", v->capturesToHand);
     parse_attribute("firstRankPawnDrops", v->firstRankPawnDrops);
     parse_attribute("promotionZonePawnDrops", v->promotionZonePawnDrops);
-    parse_attribute("dropOnTop", v->dropOnTop);
     parse_attribute("enclosingDrop", v->enclosingDrop);
     parse_attribute("enclosingDropStart", v->enclosingDropStart);
     parse_attribute("whiteDropRegion", v->whiteDropRegion);
@@ -523,6 +528,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectRegion2White", v->connectRegion2[WHITE]);
     parse_attribute("connectRegion1Black", v->connectRegion1[BLACK]);
     parse_attribute("connectRegion2Black", v->connectRegion2[BLACK]);
+    parse_attribute("connectNxN", v->connectNxN);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);
     parse_attribute("castlingWins", v->castlingWins);

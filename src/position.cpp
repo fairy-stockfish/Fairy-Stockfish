@@ -2807,8 +2807,6 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
 
-
-
   if ((var->connectRegion1[~sideToMove] & pieces(~sideToMove)) && (var->connectRegion2[~sideToMove] & pieces(~sideToMove)))
   {
       Bitboard target = var->connectRegion2[~sideToMove];
@@ -2832,6 +2830,18 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
 
           current |= newBitboard;
+      }
+  }
+  
+  if (connect_nxn())
+  {
+      Bitboard connectors = pieces(~sideToMove);
+      for (int i = 1; i < connect_nxn() && connectors; i++)
+          connectors &= shift<SOUTH>(connectors) & shift<EAST>(connectors) & shift<SOUTH_EAST>(connectors);
+      if (connectors)
+      {
+          result = mated_in(ply);
+          return true;
       }
   }
 

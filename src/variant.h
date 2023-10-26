@@ -95,7 +95,6 @@ struct Variant {
   bool capturesToHand = false;
   bool firstRankPawnDrops = false;
   bool promotionZonePawnDrops = false;
-  bool dropOnTop = false;
   EnclosingRule enclosingDrop = NO_ENCLOSING;
   Bitboard enclosingDropStart = 0;
   Bitboard whiteDropRegion = AllSquares;
@@ -155,6 +154,7 @@ struct Variant {
   bool connectDiagonal = true;
   Bitboard connectRegion1[COLOR_NB] = {};
   Bitboard connectRegion2[COLOR_NB] = {};
+  int connectNxN = 0;
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;
   CastlingRights castlingWins = NO_CASTLING;
