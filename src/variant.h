@@ -152,6 +152,8 @@ struct Variant {
   bool connectHorizontal = true;
   bool connectVertical = true;
   bool connectDiagonal = true;
+  Bitboard connectRegion1[COLOR_NB] = {};
+  Bitboard connectRegion2[COLOR_NB] = {};
   int connectNxN = 0;
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
   CountingRule countingRule = NO_COUNTING;

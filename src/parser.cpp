@@ -124,18 +124,35 @@ namespace {
     }
 
     template <> bool set(const std::string& value, Bitboard& target) {
-        char file;
-        int rank;
+        std::string symbol;
         std::stringstream ss(value);
         target = 0;
-        while (!ss.eof() && ss >> file && file != '-' && ss >> rank)
+        while (!ss.eof() && ss >> symbol && symbol != "-")
         {
-            if (Rank(rank - 1) > RANK_MAX || (file != '*' && File(tolower(file) - 'a') > FILE_MAX))
+            if (symbol.back() == '*') {
+                if (isalpha(symbol[0]) && symbol.length() == 2) {
+                    char file = tolower(symbol[0]);
+                    if (File(file - 'a') > FILE_MAX) return false;
+                    target |= file_bb(File(file - 'a'));
+                } else {
+                    return false;
+                }
+            } else if (symbol[0] == '*') {
+                int rank = std::stoi(symbol.substr(1));
+                if (Rank(rank - 1) > RANK_MAX) return false;
+                target |= rank_bb(Rank(rank - 1));
+            } else if (isalpha(symbol[0]) && symbol.length() > 1) {
+                char file = tolower(symbol[0]);
+                int rank = std::stoi(symbol.substr(1));
+                if (Rank(rank - 1) > RANK_MAX || File(file - 'a') > FILE_MAX) return false;
+                target |= square_bb(make_square(File(file - 'a'), Rank(rank - 1)));
+            } else {
                 return false;
-            target |= file == '*' ? rank_bb(Rank(rank - 1)) : square_bb(make_square(File(tolower(file) - 'a'), Rank(rank - 1)));
+            }
         }
         return !ss.fail();
     }
+
 
     template <> bool set(const std::string& value, CastlingRights& target) {
         char c;
@@ -507,6 +524,10 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectHorizontal", v->connectHorizontal);
     parse_attribute("connectVertical", v->connectVertical);
     parse_attribute("connectDiagonal", v->connectDiagonal);
+    parse_attribute("connectRegion1White", v->connectRegion1[WHITE]);
+    parse_attribute("connectRegion2White", v->connectRegion2[WHITE]);
+    parse_attribute("connectRegion1Black", v->connectRegion1[BLACK]);
+    parse_attribute("connectRegion2Black", v->connectRegion2[BLACK]);
     parse_attribute("connectNxN", v->connectNxN);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);

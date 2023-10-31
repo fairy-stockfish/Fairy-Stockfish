@@ -2807,6 +2807,32 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
 
+  if ((var->connectRegion1[~sideToMove] & pieces(~sideToMove)) && (var->connectRegion2[~sideToMove] & pieces(~sideToMove)))
+  {
+      Bitboard target = var->connectRegion2[~sideToMove];
+      Bitboard current = var->connectRegion1[~sideToMove] & pieces(~sideToMove);
+
+      while (true) {
+          Bitboard newBitboard = 0;
+          for (Direction d : var->connect_directions) {
+              newBitboard |= shift(d, current | newBitboard) & pieces(~sideToMove); // the "| newBitboard" here probably saves a few loops
+          }
+
+          if (newBitboard & target) {
+              // A connection has been made
+              result = mated_in(ply);
+              return true;
+          }
+
+          if (!(newBitboard & ~current)) {
+              // The expansion got stuck; no further squares to explore
+              break;
+          }
+
+          current |= newBitboard;
+      }
+  }
+  
   if (connect_nxn())
   {
       Bitboard connectors = pieces(~sideToMove);
