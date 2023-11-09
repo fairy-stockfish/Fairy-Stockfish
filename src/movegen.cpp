@@ -441,7 +441,7 @@ namespace {
         }
 
         // Workaround for passing: Execute a non-move with any piece
-        if (pos.pass() && !pos.count<KING>(Us) && pos.pieces(Us))
+        if (pos.pass(Us) && !pos.count<KING>(Us) && pos.pieces(Us))
             *moveList++ = make<SPECIAL>(lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
     }
 
@@ -454,7 +454,7 @@ namespace {
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(b));
 
         // Passing move by king
-        if (pos.pass())
+        if (pos.pass(Us))
             *moveList++ = make<SPECIAL>(ksq, ksq);
 
         if ((Type == QUIETS || Type == NON_EVASIONS) && pos.can_castle(Us & ANY_CASTLING))

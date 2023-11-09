@@ -182,8 +182,8 @@ public:
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
-  bool pass() const;
-  bool pass_on_stalemate() const;
+  bool pass(Color c) const;
+  bool pass_on_stalemate(Color c) const;
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
   EnclosingRule flip_enclosed_pieces() const;
@@ -812,14 +812,14 @@ inline Bitboard Position::diagonal_lines() const {
   return var->diagonalLines;
 }
 
-inline bool Position::pass() const {
+inline bool Position::pass(Color c) const {
   assert(var != nullptr);
-  return var->pass || var->passOnStalemate;
+  return var->pass[c] || var->passOnStalemate[c];
 }
 
-inline bool Position::pass_on_stalemate() const {
+inline bool Position::pass_on_stalemate(Color c) const {
   assert(var != nullptr);
-  return var->passOnStalemate;
+  return var->passOnStalemate[c];
 }
 
 inline Bitboard Position::promoted_soldiers(Color c) const {

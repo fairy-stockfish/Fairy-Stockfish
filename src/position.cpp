@@ -1092,7 +1092,7 @@ bool Position::legal(Move m) const {
       return false;
 
   // Illegal king passing move
-  if (pass_on_stalemate() && is_pass(m) && !checkers())
+  if (pass_on_stalemate(us) && is_pass(m) && !checkers())
   {
       for (const auto& move : MoveList<NON_EVASIONS>(*this))
           if (!is_pass(move) && legal(move))
@@ -1557,7 +1557,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Piece captured = piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to);
   if (to == from)
   {
-      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && pass()));
+      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && pass(us)));
       captured = NO_PIECE;
   }
   st->capturedpromoted = is_promoted(to);
@@ -2126,7 +2126,7 @@ void Position::undo_move(Move m) {
 
   assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
          || (type_of(m) == PROMOTION && sittuyin_promotion())
-         || (is_pass(m) && pass()));
+         || (is_pass(m) && pass(us)));
   assert(type_of(st->capturedPiece) != KING);
 
   // Reset wall squares
@@ -2564,7 +2564,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   return bool(res);
 }
 
-/// Position::is_optinal_game_end() tests whether the position may end the game by
+/// Position::is_optional_game_end() tests whether the position may end the game by
 /// 50-move rule, by repetition, or a variant rule that allows a player to claim a game result.
 
 bool Position::is_optional_game_end(Value& result, int ply, int countStarted) const {
@@ -2801,7 +2801,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
               b &= shift(d, b);
           if (b)
           {
-              result = mated_in(ply);
+              result = convert_mate_value(var->connectValue, ply);
               return true;
           }
       }
@@ -2820,7 +2820,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
 
           if (newBitboard & target) {
               // A connection has been made
-              result = mated_in(ply);
+              result = convert_mate_value(var->connectValue, ply);
               return true;
           }
 
@@ -2840,7 +2840,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           connectors &= shift<SOUTH>(connectors) & shift<EAST>(connectors) & shift<SOUTH_EAST>(connectors);
       if (connectors)
       {
-          result = mated_in(ply);
+          result = convert_mate_value(var->connectValue, ply);
           return true;
       }
   }
