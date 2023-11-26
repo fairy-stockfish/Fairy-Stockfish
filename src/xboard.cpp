@@ -308,7 +308,7 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
       std::getline(is >> std::ws, fen);
       // Check if setboard actually indicates a passing move
       // to avoid unnecessarily clearing the move history
-      if (pos.pass())
+      if (pos.pass(~pos.side_to_move()))
       {
           StateInfo st;
           Position p;
