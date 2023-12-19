@@ -473,6 +473,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("wallingRegion", v->wallingRegion[WHITE]);
     parse_attribute("wallingRegion", v->wallingRegion[BLACK]);
     parse_attribute("seirawanGating", v->seirawanGating);
+    parse_attribute("commitGates", v->commitGates);
     parse_attribute("cambodianMoves", v->cambodianMoves);
     parse_attribute("diagonalLines", v->diagonalLines);
     parse_attribute("pass", v->pass[WHITE]);
