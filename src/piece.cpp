@@ -224,10 +224,10 @@ void PieceMap::init(const Variant* v) {
   add(WAZIR, from_betza("W", "wazir"));
   add(COMMONER, from_betza("K", "commoner"));
   add(CENTAUR, from_betza("KN", "centaur"));
-  add(HAWK, from_betza("ADGH", "hawk")); /added some Musketeer Chess Pieces used in Musketeer Chess Variant
+  add(HAWK, from_betza("ADGH", "hawk")); //added some Musketeer Chess Pieces used in Musketeer Chess Variant
   add(MUSKETEER_ELEPHANT, from_betza("FWDA", "musketeerElephant"));
   add(UNICORN, from_betza("NC", "unicorn"));
-  add(MUSKETEER_CANNON, from_betza("FWDsN", "musketeerCannon")); /different from Xiangqi Cannon
+  add(MUSKETEER_CANNON, from_betza("FWDsN", "musketeerCannon")); //different from Xiangqi Cannon
   add(SPIDER, from_betza("B2ND", "spider"));
   add(LEOPARD, from_betza("F2N", "leopard"));
   add(FORTRESS, from_betza("B3vND", "fortress"));
