@@ -385,6 +385,14 @@ enum Value : int {
   WazirValueMg             = 400,   WazirValueEg             = 350,
   CommonerValueMg          = 700,   CommonerValueEg          = 900,
   CentaurValueMg           = 1800,  CentaurValueEg           = 1900,
+  MuskCannonValueMg        = 1710,  MuskCannonValueEg        = 2239,
+  LeopardValueMg           = 1648,  LeopardValueEg           = 2014,
+  SpiderValueMg            = 2321,  SpiderValueEg            = 2718,
+  DragonValueMg            = 3280,  DragonValueEg            = 2769,
+  UnicornValueMg           = 1584,  UnicornValueEg           = 1772,
+  HawkValueMg              = 1537,  HawkValueEg              = 1561,
+  MuskElephantValueMg      = 1770,  MuskElephantValueEg      = 2000,
+  FortressValueMg          = 1956,  FortressValueEg          = 2100,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
@@ -398,7 +406,8 @@ enum PieceType {
   SHOGI_PAWN, LANCE, SHOGI_KNIGHT, GOLD, DRAGON_HORSE,
   CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, JANGGI_CANNON,
   SOLDIER, HORSE, ELEPHANT, JANGGI_ELEPHANT, BANNER,
-  WAZIR, COMMONER, CENTAUR,
+  WAZIR, COMMONER, CENTAUR,HAWK, MUSKETEER_ELEPHANT, UNICORN, MUSKETEER_CANNON,
+  SPIDER, LEOPARD, FORTRESS,
 
   CUSTOM_PIECE_1, CUSTOM_PIECE_2, CUSTOM_PIECE_3, CUSTOM_PIECE_4,
   CUSTOM_PIECE_5, CUSTOM_PIECE_6, CUSTOM_PIECE_7, CUSTOM_PIECE_8,
