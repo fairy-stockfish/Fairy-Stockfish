@@ -109,7 +109,7 @@ struct Variant {
   WallingRule wallingRule = NO_WALLING;
   Bitboard wallingRegion[COLOR_NB] = {AllSquares, AllSquares};
   bool seirawanGating = false;
-  bool commitGates = false;
+  bool musketeerGating = false;
   bool cambodianMoves = false;
   Bitboard diagonalLines = 0;
   bool pass[COLOR_NB] = {false, false};
