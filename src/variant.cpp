@@ -742,12 +742,10 @@ namespace {
         //"********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1"
         v->startFen = "********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1";
         v->commitGates = true;
-        v->promotionPieceTypes = {LEOPARD, MUSKETEER CANNON, QUEEN, ROOK, BISHOP, KNIGHT}; // refer to PieceToCharTable to know the piece combination that can be promoted apart from the classic chess pieces
+        v->promotionPieceTypes = {LEOPARD, MUSKETEER_CANNON, QUEEN, ROOK, BISHOP, KNIGHT}; // refer to PieceToCharTable to know the piece combination that can be promoted apart from the classic chess pieces
         return v;
-                                }
     }
-
-
+    
     // S-House
     // A hybrid variant of S-Chess and Crazyhouse.
     // Pieces in the pocket can either be gated or dropped.
