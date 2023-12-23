@@ -2845,18 +2845,21 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
 
-  // Check for bikjang rule (Janggi) and double passing
-  if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
+  // Check for bikjang rule (Janggi), double passing, or board running full
+  if (   (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
+      || (var->adjudicateFullBoard && !(~pieces() & board_bb())))
   {
       result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;
       return true;
   }
+
   // Tsume mode: Assume that side with king wins when not in check
   if (tsumeMode && !count<KING>(~sideToMove) && count<KING>(sideToMove) && !checkers())
   {
       result = mate_in(ply);
       return true;
   }
+
   // Failing to checkmate with virtual pieces is a loss
   if (two_boards() && !checkers())
   {
