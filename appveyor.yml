@@ -70,7 +70,7 @@ build_script:
       $dummy = $nnuenet -match "(?<nnuenet>nn-[a-z0-9]{12}.nnue)"
       $nnuenet = $Matches.nnuenet
       Write-Host "Default net:" $nnuenet
-      $nnuedownloadurl = "https://tests.stockfishchess.org/api/nn/$nnuenet"
+      $nnuedownloadurl = "https://github.com/official-stockfish/networks/raw/master/$nnuenet"
       $nnuefilepath = "src\${env:CONFIGURATION}\$nnuenet"
       if (Test-Path -Path $nnuefilepath) {
             Write-Host "Already available."
