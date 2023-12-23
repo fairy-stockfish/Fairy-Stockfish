@@ -977,6 +977,13 @@ class TestPyffish(unittest.TestCase):
         result = sf.game_result("royalduck", "rnbqk1nr/pppp1ppp/4p3/8/7P/5Pb1/PPPPP*P1/RNBQKBNR w KQkq - 1 4", [])
         self.assertEqual(result, sf.VALUE_MATE)
 
+    def _check_immediate_game_end(self, variant, fen, moves, game_end, game_result=None):
+        with self.subTest(variant=variant, fen=fen, game_end=game_end, game_result=game_result):
+            result = sf.is_immediate_game_end(variant, fen, moves)
+            self.assertEqual(result[0], game_end)
+            if game_result is not None:
+                self.assertEqual(result[1], game_result)
+
     def test_is_immediate_game_end(self):
         result = sf.is_immediate_game_end("capablanca", CAPA, [])
         self.assertFalse(result[0])
@@ -990,6 +997,11 @@ class TestPyffish(unittest.TestCase):
         result = sf.is_immediate_game_end("janggi", JANGGI, moves.split())
         self.assertTrue(result[0])
         self.assertEqual(result[1], -sf.VALUE_MATE)
+
+        # full board adjudication
+        self._check_immediate_game_end("flipello", "pppppppp/pppppppp/pppPpppp/pPpPpppp/pppppppp/pPpPPPPP/ppPpPPpp/pppppppp[PPpp] b - - 63 32", [], True, sf.VALUE_MATE)
+        self._check_immediate_game_end("ataxx", "PPPpppp/pppPPPp/pPPPPPP/PPPPPPp/ppPPPpp/pPPPPpP/pPPPPPP b - - 99 50", [], True, -sf.VALUE_MATE)
+        self._check_immediate_game_end("ataxx", "PPPpppp/pppPPPp/pPP*PPP/PP*P*Pp/ppP*Ppp/pPPPPpP/pPPPPPP b - - 99 50", [], True, -sf.VALUE_MATE)
 
     def test_is_optional_game_end(self):
         result = sf.is_optional_game_end("capablanca", CAPA, [])
