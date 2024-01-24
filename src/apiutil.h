@@ -237,7 +237,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
             return SQUARE_DISAMBIGUATION;
     }
 
-    // A disambiguation occurs if we have more then one piece of type 'pt'
+    // A disambiguation occurs if we have more than one piece of type 'pt'
     // that can reach 'to' with a legal move.
     Bitboard b = pos.pieces(us, pt) ^ from;
     Bitboard others = 0;

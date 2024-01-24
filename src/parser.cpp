@@ -544,7 +544,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     // Report invalid options
     if (DoCheck)
     {
-        const std::set<std::string>& parsedKeys = config.get_comsumed_keys();
+        const std::set<std::string>& parsedKeys = config.get_consumed_keys();
         for (const auto& it : config)
             if (parsedKeys.find(it.first) == parsedKeys.end())
                 std::cerr << "Invalid option: " << it.first << std::endl;
