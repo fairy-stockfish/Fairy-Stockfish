@@ -527,6 +527,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("flagPieceSafe", v->flagPieceSafe);
     parse_attribute("checkCounting", v->checkCounting);
     parse_attribute("connectN", v->connectN);
+    parse_attribute("connectPieceTypes", v->connectPieceTypes, v->pieceToChar);
     parse_attribute("connectHorizontal", v->connectHorizontal);
     parse_attribute("connectVertical", v->connectVertical);
     parse_attribute("connectDiagonal", v->connectDiagonal);
@@ -535,6 +536,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectRegion1Black", v->connectRegion1[BLACK]);
     parse_attribute("connectRegion2Black", v->connectRegion2[BLACK]);
     parse_attribute("connectNxN", v->connectNxN);
+    parse_attribute("collinearN", v->collinearN);
     parse_attribute("connectValue", v->connectValue);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("countingRule", v->countingRule);

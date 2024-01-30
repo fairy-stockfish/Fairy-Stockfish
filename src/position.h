@@ -205,11 +205,13 @@ public:
   bool flag_reached(Color c) const;
   bool check_counting() const;
   int connect_n() const;
+  PieceSet connect_piece_types() const;
   bool connect_horizontal() const;
   bool connect_vertical() const;
   bool connect_diagonal() const;
   const std::vector<Direction>& getConnectDirections() const;
   int connect_nxn() const;
+  int collinear_n() const;
 
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
@@ -1035,6 +1037,11 @@ inline int Position::connect_n() const {
   return var->connectN;
 }
 
+inline PieceSet Position::connect_piece_types() const {
+  assert(var != nullptr);
+  return var->connectPieceTypes;
+}
+
 inline bool Position::connect_horizontal() const {
   assert(var != nullptr);
   return var->connectHorizontal;
@@ -1056,6 +1063,11 @@ inline const std::vector<Direction>& Position::getConnectDirections() const {
 inline int Position::connect_nxn() const {
   assert(var != nullptr);
   return var->connectNxN;
+}
+
+inline int Position::collinear_n() const {
+  assert(var != nullptr);
+  return var->collinearN;
 }
 
 inline CheckCount Position::checks_remaining(Color c) const {
