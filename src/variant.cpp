@@ -1141,6 +1141,7 @@ namespace {
         v->enclosingDrop = ATAXX;
         v->flipEnclosedPieces = ATAXX;
         v->materialCounting = UNWEIGHTED_MATERIAL;
+        v->adjudicateFullBoard = true;
         v->nMoveRule = 0;
         v->freeDrops = true;
         return v;
@@ -1167,6 +1168,7 @@ namespace {
         v->enclosingDropStart = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->flipEnclosedPieces = REVERSI;
         v->materialCounting = UNWEIGHTED_MATERIAL;
+        v->adjudicateFullBoard = true;
         return v;
     }
     // Flipello
