@@ -2854,35 +2854,35 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
 
-// Collinear-n
-if (collinear_n() > 0) {
-    Bitboard allPieces = connectPieces;
-    for (Direction d : var->connect_directions) {
-        Bitboard b = allPieces;
-        while (b) {
-            Square s = pop_lsb(b);
+  // Collinear-n
+  if (collinear_n() > 0) {
+      Bitboard allPieces = connectPieces;
+      for (Direction d : var->connect_directions) {
+          Bitboard b = allPieces;
+          while (b) {
+              Square s = pop_lsb(b);
 
-            int total_count = 1; // Start with the current piece
+              int total_count = 1; // Start with the current piece
 
-            // Check in both directions
-            for (int sign = -1; sign <= 1; sign += 2) {
-                Bitboard shifted = shift(sign * d, square_bb(s));
-                while (shifted) {
-                    if (shifted & b) {
-                        total_count++;
-                        b &= ~shifted; // Remove this piece from further consideration
-                    }
-                    shifted = shift(sign * d, shifted);
-                }
-            }
+              // Check in both directions
+              for (int sign = -1; sign <= 1; sign += 2) {
+                  Bitboard shifted = shift(sign * d, square_bb(s));
+                  while (shifted) {
+                      if (shifted & b) {
+                          total_count++;
+                          b &= ~shifted; // Remove this piece from further consideration
+                      }
+                      shifted = shift(sign * d, shifted);
+                  }
+              }
 
-            if (total_count >= collinear_n()) {
-                result = convert_mate_value(-var->connectValue, ply);
-                return true;
-            }
-        }
-    }
-}
+              if (total_count >= collinear_n()) {
+                  result = convert_mate_value(-var->connectValue, ply);
+                  return true;
+              }
+          }
+      }
+  }
 
   // Check for bikjang rule (Janggi), double passing, or board running full
   if (   (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
