@@ -111,7 +111,7 @@ namespace {
   const std::map<Direction, int> GrasshopperDirectionsH { {EAST, 1}, {WEST, 1} };
   const std::map<Direction, int> GrasshopperDirectionsD { {NORTH_EAST, 1}, {SOUTH_EAST, 1}, {SOUTH_WEST, 1}, {NORTH_WEST, 1} };
 
-  enum MovementType { RIDER, HOPPER, LAME_LEAPER, UNLIMITED_RIDER };
+  enum MovementType { RIDER, HOPPER, LAME_LEAPER, HOPPER_RANGE };
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
@@ -137,7 +137,9 @@ namespace {
             if (MT != HOPPER || hurdle)
             {
                 attack |= s;
-                if (limit && MT != UNLIMITED_RIDER && ++count >= limit)
+                // For hoppers we consider limit == 1 as a grasshopper,
+                // but limit > 1 as a limited distance hopper
+                if (limit && !(MT == HOPPER_RANGE && limit == 1) && ++count >= limit)
                     break;
             }
 
@@ -300,7 +302,7 @@ void Bitboards::init_pieces() {
                               leaper |= safe_destination(s, c == WHITE ? d : -d);
                       }
                       pseudo |= sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
-                      pseudo |= sliding_attack<UNLIMITED_RIDER>(pi->hopper[initial][modality], s, 0, c);
+                      pseudo |= sliding_attack<HOPPER_RANGE>(pi->hopper[initial][modality], s, 0, c);
                   }
               }
           }
@@ -420,7 +422,7 @@ namespace {
         // apply to the 64 or 32 bits word to get the index.
         Magic& m = magics[s];
         // The mask for hoppers is unlimited distance, even if the hopper is limited distance (e.g., grasshopper)
-        m.mask  = (MT == LAME_LEAPER ? lame_leaper_path(directions, s) : sliding_attack<MT == HOPPER ? UNLIMITED_RIDER : MT>(directions, s, 0)) & ~edges;
+        m.mask  = (MT == LAME_LEAPER ? lame_leaper_path(directions, s) : sliding_attack<MT == HOPPER ? HOPPER_RANGE : MT>(directions, s, 0)) & ~edges;
 #ifdef LARGEBOARDS
         m.shift = 128 - popcount(m.mask);
 #else
