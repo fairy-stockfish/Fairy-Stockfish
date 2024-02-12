@@ -146,6 +146,9 @@ namespace XBoard {
     // Generate color FEN
     int emptyCnt;
     std::ostringstream ss;
+    if (pos.variant()->commitGates) {
+        ss << pos.max_file() + 1 << "/";
+    }
     for (Rank r = pos.max_rank(); r >= RANK_1; --r)
     {
         for (File f = FILE_A; f <= pos.max_file(); ++f)
@@ -162,6 +165,9 @@ namespace XBoard {
 
         if (r > RANK_1)
             ss << '/';
+    }
+    if (pos.variant()->commitGates) {
+        ss << "/" << pos.max_file() + 1;
     }
     return ss.str();
   }

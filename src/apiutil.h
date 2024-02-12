@@ -558,14 +558,22 @@ inline std::vector<std::string> get_fen_parts(const std::string& fullFen, char d
 inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard, const std::string& validSpecialCharactersFirstField, const Variant* v) {
     int rankIdx = 0;
     int fileIdx = 0;
+    bool firstRankSkipped = false;
 
     char prevChar = '?';
     for (char c : fenBoard)
     {
         if (c == ' ' || c == '[')
             break;
-        if (c == '*')
-            ++fileIdx;
+        if (c == '*') {
+            if (v->commitGates)
+            {
+                // just ignore?
+            }
+            else {
+                ++fileIdx;
+            }
+        }
         else if (isdigit(c))
         {
             fileIdx += c - '0';
@@ -575,14 +583,26 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
         }
         else if (c == '/')
         {
-            ++rankIdx;
-            if (fileIdx != board.get_nb_files())
-            {
-                std::cerr << "curRankWidth != nbFiles: " << fileIdx << " != " << board.get_nb_files() << std::endl;
-                return NOK;
+            if (v->commitGates && rankIdx == 0 && !firstRankSkipped) {
+                firstRankSkipped = true;
+                // ignore starting 'xx******/'
+            }
+            else {
+                ++rankIdx;
+                if (fileIdx != board.get_nb_files())
+                {
+                    std::cerr << "curRankWidth != nbFiles: " << fileIdx << " != " << board.get_nb_files() << std::endl;
+                    return NOK;
+                }
             }
             if (rankIdx == board.get_nb_ranks())
+            {
+                if (v->commitGates)
+                {
+                    rankIdx--; // pretend we didn't see the ending '/xx******'
+                }
                 break;
+            }
             fileIdx = 0;
         }
         else if (!contains(validSpecialCharactersFirstField, c))
