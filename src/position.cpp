@@ -2865,7 +2865,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
               int total_count = 1; // Start with the current piece
 
               // Check in both directions
-              for (int sign = -1; sign <= 1; sign += 2) {
+              for (int sign : {-1, 1}) {
                   Bitboard shifted = shift(sign * d, square_bb(s));
                   while (shifted) {
                       if (shifted & b) {
