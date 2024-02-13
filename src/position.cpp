@@ -2703,7 +2703,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 
 /// Position::is_immediate_game_end() tests whether the position ends the game
 /// immediately by a variant rule, i.e., there are no more legal moves.
-/// It does not not detect stalemates.
+/// It does not detect stalemates.
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
 
@@ -2789,6 +2789,15 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       result = mated_in(ply);
       return true;
   }
+
+  //Calculate eligible pieces for connection once.
+  Bitboard connectPieces = 0;
+  for (PieceSet ps = connect_piece_types(); ps;){
+      PieceType pt = pop_lsb(ps);
+      connectPieces |= pieces(pt);
+  };
+  connectPieces &= pieces(~sideToMove);
+
   // Connect-n
   if (connect_n() > 0)
   {
@@ -2796,7 +2805,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
 
       for (Direction d : var->connect_directions)
       {
-          b = pieces(~sideToMove);
+          b = connectPieces;
           for (int i = 1; i < connect_n() && b; i++)
               b &= shift(d, b);
           if (b)
@@ -2807,15 +2816,15 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
 
-  if ((var->connectRegion1[~sideToMove] & pieces(~sideToMove)) && (var->connectRegion2[~sideToMove] & pieces(~sideToMove)))
+  if ((var->connectRegion1[~sideToMove] & connectPieces) && (var->connectRegion2[~sideToMove] & connectPieces))
   {
       Bitboard target = var->connectRegion2[~sideToMove];
-      Bitboard current = var->connectRegion1[~sideToMove] & pieces(~sideToMove);
+      Bitboard current = var->connectRegion1[~sideToMove] & connectPieces;
 
       while (true) {
           Bitboard newBitboard = 0;
           for (Direction d : var->connect_directions) {
-              newBitboard |= shift(d, current | newBitboard) & pieces(~sideToMove); // the "| newBitboard" here probably saves a few loops
+              newBitboard |= shift(d, current | newBitboard) & connectPieces; // the "| newBitboard" here probably saves a few loops
           }
 
           if (newBitboard & target) {
@@ -2835,13 +2844,43 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   
   if (connect_nxn())
   {
-      Bitboard connectors = pieces(~sideToMove);
+      Bitboard connectors = connectPieces;
       for (int i = 1; i < connect_nxn() && connectors; i++)
           connectors &= shift<SOUTH>(connectors) & shift<EAST>(connectors) & shift<SOUTH_EAST>(connectors);
       if (connectors)
       {
           result = convert_mate_value(-var->connectValue, ply);
           return true;
+      }
+  }
+
+  // Collinear-n
+  if (collinear_n() > 0) {
+      Bitboard allPieces = connectPieces;
+      for (Direction d : var->connect_directions) {
+          Bitboard b = allPieces;
+          while (b) {
+              Square s = pop_lsb(b);
+
+              int total_count = 1; // Start with the current piece
+
+              // Check in both directions
+              for (int sign : {-1, 1}) {
+                  Bitboard shifted = shift(sign * d, square_bb(s));
+                  while (shifted) {
+                      if (shifted & b) {
+                          total_count++;
+                          b &= ~shifted; // Remove this piece from further consideration
+                      }
+                      shifted = shift(sign * d, shifted);
+                  }
+              }
+
+              if (total_count >= collinear_n()) {
+                  result = convert_mate_value(-var->connectValue, ply);
+                  return true;
+              }
+          }
       }
   }
 
