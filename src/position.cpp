@@ -2703,7 +2703,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 
 /// Position::is_immediate_game_end() tests whether the position ends the game
 /// immediately by a variant rule, i.e., there are no more legal moves.
-/// It does not not detect stalemates.
+/// It does not detect stalemates.
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
 
