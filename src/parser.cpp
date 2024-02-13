@@ -107,8 +107,10 @@ namespace {
                 : value == "ataxx" ? ATAXX
                 : value == "quadwrangle" ? QUADWRANGLE
                 : value == "snort" ? SNORT
+                : value == "anyside" ? ANYSIDE
+                : value == "top" ? TOP
                 : NO_ENCLOSING;
-        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value == "none";
+        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value =="anyside" || value =="top" || value == "none";
     }
 
     template <> bool set(const std::string& value, WallingRule& target) {
@@ -122,18 +124,35 @@ namespace {
     }
 
     template <> bool set(const std::string& value, Bitboard& target) {
-        char file;
-        int rank;
+        std::string symbol;
         std::stringstream ss(value);
         target = 0;
-        while (!ss.eof() && ss >> file && file != '-' && ss >> rank)
+        while (!ss.eof() && ss >> symbol && symbol != "-")
         {
-            if (Rank(rank - 1) > RANK_MAX || (file != '*' && File(tolower(file) - 'a') > FILE_MAX))
+            if (symbol.back() == '*') {
+                if (isalpha(symbol[0]) && symbol.length() == 2) {
+                    char file = tolower(symbol[0]);
+                    if (File(file - 'a') > FILE_MAX) return false;
+                    target |= file_bb(File(file - 'a'));
+                } else {
+                    return false;
+                }
+            } else if (symbol[0] == '*') {
+                int rank = std::stoi(symbol.substr(1));
+                if (Rank(rank - 1) > RANK_MAX) return false;
+                target |= rank_bb(Rank(rank - 1));
+            } else if (isalpha(symbol[0]) && symbol.length() > 1) {
+                char file = tolower(symbol[0]);
+                int rank = std::stoi(symbol.substr(1));
+                if (Rank(rank - 1) > RANK_MAX || File(file - 'a') > FILE_MAX) return false;
+                target |= square_bb(make_square(File(file - 'a'), Rank(rank - 1)));
+            } else {
                 return false;
-            target |= file == '*' ? rank_bb(Rank(rank - 1)) : square_bb(make_square(File(tolower(file) - 'a'), Rank(rank - 1)));
+            }
         }
         return !ss.fail();
     }
+
 
     template <> bool set(const std::string& value, CastlingRights& target) {
         char c;
@@ -327,6 +346,10 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute<false>("castlingRookPiece", v->castlingRookPieces[WHITE], v->pieceToChar);
     parse_attribute<false>("castlingRookPiece", v->castlingRookPieces[BLACK], v->pieceToChar);
 
+    bool dropOnTop = false;
+    parse_attribute<false>("dropOnTop", dropOnTop);
+    if (dropOnTop) v->enclosingDrop=TOP;
+
     // Parse aliases
     parse_attribute("pawnTypes", v->promotionPawnType[WHITE], v->pieceToChar);
     parse_attribute("pawnTypes", v->promotionPawnType[BLACK], v->pieceToChar);
@@ -433,7 +456,6 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("capturesToHand", v->capturesToHand);
     parse_attribute("firstRankPawnDrops", v->firstRankPawnDrops);
     parse_attribute("promotionZonePawnDrops", v->promotionZonePawnDrops);
-    parse_attribute("dropOnTop", v->dropOnTop);
     parse_attribute("enclosingDrop", v->enclosingDrop);
     parse_attribute("enclosingDropStart", v->enclosingDropStart);
     parse_attribute("whiteDropRegion", v->whiteDropRegion);
@@ -454,8 +476,14 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("seirawanGating", v->seirawanGating);
     parse_attribute("cambodianMoves", v->cambodianMoves);
     parse_attribute("diagonalLines", v->diagonalLines);
-    parse_attribute("pass", v->pass);
-    parse_attribute("passOnStalemate", v->passOnStalemate);
+    parse_attribute("pass", v->pass[WHITE]);
+    parse_attribute("pass", v->pass[BLACK]);
+    parse_attribute("passWhite", v->pass[WHITE]);
+    parse_attribute("passBlack", v->pass[BLACK]);
+    parse_attribute("passOnStalemate", v->passOnStalemate[WHITE]);
+    parse_attribute("passOnStalemate", v->passOnStalemate[BLACK]);
+    parse_attribute("passOnStalemateWhite", v->passOnStalemate[WHITE]);
+    parse_attribute("passOnStalemateBlack", v->passOnStalemate[BLACK]);
     parse_attribute("makpongRule", v->makpongRule);
     parse_attribute("flyingGeneral", v->flyingGeneral);
     parse_attribute("soldierPromotionRank", v->soldierPromotionRank);
@@ -497,19 +525,29 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("flagPieceCount", v->flagPieceCount);
     parse_attribute("flagPieceBlockedWin", v->flagPieceBlockedWin);
     parse_attribute("flagMove", v->flagMove);
+    parse_attribute("flagPieceSafe", v->flagPieceSafe);
     parse_attribute("checkCounting", v->checkCounting);
     parse_attribute("connectN", v->connectN);
+    parse_attribute("connectPieceTypes", v->connectPieceTypes, v->pieceToChar);
     parse_attribute("connectHorizontal", v->connectHorizontal);
     parse_attribute("connectVertical", v->connectVertical);
     parse_attribute("connectDiagonal", v->connectDiagonal);
+    parse_attribute("connectRegion1White", v->connectRegion1[WHITE]);
+    parse_attribute("connectRegion2White", v->connectRegion2[WHITE]);
+    parse_attribute("connectRegion1Black", v->connectRegion1[BLACK]);
+    parse_attribute("connectRegion2Black", v->connectRegion2[BLACK]);
+    parse_attribute("connectNxN", v->connectNxN);
+    parse_attribute("collinearN", v->collinearN);
+    parse_attribute("connectValue", v->connectValue);
     parse_attribute("materialCounting", v->materialCounting);
+    parse_attribute("adjudicateFullBoard", v->adjudicateFullBoard);
     parse_attribute("countingRule", v->countingRule);
     parse_attribute("castlingWins", v->castlingWins);
     
     // Report invalid options
     if (DoCheck)
     {
-        const std::set<std::string>& parsedKeys = config.get_comsumed_keys();
+        const std::set<std::string>& parsedKeys = config.get_consumed_keys();
         for (const auto& it : config)
             if (parsedKeys.find(it.first) == parsedKeys.end())
                 std::cerr << "Invalid option: " << it.first << std::endl;
@@ -599,6 +637,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             if (v->mutuallyImmuneTypes)
                 std::cerr << "Can not use kings or pseudo-royal with mutuallyImmuneTypes." << std::endl;
         }
+        if (v->flagPieceSafe && v->blastOnCapture)
+            std::cerr << "Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast)." << std::endl;
     }
     return v;
 }

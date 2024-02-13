@@ -1092,7 +1092,7 @@ bool Position::legal(Move m) const {
       return false;
 
   // Illegal king passing move
-  if (pass_on_stalemate() && is_pass(m) && !checkers())
+  if (pass_on_stalemate(us) && is_pass(m) && !checkers())
   {
       for (const auto& move : MoveList<NON_EVASIONS>(*this))
           if (!is_pass(move) && legal(move))
@@ -1558,7 +1558,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Piece captured = piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to);
   if (to == from)
   {
-      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && pass()));
+      assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && pass(us)));
       captured = NO_PIECE;
   }
   st->capturedpromoted = is_promoted(to);
@@ -2128,7 +2128,7 @@ void Position::undo_move(Move m) {
 
   assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
          || (type_of(m) == PROMOTION && sittuyin_promotion())
-         || (is_pass(m) && pass()));
+         || (is_pass(m) && pass(us)));
   assert(type_of(st->capturedPiece) != KING);
 
   // Reset wall squares
@@ -2566,7 +2566,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   return bool(res);
 }
 
-/// Position::is_optinal_game_end() tests whether the position may end the game by
+/// Position::is_optional_game_end() tests whether the position may end the game by
 /// 50-move rule, by repetition, or a variant rule that allows a player to claim a game result.
 
 bool Position::is_optional_game_end(Value& result, int ply, int countStarted) const {
@@ -2705,7 +2705,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 
 /// Position::is_immediate_game_end() tests whether the position ends the game
 /// immediately by a variant rule, i.e., there are no more legal moves.
-/// It does not not detect stalemates.
+/// It does not detect stalemates.
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
 
@@ -2791,6 +2791,15 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       result = mated_in(ply);
       return true;
   }
+
+  //Calculate eligible pieces for connection once.
+  Bitboard connectPieces = 0;
+  for (PieceSet ps = connect_piece_types(); ps;){
+      PieceType pt = pop_lsb(ps);
+      connectPieces |= pieces(pt);
+  };
+  connectPieces &= pieces(~sideToMove);
+
   // Connect-n
   if (connect_n() > 0)
   {
@@ -2798,28 +2807,100 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
 
       for (Direction d : var->connect_directions)
       {
-          b = pieces(~sideToMove);
+          b = connectPieces;
           for (int i = 1; i < connect_n() && b; i++)
               b &= shift(d, b);
           if (b)
           {
-              result = mated_in(ply);
+              result = convert_mate_value(-var->connectValue, ply);
               return true;
           }
       }
   }
-  // Check for bikjang rule (Janggi) and double passing
-  if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
+
+  if ((var->connectRegion1[~sideToMove] & connectPieces) && (var->connectRegion2[~sideToMove] & connectPieces))
+  {
+      Bitboard target = var->connectRegion2[~sideToMove];
+      Bitboard current = var->connectRegion1[~sideToMove] & connectPieces;
+
+      while (true) {
+          Bitboard newBitboard = 0;
+          for (Direction d : var->connect_directions) {
+              newBitboard |= shift(d, current | newBitboard) & connectPieces; // the "| newBitboard" here probably saves a few loops
+          }
+
+          if (newBitboard & target) {
+              // A connection has been made
+              result = convert_mate_value(-var->connectValue, ply);
+              return true;
+          }
+
+          if (!(newBitboard & ~current)) {
+              // The expansion got stuck; no further squares to explore
+              break;
+          }
+
+          current |= newBitboard;
+      }
+  }
+  
+  if (connect_nxn())
+  {
+      Bitboard connectors = connectPieces;
+      for (int i = 1; i < connect_nxn() && connectors; i++)
+          connectors &= shift<SOUTH>(connectors) & shift<EAST>(connectors) & shift<SOUTH_EAST>(connectors);
+      if (connectors)
+      {
+          result = convert_mate_value(-var->connectValue, ply);
+          return true;
+      }
+  }
+
+  // Collinear-n
+  if (collinear_n() > 0) {
+      Bitboard allPieces = connectPieces;
+      for (Direction d : var->connect_directions) {
+          Bitboard b = allPieces;
+          while (b) {
+              Square s = pop_lsb(b);
+
+              int total_count = 1; // Start with the current piece
+
+              // Check in both directions
+              for (int sign : {-1, 1}) {
+                  Bitboard shifted = shift(sign * d, square_bb(s));
+                  while (shifted) {
+                      if (shifted & b) {
+                          total_count++;
+                          b &= ~shifted; // Remove this piece from further consideration
+                      }
+                      shifted = shift(sign * d, shifted);
+                  }
+              }
+
+              if (total_count >= collinear_n()) {
+                  result = convert_mate_value(-var->connectValue, ply);
+                  return true;
+              }
+          }
+      }
+  }
+
+  // Check for bikjang rule (Janggi), double passing, or board running full
+  if (   (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
+      || (var->adjudicateFullBoard && !(~pieces() & board_bb())))
   {
       result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;
       return true;
   }
+
   // Tsume mode: Assume that side with king wins when not in check
   if (tsumeMode && !count<KING>(~sideToMove) && count<KING>(sideToMove) && !checkers())
   {
       result = mate_in(ply);
       return true;
   }
+
   // Failing to checkmate with virtual pieces is a loss
   if (two_boards() && !checkers())
   {

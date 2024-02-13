@@ -34,7 +34,7 @@ public:
         consumedKeys.insert(s);
         return std::map<std::string, std::string>::find(s);
     }
-    const std::set<std::string>& get_comsumed_keys() {
+    const std::set<std::string>& get_consumed_keys() {
         return consumedKeys;
     }
 private:

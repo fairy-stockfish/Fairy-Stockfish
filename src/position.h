@@ -167,7 +167,6 @@ public:
   bool drop_loop() const;
   bool captures_to_hand() const;
   bool first_rank_pawn_drops() const;
-  bool drop_on_top() const;
   bool can_drop(Color c, PieceType pt) const;
   EnclosingRule enclosing_drop() const;
   Bitboard drop_region(Color c) const;
@@ -183,8 +182,8 @@ public:
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
-  bool pass() const;
-  bool pass_on_stalemate() const;
+  bool pass(Color c) const;
+  bool pass_on_stalemate(Color c) const;
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
   EnclosingRule flip_enclosed_pieces() const;
@@ -206,10 +205,13 @@ public:
   bool flag_reached(Color c) const;
   bool check_counting() const;
   int connect_n() const;
+  PieceSet connect_piece_types() const;
   bool connect_horizontal() const;
   bool connect_vertical() const;
   bool connect_diagonal() const;
   const std::vector<Direction>& getConnectDirections() const;
+  int connect_nxn() const;
+  int collinear_n() const;
 
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
@@ -373,6 +375,7 @@ private:
   void remove_from_hand(Piece pc);
   void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
   void undrop_piece(Piece pc_hand, Square s);
+  Bitboard find_drop_region(Direction dir, Square s, Bitboard occupied) const;
 };
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
@@ -648,11 +651,6 @@ inline bool Position::first_rank_pawn_drops() const {
   return var->firstRankPawnDrops;
 }
 
-inline bool Position::drop_on_top() const {
-  assert(var != nullptr);
-  return var->dropOnTop;
-}
-
 inline EnclosingRule Position::enclosing_drop() const {
   assert(var != nullptr);
   return var->enclosingDrop;
@@ -666,9 +664,6 @@ inline Bitboard Position::drop_region(Color c) const {
 inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   Bitboard b = drop_region(c) & board_bb(c, pt);
 
-  // Connect4-style drops
-  if (drop_on_top())
-      b &= shift<NORTH>(pieces()) | Rank1BB;
   // Pawns on back ranks
   if (pt == PAWN)
   {
@@ -686,7 +681,6 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   if (pt == ROOK && sittuyin_rook_drop())
       b &= rank_bb(relative_rank(c, RANK_1, max_rank()));
 
-  // Filter out squares where the drop does not enclose at least one opponent's piece
   if (enclosing_drop())
   {
       // Reversi start
@@ -694,6 +688,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
           b &= var->enclosingDropStart;
       else
       {
+          // Filter out squares where the drop does not enclose at least one opponent's piece
           if (enclosing_drop() == REVERSI)
           {
               Bitboard theirs = pieces(~c);
@@ -714,6 +709,40 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
               Bitboard theirs = pieces(~c);
               b &=   ~(shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
                   | shift<EAST      >(theirs) | shift<WEST      >(theirs));
+          }
+          else if (enclosing_drop() == ANYSIDE)
+          {
+              Bitboard occupied = pieces();
+              b = 0ULL;
+              Bitboard candidates = (shift<WEST>(occupied) | file_bb(max_file())) & ~occupied;
+
+              for (Rank r = RANK_1; r <= max_rank(); ++r) {
+                  if (!(occupied & make_square(FILE_A, r))) {
+                      b |= lsb(candidates & rank_bb(r));
+                  }
+              }
+              candidates = (shift<SOUTH>(occupied) | rank_bb(max_rank())) & ~occupied;
+              for (File f = FILE_A; f <= max_file(); ++f) {
+                  if (!(occupied & make_square(f, RANK_1))) {
+                      b |= lsb(candidates & file_bb(f));
+                  }
+              }
+              candidates = (shift<NORTH>(occupied) | rank_bb(RANK_1)) & ~occupied;
+              for (File f = FILE_A; f <= max_file(); ++f) {
+                  if (!(occupied & make_square(f, max_rank()))) {
+                      b |= lsb(candidates & file_bb(f));
+                  }
+              }
+              candidates = (shift<EAST>(occupied) | file_bb(FILE_A)) & ~occupied;
+              for (Rank r = RANK_1; r <= max_rank(); ++r) {
+                  if (!(occupied & make_square(max_file(), r))) {
+                      b |= lsb(candidates & rank_bb(r));
+                  }
+              }
+          }
+          else if (enclosing_drop() == TOP)
+          {
+              b &= shift<NORTH>(pieces()) | Rank1BB;
           }
           else
           {
@@ -785,14 +814,14 @@ inline Bitboard Position::diagonal_lines() const {
   return var->diagonalLines;
 }
 
-inline bool Position::pass() const {
+inline bool Position::pass(Color c) const {
   assert(var != nullptr);
-  return var->pass || var->passOnStalemate;
+  return var->pass[c] || var->passOnStalemate[c];
 }
 
-inline bool Position::pass_on_stalemate() const {
+inline bool Position::pass_on_stalemate(Color c) const {
   assert(var != nullptr);
-  return var->passOnStalemate;
+  return var->passOnStalemate[c];
 }
 
 inline Bitboard Position::promoted_soldiers(Color c) const {
@@ -962,9 +991,40 @@ inline bool Position::flag_move() const {
 
 inline bool Position::flag_reached(Color c) const {
   assert(var != nullptr);
-  return   (flag_region(c) & pieces(c, flag_piece(c)))
+  bool simpleResult = 
+        (flag_region(c) & pieces(c, flag_piece(c)))
         && (   popcount(flag_region(c) & pieces(c, flag_piece(c))) >= var->flagPieceCount
             || (var->flagPieceBlockedWin && !(flag_region(c) & ~pieces())));
+      
+  if (simpleResult&&var->flagPieceSafe)
+  {
+      Bitboard piecesInFlagZone = flag_region(c) & pieces(c, flag_piece(c));
+      int potentialPieces = (popcount(piecesInFlagZone));
+      /*
+      There isn't a variant that uses it, but in the hypothetical game where the rules say I need 3
+      pieces in the flag zone and they need to be safe: If I have 3 pieces there, but one is under
+      threat, I don't think I can declare victory. If I have 4 there, but one is under threat, I
+      think that's victory.
+      */      
+      while (piecesInFlagZone)
+      {
+          Square sr = pop_lsb(piecesInFlagZone);
+          Bitboard flagAttackers = attackers_to(sr, ~c);
+
+          if ((potentialPieces < var->flagPieceCount) || (potentialPieces >= var->flagPieceCount + 1)) break;
+          while (flagAttackers)
+          {
+              Square currentAttack = pop_lsb(flagAttackers);
+              if (legal(make_move(currentAttack, sr)))
+              {
+                  potentialPieces--;
+                  break;
+              }
+          }
+      }
+      return potentialPieces >= var->flagPieceCount;
+  }
+  return simpleResult;
 }
 
 inline bool Position::check_counting() const {
@@ -975,6 +1035,11 @@ inline bool Position::check_counting() const {
 inline int Position::connect_n() const {
   assert(var != nullptr);
   return var->connectN;
+}
+
+inline PieceSet Position::connect_piece_types() const {
+  assert(var != nullptr);
+  return var->connectPieceTypes;
 }
 
 inline bool Position::connect_horizontal() const {
@@ -993,6 +1058,16 @@ inline bool Position::connect_diagonal() const {
 inline const std::vector<Direction>& Position::getConnectDirections() const {
     assert(var != nullptr);
     return var->connect_directions;
+}
+
+inline int Position::connect_nxn() const {
+  assert(var != nullptr);
+  return var->connectNxN;
+}
+
+inline int Position::collinear_n() const {
+  assert(var != nullptr);
+  return var->collinearN;
 }
 
 inline CheckCount Position::checks_remaining(Color c) const {

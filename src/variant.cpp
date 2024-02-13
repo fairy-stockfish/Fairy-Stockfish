@@ -1136,10 +1136,12 @@ namespace {
         v->immobilityIllegal = false;
         v->stalemateValue = -VALUE_MATE;
         v->stalematePieceCount = true;
-        v->passOnStalemate = true;
+        v->passOnStalemate[WHITE] = true;
+        v->passOnStalemate[BLACK] = true;
         v->enclosingDrop = ATAXX;
         v->flipEnclosedPieces = ATAXX;
         v->materialCounting = UNWEIGHTED_MATERIAL;
+        v->adjudicateFullBoard = true;
         v->nMoveRule = 0;
         v->freeDrops = true;
         return v;
@@ -1160,11 +1162,13 @@ namespace {
         v->immobilityIllegal = false;
         v->stalemateValue = -VALUE_MATE;
         v->stalematePieceCount = true;
-        v->passOnStalemate = false;
+        v->passOnStalemate[WHITE] = false;
+        v->passOnStalemate[BLACK] = false;
         v->enclosingDrop = REVERSI;
         v->enclosingDropStart = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->flipEnclosedPieces = REVERSI;
         v->materialCounting = UNWEIGHTED_MATERIAL;
+        v->adjudicateFullBoard = true;
         return v;
     }
     // Flipello
@@ -1172,7 +1176,8 @@ namespace {
     Variant* flipello_variant() {
         Variant* v = flipersi_variant()->init();
         v->startFen = "8/8/8/3pP3/3Pp3/8/8/8[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppp] w 0 1";
-        v->passOnStalemate = true;
+        v->passOnStalemate[WHITE] = true;
+        v->passOnStalemate[BLACK] = true;
         return v;
     }
     // Minixiangqi
@@ -1742,7 +1747,8 @@ namespace {
         v->materialCounting = JANGGI_MATERIAL;
         v->diagonalLines = make_bitboard(SQ_D1, SQ_F1, SQ_E2, SQ_D3, SQ_F3,
                                          SQ_D8, SQ_F8, SQ_E9, SQ_D10, SQ_F10);
-        v->pass = true;
+        v->pass[WHITE] = true;
+        v->pass[BLACK] = true;
         v->nFoldValue = VALUE_DRAW;
         v->perpetualCheckIllegal = true;
         return v;
@@ -2057,6 +2063,17 @@ Variant* Variant::conclude() {
         connect_directions.push_back(NORTH_EAST);
         connect_directions.push_back(SOUTH_EAST);
     }
+
+    // If not a connect variant, set connectPieceTypes to no pieces.
+    if ( !(connectRegion1[WHITE] || connectRegion1[BLACK] || connectN || connectNxN || collinearN) )
+    {
+          connectPieceTypes = NO_PIECE_SET;
+    }
+    //Otherwise optimize to pieces actually in the game.
+    else
+    {
+        connectPieceTypes = connectPieceTypes & pieceTypes;
+    };
 
     return this;
 }
