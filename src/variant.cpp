@@ -2070,9 +2070,9 @@ Variant* Variant::conclude() {
           connectPieceTypes = NO_PIECE_SET;
     }
     //Otherwise optimize to pieces actually in the game.
-    else if (connectPieceTypes == CHESS_PIECES)
+    else
     {
-        connectPieceTypes = pieceTypes;
+        connectPieceTypes = connectPieceTypes & pieceTypes;
     };
 
     return this;

@@ -149,7 +149,7 @@ struct Variant {
   bool flagPieceSafe = false;
   bool checkCounting = false;
   int connectN = 0;
-  PieceSet connectPieceTypes = CHESS_PIECES;
+  PieceSet connectPieceTypes = ~NO_PIECE_SET;
   bool connectHorizontal = true;
   bool connectVertical = true;
   bool connectDiagonal = true;
