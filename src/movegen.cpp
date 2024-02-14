@@ -448,7 +448,7 @@ namespace {
         //if "wall or move", generate walling action with null move
         if (pos.variant()->wallOrMove)
         {
-            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
+            moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
         }
     }
 
