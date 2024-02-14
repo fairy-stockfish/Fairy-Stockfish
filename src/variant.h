@@ -92,7 +92,7 @@ struct Variant {
   PieceType mustDropType = ALL_PIECES;
   bool pieceDrops = false;
   bool dropLoop = false;
-  bool capturesToHand = false;
+  CapturingRule captureType = OUT;
   bool firstRankPawnDrops = false;
   bool promotionZonePawnDrops = false;
   EnclosingRule enclosingDrop = NO_ENCLOSING;
@@ -104,6 +104,8 @@ struct Variant {
   bool dropPromoted = false;
   PieceType dropNoDoubled = NO_PIECE_TYPE;
   int dropNoDoubledCount = 1;
+  PieceSet hostageExchange[PIECE_TYPE_NB] = {};
+  bool prisonPawnPromotion = false;
   bool immobilityIllegal = false;
   bool gating = false;
   WallingRule wallingRule = NO_WALLING;

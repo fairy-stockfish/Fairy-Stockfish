@@ -322,14 +322,23 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       }
   }
   // Pieces in hand
-  if (!isspace(token))
-      while ((ss >> token) && !isspace(token))
-      {
-          if (token == ']')
+  if (!isspace(token)) {
+      bool prison = false;
+      while ((ss >> token) && !isspace(token)) {
+          if (token == ']') {
               continue;
-          else if ((idx = piece_to_char().find(token)) != string::npos)
-              add_to_hand(Piece(idx));
+          } else if (token == '#') {
+              prison = true;
+              continue;
+          } else if ((idx = piece_to_char().find(token)) != string::npos) {
+              if (prison) {
+                  add_to_prison(Piece(idx));
+              } else {
+                  add_to_hand(Piece(idx));
+              }
+          }
       }
+  }
 
   // 2. Active color
   ss >> token;
@@ -521,6 +530,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   chess960 = isChess960 || v->chess960;
   tsumeMode = Options["TsumeMode"];
   thisThread = th;
+  updatePawnCheckZone();
   set_state(st);
 
   assert(pos_is_ok());
@@ -736,15 +746,27 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   if (!variant()->freeDrops && (piece_drops() || seirawan_gating()))
   {
       ss << '[';
-      if (holdings != "-")
+      if (holdings != "-") {
           ss << holdings;
-      else
-          for (Color c : {WHITE, BLACK})
-              for (PieceType pt = KING; pt >= PAWN; --pt)
-              {
+      } else {
+          for (Color c: {WHITE, BLACK})
+              for (PieceType pt = KING; pt >= PAWN; --pt) {
                   assert(pieceCountInHand[c][pt] >= 0);
                   ss << std::string(pieceCountInHand[c][pt], piece_to_char()[make_piece(c, pt)]);
               }
+          if (capture_type() == PRISON &&
+              (count_in_prison(WHITE, ALL_PIECES) > 0 || count_in_prison(BLACK, ALL_PIECES) > 0)) {
+              ss << '#';
+              for (Color c: {BLACK, WHITE})
+                  for (PieceType pt = KING; pt >= PAWN; --pt) {
+                      assert(pieceCountInPrison[c][pt] >= 0);
+                      int n = pieceCountInPrison[c][pt];
+                      if (n > 0) {
+                          ss << std::string(n, piece_to_char()[make_piece(~c, pt)]);
+                      }
+                  }
+          }
+      }
       ss << ']';
   }
 
@@ -915,7 +937,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
   // Use a faster version for variants with moderate rule variations
   if (var->fastAttacks)
   {
-      return  (pawn_attacks_bb(~c, s)          & pieces(c, PAWN))
+      return  (pawn_attacks_bb(~c, s)          & pieces(c, PAWN) & ~pawnCannotCheckZone[c])
             | (attacks_bb<KNIGHT>(s)           & pieces(c, KNIGHT, ARCHBISHOP, CHANCELLOR))
             | (attacks_bb<  ROOK>(s, occupied) & pieces(c, ROOK, QUEEN, CHANCELLOR))
             | (attacks_bb<BISHOP>(s, occupied) & pieces(c, BISHOP, QUEEN, ARCHBISHOP))
@@ -1292,7 +1314,11 @@ bool Position::pseudo_legal(const Move m) const {
       return   piece_drops()
             && pc != NO_PIECE
             && color_of(pc) == us
-            && (can_drop(us, in_hand_piece_type(m)) || (two_boards() && allow_virtual_drop(us, type_of(pc))))
+            && (can_drop(us, in_hand_piece_type(m))
+                || (two_boards() && allow_virtual_drop(us, type_of(pc)))
+                || (capture_type() == PRISON && exchange_piece(m) != NO_PIECE_TYPE
+                        && count_in_prison(us, exchange_piece(m)) > 0
+                        && count_in_prison(~us, in_hand_piece_type(m)) > 0))
             && (drop_region(us, type_of(pc)) & ~pieces() & to)
             && (   type_of(pc) == in_hand_piece_type(m)
                 || (drop_promoted() && type_of(pc) == promoted_piece_type(in_hand_piece_type(m))));
@@ -1555,6 +1581,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
   Piece captured = piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to);
+  PieceType exchanged = exchange_piece(m);
   if (to == from)
   {
       assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && pass(us)));
@@ -1619,7 +1646,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       if (type_of(m) == EN_PASSANT)
           board[capsq] = NO_PIECE;
-      if (captures_to_hand())
+      if (capture_type() == HAND)
       {
           Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
                              : unpromotedCaptured ? ~unpromotedCaptured
@@ -1633,6 +1660,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               dp.handPiece[1] = pieceToHand;
               dp.handCount[1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
           }
+      }
+      else if (capture_type() == PRISON)
+      {
+          Piece pieceToPrison = !capturedPromoted || drop_loop()
+                  ? captured
+                  : unpromotedCaptured
+                      ? unpromotedCaptured
+                      : make_piece(color_of(captured), promotion_pawn_type(color_of(captured)));
+          int n = add_to_prison(pieceToPrison);
+          k ^=    Zobrist::inHand[pieceToPrison][n - 1]
+                ^ Zobrist::inHand[pieceToPrison][n];
       }
       else if (Eval::useNNUE)
           dp.handPiece[1] = NO_PIECE;
@@ -1651,9 +1689,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (type_of(m) == DROP)
   {
       Piece pc_hand = make_piece(us, in_hand_piece_type(m));
+      // exchanging means that drop is not from hand (but from prison)
+      int n = pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] + (exchanged != NO_PIECE_TYPE);
       k ^=  Zobrist::psq[pc][to]
-          ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
-          ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
+          ^ Zobrist::inHand[pc_hand][n - 1]
+          ^ Zobrist::inHand[pc_hand][n];
 
       // Reset rule 50 counter for irreversible drops
       st->rule50 = 0;
@@ -1746,7 +1786,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           dp.to[0] = to;
       }
 
-      drop_piece(make_piece(us, in_hand_piece_type(m)), pc, to);
+      drop_piece(make_piece(us, in_hand_piece_type(m)), pc, to, exchanged);
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
       if (type_of(pc) != PAWN)
           st->nonPawnMaterial[us] += PieceValue[MG][pc];
@@ -1802,6 +1842,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->promotionPawn = piece_on(to);
           remove_piece(to);
           put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
+          if (prison_pawn_promotion() && type_of(m) == PROMOTION) {
+              add_to_prison(st->promotionPawn);
+              remove_from_prison(promotion);
+          }
 
           if (Eval::useNNUE)
           {
@@ -2009,9 +2053,16 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               Piece pieceToHand = !capturedPromoted || drop_loop() ? ~bpc
                                  : unpromotedCaptured ? ~unpromotedCaptured
                                                       : make_piece(~color_of(bpc), PAWN);
-              add_to_hand(pieceToHand);
-              k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
-                  ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
+              int n;
+              if (capture_type() == PRISON) {
+                  pieceToHand = ~pieceToHand;
+                  n = add_to_prison(pieceToHand);
+              } else {
+                  add_to_hand(pieceToHand);
+                  n = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
+              }
+              k ^=  Zobrist::inHand[pieceToHand][n - 1]
+                  ^ Zobrist::inHand[pieceToHand][n];
 
               if (Eval::useNNUE)
               {
@@ -2061,11 +2112,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^= Zobrist::wall[gating_square(m)];
   }
 
+  updatePawnCheckZone();
   // Update the key with the final value
   st->key = k;
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them), us) & pieces(us) : Bitboard(0);
-  assert(givesCheck == bool(st->checkersBB));
+  assert(givesCheck == bool(st->checkersBB) || givesCheck && var->prisonPawnPromotion);
 
   sideToMove = ~sideToMove;
 
@@ -2123,6 +2175,7 @@ void Position::undo_move(Move m) {
   Square from = from_sq(m);
   Square to = to_sq(m);
   Piece pc = piece_on(to);
+  PieceType exchange = exchange_piece(m);
 
   assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
          || (type_of(m) == PROMOTION && sittuyin_promotion())
@@ -2148,9 +2201,15 @@ void Position::undo_move(Move m) {
           if (bpc)
           {
               put_piece(bpc, bsq, isPromoted, st->demotedBycatch & bsq ? unpromotedBpc : NO_PIECE);
-              if (captures_to_hand())
-                  remove_from_hand(!drop_loop() && (st->promotedBycatch & bsq) ? make_piece(~color_of(unpromotedBpc), PAWN)
-                                                                               : ~unpromotedBpc);
+              if (capture_type() == HAND) {
+                  remove_from_hand(!drop_loop() && (st->promotedBycatch & bsq)
+                                    ? make_piece(~color_of(unpromotedBpc), PAWN)
+                                    : ~unpromotedBpc);
+              } else if (capture_type() == PRISON) {
+                  remove_from_prison(!drop_loop() && (st->promotedBycatch & bsq)
+                                    ? make_piece(color_of(unpromotedBpc), PAWN)
+                                    : unpromotedBpc);
+              }
           }
       }
       // Reset piece since it exploded itself
@@ -2174,6 +2233,10 @@ void Position::undo_move(Move m) {
       assert(type_of(pc) >= KNIGHT && type_of(pc) < KING);
       assert(type_of(st->promotionPawn) == promotion_pawn_type(us) || !captures_to_hand());
 
+      if (prison_pawn_promotion() && type_of(st->promotionPawn) == PAWN) {
+          remove_from_prison(st->promotionPawn);
+          add_to_prison(pc);
+      }
       remove_piece(to);
       pc = st->promotionPawn;
       put_piece(pc, to);
@@ -2201,7 +2264,7 @@ void Position::undo_move(Move m) {
   else
   {
       if (type_of(m) == DROP)
-          undrop_piece(make_piece(us, in_hand_piece_type(m)), to); // Remove the dropped piece
+          undrop_piece(make_piece(us, in_hand_piece_type(m)), to, exchange); // Remove the dropped piece
       else
           move_piece(to, from); // Put the piece back at the source square
 
@@ -2219,10 +2282,19 @@ void Position::undo_move(Move m) {
           }
 
           put_piece(st->capturedPiece, capsq, st->capturedpromoted, st->unpromotedCapturedPiece); // Restore the captured piece
-          if (captures_to_hand())
-              remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
-                                                                                                   : make_piece(~color_of(st->capturedPiece), promotion_pawn_type(us)))
-                                                                    : ~st->capturedPiece);
+          if (capture_type() == HAND) {
+              remove_from_hand(!drop_loop() && st->capturedpromoted
+                               ? (st->unpromotedCapturedPiece
+                                  ? ~st->unpromotedCapturedPiece
+                                  : make_piece(~color_of(st->capturedPiece), promotion_pawn_type(us)))
+                               : ~st->capturedPiece);
+          } else if (capture_type() == PRISON) {
+              remove_from_prison(!drop_loop() && st->capturedpromoted
+                               ? (st->unpromotedCapturedPiece
+                                  ? st->unpromotedCapturedPiece
+                                  : make_piece(color_of(st->capturedPiece), promotion_pawn_type(us)))
+                               : st->capturedPiece);
+          }
       }
   }
 
@@ -2344,18 +2416,29 @@ Key Position::key_after(Move m) const {
   if (captured)
   {
       k ^= Zobrist::psq[captured][to];
-      if (captures_to_hand())
-      {
-          Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), promotion_pawn_type(color_of(captured))) : ~captured;
-          k ^= Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)] + 1]
-              ^ Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)]];
+      if (captures_to_hand()) {
+          Piece removedPiece = !drop_loop() && is_promoted(to)
+                               ? make_piece(~color_of(captured), promotion_pawn_type(color_of(captured)))
+                               : ~captured;
+          int n;
+          if (capture_type() == HAND) {
+              n = pieceCountInHand[color_of(removedPiece)][type_of(removedPiece)];
+          } else {
+              n = pieceCountInPrison[color_of(removedPiece)][type_of(removedPiece)];
+              removedPiece = ~removedPiece;
+          }
+          k ^=  Zobrist::inHand[removedPiece][n + 1]
+              ^ Zobrist::inHand[removedPiece][n];
       }
   }
   if (type_of(m) == DROP)
   {
       Piece pc_hand = make_piece(sideToMove, in_hand_piece_type(m));
-      return k ^ Zobrist::psq[pc][to] ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]]
-            ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1];
+      PieceType exchanged = exchange_piece(m);
+      int n = pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] + (exchanged != NO_PIECE_TYPE);
+      return k ^ Zobrist::psq[pc][to]
+               ^ Zobrist::inHand[pc_hand][n]
+               ^ Zobrist::inHand[pc_hand][n - 1];
   }
 
   return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
@@ -2873,6 +2956,13 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           return true;
       }
   }
+  if (var->prisonPawnPromotion &&
+      (pawn_attacks_bb(~sideToMove, square<KING>(~sideToMove))
+       & pieces(sideToMove, PAWN)
+       & ~pawnCannotCheckZone[sideToMove]) ){
+      result = mate_in(ply);
+      return true;
+  }
 
   return false;
 }
@@ -3171,6 +3261,31 @@ void Position::flip() {
   assert(pos_is_ok());
 }
 
+void Position::updatePawnCheckZone() {
+    if (!var->prisonPawnPromotion) {
+        pawnCannotCheckZone[WHITE] = Bitboard(0);
+        pawnCannotCheckZone[BLACK] = Bitboard(0);
+        return;
+    }
+    for (Color color : { BLACK, WHITE }) {
+        if (count<KING>(~color) == 0) {
+            pawnCannotCheckZone[color] = Bitboard(0);
+        } else {
+            bool canPromotion = false;
+            for (PieceSet prom = promotion_piece_types(color) & rescueFor(PAWN); prom; ) {
+                PieceType pt = pop_lsb(prom);
+                if (count_in_prison(~color, pt) > 0) {
+                    canPromotion = true;
+                    break;
+                }
+            }
+            Bitboard pz = promotion_zone(color);
+            pawnCannotCheckZone[color] = canPromotion
+                    ? Bitboard(0)
+                    : color == WHITE ? shift(SOUTH, pz) : shift(NORTH, pz);
+        }
+    }
+}
 
 /// Position::pos_is_ok() performs some consistency checks for the
 /// position object and raises an asserts if something wrong is detected.

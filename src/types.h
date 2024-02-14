@@ -309,6 +309,10 @@ enum WallingRule {
   NO_WALLING, ARROW, DUCK, EDGE, PAST, STATIC
 };
 
+enum CapturingRule {
+  OUT, HAND, PRISON
+};
+
 enum OptBool {
   NO_VALUE, VALUE_FALSE, VALUE_TRUE
 };
@@ -820,6 +824,17 @@ inline Move make(Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
 constexpr Move make_drop(Square to, PieceType pt_in_hand, PieceType pt_dropped) {
   return Move((pt_in_hand << (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) + (pt_dropped << (2 * SQUARE_BITS + MOVE_TYPE_BITS)) + DROP + to);
+}
+
+constexpr PieceType exchange_piece(Move m) {
+  return type_of(m) != DROP ? NO_PIECE_TYPE : PieceType((m >> SQUARE_BITS) & SQUARE_BIT_MASK);
+}
+
+constexpr Move make_exchange(Square to, PieceType pt_exchange, PieceType pt_in_hand, PieceType pt_dropped) {
+  return Move((pt_in_hand << (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) +
+              (pt_dropped << (2 * SQUARE_BITS + MOVE_TYPE_BITS)) +
+              (pt_exchange << SQUARE_BITS) +
+              DROP + to);
 }
 
 constexpr Move reverse_move(Move m) {

@@ -491,7 +491,7 @@ namespace ffish {
 
   bool captures_to_hand(std::string uciVariant) {
     const Variant* v = get_variant(uciVariant);
-    return v->capturesToHand;
+    return v->captureType != OUT;
   }
 
   std::string starting_fen(std::string uciVariant) {

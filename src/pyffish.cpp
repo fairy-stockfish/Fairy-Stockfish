@@ -137,7 +137,7 @@ extern "C" PyObject* pyffish_capturesToHand(PyObject* self, PyObject *args) {
         return NULL;
     }
 
-    return Py_BuildValue("O", variants.find(std::string(variant))->second->capturesToHand ? Py_True : Py_False);
+    return Py_BuildValue("O", variants.find(std::string(variant))->second->captureType != OUT ? Py_True : Py_False);
 }
 
 // INPUT variant, fen, move
