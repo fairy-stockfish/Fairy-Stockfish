@@ -806,7 +806,7 @@ inline WallingRule Position::walling_rule() const {
 
 inline bool Position::commit_gates() const {
   assert(var != nullptr);
-  return var->seirawanGating;
+  return var->commitGates;
 }
 
 inline bool Position::seirawan_gating() const {

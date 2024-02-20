@@ -769,7 +769,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   }
 
   // pieces in hand TODO: Check if this is correct
-  if (piece_drops() || (seirawan_gating() && !commit_gates()) || arrow_gating())
+  if (!variant()->freeDrops && (piece_drops() || seirawan_gating()) && !commit_gates())
   {
       ss << '[';
       if (holdings != "-")

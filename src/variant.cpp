@@ -1881,7 +1881,6 @@ void VariantMap::init() {
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
     add("seirawan", seirawan_variant());
-    add("musketeer", musketeer_variant());
     add("shouse", shouse_variant());
     add("dragon", dragon_variant());
     add("paradigm", paradigm_variant());
@@ -1911,6 +1910,7 @@ void VariantMap::init() {
     add("minixiangqi", minixiangqi_variant());
     add("raazuvaa", raazuvaa_variant());
 #ifdef LARGEBOARDS
+    add("musketeer", musketeer_variant());
     add("shogi", shogi_variant());
     add("shoshogi", shoshogi_variant());
     add("yarishogi", yarishogi_variant());
