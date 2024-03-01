@@ -29,7 +29,8 @@ namespace {
   ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
     // Wall placing moves
-    if (pos.walling())
+    //if it's "wall or move", and they chose non-null move, skip even generating wall move
+    if (pos.walling() && !(pos.variant()->wallOrMove && (from!=to)))
     {
         Bitboard b = pos.board_bb() & ~((pos.pieces() ^ from) | to);
         if (T == CASTLING)
@@ -443,6 +444,12 @@ namespace {
         // Workaround for passing: Execute a non-move with any piece
         if (pos.pass(Us) && !pos.count<KING>(Us) && pos.pieces(Us))
             *moveList++ = make<SPECIAL>(lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
+
+        //if "wall or move", generate walling action with null move
+        if (pos.variant()->wallOrMove)
+        {
+            moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
+        }
     }
 
     // King moves

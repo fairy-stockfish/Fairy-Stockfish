@@ -108,6 +108,7 @@ struct Variant {
   bool gating = false;
   WallingRule wallingRule = NO_WALLING;
   Bitboard wallingRegion[COLOR_NB] = {AllSquares, AllSquares};
+  bool wallOrMove = false;
   bool seirawanGating = false;
   bool cambodianMoves = false;
   Bitboard diagonalLines = 0;
