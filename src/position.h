@@ -1566,7 +1566,6 @@ inline void Position::commit_piece(Piece pc, File fl){
 }
 
 inline void Position::uncommit_piece(Color cl, File fl){
-  //std::cout << "uncommit_piece\n";
     committedGates[cl][fl] = NO_PIECE_TYPE;
 }
 

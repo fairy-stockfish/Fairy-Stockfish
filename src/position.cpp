@@ -332,9 +332,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
           ++sq;
           if(v->commitGates && (rank == 0 || rank == max_rank() + 2)){
-              //std::cout << "C\n";
             commit_piece(Piece(idx), File(commitFile));
-            //std::cout << "D\n";
             ++commitFile;
           }
           else {
@@ -768,7 +766,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
       return ss.str();
   }
 
-  // pieces in hand TODO: Check if this is correct
+  // pieces in hand
   if (!variant()->freeDrops && (piece_drops() || seirawan_gating()) && !commit_gates())
   {
       ss << '[';
@@ -815,7 +813,6 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   if (can_castle(BLACK_OOO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OOO))) : 'q');
 
-  // TODO: Check line 799, apply same to here if needed
   if (gating() && gates(BLACK) && (!seirawan_gating() || count_in_hand(BLACK, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
           if (   (gates(BLACK) & file_bb(f))
