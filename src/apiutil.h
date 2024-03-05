@@ -821,6 +821,16 @@ inline Validation check_number_of_kings(const std::string& fenBoard, const std::
     int nbWhiteKingsStart = piece_count(startFenBoard, WHITE, KING, v);
     int nbBlackKingsStart = piece_count(startFenBoard, BLACK, KING, v);
 
+    if (nbWhiteKings > 1)
+    {
+        std::cerr << "Invalid number of white kings. Maximum: 1. Given: " << nbWhiteKings << std::endl;
+        return NOK;
+    }
+    if (nbBlackKings > 1)
+    {
+        std::cerr << "Invalid number of black kings. Maximum: 1. Given: " << nbBlackKings << std::endl;
+        return NOK;
+    }
     if (nbWhiteKings != nbWhiteKingsStart)
     {
         std::cerr << "Invalid number of white kings. Expected: " << nbWhiteKingsStart << ". Given: " << nbWhiteKings << std::endl;
