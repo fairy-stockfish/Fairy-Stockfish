@@ -199,13 +199,11 @@ namespace {
         bool readPiece = true;
         size_t idx = -1;
         PieceSet mask = NO_PIECE_SET;
-        for (int i = 0; i < map.size(); ++i) {
+        for (size_t i = 0; i < map.size(); ++i) {
             char token = map[i];
             if (token == ' ') {
                 if (!readPiece) {
-                    if (idx >= 0) {
-                        v->hostageExchange[idx] = mask;
-                    }
+                    v->hostageExchange[idx] = mask;
                     readPiece = true;
                 }
                 continue;
@@ -238,9 +236,7 @@ namespace {
                 mask = mask | PieceType(idx2);
             }
         }
-        if (idx >= 0) {
-            v->hostageExchange[idx] = mask;
-        }
+        v->hostageExchange[idx] = mask;
     }
 
 } // namespace

@@ -2117,7 +2117,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->key = k;
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them), us) & pieces(us) : Bitboard(0);
-  assert(givesCheck == bool(st->checkersBB) || givesCheck && var->prisonPawnPromotion);
+  assert(givesCheck == bool(st->checkersBB) || (givesCheck && var->prisonPawnPromotion));
 
   sideToMove = ~sideToMove;
 
