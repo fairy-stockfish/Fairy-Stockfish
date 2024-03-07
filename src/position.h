@@ -656,7 +656,7 @@ inline CapturingRule Position::capture_type() const {
 
 inline bool Position::captures_to_hand() const {
   assert(var != nullptr);
-  return var->captureType != OUT;
+  return var->captureType != MOVE_OUT;
 }
 
 inline bool Position::first_rank_pawn_drops() const {

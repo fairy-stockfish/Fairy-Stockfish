@@ -645,7 +645,7 @@ namespace {
         Variant* v = crazyhouse_variant()->init();
         v->variantTemplate = "bughouse";
         v->twoBoards = true;
-        v->captureType = OUT;
+        v->captureType = MOVE_OUT;
         v->stalemateValue = -VALUE_MATE;
         return v;
     }
@@ -672,7 +672,7 @@ namespace {
         v->pocketSize = 2;
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1";
         v->pieceDrops = true;
-        v->captureType = OUT;
+        v->captureType = MOVE_OUT;
         return v;
     }
     // Placement/Pre-chess
@@ -684,7 +684,7 @@ namespace {
         v->startFen = "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - - 0 1";
         v->mustDrop = true;
         v->pieceDrops = true;
-        v->captureType = OUT;
+        v->captureType = MOVE_OUT;
         v->whiteDropRegion = Rank1BB;
         v->blackDropRegion = Rank8BB;
         v->dropOppositeColoredBishop = true;
@@ -703,7 +703,7 @@ namespace {
         v->add_piece(MET, 'f');
         v->mustDrop = true;
         v->pieceDrops = true;
-        v->captureType = OUT;
+        v->captureType = MOVE_OUT;
         v->whiteDropRegion = Rank1BB | Rank2BB | Rank3BB;
         v->blackDropRegion = Rank8BB | Rank7BB | Rank6BB;
         v->sittuyinRookDrop = true;
@@ -755,7 +755,7 @@ namespace {
         v->add_piece(ARCHBISHOP, 'd');
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Dd] w KQkq - 0 1";
         v->pieceDrops = true;
-        v->captureType = OUT;
+        v->captureType = MOVE_OUT;
         v->whiteDropRegion = Rank1BB;
         v->blackDropRegion = Rank8BB;
         return v;
@@ -1246,7 +1246,7 @@ namespace {
         v->add_piece(COMMONER, 'k');
         v->add_piece(CUSTOM_PIECE_1, 'e', "FsfW"); // drunk elephant
         v->startFen = "lnsgkgsnl/1r2e2b1/ppppppppp/9/9/9/PPPPPPPPP/1B2E2R1/LNSGKGSNL w 0 1";
-        v->captureType = OUT;
+        v->captureType = MOVE_OUT;
         v->pieceDrops = false;
         v->promotedPieceType[CUSTOM_PIECE_1] = COMMONER;
         v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
@@ -2051,7 +2051,7 @@ Variant* Variant::conclude() {
                   && !connectN
                   && !blastOnCapture
                   && !petrifyOnCaptureTypes
-                  && captureType == OUT
+                  && captureType == MOVE_OUT
                   && !twoBoards
                   && !restrictedMobility
                   && kingType == KING;

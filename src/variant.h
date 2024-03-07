@@ -92,7 +92,7 @@ struct Variant {
   PieceType mustDropType = ALL_PIECES;
   bool pieceDrops = false;
   bool dropLoop = false;
-  CapturingRule captureType = OUT;
+  CapturingRule captureType = MOVE_OUT;
   bool firstRankPawnDrops = false;
   bool promotionZonePawnDrops = false;
   EnclosingRule enclosingDrop = NO_ENCLOSING;

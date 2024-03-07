@@ -79,10 +79,10 @@ namespace {
     }
 
     template <> bool set(const std::string& value, CapturingRule& target) {
-        target = value == "out" ? OUT
+        target = value == "out" ? MOVE_OUT
                 : value == "hand" ? HAND
                 : value == "prison" ? PRISON
-                : OUT;
+                : MOVE_OUT;
         return value == "out" || value == "hand" || value == "prison";
     }
 
@@ -509,7 +509,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
 
     bool capturesToHand = false;
     if (parse_attribute<false>("capturesToHand", capturesToHand)) {
-        v->captureType = capturesToHand ? HAND : OUT;
+        v->captureType = capturesToHand ? HAND : MOVE_OUT;
     }
 
     parse_attribute("captureType", v->captureType);

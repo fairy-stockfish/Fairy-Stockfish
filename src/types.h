@@ -310,7 +310,7 @@ enum WallingRule {
 };
 
 enum CapturingRule {
-  OUT, HAND, PRISON
+  MOVE_OUT, HAND, PRISON
 };
 
 enum OptBool {
