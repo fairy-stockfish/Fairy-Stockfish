@@ -744,6 +744,8 @@ namespace {
         v->capturesToHand = false;
         v->whiteDropRegion = Rank1BB;
         v->blackDropRegion = Rank8BB;
+        v->promotionPieceTypes[WHITE] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Paradigm chess30
