@@ -87,6 +87,7 @@ void init(OptionsMap&);
 void loop(int argc, char* argv[]);
 std::string value(Value v);
 std::string square(const Position& pos, Square s);
+std::string exchange(const Position& pos, Move m);
 std::string dropped_piece(const Position& pos, Move m);
 std::string move(const Position& pos, Move m);
 std::string pv(const Position& pos, Depth depth, Value alpha, Value beta);
