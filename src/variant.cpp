@@ -1234,6 +1234,7 @@ namespace {
         //"********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1"
         v->startFen = "********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1";
         v->gating = true;
+        v->seirawanGating = true;
         v->commitGates = true;
         v->promotionPieceTypes[BLACK] = piece_set(CUSTOM_PIECE_1) | CUSTOM_PIECE_7 | QUEEN | ROOK | BISHOP | KNIGHT;
         v->promotionPieceTypes[WHITE] = piece_set(CUSTOM_PIECE_1) | CUSTOM_PIECE_7 | QUEEN | ROOK | BISHOP | KNIGHT;
