@@ -286,14 +286,20 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       }
 
       else if (token == '/')
-      { 
-          if(!commit_gates() || (rank != 0 && rank <= max_rank())) sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
-          ++rank;
-          commitFile = 0;
+      {
+          if(commit_gates()) {
+            if(rank != 0 && rank <= max_rank()) {
+              sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
+            }
+            ++rank;
+            commitFile = 0;
+          } else {
+            sq = SQ_A1 + --r * NORTH;
+          }
           if (!is_ok(sq))
               break;
       }
-      else if(token == '*') ++commitFile;
+
       // Stop before pieces in hand
       else if (token == '[')
           break;
@@ -302,12 +308,17 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       else if (!is_ok(sq) || file_of(sq) > max_file() || rank_of(sq) > r)
           continue;
 
-      // Wall square
       else if (token == '*')
       {
-          st->wallSquares |= sq;
-          byTypeBB[ALL_PIECES] |= sq;
-          ++sq;
+          if(commit_gates()) {
+            // musketeer
+            ++commitFile;
+          } else {
+            // Wall square
+            st->wallSquares |= sq;
+            byTypeBB[ALL_PIECES] |= sq;
+            ++sq;
+          }
       }
 
       else if ((idx = piece_to_char().find(token)) != string::npos || (idx = piece_to_char_synonyms().find(token)) != string::npos)
@@ -329,8 +340,6 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       else if (token == '+' && (idx = piece_to_char().find(ss.peek())) != string::npos && promoted_piece_type(type_of(Piece(idx))))
       {
           ss >> token;
-          put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
-          ++sq;
           if(v->commitGates && (rank == 0 || rank == max_rank() + 2)){
             commit_piece(Piece(idx), File(commitFile));
             ++commitFile;
