@@ -711,7 +711,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   int emptyCnt;
   std::ostringstream ss;
   if(commit_gates()){
-      for(File f = FILE_A; f < max_file(); ++f){
+      for(File f = FILE_A; f <= max_file(); ++f){
           if(has_committed_piece(BLACK, f)) ss << piece_to_char()[make_piece(BLACK, committedGates[BLACK][f])];
           else ss << "*";
       }

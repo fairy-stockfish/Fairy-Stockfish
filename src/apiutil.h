@@ -564,8 +564,13 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
     {
         if (c == ' ' || c == '[')
             break;
-        if (c == '*')
-            ++fileIdx;
+        if (c == '*') {
+            if (v->commitGates) {
+                // just ignore?
+            } else {
+                ++fileIdx;
+            }
+        }
         else if (isdigit(c))
         {
             fileIdx += c - '0';
@@ -575,14 +580,23 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
         }
         else if (c == '/')
         {
-            ++rankIdx;
-            if (fileIdx != board.get_nb_files())
-            {
-                std::cerr << "curRankWidth != nbFiles: " << fileIdx << " != " << board.get_nb_files() << std::endl;
-                return NOK;
+            if (v->commitGates && rankIdx == 0 && fileIdx == 0) {
+                // ignore starting '********/'
+            } else {
+                ++rankIdx;
+                if (fileIdx != board.get_nb_files())
+                {
+                    std::cerr << "curRankWidth != nbFiles: " << fileIdx << " != " << board.get_nb_files() << std::endl;
+                    return NOK;
+                }
             }
             if (rankIdx == board.get_nb_ranks())
+            {
+                if (v->commitGates) {
+                    rankIdx--; // pretend we didn't see the ending '/********'
+                }
                 break;
+            }
             fileIdx = 0;
         }
         else if (!contains(validSpecialCharactersFirstField, c))

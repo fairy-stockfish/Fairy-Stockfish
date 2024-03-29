@@ -1220,8 +1220,6 @@ namespace {
         Variant* v = chess_variant();
         v->variantTemplate = "seirawan";
         v->pieceToCharTable = "PNBRQ.C..........LO..Kpnbrq.c..........lo..k";  // The default piece combo in Musketeer Chess is Leopard L and Musketeer Cannon O
-        v->maxRank = RANK_10;
-        v->castlingRank = RANK_2;
         v->add_piece(ARCHBISHOP, 'a');
         v->add_piece(CHANCELLOR, 'c');
         v->add_piece(AMAZON, 'd'); // also called Dragon in Musketeer, but Amazon is the most accurate  
