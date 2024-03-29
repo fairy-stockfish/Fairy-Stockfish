@@ -1978,12 +1978,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece]];
       st->nonPawnMaterial[us] += PieceValue[MG][gating_piece];
   }
-  if(st->removedGatingType > NO_PIECE_TYPE){
-    commit_piece(piece_on(from), file_of(from));
-  }
 
   // Musketeer gating
   if(commit_gates()){
+
+      if(st->removedGatingType > NO_PIECE_TYPE){
+          commit_piece(piece_on(from), file_of(from));
+      }
       Rank r = rank_of(from);
       if(r == RANK_1 && has_committed_piece(WHITE, file_of(from))){
           st->removedGatingType = drop_committed_piece(WHITE, file_of(from));
@@ -2216,7 +2217,7 @@ void Position::undo_move(Move m) {
       st->gatesBB[us] |= gating_square(m);
   }
 
-  if(st->removedGatingType > NO_PIECE_TYPE){
+  if(commit_gates() && st->removedGatingType > NO_PIECE_TYPE){
       commit_piece(piece_on(from), file_of(from));
   }
 
