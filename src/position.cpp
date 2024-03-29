@@ -272,8 +272,8 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
-  {      
-    if (isdigit(token) && (!commit_gates() || (rank != 0 && rank != max_rank() + 2)))
+  {
+      if (isdigit(token) && (!commit_gates() || (rank != 0 && rank != max_rank() + 2)))
       {
 #ifdef LARGEBOARDS
           if (isdigit(ss.peek()))
@@ -287,14 +287,16 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
       else if (token == '/')
       {
-          if(commit_gates()) {
-            if(rank != 0 && rank <= max_rank()) {
-              sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
-            }
-            ++rank;
-            commitFile = 0;
-          } else {
-            sq = SQ_A1 + --r * NORTH;
+          if(commit_gates())
+          {
+              if(rank != 0 && rank <= max_rank()){
+                  sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
+              }
+              ++rank;
+              commitFile = 0;
+          }
+          else {
+              sq = SQ_A1 + --r * NORTH;
           }
           if (!is_ok(sq))
               break;
@@ -310,14 +312,16 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
       else if (token == '*')
       {
-          if(commit_gates()) {
-            // musketeer
-            ++commitFile;
-          } else {
-            // Wall square
-            st->wallSquares |= sq;
-            byTypeBB[ALL_PIECES] |= sq;
-            ++sq;
+          if(commit_gates())
+          {
+              // musketeer
+              ++commitFile;
+          }
+          else {
+              // Wall square
+              st->wallSquares |= sq;
+              byTypeBB[ALL_PIECES] |= sq;
+              ++sq;
           }
       }
 
@@ -326,13 +330,14 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           if (ss.peek() == '~')
               ss >> token;
 
-          if(v->commitGates && (rank == 0 || rank == max_rank() + 2)){
-            commit_piece(Piece(idx), File(commitFile));
-            ++commitFile;
+          if(v->commitGates && (rank == 0 || rank == max_rank() + 2))
+          {
+              commit_piece(Piece(idx), File(commitFile));
+              ++commitFile;
           }
           else{
-            put_piece(Piece(idx), sq, token == '~');
-            ++sq;
+              put_piece(Piece(idx), sq, token == '~');
+              ++sq;
           }
       }
 

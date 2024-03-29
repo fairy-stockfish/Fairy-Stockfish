@@ -565,9 +565,11 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
         if (c == ' ' || c == '[')
             break;
         if (c == '*') {
-            if (v->commitGates) {
+            if (v->commitGates)
+            {
                 // just ignore?
-            } else {
+            }
+            else {
                 ++fileIdx;
             }
         }
@@ -580,9 +582,11 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
         }
         else if (c == '/')
         {
-            if (v->commitGates && rankIdx == 0 && fileIdx == 0) {
+            if (v->commitGates && rankIdx == 0 && fileIdx == 0)
+            {
                 // ignore starting '********/'
-            } else {
+            }
+            else {
                 ++rankIdx;
                 if (fileIdx != board.get_nb_files())
                 {
@@ -592,7 +596,8 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
             }
             if (rankIdx == board.get_nb_ranks())
             {
-                if (v->commitGates) {
+                if (v->commitGates)
+                {
                     rankIdx--; // pretend we didn't see the ending '/********'
                 }
                 break;
