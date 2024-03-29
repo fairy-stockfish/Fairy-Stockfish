@@ -1,10 +1,8 @@
 name: fairy
 on:
-	workflow_dispatch
   push:
     branches:
       - master
-      - test3
   pull_request:
     branches:
       - master
