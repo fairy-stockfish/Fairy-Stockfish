@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - test3
       - tools
       - github_ci
   pull_request:
