@@ -1224,7 +1224,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'l', "F2N"); // Leopard
         v->add_piece(CUSTOM_PIECE_2, 'h', "ADGH"); // Hawk
         v->add_piece(CUSTOM_PIECE_3, 'u', "NC"); // Unicorn
-        V->add_piece(CUSTOM_PIECE_4, 's', "B2ND"); // Spider
+        v->add_piece(CUSTOM_PIECE_4, 's', "B2ND"); // Spider
         v->add_piece(CUSTOM_PIECE_5, 'f', "B3vND"); // Fortress
         v->add_piece(CUSTOM_PIECE_6, 'e', "FWDA"); // Musketeer Elephant
         v->add_piece(CUSTOM_PIECE_7, 'o', "FWDsN"); // Musketeer Cannon

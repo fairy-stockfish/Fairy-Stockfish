@@ -823,12 +823,17 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
               ss << char('a' + f);
 
   if (!can_castle(ANY_CASTLING) && !(gating() && !commit_gates() && (gates(WHITE) | gates(BLACK))))
+  {
+
+  }
 
   // Counting limit or ep-square
   if (st->countingLimit)
       ss << " " << counting_limit(countStarted) << " ";
   else if (!ep_squares())
+  {
       ss << " - ";
+  }
   else
   {
       ss << " ";
