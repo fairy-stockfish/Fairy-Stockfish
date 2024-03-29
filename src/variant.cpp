@@ -772,6 +772,8 @@ namespace {
         v->capturesToHand = false;
         v->whiteDropRegion = Rank1BB;
         v->blackDropRegion = Rank8BB;
+        v->promotionPieceTypes[WHITE] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
     // Paradigm chess30
@@ -1169,6 +1171,7 @@ namespace {
         v->enclosingDrop = ATAXX;
         v->flipEnclosedPieces = ATAXX;
         v->materialCounting = UNWEIGHTED_MATERIAL;
+        v->adjudicateFullBoard = true;
         v->nMoveRule = 0;
         v->freeDrops = true;
         return v;
@@ -1195,6 +1198,7 @@ namespace {
         v->enclosingDropStart = make_bitboard(SQ_D4, SQ_E4, SQ_D5, SQ_E5);
         v->flipEnclosedPieces = REVERSI;
         v->materialCounting = UNWEIGHTED_MATERIAL;
+        v->adjudicateFullBoard = true;
         return v;
     }
     // Flipello
@@ -2090,6 +2094,17 @@ Variant* Variant::conclude() {
         connect_directions.push_back(NORTH_EAST);
         connect_directions.push_back(SOUTH_EAST);
     }
+
+    // If not a connect variant, set connectPieceTypes to no pieces.
+    if ( !(connectRegion1[WHITE] || connectRegion1[BLACK] || connectN || connectNxN || collinearN) )
+    {
+          connectPieceTypes = NO_PIECE_SET;
+    }
+    //Otherwise optimize to pieces actually in the game.
+    else
+    {
+        connectPieceTypes = connectPieceTypes & pieceTypes;
+    };
 
     return this;
 }

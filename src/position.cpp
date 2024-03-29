@@ -325,7 +325,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       }
 
       // Promoted shogi pieces
-      else if (token == '+' && (idx = piece_to_char().find(ss.peek())) != string::npos)
+      else if (token == '+' && (idx = piece_to_char().find(ss.peek())) != string::npos && promoted_piece_type(type_of(Piece(idx))))
       {
           ss >> token;
           put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
@@ -1343,7 +1343,8 @@ bool Position::pseudo_legal(const Move m) const {
       return checkers() ? MoveList<    EVASIONS>(*this).contains(m)
                         : MoveList<NON_EVASIONS>(*this).contains(m);
 
-  if (walling())
+  //if walling, and walling is not optional, or they didn't move, do the checks.
+  if (walling() && (!var->wallOrMove || (from==to)))
   {
       Bitboard wallsquares = st->wallSquares;
 
@@ -2100,7 +2101,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Add gated wall square
-  if (walling())
+  // if wallOrMove, only actually place the wall if they gave up their move
+  if (walling() && (!var->wallOrMove || (from==to)))
   {
       // Reset wall squares for duck walling
       if (walling_rule() == DUCK)
@@ -2771,7 +2773,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 
 /// Position::is_immediate_game_end() tests whether the position ends the game
 /// immediately by a variant rule, i.e., there are no more legal moves.
-/// It does not not detect stalemates.
+/// It does not detect stalemates.
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
 
@@ -2857,6 +2859,15 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       result = mated_in(ply);
       return true;
   }
+
+  //Calculate eligible pieces for connection once.
+  Bitboard connectPieces = 0;
+  for (PieceSet ps = connect_piece_types(); ps;){
+      PieceType pt = pop_lsb(ps);
+      connectPieces |= pieces(pt);
+  };
+  connectPieces &= pieces(~sideToMove);
+
   // Connect-n
   if (connect_n() > 0)
   {
@@ -2864,7 +2875,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
 
       for (Direction d : var->connect_directions)
       {
-          b = pieces(~sideToMove);
+          b = connectPieces;
           for (int i = 1; i < connect_n() && b; i++)
               b &= shift(d, b);
           if (b)
@@ -2875,15 +2886,15 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
 
-  if ((var->connectRegion1[~sideToMove] & pieces(~sideToMove)) && (var->connectRegion2[~sideToMove] & pieces(~sideToMove)))
+  if ((var->connectRegion1[~sideToMove] & connectPieces) && (var->connectRegion2[~sideToMove] & connectPieces))
   {
       Bitboard target = var->connectRegion2[~sideToMove];
-      Bitboard current = var->connectRegion1[~sideToMove] & pieces(~sideToMove);
+      Bitboard current = var->connectRegion1[~sideToMove] & connectPieces;
 
       while (true) {
           Bitboard newBitboard = 0;
           for (Direction d : var->connect_directions) {
-              newBitboard |= shift(d, current | newBitboard) & pieces(~sideToMove); // the "| newBitboard" here probably saves a few loops
+              newBitboard |= shift(d, current | newBitboard) & connectPieces; // the "| newBitboard" here probably saves a few loops
           }
 
           if (newBitboard & target) {
@@ -2903,7 +2914,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   
   if (connect_nxn())
   {
-      Bitboard connectors = pieces(~sideToMove);
+      Bitboard connectors = connectPieces;
       for (int i = 1; i < connect_nxn() && connectors; i++)
           connectors &= shift<SOUTH>(connectors) & shift<EAST>(connectors) & shift<SOUTH_EAST>(connectors);
       if (connectors)
@@ -2913,18 +2924,51 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
       }
   }
 
-  // Check for bikjang rule (Janggi) and double passing
-  if (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
+  // Collinear-n
+  if (collinear_n() > 0) {
+      Bitboard allPieces = connectPieces;
+      for (Direction d : var->connect_directions) {
+          Bitboard b = allPieces;
+          while (b) {
+              Square s = pop_lsb(b);
+
+              int total_count = 1; // Start with the current piece
+
+              // Check in both directions
+              for (int sign : {-1, 1}) {
+                  Bitboard shifted = shift(sign * d, square_bb(s));
+                  while (shifted) {
+                      if (shifted & b) {
+                          total_count++;
+                          b &= ~shifted; // Remove this piece from further consideration
+                      }
+                      shifted = shift(sign * d, shifted);
+                  }
+              }
+
+              if (total_count >= collinear_n()) {
+                  result = convert_mate_value(-var->connectValue, ply);
+                  return true;
+              }
+          }
+      }
+  }
+
+  // Check for bikjang rule (Janggi), double passing, or board running full
+  if (   (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
+      || (var->adjudicateFullBoard && !(~pieces() & board_bb())))
   {
       result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;
       return true;
   }
+
   // Tsume mode: Assume that side with king wins when not in check
   if (tsumeMode && !count<KING>(~sideToMove) && count<KING>(sideToMove) && !checkers())
   {
       result = mate_in(ply);
       return true;
   }
+
   // Failing to checkmate with virtual pieces is a loss
   if (two_boards() && !checkers())
   {

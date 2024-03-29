@@ -237,7 +237,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
             return SQUARE_DISAMBIGUATION;
     }
 
-    // A disambiguation occurs if we have more then one piece of type 'pt'
+    // A disambiguation occurs if we have more than one piece of type 'pt'
     // that can reach 'to' with a legal move.
     Bitboard b = pos.pieces(us, pt) ^ from;
     Bitboard others = 0;
@@ -821,6 +821,16 @@ inline Validation check_number_of_kings(const std::string& fenBoard, const std::
     int nbWhiteKingsStart = piece_count(startFenBoard, WHITE, KING, v);
     int nbBlackKingsStart = piece_count(startFenBoard, BLACK, KING, v);
 
+    if (nbWhiteKings > 1)
+    {
+        std::cerr << "Invalid number of white kings. Maximum: 1. Given: " << nbWhiteKings << std::endl;
+        return NOK;
+    }
+    if (nbBlackKings > 1)
+    {
+        std::cerr << "Invalid number of black kings. Maximum: 1. Given: " << nbBlackKings << std::endl;
+        return NOK;
+    }
     if (nbWhiteKings != nbWhiteKingsStart)
     {
         std::cerr << "Invalid number of white kings. Expected: " << nbWhiteKingsStart << ". Given: " << nbWhiteKings << std::endl;

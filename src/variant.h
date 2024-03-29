@@ -108,6 +108,7 @@ struct Variant {
   bool gating = false;
   WallingRule wallingRule = NO_WALLING;
   Bitboard wallingRegion[COLOR_NB] = {AllSquares, AllSquares};
+  bool wallOrMove = false;
   bool seirawanGating = false;
   bool commitGates = false;
   bool cambodianMoves = false;
@@ -150,14 +151,17 @@ struct Variant {
   bool flagPieceSafe = false;
   bool checkCounting = false;
   int connectN = 0;
+  PieceSet connectPieceTypes = ~NO_PIECE_SET;
   bool connectHorizontal = true;
   bool connectVertical = true;
   bool connectDiagonal = true;
   Bitboard connectRegion1[COLOR_NB] = {};
   Bitboard connectRegion2[COLOR_NB] = {};
   int connectNxN = 0;
+  int collinearN = 0;
   Value connectValue = VALUE_MATE;
   MaterialCounting materialCounting = NO_MATERIAL_COUNTING;
+  bool adjudicateFullBoard = false;
   CountingRule countingRule = NO_COUNTING;
   CastlingRights castlingWins = NO_CASTLING;
 

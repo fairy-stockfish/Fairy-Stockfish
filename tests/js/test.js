@@ -768,7 +768,7 @@ describe('ffish.setOption(name, value)', function () {
 });
 
 describe('ffish.setOptionInt(name, value)', function () {
-  it("it sets a int uci option value pair", () => {
+  it("it sets an int uci option value pair", () => {
     ffish.setOptionInt("Threads", 4);
     chai.expect(true).to.equal(true);
   });
