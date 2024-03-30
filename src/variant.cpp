@@ -1223,7 +1223,7 @@ namespace {
         v->add_piece(ARCHBISHOP, 'a');
         v->add_piece(CHANCELLOR, 'c');
         v->add_piece(AMAZON, 'd'); // also called Dragon in Musketeer, but Amazon is the most accurate  
-        v->add_piece(CUSTOM_PIECE_1, 'l', "F2N"); // Leopard
+        v->add_piece(CUSTOM_PIECE_1, 'l', "B2N"); // Leopard
         v->add_piece(CUSTOM_PIECE_2, 'h', "ADGH"); // Hawk
         v->add_piece(CUSTOM_PIECE_3, 'u', "NC"); // Unicorn
         v->add_piece(CUSTOM_PIECE_4, 's', "B2ND"); // Spider
