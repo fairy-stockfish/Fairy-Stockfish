@@ -109,7 +109,7 @@ void on_variant_change(const Option &o) {
         }
         // Send setup command
         sync_cout << "setup (" << v->pieceToCharTable << ") "
-                  << v->maxFile + 1 << "x" << v->maxRank + 1
+                  << v->maxFile + 1 << "x" << v->maxRank + 1 + ( v->commitGates ? 2 : 0 )
                   << "+" << pocketsize << "_" << v->variantTemplate
                   << " " << v->startFen
                   << sync_endl;
