@@ -1219,7 +1219,7 @@ namespace {
     Variant* musketeer_variant() {
         Variant* v = chess_variant();
         v->variantTemplate = "seirawan";
-        v->pieceToCharTable = "PNBRQ.C..........LO..Kpnbrq.c..........lo..k";  // The default piece combo in Musketeer Chess is Leopard L and Musketeer Cannon O
+        v->pieceToCharTable = "PNBRQ.E....O.AF.CH.SU........D............LKpnbrq.e....o.af.ch.su........d............lk";  // The default piece combo in Musketeer Chess is Leopard L and Musketeer Cannon O
         v->add_piece(ARCHBISHOP, 'a');
         v->add_piece(CHANCELLOR, 'c');
         v->add_piece(AMAZON, 'd'); // also called Dragon in Musketeer, but Amazon is the most accurate  
@@ -1232,7 +1232,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_7, 'o', "FWDsN"); // Musketeer Cannon
 
         //"********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1"
-        v->startFen = "********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1";
+        v->startFen = "lo******/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/LO****** w KQkq - 0 1";
         v->gating = true;
         v->commitGates = true;
         v->promotionPieceTypes[BLACK] = piece_set(CUSTOM_PIECE_1) | CUSTOM_PIECE_7 | QUEEN | ROOK | BISHOP | KNIGHT;
