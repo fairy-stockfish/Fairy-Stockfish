@@ -292,6 +292,9 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
               if(rank != 0 && rank <= max_rank()){
                   sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
               }
+              else if (rank == max_rank() + 1) {
+                  sq = SQ_A1; // dummy to proceed with white musketeer pieces setup
+              }
               ++rank;
               commitFile = 0;
           }
@@ -1995,10 +1998,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   // Musketeer gating
   if(commit_gates()){
-
-      if(st->removedGatingType > NO_PIECE_TYPE){
-          commit_piece(piece_on(from), file_of(from));
-      }
       Rank r = rank_of(from);
       if(r == RANK_1 && has_committed_piece(WHITE, file_of(from))){
           st->removedGatingType = drop_committed_piece(WHITE, file_of(from));
@@ -2190,7 +2189,9 @@ void Position::undo_move(Move m) {
 
   assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
          || (type_of(m) == PROMOTION && sittuyin_promotion())
-         || (is_pass(m) && pass(us)));
+         || (is_pass(m) && pass(us))
+         || (commit_gates() && st->removedGatingType > NO_PIECE_TYPE)
+  );
   assert(type_of(st->capturedPiece) != KING);
 
   // Reset wall squares
@@ -2233,6 +2234,7 @@ void Position::undo_move(Move m) {
 
   if(commit_gates() && st->removedGatingType > NO_PIECE_TYPE){
       commit_piece(piece_on(from), file_of(from));
+      remove_piece( from );
   }
 
   if (type_of(m) == PROMOTION)
