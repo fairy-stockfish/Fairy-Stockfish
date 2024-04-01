@@ -558,6 +558,7 @@ inline std::vector<std::string> get_fen_parts(const std::string& fullFen, char d
 inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard, const std::string& validSpecialCharactersFirstField, const Variant* v) {
     int rankIdx = 0;
     int fileIdx = 0;
+    bool firstRankSkipped = false;
 
     char prevChar = '?';
     for (char c : fenBoard)
@@ -582,9 +583,9 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
         }
         else if (c == '/')
         {
-            if (v->commitGates && rankIdx == 0 && fileIdx == 0)
-            {
-                // ignore starting '********/'
+            if (v->commitGates && rankIdx == 0 && !firstRankSkipped) {
+                firstRankSkipped = true;
+                // ignore starting 'xx******/'
             }
             else {
                 ++rankIdx;
@@ -598,7 +599,7 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
             {
                 if (v->commitGates)
                 {
-                    rankIdx--; // pretend we didn't see the ending '/********'
+                    rankIdx--; // pretend we didn't see the ending '/xx******'
                 }
                 break;
             }
