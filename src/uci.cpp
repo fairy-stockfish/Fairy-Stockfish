@@ -574,9 +574,27 @@ Move UCI::to_move(const Position& pos, string& str) {
           str[4] = char(tolower(str[4]));
   }
 
-  for (const auto& m : MoveList<LEGAL>(pos))
-      if (str == UCI::move(pos, m) || (is_pass(m) && str == UCI::square(pos, from_sq(m)) + UCI::square(pos, to_sq(m))))
+  for (const auto& m : MoveList<LEGAL>(pos)) {
+      auto move_str = UCI::move(pos, m);
+      
+      // special processing of optional gating suffix
+      // like "b1c3o" => "b1c3"
+      if (CurrentProtocol == XBOARD && str.length() == 5 && move_str.length() == 4) {
+          if (str[1] == move_str[1] && str[2] == move_str[2] && str[3] == move_str[3]) {
+              PieceType pt = pos.committed_piece_type(m);
+              if (
+                  pt != NO_PIECE_TYPE
+                  &&
+                  pos.piece_to_char()[make_piece(BLACK, pos.committed_piece_type(m))] == str[4]
+              ) {
+                  return m;
+              }
+          }
+      }
+
+      if (str == move_str || (is_pass(m) && str == UCI::square(pos, from_sq(m)) + UCI::square(pos, to_sq(m))))
           return m;
+  }
 
   return MOVE_NONE;
 }

@@ -281,6 +281,7 @@ public:
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
+  PieceType committed_piece_type(Move m) const;
 
   // Piece specific
   bool pawn_passed(Color c, Square s) const;
@@ -380,6 +381,7 @@ private:
   void undrop_piece(Piece pc_hand, Square s);
   void commit_piece(Piece pc, File fl);
   void uncommit_piece(Color cl, File fl);
+  PieceType committed_piece_type(Color cl, File fl) const;
   bool has_committed_piece(Color cl, File fl) const;
   PieceType drop_committed_piece(Color cl, File fl);
   Bitboard find_drop_region(Direction dir, Square s, Bitboard occupied) const;
@@ -1581,8 +1583,12 @@ inline void Position::uncommit_piece(Color cl, File fl){
     committedGates[cl][fl] = NO_PIECE_TYPE;
 }
 
+inline PieceType Position::committed_piece_type(Color cl, File fl) const {
+    return committedGates[cl][fl];
+}
+
 inline bool Position::has_committed_piece(Color cl, File fl) const {
-    return committedGates[cl][fl] > NO_PIECE_TYPE;
+    return committed_piece_type(cl,fl) > NO_PIECE_TYPE;
 }
 
 inline PieceType Position::drop_committed_piece(Color cl, File fl){
