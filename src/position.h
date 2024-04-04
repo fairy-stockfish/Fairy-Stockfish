@@ -84,6 +84,7 @@ struct StateInfo {
   Move       move;
   int        repetition;
   PieceType removedGatingType;
+  PieceType capturedGatingType;
 
   // Used by NNUE
   Eval::NNUE::Accumulator accumulator;
@@ -380,7 +381,7 @@ private:
   void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
   void undrop_piece(Piece pc_hand, Square s);
   void commit_piece(Piece pc, File fl);
-  void uncommit_piece(Color cl, File fl);
+  PieceType uncommit_piece(Color cl, File fl);
   PieceType committed_piece_type(Color cl, File fl) const;
   bool has_committed_piece(Color cl, File fl) const;
   PieceType drop_committed_piece(Color cl, File fl);
@@ -1579,8 +1580,10 @@ inline void Position::commit_piece(Piece pc, File fl){
     committedGates[color_of(pc)][fl] = type_of(pc);
 }
 
-inline void Position::uncommit_piece(Color cl, File fl){
+inline PieceType Position::uncommit_piece(Color cl, File fl){
+    PieceType committedPieceType = committedGates[cl][fl];
     committedGates[cl][fl] = NO_PIECE_TYPE;
+    return committedPieceType;
 }
 
 inline PieceType Position::committed_piece_type(Color cl, File fl) const {

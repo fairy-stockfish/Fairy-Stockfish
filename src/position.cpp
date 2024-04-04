@@ -642,6 +642,7 @@ void Position::set_state(StateInfo* si) const {
   si->checkersBB = count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove), ~sideToMove) : Bitboard(0);
   si->move = MOVE_NONE;
   si->removedGatingType = NO_PIECE_TYPE;
+  si->capturedGatingType = NO_PIECE_TYPE;
 
   set_check_info(si);
 
@@ -1998,13 +1999,25 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   // Musketeer gating
   if(commit_gates()){
-      Rank r = rank_of(from);
-      if(r == RANK_1 && has_committed_piece(WHITE, file_of(from))){
-          st->removedGatingType = drop_committed_piece(WHITE, file_of(from));
-      } else if(r == max_rank() && has_committed_piece(BLACK, file_of(from))){
-          st->removedGatingType = drop_committed_piece(BLACK, file_of(from));
+      {
+          Rank r = rank_of(from);
+          if(r == RANK_1 && has_committed_piece(WHITE, file_of(from))){
+              st->removedGatingType = drop_committed_piece(WHITE, file_of(from));
+          } else if(r == max_rank() && has_committed_piece(BLACK, file_of(from))){
+              st->removedGatingType = drop_committed_piece(BLACK, file_of(from));
+          }
+          else st->removedGatingType = NO_PIECE_TYPE;
       }
-      else st->removedGatingType = NO_PIECE_TYPE;
+      st->capturedGatingType = NO_PIECE_TYPE;
+      if (captured) {
+          // remove uncommitted musketeer piece if piece at the front row is captured
+          Rank r = rank_of(to);
+          if (r == RANK_1 && color_of(captured) == WHITE){
+              st->capturedGatingType = uncommit_piece(WHITE, file_of(to));
+          } else if (r == max_rank() && color_of(captured) == BLACK) {
+              st->capturedGatingType = uncommit_piece(BLACK, file_of(to));
+          }
+      }
   }
   // Remove gates
   if (gating())
@@ -2235,6 +2248,10 @@ void Position::undo_move(Move m) {
   if(commit_gates() && st->removedGatingType > NO_PIECE_TYPE){
       commit_piece(piece_on(from), file_of(from));
       remove_piece( from );
+  }
+  if (commit_gates() && st->capturedPiece && st->capturedGatingType > NO_PIECE_TYPE){
+      // return musketeer piece fronted by the captured piece
+      commit_piece(make_piece(color_of(st->capturedPiece), st->capturedGatingType), file_of(to));
   }
 
   if (type_of(m) == PROMOTION)
