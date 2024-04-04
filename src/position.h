@@ -84,6 +84,7 @@ struct StateInfo {
   Move       move;
   int        repetition;
   PieceType removedGatingType;
+  PieceType removedCastlingGatingType;
   PieceType capturedGatingType;
 
   // Used by NNUE

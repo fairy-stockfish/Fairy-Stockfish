@@ -642,6 +642,7 @@ void Position::set_state(StateInfo* si) const {
   si->checkersBB = count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove), ~sideToMove) : Bitboard(0);
   si->move = MOVE_NONE;
   si->removedGatingType = NO_PIECE_TYPE;
+  si->removedCastlingGatingType = NO_PIECE_TYPE;
   si->capturedGatingType = NO_PIECE_TYPE;
 
   set_check_info(si);
@@ -1588,6 +1589,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st = &newSt;
   st->move = m;
 
+  if (commit_gates()) {
+      st->removedGatingType = NO_PIECE_TYPE;
+      st->removedCastlingGatingType = NO_PIECE_TYPE;
+      st->capturedGatingType = NO_PIECE_TYPE;
+  }
   // Increment ply counters. In particular, rule50 will be reset to zero later on
   // in case of a capture or a pawn move.
   ++gamePly;
@@ -2006,9 +2012,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           } else if(r == max_rank() && has_committed_piece(BLACK, file_of(from))){
               st->removedGatingType = drop_committed_piece(BLACK, file_of(from));
           }
-          else st->removedGatingType = NO_PIECE_TYPE;
       }
-      st->capturedGatingType = NO_PIECE_TYPE;
       if (captured) {
           // remove uncommitted musketeer piece if piece at the front row is captured
           Rank r = rank_of(to);
@@ -2344,14 +2348,13 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   to = make_square(kingSide ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
   rto = to + (kingSide ? WEST : EAST);
 
+  if (!Do && commit_gates() && st->removedCastlingGatingType > NO_PIECE_TYPE) {
+      commit_piece(piece_on(rfrom), file_of(rfrom));
+      remove_piece(rfrom);
+  }
+
   Piece castlingKingPiece = piece_on(Do ? from : to);
   Piece castlingRookPiece = piece_on(Do ? rfrom : rto);
-
-  if(commit_gates()){
-      if(has_committed_piece(us, file_of(rfrom))){
-        drop_committed_piece(us, file_of(rfrom));
-      }
-  }
 
   if (Do && Eval::useNNUE)
   {
@@ -2371,6 +2374,11 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   board[Do ? from : to] = board[Do ? rfrom : rto] = NO_PIECE; // Since remove_piece doesn't do it for us
   put_piece(castlingKingPiece, Do ? to : from);
   put_piece(castlingRookPiece, Do ? rto : rfrom);
+
+  if (Do && commit_gates() && has_committed_piece(us, file_of(rfrom))) {
+      st->removedCastlingGatingType = drop_committed_piece(us, file_of(rfrom));
+  }
+
 }
 
 
