@@ -3379,15 +3379,26 @@ bool Position::pos_is_ok() const {
   return true;
 }
 
-PieceType Position::committed_piece_type(Move m) const {
+PieceType Position::committed_piece_type(Move m, bool castlingRook) const {
     PieceType result = NO_PIECE_TYPE;
     if (commit_gates()) {
         Square from = from_sq(m);
         Rank r = rank_of(from);
-        if(r == RANK_1){
-            result = committed_piece_type(WHITE, file_of( from ));
-        } else if(r == max_rank()){
-            result = committed_piece_type(BLACK, file_of(from));
+        if (castlingRook){
+            if (type_of(m) == CASTLING){
+                from = to_sq(m);
+            } else {
+                from = SQ_NONE;
+            }
+        }
+        if (from != SQ_NONE){
+            if (r == RANK_1){
+                result = committed_piece_type(WHITE, file_of(from));
+            } else if (r == max_rank()){
+                result = committed_piece_type(BLACK, file_of(from));
+            } else{
+                assert(false);
+            }
         }
     }
     return result;

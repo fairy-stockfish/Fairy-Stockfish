@@ -283,7 +283,7 @@ public:
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
-  PieceType committed_piece_type(Move m) const;
+  PieceType committed_piece_type(Move m, bool castlingRook) const;
 
   // Piece specific
   bool pawn_passed(Color c, Square s) const;
