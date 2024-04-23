@@ -69,7 +69,7 @@ struct MoveList {
         this->moveList = (ExtMove*)malloc(moveListSize);
         if (this->moveList == 0)
         {
-            printf("Error: Failed to allocate memory in heap. Size: %llu\n", moveListSize);
+            printf("Error: Failed to allocate memory in heap.");
             exit(1);
         }
         this->last = generate<T>(pos, this->moveList);
