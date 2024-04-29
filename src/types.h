@@ -233,8 +233,7 @@ constexpr int SQUARE_BITS = 6;
 #ifdef ALLVARS
 constexpr int MAX_MOVES = 8192;
 #ifdef USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
-//Since it's unlikely to run out of heap, the max depth can be set much deeper.
-constexpr int MAX_PLY = 1024;
+constexpr int MAX_PLY = 246;
 #else
 constexpr int MAX_PLY = 60;
 #endif
@@ -242,7 +241,6 @@ constexpr int MAX_PLY = 60;
 #else
 constexpr int MAX_MOVES = 1024;
 constexpr int MAX_PLY = 246;
-/// endif USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
 #endif
 /// endif ALLVARS
 
