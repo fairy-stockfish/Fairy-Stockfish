@@ -153,6 +153,149 @@ namespace {
         return !ss.fail();
     }
 
+    template <> bool set(const std::string& value, PieceTypeBitboardGroup& target) {
+        size_t i;
+        int ParserState = 0;
+        int RankNum = 0;
+        int FileNum = 0;
+        char PieceChar = 0;
+        Bitboard board = 0x00;
+        // String parser using state machine
+        for (i = 0; i < value.length(); i++)
+        {
+            const char ch = value.at(i);
+            if (ch == ' ')
+            {
+                continue;
+            }
+            if (ParserState == 0)  // Find piece type character
+            {
+                if (ch >= 'A' && ch <= 'Z')
+                {
+                    PieceChar = ch;
+                    ParserState = 1;
+                }
+                else
+                {
+                    std::cerr << "At char " << i << " of PieceTypeBitboardGroup declaration: Illegal piece type character: " << ch << std::endl;
+                    return false;
+                }
+            }
+            else if (ParserState == 1)  // Find "("
+            {
+                if (ch == '(')
+                {
+                    ParserState = 2;
+                }
+                else
+                {
+                    std::cerr << "At char " << i << " of PieceTypeBitboardGroup declaration: Expect \"(\". Actual: " << ch << std::endl;
+                    return false;
+                }
+            }
+            else if (ParserState == 2)  //Find file
+            {
+                if (ch >= 'a' && ch <= 'z')
+                {
+                    FileNum = ch - 'a';
+                    ParserState = 3;
+                }
+                else if (ch == '*')
+                {
+                    FileNum = -1;
+                    ParserState = 3;
+                }
+                else
+                {
+                    std::cerr << "At char " << i << " of PieceTypeBitboardGroup declaration: Illegal file character: " << ch << std::endl;
+                    return false;
+                }
+            }
+            else if (ParserState == 3)  //Find rank and terminator "," or ")"
+            {
+                if (ch == '*')
+                {
+                    RankNum = -1;
+                }
+                else if (ch >= '0' && ch <= '9' && RankNum >= 0)
+                {
+                    RankNum = RankNum * 10 + (ch - '0');
+                }
+                else if (ch == ',' || ch == ')')
+                {
+                    if (RankNum == 0)  // Here if RankNum==0 then it means either user delcared a 0 as rank, or no rank number delcared at all
+                    {
+                        std::cerr << "At char " << i << " of PieceTypeBitboardGroup declaration: Illegal rank number: " << RankNum << std::endl;
+                        return false;
+                    }
+                    if (RankNum > 0)  //When RankNum==-1, it means a whole File.
+                    {
+                        RankNum--;
+                    }
+                    if (RankNum < -1 || RankNum > RANK_MAX)
+                    {
+                        std::cerr << "At char " << i << " of PieceTypeBitboardGroup declaration: Max rank number exceeds. Max: " << RANK_MAX << "; Actual: " << RankNum << std::endl;
+                        return false;
+                    }
+                    else if (FileNum < -1 || FileNum > FILE_MAX)
+                    {
+                        std::cerr << "At char " << i << " of PieceTypeBitboardGroup declaration: Max file number exceeds. Max: " << FILE_MAX << "; Actual: " << FileNum << std::endl;
+                        return false;
+                    }
+                    if (RankNum == -1 && FileNum == -1)
+                    {
+                        board ^= ~board;
+                    }
+                    else if (FileNum == -1)
+                    {
+                        board |= rank_bb(Rank(RankNum));
+                    }
+                    else if (RankNum == -1)
+                    {
+                        board |= file_bb(File(FileNum));
+                    }
+                    else
+                    {
+                        board |= square_bb(make_square(File(FileNum), Rank(RankNum)));
+                    }
+                    if (ch == ')')
+                    {
+                        target.set(PieceChar, board);
+                        ParserState = 4;
+                    }
+                    else
+                    {
+                        RankNum = 0;
+                        FileNum = 0;
+                        ParserState = 2;
+                    }
+                }
+            }
+            else if (ParserState == 4)  // Find ";"
+            {
+                if (ch == ';')
+                {
+                    ParserState = 0;
+                    RankNum = 0;
+                    FileNum = 0;
+                    PieceChar = 0;
+                    board = 0x00;
+                }
+                else
+                {
+                    std::cerr << "At char " << i << " of PieceTypeBitboardGroup declaration: Expects \";\"." << std::endl;
+                    return false;
+                }
+            }
+        }
+        if (ParserState != 0)
+        {
+            std::cerr << "At char " << i << " of PieceTypeBitboardGroup declaration: Unterminated expression." << std::endl;
+            return false;
+        }
+        return true;
+    }
+
 
     template <> bool set(const std::string& value, CastlingRights& target) {
         char c;
@@ -209,6 +352,7 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
                                   : std::is_same<T, ChasingRule>() ? "ChasingRule"
                                   : std::is_same<T, EnclosingRule>() ? "EnclosingRule"
                                   : std::is_same<T, Bitboard>() ? "Bitboard"
+                                  : std::is_same<T, PieceTypeBitboardGroup>() ? "PieceTypeBitboardGroup"
                                   : std::is_same<T, CastlingRights>() ? "CastlingRights"
                                   : std::is_same<T, WallingRule>() ? "WallingRule"
                                   : typeid(T).name();
@@ -460,6 +604,15 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("enclosingDropStart", v->enclosingDropStart);
     parse_attribute("whiteDropRegion", v->whiteDropRegion);
     parse_attribute("blackDropRegion", v->blackDropRegion);
+    parse_attribute("pieceSpecificDropRegion", v->pieceSpecificDropRegion);
+    if (v->pieceSpecificDropRegion && !parse_attribute("whitePieceDropRegion", *(v->whitePieceDropRegion)))
+    {
+        std::cerr << "Syntax error in whitePieceDropRegion or missing whitePieceDropRegion definition." << std::endl;
+    }
+    if (v->pieceSpecificDropRegion && !parse_attribute("blackPieceDropRegion", *(v->blackPieceDropRegion)))
+    {
+        std::cerr << "Syntax error in blackPieceDropRegion or missing blackPieceDropRegion definition." << std::endl;
+    }
     parse_attribute("sittuyinRookDrop", v->sittuyinRookDrop);
     parse_attribute("dropOppositeColoredBishop", v->dropOppositeColoredBishop);
     parse_attribute("dropPromoted", v->dropPromoted);

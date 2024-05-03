@@ -664,6 +664,22 @@ inline Bitboard Position::drop_region(Color c) const {
 inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   Bitboard b = drop_region(c) & board_bb(c, pt);
 
+  // Piece specific drop region
+  // Only filter moves based on drop_region() which is a restriction that applies to all pieces
+  // Set whiteDropRegion/blackDropRegion to AllSquares to remove the restriction
+  if (var->pieceSpecificDropRegion)
+  {
+      assert(var->whitePieceDropRegion != 0 && var->blackPieceDropRegion != 0);
+      if (c == WHITE)
+      {
+          b &= var->whitePieceDropRegion->boardOfPiece(toupper(piece_to_char()[(c << PIECE_TYPE_BITS) + pt]));
+      }
+      else if (c == BLACK)
+      {
+          b &= var->blackPieceDropRegion->boardOfPiece(toupper(piece_to_char()[(c << PIECE_TYPE_BITS) + pt]));
+      }
+  }
+
   // Pawns on back ranks
   if (pt == PAWN)
   {

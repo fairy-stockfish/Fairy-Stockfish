@@ -227,6 +227,76 @@ typedef uint64_t Bitboard;
 constexpr int SQUARE_BITS = 6;
 #endif
 
+//The piece type count. Currently we have A-Z as piece type so it's 26.
+constexpr size_t PIECE_TYPE_COUNT = 26;
+
+//This is a bitboard group that matches to all 26 piece types.
+//Each bitboard is related to a piece type, so we have PIECE_TYPE_COUNT of bitboards.
+//For example, piece A is related to boardlist[0], piece B is related to boardlist[1], etc.
+struct PieceTypeBitboardGroup
+{
+    PieceTypeBitboardGroup()
+    {
+        size_t i;
+        this->boardlist = (Bitboard*)malloc(PIECE_TYPE_COUNT * sizeof(Bitboard));
+        // By default, all squares are allowed for all pieces.
+        for (i = 0; i < PIECE_TYPE_COUNT; i++)
+        {
+            this->boardlist[i] ^= ~this->boardlist[i];
+        }
+    }
+
+    PieceTypeBitboardGroup(const PieceTypeBitboardGroup& other)
+    {
+        size_t i;
+        this->boardlist = (Bitboard*)malloc(PIECE_TYPE_COUNT * sizeof(Bitboard));
+        for (i = 0; i < PIECE_TYPE_COUNT; i++)
+        {
+            this->boardlist[i] = other.boardlist[i];
+        }
+    }
+
+    ~PieceTypeBitboardGroup()
+    {
+        free(this->boardlist);
+    }
+
+    // Returns the bitboard reference at the index of idx in boardlist.
+    // idx: The index
+    // <return value>: Bitboard reference at index <idx> in boardlist
+    Bitboard& at(const size_t idx)
+    {
+        assert(idx >= 0 && idx < PIECE_TYPE_COUNT);
+        return this->boardlist[idx];
+    }
+
+    // Returns the bitboard copy of a piece type.
+    // ptc: Only accepts A-Z
+    // <return value>: The copy of corresponding bitboard
+    // Example:
+    // _begin
+    // PieceTypeBitboardGroup a;
+    // Bitboard boardOfPieceA = a.boardOfPiece('A');
+    // _end
+    Bitboard boardOfPiece(const char ptc)
+    {
+        assert(ptc >= 65 && ptc <= 90);  //ASCII of 'A'=65
+        return this->boardlist[ptc - 65];
+    }
+
+    // Set the bitboard of a piece type.
+    // ptc: Only accepts A-Z
+    // board: The bitboard to set
+    void set(const char ptc, Bitboard board)
+    {
+        assert(ptc >= 65 && ptc <= 90);  //ASCII of 'A'=65
+        *(this->boardlist + (ptc - 65)) = board;
+    }
+
+private:
+    Bitboard* boardlist = 0;
+};
+
 //When defined, move list will be stored in heap. Delete this if you want to use stack to store move list. Using stack can cause overflow (Segmentation Fault) when the search is too deep.
 #define USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
 
