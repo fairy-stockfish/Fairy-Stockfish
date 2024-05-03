@@ -672,11 +672,11 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
       assert(var->whitePieceDropRegion != 0 && var->blackPieceDropRegion != 0);
       if (c == WHITE)
       {
-          b &= var->whitePieceDropRegion->boardOfPiece(toupper(piece_to_char()[(c << PIECE_TYPE_BITS) + pt]));
+          b &= var->whitePieceDropRegion.boardOfPiece(toupper(piece_to_char()[(c << PIECE_TYPE_BITS) + pt]));
       }
       else if (c == BLACK)
       {
-          b &= var->blackPieceDropRegion->boardOfPiece(toupper(piece_to_char()[(c << PIECE_TYPE_BITS) + pt]));
+          b &= var->blackPieceDropRegion.boardOfPiece(toupper(piece_to_char()[(c << PIECE_TYPE_BITS) + pt]));
       }
   }
 

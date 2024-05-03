@@ -100,8 +100,8 @@ struct Variant {
   Bitboard whiteDropRegion = AllSquares;
   Bitboard blackDropRegion = AllSquares;
   bool pieceSpecificDropRegion = false;
-  PieceTypeBitboardGroup* whitePieceDropRegion = 0;
-  PieceTypeBitboardGroup* blackPieceDropRegion = 0;
+  PieceTypeBitboardGroup whitePieceDropRegion;
+  PieceTypeBitboardGroup blackPieceDropRegion;
   bool sittuyinRookDrop = false;
   bool dropOppositeColoredBishop = false;
   bool dropPromoted = false;
@@ -181,26 +181,6 @@ struct Variant {
   bool endgameEval = false;
   bool shogiStylePromotions = false;
   std::vector<Direction> connect_directions;
-
-  Variant()
-  {
-      // Avoid using stack
-      this->whitePieceDropRegion = new PieceTypeBitboardGroup();
-      this->blackPieceDropRegion = new PieceTypeBitboardGroup();
-  }
-
-  Variant(const Variant& other)
-  {
-      (*this) = other;
-      this->whitePieceDropRegion = new PieceTypeBitboardGroup(*(other.whitePieceDropRegion));
-      this->blackPieceDropRegion = new PieceTypeBitboardGroup(*(other.blackPieceDropRegion));
-  }
-
-  ~Variant()
-  {
-      delete this->whitePieceDropRegion;
-      delete this->blackPieceDropRegion;
-  }
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
       // Avoid ambiguous definition by removing existing piece with same letter

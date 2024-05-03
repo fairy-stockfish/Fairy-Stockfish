@@ -610,11 +610,11 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("whiteDropRegion", v->whiteDropRegion);
     parse_attribute("blackDropRegion", v->blackDropRegion);
     parse_attribute("pieceSpecificDropRegion", v->pieceSpecificDropRegion);
-    if (v->pieceSpecificDropRegion && !parse_attribute("whitePieceDropRegion", *(v->whitePieceDropRegion)))
+    if (v->pieceSpecificDropRegion && !parse_attribute("whitePieceDropRegion", v->whitePieceDropRegion))
     {
         std::cerr << "Syntax error in whitePieceDropRegion or missing whitePieceDropRegion definition." << std::endl;
     }
-    if (v->pieceSpecificDropRegion && !parse_attribute("blackPieceDropRegion", *(v->blackPieceDropRegion)))
+    if (v->pieceSpecificDropRegion && !parse_attribute("blackPieceDropRegion", v->blackPieceDropRegion))
     {
         std::cerr << "Syntax error in blackPieceDropRegion or missing blackPieceDropRegion definition." << std::endl;
     }

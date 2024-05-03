@@ -238,7 +238,6 @@ struct PieceTypeBitboardGroup
     PieceTypeBitboardGroup()
     {
         size_t i;
-        this->boardlist = (Bitboard*)malloc(PIECE_TYPE_COUNT * sizeof(Bitboard));
         // By default, all bits are ZERO for all pieces.
         for (i = 0; i < PIECE_TYPE_COUNT; i++)
         {
@@ -249,16 +248,10 @@ struct PieceTypeBitboardGroup
     PieceTypeBitboardGroup(const PieceTypeBitboardGroup& other)
     {
         size_t i;
-        this->boardlist = (Bitboard*)malloc(PIECE_TYPE_COUNT * sizeof(Bitboard));
         for (i = 0; i < PIECE_TYPE_COUNT; i++)
         {
             this->boardlist[i] = other.boardlist[i];
         }
-    }
-
-    ~PieceTypeBitboardGroup()
-    {
-        free(this->boardlist);
     }
 
     // Returns the bitboard reference at the index of idx in boardlist.
@@ -278,7 +271,7 @@ struct PieceTypeBitboardGroup
     // PieceTypeBitboardGroup a;
     // Bitboard boardOfPieceA = a.boardOfPiece('A');
     // _end
-    Bitboard boardOfPiece(const char ptc)
+    Bitboard boardOfPiece(const char ptc) const
     {
         assert(ptc >= 65 && ptc <= 90);  //ASCII of 'A'=65
         return this->boardlist[ptc - 65];
@@ -290,11 +283,11 @@ struct PieceTypeBitboardGroup
     void set(const char ptc, Bitboard board)
     {
         assert(ptc >= 65 && ptc <= 90);  //ASCII of 'A'=65
-        *(this->boardlist + (ptc - 65)) = board;
+        this->boardlist[ptc - 65] = board;
     }
 
 private:
-    Bitboard* boardlist = 0;
+    Bitboard boardlist[PIECE_TYPE_COUNT];
 };
 
 //When defined, move list will be stored in heap. Delete this if you want to use stack to store move list. Using stack can cause overflow (Segmentation Fault) when the search is too deep.
