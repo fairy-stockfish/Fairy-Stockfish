@@ -239,10 +239,10 @@ struct PieceTypeBitboardGroup
     {
         size_t i;
         this->boardlist = (Bitboard*)malloc(PIECE_TYPE_COUNT * sizeof(Bitboard));
-        // By default, all squares are allowed for all pieces.
+        // By default, all bits are ZERO for all pieces.
         for (i = 0; i < PIECE_TYPE_COUNT; i++)
         {
-            this->boardlist[i] ^= ~this->boardlist[i];
+            this->boardlist[i] ^= this->boardlist[i];
         }
     }
 
