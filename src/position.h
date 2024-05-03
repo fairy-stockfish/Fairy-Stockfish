@@ -669,7 +669,6 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   // Set whiteDropRegion/blackDropRegion to AllSquares to remove the restriction
   if (var->pieceSpecificDropRegion)
   {
-      assert(var->whitePieceDropRegion != 0 && var->blackPieceDropRegion != 0);
       if (c == WHITE)
       {
           b &= var->whitePieceDropRegion.boardOfPiece(toupper(piece_to_char()[(c << PIECE_TYPE_BITS) + pt]));
