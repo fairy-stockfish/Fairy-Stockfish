@@ -334,6 +334,12 @@ LDFLAGS += $(EXTRALDFLAGS)
 # Ignore warning due to missing profile information from unused NNUE features
 CXXFLAGS += -Wno-profile-instr-out-of-date
 
+# Ingnore warning due to implicit declaration of operator= in Stockfish::Variant(const Stockfish::Variant&)
+# Because the = is intended to copy all data from another Variant structure without having to write the assignment code manually one by one which creates much overhead
+# The reason why it is necessary to define Stockfish::Variant(const Stockfish::Variant&) is that it contains memory segments in heap which requires re-allocation when creating a new one
+# Otherwise you will encounter segmentation fault
+CXXFLAGS += -Wno-deprecated-copy
+
 # Compile version with support for large board variants
 # Use precomputed magics by default if pext is not available
 ifneq ($(largeboards),no)
