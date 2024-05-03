@@ -270,6 +270,11 @@ namespace {
                         ParserState = 2;
                     }
                 }
+                else
+                {
+                    std::cerr << "At char " << i << " of PieceTypeBitboardGroup declaration: Illegal rank character: " << ch << std::endl;
+                    return false;
+                }
             }
             else if (ParserState == 4)  // Find ";"
             {
