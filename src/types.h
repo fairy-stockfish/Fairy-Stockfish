@@ -266,7 +266,7 @@ struct PieceTypeBitboardGroup
     // <return value>: Bitboard reference at index <idx> in boardlist
     Bitboard& at(const size_t idx)
     {
-        assert(idx >= 0 && idx < PIECE_TYPE_COUNT);
+        assert(idx < PIECE_TYPE_COUNT);
         return this->boardlist[idx];
     }
 
