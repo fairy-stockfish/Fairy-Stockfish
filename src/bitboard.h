@@ -463,28 +463,30 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
 /// pop_rider() finds and clears a rider in a (hybrid) rider type
 
-inline RiderType pop_rider(RiderType* r) {
-  assert(*r);
-  const RiderType r2 = *r & ~(*r - 1);
-  *r &= *r - 1;
+inline RiderType pop_rider(RiderType& r) {
+  assert(r);
+  const RiderType r2 = r & ~(r - 1);
+  r &= r - 1;
   return r2;
 }
 
 inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
+  assert(pt != NO_PIECE_TYPE);
   Bitboard b = LeaperAttacks[c][pt][s];
   RiderType r = AttackRiderTypes[pt];
   while (r)
-      b |= rider_attacks_bb(pop_rider(&r), s, occupied);
+      b |= rider_attacks_bb(pop_rider(r), s, occupied);
   return b & PseudoAttacks[c][pt][s];
 }
 
 
 template <bool Initial=false>
 inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
+  assert(pt != NO_PIECE_TYPE);
   Bitboard b = LeaperMoves[Initial][c][pt][s];
   RiderType r = MoveRiderTypes[Initial][pt];
   while (r)
-      b |= rider_attacks_bb(pop_rider(&r), s, occupied);
+      b |= rider_attacks_bb(pop_rider(r), s, occupied);
   return b & PseudoMoves[Initial][c][pt][s];
 }
 

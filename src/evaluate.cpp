@@ -497,7 +497,7 @@ namespace {
         // Piece promotion bonus
         if (pos.promoted_piece_type(Pt) != NO_PIECE_TYPE)
         {
-            Bitboard zone = pos.promotion_zone(Us);
+            Bitboard zone = pos.promotion_zone(Us, Pt);
             if (zone & (b | s))
                 score += make_score(PieceValue[MG][pos.promoted_piece_type(Pt)] - PieceValue[MG][Pt],
                                     PieceValue[EG][pos.promoted_piece_type(Pt)] - PieceValue[EG][Pt]) / (zone & s && b ? 6 : 12);
@@ -738,7 +738,7 @@ namespace {
             if (pos.promoted_piece_type(pt))
             {
                 otherChecks = attacks_bb(Us, pos.promoted_piece_type(pt), ksq, pos.pieces()) & attackedBy[Them][pt]
-                                 & pos.promotion_zone(Them) & pos.board_bb();
+                                 & pos.promotion_zone(Them, pt) & pos.board_bb();
                 if (otherChecks & safe)
                     kingDanger += SafeCheck[FAIRY_PIECES][more_than_one(otherChecks & safe)];
                 else
@@ -843,7 +843,8 @@ namespace {
     constexpr Direction Up       = pawn_push(Us);
     constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
 
-    Bitboard b, weak, defended, nonPawnEnemies, stronglyProtected, safe;
+    Bitboard b;
+    Bitboard weak, defended, nonPawnEnemies, stronglyProtected, safe;
     Score score = SCORE_ZERO;
 
     // Bonuses for variants with mandatory captures
@@ -855,7 +856,8 @@ namespace {
             score -= make_score(2000, 2000) / (1 + popcount(captures & attackedBy[Them][ALL_PIECES] & ~attackedBy2[Us]));
 
         // Bonus if we threaten to force captures
-        Bitboard moves = 0, piecebb = pos.pieces(Us);
+        Bitboard moves = 0;
+        Bitboard piecebb = pos.pieces(Us);
         while (piecebb)
         {
             Square s = pop_lsb(piecebb);
@@ -1000,7 +1002,8 @@ namespace {
       return pos.extinction_value() == VALUE_MATE ? 0 : pos.count<KING>(c) ? std::min(distance(pos.square<KING>(c), s), 5) : 5;
     };
 
-    Bitboard b, bb, squaresToQueen, unsafeSquares, blockedPassers, helpers;
+    Bitboard b;
+    Bitboard bb, squaresToQueen, unsafeSquares, blockedPassers, helpers;
     Score score = SCORE_ZERO;
 
     b = pe->passed_pawns(Us);
@@ -1135,7 +1138,8 @@ namespace {
     bool pawnsOnly = !(pos.pieces(Us) ^ pos.pieces(Us, PAWN));
 
     // Early exit if, for example, both queens or 6 minor pieces have been exchanged
-    if (pos.non_pawn_material() < SpaceThreshold && !pawnsOnly && pos.double_step_region(Us))
+    /// yjf2002ghty: By default double step is used for pawns in enhancing opening evaluation, so I assume the piece type is PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
+    if (pos.non_pawn_material() < SpaceThreshold && !pawnsOnly && pos.double_step_region(Us, PAWN))
         return SCORE_ZERO;
 
     constexpr Color Them     = ~Us;
