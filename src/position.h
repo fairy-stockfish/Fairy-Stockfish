@@ -56,6 +56,7 @@ struct StateInfo {
   Square castlingKingSquare[COLOR_NB];
   Bitboard wallSquares;
   Bitboard gatesBB[COLOR_NB];
+  Bitboard not_moved_pieces[COLOR_NB];
 
   // Not copied when making a move (will be recomputed anyhow)
   Key        key;
@@ -83,7 +84,6 @@ struct StateInfo {
   bool       pass;
   Move       move;
   int        repetition;
-  Bitboard   not_moved_pieces[COLOR_NB];
 
   // Used by NNUE
   Eval::NNUE::Accumulator accumulator;
