@@ -843,8 +843,7 @@ namespace {
     constexpr Direction Up       = pawn_push(Us);
     constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
 
-    Bitboard b;
-    Bitboard weak, defended, nonPawnEnemies, stronglyProtected, safe;
+    Bitboard b, weak, defended, nonPawnEnemies, stronglyProtected, safe;
     Score score = SCORE_ZERO;
 
     // Bonuses for variants with mandatory captures
@@ -856,8 +855,7 @@ namespace {
             score -= make_score(2000, 2000) / (1 + popcount(captures & attackedBy[Them][ALL_PIECES] & ~attackedBy2[Us]));
 
         // Bonus if we threaten to force captures
-        Bitboard moves = 0;
-        Bitboard piecebb = pos.pieces(Us);
+        Bitboard moves = 0, piecebb = pos.pieces(Us);
         while (piecebb)
         {
             Square s = pop_lsb(piecebb);
@@ -1002,8 +1000,7 @@ namespace {
       return pos.extinction_value() == VALUE_MATE ? 0 : pos.count<KING>(c) ? std::min(distance(pos.square<KING>(c), s), 5) : 5;
     };
 
-    Bitboard b;
-    Bitboard bb, squaresToQueen, unsafeSquares, blockedPassers, helpers;
+    Bitboard b, bb, squaresToQueen, unsafeSquares, blockedPassers, helpers;
     Score score = SCORE_ZERO;
 
     b = pe->passed_pawns(Us);
