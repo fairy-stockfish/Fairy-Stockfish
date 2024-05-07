@@ -155,7 +155,7 @@ namespace {
 
     template <> bool set(const std::string& value, PieceTypeBitboardGroup& target) {
         size_t i;
-        int ParserState = 0;
+        int ParserState = -1;
         int RankNum = 0;
         int FileNum = 0;
         char PieceChar = 0;
@@ -167,6 +167,14 @@ namespace {
             if (ch == ' ')
             {
                 continue;
+            }
+            if (ParserState == -1)  // Initial state, if "-" exists here then it means a null value. e.g. promotionRegion = - means no promotion region
+            {
+                if (ch == '-')
+                {
+                    return true;
+                }
+                ParserState = 0;
             }
             if (ParserState == 0)  // Find piece type character
             {
