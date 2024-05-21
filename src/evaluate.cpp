@@ -1281,7 +1281,7 @@ namespace {
     }
 
     // Connect-n
-    if (pos.connect_n() > 0)
+    if (pos.connect_n() > 0 && (pos.variant()->connectValue != VALUE_DRAW))
     {
         //Calculate eligible pieces for connection once.
         //Still consider all opponent pieces as blocking.
