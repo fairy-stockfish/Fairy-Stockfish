@@ -2857,12 +2857,19 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   }
 
   // Collinear-n
-  if (collinear_n() > 0) {
+  if ((collinear_n() > 0) && (popcount(connectPieces) >= collinear_n())) {
       Bitboard pieces = connectPieces;
       while (pieces) {
+
+
+/*
+          //can't combine this with the (!is_ok(shifted_square)) optimization below
+          //if it relies on there being another piece to count it as part of its line,
+          //can't early out.
           if (popcount(pieces) < collinear_n()) {
               break; // Early out to the next section
           }
+*/
           //Use pop_lsb to loop through the pieces. Then for each of the directions,
           //use line_bb to calculate the entire row, column or diagonal that contains
           //the piece and the shifted square, then use popcount to count the number
