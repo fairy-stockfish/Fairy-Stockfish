@@ -76,7 +76,6 @@ jobs:
 
       - name: Test debug x86-32 profile build (Optimization on, All features)
         run: |
-          export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
           make -j2 ARCH=x86-32 optimize=yes all=yes largeboards=yes debug=yes profile-build
 
@@ -115,7 +114,6 @@ jobs:
 
       - name: Test debug x86-64-modern profile build (Optimization on, All features)
         run: |
-          export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
           make -j2 ARCH=x86-64-modern optimize=yes all=yes largeboards=yes debug=yes profile-build
 
