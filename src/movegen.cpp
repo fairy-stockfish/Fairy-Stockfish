@@ -93,6 +93,9 @@ namespace {
         for (PieceSet promotions = pos.promotion_piece_types(c); promotions;)
         {
             PieceType pt = pop_msb(promotions);
+            if (pos.prison_pawn_promotion() && pos.count_in_prison(~c, pt) == 0) {
+                continue;
+            }
             if (!pos.promotion_limit(pt) || pos.promotion_limit(pt) > pos.count(c, pt))
                 moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), to - D, to, pt);
         }
@@ -129,6 +132,50 @@ namespace {
     }
 
     return moveList;
+  }
+
+  template<Color Us, GenType Type>
+  ExtMove* generate_exchanges(const Position& pos, ExtMove* moveList, PieceType pt, Bitboard b) {
+      assert(Type != CAPTURES);
+      static_assert(SQUARE_BITS >= PIECE_TYPE_BITS, "not enough bits for exchange move");
+      Color opp = ~Us;
+      if (pos.count_in_prison(opp, pt) > 0) {
+          PieceSet rescue = NO_PIECE_SET;
+          for (PieceSet r = pos.rescueFor(pt); r; ) {
+              PieceType ex = pop_lsb(r);
+              if (pos.count_in_prison(Us, ex) > 0) {
+                  rescue |= ex;
+              }
+          }
+          if (rescue == NO_PIECE_SET) {
+              return moveList;
+          }
+          // Restrict to valid target
+          b &= pos.drop_region(Us, pt);
+          // Add to move list
+          if (pos.drop_promoted() && pos.promoted_piece_type(pt)) {
+              Bitboard b2 = b;
+              if (Type == QUIET_CHECKS)
+                  b2 &= pos.check_squares(pos.promoted_piece_type(pt));
+              while (b2) {
+                  auto to = pop_lsb(b2);
+                  for (PieceSet r = rescue; r; ) {
+                      PieceType ex = pop_lsb(r);
+                      *moveList++ = make_exchange(to, ex, pt, pos.promoted_piece_type(pt));
+                  }
+              }
+          }
+          if (Type == QUIET_CHECKS)
+              b &= pos.check_squares(pt);
+          while (b) {
+              auto to = pop_lsb(b);
+              for (PieceSet r = rescue; r; ) {
+                  PieceType ex = pop_lsb(r);
+                  *moveList++ = make_exchange(to, ex, pt, pt);
+              }
+          }
+      }
+      return moveList;
   }
 
   template<Color Us, GenType Type>
@@ -357,6 +404,9 @@ namespace {
             for (PieceSet ps = pos.promotion_piece_types(Us); ps;)
             {
                 PieceType ptP = pop_msb(ps);
+                if (pos.prison_pawn_promotion() && pos.count_in_prison(~Us, ptP) == 0) {
+                    continue;
+                }
                 if (!pos.promotion_limit(ptP) || pos.promotion_limit(ptP) > pos.count(Us, ptP))
                     for (Bitboard promotions = pawnPromotions; promotions; )
                         moveList = make_move_and_gating<PROMOTION>(pos, moveList, pos.side_to_move(), from, pop_lsb(promotions), ptP);
@@ -409,6 +459,10 @@ namespace {
         if (pos.piece_drops() && Type != CAPTURES && (pos.can_drop(Us, ALL_PIECES) || pos.two_boards()))
             for (PieceSet ps = pos.piece_types(); ps;)
                 moveList = generate_drops<Us, Type>(pos, moveList, pop_lsb(ps), target & ~pos.pieces(~Us));
+        // generate exchange
+        if (pos.capture_type() == PRISON && Type != CAPTURES && pos.has_exchange())
+            for (PieceSet ps = pos.piece_types(); ps;)
+                moveList = generate_exchanges<Us, Type>(pos, moveList, pop_lsb(ps), target & ~pos.pieces(~Us));
 
         // Castling with non-king piece
         if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(Us & ANY_CASTLING))
