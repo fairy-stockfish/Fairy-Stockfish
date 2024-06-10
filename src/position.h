@@ -279,6 +279,7 @@ public:
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
+  Piece unpromoted_captured_piece() const;
 
   // Piece specific
   bool pawn_passed(Color c, Square s) const;
@@ -1408,6 +1409,10 @@ inline bool Position::virtual_drop(Move m) const {
 
 inline Piece Position::captured_piece() const {
   return st->capturedPiece;
+}
+
+inline Piece Position::unpromoted_captured_piece() const {
+  return st->unpromotedCapturedPiece;
 }
 
 inline Thread* Position::this_thread() const {
