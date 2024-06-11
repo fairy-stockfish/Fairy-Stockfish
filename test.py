@@ -974,12 +974,15 @@ class TestPyffish(unittest.TestCase):
         result = sf.is_capture("sittuyin", "8/2k5/8/4P3/4P1N1/5K2/8/8[] w - - 0 1", [], "e5e5f")
         self.assertFalse(result)
 
-    def test_unpromoted_captured_piece(self):
-        result = sf.unpromoted_captured_piece("bughouse", "r2qkbnr/1Ppppppp/2n5/8/8/8/1PPPPPPP/RNBQKBNR[] w KQkq - 0 1", ["b7a8q", "d8a8"])
-        self.assertEqual(result, 1)
+    def test_piece_to_partner(self):
+        result = sf.piece_to_partner("bughouse", "r2qkbnr/1Ppppppp/2n5/8/8/8/1PPPPPPP/RNBQKBNR[] w KQkq - 0 1", ["b7a8q"])
+        self.assertEqual(result, "r")
 
-        result = sf.unpromoted_captured_piece("bughouse", "r2qkbnr/1Ppppppp/2n5/8/8/8/1PPPPPPP/RNBQKBNR[] w KQkq - 0 1", ["b7a8q", "d8b8"])
-        self.assertEqual(result, 0)
+        result = sf.piece_to_partner("bughouse", "r2qkbnr/1Ppppppp/2n5/8/8/8/1PPPPPPP/RNBQKBNR[] w KQkq - 0 1", ["b7a8q", "d8a8"])
+        self.assertEqual(result, "P")
+
+        result = sf.piece_to_partner("bughouse", "r2qkbnr/1Ppppppp/2n5/8/8/8/1PPPPPPP/RNBQKBNR[] w KQkq - 0 1", ["b7a8q", "d8b8"])
+        self.assertEqual(result, "")
 
     def test_game_result(self):
         result = sf.game_result("chess", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
