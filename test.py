@@ -987,17 +987,13 @@ class TestPyffish(unittest.TestCase):
         result = sf.piece_to_partner("bughouse", "r2qkbnr/1Ppppppp/2n5/8/8/8/1PPPPPPP/RNBQKBNR[] w KQkq - 0 1", ["b7a8q", "d8b8"])
         self.assertEqual(result, "")
 
-        # take the pawn and promote to tokin
-        result = sf.piece_to_partner("shogi", "lnsgkgsnl/1r5b1/ppppppp1p/1P7/9/7p1/P1PPPPPPP/1B5R1/LNSGKGSNL[] w 0 1", ["b6b7+"])
+        # silver takes the pawn and promotes to gold
+        result = sf.piece_to_partner("shogi", "lnsgkgsnl/1r5b1/ppppppppp/S8/9/9/PPPPPPPPP/1B5R1/LNSGKG1NL[] w 0 1", ["a6a7+"])
         self.assertEqual(result, "p")
 
-        # take back the promoted pawn
-        result = sf.piece_to_partner("shogi", "lnsgkgsnl/1r5b1/ppppppp1p/1P7/9/7p1/P1PPPPPPP/1B5R1/LNSGKGSNL[] w 0 1", ["b6b7+", "b8b7"])
-        self.assertEqual(result, "P")
-
-        # take an unpromoted pawn
-        result = sf.piece_to_partner("shogi", "lnsgkgsnl/1r5b1/ppppppp1p/1P7/9/7p1/P1PPPPPPP/1B5R1/LNSGKGSNL[] w 0 1", ["b6b7+", "h4h3+"])
-        self.assertEqual(result, "P")
+        # take back the gold (promoted silver)
+        result = sf.piece_to_partner("shogi", "lnsgkgsnl/1r5b1/ppppppppp/S8/9/9/PPPPPPPPP/1B5R1/LNSGKG1NL[] w 0 1", ["a6a7+", "a9a7"])
+        self.assertEqual(result, "S")
 
     def test_game_result(self):
         result = sf.game_result("chess", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
