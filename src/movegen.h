@@ -28,11 +28,19 @@ namespace Stockfish {
 class Position;
 
 enum GenType {
+  /// yjf2002ghty: I think it's better to add some explanations here so that new developers can understand what these means, as some of the terms connot be found in chessprogramming wiki. I'm not sure if my explanations are correct. If there are anything wrong, please point it out.
+
+  //Moves that a piece is removed from the board as part of the completion of the move
   CAPTURES,
+  //Moves which do not alter material, thus no captures nor promotions
   QUIETS,
+  //Moves which do not alter material, and give check to opponent
   QUIET_CHECKS,
+  //Check evasion moves, including interpositions, attacker capture and king withdrawal
   EVASIONS,
+  //Moves that are not check evasion moves
   NON_EVASIONS,
+  //Moves that are legal
   LEGAL
 };
 
