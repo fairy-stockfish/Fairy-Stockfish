@@ -83,6 +83,9 @@ struct StateInfo {
   bool       pass;
   Move       move;
   int        repetition;
+  PieceType removedGatingType;
+  PieceType removedCastlingGatingType;
+  PieceType capturedGatingType;
 
   // Used by NNUE
   Eval::NNUE::Accumulator accumulator;
@@ -180,6 +183,7 @@ public:
   bool walling() const;
   WallingRule walling_rule() const;
   bool seirawan_gating() const;
+  bool commit_gates() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
   bool pass(Color c) const;
@@ -279,6 +283,7 @@ public:
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
+  PieceType committed_piece_type(Move m, bool castlingRook) const;
 
   // Piece specific
   bool pawn_passed(Color c, Square s) const;
@@ -369,12 +374,18 @@ private:
   bool tsumeMode;
   bool chess960;
   int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+  PieceType committedGates[COLOR_NB][FILE_NB];
   int virtualPieces;
   Bitboard promotedPieces;
   void add_to_hand(Piece pc);
   void remove_from_hand(Piece pc);
   void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
   void undrop_piece(Piece pc_hand, Square s);
+  void commit_piece(Piece pc, File fl);
+  PieceType uncommit_piece(Color cl, File fl);
+  PieceType committed_piece_type(Color cl, File fl) const;
+  bool has_committed_piece(Color cl, File fl) const;
+  PieceType drop_committed_piece(Color cl, File fl);
   Bitboard find_drop_region(Direction dir, Square s, Bitboard occupied) const;
 };
 
@@ -797,6 +808,11 @@ inline bool Position::walling() const {
 inline WallingRule Position::walling_rule() const {
   assert(var != nullptr);
   return var->wallingRule;
+}
+
+inline bool Position::commit_gates() const {
+  assert(var != nullptr);
+  return var->commitGates;
 }
 
 inline bool Position::seirawan_gating() const {
@@ -1559,6 +1575,35 @@ inline void Position::undrop_piece(Piece pc_hand, Square s) {
 
 inline bool Position::can_drop(Color c, PieceType pt) const {
   return variant()->freeDrops || count_in_hand(c, pt) > 0;
+}
+
+inline void Position::commit_piece(Piece pc, File fl){
+    committedGates[color_of(pc)][fl] = type_of(pc);
+}
+
+inline PieceType Position::uncommit_piece(Color cl, File fl){
+    PieceType committedPieceType = committedGates[cl][fl];
+    committedGates[cl][fl] = NO_PIECE_TYPE;
+    return committedPieceType;
+}
+
+inline PieceType Position::committed_piece_type(Color cl, File fl) const {
+    return committedGates[cl][fl];
+}
+
+inline bool Position::has_committed_piece(Color cl, File fl) const {
+    return committed_piece_type(cl,fl) > NO_PIECE_TYPE;
+}
+
+inline PieceType Position::drop_committed_piece(Color cl, File fl){
+    if(has_committed_piece(cl, fl)){
+        Square dropSquare = make_square(fl, (cl == WHITE)? RANK_1 : max_rank());
+        PieceType committedPieceType = committedGates[cl][fl];
+        put_piece(make_piece(cl, committedPieceType), dropSquare, false, NO_PIECE);
+        uncommit_piece(cl, fl);
+        return committedPieceType;
+    }
+    else return NO_PIECE_TYPE;
 }
 
 } // namespace Stockfish
