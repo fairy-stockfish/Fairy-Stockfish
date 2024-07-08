@@ -279,6 +279,7 @@ public:
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
+  const std::string piece_to_partner() const;
 
   // Piece specific
   bool pawn_passed(Color c, Square s) const;
@@ -1408,6 +1409,15 @@ inline bool Position::virtual_drop(Move m) const {
 
 inline Piece Position::captured_piece() const {
   return st->capturedPiece;
+}
+
+inline const std::string Position::piece_to_partner() const {
+  if (!st->capturedPiece) return std::string();
+  Color color = color_of(st->capturedPiece);
+  Piece piece = st->capturedpromoted ?
+      (st->unpromotedCapturedPiece ? st->unpromotedCapturedPiece : make_piece(color, promotion_pawn_type(color))) :
+      st->capturedPiece;
+  return std::string(1, piece_to_char()[piece]);
 }
 
 inline Thread* Position::this_thread() const {

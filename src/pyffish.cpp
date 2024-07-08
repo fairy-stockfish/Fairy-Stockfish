@@ -280,6 +280,21 @@ extern "C" PyObject* pyffish_isCapture(PyObject* self, PyObject *args) {
 }
 
 // INPUT variant, fen, move list
+extern "C" PyObject* pyffish_pieceToPartner(PyObject* self, PyObject *args) {
+    PyObject *moveList;
+    Position pos;
+    const char *fen, *variant;
+    int chess960 = false;
+    if (!PyArg_ParseTuple(args, "ssO!|p", &variant, &fen,  &PyList_Type, &moveList, &chess960)) {
+        return NULL;
+    }
+
+    StateListPtr states(new std::deque<StateInfo>(1));
+    buildPosition(pos, states, variant, fen, moveList, chess960);
+    return Py_BuildValue("s", pos.piece_to_partner().c_str());
+}
+
+// INPUT variant, fen, move list
 // should only be called when the move list is empty
 extern "C" PyObject* pyffish_gameResult(PyObject* self, PyObject *args) {
     PyObject *moveList;
@@ -384,6 +399,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"get_fen", (PyCFunction)pyffish_getFEN, METH_VARARGS, "Get resulting FEN from given FEN and movelist."},
     {"gives_check", (PyCFunction)pyffish_givesCheck, METH_VARARGS, "Get check status from given FEN and movelist."},
     {"is_capture", (PyCFunction)pyffish_isCapture, METH_VARARGS, "Get whether given move is a capture from given FEN and movelist."},
+    {"piece_to_partner", (PyCFunction)pyffish_pieceToPartner, METH_VARARGS, "Get unpromoted captured piece from given FEN and movelist."},
     {"game_result", (PyCFunction)pyffish_gameResult, METH_VARARGS, "Get result from given FEN, considering variant end, checkmate, and stalemate."},
     {"is_immediate_game_end", (PyCFunction)pyffish_isImmediateGameEnd, METH_VARARGS, "Get result from given FEN if variant rules ends the game."},
     {"is_optional_game_end", (PyCFunction)pyffish_isOptionalGameEnd, METH_VARARGS, "Get result from given FEN it rules enable game end by player."},
