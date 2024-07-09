@@ -47,7 +47,7 @@ jobs:
         if: contains(matrix.config.comp, 'clang')
         uses: KyleMayes/install-llvm-action@v2.0.3
         with:
-          version: "17"
+          version: "10"
           env: true
 
       - name: Download required packages
