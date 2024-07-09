@@ -524,7 +524,7 @@ endif
 ### 3.3 Optimization
 ifeq ($(optimize),yes)
 
-	CXXFLAGS += -O3 -fno-strict-aliasing
+	CXXFLAGS += -O3
 
 	ifeq ($(comp),gcc)
 		ifeq ($(OS), Android)
