@@ -43,6 +43,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install LLVM and Clang
+        if: contains(matrix.config.comp, 'clang')
+        uses: KyleMayes/install-llvm-action@v2.0.3
+        with:
+          version: "17"
+          env: true
+
       - name: Download required packages
         run: |
           sudo apt update
