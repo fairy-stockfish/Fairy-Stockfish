@@ -43,17 +43,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install LLVM and Clang
-        if: contains(matrix.config.comp, 'clang')
-        uses: KyleMayes/install-llvm-action@v2.0.3
-        with:
-          version: "11"
-          env: true
-
       - name: Download required packages
         run: |
           sudo apt update
-          sudo apt install expect valgrind g++-multilib
+          sudo apt install expect valgrind g++-multilib llvm
 
       - name: Download the used network from the fishtest framework
         run: |
