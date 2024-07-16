@@ -2066,15 +2066,16 @@ Variant* Variant::conclude() {
         connect_directions.push_back(SOUTH_EAST);
     }
 
-    // If not a connect variant, set connectPieceTypes to no pieces.
+    // If not a connect variant, set connectPieceTypesTrimmed to no pieces.
+    // connectPieceTypesTrimmed is separated so that connectPieceTypes is left unchanged for inheritance.
     if ( !(connectRegion1[WHITE] || connectRegion1[BLACK] || connectN || connectNxN || collinearN) )
     {
-          connectPieceTypes = NO_PIECE_SET;
+          connectPieceTypesTrimmed = NO_PIECE_SET;
     }
     //Otherwise optimize to pieces actually in the game.
     else
     {
-        connectPieceTypes = connectPieceTypes & pieceTypes;
+        connectPieceTypesTrimmed = connectPieceTypes & pieceTypes;
     };
 
     return this;
