@@ -1040,7 +1040,7 @@ inline int Position::connect_n() const {
 
 inline PieceSet Position::connect_piece_types() const {
   assert(var != nullptr);
-  return var->connectPieceTypes;
+  return var->connectPieceTypesTrimmed;
 }
 
 inline bool Position::connect_horizontal() const {
