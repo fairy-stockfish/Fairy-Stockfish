@@ -78,6 +78,14 @@ namespace {
         return value == "win" || value == "loss" || value == "draw" || value == "none";
     }
 
+    template <> bool set(const std::string& value, CapturingRule& target) {
+        target = value == "out" ? MOVE_OUT
+                : value == "hand" ? HAND
+                : value == "prison" ? PRISON
+                : MOVE_OUT;
+        return value == "out" || value == "hand" || value == "prison";
+    }
+
     template <> bool set(const std::string& value, MaterialCounting& target) {
         target =  value == "janggi"  ? JANGGI_MATERIAL
                 : value == "unweighted" ? UNWEIGHTED_MATERIAL
@@ -187,6 +195,50 @@ namespace {
         target |= pt;
     }
 
+    void parse_hostage_exchanges(Variant *v, std::string &map, bool DoCheck) {
+        bool readPiece = true;
+        size_t idx = -1;
+        PieceSet mask = NO_PIECE_SET;
+        for (size_t i = 0; i < map.size(); ++i) {
+            char token = map[i];
+            if (token == ' ') {
+                if (!readPiece) {
+                    v->hostageExchange[idx] = mask;
+                    readPiece = true;
+                }
+                continue;
+            }
+            if (readPiece) {
+                mask = NO_PIECE_SET;
+                idx = v->pieceToChar.find(toupper(token));
+                if (idx == std::string::npos) {
+                    if (DoCheck) {
+                        std::cerr << "hostageExchange - Invalid piece type: " << token << std::endl;
+                    }
+                    return;
+                }
+                readPiece = false;
+            } else if (token == ':') {
+                if (mask != NO_PIECE_SET) {
+                    if (DoCheck) {
+                        std::cerr << "hostageExchange - Invalid syntax: " << map << std::endl;
+                    }
+                    return;
+                }
+            } else {
+                size_t idx2 = v->pieceToChar.find(toupper(token));
+                if (idx2 == std::string::npos) {
+                    if (DoCheck) {
+                        std::cerr << "hostageExchange - Invalid hostage piece type: " << token << std::endl;
+                    }
+                    return;
+                }
+                mask = mask | PieceType(idx2);
+            }
+        }
+        v->hostageExchange[idx] = mask;
+    }
+
 } // namespace
 
 template <bool DoCheck>
@@ -207,6 +259,7 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
                                   : std::is_same<T, MaterialCounting>() ? "MaterialCounting"
                                   : std::is_same<T, CountingRule>() ? "CountingRule"
                                   : std::is_same<T, ChasingRule>() ? "ChasingRule"
+                                  : std::is_same<T, CapturingRule>() ? "CapturingRule"
                                   : std::is_same<T, EnclosingRule>() ? "EnclosingRule"
                                   : std::is_same<T, Bitboard>() ? "Bitboard"
                                   : std::is_same<T, CastlingRights>() ? "CastlingRights"
@@ -453,7 +506,19 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("mustDropType", v->mustDropType, v->pieceToChar);
     parse_attribute("pieceDrops", v->pieceDrops);
     parse_attribute("dropLoop", v->dropLoop);
-    parse_attribute("capturesToHand", v->capturesToHand);
+
+    bool capturesToHand = false;
+    if (parse_attribute<false>("capturesToHand", capturesToHand)) {
+        v->captureType = capturesToHand ? HAND : MOVE_OUT;
+    }
+
+    parse_attribute("captureType", v->captureType);
+    // hostage price
+    const auto& it_host_p = config.find("hostageExchange");
+    if (it_host_p != config.end()) {
+        parse_hostage_exchanges(v, it_host_p->second, DoCheck);
+    }
+    parse_attribute("prisonPawnPromotion", v->prisonPawnPromotion);
     parse_attribute("firstRankPawnDrops", v->firstRankPawnDrops);
     parse_attribute("promotionZonePawnDrops", v->promotionZonePawnDrops);
     parse_attribute("enclosingDrop", v->enclosingDrop);

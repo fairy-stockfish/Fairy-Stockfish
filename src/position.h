@@ -168,6 +168,9 @@ public:
   bool captures_to_hand() const;
   bool first_rank_pawn_drops() const;
   bool can_drop(Color c, PieceType pt) const;
+  bool has_exchange() const;
+  PieceSet rescueFor(PieceType pt) const;
+  CapturingRule capture_type() const;
   EnclosingRule enclosing_drop() const;
   Bitboard drop_region(Color c) const;
   Bitboard drop_region(Color c, PieceType pt) const;
@@ -221,6 +224,8 @@ public:
   int count_in_hand(PieceType pt) const;
   int count_in_hand(Color c, PieceType pt) const;
   int count_with_hand(Color c, PieceType pt) const;
+  int count_in_prison(Color c, PieceType pt) const;
+  bool prison_pawn_promotion() const;
   bool bikjang() const;
   bool allow_virtual_drop(Color c, PieceType pt) const;
 
@@ -370,12 +375,17 @@ private:
   bool tsumeMode;
   bool chess960;
   int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+  int pieceCountInPrison[COLOR_NB][PIECE_TYPE_NB];
+  Bitboard pawnCannotCheckZone[COLOR_NB];
   int virtualPieces;
   Bitboard promotedPieces;
   void add_to_hand(Piece pc);
   void remove_from_hand(Piece pc);
-  void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
-  void undrop_piece(Piece pc_hand, Square s);
+  int add_to_prison(Piece pc);
+  int remove_from_prison(Piece pc);
+  void updatePawnCheckZone();
+  void drop_piece(Piece pc_hand, Piece pc_drop, Square s, PieceType exchange);
+  void undrop_piece(Piece pc_hand, Square s, PieceType exchange);
   Bitboard find_drop_region(Direction dir, Square s, Bitboard occupied) const;
 };
 
@@ -642,9 +652,14 @@ inline bool Position::drop_loop() const {
   return var->dropLoop;
 }
 
+inline CapturingRule Position::capture_type() const {
+  assert(var != nullptr);
+  return var->captureType;
+}
+
 inline bool Position::captures_to_hand() const {
   assert(var != nullptr);
-  return var->capturesToHand;
+  return var->captureType != MOVE_OUT;
 }
 
 inline bool Position::first_rank_pawn_drops() const {
@@ -1404,7 +1419,7 @@ inline Square Position::capture_square(Square to) const {
 
 inline bool Position::virtual_drop(Move m) const {
   assert(is_ok(m));
-  return type_of(m) == DROP && !can_drop(side_to_move(), in_hand_piece_type(m));
+  return type_of(m) == DROP && !can_drop(side_to_move(), in_hand_piece_type(m)) && exchange_piece(m) == NO_PIECE_TYPE;
 }
 
 inline Piece Position::captured_piece() const {
@@ -1490,6 +1505,14 @@ inline int Position::count_with_hand(Color c, PieceType pt) const {
   return pieceCount[make_piece(c, pt)] + pieceCountInHand[c][pt];
 }
 
+inline int Position::count_in_prison(Color c, PieceType pt) const {
+  return pieceCountInPrison[c][pt];
+}
+
+inline bool Position::prison_pawn_promotion() const {
+  return var->prisonPawnPromotion;
+}
+
 inline bool Position::bikjang() const {
   return st->bikjang;
 }
@@ -1552,23 +1575,61 @@ inline void Position::remove_from_hand(Piece pc) {
   psq -= PSQT::psq[pc][SQ_NONE];
 }
 
-inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s) {
-  assert(can_drop(color_of(pc_hand), type_of(pc_hand)) || var->twoBoards);
-  put_piece(pc_drop, s, pc_drop != pc_hand, pc_drop != pc_hand ? pc_hand : NO_PIECE);
-  remove_from_hand(pc_hand);
-  virtualPieces += (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
+inline int Position::add_to_prison(Piece pc) {
+  if (variant()->captureType != PRISON) return 0;
+  Color prison = ~color_of(pc);
+  int n = ++pieceCountInPrison[prison][type_of(pc)];
+  pieceCountInPrison[prison][ALL_PIECES]++;
+  return n;
 }
 
-inline void Position::undrop_piece(Piece pc_hand, Square s) {
-  virtualPieces -= (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
+inline int Position::remove_from_prison(Piece pc) {
+  if (variant()->captureType != PRISON) return 0;
+  Color prison = ~color_of(pc);
+  int n = --pieceCountInPrison[prison][type_of(pc)];
+  pieceCountInPrison[prison][ALL_PIECES]--;
+  return n;
+}
+
+inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s, PieceType exchange) {
+  assert(can_drop(color_of(pc_hand), type_of(pc_hand)) || var->twoBoards || exchange != NO_PIECE_TYPE);
+  put_piece(pc_drop, s, pc_drop != pc_hand, pc_drop != pc_hand ? pc_hand : NO_PIECE);
+  if (exchange) {
+    Piece ex = make_piece(~sideToMove, exchange);
+    add_to_hand(ex);
+    remove_from_prison(ex);
+    remove_from_prison(pc_drop);
+  } else {
+    remove_from_hand(pc_hand);
+    virtualPieces += (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
+  }
+}
+
+inline void Position::undrop_piece(Piece pc_hand, Square s, PieceType exchange) {
   remove_piece(s);
   board[s] = NO_PIECE;
-  add_to_hand(pc_hand);
-  assert(can_drop(color_of(pc_hand), type_of(pc_hand)) || var->twoBoards);
+  if (exchange) {
+    Piece ex = make_piece(~sideToMove, exchange);
+    remove_from_hand(ex);
+    add_to_prison(ex);
+    add_to_prison(pc_hand);
+  } else {
+    virtualPieces -= (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
+    add_to_hand(pc_hand);
+  }
+  assert(can_drop(color_of(pc_hand), type_of(pc_hand)) || var->twoBoards || exchange != NO_PIECE_TYPE);
 }
 
 inline bool Position::can_drop(Color c, PieceType pt) const {
   return variant()->freeDrops || count_in_hand(c, pt) > 0;
+}
+
+inline bool Position::has_exchange() const {
+  return count_in_prison(WHITE, ALL_PIECES) > 0 && count_in_prison(BLACK, ALL_PIECES) > 0;
+}
+
+inline PieceSet Position::rescueFor(PieceType pt) const {
+  return var->hostageExchange[pt];
 }
 
 } // namespace Stockfish

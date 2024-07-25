@@ -501,6 +501,14 @@ string UCI::dropped_piece(const Position& pos, Move m) {
       return std::string{pos.piece_to_char()[dropped_piece_type(m)]};
 }
 
+string UCI::exchange(const Position &pos, Move m) {
+  assert(type_of(m) == DROP);
+  if (exchange_piece(m) == NO_PIECE_TYPE) {
+      return std::string{};
+  }
+  assert(pos.capture_type() == PRISON);
+  return std::string{'#', pos.piece_to_char()[exchange_piece(m)]};
+}
 
 /// UCI::move() converts a Move to a string in coordinate notation (g1f3, a7a8q).
 /// The only special case is castling, where we print in the e1g1 notation in
@@ -531,8 +539,10 @@ string UCI::move(const Position& pos, Move m) {
           to = to_sq(m);
   }
 
-  string move = (type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (CurrentProtocol == USI ? '*' : '@')
-                                    : UCI::square(pos, from)) + UCI::square(pos, to);
+  string move = (type_of(m) == DROP
+          ? UCI::dropped_piece(pos, m) + UCI::exchange(pos, m) + (CurrentProtocol == USI ? '*' : '@')
+          : UCI::square(pos, from))
+                  + UCI::square(pos, to);
 
   // Wall square
   if (pos.walling() && CurrentProtocol == XBOARD)
