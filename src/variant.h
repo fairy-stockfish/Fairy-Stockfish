@@ -90,6 +90,7 @@ struct Variant {
   bool mustCapture = false;
   bool mustDrop = false;
   PieceType mustDropType = ALL_PIECES;
+  bool isPriorityDrop[PIECE_TYPE_NB] = {};
   bool pieceDrops = false;
   bool dropLoop = false;
   bool capturesToHand = false;

@@ -370,6 +370,7 @@ private:
   bool tsumeMode;
   bool chess960;
   int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+  int priorityDropCountInHand[COLOR_NB];
   int virtualPieces;
   Bitboard promotedPieces;
   void add_to_hand(Piece pc);
@@ -1542,6 +1543,7 @@ inline void Position::add_to_hand(Piece pc) {
   if (variant()->freeDrops) return;
   pieceCountInHand[color_of(pc)][type_of(pc)]++;
   pieceCountInHand[color_of(pc)][ALL_PIECES]++;
+  priorityDropCountInHand[color_of(pc)] += var->isPriorityDrop[type_of(pc)];
   psq += PSQT::psq[pc][SQ_NONE];
 }
 
@@ -1549,6 +1551,7 @@ inline void Position::remove_from_hand(Piece pc) {
   if (variant()->freeDrops) return;
   pieceCountInHand[color_of(pc)][type_of(pc)]--;
   pieceCountInHand[color_of(pc)][ALL_PIECES]--;
+  priorityDropCountInHand[color_of(pc)] -= var->isPriorityDrop[type_of(pc)];
   psq -= PSQT::psq[pc][SQ_NONE];
 }
 
