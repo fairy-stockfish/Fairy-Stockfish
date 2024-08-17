@@ -146,7 +146,7 @@ namespace Material {
 
 Entry* probe(const Position& pos) {
 
-  Key key = pos.material_key();
+  Key key = pos.material_key(pos.endgame_eval());
   Entry* e = pos.this_thread()->materialTable[key];
 
   if (e->key == key)
@@ -258,12 +258,14 @@ Entry* probe(const Position& pos) {
                                       npm_w <= BishopValueMg && pos.count<ALL_PIECES>(BLACK) <= 3 ? 4 : 14);
       break;
   case EG_EVAL_ATOMIC:
+  case EG_EVAL_MISERE:
       if ((e->evaluationFunction = Endgames::probe<Value>(key)) != nullptr)
           return e;
       break;
-  case EG_EVAL_MISERE:
   case NO_EG_EVAL:
       break;
+  case EG_EVAL_NB:
+      assert(false);
   }
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder

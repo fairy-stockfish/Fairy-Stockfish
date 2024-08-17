@@ -301,7 +301,7 @@ public:
   // Accessing hash keys
   Key key() const;
   Key key_after(Move m) const;
-  Key material_key() const;
+  Key material_key(EndgameEval e = EG_EVAL_CHESS) const;
   Key pawn_key() const;
 
   // Other properties of the position
@@ -509,7 +509,7 @@ inline PieceSet Position::mutually_immune_types() const {
 
 inline EndgameEval Position::endgame_eval() const {
   assert(var != nullptr);
-  return !count_in_hand(ALL_PIECES) && count<KING>() == 2 ? var->endgameEval : NO_EG_EVAL;
+  return !count_in_hand(ALL_PIECES) && (var->endgameEval != EG_EVAL_CHESS || count<KING>() == 2) ? var->endgameEval : NO_EG_EVAL;
 }
 
 inline Bitboard Position::double_step_region(Color c) const {
@@ -1324,10 +1324,6 @@ inline Key Position::key() const {
 
 inline Key Position::pawn_key() const {
   return st->pawnKey;
-}
-
-inline Key Position::material_key() const {
-  return st->materialKey;
 }
 
 inline Score Position::psq_score() const {

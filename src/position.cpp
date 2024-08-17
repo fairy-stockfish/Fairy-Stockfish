@@ -45,6 +45,7 @@ namespace Zobrist {
   Key inHand[PIECE_NB][SQUARE_NB];
   Key checks[COLOR_NB][CHECKS_NB];
   Key wall[SQUARE_NB];
+  Key endgame[EG_EVAL_NB];
 }
 
 
@@ -178,6 +179,9 @@ void Position::init() {
   for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       Zobrist::wall[s] = rng.rand<Key>();
 
+  for (int i = NO_EG_EVAL; i < EG_EVAL_NB; ++i)
+      Zobrist::endgame[i] = rng.rand<Key>();
+
   // Prepare the cuckoo tables
   std::memset(cuckoo, 0, sizeof(cuckoo));
   std::memset(cuckooMove, 0, sizeof(cuckooMove));
@@ -209,6 +213,10 @@ void Position::init() {
 #else
   assert(count == 3668);
 #endif
+}
+
+Key Position::material_key(EndgameEval e) const {
+  return st->materialKey ^ Zobrist::endgame[e];
 }
 
 
@@ -655,9 +663,7 @@ void Position::set_state(StateInfo* si) const {
 
 Position& Position::set(const string& code, Color c, StateInfo* si) {
 
-  assert(code[0] == 'K');
-
-  string sides[] = { code.substr(code.find('K', 1)),      // Weak
+  string sides[] = { code.substr(std::min(code.find('v') + 1, code.find('K', 1))),      // Weak
                      code.substr(0, std::min(code.find('v'), code.find('K', 1))) }; // Strong
 
   assert(sides[0].length() > 0 && sides[0].length() < 8);
@@ -665,9 +671,8 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
 
   std::transform(sides[c].begin(), sides[c].end(), sides[c].begin(), tolower);
 
-  string n = std::to_string(FILE_NB);
-  string fenStr =  n + "/" + sides[0] + char(FILE_NB - sides[0].length() + '0') + "/" + n + "/" + n + "/" + n + "/"
-                 + n + "/" + sides[1] + char(FILE_NB - sides[1].length() + '0') + "/" + n + " w - - 0 10";
+  string n = std::to_string(8);
+  string fenStr =  sides[0] + "///////" + sides[1] + " w - - 0 10";
 
   return set(variants.find("fairy")->second, fenStr, false, si, nullptr);
 }
@@ -1642,7 +1647,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^= Zobrist::psq[captured][capsq];
       st->materialKey ^= Zobrist::psq[captured][pieceCount[captured]];
 #ifndef NO_THREADS
-      prefetch(thisThread->materialTable[st->materialKey]);
+      prefetch(thisThread->materialTable[material_key(var->endgameEval)]);
 #endif
       // Reset rule 50 counter
       st->rule50 = 0;

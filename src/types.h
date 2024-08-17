@@ -319,7 +319,7 @@ enum WallingRule {
 };
 
 enum EndgameEval {
-  NO_EG_EVAL, EG_EVAL_CHESS, EG_EVAL_ATOMIC, EG_EVAL_MISERE
+  NO_EG_EVAL, EG_EVAL_CHESS, EG_EVAL_ATOMIC, EG_EVAL_MISERE, EG_EVAL_NB
 };
 
 enum OptBool {

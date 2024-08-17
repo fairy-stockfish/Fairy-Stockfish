@@ -97,6 +97,13 @@ namespace Endgames {
     add<KCKR>("KCKR");
     add<KAKR>("KAKR");
 
+    add<KPK, EG_EVAL_ATOMIC>("MPvM");
+    add<KNK, EG_EVAL_ATOMIC>("MNvM");
+    add<KBK, EG_EVAL_ATOMIC>("MBvM");
+    add<KRK, EG_EVAL_ATOMIC>("MRvM");
+    add<KQK, EG_EVAL_ATOMIC>("MQvM");
+    add<KNNK, EG_EVAL_ATOMIC>("MNNvM");
+
     add<KRPKB>("KRPKB");
     add<KBPKB>("KBPKB");
     add<KBPKN>("KBPKN");
@@ -989,11 +996,9 @@ template<>
 Value Endgame<KPK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
   assert(pos.endgame_eval() == EG_EVAL_ATOMIC);
-  assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
-  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
 
-  Square winnerKSq = pos.square<KING>(strongSide);
-  Square loserKSq = pos.square<KING>(weakSide);
+  Square winnerKSq = pos.square<COMMONER>(strongSide);
+  Square loserKSq = pos.square<COMMONER>(weakSide);
 
   int dist = distance(winnerKSq, loserKSq);
   // Draw in case of adjacent kings
@@ -1017,15 +1022,13 @@ template<>
 Value Endgame<KQK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
   assert(pos.endgame_eval() == EG_EVAL_ATOMIC);
-  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
-  assert(!pos.checkers()); // Eval is never called when in check
 
   // Stalemate detection with lone king
   if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
       return VALUE_DRAW;
 
-  Square winnerKSq = pos.square<KING>(strongSide);
-  Square loserKSq = pos.square<KING>(weakSide);
+  Square winnerKSq = pos.square<COMMONER>(strongSide);
+  Square loserKSq = pos.square<COMMONER>(weakSide);
 
   int dist = distance(winnerKSq, loserKSq);
   // Draw in case of adjacent kings

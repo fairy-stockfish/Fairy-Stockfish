@@ -140,6 +140,7 @@ namespace {
         v->add_piece(FERS, 'f');
         v->add_piece(ARCHBISHOP, 'a');
         v->add_piece(CHANCELLOR, 'c');
+        v->add_piece(COMMONER, 'm');
         return v;
     }
       // Raazuva (Maldivian Chess)
