@@ -94,6 +94,8 @@ namespace Endgames {
     add<KSFK>("KSFK");
     add<KSFKF>("KSFKF");
     add<KRKS>("KRKS");
+    add<KCKR>("KCKR");
+    add<KAKR>("KAKR");
 
     add<KRPKB>("KRPKB");
     add<KBPKB>("KBPKB");
@@ -313,6 +315,42 @@ Value Endgame<KQKR>::operator()(const Position& pos) const {
   Value result =  QueenValueEg
                 - RookValueEg
                 + push_to_edge(weakKing, pos)
+                + push_close(strongKing, weakKing);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+/// KC vs KR. Drawish, but good winning chances if king and rook are close.
+template<>
+Value Endgame<KCKR>::operator()(const Position& pos) const {
+
+  assert(verify_material(pos, strongSide, ChancellorValueMg, 0));
+  assert(verify_material(pos, weakSide, RookValueMg, 0));
+
+  Square strongKing = pos.square<KING>(strongSide);
+  Square weakKing = pos.square<KING>(weakSide);
+  Square weakRook = pos.square<ROOK>(weakSide);
+
+  Value result =  Value(push_to_edge(weakKing, pos))
+                + push_close(strongKing, weakKing)
+                + push_close(weakRook, weakKing);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+/// KA vs KR. Very drawish.
+template<>
+Value Endgame<KAKR>::operator()(const Position& pos) const {
+
+  assert(verify_material(pos, strongSide, ArchbishopValueEg, 0));
+  assert(verify_material(pos, weakSide, RookValueMg, 0));
+
+  Square strongKing = pos.square<KING>(strongSide);
+  Square weakKing = pos.square<KING>(weakSide);
+
+  Value result =  Value(push_to_edge(weakKing, pos))
                 + push_close(strongKing, weakKing);
 
   return strongSide == pos.side_to_move() ? result : -result;
@@ -944,5 +982,69 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
 
   return Bitbases::probe(strongKing, strongPawn, weakKing, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
 }
+
+
+/// Endgame evals for special variants
+template<>
+Value Endgame<KPK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
+
+  assert(pos.endgame_eval() == EG_EVAL_ATOMIC);
+  assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
+  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  int dist = distance(winnerKSq, loserKSq);
+  // Draw in case of adjacent kings
+  if (dist <= (strongSide == pos.side_to_move() ? 1 : 2))
+      return VALUE_DRAW;
+
+  Value result = PawnValueEg
+                + 20 * relative_rank(strongSide, pos.square<PAWN>(strongSide), pos.max_rank()) - 20
+                + push_away(winnerKSq, loserKSq);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+template<> Value Endgame<KNK, EG_EVAL_ATOMIC>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KBK, EG_EVAL_ATOMIC>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KRK, EG_EVAL_ATOMIC>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<>
+Value Endgame<KQK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
+
+  assert(pos.endgame_eval() == EG_EVAL_ATOMIC);
+  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
+  assert(!pos.checkers()); // Eval is never called when in check
+
+  // Stalemate detection with lone king
+  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
+      return VALUE_DRAW;
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  int dist = distance(winnerKSq, loserKSq);
+  // Draw in case of adjacent kings
+  // In the case of dist == 2, the square adjacent to both kings is ensured
+  // not be occupied by the queen, since eval is not called when in check.
+  if (dist <= (strongSide == pos.side_to_move() ? 1 : 2))
+      return VALUE_DRAW;
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + push_to_edge(loserKSq, pos)
+                + push_away(winnerKSq, loserKSq);
+
+  if (dist >= (strongSide == pos.side_to_move() ? 3 : 4))
+      result += VALUE_KNOWN_WIN;
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+template<> Value Endgame<KNNK, EG_EVAL_ATOMIC>::operator()(const Position&) const { return VALUE_DRAW; }
+
 
 } // namespace Stockfish

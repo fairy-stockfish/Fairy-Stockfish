@@ -142,7 +142,7 @@ public:
   bool blast_on_capture() const;
   PieceSet blast_immune_types() const;
   PieceSet mutually_immune_types() const;
-  bool endgame_eval() const;
+  EndgameEval endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
   bool castling_enabled() const;
@@ -507,9 +507,9 @@ inline PieceSet Position::mutually_immune_types() const {
   return var->mutuallyImmuneTypes;
 }
 
-inline bool Position::endgame_eval() const {
+inline EndgameEval Position::endgame_eval() const {
   assert(var != nullptr);
-  return var->endgameEval && !count_in_hand(ALL_PIECES) && count<KING>() == 2;
+  return !count_in_hand(ALL_PIECES) && count<KING>() == 2 ? var->endgameEval : NO_EG_EVAL;
 }
 
 inline Bitboard Position::double_step_region(Color c) const {

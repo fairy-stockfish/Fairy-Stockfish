@@ -176,83 +176,94 @@ Entry* probe(const Position& pos) {
   else
       e->gamePhase = Phase(((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
 
-  if (pos.endgame_eval())
+  switch (pos.endgame_eval())
   {
-  // Let's look if we have a specialized evaluation function for this particular
-  // material configuration. Firstly we look for a fixed configuration one, then
-  // for a generic one if the previous search failed.
-  if ((e->evaluationFunction = Endgames::probe<Value>(key)) != nullptr)
-      return e;
-
-  for (Color c : { WHITE, BLACK })
-      if (is_KFsPsK(pos, c))
-      {
-          e->evaluationFunction = &EvaluateKFsPsK[c];
+  case EG_EVAL_CHESS:
+      // Let's look if we have a specialized evaluation function for this particular
+      // material configuration. Firstly we look for a fixed configuration one, then
+      // for a generic one if the previous search failed.
+      if ((e->evaluationFunction = Endgames::probe<Value>(key)) != nullptr)
           return e;
+
+      for (Color c : { WHITE, BLACK })
+          if (is_KFsPsK(pos, c))
+          {
+              e->evaluationFunction = &EvaluateKFsPsK[c];
+              return e;
+          }
+
+      for (Color c : { WHITE, BLACK })
+          if (is_KXK(pos, c))
+          {
+              e->evaluationFunction = &EvaluateKXK[c];
+              return e;
+          }
+
+      // OK, we didn't find any special evaluation function for the current material
+      // configuration. Is there a suitable specialized scaling function?
+      {
+          const auto* sf = Endgames::probe<ScaleFactor>(key);
+
+          if (sf)
+          {
+              e->scalingFunction[sf->strongSide] = sf; // Only strong color assigned
+              return e;
+          }
       }
 
-  for (Color c : { WHITE, BLACK })
-      if (is_KXK(pos, c))
+      // We didn't find any specialized scaling function, so fall back on generic
+      // ones that refer to more than one material distribution. Note that in this
+      // case we don't return after setting the function.
+      for (Color c : { WHITE, BLACK })
       {
-          e->evaluationFunction = &EvaluateKXK[c];
+          if (is_KBPsK(pos, c))
+              e->scalingFunction[c] = &ScaleKBPsK[c];
+
+          else if (is_KQKRPs(pos, c))
+              e->scalingFunction[c] = &ScaleKQKRPs[c];
+      }
+
+      if (npm_w + npm_b == VALUE_ZERO && pos.pieces(PAWN)) // Only pawns on the board
+      {
+          if (!pos.count<PAWN>(BLACK))
+          {
+              assert(pos.count<PAWN>(WHITE) >= 2);
+
+              e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
+          }
+          else if (!pos.count<PAWN>(WHITE))
+          {
+              assert(pos.count<PAWN>(BLACK) >= 2);
+
+              e->scalingFunction[BLACK] = &ScaleKPsK[BLACK];
+          }
+          else if (pos.count<PAWN>(WHITE) == 1 && pos.count<PAWN>(BLACK) == 1)
+          {
+              // This is a special case because we set scaling functions
+              // for both colors instead of only one.
+              e->scalingFunction[WHITE] = &ScaleKPKP[WHITE];
+              e->scalingFunction[BLACK] = &ScaleKPKP[BLACK];
+          }
+      }
+
+      // Zero or just one pawn makes it difficult to win, even with a small material
+      // advantage. This catches some trivial draws like KK, KBK and KNK and gives a
+      // drawish scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
+      if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
+          e->factor[WHITE] = uint8_t(npm_w <  RookValueMg && pos.count<ALL_PIECES>(WHITE) <= 2 ? SCALE_FACTOR_DRAW :
+                                      npm_b <= BishopValueMg && pos.count<ALL_PIECES>(WHITE) <= 3 ? 4 : 14);
+
+      if (!pos.count<PAWN>(BLACK) && npm_b - npm_w <= BishopValueMg)
+          e->factor[BLACK] = uint8_t(npm_b <  RookValueMg && pos.count<ALL_PIECES>(BLACK) <= 2 ? SCALE_FACTOR_DRAW :
+                                      npm_w <= BishopValueMg && pos.count<ALL_PIECES>(BLACK) <= 3 ? 4 : 14);
+      break;
+  case EG_EVAL_ATOMIC:
+      if ((e->evaluationFunction = Endgames::probe<Value>(key)) != nullptr)
           return e;
-      }
-
-  // OK, we didn't find any special evaluation function for the current material
-  // configuration. Is there a suitable specialized scaling function?
-  const auto* sf = Endgames::probe<ScaleFactor>(key);
-
-  if (sf)
-  {
-      e->scalingFunction[sf->strongSide] = sf; // Only strong color assigned
-      return e;
-  }
-
-  // We didn't find any specialized scaling function, so fall back on generic
-  // ones that refer to more than one material distribution. Note that in this
-  // case we don't return after setting the function.
-  for (Color c : { WHITE, BLACK })
-  {
-    if (is_KBPsK(pos, c))
-        e->scalingFunction[c] = &ScaleKBPsK[c];
-
-    else if (is_KQKRPs(pos, c))
-        e->scalingFunction[c] = &ScaleKQKRPs[c];
-  }
-
-  if (npm_w + npm_b == VALUE_ZERO && pos.pieces(PAWN)) // Only pawns on the board
-  {
-      if (!pos.count<PAWN>(BLACK))
-      {
-          assert(pos.count<PAWN>(WHITE) >= 2);
-
-          e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
-      }
-      else if (!pos.count<PAWN>(WHITE))
-      {
-          assert(pos.count<PAWN>(BLACK) >= 2);
-
-          e->scalingFunction[BLACK] = &ScaleKPsK[BLACK];
-      }
-      else if (pos.count<PAWN>(WHITE) == 1 && pos.count<PAWN>(BLACK) == 1)
-      {
-          // This is a special case because we set scaling functions
-          // for both colors instead of only one.
-          e->scalingFunction[WHITE] = &ScaleKPKP[WHITE];
-          e->scalingFunction[BLACK] = &ScaleKPKP[BLACK];
-      }
-  }
-
-  // Zero or just one pawn makes it difficult to win, even with a small material
-  // advantage. This catches some trivial draws like KK, KBK and KNK and gives a
-  // drawish scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
-  if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
-      e->factor[WHITE] = uint8_t(npm_w <  RookValueMg && pos.count<ALL_PIECES>(WHITE) <= 2 ? SCALE_FACTOR_DRAW :
-                                 npm_b <= BishopValueMg && pos.count<ALL_PIECES>(WHITE) <= 3 ? 4 : 14);
-
-  if (!pos.count<PAWN>(BLACK) && npm_b - npm_w <= BishopValueMg)
-      e->factor[BLACK] = uint8_t(npm_b <  RookValueMg && pos.count<ALL_PIECES>(BLACK) <= 2 ? SCALE_FACTOR_DRAW :
-                                 npm_w <= BishopValueMg && pos.count<ALL_PIECES>(BLACK) <= 3 ? 4 : 14);
+      break;
+  case EG_EVAL_MISERE:
+  case NO_EG_EVAL:
+      break;
   }
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder

@@ -138,6 +138,8 @@ namespace {
         Variant* v = chess_variant_base()->init();
         v->add_piece(SILVER, 's');
         v->add_piece(FERS, 'f');
+        v->add_piece(ARCHBISHOP, 'a');
+        v->add_piece(CHANCELLOR, 'c');
         return v;
     }
       // Raazuva (Maldivian Chess)
@@ -493,6 +495,7 @@ namespace {
     Variant* atomic_variant() {
         Variant* v = nocheckatomic_variant()->init();
         v->extinctionPseudoRoyal = true;
+        v->endgameEval = EG_EVAL_ATOMIC;
         return v;
     }
 
@@ -2027,21 +2030,26 @@ Variant* Variant::conclude() {
 
     // For endgame evaluation to be applicable, no special win rules must apply.
     // Furthermore, rules significantly changing game mechanics also invalidate it.
-    endgameEval = extinctionValue == VALUE_NONE
-                  && checkmateValue == -VALUE_MATE
-                  && stalemateValue == VALUE_DRAW
-                  && !materialCounting
-                  && !(flagRegion[WHITE] || flagRegion[BLACK])
-                  && !mustCapture
-                  && !checkCounting
-                  && !makpongRule
-                  && !connectN
-                  && !blastOnCapture
-                  && !petrifyOnCaptureTypes
-                  && !capturesToHand
-                  && !twoBoards
-                  && !restrictedMobility
-                  && kingType == KING;
+    endgameEval =  endgameEval != EG_EVAL_CHESS
+                 ||
+                   (   endgameEval == EG_EVAL_CHESS
+                    && extinctionValue == VALUE_NONE
+                    && checkmateValue == -VALUE_MATE
+                    && stalemateValue == VALUE_DRAW
+                    && !materialCounting
+                    && !(flagRegion[WHITE] || flagRegion[BLACK])
+                    && !mustCapture
+                    && !checkCounting
+                    && !makpongRule
+                    && !connectN
+                    && !blastOnCapture
+                    && !petrifyOnCaptureTypes
+                    && !capturesToHand
+                    && !twoBoards
+                    && !restrictedMobility
+                    && kingType == KING
+                   )
+                 ? endgameEval : NO_EG_EVAL;
 
     shogiStylePromotions = false;
     for (PieceType current: promotedPieceType)

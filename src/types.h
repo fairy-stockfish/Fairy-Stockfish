@@ -318,6 +318,10 @@ enum WallingRule {
   NO_WALLING, ARROW, DUCK, EDGE, PAST, STATIC
 };
 
+enum EndgameEval {
+  NO_EG_EVAL, EG_EVAL_CHESS, EG_EVAL_ATOMIC, EG_EVAL_MISERE
+};
+
 enum OptBool {
   NO_VALUE, VALUE_FALSE, VALUE_TRUE
 };
