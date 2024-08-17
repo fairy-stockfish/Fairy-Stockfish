@@ -58,6 +58,10 @@ enum EndgameCode {
   KAKR,  // KA vs KR
 
   // Special
+  KXKX,
+  RK,
+  KN,
+  NN,
   KQK,
   KRK,
   KBK,

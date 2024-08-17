@@ -360,6 +360,15 @@ namespace {
         v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP;
         return v;
     }
+    // Misere chess
+    // Get checkmated to win.
+    // Variant used to run some selfmate analysis http://www.kotesovec.cz/gustav/gustav_alybadix.htm
+    Variant* misere_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->checkmateValue = VALUE_MATE;
+        v->endgameEval = EG_EVAL_MISERE;
+        return v;
+    }
     // Losers chess
     // https://www.chessclub.com/help/Wild17
     Variant* losers_variant() {
@@ -388,6 +397,7 @@ namespace {
         v->extinctionPieceTypes = piece_set(ALL_PIECES);
         v->mustCapture = true;
         v->nnueAlias = "antichess";
+        v->endgameEval = EG_EVAL_ANTI;
         return v;
     }
     // Antichess
@@ -396,6 +406,7 @@ namespace {
         Variant* v = giveaway_variant()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
         v->castling = false;
+        v->endgameEval = EG_EVAL_ANTI;
         return v;
     }
     // Suicide chess
@@ -405,6 +416,7 @@ namespace {
         Variant* v = antichess_variant()->init();
         v->stalematePieceCount = true;
         v->nnueAlias = "antichess";
+        v->endgameEval = EG_EVAL_ANTI;
         return v;
     }
     // Codrus
@@ -1823,6 +1835,7 @@ void VariantMap::init() {
     add("kingofthehill", kingofthehill_variant());
     add("racingkings", racingkings_variant());
     add("knightmate", knightmate_variant());
+    add("misere", misere_variant());
     add("losers", losers_variant());
     add("giveaway", giveaway_variant());
     add("antichess", antichess_variant());

@@ -97,6 +97,12 @@ namespace Endgames {
     add<KCKR>("KCKR");
     add<KAKR>("KAKR");
 
+    // Anti
+    add<RK, EG_EVAL_ANTI>("RvM");
+    add<KN, EG_EVAL_ANTI>("MvN");
+    add<NN, EG_EVAL_ANTI>("NvN");
+
+    // Atomic
     add<KPK, EG_EVAL_ATOMIC>("MPvM");
     add<KNK, EG_EVAL_ATOMIC>("MNvM");
     add<KBK, EG_EVAL_ATOMIC>("MBvM");
@@ -992,6 +998,67 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
 
 
 /// Endgame evals for special variants
+/// R vs K. The rook side always wins if there is no immediate forced capture.
+template<>
+Value Endgame<RK, EG_EVAL_ANTI>::operator()(const Position& pos) const {
+
+  assert(pos.endgame_eval() == EG_EVAL_ANTI);
+
+  Square RSq = pos.square<ROOK>(strongSide);
+  Square KSq = pos.square<COMMONER>(weakSide);
+
+  Value result = Value(push_to_edge(KSq, pos)) + push_close(RSq, KSq);
+
+  int dist_min = std::min(distance<Rank>(RSq, KSq), distance<File>(RSq, KSq));
+  int dist_max = std::max(distance<Rank>(RSq, KSq), distance<File>(RSq, KSq));
+
+  if (dist_min == 0)
+      result += strongSide == pos.side_to_move() || dist_max > 1 ? -VALUE_KNOWN_WIN : VALUE_KNOWN_WIN;
+  else if (dist_min == 1)
+      result += weakSide == pos.side_to_move() && dist_max > 1 ? -VALUE_KNOWN_WIN : VALUE_KNOWN_WIN;
+  else
+      result += VALUE_KNOWN_WIN;
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+/// K vs N. The king usally wins, but there are a few exceptions.
+template<>
+Value Endgame<KN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
+
+  assert(pos.endgame_eval() == EG_EVAL_ANTI);
+
+  Square KSq = pos.square<COMMONER>(strongSide);
+  Square NSq = pos.square<KNIGHT>(weakSide);
+
+  // wins for knight
+  if (pos.side_to_move() == strongSide && (attacks_bb<KNIGHT>(NSq) & KSq))
+      return -VALUE_KNOWN_WIN;
+  if (pos.side_to_move() == weakSide && (attacks_bb<KNIGHT>(NSq) & attacks_bb<KING>(KSq)))
+      return VALUE_KNOWN_WIN;
+
+  Value result = VALUE_KNOWN_WIN + push_to_edge(NSq, pos) - push_to_edge(KSq, pos);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+/// N vs N. The side to move always wins/loses if the knights are on
+/// same/opposite colored squares.
+template<>
+Value Endgame<NN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
+
+  assert(pos.endgame_eval() == EG_EVAL_ANTI);
+
+  Square N1Sq = pos.square<KNIGHT>(pos.side_to_move());
+  Square N2Sq = pos.square<KNIGHT>(~pos.side_to_move());
+
+  Value result = VALUE_KNOWN_WIN + push_close(N1Sq, N2Sq);
+
+  return !opposite_colors(N1Sq, N2Sq) ? result : -result;
+}
+
+
 template<>
 Value Endgame<KPK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
@@ -1049,5 +1116,38 @@ Value Endgame<KQK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
 template<> Value Endgame<KNNK, EG_EVAL_ATOMIC>::operator()(const Position&) const { return VALUE_DRAW; }
 
+
+/// Self-mate with KX vs KX.
+template<>
+Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
+
+  assert(!pos.checkers()); // Eval is never called when in check
+
+  // Stalemate detection with lone king
+  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
+      return VALUE_DRAW;
+
+  Square strongKing = pos.square<KING>(strongSide);
+  Square weakKing   = pos.square<KING>(weakSide);
+
+  Value result =  pos.non_pawn_material(strongSide) * int(VALUE_KNOWN_WIN) / int(VALUE_KNOWN_WIN + pos.non_pawn_material(strongSide))
+                - pos.non_pawn_material(weakSide)
+                + pos.count<PAWN>(weakSide) * PawnValueEg
+                + push_to_opposing_edge(relative_square(weakSide, strongKing, pos.max_rank()), pos) * 2
+                + push_close(strongKing, weakKing) * 2;
+
+  for (Bitboard b = pos.pieces(PAWN); b;)
+  {
+      Square s = pop_lsb(b);
+      result += (push_close(strongKing, s) + push_close(weakKing, s)) / 2;
+  }
+
+  if (!pos.count<PAWN>(weakSide))
+      result = VALUE_DRAW;
+  else if (pos.count<PAWN>(weakSide) == 1)
+      result = result / 2;
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
 
 } // namespace Stockfish
