@@ -61,7 +61,9 @@ namespace {
   // the function maps because they correspond to more than one material hash key.
   Endgame<KFsPsK> EvaluateKFsPsK[] = { Endgame<KFsPsK>(WHITE), Endgame<KFsPsK>(BLACK) };
   Endgame<KXK>    EvaluateKXK[] = { Endgame<KXK>(WHITE),    Endgame<KXK>(BLACK) };
-  Endgame<KXKX, EG_EVAL_MISERE>  EvaluateKXKX[] = { Endgame<KXKX, EG_EVAL_MISERE>(WHITE), Endgame<KXKX, EG_EVAL_MISERE>(BLACK) };
+  Endgame<KXK, EG_EVAL_ATOMIC> EvaluateKXKAtomic[] = { Endgame<KXK, EG_EVAL_ATOMIC>(WHITE), Endgame<KXK, EG_EVAL_ATOMIC>(BLACK) };
+  Endgame<KXK, EG_EVAL_DUCK> EvaluateKXKDuck[] = { Endgame<KXK, EG_EVAL_DUCK>(WHITE), Endgame<KXK, EG_EVAL_DUCK>(BLACK) };
+  Endgame<KXKX, EG_EVAL_MISERE> EvaluateKXKXMisere[] = { Endgame<KXKX, EG_EVAL_MISERE>(WHITE), Endgame<KXKX, EG_EVAL_MISERE>(BLACK) };
 
   Endgame<KBPsK>  ScaleKBPsK[]  = { Endgame<KBPsK>(WHITE),  Endgame<KBPsK>(BLACK) };
   Endgame<KQKRPs> ScaleKQKRPs[] = { Endgame<KQKRPs>(WHITE), Endgame<KQKRPs>(BLACK) };
@@ -79,6 +81,11 @@ namespace {
   bool is_KXK(const Position& pos, Color us) {
     return  !more_than_one(pos.pieces(~us))
           && pos.non_pawn_material(us) >= std::min(RookValueMg, 2 * SilverValueMg);
+  }
+
+  bool is_KXK_atomic(const Position& pos, Color us) {
+    return  !more_than_one(pos.pieces(~us))
+          && pos.non_pawn_material(us) >= RookValueMg + KnightValueMg;
   }
 
   bool is_KXKX(const Position& pos, Color us) {
@@ -181,15 +188,15 @@ Entry* probe(const Position& pos) {
   else
       e->gamePhase = Phase(((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
 
+  // Let's look if we have a specialized evaluation function for this particular
+  // material configuration. Firstly we look for a fixed configuration one, then
+  // for a generic one if the previous search failed.
+  if (pos.endgame_eval() && (e->evaluationFunction = Endgames::probe<Value>(key)) != nullptr)
+      return e;
+
   switch (pos.endgame_eval())
   {
   case EG_EVAL_CHESS:
-      // Let's look if we have a specialized evaluation function for this particular
-      // material configuration. Firstly we look for a fixed configuration one, then
-      // for a generic one if the previous search failed.
-      if ((e->evaluationFunction = Endgames::probe<Value>(key)) != nullptr)
-          return e;
-
       for (Color c : { WHITE, BLACK })
           if (is_KFsPsK(pos, c))
           {
@@ -263,15 +270,28 @@ Entry* probe(const Position& pos) {
                                       npm_w <= BishopValueMg && pos.count<ALL_PIECES>(BLACK) <= 3 ? 4 : 14);
       break;
   case EG_EVAL_ANTI:
+      break;
   case EG_EVAL_ATOMIC:
-      if ((e->evaluationFunction = Endgames::probe<Value>(key)) != nullptr)
-          return e;
+      for (Color c : { WHITE, BLACK })
+          if (is_KXK_atomic(pos, c))
+          {
+              e->evaluationFunction = &EvaluateKXKAtomic[c];
+              return e;
+          }
+      break;
+  case EG_EVAL_DUCK:
+      for (Color c : { WHITE, BLACK })
+          if (is_KXK(pos, c))
+          {
+              e->evaluationFunction = &EvaluateKXKDuck[c];
+              return e;
+          }
       break;
   case EG_EVAL_MISERE:
       for (Color c : { WHITE, BLACK })
           if (is_KXKX(pos, c))
           {
-              e->evaluationFunction = &EvaluateKXKX[c];
+              e->evaluationFunction = &EvaluateKXKXMisere[c];
               return e;
           }
       break;

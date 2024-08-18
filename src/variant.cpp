@@ -533,6 +533,7 @@ namespace {
         v->extinctionPieceTypes = piece_set(COMMONER);
         v->wallingRule = DUCK;
         v->stalemateValue = VALUE_MATE;
+        v->endgameEval = EG_EVAL_DUCK;
         return v;
     }
 #endif

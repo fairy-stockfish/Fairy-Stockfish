@@ -110,6 +110,11 @@ namespace Endgames {
     add<KQK, EG_EVAL_ATOMIC>("MQvM");
     add<KNNK, EG_EVAL_ATOMIC>("MNNvM");
 
+    // Duck
+    add<KBK, EG_EVAL_DUCK>("MBvM");
+    add<KNK, EG_EVAL_DUCK>("MNvM");
+    add<KPK, EG_EVAL_DUCK>("MPvM");
+
     add<KRPKB>("KRPKB");
     add<KBPKB>("KBPKB");
     add<KBPKN>("KBPKN");
@@ -1060,6 +1065,33 @@ Value Endgame<NN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
 
 
 template<>
+Value Endgame<KXK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
+
+  assert(pos.endgame_eval() == EG_EVAL_ATOMIC);
+
+  // Stalemate detection with lone king
+  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
+      return VALUE_DRAW;
+
+  Square winnerKSq = pos.square<COMMONER>(strongSide);
+  Square loserKSq = pos.square<COMMONER>(weakSide);
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + pos.count<PAWN>(strongSide) * PawnValueEg
+                + push_to_edge(loserKSq, pos)
+                + push_away(winnerKSq, loserKSq);
+
+  // We need at least a major and a minor, or three minors to force checkmate
+  if (  ((pos.count<QUEEN>(strongSide) || pos.count<ROOK>(strongSide)) && pos.count<ALL_PIECES>(strongSide) >= 3)
+      || (pos.count<BISHOP>(strongSide) + pos.count<KNIGHT>(strongSide) >= 3
+         && (pos.count<KNIGHT>(strongSide) >= 2 || ((pos.pieces(strongSide, BISHOP) & DarkSquares)
+                                                    && (pos.pieces(strongSide, BISHOP) & ~DarkSquares)))))
+      result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+template<>
 Value Endgame<KPK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
   assert(pos.endgame_eval() == EG_EVAL_ATOMIC);
@@ -1146,6 +1178,75 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
       result = VALUE_DRAW;
   else if (pos.count<PAWN>(weakSide) == 1)
       result = result / 2;
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+/// Mate with KX vs K. This function is used to evaluate positions with
+/// king and plenty of material vs a lone king. It simply gives the
+/// attacking side a bonus for driving the defending king towards the edge
+/// of the board, and for keeping the distance between the two kings small.
+template<>
+Value Endgame<KXK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
+
+  Square strongKing = pos.square<COMMONER>(strongSide);
+  Square weakKing   = pos.square<COMMONER>(weakSide);
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + pos.count<PAWN>(strongSide) * PawnValueEg
+                + push_to_edge(weakKing, pos)
+                + push_close(strongKing, weakKing);
+
+  result = std::min(result + VALUE_KNOWN_WIN, VALUE_TB_WIN_IN_MAX_PLY - 1);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+// Drawish, but king should stay away from the edge
+template<>
+Value Endgame<KNK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
+
+  Square strongKing = pos.square<COMMONER>(strongSide);
+  Square weakKing   = pos.square<COMMONER>(weakSide);
+
+  Value result =  Value(push_to_edge(weakKing, pos))
+                + push_close(strongKing, weakKing);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+// Drawish, but king should stay away from the edge
+template<>
+Value Endgame<KBK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
+
+  Square strongKing = pos.square<COMMONER>(strongSide);
+  Square weakKing   = pos.square<COMMONER>(weakSide);
+
+  Value result =  Value(push_to_edge(weakKing, pos))
+                + push_close(strongKing, weakKing);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+// Winning as long as pawn is safe
+template<>
+Value Endgame<KPK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
+
+  Square strongKing = pos.square<COMMONER>(strongSide);
+  Square weakKing   = pos.square<COMMONER>(weakSide);
+  Square strongPawn = pos.square<PAWN>(strongSide);
+
+  Value result =  PawnValueEg + 10 * relative_rank(strongSide, strongPawn, pos.max_rank())
+                + push_to_edge(weakKing, pos)
+                + push_close(strongKing, weakKing);
+
+  // Pawn can be protected
+  if (distance(strongKing, strongPawn) < distance(weakKing, strongPawn))
+      result += VALUE_KNOWN_WIN;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
