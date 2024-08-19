@@ -362,7 +362,7 @@ Value Endgame<KCKR>::operator()(const Position& pos) const {
 template<>
 Value Endgame<KAKR>::operator()(const Position& pos) const {
 
-  assert(verify_material(pos, strongSide, ArchbishopValueEg, 0));
+  assert(verify_material(pos, strongSide, ArchbishopValueMg, 0));
   assert(verify_material(pos, weakSide, RookValueMg, 0));
 
   Square strongKing = pos.square<KING>(strongSide);
