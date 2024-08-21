@@ -1240,13 +1240,11 @@ Value Endgame<KPK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
   Square weakKing   = pos.square<COMMONER>(weakSide);
   Square strongPawn = pos.square<PAWN>(strongSide);
 
-  Value result =  PawnValueEg + 10 * relative_rank(strongSide, strongPawn, pos.max_rank())
+  Value result =  PawnValueEg + 50 * relative_rank(strongSide, strongPawn, pos.max_rank())
                 + push_to_edge(weakKing, pos)
-                + push_close(strongKing, weakKing);
-
-  // Pawn can be protected
-  if (distance(strongKing, strongPawn) < distance(weakKing, strongPawn))
-      result += VALUE_KNOWN_WIN;
+                + push_close(strongKing, weakKing)
+                + push_close(strongKing, strongPawn) / 2
+                + push_away(weakKing, strongPawn) / 2;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
