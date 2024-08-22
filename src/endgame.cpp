@@ -115,6 +115,11 @@ namespace Endgames {
     add<KNK, EG_EVAL_DUCK>("MNvM");
     add<KPK, EG_EVAL_DUCK>("MPvM");
 
+    // Racing kings
+    add<KQK, EG_EVAL_RK>("KQK");
+    add<KRK, EG_EVAL_RK>("KRK");
+    add<KK, EG_EVAL_RK>("KK");
+
     add<KRPKB>("KRPKB");
     add<KBPKB>("KBPKB");
     add<KBPKN>("KBPKN");
@@ -1204,7 +1209,7 @@ Value Endgame<KXK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
 }
 
 
-// Drawish, but king should stay away from the edge
+/// Drawish, but king should stay away from the edge
 template<>
 Value Endgame<KNK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
 
@@ -1218,7 +1223,7 @@ Value Endgame<KNK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
 }
 
 
-// Drawish, but king should stay away from the edge
+/// Drawish, but king should stay away from the edge
 template<>
 Value Endgame<KBK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
 
@@ -1232,7 +1237,7 @@ Value Endgame<KBK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
 }
 
 
-// Winning as long as pawn is safe
+/// Winning as long as pawn is safe
 template<>
 Value Endgame<KPK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
 
@@ -1247,6 +1252,59 @@ Value Endgame<KPK, EG_EVAL_DUCK>::operator()(const Position& pos) const {
                 + push_away(weakKing, strongPawn) / 2;
 
   return strongSide == pos.side_to_move() ? result : -result;
+}
+
+/// Winning as long as last rank can be blocked
+template<>
+Value Endgame<KQK, EG_EVAL_RK>::operator()(const Position& pos) const {
+
+  Square strongKing  = pos.square<KING>(strongSide);
+  Square weakKing    = pos.square<KING>(weakSide);
+  Square strongQueen = pos.square<QUEEN>(strongSide);
+
+  Value result;
+
+  if (   rank_of(weakKing) < rank_of(strongQueen)
+      || rank_of(weakKing) + (weakSide == pos.side_to_move()) < RANK_7
+      || (Rank8BB & attacks_bb<QUEEN>(strongQueen, pos.pieces()) & ~(attacks_bb<QUEEN>(weakKing) | attacks_bb<SHOGI_KNIGHT>(weakKing))))
+      result = VALUE_KNOWN_WIN + 100 * rank_of(strongKing);
+  else
+      result = -VALUE_KNOWN_WIN;
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+/// Winning as long as last rank can be blocked
+template<>
+Value Endgame<KRK, EG_EVAL_RK>::operator()(const Position& pos) const {
+
+  Square strongKing = pos.square<KING>(strongSide);
+  Square weakKing   = pos.square<KING>(weakSide);
+  Square strongRook = pos.square<ROOK>(strongSide);
+
+  Value result;
+
+  if (   rank_of(weakKing) < rank_of(strongRook)
+      || rank_of(weakKing) + (weakSide == pos.side_to_move()) < RANK_7
+      || (Rank8BB & attacks_bb<ROOK>(strongRook, pos.pieces()) & ~(attacks_bb<QUEEN>(weakKing) | attacks_bb<SHOGI_KNIGHT>(weakKing))))
+      result = VALUE_KNOWN_WIN + 100 * rank_of(strongKing);
+  else
+      result = -VALUE_KNOWN_WIN;
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+/// KvK. Pure race
+template<>
+Value Endgame<KK, EG_EVAL_RK>::operator()(const Position& pos) const {
+
+  Square whiteKing = pos.square<KING>(WHITE);
+  Square blackKing = pos.square<KING>(BLACK);
+
+  Value result = (VALUE_KNOWN_WIN + 100 * std::max(rank_of(whiteKing), rank_of(blackKing)))
+                * std::clamp(rank_of(whiteKing) - rank_of(blackKing) - (pos.side_to_move() == BLACK), -1, 1);
+
+  return pos.side_to_move() == WHITE ? result : -result;
 }
 
 } // namespace Stockfish

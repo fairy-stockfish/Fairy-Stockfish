@@ -345,6 +345,7 @@ namespace {
         v->flagMove = true;
         v->castling = false;
         v->checking = false;
+        v->endgameEval = EG_EVAL_RK;
         return v;
     }
     // Knightmate
