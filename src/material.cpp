@@ -295,9 +295,11 @@ Entry* probe(const Position& pos) {
               return e;
           }
       break;
+  case EG_EVAL_RK:
+      break;
   case NO_EG_EVAL:
       break;
-  case EG_EVAL_NB:
+  default:
       assert(false);
   }
 
