@@ -152,14 +152,25 @@ constexpr Score PBonus[RANK_NB][FILE_NB] =
    { S( -7, -1), S(  6,-14), S( -2, 13), S(-11, 22), S(  4, 24), S(-14, 17), S( 10,  7), S( -9,  7) }
   };
 
+
+// Scale down slider value based on distance
+int slider_fraction(std::map<Direction, int> slider) {
+    int s = 0;
+    for (auto const& [_, limit] : slider) {
+        s += limit == 0 ? 100 : 200 * std::min(limit + 1, 8) / 16;
+    }
+    return s;
+}
+
+
 // Estimate piece value
 Value piece_value(Phase phase, PieceType pt)
 {
     const PieceInfo* pi = pieceMap.find(pt)->second;
     int v0 =  (phase == MG ?  60 :  60) * pi->steps[0][MODALITY_CAPTURE].size()
             + (phase == MG ?  30 :  40) * pi->steps[0][MODALITY_QUIET].size()
-            + (phase == MG ? 185 : 185) * pi->slider[0][MODALITY_CAPTURE].size()
-            + (phase == MG ?  55 :  45) * pi->slider[0][MODALITY_QUIET].size()
+            + (phase == MG ? 185 : 185) * slider_fraction(pi->slider[0][MODALITY_CAPTURE]) / 100
+            + (phase == MG ?  55 :  45) * slider_fraction(pi->slider[0][MODALITY_QUIET]) / 100
             // Hoppers are more useful with more pieces on the board
             + (phase == MG ? 100 :  80) * pi->hopper[0][MODALITY_CAPTURE].size()
             + (phase == MG ?  85 :  60) * pi->hopper[0][MODALITY_QUIET].size()
