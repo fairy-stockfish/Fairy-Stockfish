@@ -294,6 +294,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       else if (token == '/')
       {
           sq = SQ_A1 + --r * NORTH;
+          mirror = false;
           if (!is_ok(sq))
               break;
       }
@@ -302,16 +303,17 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       else if (token == '[')
           break;
 
-      else if (var->mirrorBoard && token == '|')
-      {
-          r = max_rank();
-          sq = SQ_A1 + r * NORTH;
-          mirror = true;
-      }
-
       // Ignore pieces outside the board and wait for next / or [ to return to a valid state
       else if (!is_ok(sq) || file_of(sq) > max_file() || rank_of(sq) > r)
+      {
+          if (var->mirrorBoard)
+          {
+              sq += (max_file() + 1) * WEST;
+              mirror = true;
+              ss.putback(token);
+          }
           continue;
+      }
 
       // Wall square
       else if (token == '*')
@@ -320,6 +322,9 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           byTypeBB[ALL_PIECES] |= sq;
           ++sq;
       }
+
+      else if (token == '|')
+          st->mirrorBoard |= sq;
 
       else if ((idx = piece_to_char().find(token)) != string::npos || (idx = piece_to_char_synonyms().find(token)) != string::npos)
       {
@@ -698,12 +703,11 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   int emptyCnt;
   std::ostringstream ss;
 
-  bool mirror = false;
   for (Rank r = max_rank(); r >= RANK_1; --r)
   {
       for (File f = FILE_A; f <= max_file(); ++f)
       {
-          for (emptyCnt = 0; f <= max_file() && !(pieces() & (mirror ? st->mirrorBoard : ~st->mirrorBoard) & make_square(f, r)); ++f)
+          for (emptyCnt = 0; f <= max_file() && !(pieces() & make_square(f, r)); ++f)
               ++emptyCnt;
 
           if (emptyCnt)
@@ -711,6 +715,8 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
           if (f <= max_file())
           {
+              if (st->mirrorBoard & make_square(f, r))
+                  ss << "|";
               if (empty(make_square(f, r)))
                   // Wall square
                   ss << "*";
@@ -730,12 +736,6 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
       if (r > RANK_1)
           ss << '/';
-      else if (var->mirrorBoard && !mirror)
-      {
-          ss << '|';
-          r = Rank(max_rank() + 1);
-          mirror = true;
-      }
   }
 
   // SFEN

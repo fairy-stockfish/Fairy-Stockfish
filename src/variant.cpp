@@ -75,7 +75,6 @@ namespace {
     // Alice Chess
     Variant* alice_variant() {
         Variant* v = chess_variant()->init();
-        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR|8/8/8/8/8/8/8/8 w KQkq - 0 1";
         v->mirrorBoard = true;
         return v;
     }
