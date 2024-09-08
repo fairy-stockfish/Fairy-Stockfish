@@ -76,6 +76,7 @@ namespace {
     Variant* alice_variant() {
         Variant* v = chess_variant()->init();
         v->mirrorBoard = true;
+        v->enPassantRegion = 0;
         return v;
     }
     // Torpedo Chess

@@ -65,6 +65,8 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
               os << " | *";
           else if (pos.unpromoted_piece_on(make_square(f, r)))
               os << " |+" << pos.piece_to_char()[pos.unpromoted_piece_on(make_square(f, r))];
+          else if (pos.state()->mirrorBoard & make_square(f, r))
+              os << " ||" << pos.piece_to_char()[pos.piece_on(make_square(f, r))];
           else
               os << " | " << pos.piece_to_char()[pos.piece_on(make_square(f, r))];
 
@@ -1256,7 +1258,8 @@ bool Position::legal(Move m) const {
 
       // In case of Chess960, verify if the Rook blocks some checks
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-      return !attackers_to(to, pieces() ^ to_sq(m), ~us);
+      Bitboard visibility = var->mirrorBoard && !(st->mirrorBoard & square<KING>(us)) ? st->mirrorBoard : ~st->mirrorBoard;
+      return !(attackers_to(to, (pieces() ^ to_sq(m)) & visibility, ~us) & visibility);
   }
 
   // Return early when without king
@@ -1360,6 +1363,10 @@ bool Position::pseudo_legal(const Move m) const {
       };
   }
 
+  // Can not take pieces behind mirror
+  if (var->mirrorBoard && (pieces() & to) && (bool(st->mirrorBoard & from) != bool(st->mirrorBoard & to)))
+      return false;
+
   // Handle the case where a mandatory piece promotion/demotion is not taken
   if (    mandatory_piece_promotion()
       && (is_promoted(from) ? piece_demotion() : promoted_piece_type(type_of(pc)) != NO_PIECE_TYPE)
@@ -1392,7 +1399,8 @@ bool Position::pseudo_legal(const Move m) const {
           && !((from + pawn_push(us) == to) && !(pieces() & to)) // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)               // Not a double push
                && (double_step_region(us) & from)
-               && !(pieces() & (to | (to - pawn_push(us)))))
+               && !(pieces() & (to | (to - pawn_push(us)))
+                    && (bool(st->mirrorBoard & (to - pawn_push(us))) == bool(st->mirrorBoard & from) || (pieces() & to))))
           && !(   (from + 3 * pawn_push(us) == to)               // Not a triple push
                && (triple_step_region(us) & from)
                && !(pieces() & (to | (to - pawn_push(us)) | (to - 2 * pawn_push(us))))))
@@ -1480,8 +1488,8 @@ bool Position::gives_check(Move m) const {
   }
 
   // Is there a discovered check?
-  if (  ((type_of(m) != DROP && (blockers_for_king(~sideToMove) & from)) || (non_sliding_riders() & pieces(sideToMove)))
-      && attackers_to(square<KING>(~sideToMove), occupied, sideToMove, janggiCannons) & occupied)
+  if (  ((type_of(m) != DROP && (blockers_for_king(~sideToMove) & from)) || (non_sliding_riders() & pieces(sideToMove)) || var->mirrorBoard)
+      && attackers_to(square<KING>(~sideToMove), occupied, sideToMove, janggiCannons) & (occupied & ~square_bb(to)))
       return true;
 
   // Is there a check by gated pieces?
@@ -1550,8 +1558,16 @@ bool Position::gives_check(Move m) const {
           && attackers_to(square<KING>(~sideToMove), (pieces() ^ kfrom ^ rfrom) | rto | kto, sideToMove))
           return true;
 
+      occupied = (pieces() ^ kfrom ^ rfrom) | rto | kto;
+      if (var->mirrorBoard)
+      {
+          Bitboard visibility = st->mirrorBoard & rfrom ? (st->mirrorBoard ^ rfrom) & ~square_bb(rto) : (st->mirrorBoard | to);
+          visibility = st->mirrorBoard & square<KING>(~sideToMove) ? visibility : ~visibility;
+          occupied &= visibility;
+      }
+
       return   (PseudoAttacks[sideToMove][type_of(piece_on(rfrom))][rto] & square<KING>(~sideToMove))
-            && (attacks_bb(sideToMove, type_of(piece_on(rfrom)), rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
+            && (attacks_bb(sideToMove, type_of(piece_on(rfrom)), rto, occupied) & square<KING>(~sideToMove));
   }
   }
 }

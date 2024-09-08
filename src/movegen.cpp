@@ -403,6 +403,8 @@ namespace {
         {
             if (pos.checkers() & pos.non_sliding_riders())
                 target = ~pos.pieces(Us);
+            else
+                target &= ~pos.pieces(Us);
             // Leaper attacks can not be blocked
             Square checksq = lsb(pos.checkers());
             if (LeaperAttacks[~Us][type_of(pos.piece_on(checksq))][checksq] & pos.square<KING>(Us))
