@@ -72,6 +72,13 @@ namespace {
         v->materialCounting = BLACK_DRAW_ODDS;
         return v;
     }
+    // Alice Chess
+    Variant* alice_variant() {
+        Variant* v = chess_variant()->init();
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR|8/8/8/8/8/8/8/8 w KQkq - 0 1";
+        v->mirrorBoard = true;
+        return v;
+    }
     // Torpedo Chess
     // https://arxiv.org/abs/2009.04374
     Variant* torpedo_variant() {
@@ -1815,6 +1822,7 @@ void VariantMap::init() {
     add("fischerandom", chess960_variant());
     add("nocastle", nocastle_variant());
     add("armageddon", armageddon_variant());
+    add("alice", alice_variant());
     add("torpedo", torpedo_variant());
     add("berolina", berolina_variant());
     add("pawnsideways", pawnsideways_variant());

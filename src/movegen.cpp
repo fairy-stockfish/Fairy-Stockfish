@@ -28,6 +28,9 @@ namespace {
   template<MoveType T>
   ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
+    if (pos.variant()->mirrorBoard && (pos.pieces() & to) && (bool(pos.state()->mirrorBoard & from) != bool(pos.state()->mirrorBoard & to)))
+        return moveList;
+
     // Wall placing moves
     //if it's "wall or move", and they chose non-null move, skip even generating wall move
     if (pos.walling() && !(pos.variant()->wallOrMove && (from!=to)))
@@ -157,6 +160,13 @@ namespace {
     Bitboard b1 = shift<Up>(pawns) & movable & target;
     Bitboard b2 = shift<Up>(shift<Up>(pawns & doubleStepRegion) & movable) & movable & target;
     Bitboard b3 = shift<Up>(shift<Up>(shift<Up>(pawns & tripleStepRegion) & movable) & movable) & movable & target;
+    if (pos.variant()->mirrorBoard)
+    {
+        Bitboard b2mask = pos.board_bb(Us, PAWN) & (~pos.pieces() | (shift<Up>(pos.state()->mirrorBoard) ^ pos.state()->mirrorBoard));
+        Bitboard b3mask = pos.board_bb(Us, PAWN) & (~pos.pieces() | (shift<2 * Up>(pos.state()->mirrorBoard) ^ pos.state()->mirrorBoard));
+        b2 = shift<Up>(shift<Up>(pawns & doubleStepRegion) & b2mask) & movable & target;
+        b3 = shift<Up>(shift<Up>(shift<Up>(pawns & tripleStepRegion) & b2mask) & b3mask) & movable & target;
+    }
     Bitboard brc = shift<UpRight>(pawns) & capturable & target;
     Bitboard blc = shift<UpLeft >(pawns) & capturable & target;
 

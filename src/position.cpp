@@ -274,6 +274,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
   Rank r = max_rank();
   Square sq = SQ_A1 + r * NORTH;
+  bool mirror = false;
 
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
@@ -301,6 +302,13 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       else if (token == '[')
           break;
 
+      else if (var->mirrorBoard && token == '|')
+      {
+          r = max_rank();
+          sq = SQ_A1 + r * NORTH;
+          mirror = true;
+      }
+
       // Ignore pieces outside the board and wait for next / or [ to return to a valid state
       else if (!is_ok(sq) || file_of(sq) > max_file() || rank_of(sq) > r)
           continue;
@@ -318,6 +326,8 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           if (ss.peek() == '~')
               ss >> token;
           put_piece(Piece(idx), sq, token == '~');
+          if (mirror)
+              st->mirrorBoard |= sq;
           ++sq;
       }
 
@@ -326,6 +336,8 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       {
           ss >> token;
           put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
+          if (mirror)
+              st->mirrorBoard |= sq;
           ++sq;
       }
   }
@@ -574,7 +586,7 @@ void Position::set_check_info(StateInfo* si) const {
   {
       PieceType pt = pop_lsb(ps);
       PieceType movePt = pt == KING ? king_type() : pt;
-      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
+      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces() & (st->mirrorBoard & ksq ? st->mirrorBoard : ~st->mirrorBoard)) : Bitboard(0);
       // Collect special piece types that require slower check and evasion detection
       if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
@@ -686,11 +698,12 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   int emptyCnt;
   std::ostringstream ss;
 
+  bool mirror = false;
   for (Rank r = max_rank(); r >= RANK_1; --r)
   {
       for (File f = FILE_A; f <= max_file(); ++f)
       {
-          for (emptyCnt = 0; f <= max_file() && !(pieces() & make_square(f, r)); ++f)
+          for (emptyCnt = 0; f <= max_file() && !(pieces() & (mirror ? st->mirrorBoard : ~st->mirrorBoard) & make_square(f, r)); ++f)
               ++emptyCnt;
 
           if (emptyCnt)
@@ -717,6 +730,12 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
       if (r > RANK_1)
           ss << '/';
+      else if (var->mirrorBoard && !mirror)
+      {
+          ss << '|';
+          r = Rank(max_rank() + 1);
+          mirror = true;
+      }
   }
 
   // SFEN
@@ -1240,7 +1259,19 @@ bool Position::legal(Move m) const {
       return !attackers_to(to, pieces() ^ to_sq(m), ~us);
   }
 
+  // Return early when without king
+  if (!count<KING>(us))
+      return true;
+
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+  if (var->mirrorBoard)
+  {
+      Bitboard visibility = st->mirrorBoard & from ? (st->mirrorBoard ^ from) & ~square_bb(to) : (st->mirrorBoard | to);
+      visibility = st->mirrorBoard & square<KING>(us) ? visibility : ~visibility;
+      if (type_of(moved_piece(m)) == KING && attackers_to(to, occupied & ~visibility, ~us))
+          return false;
+      occupied &= visibility;
+  }
 
   // Flying general rule and bikjang
   // In case of bikjang passing is always allowed, even when in check
@@ -1260,11 +1291,7 @@ bool Position::legal(Move m) const {
   // If the moving piece is a king, check whether the destination square is
   // attacked by the opponent.
   if (type_of(moved_piece(m)) == KING)
-      return !attackers_to(to, occupied, ~us);
-
-  // Return early when without king
-  if (!count<KING>(us))
-      return true;
+      return !(attackers_to(to, occupied, ~us) & occupied);
 
   Bitboard janggiCannons = pieces(JANGGI_CANNON);
   if (type_of(moved_piece(m)) == JANGGI_CANNON)
@@ -1273,7 +1300,7 @@ bool Position::legal(Move m) const {
       janggiCannons ^= to;
 
   // A non-king move is legal if the king is not under attack after the move.
-  return !(attackers_to(square<KING>(us), occupied, ~us, janggiCannons) & ~SquareBB[to]);
+  return !(attackers_to(square<KING>(us), occupied, ~us, janggiCannons) & ~SquareBB[to] & occupied);
 }
 
 
@@ -1426,6 +1453,13 @@ bool Position::gives_check(Move m) const {
   else if (janggiCannons & to)
       janggiCannons ^= to;
 
+  if (var->mirrorBoard)
+  {
+      Bitboard visibility = st->mirrorBoard & from ? (st->mirrorBoard ^ from) & ~square_bb(to) : (st->mirrorBoard | to);
+      visibility = st->mirrorBoard & square<KING>(~sideToMove) ? visibility : ~visibility;
+      occupied &= visibility;
+  }
+
   // Is there a direct check?
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING
       && !((var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && capture(m)))
@@ -1441,7 +1475,7 @@ bool Position::gives_check(Move m) const {
           if (attacks_bb(sideToMove, pt, to, occupied) & square<KING>(~sideToMove))
               return true;
       }
-      else if (check_squares(pt) & to)
+      else if (check_squares(pt) & occupied & to)
           return true;
   }
 
@@ -1472,6 +1506,9 @@ bool Position::gives_check(Move m) const {
           return true;
   }
 
+  if (!(occupied & to))
+      return false;
+
   switch (type_of(m))
   {
   case NORMAL:
@@ -1480,13 +1517,13 @@ bool Position::gives_check(Move m) const {
       return false;
 
   case PROMOTION:
-      return attacks_bb(sideToMove, promotion_type(m), to, pieces() ^ from) & square<KING>(~sideToMove);
+      return attacks_bb(sideToMove, promotion_type(m), to, occupied) & square<KING>(~sideToMove);
 
   case PIECE_PROMOTION:
-      return attacks_bb(sideToMove, promoted_piece_type(type_of(moved_piece(m))), to, pieces() ^ from) & square<KING>(~sideToMove);
+      return attacks_bb(sideToMove, promoted_piece_type(type_of(moved_piece(m))), to, occupied) & square<KING>(~sideToMove);
 
   case PIECE_DEMOTION:
-      return attacks_bb(sideToMove, type_of(unpromoted_piece_on(from)), to, pieces() ^ from) & square<KING>(~sideToMove);
+      return attacks_bb(sideToMove, type_of(unpromoted_piece_on(from)), to, occupied) & square<KING>(~sideToMove);
 
   // En passant capture with check? We have already handled the case
   // of direct checks and ordinary discovered check, so the only case we
@@ -1793,6 +1830,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       }
 
       move_piece(from, to);
+      if (var->mirrorBoard)
+          st->mirrorBoard = st->mirrorBoard & from ? (st->mirrorBoard ^ from) & ~square_bb(to) : (st->mirrorBoard | to);
   }
 
   // If the moving piece is a pawn do some special extra work
@@ -2285,6 +2324,13 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   board[Do ? from : to] = board[Do ? rfrom : rto] = NO_PIECE; // Since remove_piece doesn't do it for us
   put_piece(castlingKingPiece, Do ? to : from);
   put_piece(castlingRookPiece, Do ? rto : rfrom);
+  if (var->mirrorBoard)
+  {
+      bool mirrorKing = st->mirrorBoard & from;
+      bool mirrorRook = st->mirrorBoard & rfrom;
+      st->mirrorBoard ^= mirrorKing ? from : to;
+      st->mirrorBoard ^= mirrorRook ? rfrom : rto;
+  }
 }
 
 
