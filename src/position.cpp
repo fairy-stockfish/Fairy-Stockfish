@@ -1258,8 +1258,14 @@ bool Position::legal(Move m) const {
 
       // In case of Chess960, verify if the Rook blocks some checks
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-      Bitboard visibility = var->mirrorBoard && !(st->mirrorBoard & square<KING>(us)) ? st->mirrorBoard : ~st->mirrorBoard;
-      return !(attackers_to(to, (pieces() ^ to_sq(m)) & visibility, ~us) & visibility);
+      Bitboard occupancy = (pieces() ^ to_sq(m));
+      if (var->mirrorBoard)
+      {
+          // in alice chess king and rook are simultaneously transferred after castling
+          occupancy |= rto;
+          occupancy &= (!(st->mirrorBoard & square<KING>(us)) ? st->mirrorBoard : ~st->mirrorBoard) | rto;
+      }
+      return !(attackers_to(to, occupancy, ~us) & occupancy);
   }
 
   // Return early when without king
