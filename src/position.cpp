@@ -283,13 +283,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   {
       if (isdigit(token))
       {
-#ifdef LARGEBOARDS
           if (isdigit(ss.peek()))
           {
               sq += 10 * (token - '0') * EAST;
               ss >> token;
           }
-#endif
           sq += (token - '0') * EAST; // Advance the given number of files
       }
 
