@@ -1275,7 +1275,7 @@ bool Position::legal(Move m) const {
   {
       Bitboard visibility = st->mirrorBoard & from ? (st->mirrorBoard ^ from) & ~square_bb(to) : (st->mirrorBoard | to);
       visibility = st->mirrorBoard & square<KING>(us) ? visibility : ~visibility;
-      if (type_of(moved_piece(m)) == KING && attackers_to(to, occupied & ~visibility, ~us))
+      if (type_of(moved_piece(m)) == KING && (attackers_to(to, occupied & ~visibility, ~us) & ~visibility))
           return false;
       occupied &= visibility;
   }
