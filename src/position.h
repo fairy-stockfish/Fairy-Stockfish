@@ -1210,7 +1210,19 @@ inline CastlingRights Position::castling_rights(Color c) const {
 inline bool Position::castling_impeded(CastlingRights cr) const {
   assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
 
-  return pieces() & castlingPath[cr];
+  if (!st->mirrorBoard)
+      return pieces() & castlingPath[cr];
+  else
+  {
+      Color us = WHITE & cr ? WHITE : BLACK;
+      Square kfrom = castling_king_square(us);
+      Bitboard visibility = st->mirrorBoard & kfrom ? st->mirrorBoard : ~st->mirrorBoard;
+      if (pieces() & visibility & castlingPath[cr])
+          return true;
+      Square kto = make_square(cr & KING_SIDE ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
+      Square rto = kto + (cr & KING_SIDE ? WEST : EAST);
+      return pieces() & ~visibility & (square_bb(kto) | rto); // target squares blocked?
+  }
 }
 
 inline Square Position::castling_rook_square(CastlingRights cr) const {
