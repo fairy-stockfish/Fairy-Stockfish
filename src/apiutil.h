@@ -920,6 +920,8 @@ inline std::string get_valid_special_chars(const Variant* v) {
         validSpecialCharactersFirstField += '+';
     if (v->promotionPieceTypes[WHITE] || v->promotionPieceTypes[BLACK])
         validSpecialCharactersFirstField += '~';
+    if (v->mirrorBoard)
+        validSpecialCharactersFirstField += '|';
     if (!v->freeDrops && (v->pieceDrops || v->seirawanGating))
         validSpecialCharactersFirstField += "[-]";
     return validSpecialCharactersFirstField;
