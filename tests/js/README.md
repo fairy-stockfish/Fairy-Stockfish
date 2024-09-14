@@ -265,6 +265,13 @@ Make sure that the wasm file is in the `public` directory.
 
 Reference: [emscripten/#10114](https://github.com/emscripten-core/emscripten/issues/10114)
 
+### Compile in docker
+Instead of installing emscripten natively you can also run the compilation in docker from this directory using e.g.
+
+```bash
+DOCKER_USER=$(id -u):$(id -g) docker compose run --rm emscripten make -f Makefile_js build es6=yes
+```
+
 ## Instructions to run the tests
 ```bash
 npm install
