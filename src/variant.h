@@ -119,6 +119,11 @@ struct Variant {
   Rank soldierPromotionRank = RANK_1;
   EnclosingRule flipEnclosedPieces = NO_ENCLOSING;
   bool freeDrops = false;
+  bool sudoku = false;
+  int sudokuBoxWidth = 4;
+  int sudokuBoxHeight = 2;
+  int sudokuAllowedPawns = FILE_NB;
+  bool sudokuRoyalConflict = false;
 
   // game end
   PieceSet nMoveRuleTypes[COLOR_NB] = {piece_set(PAWN), piece_set(PAWN)};

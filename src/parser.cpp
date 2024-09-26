@@ -488,6 +488,11 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("flyingGeneral", v->flyingGeneral);
     parse_attribute("soldierPromotionRank", v->soldierPromotionRank);
     parse_attribute("flipEnclosedPieces", v->flipEnclosedPieces);
+    parse_attribute("sudoku", v->sudoku);
+    parse_attribute("sudokuBoxWidth", v->sudokuBoxWidth);
+    parse_attribute("sudokuBoxHeight", v->sudokuBoxHeight);
+    parse_attribute("sudokuAllowedPawns", v->sudokuAllowedPawns);
+    parse_attribute("sudokuRoyalConflict", v->sudokuRoyalConflict);
     // game end
     parse_attribute("nMoveRuleTypes", v->nMoveRuleTypes[WHITE], v->pieceToChar);
     parse_attribute("nMoveRuleTypes", v->nMoveRuleTypes[BLACK], v->pieceToChar);
@@ -639,6 +644,24 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         }
         if (v->flagPieceSafe && v->blastOnCapture)
             std::cerr << "Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast)." << std::endl;
+    }
+    // Check invalid sudoku box sizes
+    if (v->sudoku && v->sudokuBoxWidth && v->sudokuBoxHeight)
+    {
+        int boxesCount = (v->maxFile / v->sudokuBoxWidth + 1) * (v->maxRank / v->sudokuBoxHeight + 1);
+        if (DoCheck)
+        {
+            int width = v->maxFile + 1, height = v->maxRank + 1;
+            if (width % v->sudokuBoxWidth || height % v->sudokuBoxHeight)
+                std::cerr << "Sudoku boxes don't fit the board size" << std::endl;
+            if (boxesCount > width && boxesCount > height)
+                std::cerr << "Too many sudoku boxes" << std::endl;
+        }
+        // Ensure that boxes' count doesn't exceed the allocated array size for tracking the conflicts
+        // (see StateInfo::pieceCountInSudokuHouse).
+        // Do this safety measure even when DoCheck is false to avoid memory access issues.
+        if (boxesCount > FILE_NB)
+            v->sudokuBoxWidth = v->sudokuBoxHeight = 0;
     }
     return v;
 }
