@@ -43,3 +43,23 @@ jobs:
       - name: Run unit tests
         working-directory: tests/js
         run: npm test
+      - name: Build ffish.js ES6/ES2015 module (Installation information is kept)
+        working-directory: src
+        run: rm -f ../tests/js/ffish.js & rm -f ../tests/js/ffish.wasm & make -f Makefile_js build es6=yes
+      - name: Upload ffish.js ES6/ES2015 module ZIP archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffishjs-es6
+          path: tests/js/*
+          if-no-files-found: error
+          compression-level: 9
+      - name: Build ffish.js standard module (Installation information is kept)
+        working-directory: src
+        run: rm -f ../tests/js/ffish.js & rm -f ../tests/js/ffish.wasm & make -f Makefile_js build
+      - name: Upload ffish.js standard module ZIP archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffishjs-standard
+          path: tests/js/*
+          if-no-files-found: error
+          compression-level: 9
