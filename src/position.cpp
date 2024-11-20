@@ -831,7 +831,6 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
 string Position::fog_fen(bool sfen, bool showPromoted, int countStarted, std::string holdings) {
   Color us = sideToMove;
-  Color them = ~us;
   Bitboard fog;
   
   // Our own pieces are visible
@@ -848,7 +847,6 @@ string Position::fog_fen(bool sfen, bool showPromoted, int countStarted, std::st
   fog = ~visible & board_bb();
 
   // Fill in invisible squares with walls
-  Bitboard occupied = pieces(them);
   while (fog)
   {
     Square sq = pop_lsb(fog);
