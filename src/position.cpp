@@ -826,8 +826,8 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
 
 /// Position::fog_fen() returns a Fog of War (dark chess) FEN representation
-/// of the position. Squares where current player can't move (from or to) are
-/// filled with NO_PIECE (wall squares)
+/// of the position. Squares where current player can't move to are filled with
+/// NO_PIECE (wall squares)
 
 string Position::fog_fen(bool sfen, bool showPromoted, int countStarted, std::string holdings) {
   Color us = sideToMove;
