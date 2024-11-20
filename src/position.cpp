@@ -825,6 +825,43 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 }
 
 
+/// Position::fog_fen() returns a Fog of War (dark chess) FEN representation
+/// of the position. Squares where current player can't move (from or to) are
+/// filled with NO_PIECE (wall squares)
+
+string Position::fog_fen(bool sfen, bool showPromoted, int countStarted, std::string holdings) {
+  Color us = sideToMove;
+  Color them = ~us;
+  Bitboard fog;
+  
+  // Our own pieces are visible
+  Bitboard visible = pieces(us);
+
+  // Squares where we can move to are visible as well
+  for (const auto& m : MoveList<LEGAL>(*this))
+  {
+    Square to = to_sq(m);
+    visible |= to;
+  }
+
+  // Everything else is invisible
+  fog = ~visible & board_bb();
+
+  // Fill in invisible squares with walls
+  Bitboard occupied = pieces(them);
+  while (fog)
+  {
+    Square sq = pop_lsb(fog);
+    if (piece_on(sq)) remove_piece(sq);
+
+    st->wallSquares |= sq;
+    byTypeBB[ALL_PIECES] |= sq;
+  }
+
+  return fen(sfen, showPromoted, countStarted, holdings);
+}
+
+
 /// Position::slider_blockers() returns a bitboard of all the pieces (both colors)
 /// that are blocking attacks on the square 's' from 'sliders'. A piece blocks a
 /// slider if removing that piece from the board would result in a position where
