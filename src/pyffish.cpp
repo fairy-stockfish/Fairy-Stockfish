@@ -389,7 +389,7 @@ extern "C" PyObject* pyffish_getFogFEN(PyObject* self, PyObject *args) {
     Position pos;
     const char *fen, *variant;
 
-    int chess960 = false;
+    int chess960 = false, sfen = false, showPromoted = false, countStarted = 0;
     if (!PyArg_ParseTuple(args, "ss|p", &fen, &variant, &chess960)) {
         return NULL;
     }
@@ -397,7 +397,7 @@ extern "C" PyObject* pyffish_getFogFEN(PyObject* self, PyObject *args) {
     buildPosition(pos, states, variant, fen, moveList, chess960);
 
     Py_XDECREF(moveList);
-    return Py_BuildValue("s", pos.fog_fen().c_str());
+    return Py_BuildValue("s", pos.fen(sfen, showPromoted, countStarted, "-", pos.fog_area()).c_str());
 }
 
 static PyMethodDef PyFFishMethods[] = {

@@ -681,7 +681,7 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
 /// Position::fen() returns a FEN representation of the position. In case of
 /// Chess960 the Shredder-FEN notation is used. This is mainly a debugging function.
 
-string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string holdings) const {
+string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string holdings, Bitboard fogArea) const {
 
   int emptyCnt;
   std::ostringstream ss;
@@ -690,7 +690,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   {
       for (File f = FILE_A; f <= max_file(); ++f)
       {
-          for (emptyCnt = 0; f <= max_file() && !(pieces() & make_square(f, r)); ++f)
+          for (emptyCnt = 0; f <= max_file() && !(pieces() & make_square(f, r)) && !(fogArea & make_square(f, r)); ++f)
               ++emptyCnt;
 
           if (emptyCnt)
@@ -698,7 +698,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
           if (f <= max_file())
           {
-              if (empty(make_square(f, r)))
+              if (empty(make_square(f, r)) || fogArea & make_square(f, r))
                   // Wall square
                   ss << "*";
               else if (unpromoted_piece_on(make_square(f, r)))
@@ -822,41 +822,6 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   ss << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
 
   return ss.str();
-}
-
-
-/// Position::fog_fen() returns a Fog of War (dark chess) FEN representation
-/// of the position. Squares where current player can't move to are filled with
-/// NO_PIECE (wall squares)
-
-string Position::fog_fen(bool sfen, bool showPromoted, int countStarted, std::string holdings) {
-  Color us = sideToMove;
-  Bitboard fog;
-  
-  // Our own pieces are visible
-  Bitboard visible = pieces(us);
-
-  // Squares where we can move to are visible as well
-  for (const auto& m : MoveList<LEGAL>(*this))
-  {
-    Square to = to_sq(m);
-    visible |= to;
-  }
-
-  // Everything else is invisible
-  fog = ~visible & board_bb();
-
-  // Fill in invisible squares with walls
-  while (fog)
-  {
-    Square sq = pop_lsb(fog);
-    if (piece_on(sq)) remove_piece(sq);
-
-    st->wallSquares |= sq;
-    byTypeBB[ALL_PIECES] |= sq;
-  }
-
-  return fen(sfen, showPromoted, countStarted, holdings);
 }
 
 
