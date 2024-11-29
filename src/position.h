@@ -479,7 +479,6 @@ inline Bitboard Position::promotion_zone(Piece p) const {
 
 inline Square Position::promotion_square(Color c, Square s) const {
   assert(var != nullptr);
-  /// yjf2002ghty: I'm not clear what Square s means, whether it refers to a square of a piece or it can refer to any square. I assume it means a square of a piece which can excute piece_on(s)
   Piece p = piece_on(s);
   Bitboard b = ((p == NO_PIECE) ? Bitboard(0) : promotion_zone(p)) & forward_file_bb(c, s) & board_bb();
   return !b ? SQ_NONE : c == WHITE ? lsb(b) : msb(b);

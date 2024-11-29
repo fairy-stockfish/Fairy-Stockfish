@@ -1135,7 +1135,7 @@ namespace {
     bool pawnsOnly = !(pos.pieces(Us) ^ pos.pieces(Us, PAWN));
 
     // Early exit if, for example, both queens or 6 minor pieces have been exchanged
-    /// yjf2002ghty: By default double step is used for pawns in enhancing opening evaluation, so I assume the piece type is PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
+    /// By default double step is used for pawns in enhancing opening evaluation, so the piece type is assumed to be PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
     if (pos.non_pawn_material() < SpaceThreshold && !pawnsOnly && pos.double_step_region(Us, PAWN))
         return SCORE_ZERO;
 

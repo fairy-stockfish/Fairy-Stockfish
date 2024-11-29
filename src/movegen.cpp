@@ -142,12 +142,12 @@ namespace {
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    /// yjf2002ghty: Since it's generate_pawn_moves, I assume the piece type is PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
+    /// Since it's generate_pawn_moves, the piece type is assumed to be PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
     const Bitboard promotionZone = pos.promotion_zone(Us, PAWN);
     const Bitboard standardPromotionZone = pos.sittuyin_promotion() ? Bitboard(0) : promotionZone;
-    /// yjf2002ghty: Since it's generate_pawn_moves, I assume the piece type is PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
+    /// Since it's generate_pawn_moves, the piece type is assumed to be PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
     const Bitboard doubleStepRegion = pos.double_step_region(Us, PAWN);
-    /// yjf2002ghty: Since it's generate_pawn_moves, I assume the piece type is PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
+    /// Since it's generate_pawn_moves, the piece type is assumed to be PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
     const Bitboard tripleStepRegion = pos.triple_step_region(Us, PAWN);
 
     const Bitboard pawns      = pos.pieces(Us, PAWN);

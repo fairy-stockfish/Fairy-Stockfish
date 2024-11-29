@@ -183,7 +183,7 @@ Value Endgame<KPK>::operator()(const Position& pos) const {
   Color us = strongSide == pos.side_to_move() ? WHITE : BLACK;
 
   // Non-standard promotion, evaluation unclear
-  /// yjf2002ghty: Since KPK means King-Pawn vs. King Endgame, I assume the piece type is PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
+  /// Since KPK means King-Pawn vs. King Endgame, the piece type is assumed to be PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
   if (   pos.promotion_zone(us, PAWN) != rank_bb(relative_rank(us, RANK_8, pos.max_rank()))
       || RANK_MAX != RANK_8
       || !(pos.promotion_piece_types(us) & QUEEN))
@@ -938,7 +938,7 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
 
   // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
   // it's probably at least a draw even with the pawn.
-  /// yjf2002ghty: Since KPKP means King-Pawn vs. King-Pawn Endgame, I assume the piece type is PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
+  /// Since KPKP means King-Pawn vs. King-Pawn Endgame, the piece type is assumed to PAWN. It can cause problems if the pawn is something else (e.g. Custom pawn piece)
   if (   pos.promotion_zone(us, PAWN) != rank_bb(relative_rank(us, RANK_8, pos.max_rank()))
       || RANK_MAX != RANK_8
       || !(pos.promotion_piece_types(us) & QUEEN))
