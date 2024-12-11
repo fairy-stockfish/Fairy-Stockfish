@@ -470,6 +470,11 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("pocketknight", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1", ["N@e4"])
         self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/4N3/8/PPPPPPPP/RNBQKBNR[n] b KQkq - 0 1")
 
+        # duck chess en passant
+        fen = "r1b1k3/pp3pb1/4p3/2p2p2/2PpP2q/1P1P1P2/P1K1*3/RN1Q2N1 b q e3 0 17"
+        result = sf.get_fen("duck", fen, [])
+        self.assertEqual(result, fen)
+
         # SFEN
         result = sf.get_fen("shogi", SHOGI, [], False, True)
         self.assertEqual(result, SHOGI_SFEN)
