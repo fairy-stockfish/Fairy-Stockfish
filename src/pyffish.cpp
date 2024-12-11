@@ -54,7 +54,7 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
 }
 
 extern "C" PyObject* pyffish_version(PyObject* self) {
-    return Py_BuildValue("(iii)", 0, 0, 84);
+    return Py_BuildValue("(iii)", 0, 0, 85);
 }
 
 extern "C" PyObject* pyffish_info(PyObject* self) {
@@ -383,6 +383,22 @@ extern "C" PyObject* pyffish_validateFen(PyObject* self, PyObject *args) {
     return Py_BuildValue("i", FEN::validate_fen(std::string(fen), variants.find(std::string(variant))->second, chess960));
 }
 
+// INPUT variant, fen
+extern "C" PyObject* pyffish_getFogFEN(PyObject* self, PyObject *args) {
+    PyObject* moveList = PyList_New(0);
+    Position pos;
+    const char *fen, *variant;
+
+    int chess960 = false, sfen = false, showPromoted = false, countStarted = 0;
+    if (!PyArg_ParseTuple(args, "ss|p", &fen, &variant, &chess960)) {
+        return NULL;
+    }
+    StateListPtr states(new std::deque<StateInfo>(1));
+    buildPosition(pos, states, variant, fen, moveList, chess960);
+
+    Py_XDECREF(moveList);
+    return Py_BuildValue("s", pos.fen(sfen, showPromoted, countStarted, "-", pos.fog_area()).c_str());
+}
 
 static PyMethodDef PyFFishMethods[] = {
     {"version", (PyCFunction)pyffish_version, METH_NOARGS, "Get package version."},
@@ -405,6 +421,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"is_optional_game_end", (PyCFunction)pyffish_isOptionalGameEnd, METH_VARARGS, "Get result from given FEN it rules enable game end by player."},
     {"has_insufficient_material", (PyCFunction)pyffish_hasInsufficientMaterial, METH_VARARGS, "Checks for insufficient material."},
     {"validate_fen", (PyCFunction)pyffish_validateFen, METH_VARARGS, "Validate an input FEN."},
+    {"get_fog_fen", (PyCFunction)pyffish_getFogFEN, METH_VARARGS, "Get Fog of War FEN from given FEN."},
     {NULL, NULL, 0, NULL},  // sentinel
 };
 
