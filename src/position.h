@@ -59,6 +59,8 @@ struct StateInfo {
 
   // Not copied when making a move (will be recomputed anyhow)
   Key        key;
+  int        sudokuConflictsCount[COLOR_NB];
+  int        pieceCountInSudokuHouse[COLOR_NB][PIECE_TYPE_NB][SH_NB][FILE_NB];
   Bitboard   checkersBB;
   Piece      unpromotedCapturedPiece;
   Piece      unpromotedBycatch[SQUARE_NB];
@@ -223,6 +225,13 @@ public:
   int count_with_hand(Color c, PieceType pt) const;
   bool bikjang() const;
   bool allow_virtual_drop(Color c, PieceType pt) const;
+  bool sudoku_boxes() const;
+  int sudoku_box_of(Square s) const;
+  PieceType piece_type_for_sudoku(Piece pc) const;
+  int allowed_sudoku_conflicts(PieceType pt) const;
+  int sudoku_conflicts(Color c) const;
+  void set_sudoku_conflicts_info(StateInfo* si) const;
+  bool move_adds_sudoku_conflicts(Move m) const;
 
   // Position representation
   Bitboard pieces(PieceType pt = ALL_PIECES) const;
@@ -279,6 +288,7 @@ public:
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
+  Piece captured_piece(Move m) const;
   const std::string piece_to_partner() const;
 
   // Piece specific
@@ -344,6 +354,7 @@ private:
   void set_castling_right(Color c, Square rfrom);
   void set_state(StateInfo* si) const;
   void set_check_info(StateInfo* si) const;
+  bool is_initial_pawn(Piece pc, Square s) const;
 
   // Other helpers
   void move_piece(Square from, Square to);
@@ -1407,6 +1418,11 @@ inline Piece Position::captured_piece() const {
   return st->capturedPiece;
 }
 
+inline Piece Position::captured_piece(Move m) const {
+  Square to = to_sq(m);
+  return piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to);
+}
+
 inline const std::string Position::piece_to_partner() const {
   if (!st->capturedPiece) return std::string();
   Color color = color_of(st->capturedPiece);
@@ -1445,6 +1461,10 @@ inline void Position::remove_piece(Square s) {
   psq -= PSQT::psq[pc][s];
   promotedPieces -= s;
   unpromotedBoard[s] = NO_PIECE;
+}
+
+inline bool Position::is_initial_pawn(Piece pc, Square s) const {
+  return type_of(pc) == PAWN && rank_of(s) == relative_rank(color_of(pc), RANK_2, max_rank());
 }
 
 inline void Position::move_piece(Square from, Square to) {
@@ -1498,6 +1518,35 @@ inline bool Position::allow_virtual_drop(Color c, PieceType pt) const {
                         && count_in_hand(c, BISHOP) >= -(pt == PAWN)
                         && count_in_hand(c, ROOK) >= 0
                         && count_in_hand(c, QUEEN) >= 0);
+}
+
+inline bool Position::sudoku_boxes() const {
+  assert(var != nullptr);
+  return var->sudoku && var->sudokuBoxWidth && var->sudokuBoxHeight;
+}
+
+inline int Position::sudoku_box_of(Square s) const {
+  assert(var != nullptr);
+  assert(sudoku_boxes());
+  return rank_of(s) / var->sudokuBoxHeight * (files() / var->sudokuBoxWidth) + file_of(s) / var->sudokuBoxWidth;
+}
+
+inline PieceType Position::piece_type_for_sudoku(Piece pc) const {
+  assert(var != nullptr);
+  PieceType pt = type_of(pc);
+  if (var->sudokuRoyalConflict && (pt == KING || pt == COMMONER)) return QUEEN;
+  return pt;
+}
+
+inline int Position::allowed_sudoku_conflicts(PieceType pt) const {
+  assert(var != nullptr);
+  return pt == PAWN ? var->sudokuAllowedPawns : 1;
+}
+
+inline int Position::sudoku_conflicts(Color c) const {
+  assert(var != nullptr);
+  assert(st != nullptr);
+  return var->sudoku ? st->sudokuConflictsCount[c] : 0;
 }
 
 inline Value Position::material_counting_result() const {
