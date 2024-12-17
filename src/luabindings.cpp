@@ -174,17 +174,7 @@ namespace ffish {
         return validateFen(fen, "chess", false);
     }
 
-    template <typename T>
-    void setOption(lua_State* L, const std::string& name, T value) {
-        try {
-            Stockfish::Options[name] = value;
-            // Move the static member initialization after the class definition
-            // LuaBoard::sfInitialized will be set there
-        }
-        catch (const std::exception& e) {
-            luaL_error(L, "Failed to set option %s: %s", name.c_str(), e.what());
-        }
-    }
+    void setOption(const std::string& name, const std::string& value);
 
     std::string startingFen(const std::string& uciVariant) {
         const Variant* v = Stockfish::variants.find(uciVariant)->second;
@@ -214,19 +204,17 @@ namespace luabridge {
     };
 }
 
-// First define LuaBoard class and its static members
-class LuaBoard {
-private:
-    static lua_State* L;  // Static member to store Lua state
-    const Variant* v;
-    StateListPtr states;
-    Position pos;
-    Thread* thread;
-    std::vector<Move> moves;
-    bool chess960;
-    static bool sfInitialized;
+// At the top, just declare the function
+namespace ffish {
+    void setOption(const std::string& name, const std::string& value);
+}
 
+// Define LuaBoard class first
+class LuaBoard {
 public:
+    static bool sfInitialized;
+    static lua_State* L;
+
     LuaBoard() : 
         v(nullptr),
         states(nullptr),  // Initialize to nullptr first
@@ -510,9 +498,36 @@ public:
     }
 
     void set_fen(const std::string& fen) {
-        states = StateListPtr(new std::deque<StateInfo>(1));
-        moves.clear();
-        pos.set(v, fen, chess960, &states->back(), thread);
+        try {
+            states = StateListPtr(new std::deque<StateInfo>(1));
+            moves.clear();
+            
+            // Skip FEN validation for variants with custom pieces
+            if (v->variantTemplate != "spartan" && 
+                v->variantTemplate != "janggi" && 
+                v->variantTemplate != "xiangqi" && 
+                v->variantTemplate != "shogi" && 
+                v->variantTemplate != "makruk") {
+                if (FEN::validate_fen(fen, v, chess960) != 1) {
+                    throw std::runtime_error("Invalid FEN: " + fen);
+                }
+            }
+            
+            try {
+                pos.set(v, fen, chess960, &states->back(), thread);
+            }
+            catch (const std::exception& e) {
+                throw std::runtime_error(std::string("Failed to set position: ") + e.what());
+            }
+            
+            if (!pos.pos_is_ok()) {
+                throw std::runtime_error("Invalid position after setting FEN");
+            }
+        }
+        catch (const std::exception& e) {
+            DEBUG_LOGF("Exception in set_fen: %s", e.what());
+            throw;
+        }
     }
 
     std::string sanMove(const std::string& uciMove) {
@@ -596,8 +611,29 @@ public:
     }
 
     bool isCapture(const std::string& uciMove) const {
-        std::string moveStr = uciMove;
-        return pos.capture(UCI::to_move(pos, moveStr));
+        try {
+            std::string moveStr = uciMove;
+            Move m = UCI::to_move(this->pos, moveStr);
+            if (m == MOVE_NONE) {
+                return false;
+            }
+            // Check if the move is legal before checking if it's a capture
+            bool isLegal = false;
+            for (const ExtMove& move : MoveList<LEGAL>(pos)) {
+                if (move == m) {
+                    isLegal = true;
+                    break;
+                }
+            }
+            if (!isLegal) {
+                return false;
+            }
+            return pos.capture(m);
+        }
+        catch (const std::exception& e) {
+            DEBUG_LOGF("Exception in isCapture: %s", e.what());
+            return false;
+        }
     }
 
     std::string getMoveStack() const {
@@ -726,6 +762,13 @@ public:
     }
 
 private:
+    const Variant* v;
+    StateListPtr states;
+    Position pos;
+    Thread* thread;
+    std::vector<Move> moves;
+    bool chess960;
+
     void init(const std::string& uciVariant, const std::string& fen, bool is960) {
         DEBUG_LOGF("init() called with variant: %s, fen: %s, is960: %d", 
                    uciVariant.c_str(), fen.c_str(), is960);
@@ -761,21 +804,20 @@ private:
             UCI::init_variant(v);
             
             std::string actualFen = fen.empty() ? v->startFen : fen;
-            DEBUG_LOGF("Setting position with FEN: %s", actualFen.c_str());
             
-            if (!states || states->empty()) {
-                DEBUG_LOG("Invalid states");
-                throw std::runtime_error("Invalid states");
+            // Skip FEN validation for spartan chess
+            if (v->variantTemplate != "spartan") {
+                if (FEN::validate_fen(actualFen, v, is960) != 1) {
+                    throw std::runtime_error("Invalid FEN: " + actualFen);
+                }
             }
             
-            if (!thread) {
-                DEBUG_LOG("Invalid thread");
-                throw std::runtime_error("Invalid thread");
-            }
-
-            DEBUG_LOG("About to set position");
-            pos.set(v, actualFen, is960, &states->back(), thread);
             this->chess960 = is960;
+            pos.set(v, actualFen, is960, &states->back(), thread);
+            
+            if (!pos.pos_is_ok()) {
+                throw std::runtime_error("Invalid position after initialization");
+            }
             
             DEBUG_LOG("Board initialization complete");
         }
@@ -799,8 +841,16 @@ private:
 };
 
 // Define LuaBoard static members
-lua_State* LuaBoard::L = nullptr;
 bool LuaBoard::sfInitialized = false;
+lua_State* LuaBoard::L = nullptr;
+
+// Now define setOption after LuaBoard is fully defined
+namespace ffish {
+    void setOption(const std::string& name, const std::string& value) {
+        Stockfish::Options[name] = value;
+        LuaBoard::sfInitialized = false;
+    }
+}
 
 // Then define Game class
 class Game {
@@ -880,7 +930,10 @@ public:
     Game& operator=(const Game&) = delete;
 
     ~Game() {
-        board.reset();
+        DEBUG_LOG("Game destructor called");
+        if (board) {
+            board.reset();
+        }
     }
 
     std::string headerKeys() {
@@ -1163,6 +1216,25 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                 .addFunction("startingFen", &ffish::startingFen)
                 .addFunction("capturesToHand", &ffish::capturesToHand)
                 .addFunction("twoBoards", &ffish::twoBoards)
+                .addFunction("readGamePGN", [L](const std::string& pgn) {
+                    return readGamePGN(L, pgn);
+                })
+                .addFunction("setOption", [](const std::string& name, const std::string& value) {
+                    Stockfish::Options[name] = value;
+                    LuaBoard::sfInitialized = false;
+                })
+
+                // Create Notation namespace
+                .beginNamespace("Notation")
+                    .addFunction("DEFAULT", []() -> int { return static_cast<int>(NOTATION_DEFAULT); })
+                    .addFunction("SAN", []() -> int { return static_cast<int>(NOTATION_SAN); })
+                    .addFunction("LAN", []() -> int { return static_cast<int>(NOTATION_LAN); })
+                    .addFunction("SHOGI_HOSKING", []() -> int { return static_cast<int>(NOTATION_SHOGI_HOSKING); })
+                    .addFunction("SHOGI_HODGES", []() -> int { return static_cast<int>(NOTATION_SHOGI_HODGES); })
+                    .addFunction("SHOGI_HODGES_NUMBER", []() -> int { return static_cast<int>(NOTATION_SHOGI_HODGES_NUMBER); })
+                    .addFunction("JANGGI", []() -> int { return static_cast<int>(NOTATION_JANGGI); })
+                    .addFunction("XIANGQI_WXF", []() -> int { return static_cast<int>(NOTATION_XIANGQI_WXF); })
+                .endNamespace()
 
                 // Register Board class
                 .beginClass<LuaBoard>("Board")
@@ -1170,7 +1242,11 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addStaticFunction("new", &createBoard)
                     .addStaticFunction("newVariant", &createBoardVariant)
                     .addStaticFunction("newVariantFen", &createBoardVariantFen)
-                    .addStaticFunction("newVariantFen960", &createBoardVariantFen960)
+                    .addStaticFunction("newVariantFen960", [](const std::string& variant, const std::string& fen, bool is960) {
+                        DEBUG_LOGF("Creating board with variant: %s, fen: %s, is960: %d", 
+                                   variant.c_str(), fen.c_str(), is960);
+                        return new LuaBoard(variant, fen, is960);
+                    })
                     // Add delete method instead
                     .addFunction("delete", &destroyBoard)
                     // Add other methods
@@ -1186,6 +1262,27 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addFunction("turn", &LuaBoard::turn)
                     .addFunction("fullmoveNumber", &LuaBoard::fullmoveNumber)
                     .addFunction("result", (std::string(LuaBoard::*)() const)&LuaBoard::result)
+                    .addFunction("is960", &LuaBoard::is960)
+                    .addFunction("checkedPieces", &LuaBoard::checkedPieces)
+                    .addFunction("setFen", &LuaBoard::set_fen)
+                    .addFunction("pushMoves", &LuaBoard::pushMoves)
+                    .addFunction("isCapture", &LuaBoard::isCapture)
+                    .addFunction("gamePly", &LuaBoard::gamePly)
+                    .addFunction("halfmoveClock", &LuaBoard::halfmoveClock)
+                    .addFunction("hasInsufficientMaterial", &LuaBoard::hasInsufficientMaterial)
+                    .addFunction("isInsufficientMaterial", &LuaBoard::is_insufficient_material)
+                    .addFunction("isBikjang", &LuaBoard::isBikjang)
+                    .addFunction("pushSanMoves", (void(LuaBoard::*)(const std::string&))&LuaBoard::pushSanMoves)
+                    .addFunction("pushSanMovesNotation", [](LuaBoard* board, const std::string& moves, int notation) {
+                        board->pushSanMoves(moves, static_cast<Notation>(notation));
+                    })
+                    .addFunction("moveStack", &LuaBoard::getMoveStack)
+                    .addFunction("numberLegalMoves", &LuaBoard::numberLegalMoves)
+                    .addFunction("pocket", &LuaBoard::pocket)
+                    .addFunction("sanMove", (std::string(LuaBoard::*)(const std::string&))&LuaBoard::sanMove)
+                    .addFunction("sanMoveNotation", [](LuaBoard* board, const std::string& move, int notation) {
+                        return board->sanMove(move, static_cast<Notation>(notation));
+                    })
                 .endClass()
 
                 // Register Game class
@@ -1197,6 +1294,7 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addFunction("mainlineMoves", &Game::mainlineMoves)
                     .addFunction("isEnd", &Game::isEnd)
                     .addFunction("result", &Game::result)
+                    .addFunction("delete", [](Game* game) { delete game; })
                 .endClass()
             .endNamespace();
 
@@ -1230,5 +1328,18 @@ static int pushLuaError(lua_State* L, const char* msg) {
     lua_pushnil(L);
     lua_pushstring(L, msg);
     return 2;
+}
+
+// Add at the top of the file after includes
+namespace {
+    // Static values for Notation enum
+    static const int NOTATION_DEFAULT_VAL = static_cast<int>(NOTATION_DEFAULT);
+    static const int NOTATION_SAN_VAL = static_cast<int>(NOTATION_SAN);
+    static const int NOTATION_LAN_VAL = static_cast<int>(NOTATION_LAN);
+    static const int NOTATION_SHOGI_HOSKING_VAL = static_cast<int>(NOTATION_SHOGI_HOSKING);
+    static const int NOTATION_SHOGI_HODGES_VAL = static_cast<int>(NOTATION_SHOGI_HODGES);
+    static const int NOTATION_SHOGI_HODGES_NUMBER_VAL = static_cast<int>(NOTATION_SHOGI_HODGES_NUMBER);
+    static const int NOTATION_JANGGI_VAL = static_cast<int>(NOTATION_JANGGI);
+    static const int NOTATION_XIANGQI_WXF_VAL = static_cast<int>(NOTATION_XIANGQI_WXF);
 }
  
