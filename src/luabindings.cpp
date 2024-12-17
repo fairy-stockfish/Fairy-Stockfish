@@ -141,9 +141,24 @@ namespace ffish {
     }
 
     void loadVariantConfig(const std::string& config) {
-        std::stringstream ss(config);
-        Stockfish::variants.parse_istream<false>(ss);
-        Stockfish::Options["UCI_Variant"].set_combo(Stockfish::variants.get_keys());
+        DEBUG_LOG("Loading variant config");
+        DEBUG_LOGF("Config length: %zu", config.length());
+        try {
+            std::stringstream ss(config);
+            DEBUG_LOG("Created stringstream");
+            Stockfish::variants.parse_istream<false>(ss);
+            DEBUG_LOG("Successfully parsed variant config");
+            Stockfish::Options["UCI_Variant"].set_combo(Stockfish::variants.get_keys());
+            DEBUG_LOG("Updated UCI variant options");
+        }
+        catch (const std::exception& e) {
+            DEBUG_LOGF("Exception in loadVariantConfig: %s", e.what());
+            throw;
+        }
+        catch (...) {
+            DEBUG_LOG("Unknown exception in loadVariantConfig");
+            throw;
+        }
     }
 
     int validateFen(const std::string& fen, const std::string& variant, bool chess960) {
@@ -1099,36 +1114,24 @@ static void destroyBoard(LuaBoard* board) {
     }
 }
 
-// First, modify the Game constructors to be static factory methods like we did with Board
+// Add these helper functions at the top of the file after the includes
 static Game* createGame() {
-    DEBUG_LOG("createGame() called");
+    DEBUG_LOG("Creating new empty Game");
     try {
-        Game* game = new Game();
-        DEBUG_LOG("Game created successfully");
-        return game;
+        return new Game();
     } catch (const std::exception& e) {
-        DEBUG_LOGF("Exception in createGame: %s", e.what());
+        DEBUG_LOGF("Exception creating empty Game: %s", e.what());
         return nullptr;
     }
 }
 
 static Game* createGameFromPGN(const std::string& pgn) {
-    DEBUG_LOG("createGameFromPGN() called");
+    DEBUG_LOGF("Creating Game from PGN: %s", pgn.c_str());
     try {
-        Game* game = new Game(pgn);
-        DEBUG_LOG("Game created successfully from PGN");
-        return game;
+        return new Game(pgn);
     } catch (const std::exception& e) {
-        DEBUG_LOGF("Exception in createGameFromPGN: %s", e.what());
+        DEBUG_LOGF("Exception creating Game from PGN: %s", e.what());
         return nullptr;
-    }
-}
-
-// Add Game destructor
-static void destroyGame(Game* game) {
-    if (game) {
-        DEBUG_LOG("Destroying game");
-        delete game;
     }
 }
 
@@ -1187,11 +1190,8 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
 
                 // Register Game class
                 .beginClass<Game>("Game")
-                    // Use static functions instead of constructors
                     .addStaticFunction("new", &createGame)
-                    .addStaticFunction("fromPGN", &createGameFromPGN)
-                    // Add destructor
-                    .addFunction("delete", &destroyGame)
+                    .addStaticFunction("newFromPGN", &createGameFromPGN)
                     .addFunction("headerKeys", &Game::headerKeys)
                     .addFunction("headers", &Game::headers)
                     .addFunction("mainlineMoves", &Game::mainlineMoves)
