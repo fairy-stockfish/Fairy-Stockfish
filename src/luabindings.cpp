@@ -724,6 +724,14 @@ public:
         return "unknown";
     }
 
+    std::string variationSan(const std::string& uciMoves) {
+        return variationSan(uciMoves, NOTATION_SAN, true);
+    }
+
+    std::string variationSan(const std::string& uciMoves, Notation notation) {
+        return variationSan(uciMoves, notation, true);
+    }
+
     std::string variationSan(const std::string& uciMoves, Notation notation, bool moveNumbers) {
         StateListPtr tempStates(new std::deque<StateInfo>());
         std::vector<Move> tempMoves;
@@ -1308,13 +1316,9 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addFunction("toString", &LuaBoard::toString)
                     .addFunction("toVerboseString", &LuaBoard::toVerboseString)
                     .addFunction("variant", &LuaBoard::variant)
-                    .addFunction("variationSan", (std::string(LuaBoard::*)(const std::string&, Notation, bool))&LuaBoard::variationSan)
-                    .addFunction("variationSanNotation", [](LuaBoard* board, const std::string& moves, int notation) {
-                        return board->variationSan(moves, static_cast<Notation>(notation), true);
-                    })
-                    .addFunction("variationSanNotationMoveNumbers", [](LuaBoard* board, const std::string& moves, int notation, bool moveNumbers) {
-                        return board->variationSan(moves, static_cast<Notation>(notation), moveNumbers);
-                    })
+                    .addFunction("variationSan", (std::string(LuaBoard::*)(const std::string&))&LuaBoard::variationSan)
+                    .addFunction("variationSanNotation", (std::string(LuaBoard::*)(const std::string&, Notation))&LuaBoard::variationSan)
+                    .addFunction("variationSanNotationMoveNumbers", (std::string(LuaBoard::*)(const std::string&, Notation, bool))&LuaBoard::variationSan)
                 .endClass()
 
                 // Register Game class
