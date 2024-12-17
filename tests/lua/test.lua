@@ -273,16 +273,61 @@ function TestFairystockfish:test_Board_large_variant()
 end
 
 function TestFairystockfish:test_Board_fen()
-    local board = ffish.Board.new("crazyhouse", "rnbqkb1r/pp3ppp/5p2/2pp4/8/5N2/PPPP1PPP/RNBQKB1R/Np w KQkq - 0 5")
-    lu.assertEquals(board:fen(), "rnbqkb1r/pp3ppp/5p2/2pp4/8/5N2/PPPP1PPP/RNBQKB1R[Np] w KQkq - 0 5")
-    lu.assertEquals(board:is960(), false)
+    -- Create a board with crazyhouse variant and specific FEN position
+    local ok, board = pcall(function()
+        return ffish.Board.newVariantFen("crazyhouse", "rnbqkb1r/pp3ppp/5p2/2pp4/8/5N2/PPPP1PPP/RNBQKB1R/Np w KQkq - 0 5")
+    end)
+    
+    if not ok then
+        lu.fail("Failed to create crazyhouse board: " .. tostring(board))
+        return
+    end
+    
+    if not board then
+        lu.fail("Board creation returned nil")
+        return
+    end
+    
+    -- Verify the FEN and chess960 flag
+    local ok2, fen = pcall(function()
+        return board:fen()
+    end)
+    
+    if not ok2 then
+        print("Error getting board FEN:", fen)
+        lu.fail("Failed to get board FEN: " .. tostring(fen))
+        board:delete()
+        return
+    end
+    
+    lu.assertEquals(fen, "rnbqkb1r/pp3ppp/5p2/2pp4/8/5N2/PPPP1PPP/RNBQKB1R[Np] w KQkq - 0 5")
+    lu.assertFalse(board:is960())
+    
+    -- Clean up
     board:delete()
 end
 
 function TestFairystockfish:test_Board_chess960()
-    local board = ffish.Board.new("chess", "rnknb1rq/pp2ppbp/3p2p1/2p5/4PP2/2N1N1P1/PPPP3P/R1K1BBRQ b KQkq - 1 5", true)
+    -- Create a board with chess960 position and is960 flag set to true
+    local ok, board = pcall(function()
+        return ffish.Board.newVariantFen960("chess", "rnknb1rq/pp2ppbp/3p2p1/2p5/4PP2/2N1N1P1/PPPP3P/R1K1BBRQ b KQkq - 1 5", true)
+    end)
+    
+    if not ok then
+        lu.fail("Failed to create chess960 board: " .. tostring(board))
+        return
+    end
+    
+    if not board then
+        lu.fail("Board creation returned nil")
+        return
+    end
+    
+    -- Verify the FEN and chess960 flag
     lu.assertEquals(board:fen(), "rnknb1rq/pp2ppbp/3p2p1/2p5/4PP2/2N1N1P1/PPPP3P/R1K1BBRQ b GAga - 1 5")
-    lu.assertEquals(board:is960(), true)
+    lu.assertTrue(board:is960())
+    
+    -- Clean up
     board:delete()
 end
 

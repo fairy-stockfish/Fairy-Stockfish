@@ -348,29 +348,60 @@ public:
 
     LuaBoard(const std::string& uciVariant, const std::string& fen, bool is960) :
         v(nullptr),
-        states(new std::deque<StateInfo>(1)),
-        thread(Threads.main()),
-        chess960(is960)
+        states(nullptr),  // Initialize to nullptr first
+        thread(nullptr),
+        chess960(is960)  // Set chess960 flag first
     {
         DEBUG_LOG("LuaBoard variant+fen+960 constructor start");
         
-        if (!states) {
-            DEBUG_LOG("Failed to create states");
-            throw std::runtime_error("Failed to create states");
-        }
-        
-        if (!thread) {
-            DEBUG_LOG("Failed to get main thread");
-            Stockfish::Options["Threads"] = std::string("1");
-            thread = Threads.main();
-            if (!thread) {
-                throw std::runtime_error("Failed to get main thread");
+        try {
+            // Initialize Stockfish if needed
+            if (!stockfishInitialized) {
+                DEBUG_LOG("Initializing Stockfish");
+                initialize_stockfish();
             }
+
+            // Create states
+            DEBUG_LOG("Creating states");
+            states = StateListPtr(new std::deque<StateInfo>(1));
+            if (!states || states->empty()) {
+                throw std::runtime_error("Failed to create states");
+            }
+
+            // Get thread with safety check
+            DEBUG_LOG("Getting main thread");
+            {
+                std::lock_guard<std::mutex> lock(threadMutex);
+                if (!threadsInitialized) {
+                    DEBUG_LOG("Threads not initialized, initializing now");
+                    initializeThreads();
+                }
+                thread = Threads.main();
+                if (!thread) {
+                    DEBUG_LOG("Failed to get main thread");
+                    Stockfish::Options["Threads"] = std::string("1");
+                    thread = Threads.main();
+                    if (!thread) {
+                        throw std::runtime_error("Failed to get main thread");
+                    }
+                }
+            }
+            DEBUG_LOG("Successfully got main thread");
+
+            DEBUG_LOG("About to call init()");
+            init(uciVariant, fen, is960);
+            DEBUG_LOG("LuaBoard variant+fen+960 constructor complete");
         }
-        
-        DEBUG_LOG("About to call init()");
-        init(uciVariant, fen, is960);
-        DEBUG_LOG("LuaBoard variant+fen+960 constructor complete");
+        catch (const std::exception& e) {
+            DEBUG_LOGF("Exception in constructor: %s", e.what());
+            cleanup();  // Clean up any partially initialized resources
+            throw;  // Re-throw the exception
+        }
+        catch (...) {
+            DEBUG_LOG("Unknown exception in constructor");
+            cleanup();
+            throw;
+        }
     }
 
     LuaBoard(LuaBoard&& other) noexcept
@@ -828,17 +859,25 @@ private:
             }
 
             DEBUG_LOG("Looking up variant");
-            auto variantIter = variants.find(uciVariant.empty() || uciVariant == "standard" || 
-                                           uciVariant == "Standard" ? "chess" : uciVariant);
+            std::string normalizedVariant = uciVariant.empty() || uciVariant == "standard" || 
+                                          uciVariant == "Standard" ? "chess" : uciVariant;
+            auto variantIter = variants.find(normalizedVariant);
             if (variantIter == variants.end()) {
-                DEBUG_LOGF("Invalid variant: %s", uciVariant.c_str());
-                throw std::runtime_error("Invalid variant: " + uciVariant);
+                DEBUG_LOGF("Invalid variant: %s", normalizedVariant.c_str());
+                throw std::runtime_error("Invalid variant: " + normalizedVariant);
             }
             
             v = variantIter->second;
             if (!v) {
                 DEBUG_LOG("Null variant pointer");
                 throw std::runtime_error("Null variant pointer");
+            }
+
+            // Set chess960 flag and UCI option before initializing variant
+            this->chess960 = is960;
+            if (is960) {
+                DEBUG_LOG("Setting UCI_Chess960 option in init");
+                Stockfish::Options["UCI_Chess960"] = std::string("true");
             }
 
             DEBUG_LOG("Initializing UCI variant");
@@ -848,7 +887,8 @@ private:
             
             try {
                 states = StateListPtr(new std::deque<StateInfo>(1));
-                this->chess960 = is960;
+                DEBUG_LOGF("Setting position with FEN: %s, is960: %d", actualFen.c_str(), is960);
+                
                 pos.set(v, actualFen, is960, &states->back(), thread);
                 
                 // Skip position validation for variants with custom pieces
@@ -1163,13 +1203,13 @@ static LuaBoard* createBoardVariant(const std::string& variant) {
     DEBUG_LOGF("createBoardVariant() called with variant: %s", variant.c_str());
     try {
         DEBUG_LOG("About to create new LuaBoard with variant");
-        LuaBoard* board = new LuaBoard(variant);
+        std::unique_ptr<LuaBoard> board(new LuaBoard(variant));
         if (!board) {
             DEBUG_LOG("Board creation returned nullptr");
             return nullptr;
         }
         DEBUG_LOG("Board created successfully");
-        return board;
+        return board.release();
     } catch (const std::exception& e) {
         DEBUG_LOGF("Exception in createBoardVariant: %s", e.what());
         return nullptr;
@@ -1180,25 +1220,40 @@ static LuaBoard* createBoardVariant(const std::string& variant) {
 }
 
 static LuaBoard* createBoardVariantFen(const std::string& variant, const std::string& fen) {
-    std::cerr << "DEBUG: Creating new board with variant: " << variant << " and fen: " << fen << std::endl;
+    DEBUG_LOGF("createBoardVariantFen() called with variant: %s, fen: %s", variant.c_str(), fen.c_str());
     try {
-        LuaBoard* board = new LuaBoard(variant, fen);
-        std::cerr << "DEBUG: Board created successfully" << std::endl;
-        return board;
+        std::unique_ptr<LuaBoard> board(new LuaBoard(variant, fen));
+        if (!board) {
+            DEBUG_LOG("Board creation returned nullptr");
+            return nullptr;
+        }
+        DEBUG_LOG("Board created successfully");
+        return board.release();
     } catch (const std::exception& e) {
-        std::cerr << "ERROR: Failed to create board: " << e.what() << std::endl;
+        DEBUG_LOGF("Exception in createBoardVariantFen: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        DEBUG_LOG("Unknown exception in createBoardVariantFen");
         return nullptr;
     }
 }
 
 static LuaBoard* createBoardVariantFen960(const std::string& variant, const std::string& fen, bool is960) {
-    std::cerr << "DEBUG: Creating new board with variant: " << variant << ", fen: " << fen << " and is960: " << is960 << std::endl;
+    DEBUG_LOGF("createBoardVariantFen960() called with variant: %s, fen: %s, is960: %d", 
+               variant.c_str(), fen.c_str(), is960);
     try {
-        LuaBoard* board = new LuaBoard(variant, fen, is960);
-        std::cerr << "DEBUG: Board created successfully" << std::endl;
-        return board;
+        std::unique_ptr<LuaBoard> board(new LuaBoard(variant, fen, is960));
+        if (!board) {
+            DEBUG_LOG("Board creation returned nullptr");
+            return nullptr;
+        }
+        DEBUG_LOG("Board created successfully");
+        return board.release();
     } catch (const std::exception& e) {
-        std::cerr << "ERROR: Failed to create board: " << e.what() << std::endl;
+        DEBUG_LOGF("Exception in createBoardVariantFen960: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        DEBUG_LOG("Unknown exception in createBoardVariantFen960");
         return nullptr;
     }
 }
@@ -1297,7 +1352,24 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addStaticFunction("newVariantFen960", [](const std::string& variant, const std::string& fen, bool is960) {
                         DEBUG_LOGF("Creating board with variant: %s, fen: %s, is960: %d", 
                                    variant.c_str(), fen.c_str(), is960);
-                        return new LuaBoard(variant, fen, is960);
+                        try {
+                            // Set UCI_Chess960 option before creating the board
+                            if (is960) {
+                                DEBUG_LOG("Setting UCI_Chess960 option");
+                                Stockfish::Options["UCI_Chess960"] = std::string("true");
+                            }
+                            
+                            std::unique_ptr<LuaBoard> board(new LuaBoard(variant, fen, is960));
+                            if (!board) {
+                                DEBUG_LOG("Board creation returned nullptr");
+                                return static_cast<LuaBoard*>(nullptr);
+                            }
+                            DEBUG_LOG("Board created successfully");
+                            return board.release();
+                        } catch (const std::exception& e) {
+                            DEBUG_LOGF("Exception in createBoardVariantFen960: %s", e.what());
+                            return static_cast<LuaBoard*>(nullptr);
+                        }
                     })
                     // Add delete method instead
                     .addFunction("delete", &destroyBoard)
