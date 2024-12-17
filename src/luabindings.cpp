@@ -521,27 +521,19 @@ public:
             states = StateListPtr(new std::deque<StateInfo>(1));
             moves.clear();
             
-            // Skip FEN validation for variants with custom pieces or pocket pieces
-            if (v->variantTemplate != "spartan" && 
-                v->variantTemplate != "janggi" && 
-                v->variantTemplate != "xiangqi" && 
-                v->variantTemplate != "shogi" && 
-                v->variantTemplate != "makruk" &&
-                !v->capturesToHand) {
-                if (FEN::validate_fen(fen, v, chess960) != 1) {
-                    throw std::runtime_error("Invalid FEN: " + fen);
-                }
-            }
-            
             try {
                 pos.set(v, fen, chess960, &states->back(), thread);
+                
+                // Skip position validation for variants with custom pieces
+                if (v->variantTemplate != "spartan" && v->variantTemplate != "janggi") {
+                    if (!pos.pos_is_ok()) {
+                        throw std::runtime_error("Invalid position after setting FEN");
+                    }
+                }
             }
             catch (const std::exception& e) {
-                throw std::runtime_error(std::string("Failed to set position: ") + e.what());
-            }
-            
-            if (!pos.pos_is_ok()) {
-                throw std::runtime_error("Invalid position after setting FEN");
+                DEBUG_LOGF("Exception in set_fen: %s", e.what());
+                throw std::runtime_error(std::string("Invalid FEN: ") + fen);
             }
         }
         catch (const std::exception& e) {
@@ -614,16 +606,44 @@ public:
     }
 
     std::string checkedPieces() const {
-        Bitboard checked = Stockfish::checked(pos);
-        std::string squares;
-        while (checked) {
-            Square sr = pop_lsb(checked);
-            squares += UCI::square(pos, sr);
-            squares += " ";
+        try {
+            std::string squares;
+            Color us = pos.side_to_move();
+            
+            // For variants with custom pieces or special rules
+            if (v->variantTemplate == "spartan" || v->variantTemplate == "janggi") {
+                // Get all pieces that could be in check
+                Bitboard pieces = pos.pieces(us, KING);
+                if (v->variantTemplate == "spartan") {
+                    pieces |= pos.pieces(us, CUSTOM_PIECES);
+                }
+                
+                // Check each piece individually
+                Bitboard b = pieces;
+                while (b) {
+                    Square s = pop_lsb(b);
+                    if (pos.attackers_to(s, ~us)) {
+                        squares += UCI::square(pos, s);
+                        squares += " ";
+                    }
+                }
+            }
+            else {
+                // For standard variants
+                if (pos.checkers()) {
+                    Square ksq = lsb(pos.pieces(us, KING));
+                    squares += UCI::square(pos, ksq);
+                }
+            }
+            
+            if (!squares.empty())
+                squares.pop_back();
+            return squares;
         }
-        if (!squares.empty())
-            squares.pop_back();
-        return squares;
+        catch (const std::exception& e) {
+            DEBUG_LOGF("Exception in checkedPieces: %s", e.what());
+            throw;
+        }
     }
 
     bool isBikjang() const {
@@ -826,18 +846,21 @@ private:
             
             std::string actualFen = fen.empty() ? v->startFen : fen;
             
-            // Skip FEN validation for spartan chess
-            if (v->variantTemplate != "spartan") {
-                if (FEN::validate_fen(actualFen, v, is960) != 1) {
-                    throw std::runtime_error("Invalid FEN: " + actualFen);
+            try {
+                states = StateListPtr(new std::deque<StateInfo>(1));
+                this->chess960 = is960;
+                pos.set(v, actualFen, is960, &states->back(), thread);
+                
+                // Skip position validation for variants with custom pieces
+                if (v->variantTemplate != "spartan" && v->variantTemplate != "janggi") {
+                    if (!pos.pos_is_ok()) {
+                        throw std::runtime_error("Invalid position after initialization");
+                    }
                 }
             }
-            
-            this->chess960 = is960;
-            pos.set(v, actualFen, is960, &states->back(), thread);
-            
-            if (!pos.pos_is_ok()) {
-                throw std::runtime_error("Invalid position after initialization");
+            catch (const std::exception& e) {
+                DEBUG_LOGF("Exception in init: %s", e.what());
+                throw std::runtime_error(std::string("Invalid FEN: ") + actualFen);
             }
             
             DEBUG_LOG("Board initialization complete");
