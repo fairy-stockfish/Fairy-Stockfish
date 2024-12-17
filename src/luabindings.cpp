@@ -144,12 +144,31 @@ namespace ffish {
         DEBUG_LOG("Loading variant config");
         DEBUG_LOGF("Config length: %zu", config.length());
         try {
+            if (config.empty()) {
+                DEBUG_LOG("Empty config provided");
+                throw std::runtime_error("Empty variant configuration");
+            }
+
             std::stringstream ss(config);
             DEBUG_LOG("Created stringstream");
-            Stockfish::variants.parse_istream<false>(ss);
-            DEBUG_LOG("Successfully parsed variant config");
-            Stockfish::Options["UCI_Variant"].set_combo(Stockfish::variants.get_keys());
-            DEBUG_LOG("Updated UCI variant options");
+            
+            try {
+                Stockfish::variants.parse_istream<false>(ss);
+                DEBUG_LOG("Successfully parsed variant config");
+            }
+            catch (const std::exception& e) {
+                DEBUG_LOGF("Failed to parse variant config: %s", e.what());
+                throw;
+            }
+            
+            try {
+                Stockfish::Options["UCI_Variant"].set_combo(Stockfish::variants.get_keys());
+                DEBUG_LOG("Updated UCI variant options");
+            }
+            catch (const std::exception& e) {
+                DEBUG_LOGF("Failed to update UCI options: %s", e.what());
+                throw;
+            }
         }
         catch (const std::exception& e) {
             DEBUG_LOGF("Exception in loadVariantConfig: %s", e.what());
@@ -502,12 +521,13 @@ public:
             states = StateListPtr(new std::deque<StateInfo>(1));
             moves.clear();
             
-            // Skip FEN validation for variants with custom pieces
+            // Skip FEN validation for variants with custom pieces or pocket pieces
             if (v->variantTemplate != "spartan" && 
                 v->variantTemplate != "janggi" && 
                 v->variantTemplate != "xiangqi" && 
                 v->variantTemplate != "shogi" && 
-                v->variantTemplate != "makruk") {
+                v->variantTemplate != "makruk" &&
+                !v->capturesToHand) {
                 if (FEN::validate_fen(fen, v, chess960) != 1) {
                     throw std::runtime_error("Invalid FEN: " + fen);
                 }
@@ -704,16 +724,9 @@ public:
         return "unknown";
     }
 
-    std::string variationSan(const std::string& uciMoves) {
-        return variationSan(uciMoves, NOTATION_SAN, true);
-    }
-
-    std::string variationSan(const std::string& uciMoves, Notation notation) {
-        return variationSan(uciMoves, notation, true);
-    }
-
     std::string variationSan(const std::string& uciMoves, Notation notation, bool moveNumbers) {
         StateListPtr tempStates(new std::deque<StateInfo>());
+        std::vector<Move> tempMoves;
         std::istringstream ss(uciMoves);
         std::string uciMove, variationSan;
         bool first = true;
@@ -746,12 +759,12 @@ public:
 
             tempStates->emplace_back();
             pos.do_move(move, tempStates->back());
+            tempMoves.push_back(move);
         }
 
-        // Undo all moves
-        while (!tempStates->empty()) {
-            pos.undo_move(UCI::to_move(pos, uciMove));
-            tempStates->pop_back();
+        // Undo all moves in reverse order
+        for (auto it = tempMoves.rbegin(); it != tempMoves.rend(); ++it) {
+            pos.undo_move(*it);
         }
 
         return variationSan;
@@ -1223,6 +1236,14 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     Stockfish::Options[name] = value;
                     LuaBoard::sfInitialized = false;
                 })
+                .addFunction("setOptionInt", [](const std::string& name, int value) {
+                    Stockfish::Options[name] = value;
+                    LuaBoard::sfInitialized = false;
+                })
+                .addFunction("setOptionBool", [](const std::string& name, bool value) {
+                    Stockfish::Options[name] = value;
+                    LuaBoard::sfInitialized = false;
+                })
 
                 // Create Notation namespace
                 .beginNamespace("Notation")
@@ -1282,6 +1303,17 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addFunction("sanMove", (std::string(LuaBoard::*)(const std::string&))&LuaBoard::sanMove)
                     .addFunction("sanMoveNotation", [](LuaBoard* board, const std::string& move, int notation) {
                         return board->sanMove(move, static_cast<Notation>(notation));
+                    })
+                    // Add missing methods
+                    .addFunction("toString", &LuaBoard::toString)
+                    .addFunction("toVerboseString", &LuaBoard::toVerboseString)
+                    .addFunction("variant", &LuaBoard::variant)
+                    .addFunction("variationSan", (std::string(LuaBoard::*)(const std::string&, Notation, bool))&LuaBoard::variationSan)
+                    .addFunction("variationSanNotation", [](LuaBoard* board, const std::string& moves, int notation) {
+                        return board->variationSan(moves, static_cast<Notation>(notation), true);
+                    })
+                    .addFunction("variationSanNotationMoveNumbers", [](LuaBoard* board, const std::string& moves, int notation, bool moveNumbers) {
+                        return board->variationSan(moves, static_cast<Notation>(notation), moveNumbers);
                     })
                 .endClass()
 
