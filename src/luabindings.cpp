@@ -38,10 +38,6 @@ class LuaBoard;
 class Game;
 
 // Add at the top after includes
-#define DEBUG_LOG(msg) do { printf("DEBUG [C++]: %s\n", msg); fflush(stdout); } while(0)
-#define DEBUG_LOGF(fmt, ...) do { printf("DEBUG [C++]: " fmt "\n", __VA_ARGS__); fflush(stdout); } while(0)
-
-// Add at the top after includes
 static bool stockfishInitialized = false;
 static std::mutex threadMutex;
 static bool threadsInitialized = false;
@@ -50,31 +46,24 @@ static bool threadsInitialized = false;
 void initializeThreads() {
     std::lock_guard<std::mutex> lock(threadMutex);
     if (!threadsInitialized) {
-        DEBUG_LOG("Initializing threads");
         try {
             // Initialize UCI options first
-            DEBUG_LOG("Setting up UCI options");
             UCI::init(Stockfish::Options);
             
             // Set threads option
-            DEBUG_LOG("Setting threads option");
             Stockfish::Options["Threads"] = std::string("1");
             
             // Verify thread creation
-            DEBUG_LOG("Verifying main thread");
             if (!Threads.main()) {
                 throw std::runtime_error("Failed to create main thread after setting option");
             }
             
             threadsInitialized = true;
-            DEBUG_LOG("Threads initialized successfully");
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception during thread initialization: %s", e.what());
             throw;
         }
         catch (...) {
-            DEBUG_LOG("Unknown exception during thread initialization");
             throw;
         }
     }
@@ -87,38 +76,26 @@ void initialize_stockfish() {
     
     if (!stockfishInitialized) {
         try {
-            DEBUG_LOG("Initializing Stockfish components");
-            
-            DEBUG_LOG("Initializing piece map");
             pieceMap.init();
             
-            DEBUG_LOG("Initializing variants");
             Stockfish::variants.init();
             
-            DEBUG_LOG("Initializing UCI");
             UCI::init(Stockfish::Options);
             
-            DEBUG_LOG("Initializing bitboards");
             Bitboards::init();
             
-            DEBUG_LOG("Initializing position");
             Position::init();
             
-            DEBUG_LOG("Initializing bitbases");
             Bitbases::init();
             
-            DEBUG_LOG("Initializing threads");
             initializeThreads();
             
             stockfishInitialized = true;
-            DEBUG_LOG("Stockfish initialization complete");
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception during Stockfish initialization: %s", e.what());
             throw;
         }
         catch (...) {
-            DEBUG_LOG("Unknown exception during Stockfish initialization");
             throw;
         }
     }
@@ -141,41 +118,31 @@ namespace ffish {
     }
 
     void loadVariantConfig(const std::string& config) {
-        DEBUG_LOG("Loading variant config");
-        DEBUG_LOGF("Config length: %zu", config.length());
         try {
             if (config.empty()) {
-                DEBUG_LOG("Empty config provided");
                 throw std::runtime_error("Empty variant configuration");
             }
 
             std::stringstream ss(config);
-            DEBUG_LOG("Created stringstream");
             
             try {
                 Stockfish::variants.parse_istream<false>(ss);
-                DEBUG_LOG("Successfully parsed variant config");
             }
             catch (const std::exception& e) {
-                DEBUG_LOGF("Failed to parse variant config: %s", e.what());
                 throw;
             }
             
             try {
                 Stockfish::Options["UCI_Variant"].set_combo(Stockfish::variants.get_keys());
-                DEBUG_LOG("Updated UCI variant options");
             }
             catch (const std::exception& e) {
-                DEBUG_LOGF("Failed to update UCI options: %s", e.what());
                 throw;
             }
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception in loadVariantConfig: %s", e.what());
             throw;
         }
         catch (...) {
-            DEBUG_LOG("Unknown exception in loadVariantConfig");
             throw;
         }
     }
@@ -240,33 +207,26 @@ public:
         thread(nullptr),
         chess960(false)
     {
-        DEBUG_LOG("LuaBoard constructor start");
-        
         try {
             // Initialize Stockfish if needed
             if (!stockfishInitialized) {
-                DEBUG_LOG("Initializing Stockfish");
                 initialize_stockfish();
             }
 
             // Create states
-            DEBUG_LOG("Creating states");
             states = StateListPtr(new std::deque<StateInfo>(1));
             if (!states || states->empty()) {
                 throw std::runtime_error("Failed to create states");
             }
 
             // Get thread with safety check
-            DEBUG_LOG("Getting main thread");
             {
                 std::lock_guard<std::mutex> lock(threadMutex);
                 if (!threadsInitialized) {
-                    DEBUG_LOG("Threads not initialized, initializing now");
                     initializeThreads();
                 }
                 thread = Threads.main();
                 if (!thread) {
-                    DEBUG_LOG("Failed to get main thread");
                     Stockfish::Options["Threads"] = std::string("1");
                     thread = Threads.main();
                     if (!thread) {
@@ -274,19 +234,14 @@ public:
                     }
                 }
             }
-            DEBUG_LOG("Successfully got main thread");
 
-            DEBUG_LOG("About to call init()");
             init("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", false);
-            DEBUG_LOG("LuaBoard constructor complete");
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception in constructor: %s", e.what());
             cleanup();  // Clean up any partially initialized resources
             throw;  // Re-throw the exception
         }
         catch (...) {
-            DEBUG_LOG("Unknown exception in constructor");
             cleanup();
             throw;
         }
@@ -298,15 +253,11 @@ public:
         thread(Threads.main()),
         chess960(false)
     {
-        DEBUG_LOG("LuaBoard variant constructor start");
-        
         if (!states) {
-            DEBUG_LOG("Failed to create states");
             throw std::runtime_error("Failed to create states");
         }
         
         if (!thread) {
-            DEBUG_LOG("Failed to get main thread");
             Stockfish::Options["Threads"] = std::string("1");
             thread = Threads.main();
             if (!thread) {
@@ -314,9 +265,7 @@ public:
             }
         }
         
-        DEBUG_LOG("About to call init()");
         init(uciVariant, "", false);
-        DEBUG_LOG("LuaBoard variant constructor complete");
     }
 
     LuaBoard(const std::string& uciVariant, const std::string& fen) :
@@ -325,15 +274,11 @@ public:
         thread(Threads.main()),
         chess960(false)
     {
-        DEBUG_LOG("LuaBoard variant+fen constructor start");
-        
         if (!states) {
-            DEBUG_LOG("Failed to create states");
             throw std::runtime_error("Failed to create states");
         }
         
         if (!thread) {
-            DEBUG_LOG("Failed to get main thread");
             Stockfish::Options["Threads"] = std::string("1");
             thread = Threads.main();
             if (!thread) {
@@ -341,9 +286,7 @@ public:
             }
         }
         
-        DEBUG_LOG("About to call init()");
         init(uciVariant, fen, false);
-        DEBUG_LOG("LuaBoard variant+fen constructor complete");
     }
 
     LuaBoard(const std::string& uciVariant, const std::string& fen, bool is960) :
@@ -352,33 +295,26 @@ public:
         thread(nullptr),
         chess960(is960)  // Set chess960 flag first
     {
-        DEBUG_LOG("LuaBoard variant+fen+960 constructor start");
-        
         try {
             // Initialize Stockfish if needed
             if (!stockfishInitialized) {
-                DEBUG_LOG("Initializing Stockfish");
                 initialize_stockfish();
             }
 
             // Create states
-            DEBUG_LOG("Creating states");
             states = StateListPtr(new std::deque<StateInfo>(1));
             if (!states || states->empty()) {
                 throw std::runtime_error("Failed to create states");
             }
 
             // Get thread with safety check
-            DEBUG_LOG("Getting main thread");
             {
                 std::lock_guard<std::mutex> lock(threadMutex);
                 if (!threadsInitialized) {
-                    DEBUG_LOG("Threads not initialized, initializing now");
                     initializeThreads();
                 }
                 thread = Threads.main();
                 if (!thread) {
-                    DEBUG_LOG("Failed to get main thread");
                     Stockfish::Options["Threads"] = std::string("1");
                     thread = Threads.main();
                     if (!thread) {
@@ -386,19 +322,14 @@ public:
                     }
                 }
             }
-            DEBUG_LOG("Successfully got main thread");
 
-            DEBUG_LOG("About to call init()");
             init(uciVariant, fen, is960);
-            DEBUG_LOG("LuaBoard variant+fen+960 constructor complete");
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception in constructor: %s", e.what());
             cleanup();  // Clean up any partially initialized resources
             throw;  // Re-throw the exception
         }
         catch (...) {
-            DEBUG_LOG("Unknown exception in constructor");
             cleanup();
             throw;
         }
@@ -437,7 +368,6 @@ public:
     LuaBoard& operator=(const LuaBoard&) = delete;
 
     ~LuaBoard() {
-        std::cerr << "DEBUG: LuaBoard destructor called" << std::endl;
         states.reset();
         v = nullptr;
         thread = nullptr;
@@ -521,7 +451,6 @@ public:
             return false;
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception in isGameOver: %s", e.what());
             return false;
         }
     }
@@ -597,12 +526,10 @@ public:
                 }
             }
             catch (const std::exception& e) {
-                DEBUG_LOGF("Exception in set_fen: %s", e.what());
                 throw std::runtime_error(std::string("Invalid FEN: ") + fen);
             }
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception in set_fen: %s", e.what());
             throw;
         }
     }
@@ -652,11 +579,20 @@ public:
         
         if (!gameEnd && MoveList<LEGAL>(pos).size() == 0) {
             gameEnd = true;
-            result = pos.checkmate_value();
+            result = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
         }
         
-        if (!gameEnd && claimDraw)
-            gameEnd = pos.is_optional_game_end(result);
+        // Only check for optional game end if explicitly claiming draw
+        if (claimDraw) {
+            Value optionalResult;
+            bool optionalEnd = pos.is_optional_game_end(optionalResult);
+            
+            // Only update gameEnd and result if there's actually an optional end
+            if (optionalEnd) {
+                gameEnd = true;
+                result = optionalResult;
+            }
+        }
 
         if (!gameEnd)
             return "*";
@@ -706,7 +642,6 @@ public:
             return squares;
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception in checkedPieces: %s", e.what());
             throw;
         }
     }
@@ -738,7 +673,6 @@ public:
             return pos.capture(m);
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception in isCapture: %s", e.what());
             return false;
         }
     }
@@ -773,7 +707,7 @@ public:
     }
 
     std::string pocket(bool color) {
-        const Color c = Color(!color);
+        const Color c = Color(color);
         std::string pocket;
         for (PieceType pt = KING; pt >= PAWN; --pt) {
             for (int i = 0; i < pos.count_in_hand(c, pt); ++i) {
@@ -882,52 +816,40 @@ private:
     bool chess960;
 
     void init(const std::string& uciVariant, const std::string& fen, bool is960) {
-        DEBUG_LOGF("init() called with variant: %s, fen: %s, is960: %d", 
-                   uciVariant.c_str(), fen.c_str(), is960);
-
         if (!L) {
-            DEBUG_LOG("Lua state is null");
             throw std::runtime_error("Lua state not initialized");
         }
 
         try {
             if (!sfInitialized) {
-                DEBUG_LOG("Initializing Stockfish");
                 initialize_stockfish();
                 sfInitialized = true;
-                DEBUG_LOG("Stockfish initialized");
             }
 
-            DEBUG_LOG("Looking up variant");
             std::string normalizedVariant = uciVariant.empty() || uciVariant == "standard" || 
                                           uciVariant == "Standard" ? "chess" : uciVariant;
             auto variantIter = variants.find(normalizedVariant);
             if (variantIter == variants.end()) {
-                DEBUG_LOGF("Invalid variant: %s", normalizedVariant.c_str());
                 throw std::runtime_error("Invalid variant: " + normalizedVariant);
             }
             
             v = variantIter->second;
             if (!v) {
-                DEBUG_LOG("Null variant pointer");
                 throw std::runtime_error("Null variant pointer");
             }
 
             // Set chess960 flag and UCI option before initializing variant
             this->chess960 = is960;
             if (is960) {
-                DEBUG_LOG("Setting UCI_Chess960 option in init");
                 Stockfish::Options["UCI_Chess960"] = std::string("true");
             }
 
-            DEBUG_LOG("Initializing UCI variant");
             UCI::init_variant(v);
             
             std::string actualFen = fen.empty() ? v->startFen : fen;
             
             try {
                 states = StateListPtr(new std::deque<StateInfo>(1));
-                DEBUG_LOGF("Setting position with FEN: %s, is960: %d", actualFen.c_str(), is960);
                 
                 pos.set(v, actualFen, is960, &states->back(), thread);
                 
@@ -939,24 +861,18 @@ private:
                 }
             }
             catch (const std::exception& e) {
-                DEBUG_LOGF("Exception in init: %s", e.what());
                 throw std::runtime_error(std::string("Invalid FEN: ") + actualFen);
             }
-            
-            DEBUG_LOG("Board initialization complete");
         }
         catch (const std::exception& e) {
-            DEBUG_LOGF("Exception in init: %s", e.what());
             throw;
         }
         catch (...) {
-            DEBUG_LOG("Unknown exception in init");
             throw;
         }
     }
 
     void cleanup() {
-        DEBUG_LOG("Cleaning up board");
         states.reset();
         v = nullptr;
         thread = nullptr;
@@ -1054,7 +970,6 @@ public:
     Game& operator=(const Game&) = delete;
 
     ~Game() {
-        DEBUG_LOG("Game destructor called");
         if (board) {
             board.reset();
         }
@@ -1224,17 +1139,10 @@ Game* readGamePGN(lua_State* L, const std::string& pgn) {
 
 // Add class factory functions before luaopen_fairystockfish
 static LuaBoard* createBoard() {
-    DEBUG_LOG("createBoard() called");
     try {
-        DEBUG_LOG("About to create new LuaBoard");
         std::unique_ptr<LuaBoard> board(new LuaBoard());  // Use unique_ptr for exception safety
-        DEBUG_LOG("Board created successfully");
         return board.release();  // Release ownership to caller
     } catch (const std::exception& e) {
-        DEBUG_LOGF("Exception in createBoard: %s", e.what());
-        return nullptr;
-    } catch (...) {
-        DEBUG_LOG("Unknown exception in createBoard");
         return nullptr;
     }
 }
