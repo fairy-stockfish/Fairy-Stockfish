@@ -811,6 +811,10 @@ public:
         return "unknown";
     }
 
+    const Variant* getVariant() const {
+        return v;
+    }
+
     std::string variationSan(const std::string& uciMoves) {
         return variationSan(uciMoves, NOTATION_SAN, true);
     }
@@ -1336,9 +1340,13 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
         initialize_stockfish();
         
         DEBUG_LOG("Creating module table");
-        lua_newtable(L);
+        lua_newtable(L);  // Create the module table
         
         DEBUG_LOG("About to register classes and functions");
+        
+        // Get the module table we just created
+        lua_pushvalue(L, -1);
+        lua_setglobal(L, "ffish");
         
         // Register everything into the module table
         luabridge::getGlobalNamespace(L)
@@ -1369,14 +1377,16 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
 
                 // Create Notation namespace
                 .beginNamespace("Notation")
-                    .addFunction("DEFAULT", []() -> int { return static_cast<int>(NOTATION_DEFAULT); })
-                    .addFunction("SAN", []() -> int { return static_cast<int>(NOTATION_SAN); })
-                    .addFunction("LAN", []() -> int { return static_cast<int>(NOTATION_LAN); })
-                    .addFunction("SHOGI_HOSKING", []() -> int { return static_cast<int>(NOTATION_SHOGI_HOSKING); })
-                    .addFunction("SHOGI_HODGES", []() -> int { return static_cast<int>(NOTATION_SHOGI_HODGES); })
-                    .addFunction("SHOGI_HODGES_NUMBER", []() -> int { return static_cast<int>(NOTATION_SHOGI_HODGES_NUMBER); })
-                    .addFunction("JANGGI", []() -> int { return static_cast<int>(NOTATION_JANGGI); })
-                    .addFunction("XIANGQI_WXF", []() -> int { return static_cast<int>(NOTATION_XIANGQI_WXF); })
+                    .addProperty("DEFAULT", []() { return static_cast<int>(NOTATION_DEFAULT); })
+                    .addProperty("SAN", []() { return static_cast<int>(NOTATION_SAN); })
+                    .addProperty("LAN", []() { return static_cast<int>(NOTATION_LAN); })
+                    .addProperty("SHOGI_HOSKING", []() { return static_cast<int>(NOTATION_SHOGI_HOSKING); })
+                    .addProperty("SHOGI_HODGES", []() { return static_cast<int>(NOTATION_SHOGI_HODGES); })
+                    .addProperty("SHOGI_HODGES_NUMBER", []() { return static_cast<int>(NOTATION_SHOGI_HODGES_NUMBER); })
+                    .addProperty("JANGGI", []() { return static_cast<int>(NOTATION_JANGGI); })
+                    .addProperty("XIANGQI_WXF", []() { return static_cast<int>(NOTATION_XIANGQI_WXF); })
+                    .addProperty("THAI_SAN", []() { return static_cast<int>(NOTATION_THAI_SAN); })
+                    .addProperty("THAI_LAN", []() { return static_cast<int>(NOTATION_THAI_LAN); })
                 .endNamespace()
 
                 // Register Board class
@@ -1385,26 +1395,25 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addStaticFunction("new", &createBoard)
                     .addStaticFunction("newVariant", &createBoardVariant)
                     .addStaticFunction("newVariantFen", &createBoardVariantFen)
-                    .addStaticFunction("newVariantFen960", [](const std::string& variant, const std::string& fen, bool is960) {
+                    .addStaticFunction("newVariantFen960", [](const std::string& variant, const std::string& fen, bool is960) -> LuaBoard* {
                         DEBUG_LOGF("Creating board with variant: %s, fen: %s, is960: %d", 
                                    variant.c_str(), fen.c_str(), is960);
                         try {
-                            // Set UCI_Chess960 option before creating the board
                             if (is960) {
                                 DEBUG_LOG("Setting UCI_Chess960 option");
                                 Stockfish::Options["UCI_Chess960"] = std::string("true");
                             }
                             
-                            std::unique_ptr<LuaBoard> board(new LuaBoard(variant, fen, is960));
+                            auto board = std::make_unique<LuaBoard>(variant, fen, is960);
                             if (!board) {
                                 DEBUG_LOG("Board creation returned nullptr");
-                                return static_cast<LuaBoard*>(nullptr);
+                                return nullptr;
                             }
                             DEBUG_LOG("Board created successfully");
                             return board.release();
                         } catch (const std::exception& e) {
                             DEBUG_LOGF("Exception in createBoardVariantFen960: %s", e.what());
-                            return static_cast<LuaBoard*>(nullptr);
+                            return nullptr;
                         }
                     })
                     // Add delete method instead
@@ -1448,8 +1457,20 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addFunction("toVerboseString", &LuaBoard::toVerboseString)
                     .addFunction("variant", &LuaBoard::variant)
                     .addFunction("variationSan", (std::string(LuaBoard::*)(const std::string&))&LuaBoard::variationSan)
-                    .addFunction("variationSanNotation", (std::string(LuaBoard::*)(const std::string&, Notation))&LuaBoard::variationSan)
-                    .addFunction("variationSanNotationMoveNumbers", (std::string(LuaBoard::*)(const std::string&, Notation, bool))&LuaBoard::variationSan)
+                    .addFunction("variationSanWithNotation", [](LuaBoard* board, const std::string& moves, int notation) -> std::string {
+                        DEBUG_LOGF("variationSanWithNotation called with moves: %s, notation: %d", moves.c_str(), notation);
+                        DEBUG_LOGF("NOTATION_LAN value is: %d", static_cast<int>(NOTATION_LAN));
+                        return board->variationSan(moves, static_cast<Notation>(notation));
+                    })
+                    .addFunction("variationSanWithNotationAndMoveNumbers", [](LuaBoard* board, const std::string& moves, int notation, bool moveNumbers) -> std::string {
+                        DEBUG_LOGF("variationSanWithNotationAndMoveNumbers called with moves: %s, notation: %d, moveNumbers: %d", 
+                                 moves.c_str(), notation, moveNumbers);
+                        auto n = static_cast<Notation>(notation);
+                        if (n == NOTATION_DEFAULT) {
+                            n = default_notation(board->getVariant());
+                        }
+                        return board->variationSan(moves, n, moveNumbers);
+                    })
                 .endClass()
 
                 // Register Game class
@@ -1465,17 +1486,10 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                 .endClass()
             .endNamespace();
 
-        DEBUG_LOG("Registration complete");
-        
-        // Get our registered namespace
-        lua_getglobal(L, "ffish");
-        if (!lua_istable(L, -1)) {
-            DEBUG_LOG("Failed to find ffish table after registration");
-            return luaL_error(L, "Failed to find ffish table after registration");
-        }
-
         DEBUG_LOG("Module initialization complete");
-        return 1;
+        
+        // Return the module table that's still on the stack
+        return 1;  // We're leaving one value (the module table) on the stack
     }
     catch (const std::exception& e) {
         DEBUG_LOGF("Exception in module initialization: %s", e.what());
@@ -1500,13 +1514,15 @@ static int pushLuaError(lua_State* L, const char* msg) {
 // Add at the top of the file after includes
 namespace {
     // Static values for Notation enum
-    static const int NOTATION_DEFAULT_VAL = static_cast<int>(NOTATION_DEFAULT);
-    static const int NOTATION_SAN_VAL = static_cast<int>(NOTATION_SAN);
-    static const int NOTATION_LAN_VAL = static_cast<int>(NOTATION_LAN);
-    static const int NOTATION_SHOGI_HOSKING_VAL = static_cast<int>(NOTATION_SHOGI_HOSKING);
-    static const int NOTATION_SHOGI_HODGES_VAL = static_cast<int>(NOTATION_SHOGI_HODGES);
-    static const int NOTATION_SHOGI_HODGES_NUMBER_VAL = static_cast<int>(NOTATION_SHOGI_HODGES_NUMBER);
-    static const int NOTATION_JANGGI_VAL = static_cast<int>(NOTATION_JANGGI);
-    static const int NOTATION_XIANGQI_WXF_VAL = static_cast<int>(NOTATION_XIANGQI_WXF);
+    const int NOTATION_DEFAULT_VAL = static_cast<int>(NOTATION_DEFAULT);
+    const int NOTATION_SAN_VAL = static_cast<int>(NOTATION_SAN);
+    const int NOTATION_LAN_VAL = static_cast<int>(NOTATION_LAN);
+    const int NOTATION_SHOGI_HOSKING_VAL = static_cast<int>(NOTATION_SHOGI_HOSKING);
+    const int NOTATION_SHOGI_HODGES_VAL = static_cast<int>(NOTATION_SHOGI_HODGES);
+    const int NOTATION_SHOGI_HODGES_NUMBER_VAL = static_cast<int>(NOTATION_SHOGI_HODGES_NUMBER);
+    const int NOTATION_JANGGI_VAL = static_cast<int>(NOTATION_JANGGI);
+    const int NOTATION_XIANGQI_WXF_VAL = static_cast<int>(NOTATION_XIANGQI_WXF);
+    const int NOTATION_THAI_SAN_VAL = static_cast<int>(NOTATION_THAI_SAN);
+    const int NOTATION_THAI_LAN_VAL = static_cast<int>(NOTATION_THAI_LAN);
 }
  
