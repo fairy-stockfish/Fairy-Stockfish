@@ -870,15 +870,26 @@ function TestFairystockfish:test_pocket()
 end
 
 function TestFairystockfish:test_toString()
-    local board = ffish.Board.new("chess", "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3")
-    local expected = "r n b . k b n r\n" ..
-                    "p p p . p p p p\n" ..
-                    ". . . . . . . .\n" ..
-                    ". . . q . . . .\n" ..
-                    ". . . . . . . .\n" ..
-                    ". . . . . . . .\n" ..
-                    "P P P P . P P P\n" ..
-                    "R N B Q K B N R"
+    -- Create board with specific test position
+    local board = ffish.Board.new()
+    board:setFen("rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3")
+    
+    -- Print debug info
+    print("\nTesting toString()")
+    print("FEN:", board:fen())
+    print("Actual board:")
+    print(board:toString())
+    
+    local expected = 
+        "r n b . k b n r\n" ..
+        "p p p . p p p p\n" ..
+        ". . . . . . . .\n" ..
+        ". . . q . . . .\n" ..
+        ". . . . . . . .\n" ..
+        ". . . . . . . .\n" ..
+        "P P P P . P P P\n" ..
+        "R N B Q K B N R"
+    
     lu.assertEquals(board:toString(), expected)
     board:delete()
 end
