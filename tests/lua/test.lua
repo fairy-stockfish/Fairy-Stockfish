@@ -559,14 +559,29 @@ end
 
 function TestFairystockfish:test_sanMoveWithNotation()
     local board = ffish.Board.new()
-    lu.assertEquals(board:sanMove("g1f3", ffish.Notation.DEFAULT), "Nf3")
-    lu.assertEquals(board:sanMove("g1f3", ffish.Notation.SAN), "Nf3")
-    lu.assertEquals(board:sanMove("g1f3", ffish.Notation.LAN), "Ng1-f3")
-    lu.assertEquals(board:sanMove("g1f3", ffish.Notation.SHOGI_HOSKING), "N36")
-    lu.assertEquals(board:sanMove("g1f3", ffish.Notation.SHOGI_HODGES), "N-3f")
-    lu.assertEquals(board:sanMove("g1f3", ffish.Notation.SHOGI_HODGES_NUMBER), "N-36")
-    lu.assertEquals(board:sanMove("g1f3", ffish.Notation.JANGGI), "N87-66")
-    lu.assertEquals(board:sanMove("g1f3", ffish.Notation.XIANGQI_WXF), "N2+3")
+    
+    -- Test different notation formats
+    -- SAN (Standard Algebraic Notation)
+    lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.SAN), "Nf3")
+    
+    -- LAN (Long Algebraic Notation)
+    lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.LAN), "Ng1-f3")
+    
+    -- SHOGI_HOSKING
+    lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.SHOGI_HOSKING), "N36")
+    
+    -- SHOGI_HODGES
+    lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.SHOGI_HODGES), "N-3f")
+    
+    -- SHOGI_HODGES_NUMBER
+    lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.SHOGI_HODGES_NUMBER), "N-36")
+    
+    -- JANGGI
+    lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.JANGGI), "N87-66")
+    
+    -- XIANGQI_WXF
+    lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.XIANGQI_WXF), "N2+3")
+    
     board:delete()
 end
 
@@ -591,7 +606,7 @@ end
 function TestFairystockfish:test_variationSanWithNotationAndMoveNumbers()
     local board = ffish.Board.new()
     board:push("e2e4")
-    local sanMoves = board:variationSan("e7e5 g1f3 b8c6 f1c4", ffish.Notation.SAN, false)
+    local sanMoves = board:variationSanWithNotationAndMoveNumbers("e7e5 g1f3 b8c6 f1c4", ffish.Notation.SAN, false)
     lu.assertEquals(sanMoves, "e5 Nf3 Nc6 Bc4")
     board:delete()
 end
