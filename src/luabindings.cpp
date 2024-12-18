@@ -488,8 +488,42 @@ public:
         return Stockfish::checked(pos);
     }
 
-    bool isGameOver() const {
-        return MoveList<LEGAL>(pos).size() == 0 || is_insufficient_material();
+    bool isGameOver(bool countStarted = false) const {
+        try {
+            Value result;
+            // Check for immediate game end conditions
+            if (pos.is_immediate_game_end(result))
+                return true;
+
+            // Check for checkmate or stalemate
+            if (MoveList<LEGAL>(pos).size() == 0) {
+                if (pos.checkers())
+                    return true;  // Checkmate
+                return true;  // Stalemate
+            }
+
+            // Check for insufficient material
+            if (is_insufficient_material())
+                return true;
+
+            // Check for optional game end conditions if requested
+            if (countStarted && pos.is_optional_game_end(result))
+                return true;
+
+            // Check for n-move rule
+            if (countStarted && pos.rule50_count() >= 100)
+                return true;
+
+            // Check variant-specific game end conditions
+            if (v->variantTemplate == "minixiangqi" && isBikjang())
+                return true;
+
+            return false;
+        }
+        catch (const std::exception& e) {
+            DEBUG_LOGF("Exception in isGameOver: %s", e.what());
+            return false;
+        }
     }
 
     bool is_insufficient_material() const {
@@ -678,6 +712,8 @@ public:
     }
 
     bool isBikjang() const {
+        // Enable bikjang rule first
+        ffish::setOption("BikjangRule", "true");
         return pos.bikjang();
     }
 
@@ -1323,11 +1359,11 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     LuaBoard::sfInitialized = false;
                 })
                 .addFunction("setOptionInt", [](const std::string& name, int value) {
-                    Stockfish::Options[name] = value;
+                    Stockfish::Options[name] = std::to_string(value);
                     LuaBoard::sfInitialized = false;
                 })
                 .addFunction("setOptionBool", [](const std::string& name, bool value) {
-                    Stockfish::Options[name] = value;
+                    ffish::setOption(name, value ? "true" : "false");
                     LuaBoard::sfInitialized = false;
                 })
 
