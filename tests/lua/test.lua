@@ -1244,7 +1244,15 @@ function TestFairystockfish:test_variant_specific_rules()
     board:pushSan("e4")
     board:pushSan("d5")
     board:pushSan("exd5")
-    lu.assertStrContains(board:legalMoves(), "P@")
+    local moves = board:legalMoves()
+    local hasDropMove = false
+    for move in moves:gmatch("%S+") do
+        if move:match("^P@%a%d$") then
+            hasDropMove = true
+            break
+        end
+    end
+    lu.assertTrue(hasDropMove, "Expected to find a pawn drop move (P@e4 format) in legal moves: " .. moves)
     board:delete()
     
     -- Test xiangqi river crossing
