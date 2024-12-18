@@ -1,7 +1,4 @@
-// Include Lua headers first
 #include <lua.hpp>
-
-// Then include LuaBridge
 #include <LuaBridge/LuaBridge.h>
 
 #include "misc.h"
@@ -24,36 +21,25 @@
 
 using namespace Stockfish;
 
-// Forward declare LuaBoard class
-class LuaBoard;
-
-// Add lua_State forward declaration
-struct lua_State;
-
-// Add using directive at the top
-using namespace luabridge;
-
-// Forward declarations at the top
+// Forward declarations needed
 class LuaBoard;
 class Game;
+struct lua_State;
 
-// Add at the top after includes
+using namespace luabridge;
+
 static bool stockfishInitialized = false;
 static std::mutex threadMutex;
 static bool threadsInitialized = false;
 
-// Add thread initialization function
 void initializeThreads() {
     std::lock_guard<std::mutex> lock(threadMutex);
     if (!threadsInitialized) {
         try {
-            // Initialize UCI options first
             UCI::init(Stockfish::Options);
             
-            // Set threads option
             Stockfish::Options["Threads"] = std::string("1");
             
-            // Verify thread creation
             if (!Threads.main()) {
                 throw std::runtime_error("Failed to create main thread after setting option");
             }
@@ -69,7 +55,6 @@ void initializeThreads() {
     }
 }
 
-// Modify initialize_stockfish to use fully qualified names
 void initialize_stockfish() {
     static std::mutex initMutex;
     std::lock_guard<std::mutex> lock(initMutex);
@@ -125,19 +110,24 @@ namespace ffish {
 
             std::stringstream ss(config);
             
+            // Temporarily redirect both stdout and stderr
+            std::streambuf* oldCout = std::cout.rdbuf(nullptr);
+            std::streambuf* oldCerr = std::cerr.rdbuf(nullptr);
+            
             try {
                 Stockfish::variants.parse_istream<false>(ss);
+                Stockfish::Options["UCI_Variant"].set_combo(Stockfish::variants.get_keys());
             }
-            catch (const std::exception& e) {
+            catch (...) {
+                // Restore both stdout and stderr before handling exception
+                std::cout.rdbuf(oldCout);
+                std::cerr.rdbuf(oldCerr);
                 throw;
             }
             
-            try {
-                Stockfish::Options["UCI_Variant"].set_combo(Stockfish::variants.get_keys());
-            }
-            catch (const std::exception& e) {
-                throw;
-            }
+            // Restore both stdout and stderr
+            std::cout.rdbuf(oldCout);
+            std::cerr.rdbuf(oldCerr);
         }
         catch (const std::exception& e) {
             throw;
@@ -178,7 +168,6 @@ namespace ffish {
     }
 }
 
-// Add these before the class definitions
 namespace luabridge {
     template <>
     struct ContainerTraits<Game> {
@@ -190,12 +179,6 @@ namespace luabridge {
     };
 }
 
-// At the top, just declare the function
-namespace ffish {
-    void setOption(const std::string& name, const std::string& value);
-}
-
-// Define LuaBoard class first
 class LuaBoard {
 public:
     static bool sfInitialized;
@@ -203,23 +186,20 @@ public:
 
     LuaBoard() : 
         v(nullptr),
-        states(nullptr),  // Initialize to nullptr first
+        states(nullptr),
         thread(nullptr),
         chess960(false)
     {
         try {
-            // Initialize Stockfish if needed
             if (!stockfishInitialized) {
                 initialize_stockfish();
             }
 
-            // Create states
             states = StateListPtr(new std::deque<StateInfo>(1));
             if (!states || states->empty()) {
                 throw std::runtime_error("Failed to create states");
             }
 
-            // Get thread with safety check
             {
                 std::lock_guard<std::mutex> lock(threadMutex);
                 if (!threadsInitialized) {
@@ -238,8 +218,8 @@ public:
             init("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", false);
         }
         catch (const std::exception& e) {
-            cleanup();  // Clean up any partially initialized resources
-            throw;  // Re-throw the exception
+            cleanup();
+            throw;
         }
         catch (...) {
             cleanup();
@@ -291,23 +271,20 @@ public:
 
     LuaBoard(const std::string& uciVariant, const std::string& fen, bool is960) :
         v(nullptr),
-        states(nullptr),  // Initialize to nullptr first
+        states(nullptr),
         thread(nullptr),
-        chess960(is960)  // Set chess960 flag first
+        chess960(is960)
     {
         try {
-            // Initialize Stockfish if needed
             if (!stockfishInitialized) {
                 initialize_stockfish();
             }
 
-            // Create states
             states = StateListPtr(new std::deque<StateInfo>(1));
             if (!states || states->empty()) {
                 throw std::runtime_error("Failed to create states");
             }
 
-            // Get thread with safety check
             {
                 std::lock_guard<std::mutex> lock(threadMutex);
                 if (!threadsInitialized) {
@@ -326,8 +303,8 @@ public:
             init(uciVariant, fen, is960);
         }
         catch (const std::exception& e) {
-            cleanup();  // Clean up any partially initialized resources
-            throw;  // Re-throw the exception
+            cleanup();
+            throw;
         }
         catch (...) {
             cleanup();
@@ -421,30 +398,24 @@ public:
     bool isGameOver(bool countStarted = false) const {
         try {
             Value result;
-            // Check for immediate game end conditions
             if (pos.is_immediate_game_end(result))
                 return true;
 
-            // Check for checkmate or stalemate
             if (MoveList<LEGAL>(pos).size() == 0) {
                 if (pos.checkers())
-                    return true;  // Checkmate
-                return true;  // Stalemate
+                    return true;
+                return true;
             }
 
-            // Check for insufficient material
             if (is_insufficient_material())
                 return true;
 
-            // Check for optional game end conditions if requested
             if (countStarted && pos.is_optional_game_end(result))
                 return true;
 
-            // Check for n-move rule
             if (countStarted && pos.rule50_count() >= 100)
                 return true;
 
-            // Check variant-specific game end conditions
             if (v->variantTemplate == "minixiangqi" && isBikjang())
                 return true;
 
@@ -518,7 +489,6 @@ public:
             try {
                 pos.set(v, fen, chess960, &states->back(), thread);
                 
-                // Skip position validation for variants with custom pieces
                 if (v->variantTemplate != "spartan" && v->variantTemplate != "janggi") {
                     if (!pos.pos_is_ok()) {
                         throw std::runtime_error("Invalid position after setting FEN");
@@ -582,12 +552,10 @@ public:
             result = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
         }
         
-        // Only check for optional game end if explicitly claiming draw
         if (claimDraw) {
             Value optionalResult;
             bool optionalEnd = pos.is_optional_game_end(optionalResult);
             
-            // Only update gameEnd and result if there's actually an optional end
             if (optionalEnd) {
                 gameEnd = true;
                 result = optionalResult;
@@ -611,15 +579,12 @@ public:
             std::string squares;
             Color us = pos.side_to_move();
             
-            // For variants with custom pieces or special rules
             if (v->variantTemplate == "spartan" || v->variantTemplate == "janggi") {
-                // Get all pieces that could be in check
                 Bitboard pieces = pos.pieces(us, KING);
                 if (v->variantTemplate == "spartan") {
                     pieces |= pos.pieces(us, CUSTOM_PIECES);
                 }
                 
-                // Check each piece individually
                 Bitboard b = pieces;
                 while (b) {
                     Square s = pop_lsb(b);
@@ -630,7 +595,6 @@ public:
                 }
             }
             else {
-                // For standard variants
                 if (pos.checkers()) {
                     Square ksq = lsb(pos.pieces(us, KING));
                     squares += UCI::square(pos, ksq);
@@ -647,7 +611,6 @@ public:
     }
 
     bool isBikjang() const {
-        // Enable bikjang rule first
         ffish::setOption("BikjangRule", "true");
         return pos.bikjang();
     }
@@ -659,7 +622,6 @@ public:
             if (m == MOVE_NONE) {
                 return false;
             }
-            // Check if the move is legal before checking if it's a capture
             bool isLegal = false;
             for (const ExtMove& move : MoveList<LEGAL>(pos)) {
                 if (move == m) {
@@ -838,7 +800,6 @@ private:
                 throw std::runtime_error("Null variant pointer");
             }
 
-            // Set chess960 flag and UCI option before initializing variant
             this->chess960 = is960;
             if (is960) {
                 Stockfish::Options["UCI_Chess960"] = std::string("true");
@@ -853,7 +814,6 @@ private:
                 
                 pos.set(v, actualFen, is960, &states->back(), thread);
                 
-                // Skip position validation for variants with custom pieces
                 if (v->variantTemplate != "spartan" && v->variantTemplate != "janggi") {
                     if (!pos.pos_is_ok()) {
                         throw std::runtime_error("Invalid position after initialization");
@@ -884,14 +844,6 @@ private:
 bool LuaBoard::sfInitialized = false;
 lua_State* LuaBoard::L = nullptr;
 
-// Now define setOption after LuaBoard is fully defined
-namespace ffish {
-    void setOption(const std::string& name, const std::string& value) {
-        Stockfish::Options[name] = value;
-        LuaBoard::sfInitialized = false;
-    }
-}
-
 // Then define Game class
 class Game {
 private:
@@ -919,13 +871,11 @@ public:
             if (lineEnd == std::string::npos)
                 lineEnd = pgn.size();
 
-            // Skip empty lines
             if (lineStart == lineEnd) {
                 lineStart = lineEnd + 1;
                 continue;
             }
 
-            // Parse header
             if (pgn[lineStart] == '[') {
                 size_t headerKeyStart = lineStart + 1;
                 size_t headerKeyEnd = pgn.find(' ', lineStart);
@@ -1140,68 +1090,45 @@ Game* readGamePGN(lua_State* L, const std::string& pgn) {
 // Add class factory functions before luaopen_fairystockfish
 static LuaBoard* createBoard() {
     try {
-        std::unique_ptr<LuaBoard> board(new LuaBoard());  // Use unique_ptr for exception safety
-        return board.release();  // Release ownership to caller
+        std::unique_ptr<LuaBoard> board(new LuaBoard());
+        return board.release();
     } catch (const std::exception& e) {
         return nullptr;
     }
 }
 
 static LuaBoard* createBoardVariant(const std::string& variant) {
-    DEBUG_LOGF("createBoardVariant() called with variant: %s", variant.c_str());
     try {
-        DEBUG_LOG("About to create new LuaBoard with variant");
         std::unique_ptr<LuaBoard> board(new LuaBoard(variant));
         if (!board) {
-            DEBUG_LOG("Board creation returned nullptr");
             return nullptr;
         }
-        DEBUG_LOG("Board created successfully");
         return board.release();
     } catch (const std::exception& e) {
-        DEBUG_LOGF("Exception in createBoardVariant: %s", e.what());
-        return nullptr;
-    } catch (...) {
-        DEBUG_LOG("Unknown exception in createBoardVariant");
         return nullptr;
     }
 }
 
 static LuaBoard* createBoardVariantFen(const std::string& variant, const std::string& fen) {
-    DEBUG_LOGF("createBoardVariantFen() called with variant: %s, fen: %s", variant.c_str(), fen.c_str());
     try {
         std::unique_ptr<LuaBoard> board(new LuaBoard(variant, fen));
         if (!board) {
-            DEBUG_LOG("Board creation returned nullptr");
             return nullptr;
         }
-        DEBUG_LOG("Board created successfully");
         return board.release();
     } catch (const std::exception& e) {
-        DEBUG_LOGF("Exception in createBoardVariantFen: %s", e.what());
-        return nullptr;
-    } catch (...) {
-        DEBUG_LOG("Unknown exception in createBoardVariantFen");
         return nullptr;
     }
 }
 
 static LuaBoard* createBoardVariantFen960(const std::string& variant, const std::string& fen, bool is960) {
-    DEBUG_LOGF("createBoardVariantFen960() called with variant: %s, fen: %s, is960: %d", 
-               variant.c_str(), fen.c_str(), is960);
     try {
         std::unique_ptr<LuaBoard> board(new LuaBoard(variant, fen, is960));
         if (!board) {
-            DEBUG_LOG("Board creation returned nullptr");
             return nullptr;
         }
-        DEBUG_LOG("Board created successfully");
         return board.release();
     } catch (const std::exception& e) {
-        DEBUG_LOGF("Exception in createBoardVariantFen960: %s", e.what());
-        return nullptr;
-    } catch (...) {
-        DEBUG_LOG("Unknown exception in createBoardVariantFen960");
         return nullptr;
     }
 }
@@ -1209,48 +1136,34 @@ static LuaBoard* createBoardVariantFen960(const std::string& variant, const std:
 // Add destructor function with safety check
 static void destroyBoard(LuaBoard* board) {
     if (board) {
-        std::cerr << "DEBUG: Destroying board" << std::endl;
         delete board;
     }
 }
 
 // Add these helper functions at the top of the file after the includes
 static Game* createGame() {
-    DEBUG_LOG("Creating new empty Game");
     try {
         return new Game();
     } catch (const std::exception& e) {
-        DEBUG_LOGF("Exception creating empty Game: %s", e.what());
         return nullptr;
     }
 }
 
 static Game* createGameFromPGN(const std::string& pgn) {
-    DEBUG_LOGF("Creating Game from PGN: %s", pgn.c_str());
     try {
         return new Game(pgn);
     } catch (const std::exception& e) {
-        DEBUG_LOGF("Exception creating Game from PGN: %s", e.what());
         return nullptr;
     }
 }
 
 // Lua module registration
 extern "C" int luaopen_fairystockfish(lua_State* L) {
-    DEBUG_LOG("Module initialization start");
-    
     try {
-        DEBUG_LOG("Setting up Lua state");
         LuaBoard::init_lua(L);
         Game::init_lua(L);
 
-        DEBUG_LOG("Starting Stockfish initialization");
-        initialize_stockfish();
-        
-        DEBUG_LOG("Creating module table");
         lua_newtable(L);  // Create the module table
-        
-        DEBUG_LOG("About to register classes and functions");
         
         // Get the module table we just created
         lua_pushvalue(L, -1);
@@ -1304,23 +1217,17 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addStaticFunction("newVariant", &createBoardVariant)
                     .addStaticFunction("newVariantFen", &createBoardVariantFen)
                     .addStaticFunction("newVariantFen960", [](const std::string& variant, const std::string& fen, bool is960) -> LuaBoard* {
-                        DEBUG_LOGF("Creating board with variant: %s, fen: %s, is960: %d", 
-                                   variant.c_str(), fen.c_str(), is960);
                         try {
                             if (is960) {
-                                DEBUG_LOG("Setting UCI_Chess960 option");
                                 Stockfish::Options["UCI_Chess960"] = std::string("true");
                             }
                             
                             auto board = std::make_unique<LuaBoard>(variant, fen, is960);
                             if (!board) {
-                                DEBUG_LOG("Board creation returned nullptr");
                                 return nullptr;
                             }
-                            DEBUG_LOG("Board created successfully");
                             return board.release();
                         } catch (const std::exception& e) {
-                            DEBUG_LOGF("Exception in createBoardVariantFen960: %s", e.what());
                             return nullptr;
                         }
                     })
@@ -1366,13 +1273,13 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addFunction("variant", &LuaBoard::variant)
                     .addFunction("variationSan", (std::string(LuaBoard::*)(const std::string&))&LuaBoard::variationSan)
                     .addFunction("variationSanWithNotation", [](LuaBoard* board, const std::string& moves, int notation) -> std::string {
-                        DEBUG_LOGF("variationSanWithNotation called with moves: %s, notation: %d", moves.c_str(), notation);
-                        DEBUG_LOGF("NOTATION_LAN value is: %d", static_cast<int>(NOTATION_LAN));
-                        return board->variationSan(moves, static_cast<Notation>(notation));
+                        auto n = static_cast<Notation>(notation);
+                        if (n == NOTATION_DEFAULT) {
+                            n = default_notation(board->getVariant());
+                        }
+                        return board->variationSan(moves, n);
                     })
                     .addFunction("variationSanWithNotationAndMoveNumbers", [](LuaBoard* board, const std::string& moves, int notation, bool moveNumbers) -> std::string {
-                        DEBUG_LOGF("variationSanWithNotationAndMoveNumbers called with moves: %s, notation: %d, moveNumbers: %d", 
-                                 moves.c_str(), notation, moveNumbers);
                         auto n = static_cast<Notation>(notation);
                         if (n == NOTATION_DEFAULT) {
                             n = default_notation(board->getVariant());
@@ -1394,18 +1301,14 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                 .endClass()
             .endNamespace();
 
-        DEBUG_LOG("Module initialization complete");
-        
         // Return the module table that's still on the stack
         return 1;  // We're leaving one value (the module table) on the stack
     }
     catch (const std::exception& e) {
-        DEBUG_LOGF("Exception in module initialization: %s", e.what());
         luaL_error(L, "Failed to initialize module: %s", e.what());
         return 0;
     }
     catch (...) {
-        DEBUG_LOG("Unknown exception in module initialization");
         luaL_error(L, "Unknown error initializing module");
         return 0;
     }
@@ -1432,5 +1335,12 @@ namespace {
     const int NOTATION_XIANGQI_WXF_VAL = static_cast<int>(NOTATION_XIANGQI_WXF);
     const int NOTATION_THAI_SAN_VAL = static_cast<int>(NOTATION_THAI_SAN);
     const int NOTATION_THAI_LAN_VAL = static_cast<int>(NOTATION_THAI_LAN);
+}
+
+namespace ffish {
+    void setOption(const std::string& name, const std::string& value) {
+        Stockfish::Options[name] = value;
+        LuaBoard::sfInitialized = false;
+    }
 }
  

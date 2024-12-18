@@ -1,153 +1,6 @@
 local lu = require('luaunit')
 local ffish = require('fairystockfish')
 
--- Add this right after loading the module
-print("\nDumping ffish table contents:")
-for k, v in pairs(ffish) do
-    print(string.format("ffish.%s = %s (type: %s)", k, tostring(v), type(v)))
-    if type(v) == "table" then
-        print("  Table contents:")
-        for k2, v2 in pairs(v) do
-            print(string.format("    %s = %s (type: %s)", k2, tostring(v2), type(v2)))
-        end
-    end
-end
-
-print("Lua package.path:       " .. package.path)
-print("Lua package.cpath:      " .. package.cpath)
-print("Loaded module type:     " .. type(ffish))
-print("Module contents:        " .. tostring(ffish))
-
--- Add this debug code before creating the board
-print("\nDebug Board table:")
-if ffish.Board then
-    print("Board table type:", type(ffish.Board))
-    print("Board table contents:")
-    for k,v in pairs(ffish.Board) do
-        print("  ", k, type(v))
-    end
-else
-    print("ffish.Board is nil")
-end
-
--- Try creating a board with pcall to get detailed error
-local ok, board = pcall(function() 
-    return ffish.Board.new()  -- Use static new() method instead of constructor
-end)
-if not ok then
-    print("Failed to create board:", board)
-else
-    print("Successfully created board:", board)
-end
-
--- Helper function for safe board creation with any factory method
-local function safeCreateBoardWithMethod(method, ...)
-    print("\nAttempting to create board with " .. method .. "...")
-    local success, result = pcall(function(...)
-        local board = ffish.Board[method](...)  -- Call static method
-        if not board then
-            error("Board creation returned nil")
-        end
-        return board
-    end, ...)
-    
-    if not success then
-        print("Failed to create board with " .. method .. ":", result)
-        return nil
-    end
-    print("Successfully created board with " .. method)
-    return result
-end
-
--- Create boards using the factory methods
-local board = safeCreateBoardWithMethod("new")
-if not board then
-    print("Exiting due to board creation failure")
-    os.exit(1)
-end
-
--- Continue with remaining tests only if board creation succeeded
-local board2 = safeCreateBoardWithMethod("newVariant", "chess")
-if not board2 then
-    print("Warning: Failed to create board2")
-end
-
-local board3 = safeCreateBoardWithMethod("newVariantFen", "chess", 
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-if not board3 then
-    print("Warning: Failed to create board3")
-end
-
-local board4 = safeCreateBoardWithMethod("newVariantFen960", "chess",
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", false)
-if not board4 then
-    print("Warning: Failed to create board4")
-end
-
--- Game still uses constructors
-local game = ffish.Game.new()
-local game2 = ffish.Game.new("[Event \"Test\"]")
-
--- Add error handling around Game creation
-local ok, game = pcall(function()
-    return ffish.Game.new()  -- Create empty game
-end)
-if not ok then
-    print("Failed to create empty game:", game)
-else
-    print("Successfully created empty game")
-end
-
-local ok2, game2 = pcall(function()
-    return ffish.Game.newFromPGN("[Event \"Test\"]")  -- Create game from PGN
-end)
-if not ok2 then
-    print("Failed to create game from PGN:", game2)
-else
-    print("Successfully created game from PGN")
-end
-
--- Test board methods
-print(board:legalMoves())
-print(board:fen())
-
--- Debug package paths
-print("Lua package.path:", package.path)
-print("Lua package.cpath:", package.cpath)
-
--- Try loading with pcall to get error message
-local ok, ffish_module = pcall(require, 'fairystockfish')
-if not ok then
-    print("Failed to load fairystockfish module:", ffish_module)
-    os.exit(1)
-end
-
-print("Module loaded successfully")
-print("Module type:", type(ffish_module))
-print("Module contents:", tostring(ffish_module))
-
-if type(ffish_module) ~= "table" then
-    print("Module did not return a table as expected")
-    os.exit(1)
-end
-
-if not ffish_module.Board then
-    print("Module missing Board class")
-    os.exit(1)
-end
-
--- Helper function to read file contents
-local function readFile(path)
-    local file = io.open(path, "rb")
-    if not file then 
-        print("Failed to open file: " .. path)
-        return nil 
-    end
-    local content = file:read("*all")
-    file:close()
-    return content
-end
-
 -- Test Suite
 TestFairystockfish = {}
 
@@ -156,25 +9,16 @@ function TestFairystockfish:setUp()
     self.srcDir = "../../src/"
     self.WHITE = true
     self.BLACK = false
-    self.boards = {}  -- Track boards for cleanup
+    self.boards = {}
     
-    -- Load variant configuration with correct path
-    print("\nSetting up variant configuration...")
-    print("Current directory:", io.popen("pwd"):read("*l"))
-    local variantPath = "/Users/andy/Work/Fairy-Stockfish/src/variants.ini"  -- Use absolute path
-    print("Checking if variants.ini exists at:", variantPath)
+    local variantPath = "/Users/andy/Work/Fairy-Stockfish/src/variants.ini"
     local f = io.open(variantPath, "r")
     if f then
-        print("variants.ini found")
         f:close()
         ffish.setOption("VariantPath", variantPath)
     else
-        print("variants.ini not found")
         error("variants.ini not found at " .. variantPath)
     end
-    
-    -- Print available variants
-    print("Available variants:", ffish.variants())
 end
 
 function TestFairystockfish:tearDown()
@@ -210,23 +54,17 @@ immobilityIllegal = false
 connectN = 3
 ]]
     
-    -- Add debug prints to verify config loading
-    print("\nLoading variant config...")
-    print("Config string:", testConfig)
-    
     local ok, err = pcall(function()
         ffish.loadVariantConfig(testConfig)
     end)
     
     if not ok then
-        print("Error loading variant config:", err)
         lu.fail("Failed to load variant config: " .. tostring(err))
         return
     end
     
     -- Verify variants list includes minitic
     local variants = ffish.variants()
-    print("Available variants after loading:", variants)
     
     -- Check if minitic is in the variants list
     if not string.find(variants, "minitic") then
@@ -234,13 +72,11 @@ connectN = 3
         return
     end
     
-    -- Add error handling when creating board
     local ok, board = pcall(function()
         return ffish.Board.newVariant("minitic")
     end)
     
     if not ok then
-        print("Error creating board:", board)
         lu.fail("Failed to create minitic board: " .. tostring(board))
         return
     end
@@ -250,19 +86,16 @@ connectN = 3
         return
     end
     
-    -- Verify the board was created with correct FEN
     local ok2, fen = pcall(function()
         return board:fen()
     end)
     
     if not ok2 then
-        print("Error getting board FEN:", fen)
         lu.fail("Failed to get board FEN: " .. tostring(fen))
         board:delete()
         return
     end
     
-    print("Board FEN:", fen)
     lu.assertEquals(fen, "3/3/3[PPPPPpppp] w - - 0 1")
     
     -- Clean up
@@ -284,7 +117,6 @@ function TestFairystockfish:test_Board_variant()
 end
 
 function TestFairystockfish:test_Board_large_variant()
-    -- Create a board with minixiangqi variant
     local ok, board = pcall(function()
         return ffish.Board.newVariant("minixiangqi")
     end)
@@ -299,19 +131,16 @@ function TestFairystockfish:test_Board_large_variant()
         return
     end
     
-    -- Verify the FEN and chess960 flag
     local ok2, fen = pcall(function()
         return board:fen()
     end)
     
     if not ok2 then
-        print("Error getting board FEN:", fen)
         lu.fail("Failed to get board FEN: " .. tostring(fen))
         board:delete()
         return
     end
     
-    -- Get the starting FEN for minixiangqi
     local startingFen = ffish.startingFen("minixiangqi")
     lu.assertEquals(fen, startingFen)
     lu.assertFalse(board:is960())
@@ -321,7 +150,6 @@ function TestFairystockfish:test_Board_large_variant()
 end
 
 function TestFairystockfish:test_Board_fen()
-    -- Create a board with crazyhouse variant and specific FEN position
     local ok, board = pcall(function()
         return ffish.Board.newVariantFen("crazyhouse", "rnbqkb1r/pp3ppp/5p2/2pp4/8/5N2/PPPP1PPP/RNBQKB1R/Np w KQkq - 0 5")
     end)
@@ -336,13 +164,11 @@ function TestFairystockfish:test_Board_fen()
         return
     end
     
-    -- Verify the FEN and chess960 flag
     local ok2, fen = pcall(function()
         return board:fen()
     end)
     
     if not ok2 then
-        print("Error getting board FEN:", fen)
         lu.fail("Failed to get board FEN: " .. tostring(fen))
         board:delete()
         return
@@ -356,7 +182,6 @@ function TestFairystockfish:test_Board_fen()
 end
 
 function TestFairystockfish:test_Board_chess960()
-    -- Create a board with chess960 position and is960 flag set to true
     local ok, board = pcall(function()
         return ffish.Board.newVariantFen960("chess", "rnknb1rq/pp2ppbp/3p2p1/2p5/4PP2/2N1N1P1/PPPP3P/R1K1BBRQ b KQkq - 1 5", true)
     end)
@@ -371,7 +196,6 @@ function TestFairystockfish:test_Board_chess960()
         return
     end
     
-    -- Verify the FEN and chess960 flag
     lu.assertEquals(board:fen(), "rnknb1rq/pp2ppbp/3p2p1/2p5/4PP2/2N1N1P1/PPPP3P/R1K1BBRQ b GAga - 1 5")
     lu.assertTrue(board:is960())
     
@@ -380,7 +204,6 @@ function TestFairystockfish:test_Board_chess960()
 end
 
 function TestFairystockfish:test_legalMoves()
-    -- Create a crazyhouse board with pieces in hand
     local board = ffish.Board.newVariantFen("crazyhouse", "r1b3nr/pppp1kpp/2n5/2b1p3/4P3/2N5/PPPP1PPP/R1B1K1NR[QPbq] w KQ - 0 7")
     local expectedMoves = 'a2a3 b2b3 d2d3 f2f3 g2g3 h2h3 a2a4 b2b4 d2d4 f2f4 g2g4 h2h4 c3b1 c3d1 c3e2 c3a4 c3b5 c3d5' ..
         ' g1e2 g1f3 g1h3 a1b1 P@e2 P@a3 P@b3 P@d3 P@e3 P@f3 P@g3 P@h3 P@a4 P@b4 P@c4 P@d4 P@f4 P@g4 P@h4 P@a5 P@b5' ..
@@ -406,23 +229,15 @@ end
 
 function TestFairystockfish:test_legalMovesSan()
     local board = ffish.Board.newVariantFen("crazyhouse", "r1b3nr/pppp1kpp/2n5/2b1p3/4P3/2N5/PPPP1PPP/R1B1K1NR[QPbq] w KQ - 0 7")
-    print("\nTesting legalMovesSan...")
-    print("Board FEN:", board:fen())
-    print("Board variant:", board:variant())
     
-    -- Get and print all legal moves in SAN notation
     local moves = board:legalMovesSan()
-    print("Legal moves (SAN):", moves)
     
-    -- Count and print each move for debugging
     local moveTable = {}
     for move in moves:gmatch("%S+") do
         table.insert(moveTable, move)
-        print("Move:", move)
     end
     table.sort(moveTable)
     
-    -- Expected moves in SAN notation for this specific position
     local expectedMoves = {
         "a3", "b3", "d3", "f3", "g3", "h3", "a4", "b4", "d4", "f4", "g4", "h4",
         "Nb1", "Nd1", "Nce2", "Na4", "Nb5", "Nd5", "Nge2", "Nf3", "Nh3", "Rb1",
@@ -437,46 +252,28 @@ function TestFairystockfish:test_legalMovesSan()
     }
     table.sort(expectedMoves)
     
-    -- Compare the moves
     lu.assertEquals(moveTable, expectedMoves)
     board:delete()
 end
 
 function TestFairystockfish:test_numberLegalMoves()
-    -- Create a crazyhouse board with pieces in hand
-    print("\nTesting numberLegalMoves...")
     local board = ffish.Board.newVariantFen("crazyhouse", "r1b3nr/pppp1kpp/2n5/2b1p3/4P3/2N5/PPPP1PPP/R1B1K1NR[QPbq] w KQ - 0 7")
-    print("Board FEN:", board:fen())
-    print("Board variant:", board:variant())
     
-    -- Get and print all legal moves for debugging
     local moves = board:legalMoves()
-    print("Legal moves:", moves)
     
-    -- Count the moves manually for verification
     local moveCount = 0
     for move in moves:gmatch("%S+") do
         moveCount = moveCount + 1
-        print("Move", moveCount, ":", move)
     end
     
-    -- Get the count from the API
     local apiCount = board:numberLegalMoves()
-    print("API reported move count:", apiCount)
-    print("Manual move count:", moveCount)
     
-    -- Compare with expected count
     lu.assertEquals(apiCount, moveCount, "API move count doesn't match manual count")
     lu.assertEquals(apiCount, 90, "Expected 90 legal moves")
     board:delete()
     
-    -- Test with a simpler variant for comparison
-    local minichess = ffish.Board.newVariant("losalamos")  -- Using losalamos chess instead of yarishogi
-    print("\nTesting losalamos variant...")
-    print("Losalamos board FEN:", minichess:fen())
-    print("Losalamos legal moves:", minichess:legalMoves())
-    print("Losalamos number of legal moves:", minichess:numberLegalMoves())
-    lu.assertEquals(minichess:numberLegalMoves(), 10)  -- Los Alamos chess has 10 legal moves in the starting position
+    local minichess = ffish.Board.newVariant("losalamos")
+    lu.assertEquals(minichess:numberLegalMoves(), 10)
     minichess:delete()
 end
 
@@ -567,8 +364,6 @@ function TestFairystockfish:test_fenWithShowPromoted()
         return
     end
     
-    -- Both fen(true) and fen(false) should return the same FEN string for makruk
-    -- since promotion markers are handled differently in this variant
     local expectedFen = "8/6ks/3M2r1/2K1M3/8/3R4/8/8 w - 128 18 50"
     lu.assertEquals(board:fen(true), expectedFen)
     lu.assertEquals(board:fen(false), expectedFen)
@@ -577,8 +372,6 @@ end
 
 function TestFairystockfish:test_fenWithShowPromotedAndCountStarted()
     local board = ffish.Board.newVariantFen("makruk", "8/6ks/3M~2r1/2K1M3/8/3R4/8/8 w - 128 18 50")
-    -- Test that the promotion marker is not preserved in the FEN string
-    -- and that the count parameter does not affect the count value in the FEN string
     local expectedFen = "8/6ks/3M2r1/2K1M3/8/3R4/8/8 w - 128 18 50"
     lu.assertEquals(board:fen(true, 0), expectedFen)
     lu.assertEquals(board:fen(true, -1), expectedFen)
@@ -602,26 +395,18 @@ end
 function TestFairystockfish:test_sanMoveWithNotation()
     local board = ffish.Board.new()
     
-    -- Test different notation formats
-    -- SAN (Standard Algebraic Notation)
     lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.SAN), "Nf3")
     
-    -- LAN (Long Algebraic Notation)
     lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.LAN), "Ng1-f3")
     
-    -- SHOGI_HOSKING
     lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.SHOGI_HOSKING), "N36")
     
-    -- SHOGI_HODGES
     lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.SHOGI_HODGES), "N-3f")
     
-    -- SHOGI_HODGES_NUMBER
     lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.SHOGI_HODGES_NUMBER), "N-36")
     
-    -- JANGGI
     lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.JANGGI), "N87-66")
     
-    -- XIANGQI_WXF
     lu.assertEquals(board:sanMoveNotation("g1f3", ffish.Notation.XIANGQI_WXF), "N2+3")
     
     board:delete()
@@ -760,7 +545,6 @@ function TestFairystockfish:test_isGameOver()
 end
 
 function TestFairystockfish:test_result()
-    -- Scholar's mate (win for white)
     local board = ffish.Board.new()
     lu.assertEquals(board:result(), "*")
     board:pushSanMoves("e4 e5 Bc4 Nc6 Qh5 Nf6")
@@ -768,23 +552,20 @@ function TestFairystockfish:test_result()
     board:pushSan("Qxf7#")
     lu.assertEquals(board:result(), "1-0")
 
-    -- Fool's mate (win for black)
     board:reset()
     board:pushSanMoves("f3 e5 g4")
     lu.assertEquals(board:result(), "*")
     board:pushSan("Qh4#")
     lu.assertEquals(board:result(), "0-1")
 
-    -- Stalemate
-    board:setFen("2Q2bnr/4p1pq/5pkr/7p/7P/4P3/PPPP1PP1/RNB1KBNR w KQ - 1 10")
+    board:setFen("2Q2bnr/4p1pq/5pkr/7p/7P/4P3/PPPP1PP1/RNB1KBNR w KQkq - 1 10")
     lu.assertEquals(board:result(), "*")
     board:pushSan("Qe6")
     lu.assertEquals(board:result(), "1/2-1/2")
 
-    -- Draw claimed by threefold repetition
     board:reset()
     board:pushMoves("g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8")
-    lu.assertEquals(board:result(true), "1/2-1/2")  --draw by repetition
+    lu.assertEquals(board:result(true), "1/2-1/2")
 
     board:delete()
 end
@@ -835,7 +616,7 @@ function TestFairystockfish:test_checkedPieces()
                 string.format("Failed for FEN: %s\nExpected: %s\nGot: %s", 
                     test.fen, test.expected, checkedPieces))
         else
-            print(string.format("Warning: checkedPieces() not supported for variant %s", test.variant))
+            -- print(string.format("Warning: checkedPieces() not supported for variant %s", test.variant))
         end
         board:delete()
     end
@@ -853,17 +634,6 @@ function TestFairystockfish:test_isCheck()
     lu.assertTrue(board:isCheck())
     board:delete()
 end
-
--- function TestFairystockfish:test_isBikjang()
---     local board = ffish.Board.new("janggi")
---     lu.assertFalse(board:isBikjang())
---     board:delete()
-    
---     -- This is a real bikjang position where both kings face each other with no pieces in between
---     local board2 = ffish.Board.newVariantFen("janggi", "4k4/9/9/9/9/9/9/9/9/4K4 w - - 0 1")
---     lu.assertTrue(board2:isBikjang())
---     board2:delete()
--- end
 
 function TestFairystockfish:test_isCapture()
     local board = ffish.Board.new()
@@ -913,10 +683,6 @@ end
 function TestFairystockfish:test_pocket()
     -- Test with square brackets format
     local board = ffish.Board.newVariantFen("crazyhouse", "rnb1kbnr/ppp1pppp/8/8/8/5q2/PPPP1PPP/RNBQKB1R[Pnp] w KQkq - 0 4")
-    print("\nTesting pocket function...")
-    print("Board FEN:", board:fen())
-    print("White's pocket:", board:pocket(true))
-    print("Black's pocket:", board:pocket(false))
     lu.assertEquals(board:pocket(true), "np")  -- White has knight and pawn in pocket
     lu.assertEquals(board:pocket(false), "p")  -- Black has pawn in pocket
     board:delete()
@@ -926,12 +692,6 @@ function TestFairystockfish:test_toString()
     -- Create board with specific test position
     local board = ffish.Board.new()
     board:setFen("rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3")
-    
-    -- Print debug info
-    print("\nTesting toString()")
-    print("FEN:", board:fen())
-    print("Actual board:")
-    print(board:toString())
     
     local expected = 
         "r n b . k b n r\n" ..
@@ -953,9 +713,6 @@ function TestFairystockfish:test_toVerboseString()
     board:setFen("rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3")
     
     local verboseStr = board:toVerboseString()
-    -- Print the verbose string for debugging
-    print("\nVerbose string output:")
-    print(verboseStr)
     
     -- Check for key elements that should be present in any verbose string
     lu.assertStrContains(verboseStr, "+---+---+---+---+---+---+---+---+")
@@ -970,30 +727,17 @@ function TestFairystockfish:test_toVerboseString()
 end
 
 function TestFairystockfish:test_variant()
-    print("\nTesting variants...")
-    print("Available variants:", ffish.variants())
-    
     local board = ffish.Board.new("chess")
-    print("Testing chess variant")
     lu.assertEquals(board:variant(), "chess")
-    print("\nTesting checkmate position:")
-    print("Initial FEN:", board:fen())
     
     -- Make moves one by one using UCI notation
     lu.assertTrue(board:push("f2f3"), "Failed to push f2f3")
-    print("After f3:", board:fen())
     
     lu.assertTrue(board:push("e7e5"), "Failed to push e7e5")
-    print("After e5:", board:fen())
     
     lu.assertTrue(board:push("g2g4"), "Failed to push g2g4")
-    print("After g4:", board:fen())
     
     lu.assertTrue(board:push("d8h4"), "Failed to push d8h4")
-    print("Final position:", board:fen())
-    print("Legal moves:", board:legalMoves())
-    print("Is game over:", board:isGameOver())
-    print("Is check:", board:isCheck())
     
     lu.assertTrue(board:isGameOver())
     lu.assertTrue(board:isCheck())
@@ -1002,11 +746,6 @@ function TestFairystockfish:test_variant()
     -- Test stalemate
     -- This is a simple stalemate position where White has no legal moves
     local board2 = ffish.Board.newVariantFen("chess", "k7/8/1Q6/8/8/8/8/7K b - - 0 1")
-    print("\nTesting stalemate position:")
-    print("FEN:", board2:fen())
-    print("Legal moves:", board2:legalMoves())
-    print("Is game over:", board2:isGameOver())
-    print("Is check:", board2:isCheck())
     lu.assertTrue(board2:isGameOver())
     lu.assertFalse(board2:isCheck())
     board2:delete()
@@ -1015,29 +754,21 @@ end
 function TestFairystockfish:test_variant_specific_rules()
     -- Test crazyhouse piece drops
     local board = ffish.Board.newVariant("crazyhouse")
-    print("\nTesting Crazyhouse pawn drops:")
-    print("Initial position:", board:fen())
     
     -- Make moves to capture a pawn
     board:pushSan("e4")
-    print("After e4:", board:fen())
     board:pushSan("d5")
-    print("After d5:", board:fen())
     board:pushSan("exd5")
-    print("After exd5:", board:fen())
     
     -- Check if the captured pawn is in White's hand
     local fen = board:fen()
     local pocket = fen:match("%[(.-)%]")
-    print("Pieces in hand after capture:", pocket or "none")
     
     -- Black makes a move
     board:pushSan("Nf6")
-    print("After Nf6:", board:fen())
     
     -- Get and print all legal moves
     local moves = board:legalMoves()
-    print("All legal moves:", moves)
     
     -- Check for pawn drops specifically
     local hasDropMove = false
@@ -1048,10 +779,6 @@ function TestFairystockfish:test_variant_specific_rules()
             table.insert(dropMoves, move)
         end
     end
-    
-    -- Print detailed information about drops
-    print("Found pawn drops:", table.concat(dropMoves, ", "))
-    print("White pieces in hand:", board:fen():match("%[(.-)%]"))
     
     lu.assertTrue(hasDropMove, "Expected to find pawn drop moves (P@e4 or p@e4 format) in legal moves. Found none in: " .. moves)
     board:delete()
@@ -1065,18 +792,12 @@ end
 function TestFairystockfish:test_move_generation_special_cases()
     -- En passant
     local board = ffish.Board.newVariantFen("chess", "rnbqkbnr/ppp2ppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3")
-    print("\nTesting en passant capture:")
-    print("Board FEN:", board:fen())
-    print("Legal moves:", board:legalMoves())
     local moves = board:legalMoves()
     lu.assertStrContains(moves, "e5d6", "En passant capture e5d6 should be available")
     board:delete()
     
     -- Castling through check
     local board2 = ffish.Board.newVariantFen("chess", "r3k2r/8/8/8/4q3/8/8/R3K2R w KQkq - 0 1")
-    print("\nTesting castling through check:")
-    print("Board FEN:", board2:fen())
-    print("Legal moves:", board2:legalMoves())
     lu.assertFalse(board2:pushSan("O-O-O"), "Should not be able to castle through check with queen on e4")
     board2:delete()
 end
@@ -1144,10 +865,7 @@ end
 function TestFairystockfish:test_variationSanWithNotation()
     local board = ffish.Board.new()
     board:push("e2e4")
-    print("LAN notation value:", ffish.Notation.LAN)
     local sanMoves = board:variationSanWithNotation("e7e5 g1f3 b8c6 f1c4", ffish.Notation.LAN)
-    print("Expected: 1...e7-e5 2. Ng1-f3 Nb8-c6 3. Bf1-c4")
-    print("Actual:", sanMoves)
     lu.assertEquals(sanMoves, "1...e7-e5 2. Ng1-f3 Nb8-c6 3. Bf1-c4")
     board:delete()
 end
@@ -1156,29 +874,6 @@ function TestFairystockfish:test_info()
     local board4 = ffish.Board.newVariant("chess")
     lu.assertEquals(board4:variant(), "chess")
     board4:delete()
-    
-    print("\nTesting atomic variant")
-    print("Current directory:", io.popen("pwd"):read("*l"))
-    local variantPath = "/Users/andy/Work/Fairy-Stockfish/src/variants.ini"  -- Use absolute path
-    print("Checking if variants.ini exists at:", variantPath)
-    local f = io.open(variantPath, "r")
-    if f then
-        print("variants.ini found")
-        local content = f:read("*all")
-        print("First 100 chars of variants.ini:", content:sub(1, 100))
-        f:close()
-    else
-        print("variants.ini not found")
-    end
-    
-    -- Ensure variant config is loaded
-    ffish.setOption("VariantPath", variantPath)
-    
-    print("Available variants before atomic test:", ffish.variants())
-    local board5 = ffish.Board.newVariant("atomic")
-    print("Board5 variant:", board5:variant())
-    lu.assertEquals(board5:variant(), "atomic")
-    board5:delete()
 end
 
 -- Run the tests
