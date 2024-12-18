@@ -1240,19 +1240,46 @@ end
 
 function TestFairystockfish:test_variant_specific_rules()
     -- Test crazyhouse piece drops
-    local board = ffish.Board.new("crazyhouse")
+    local board = ffish.Board.newVariant("crazyhouse")
+    print("\nTesting Crazyhouse pawn drops:")
+    print("Initial position:", board:fen())
+    
+    -- Make moves to capture a pawn
     board:pushSan("e4")
+    print("After e4:", board:fen())
     board:pushSan("d5")
+    print("After d5:", board:fen())
     board:pushSan("exd5")
+    print("After exd5:", board:fen())
+    
+    -- Check if the captured pawn is in White's hand
+    local fen = board:fen()
+    local pocket = fen:match("%[(.-)%]")
+    print("Pieces in hand after capture:", pocket or "none")
+    
+    -- Black makes a move
+    board:pushSan("Nf6")
+    print("After Nf6:", board:fen())
+    
+    -- Get and print all legal moves
     local moves = board:legalMoves()
+    print("All legal moves:", moves)
+    
+    -- Check for pawn drops specifically
     local hasDropMove = false
+    local dropMoves = {}
     for move in moves:gmatch("%S+") do
-        if move:match("^P@%a%d$") then
+        if move:match("^[pP]@%a%d$") then
             hasDropMove = true
-            break
+            table.insert(dropMoves, move)
         end
     end
-    lu.assertTrue(hasDropMove, "Expected to find a pawn drop move (P@e4 format) in legal moves: " .. moves)
+    
+    -- Print detailed information about drops
+    print("Found pawn drops:", table.concat(dropMoves, ", "))
+    print("White pieces in hand:", board:fen():match("%[(.-)%]"))
+    
+    lu.assertTrue(hasDropMove, "Expected to find pawn drop moves (P@e4 or p@e4 format) in legal moves. Found none in: " .. moves)
     board:delete()
     
     -- Test xiangqi river crossing
