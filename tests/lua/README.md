@@ -51,11 +51,30 @@ The Lua bindings for Fairy-Stockfish provide a powerful interface to the chess v
 
 ## Installation
 
-The Lua bindings are compiled as part of the Fairy-Stockfish build process when enabled with `lua=yes`. The resulting module is named `fairystockfish`.
+The Lua bindings are compiled as part of the Fairy-Stockfish build process when enabled with `lua=yes`. The resulting module is named `fairystockfish.so` and is created in the `src` directory.
 
-To use the module in your Lua projects, ensure that:
-1. The compiled module is in your Lua package path
-2. The Fairy-Stockfish library is in your system's library path
+To use the module in your Lua projects, you have several options:
+
+1. Copy `src/fairystockfish.so` to one of your existing Lua package directories:
+   ```bash
+   # Find your Lua package paths
+   lua -e "print(package.cpath)"
+   
+   # Example paths:
+   # macOS (Homebrew): /opt/homebrew/lib/lua/5.4/?.so
+   # Linux: /usr/local/lib/lua/5.4/?.so
+   ```
+
+2. Add the Fairy-Stockfish `src` directory to your `LUA_CPATH` environment variable:
+   ```bash
+   export LUA_CPATH="/path/to/Fairy-Stockfish/src/?.so;;"
+   ```
+
+3. Modify `package.cpath` in your Lua script before requiring the module:
+   ```lua
+   package.cpath = "/path/to/Fairy-Stockfish/src/?.so;" .. package.cpath
+   local ffish = require('fairystockfish')
+   ```
 
 ## Usage
 

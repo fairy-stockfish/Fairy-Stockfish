@@ -26,6 +26,13 @@ else
 EXE = stockfish
 endif
 
+### Lua module name (if Lua is enabled)
+ifeq ($(KERNEL),Darwin)
+LUA_MODULE = fairystockfish.so
+else
+LUA_MODULE = fairystockfish.so
+endif
+
 ### Installation dir definitions
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
@@ -87,9 +94,16 @@ ifeq ($(lua),yes)
 	LUABRIDGE_PATH = ../ThirdParty/LuaBridge3/Source
 	LUABRIDGE_CFLAGS = -I$(LUABRIDGE_PATH)
 
-	# Add combined flags
-	CUSTOM_CFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA -std=c++17
-	CUSTOM_LDFLAGS += $(LUA_LDFLAGS)
+	# Add combined flags for shared library
+	ifeq ($(KERNEL),Darwin)
+		CUSTOM_CFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA -std=c++17 -fPIC
+		CUSTOM_LDFLAGS += $(LUA_LDFLAGS)
+		LUA_MODULE_FLAGS = -dynamiclib -undefined dynamic_lookup
+	else
+		CUSTOM_CFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA -std=c++17 -fPIC
+		CUSTOM_LDFLAGS += $(LUA_LDFLAGS)
+		LUA_MODULE_FLAGS = -shared
+	endif
 endif
 
 ### 2.1. General and architecture defaults
@@ -883,7 +897,7 @@ default:
 ### Section 5. Private Targets
 ### ==========================================================================
 
-all: $(EXE) .depend
+all: $(EXE) $(if $(filter $(lua),yes),$(LUA_MODULE)) .depend
 
 config-sanity: $(load_net)
 	@echo ""
@@ -948,6 +962,9 @@ config-sanity: $(load_net)
 
 $(EXE): $(OBJS)
 	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+
+$(LUA_MODULE): luabindings.o bitboard.o position.o piece.o variant.o parser.o
+	$(CXX) $(LUA_MODULE_FLAGS) -o $@ $^ $(LDFLAGS)
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
