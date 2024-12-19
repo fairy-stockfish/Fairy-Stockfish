@@ -103,11 +103,39 @@ The javascript binding [ffish.js](https://www.npmjs.com/package/ffish) contribut
 
 ### Lua
 
-The Lua binding is implemented in [luabindings.cpp](https://github.com/fairy-stockfish/Fairy-Stockfish/blob/master/src/luabindings.cpp). It provides a similar interface to the Python and JavaScript bindings, allowing for move generation, SAN notation, FEN handling, and game end condition checking for all supported variants. The binding uses LuaBridge3 for seamless C++/Lua integration and can be used with any Lua 5.1+ compatible runtime.
+The Lua binding is implemented in [luabindings.cpp](https://github.com/fairy-stockfish/Fairy-Stockfish/blob/master/src/luabindings.cpp). It provides a similar interface to the Python and JavaScript bindings, allowing for move generation, SAN notation, FEN handling, and game end condition checking for all supported variants. The binding uses LuaBridge3 for seamless C++/Lua integration and can be used with any Lua 5.4+ compatible runtime.
 
-To build with Lua support, use:
+Prerequisites:
+1. Install pkg-config (required for finding Lua):
+   ```bash
+   # On macOS
+   brew install pkg-config
+
+   # On Ubuntu/Debian
+   sudo apt-get install pkg-config
+   ```
+
+2. Install Lua 5.4:
+   ```bash
+   # On macOS
+   brew install lua
+
+   # On Ubuntu/Debian
+   sudo apt-get install lua5.4 liblua5.4-dev
+   ```
+
+3. Initialize and update the LuaBridge3 submodule:
+   ```bash
+   git submodule init
+   git submodule update
+   ```
+
+To build with Lua support:
 ```bash
-make build ARCH=x86-64 lua=yes
+cd src
+make build ARCH=apple-silicon lua=yes  # For Apple Silicon Macs
+# OR
+make build ARCH=x86-64-modern lua=yes  # For Intel Macs/Linux
 ```
 
 See the [Lua bindings documentation](tests/lua/README.md) for detailed build instructions and API reference.

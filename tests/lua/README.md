@@ -2,26 +2,52 @@
 
 The Lua bindings for Fairy-Stockfish provide a powerful interface to the chess variant engine. The bindings are implemented using LuaBridge3 and support all features available in the Python and JavaScript bindings.
 
-## Building with Lua Support
+## Prerequisites
 
-1. First, ensure you have Lua 5.1 development files installed:
-   - On Ubuntu/Debian: `sudo apt-get install liblua5.1-0-dev`
-   - On macOS: `brew install lua@5.1`
-   - On Windows: Download from http://luabinaries.sourceforge.net/
+1. Install pkg-config (required for finding Lua):
+   ```bash
+   # On macOS
+   brew install pkg-config
 
-2. Initialize and update the LuaBridge3 submodule:
+   # On Ubuntu/Debian
+   sudo apt-get install pkg-config
+   ```
+
+2. Install Lua 5.4:
+   ```bash
+   # On macOS
+   brew install lua
+
+   # On Ubuntu/Debian
+   sudo apt-get install lua5.4 liblua5.4-dev
+   ```
+
+3. Initialize and update the LuaBridge3 submodule:
    ```bash
    git submodule init
    git submodule update
    ```
 
-3. Build Fairy-Stockfish with Lua support:
+## Building with Lua Support
+
+1. Navigate to the source directory:
    ```bash
    cd src
-   make build ARCH=x86-64 lua=yes
    ```
 
-   Note: Replace `x86-64` with your target architecture (see `make help` for options).
+2. Build Fairy-Stockfish with Lua support:
+   ```bash
+   # For Apple Silicon Macs
+   make build ARCH=apple-silicon lua=yes
+
+   # For Intel Macs/Linux
+   make build ARCH=x86-64-modern lua=yes
+   ```
+
+   Note: Choose the appropriate ARCH value for your system:
+   - `apple-silicon` for Apple M1/M2 Macs
+   - `x86-64-modern` for modern Intel/AMD processors
+   - See `make help` for other architecture options
 
 ## Installation
 
