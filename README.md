@@ -101,6 +101,17 @@ The python binding [pyffish](https://pypi.org/project/pyffish/) contributed by [
 
 The javascript binding [ffish.js](https://www.npmjs.com/package/ffish) contributed by [@QueensGambit](https://github.com/QueensGambit) is implemented in [ffishjs.cpp](https://github.com/fairy-stockfish/Fairy-Stockfish/blob/master/src/ffishjs.cpp). The compilation/binding to javascript is done using emscripten, see the [readme](https://github.com/fairy-stockfish/Fairy-Stockfish/tree/master/tests/js).
 
+### Lua
+
+The Lua binding is implemented in [luabindings.cpp](https://github.com/fairy-stockfish/Fairy-Stockfish/blob/master/src/luabindings.cpp). It provides a similar interface to the Python and JavaScript bindings, allowing for move generation, SAN notation, FEN handling, and game end condition checking for all supported variants. The binding uses LuaBridge3 for seamless C++/Lua integration and can be used with any Lua 5.1+ compatible runtime.
+
+To build with Lua support, use:
+```bash
+make build ARCH=x86-64 lua=yes
+```
+
+See the [Lua bindings documentation](tests/lua/README.md) for detailed build instructions and API reference.
+
 ## Ports
 
 ### WebAssembly

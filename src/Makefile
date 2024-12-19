@@ -45,6 +45,11 @@ SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp main.cpp 
 	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
 	nnue/features/half_ka_v2_variants.cpp
 
+# Add Lua bindings if enabled
+ifeq ($(lua),yes)
+	SRCS += luabindings.cpp
+endif
+
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
 VPATH = syzygy:nnue:nnue/features
@@ -58,46 +63,41 @@ endif
 ### ==========================================================================
 ### Section 2. High-level Configuration
 ### ==========================================================================
-#
-# flag                --- Comp switch      --- Description
-# ----------------------------------------------------------------------------
-#
-# debug = yes/no      --- -DNDEBUG         --- Enable/Disable debug mode
-# sanitize = none/<sanitizer> ... (-fsanitize )
-#                     --- ( undefined )    --- enable undefined behavior checks
-#                     --- ( thread    )    --- enable threading error checks
-#                     --- ( address   )    --- enable memory access checks
-#                     --- ...etc...        --- see compiler documentation for supported sanitizers
-# optimize = yes/no   --- (-O3/-fast etc.) --- Enable/Disable optimizations
-# arch = (name)       --- (-arch)          --- Target architecture
-# bits = 64/32        --- -DIS_64BIT       --- 64-/32-bit operating system
-# prefetch = yes/no   --- -DUSE_PREFETCH   --- Use prefetch asm-instruction
-# popcnt = yes/no     --- -DUSE_POPCNT     --- Use popcnt asm-instruction
-# pext = yes/no       --- -DUSE_PEXT       --- Use pext x86_64 asm-instruction
-# sse = yes/no        --- -msse            --- Use Intel Streaming SIMD Extensions
-# mmx = yes/no        --- -mmmx            --- Use Intel MMX instructions
-# sse2 = yes/no       --- -msse2           --- Use Intel Streaming SIMD Extensions 2
-# ssse3 = yes/no      --- -mssse3          --- Use Intel Supplemental Streaming SIMD Extensions 3
-# sse41 = yes/no      --- -msse4.1         --- Use Intel Streaming SIMD Extensions 4.1
-# avx2 = yes/no       --- -mavx2           --- Use Intel Advanced Vector Extensions 2
-# avx512 = yes/no     --- -mavx512bw       --- Use Intel Advanced Vector Extensions 512
-# vnni256 = yes/no    --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 256
-# vnni512 = yes/no    --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 512
-# neon = yes/no       --- -DUSE_NEON       --- Use ARM SIMD architecture
-#
-# Note that Makefile is space sensitive, so when adding new architectures
-# or modifying existing flags, you have to make sure there are no extra spaces
-# at the end of the line for flag values.
-#
-# Example of use for these flags:
-# make build ARCH=x86-64-avx512 debug=on sanitize="address undefined"
 
+### Add Lua configuration
+ifeq ($(lua),yes)
+	# Try to detect Lua using pkg-config first
+	LUA_VERSION = $(shell pkg-config --exists lua5.1 && echo 5.1 || (pkg-config --exists lua-5.1 && echo 5.1 || (pkg-config --exists lua && echo 5.1)))
+
+	ifeq ($(LUA_VERSION),5.1)
+		LUA_CFLAGS = $(shell pkg-config --cflags lua$(LUA_VERSION))
+		LUA_LDFLAGS = $(shell pkg-config --libs lua$(LUA_VERSION))
+	else
+		# Fallback paths for common Lua installations
+		ifeq ($(KERNEL),Darwin)
+			LUA_CFLAGS = -I/usr/local/include/lua5.1
+			LUA_LDFLAGS = -L/usr/local/lib -llua5.1
+		else
+			LUA_CFLAGS = -I/usr/include/lua5.1
+			LUA_LDFLAGS = -llua5.1
+		endif
+	endif
+
+	# Add LuaBridge3 include path
+	LUABRIDGE_PATH = ../ThirdParty/LuaBridge3/Source
+	LUABRIDGE_CFLAGS = -I$(LUABRIDGE_PATH)
+
+	# Add combined flags
+	CUSTOM_CFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA
+	CUSTOM_LDFLAGS += $(LUA_LDFLAGS)
+endif
 
 ### 2.1. General and architecture defaults
 largeboards = no
 all = no
 precomputedmagics = yes
 nnue = no
+lua = no
 load_net = $(if $(filter $(nnue),yes),net)
 
 ifeq ($(ARCH),)
@@ -327,9 +327,8 @@ endif
 ### ==========================================================================
 
 ### 3.1 Selecting compiler (default = gcc)
-CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
-DEPENDFLAGS += -std=c++17
-LDFLAGS += $(EXTRALDFLAGS)
+CXXFLAGS += $(CUSTOM_CFLAGS)
+LDFLAGS += $(CUSTOM_LDFLAGS)
 
 # Ignore warning due to missing profile information from unused NNUE features
 CXXFLAGS += -Wno-profile-instr-out-of-date
@@ -718,6 +717,13 @@ help:
 	@echo "install                 > Install executable"
 	@echo "clean                   > Clean up"
 	@echo ""
+	@echo "Optional features:"
+	@echo ""
+	@echo "make build ARCH=x86-64 largeboards=yes   > Version for large board variants"
+	@echo "make build ARCH=x86-64 all=yes          > Include all variants"
+	@echo "make build ARCH=x86-64 nnue=yes         > Enable NNUE"
+	@echo "make build ARCH=x86-64 lua=yes          > Enable Lua bindings"
+	@echo ""
 	@echo "Supported archs:"
 	@echo ""
 	@echo "x86-64-vnni512          > x86 64-bit with vnni support 512bit wide"
@@ -905,6 +911,7 @@ config-sanity: $(load_net)
 	@echo "all: '$(all)'"
 	@echo "precomputedmagics: '$(precomputedmagics)'"
 	@echo "nnue: '$(nnue)'"
+	@echo "lua: '$(lua)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "CXX: $(CXX)"
