@@ -13,13 +13,13 @@ The Lua bindings for Fairy-Stockfish provide a powerful interface to the chess v
    sudo apt-get install pkg-config
    ```
 
-2. Install Lua 5.4:
+2. Install Lua 5.1 (required for LuaJIT compatibility):
    ```bash
    # On macOS
-   brew install lua
+   brew install lua@5.1
 
    # On Ubuntu/Debian
-   sudo apt-get install lua5.4 liblua5.4-dev
+   sudo apt-get install lua5.1 liblua5.1-dev
    ```
 
 3. Initialize and update the LuaBridge3 submodule:

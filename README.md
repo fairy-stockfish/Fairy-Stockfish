@@ -97,48 +97,13 @@ Besides the C++ engine, this project also includes bindings for other programmin
 
 The python binding [pyffish](https://pypi.org/project/pyffish/) contributed by [@gbtami](https://github.com/gbtami) is implemented in [pyffish.cpp](https://github.com/fairy-stockfish/Fairy-Stockfish/blob/master/src/pyffish.cpp). It is e.g. used in the backend for the [pychess server](https://github.com/gbtami/pychess-variants).
 
+### Lua
+
+The Lua bindings provide a powerful interface to the chess variant engine. They require Lua 5.1 for LuaJIT compatibility. See [tests/lua/README.md](tests/lua/README.md) for installation and usage instructions.
+
 ### Javascript
 
 The javascript binding [ffish.js](https://www.npmjs.com/package/ffish) contributed by [@QueensGambit](https://github.com/QueensGambit) is implemented in [ffishjs.cpp](https://github.com/fairy-stockfish/Fairy-Stockfish/blob/master/src/ffishjs.cpp). The compilation/binding to javascript is done using emscripten, see the [readme](https://github.com/fairy-stockfish/Fairy-Stockfish/tree/master/tests/js).
-
-### Lua
-
-The Lua binding is implemented in [luabindings.cpp](https://github.com/fairy-stockfish/Fairy-Stockfish/blob/master/src/luabindings.cpp). It provides a similar interface to the Python and JavaScript bindings, allowing for move generation, SAN notation, FEN handling, and game end condition checking for all supported variants. The binding uses LuaBridge3 for seamless C++/Lua integration and can be used with any Lua 5.4+ compatible runtime.
-
-Prerequisites:
-1. Install pkg-config (required for finding Lua):
-   ```bash
-   # On macOS
-   brew install pkg-config
-
-   # On Ubuntu/Debian
-   sudo apt-get install pkg-config
-   ```
-
-2. Install Lua 5.4:
-   ```bash
-   # On macOS
-   brew install lua
-
-   # On Ubuntu/Debian
-   sudo apt-get install lua5.4 liblua5.4-dev
-   ```
-
-3. Initialize and update the LuaBridge3 submodule:
-   ```bash
-   git submodule init
-   git submodule update
-   ```
-
-To build with Lua support:
-```bash
-cd src
-make build ARCH=apple-silicon lua=yes  # For Apple Silicon Macs
-# OR
-make build ARCH=x86-64-modern lua=yes  # For Intel Macs/Linux
-```
-
-See the [Lua bindings documentation](tests/lua/README.md) for detailed build instructions and API reference.
 
 ## Ports
 
