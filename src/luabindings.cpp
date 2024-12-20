@@ -769,6 +769,10 @@ public:
         L = state;
     }
 
+    Value evaluate() const {
+        return Eval::evaluate(pos);
+    }
+
 private:
     const Variant* v;
     StateListPtr states;
@@ -1272,6 +1276,7 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addFunction("toVerboseString", &LuaBoard::toVerboseString)
                     .addFunction("variant", &LuaBoard::variant)
                     .addFunction("variationSan", (std::string(LuaBoard::*)(const std::string&))&LuaBoard::variationSan)
+                    .addFunction("evaluate", &LuaBoard::evaluate)
                     .addFunction("variationSanWithNotation", [](LuaBoard* board, const std::string& moves, int notation) -> std::string {
                         auto n = static_cast<Notation>(notation);
                         if (n == NOTATION_DEFAULT) {

@@ -74,19 +74,19 @@ endif
 ### Add Lua configuration
 ifeq ($(lua),yes)
 	# Try to detect Lua using pkg-config first
-	LUA_VERSION = $(shell pkg-config --exists lua5.1 && echo 5.1 || (pkg-config --exists lua-5.1 && echo 5.1 || (pkg-config --exists lua && echo 5.1)))
+	LUA_VERSION = $(shell pkg-config --exists lua5.1 && echo 5.1 || (pkg-config --exists lua-5.1 && echo 5.1 || (pkg-config --exists luajit && echo 5.1)))
 
 	ifeq ($(LUA_VERSION),5.1)
-		LUA_CFLAGS = $(shell pkg-config --cflags lua$(LUA_VERSION))
-		LUA_LDFLAGS = $(shell pkg-config --libs lua$(LUA_VERSION))
+		LUA_CFLAGS = $(shell pkg-config --cflags luajit 2>/dev/null || pkg-config --cflags lua5.1 || pkg-config --cflags lua-5.1)
+		LUA_LDFLAGS = $(shell pkg-config --libs luajit 2>/dev/null || pkg-config --libs lua5.1 || pkg-config --libs lua-5.1)
 	else
-		# Fallback paths for common Lua installations
+		# Fallback paths for common Lua/LuaJIT installations
 		ifeq ($(KERNEL),Darwin)
-			LUA_CFLAGS = -I/usr/local/include/lua5.1
-			LUA_LDFLAGS = -L/usr/local/lib -llua5.1
+			LUA_CFLAGS = -I/usr/local/include/luajit-2.1
+			LUA_LDFLAGS = -L/usr/local/lib -lluajit-5.1
 		else
-			LUA_CFLAGS = -I/usr/include/lua5.1
-			LUA_LDFLAGS = -llua5.1
+			LUA_CFLAGS = -I/usr/include/luajit-2.1
+			LUA_LDFLAGS = -lluajit-5.1
 		endif
 	endif
 
