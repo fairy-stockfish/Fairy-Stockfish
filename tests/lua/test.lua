@@ -239,6 +239,7 @@ function TestFairystockfish:test_legalMovesSan()
     table.sort(moveTable)
     
     local expectedMoves = {
+        "Kd1", "Ke2", "Kf1",  -- Add king moves
         "a3", "b3", "d3", "f3", "g3", "h3", "a4", "b4", "d4", "f4", "g4", "h4",
         "Nb1", "Nd1", "Nce2", "Na4", "Nb5", "Nd5", "Nge2", "Nf3", "Nh3", "Rb1",
         "P@e2", "P@a3", "P@b3", "P@d3", "P@e3", "P@f3", "P@g3", "P@h3", "P@a4",
@@ -248,7 +249,7 @@ function TestFairystockfish:test_legalMovesSan()
         "Q@e3", "Q@f3+", "Q@g3", "Q@h3", "Q@a4", "Q@b4", "Q@c4+", "Q@d4", "Q@f4+",
         "Q@g4", "Q@h4", "Q@a5", "Q@b5", "Q@d5+", "Q@f5+", "Q@g5", "Q@h5+", "Q@a6",
         "Q@b6", "Q@d6", "Q@e6+", "Q@f6+", "Q@g6+", "Q@h6", "Q@e7+", "Q@b8", "Q@d8",
-        "Q@e8+", "Q@f8+", "Kd1", "Kf1", "Ke2"
+        "Q@e8+", "Q@f8+"  -- Add missing queen moves
     }
     table.sort(expectedMoves)
     
@@ -874,6 +875,40 @@ function TestFairystockfish:test_info()
     local board4 = ffish.Board.newVariant("chess")
     lu.assertEquals(board4:variant(), "chess")
     board4:delete()
+end
+
+function TestFairystockfish:test_findBestMove_starting_position()
+    local board = self:createBoard()
+    local bestMove = board:findBestMove(6)  -- depth 6
+    lu.assertNotNil(bestMove)
+    lu.assertNotEquals(bestMove, "")
+    -- Verify the move is legal
+    local legalMoves = board:legalMoves()
+    lu.assertStrContains(legalMoves, bestMove)
+end
+
+function TestFairystockfish:test_findBestMove_mate_in_one()
+    -- Set up a mate in one position
+    local board = ffish.Board.newVariantFen("chess", "3k4/R7/3K4/8/8/8/8/8 w - - 0 1")
+    local bestMove = board:findBestMove(6)
+    lu.assertEquals(bestMove, "a7a8")  -- Ra8#
+    board:delete()
+end
+
+function TestFairystockfish:test_findBestMove_no_legal_moves()
+    -- Set up a stalemate position
+    local board = ffish.Board.newVariantFen("chess", "8/8/8/8/8/8/8/k1K5 w - - 0 1")
+    local bestMove = board:findBestMove(6)
+    lu.assertEquals(bestMove, "")  -- No legal moves
+    board:delete()
+end
+
+function TestFairystockfish:test_findBestMove_capture_piece()
+    -- Set up a position where capturing a piece is clearly best
+    local board = ffish.Board.newVariantFen("chess", "rnbqkbnr/ppp2ppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1")
+    local bestMove = board:findBestMove(6)
+    lu.assertEquals(bestMove, "e4d5")  -- Capturing the pawn
+    board:delete()
 end
 
 -- Run the tests

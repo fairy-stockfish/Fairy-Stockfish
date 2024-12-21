@@ -430,6 +430,44 @@ public:
         return has_insufficient_material(WHITE, pos) && has_insufficient_material(BLACK, pos);
     }
 
+    std::string findBestMove(int depth = 6) {
+        std::lock_guard<std::mutex> lock(threadMutex);
+        if (!threadsInitialized) {
+            initializeThreads();
+        }
+
+        // Check for stalemate or no legal moves
+        if (isGameOver()) {
+            return "";
+        }
+
+        // Clear previous search state
+        Search::clear();
+        Threads.stop = false;
+
+        // Set up search limits
+        Search::LimitsType limits;
+        limits.depth = std::max(depth, 10);  // Use at least depth 10
+        limits.startTime = now();  // Initialize start time
+
+        // Initialize root moves
+        Thread* mainThread = Threads.main();
+        mainThread->rootMoves.clear();
+        for (const auto& m : MoveList<LEGAL>(pos)) {
+            mainThread->rootMoves.emplace_back(m);
+        }
+
+        // Start searching
+        Threads.start_thinking(pos, states, limits);
+        Threads.main()->wait_for_search_finished();
+
+        // Get best move from main thread's root moves
+        if (!mainThread->rootMoves.empty() && mainThread->rootMoves[0].pv.size() > 0) {
+            return UCI::move(pos, mainThread->rootMoves[0].pv[0]);
+        }
+        return "";
+    }
+
     std::string legalMovesSan() {
         std::string movesSan;
         for (const ExtMove& move : MoveList<LEGAL>(this->pos)) {
@@ -1267,6 +1305,7 @@ extern "C" int luaopen_fairystockfish(lua_State* L) {
                     .addFunction("moveStack", &LuaBoard::getMoveStack)
                     .addFunction("numberLegalMoves", &LuaBoard::numberLegalMoves)
                     .addFunction("pocket", &LuaBoard::pocket)
+                    .addFunction("findBestMove", &LuaBoard::findBestMove)
                     .addFunction("sanMove", (std::string(LuaBoard::*)(const std::string&))&LuaBoard::sanMove)
                     .addFunction("sanMoveNotation", [](LuaBoard* board, const std::string& move, int notation) {
                         return board->sanMove(move, static_cast<Notation>(notation));
