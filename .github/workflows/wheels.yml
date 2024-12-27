@@ -17,10 +17,10 @@ jobs:
         os: [ubuntu-20.04, windows-2019, macos-13]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Used to host cibuildwheel
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v5
 
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.16.2
@@ -34,7 +34,7 @@ jobs:
           CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_* cp36-* cp37-*"
           CIBW_TEST_COMMAND: python {project}/test.py
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4.5.0
         with:
           name: dist
           path: ./wheelhouse/*.whl
@@ -43,15 +43,15 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
 
       - name: Build sdist
         run: python setup.py sdist
 
-      - uses: actions/upload-artifact@v3.0.0
+      - uses: actions/upload-artifact@v4.5.0
         with:
           name: dist
           path: dist/*.tar.gz
