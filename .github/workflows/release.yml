@@ -56,7 +56,7 @@ jobs:
         if: ${{ matrix.arch == 'x86-64' }}
         run: cd src && make clean && make -j build COMP=gcc ARCH=${{ matrix.arch }} EXE=fairy-stockfish-all_${{ matrix.arch }} largeboards=yes all=yes && strip fairy-stockfish-all_${{ matrix.arch }}
 
-      - uses: actions/upload-artifact@v4.5.0
+      - uses: actions/upload-artifact@v3
         with:
           name: fairy-stockfish
           path: src/fairy-stockfish*
