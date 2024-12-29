@@ -114,7 +114,7 @@ public:
   // FEN string input/output
   Position& set(const Variant* v, const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th, bool sfen = false);
   Position& set(const std::string& code, Color c, StateInfo* si);
-  std::string fen(bool sfen = false, bool showPromoted = false, int countStarted = 0, std::string holdings = "-") const;
+  std::string fen(bool sfen = false, bool showPromoted = false, int countStarted = 0, std::string holdings = "-", Bitboard fogArea = 0) const;
 
   // Variant rule properties
   const Variant* variant() const;
@@ -328,6 +328,7 @@ public:
   Score psq_score() const;
   Value non_pawn_material(Color c) const;
   Value non_pawn_material() const;
+  Bitboard fog_area() const;
 
   // Position consistency check, for debugging
   bool pos_is_ok() const;
@@ -1405,6 +1406,20 @@ inline bool Position::virtual_drop(Move m) const {
 
 inline Piece Position::captured_piece() const {
   return st->capturedPiece;
+}
+
+inline Bitboard Position::fog_area() const {
+  Bitboard b = board_bb();
+  // Our own pieces are visible
+  Bitboard visible = pieces(sideToMove);
+  // Squares where we can move to are visible as well
+  for (const auto& m : MoveList<LEGAL>(*this))
+  {
+    Square to = to_sq(m);
+    visible |= to;
+  }
+  // Everything else is invisible
+  return ~visible & b;
 }
 
 inline const std::string Position::piece_to_partner() const {

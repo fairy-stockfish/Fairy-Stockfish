@@ -113,6 +113,13 @@ customPiece4 = w:mRpRmFpB2
 customPiece5 = f:mBpBmWpR2
 promotedPieceType = u:w a:w c:f i:f
 startFen = lnsgkgsnl/1rci1uab1/p1p1p1p1p/9/9/9/P1P1P1P1P/1BAU1ICR1/LNSGKGSNL[-] w 0 1
+
+[fogofwar:chess]
+king = -
+commoner = k
+castlingKingPiece = k
+extinctionValue = loss
+extinctionPieceTypes = k
 """
 
 sf.load_variant_config(ini_text)
@@ -1155,6 +1162,16 @@ class TestPyffish(unittest.TestCase):
             with self.subTest(variant=variant):
                 fen = sf.start_fen(variant)
                 self.assertEqual(sf.validate_fen(fen, variant), sf.FEN_OK)
+
+    def test_get_fog_fen(self):
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"  # startpos
+        result = sf.get_fog_fen(fen, "fogofwar")
+        self.assertEqual(result, "********/********/********/********/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+
+        fen = "rnbqkbnr/p1p2ppp/8/Pp1pp3/4P3/8/1PPP1PPP/RNBQKBNR w KQkq b6 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        self.assertEqual(result, "********/********/2******/Pp*p***1/4P3/4*3/1PPP1PPP/RNBQKBNR w KQkq b6 0 1")
+        
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
