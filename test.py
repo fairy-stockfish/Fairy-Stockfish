@@ -427,6 +427,12 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w 1 2", [])
         self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 1 2")
 
+        # invalid castling rights
+        result = sf.get_fen("chess", "8/rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", [])
+        self.assertEqual(result, "8/rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1")
+        result = sf.get_fen("chess", "r7/1nbqkbnr/pppppppp/8/8/P6P/RPPPPPPR/1NBQKBN1 w KQkq - 0 1", [])
+        self.assertEqual(result, "r7/1nbqkbnr/pppppppp/8/8/P6P/RPPPPPPR/1NBQKBN1 w - - 0 1")
+
         # alternative piece symbols
         result = sf.get_fen("janggi", "rhea1aehr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RHEA1AEHR w - - 0 1", [])
         self.assertEqual(result, JANGGI)
