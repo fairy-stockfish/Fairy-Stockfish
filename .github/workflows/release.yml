@@ -34,7 +34,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: fairy-stockfish
+          name: fairy-stockfish-windows-${{ matrix.arch }}
           path: src/fairy-stockfish*.exe
           if-no-files-found: error
           compression-level: 9
@@ -60,7 +60,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: fairy-stockfish
+          name: fairy-stockfish-linux-${{ matrix.arch }}
           path: src/fairy-stockfish*
           if-no-files-found: error
           compression-level: 9
