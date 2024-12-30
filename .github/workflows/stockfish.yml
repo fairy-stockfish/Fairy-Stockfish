@@ -39,14 +39,14 @@ jobs:
       run:
         working-directory: src
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Download required packages
         run: |
           sudo apt update
-          sudo apt install expect valgrind g++-multilib
+          sudo apt install expect valgrind g++-multilib llvm
 
       - name: Download the used network from the fishtest framework
         run: |
@@ -73,6 +73,12 @@ jobs:
           make clean
           make -j2 ARCH=x86-32 optimize=no debug=yes build
           ../tests/signature.sh $benchref
+
+      - name: Test debug x86-32 profile build (Optimization on, All features)
+        run: |
+          export CXXFLAGS=""
+          make clean
+          make -j2 ARCH=x86-32 optimize=yes all=yes largeboards=yes debug=yes profile-build
 
       - name: Test x86-32 build
         run: |
@@ -106,6 +112,12 @@ jobs:
           make clean
           make -j2 ARCH=x86-64-modern optimize=no debug=yes build
           ../tests/signature.sh $benchref
+
+      - name: Test debug x86-64-modern profile build (Optimization on, All features)
+        run: |
+          export CXXFLAGS=""
+          make clean
+          make -j2 ARCH=x86-64-modern optimize=yes all=yes largeboards=yes debug=yes profile-build
 
       - name: Test x86-64-modern build
         run: |

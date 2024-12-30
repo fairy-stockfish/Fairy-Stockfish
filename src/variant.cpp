@@ -138,6 +138,9 @@ namespace {
         Variant* v = chess_variant_base()->init();
         v->add_piece(SILVER, 's');
         v->add_piece(FERS, 'f');
+        v->add_piece(ARCHBISHOP, 'a');
+        v->add_piece(CHANCELLOR, 'c');
+        v->add_piece(COMMONER, 'm');
         return v;
     }
       // Raazuva (Maldivian Chess)
@@ -342,6 +345,7 @@ namespace {
         v->flagMove = true;
         v->castling = false;
         v->checking = false;
+        v->endgameEval = EG_EVAL_RK;
         return v;
     }
     // Knightmate
@@ -355,6 +359,15 @@ namespace {
         v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = KING;
         v->promotionPieceTypes[WHITE] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP;
         v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | QUEEN | ROOK | BISHOP;
+        return v;
+    }
+    // Misere chess
+    // Get checkmated to win.
+    // Variant used to run some selfmate analysis http://www.kotesovec.cz/gustav/gustav_alybadix.htm
+    Variant* misere_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->checkmateValue = VALUE_MATE;
+        v->endgameEval = EG_EVAL_MISERE;
         return v;
     }
     // Losers chess
@@ -385,6 +398,7 @@ namespace {
         v->extinctionPieceTypes = piece_set(ALL_PIECES);
         v->mustCapture = true;
         v->nnueAlias = "antichess";
+        v->endgameEval = EG_EVAL_ANTI;
         return v;
     }
     // Antichess
@@ -393,6 +407,7 @@ namespace {
         Variant* v = giveaway_variant()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
         v->castling = false;
+        v->endgameEval = EG_EVAL_ANTI;
         return v;
     }
     // Suicide chess
@@ -402,6 +417,7 @@ namespace {
         Variant* v = antichess_variant()->init();
         v->stalematePieceCount = true;
         v->nnueAlias = "antichess";
+        v->endgameEval = EG_EVAL_ANTI;
         return v;
     }
     // Codrus
@@ -493,6 +509,7 @@ namespace {
     Variant* atomic_variant() {
         Variant* v = nocheckatomic_variant()->init();
         v->extinctionPseudoRoyal = true;
+        v->endgameEval = EG_EVAL_ATOMIC;
         return v;
     }
 
@@ -517,6 +534,7 @@ namespace {
         v->extinctionPieceTypes = piece_set(COMMONER);
         v->wallingRule = DUCK;
         v->stalemateValue = VALUE_MATE;
+        v->endgameEval = EG_EVAL_DUCK;
         return v;
     }
 #endif
@@ -1819,6 +1837,7 @@ void VariantMap::init() {
     add("kingofthehill", kingofthehill_variant());
     add("racingkings", racingkings_variant());
     add("knightmate", knightmate_variant());
+    add("misere", misere_variant());
     add("losers", losers_variant());
     add("giveaway", giveaway_variant());
     add("antichess", antichess_variant());
@@ -2027,21 +2046,26 @@ Variant* Variant::conclude() {
 
     // For endgame evaluation to be applicable, no special win rules must apply.
     // Furthermore, rules significantly changing game mechanics also invalidate it.
-    endgameEval = extinctionValue == VALUE_NONE
-                  && checkmateValue == -VALUE_MATE
-                  && stalemateValue == VALUE_DRAW
-                  && !materialCounting
-                  && !(flagRegion[WHITE] || flagRegion[BLACK])
-                  && !mustCapture
-                  && !checkCounting
-                  && !makpongRule
-                  && !connectN
-                  && !blastOnCapture
-                  && !petrifyOnCaptureTypes
-                  && !capturesToHand
-                  && !twoBoards
-                  && !restrictedMobility
-                  && kingType == KING;
+    endgameEval =  endgameEval != EG_EVAL_CHESS
+                 ||
+                   (   endgameEval == EG_EVAL_CHESS
+                    && extinctionValue == VALUE_NONE
+                    && checkmateValue == -VALUE_MATE
+                    && stalemateValue == VALUE_DRAW
+                    && !materialCounting
+                    && !(flagRegion[WHITE] || flagRegion[BLACK])
+                    && !mustCapture
+                    && !checkCounting
+                    && !makpongRule
+                    && !connectN
+                    && !blastOnCapture
+                    && !petrifyOnCaptureTypes
+                    && !capturesToHand
+                    && !twoBoards
+                    && !restrictedMobility
+                    && kingType == KING
+                   )
+                 ? endgameEval : NO_EG_EVAL;
 
     shogiStylePromotions = false;
     for (PieceType current: promotedPieceType)
@@ -2066,15 +2090,16 @@ Variant* Variant::conclude() {
         connect_directions.push_back(SOUTH_EAST);
     }
 
-    // If not a connect variant, set connectPieceTypes to no pieces.
+    // If not a connect variant, set connectPieceTypesTrimmed to no pieces.
+    // connectPieceTypesTrimmed is separated so that connectPieceTypes is left unchanged for inheritance.
     if ( !(connectRegion1[WHITE] || connectRegion1[BLACK] || connectN || connectNxN || collinearN) )
     {
-          connectPieceTypes = NO_PIECE_SET;
+          connectPieceTypesTrimmed = NO_PIECE_SET;
     }
     //Otherwise optimize to pieces actually in the game.
     else
     {
-        connectPieceTypes = connectPieceTypes & pieceTypes;
+        connectPieceTypesTrimmed = connectPieceTypes & pieceTypes;
     };
 
     return this;

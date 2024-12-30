@@ -45,6 +45,7 @@ namespace Zobrist {
   Key inHand[PIECE_NB][SQUARE_NB];
   Key checks[COLOR_NB][CHECKS_NB];
   Key wall[SQUARE_NB];
+  Key endgame[EG_EVAL_NB];
 }
 
 
@@ -178,6 +179,9 @@ void Position::init() {
   for (Square s = SQ_A1; s <= SQ_MAX; ++s)
       Zobrist::wall[s] = rng.rand<Key>();
 
+  for (int i = NO_EG_EVAL; i < EG_EVAL_NB; ++i)
+      Zobrist::endgame[i] = rng.rand<Key>();
+
   // Prepare the cuckoo tables
   std::memset(cuckoo, 0, sizeof(cuckoo));
   std::memset(cuckooMove, 0, sizeof(cuckooMove));
@@ -209,6 +213,10 @@ void Position::init() {
 #else
   assert(count == 3668);
 #endif
+}
+
+Key Position::material_key(EndgameEval e) const {
+  return st->materialKey ^ Zobrist::endgame[e];
 }
 
 
@@ -430,14 +438,14 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
               // 2)
               // a) side to move have a pawn threatening epSquare
               // b) there is an enemy pawn one or two (for triple steps) squares in front of epSquare
-              // c) there is no piece on epSquare or behind epSquare
+              // c) there is no (non-wall) piece on epSquare or behind epSquare
               if (   (var->enPassantRegion & epSquare)
                   && (   !var->fastAttacks
                       || (var->enPassantTypes[sideToMove] & ~piece_set(PAWN))
                       || (   pawn_attacks_bb(~sideToMove, epSquare) & pieces(sideToMove, PAWN)
                           && (   (pieces(~sideToMove, PAWN) & (epSquare + pawn_push(~sideToMove)))
                               || (pieces(~sideToMove, PAWN) & (epSquare + 2 * pawn_push(~sideToMove))))
-                          && !(pieces() & (epSquare | (epSquare + pawn_push(sideToMove)))))))
+                          && !((pieces(WHITE) | pieces(BLACK)) & (epSquare | (epSquare + pawn_push(sideToMove)))))))
                   st->epSquares |= epSquare;
           }
   }
@@ -655,9 +663,7 @@ void Position::set_state(StateInfo* si) const {
 
 Position& Position::set(const string& code, Color c, StateInfo* si) {
 
-  assert(code[0] == 'K');
-
-  string sides[] = { code.substr(code.find('K', 1)),      // Weak
+  string sides[] = { code.substr(code.find('v') != string::npos ? code.find('v') + 1 : code.find('K', 1)),      // Weak
                      code.substr(0, std::min(code.find('v'), code.find('K', 1))) }; // Strong
 
   assert(sides[0].length() > 0 && sides[0].length() < 8);
@@ -665,9 +671,8 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
 
   std::transform(sides[c].begin(), sides[c].end(), sides[c].begin(), tolower);
 
-  string n = std::to_string(FILE_NB);
-  string fenStr =  n + "/" + sides[0] + char(FILE_NB - sides[0].length() + '0') + "/" + n + "/" + n + "/" + n + "/"
-                 + n + "/" + sides[1] + char(FILE_NB - sides[1].length() + '0') + "/" + n + " w - - 0 10";
+  string n = std::to_string(8);
+  string fenStr =  sides[0] + "///////" + sides[1] + " w - - 0 10";
 
   return set(variants.find("fairy")->second, fenStr, false, si, nullptr);
 }
@@ -676,7 +681,7 @@ Position& Position::set(const string& code, Color c, StateInfo* si) {
 /// Position::fen() returns a FEN representation of the position. In case of
 /// Chess960 the Shredder-FEN notation is used. This is mainly a debugging function.
 
-string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string holdings) const {
+string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string holdings, Bitboard fogArea) const {
 
   int emptyCnt;
   std::ostringstream ss;
@@ -685,7 +690,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   {
       for (File f = FILE_A; f <= max_file(); ++f)
       {
-          for (emptyCnt = 0; f <= max_file() && !(pieces() & make_square(f, r)); ++f)
+          for (emptyCnt = 0; f <= max_file() && !(pieces() & make_square(f, r)) && !(fogArea & make_square(f, r)); ++f)
               ++emptyCnt;
 
           if (emptyCnt)
@@ -693,7 +698,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
           if (f <= max_file())
           {
-              if (empty(make_square(f, r)))
+              if (empty(make_square(f, r)) || fogArea & make_square(f, r))
                   // Wall square
                   ss << "*";
               else if (unpromoted_piece_on(make_square(f, r)))
@@ -1642,7 +1647,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^= Zobrist::psq[captured][capsq];
       st->materialKey ^= Zobrist::psq[captured][pieceCount[captured]];
 #ifndef NO_THREADS
-      prefetch(thisThread->materialTable[st->materialKey]);
+      prefetch(thisThread->materialTable[material_key(var->endgameEval)]);
 #endif
       // Reset rule 50 counter
       st->rule50 = 0;
@@ -2887,7 +2892,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   }
 
   // Check for bikjang rule (Janggi), double passing, or board running full
-  if (   (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || (st->pass && st->previous->pass)))
+  if (   (st->pliesFromNull > 0 && ((st->bikjang && st->previous->bikjang) || ((st->pass && st->previous->pass)&&!var->wallOrMove)))
       || (var->adjudicateFullBoard && !(~pieces() & board_bb())))
   {
       result = var->materialCounting ? convert_mate_value(material_counting_result(), ply) : VALUE_DRAW;

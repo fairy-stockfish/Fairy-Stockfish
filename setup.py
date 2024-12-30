@@ -19,7 +19,7 @@ if "64bit" in platform.architecture():
 
 CLASSIFIERS = [
     "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPL-3.0-or-later)",
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
@@ -39,7 +39,7 @@ pyffish_module = Extension(
     sources=sources,
     extra_compile_args=args)
 
-setup(name="pyffish", version="0.0.82",
+setup(name="pyffish", version="0.0.85",
       description="Fairy-Stockfish Python wrapper",
       long_description=long_description,
       long_description_content_type="text/markdown",

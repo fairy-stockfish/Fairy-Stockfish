@@ -113,6 +113,13 @@ customPiece4 = w:mRpRmFpB2
 customPiece5 = f:mBpBmWpR2
 promotedPieceType = u:w a:w c:f i:f
 startFen = lnsgkgsnl/1rci1uab1/p1p1p1p1p/9/9/9/P1P1P1P1P/1BAU1ICR1/LNSGKGSNL[-] w 0 1
+
+[fogofwar:chess]
+king = -
+commoner = k
+castlingKingPiece = k
+extinctionValue = loss
+extinctionPieceTypes = k
 """
 
 sf.load_variant_config(ini_text)
@@ -469,6 +476,11 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 2 2")
         result = sf.get_fen("pocketknight", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1", ["N@e4"])
         self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/4N3/8/PPPPPPPP/RNBQKBNR[n] b KQkq - 0 1")
+
+        # duck chess en passant
+        fen = "r1b1k3/pp3pb1/4p3/2p2p2/2PpP2q/1P1P1P2/P1K1*3/RN1Q2N1 b q e3 0 17"
+        result = sf.get_fen("duck", fen, [])
+        self.assertEqual(result, fen)
 
         # SFEN
         result = sf.get_fen("shogi", SHOGI, [], False, True)
@@ -974,6 +986,27 @@ class TestPyffish(unittest.TestCase):
         result = sf.is_capture("sittuyin", "8/2k5/8/4P3/4P1N1/5K2/8/8[] w - - 0 1", [], "e5e5f")
         self.assertFalse(result)
 
+    def test_piece_to_partner(self):
+        # take the rook and promote to queen
+        result = sf.piece_to_partner("bughouse", "r2qkbnr/1Ppppppp/2n5/8/8/8/1PPPPPPP/RNBQKBNR[] w KQkq - 0 1", ["b7a8q"])
+        self.assertEqual(result, "r")
+
+        # take back the queen (promoted pawn)
+        result = sf.piece_to_partner("bughouse", "r2qkbnr/1Ppppppp/2n5/8/8/8/1PPPPPPP/RNBQKBNR[] w KQkq - 0 1", ["b7a8q", "d8a8"])
+        self.assertEqual(result, "P")
+
+        # just a simple move (no take)
+        result = sf.piece_to_partner("bughouse", "r2qkbnr/1Ppppppp/2n5/8/8/8/1PPPPPPP/RNBQKBNR[] w KQkq - 0 1", ["b7a8q", "d8b8"])
+        self.assertEqual(result, "")
+
+        # silver takes the pawn and promotes to gold
+        result = sf.piece_to_partner("shogi", "lnsgkgsnl/1r5b1/ppppppppp/S8/9/9/PPPPPPPPP/1B5R1/LNSGKG1NL[] w 0 1", ["a6a7+"])
+        self.assertEqual(result, "p")
+
+        # take back the gold (promoted silver)
+        result = sf.piece_to_partner("shogi", "lnsgkgsnl/1r5b1/ppppppppp/S8/9/9/PPPPPPPPP/1B5R1/LNSGKG1NL[] w 0 1", ["a6a7+", "a9a7"])
+        self.assertEqual(result, "S")
+
     def test_game_result(self):
         result = sf.game_result("chess", CHESS, ["f2f3", "e7e5", "g2g4", "d8h4"])
         self.assertEqual(result, -sf.VALUE_MATE)
@@ -1129,6 +1162,16 @@ class TestPyffish(unittest.TestCase):
             with self.subTest(variant=variant):
                 fen = sf.start_fen(variant)
                 self.assertEqual(sf.validate_fen(fen, variant), sf.FEN_OK)
+
+    def test_get_fog_fen(self):
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"  # startpos
+        result = sf.get_fog_fen(fen, "fogofwar")
+        self.assertEqual(result, "********/********/********/********/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+
+        fen = "rnbqkbnr/p1p2ppp/8/Pp1pp3/4P3/8/1PPP1PPP/RNBQKBNR w KQkq b6 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        self.assertEqual(result, "********/********/2******/Pp*p***1/4P3/4*3/1PPP1PPP/RNBQKBNR w KQkq b6 0 1")
+        
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

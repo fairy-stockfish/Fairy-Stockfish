@@ -14,13 +14,13 @@ jobs:
     runs-on: windows-2022
 
     steps:
-      - uses: al-cheb/configure-pagefile-action@v1.2	
+      - uses: al-cheb/configure-pagefile-action@v1.4	
         with:	
             minimum-size: 16GB
             maximum-size: 16GB
             disk-root: "C:"
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: make
         run: cd src && make clean && make -j build COMP=mingw ARCH=${{ matrix.arch }} EXE=fairy-stockfish_${{ matrix.arch }}.exe && strip fairy-stockfish_${{ matrix.arch }}.exe
@@ -32,10 +32,12 @@ jobs:
         if: ${{ matrix.arch == 'x86-64' }}
         run: cd src && make clean && make -j build COMP=mingw ARCH=${{ matrix.arch }} EXE=fairy-stockfish-all_${{ matrix.arch }}.exe largeboards=yes all=yes && strip fairy-stockfish-all_${{ matrix.arch }}.exe
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: fairy-stockfish
+          name: fairy-stockfish-windows-${{ matrix.arch }}
           path: src/fairy-stockfish*.exe
+          if-no-files-found: error
+          compression-level: 9
 
   linux:
     strategy:
@@ -44,7 +46,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: make
         run: cd src && make clean && make -j build COMP=gcc ARCH=${{ matrix.arch }} EXE=fairy-stockfish_${{ matrix.arch }} && strip fairy-stockfish_${{ matrix.arch }}
@@ -56,7 +58,9 @@ jobs:
         if: ${{ matrix.arch == 'x86-64' }}
         run: cd src && make clean && make -j build COMP=gcc ARCH=${{ matrix.arch }} EXE=fairy-stockfish-all_${{ matrix.arch }} largeboards=yes all=yes && strip fairy-stockfish-all_${{ matrix.arch }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: fairy-stockfish
+          name: fairy-stockfish-linux-${{ matrix.arch }}
           path: src/fairy-stockfish*
+          if-no-files-found: error
+          compression-level: 9

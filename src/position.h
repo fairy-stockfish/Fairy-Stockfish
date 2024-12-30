@@ -115,7 +115,7 @@ public:
   // FEN string input/output
   Position& set(const Variant* v, const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th, bool sfen = false);
   Position& set(const std::string& code, Color c, StateInfo* si);
-  std::string fen(bool sfen = false, bool showPromoted = false, int countStarted = 0, std::string holdings = "-") const;
+  std::string fen(bool sfen = false, bool showPromoted = false, int countStarted = 0, std::string holdings = "-", Bitboard fogArea = 0) const;
 
   // Variant rule properties
   const Variant* variant() const;
@@ -145,7 +145,7 @@ public:
   bool blast_on_capture() const;
   PieceSet blast_immune_types() const;
   PieceSet mutually_immune_types() const;
-  bool endgame_eval() const;
+  EndgameEval endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard double_step_region(Color c, PieceType pt) const;
   Bitboard double_step_region(Piece p) const;
@@ -286,6 +286,7 @@ public:
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
+  const std::string piece_to_partner() const;
 
   // Piece specific
   bool pawn_passed(Color c, Square s) const;
@@ -307,7 +308,7 @@ public:
   // Accessing hash keys
   Key key() const;
   Key key_after(Move m) const;
-  Key material_key() const;
+  Key material_key(EndgameEval e = EG_EVAL_CHESS) const;
   Key pawn_key() const;
 
   // Other properties of the position
@@ -336,6 +337,7 @@ public:
   Value non_pawn_material() const;
   Bitboard not_moved_pieces(Color c) const;
   Bitboard wall_squares() const;
+  Bitboard fog_area() const;
 
   // Position consistency check, for debugging
   bool pos_is_ok() const;
@@ -544,9 +546,9 @@ inline PieceSet Position::mutually_immune_types() const {
   return var->mutuallyImmuneTypes;
 }
 
-inline bool Position::endgame_eval() const {
+inline EndgameEval Position::endgame_eval() const {
   assert(var != nullptr);
-  return var->endgameEval && !count_in_hand(ALL_PIECES) && count<KING>() == 2;
+  return !count_in_hand(ALL_PIECES) && (var->endgameEval != EG_EVAL_CHESS || count<KING>() == 2) ? var->endgameEval : NO_EG_EVAL;
 }
 
 inline Bitboard Position::double_step_region(Color c) const {
@@ -1150,7 +1152,7 @@ inline int Position::connect_n() const {
 
 inline PieceSet Position::connect_piece_types() const {
   assert(var != nullptr);
-  return var->connectPieceTypes;
+  return var->connectPieceTypesTrimmed;
 }
 
 inline bool Position::connect_horizontal() const {
@@ -1493,10 +1495,6 @@ inline Key Position::pawn_key() const {
   return st->pawnKey;
 }
 
-inline Key Position::material_key() const {
-  return st->materialKey;
-}
-
 inline Score Position::psq_score() const {
   return psq;
 }
@@ -1576,6 +1574,29 @@ inline bool Position::virtual_drop(Move m) const {
 
 inline Piece Position::captured_piece() const {
   return st->capturedPiece;
+}
+
+inline Bitboard Position::fog_area() const {
+  Bitboard b = board_bb();
+  // Our own pieces are visible
+  Bitboard visible = pieces(sideToMove);
+  // Squares where we can move to are visible as well
+  for (const auto& m : MoveList<LEGAL>(*this))
+  {
+    Square to = to_sq(m);
+    visible |= to;
+  }
+  // Everything else is invisible
+  return ~visible & b;
+}
+
+inline const std::string Position::piece_to_partner() const {
+  if (!st->capturedPiece) return std::string();
+  Color color = color_of(st->capturedPiece);
+  Piece piece = st->capturedpromoted ?
+      (st->unpromotedCapturedPiece ? st->unpromotedCapturedPiece : make_piece(color, promotion_pawn_type(color))) :
+      st->capturedPiece;
+  return std::string(1, piece_to_char()[piece]);
 }
 
 inline Thread* Position::this_thread() const {

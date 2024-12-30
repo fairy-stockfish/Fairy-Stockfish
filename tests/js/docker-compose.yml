@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  # https://github.com/emscripten-core/emsdk/blob/main/docker/README.md
+  emscripten:
+    image: emscripten/emsdk:1.39.16
+    # Allow writing to host filesystem as non-root
+    user: ${DOCKER_USER:-1000:1000}
+    working_dir: /app/src
+    volumes:
+      - ../..:/app
+      - emscripten-cache:/emsdk/upstream/emscripten/cache
+
+volumes:
+  emscripten-cache:
