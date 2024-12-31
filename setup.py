@@ -19,7 +19,7 @@ if "64bit" in platform.architecture():
 
 CLASSIFIERS = [
     "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPL-3.0-or-later)",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
