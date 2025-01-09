@@ -384,17 +384,16 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
                                          : make_square(castling_king_file(), castling_rank(c));
               // Skip invalid castling rights
               if (!(castlingKings & st->castlingKingSquare[c]))
-              {
                   st->castlingKingSquare[c] = SQ_NONE;
-                  continue;
-              }
           }
 
           // Set gates (and skip castling rights)
           if (gating())
           {
-              st->gatesBB[c] |= rsq;
-              if (token == 'K' || token == 'Q')
+              // Only add gates for occupied squares
+              if (pieces(c) & rsq)
+                  st->gatesBB[c] |= rsq;
+              if ((token == 'K' || token == 'Q') && st->castlingKingSquare[c] != SQ_NONE)
                   st->gatesBB[c] |= st->castlingKingSquare[c];
               // Do not set castling rights for gates unless there are no pieces in hand,
               // which means that the file is referring to a chess960 castling right.
@@ -402,7 +401,10 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
                   continue;
           }
 
-          if (castling_enabled() && (castling_rook_pieces(c) & type_of(piece_on(rsq))) && color_of(piece_on(rsq)) == c)
+          // Only add castling right if both king and rook are on expected squares
+          if (   castling_enabled()
+              && st->castlingKingSquare[c] != SQ_NONE
+              && (castling_rook_pieces(c) & type_of(piece_on(rsq))) && color_of(piece_on(rsq)) == c)
               set_castling_right(c, rsq);
       }
 
