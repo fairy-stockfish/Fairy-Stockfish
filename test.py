@@ -337,6 +337,11 @@ class TestPyffish(unittest.TestCase):
         result = sf.legal_moves("shogun", SHOGUN, ["c2c4", "b8c6", "b2b4", "b7b5", "c4b5", "c6b8"])
         self.assertIn("b5b6+", result)
 
+        # Seirawan gating but no castling
+        fen = "rnbq3r/pp2bkpp/8/2p1p2K/2p1P3/8/PPPP1PPP/RNB4R[EHeh] b ABCHabcdh - 0 10"
+        result = sf.legal_moves("seirawan", fen, [])
+        self.assertIn("c8g4h", result)
+
         # In Cannon Shogi the FGC and FSC can also move one square diagonally and, besides,
         # move or capture two squares diagonally, by leaping an adjacent piece. 
         fen = "lnsg1gsnl/1rc1kuab1/p1+A1p1p1p/3P5/6i2/6P2/P1P1P3P/1B1U1ICR1/LNSGKGSNL[] w - - 1 3"
@@ -458,6 +463,12 @@ class TestPyffish(unittest.TestCase):
         fen0 = "reb1k2r/ppppqppp/2nb1n2/4p3/4P3/N1P2N2/PB1PQPPP/RE2KBHR[h] b KQkqac - 2 6"
         fen1 = "reb2rk1/ppppqppp/2nb1n2/4p3/4P3/N1P2N2/PB1PQPPP/RE2KBHR[h] w KQac - 3 7"
         result = sf.get_fen("seirawan", fen0, ["e8g8"])
+        self.assertEqual(result, fen1)
+
+        # handle invalid castling/gating flags
+        fen0 = "rnbq3r/pp2bkpp/8/2p1p2K/2p1P3/8/PPPP1PPP/RNB4R[EHeh] b QBCEHabcdk - 0 10"
+        fen1 = "rnbq3r/pp2bkpp/8/2p1p2K/2p1P3/8/PPPP1PPP/RNB4R[EHeh] b ABCHabcdh - 0 10"
+        result = sf.get_fen("seirawan", fen0, [])
         self.assertEqual(result, fen1)
 
         result = sf.get_fen("chess", CHESS, [], True, False, False)
