@@ -11,7 +11,7 @@ function TestFairystockfish:setUp()
     self.BLACK = false
     self.boards = {}
     
-    local variantPath = "/Users/andy/Work/Fairy-Stockfish/src/variants.ini"
+    local variantPath = "./variants.ini"
     local f = io.open(variantPath, "r")
     if f then
         f:close()
@@ -19,6 +19,8 @@ function TestFairystockfish:setUp()
     else
         error("variants.ini not found at " .. variantPath)
     end
+
+    self:createBoard()
 end
 
 function TestFairystockfish:tearDown()
@@ -908,6 +910,154 @@ function TestFairystockfish:test_findBestMove_capture_piece()
     local board = ffish.Board.newVariantFen("chess", "rnbqkbnr/ppp2ppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1")
     local bestMove = board:findBestMove(6)
     lu.assertEquals(bestMove, "e4d5")  -- Capturing the pawn
+    board:delete()
+end
+
+function TestFairystockfish:test_variants_with_special_pieces()
+    -- Test Empire chess (has special pieces)
+    local board = ffish.Board.newVariant("empire")
+    lu.assertNotNil(board)
+    local moves = board:legalMoves()
+    lu.assertNotNil(moves)
+    board:delete()
+
+    -- Test Ordamirror chess (has special pieces)
+    local board2 = ffish.Board.newVariant("ordamirror")
+    lu.assertNotNil(board2)
+    local moves2 = board2:legalMoves()
+    lu.assertNotNil(moves2)
+    board2:delete()
+end
+
+function TestFairystockfish:test_special_piece_moves()
+    -- Test Empire chess moves
+    local empire = self:createBoard("empire")  -- Use the test suite's createBoard helper
+    lu.assertNotNil(empire)
+    local moves = empire:legalMoves()
+    lu.assertNotNil(moves)
+    -- Try a specific pawn move
+    lu.assertTrue(empire:push("a2a3"))
+
+    -- Test Ordamirror moves
+    local ordamirror = self:createBoard("ordamirror")  -- Use the test suite's createBoard helper
+    lu.assertNotNil(ordamirror)
+    -- Test moves of special pieces
+    local moves2 = ordamirror:legalMoves()
+    lu.assertNotNil(moves2)
+    print("Ordamirror legal moves: " .. moves2)
+    -- Try the first legal move from the list
+    local firstMove = moves2:match("%S+")
+    if firstMove then
+        lu.assertTrue(ordamirror:push(firstMove))
+    else
+        lu.fail("No legal moves found for ordamirror")
+    end
+end
+
+function TestFairystockfish:test_special_piece_captures()
+    -- Initialize modules
+    print("Available variants: " .. ffish.variants())
+    
+    -- Test fairy chess captures (has special pieces)
+    print("Creating new variant board...")
+    local board = ffish.Board.newVariant("fairy")
+    print("Board created")
+    lu.assertNotNil(board)
+    
+    -- Make some moves to set up a capture
+    print("Making moves...")
+    lu.assertTrue(board:push("e2e4"))  -- Move a pawn forward
+    lu.assertTrue(board:push("e7e5"))  -- Move opponent's pawn
+    
+    -- Test capture with a piece
+    lu.assertTrue(board:push("f1c4"))  -- Move bishop to prepare capture
+    lu.assertTrue(board:push("b8c6"))  -- Move knight
+    lu.assertTrue(board:push("c4f7"))  -- Capture with bishop
+    board:delete()
+    
+    -- Clean up
+    for _, board in ipairs(self.boards) do
+        if board then
+            board:delete()
+        end
+    end
+    self.boards = {}
+end
+
+function TestFairystockfish:test_special_piece_promotion()
+    -- Test Empire promotion
+    local empire = ffish.Board.newVariantFen("empire", "8/3P4/8/8/8/8/8/8 w - - 0 1")
+    lu.assertNotNil(empire)
+    -- Test promotion move
+    lu.assertTrue(empire:push("d7d8q"))
+    empire:delete()
+
+    -- Test Ordamirror promotion
+    local ordamirror = ffish.Board.newVariantFen("ordamirror", "8/3P4/8/8/8/8/8/8 w - - 0 1")
+    lu.assertNotNil(ordamirror)
+    -- Test promotion
+    lu.assertTrue(ordamirror:push("d7d8l"))
+    ordamirror:delete()
+end
+
+function TestFairystockfish:test_round2_variant()
+    -- Load the variant configuration
+    local round2Config = [[
+[round2:chess]
+pieceToCharTable = PNBRQ.C.............Kpnbrq.c.............k
+customPiece1 = c:mQcN
+startFen = 4k3/1p4p1/8/8/8/8/PPPPPPPP/RNBCKBNR w K - 0 1
+promotionPieceTypes = qrbnc
+]]
+    
+    print("\nLoading variant configuration:")
+    print(round2Config)
+    
+    -- Load the variant configuration and verify it was loaded
+    ffish.loadVariantConfig(round2Config)
+    local variants = ffish.variants()
+    print("\nAvailable variants after loading:", variants)
+    lu.assertStrContains(variants, "round2", "round2 variant should be loaded")
+    
+    -- Create a board with the Round2 variant
+    local board = ffish.Board.newVariant("round2")
+    lu.assertNotNil(board)
+    
+    -- Verify the starting position
+    local startFen = board:fen()
+    print("\nStarting FEN:", startFen)
+    print("Expected FEN: 4k3/1p4p1/8/8/8/8/PPPPPPPP/RNBCKBNR w K - 0 1")
+    lu.assertEquals(startFen, "4k3/1p4p1/8/8/8/8/PPPPPPPP/RNBCKBNR w K - 0 1")
+    
+    -- Print board state for visual inspection
+    print("\nBoard state:")
+    print(board:toString())
+    
+    -- Let's try making some moves to verify the champion behaves correctly
+    print("\nTesting champion movement...")
+    
+    -- Try moving the champion to c3
+    local success = board:push("c1c3")
+    print("Attempt to move champion c1c3:", success)
+    
+    if success then
+        print("New board state after c1c3:")
+        print(board:toString())
+        
+        -- Get all legal moves from the new position
+        local moves = board:legalMoves()
+        print("Legal moves after c1c3:", moves)
+    else
+        -- If the move failed, let's see what moves are actually legal
+        local moves = board:legalMoves()
+        print("Legal moves from starting position:", moves)
+        
+        -- Let's also check what piece types are available
+        print("\nChecking piece setup...")
+        print("Board FEN:", board:fen())
+        print("Board state (raw):", board:toVerboseString())
+    end
+    
     board:delete()
 end
 

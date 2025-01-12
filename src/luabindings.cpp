@@ -364,17 +364,32 @@ public:
 
     bool push(const std::string& uciMove) {
         try {
+            if (!v || !states) {
+                return false;
+            }
+
             std::string moveStr = uciMove;
             const Move move = UCI::to_move(this->pos, moveStr);
             if (move == MOVE_NONE)
                 return false;
+
+            // Validate move is legal
+            bool isLegal = false;
+            for (const ExtMove& m : MoveList<LEGAL>(pos)) {
+                if (m == move) {
+                    isLegal = true;
+                    break;
+                }
+            }
+            if (!isLegal)
+                return false;
+
             states->emplace_back();
             pos.do_move(move, states->back());
             moves.push_back(move);
             return true;
         }
         catch (const std::exception& e) {
-            luaL_error(L, "Failed to push move: %s", e.what());
             return false;
         }
     }
@@ -853,6 +868,9 @@ private:
             
             try {
                 states = StateListPtr(new std::deque<StateInfo>(1));
+                if (!states || states->empty()) {
+                    throw std::runtime_error("Failed to create states");
+                }
                 
                 pos.set(v, actualFen, is960, &states->back(), thread);
                 
@@ -867,9 +885,11 @@ private:
             }
         }
         catch (const std::exception& e) {
+            cleanup();  // Ensure cleanup on error
             throw;
         }
         catch (...) {
+            cleanup();  // Ensure cleanup on error
             throw;
         }
     }
