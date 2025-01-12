@@ -70,6 +70,39 @@ endif
 ### ==========================================================================
 ### Section 2. High-level Configuration
 ### ==========================================================================
+#
+# flag                --- Comp switch      --- Description
+# ----------------------------------------------------------------------------
+#
+# debug = yes/no      --- -DNDEBUG         --- Enable/Disable debug mode
+# sanitize = none/<sanitizer> ... (-fsanitize )
+#                     --- ( undefined )    --- enable undefined behavior checks
+#                     --- ( thread    )    --- enable threading error checks
+#                     --- ( address   )    --- enable memory access checks
+#                     --- ...etc...        --- see compiler documentation for supported sanitizers
+# optimize = yes/no   --- (-O3/-fast etc.) --- Enable/Disable optimizations
+# arch = (name)       --- (-arch)          --- Target architecture
+# bits = 64/32        --- -DIS_64BIT       --- 64-/32-bit operating system
+# prefetch = yes/no   --- -DUSE_PREFETCH   --- Use prefetch asm-instruction
+# popcnt = yes/no     --- -DUSE_POPCNT     --- Use popcnt asm-instruction
+# pext = yes/no       --- -DUSE_PEXT       --- Use pext x86_64 asm-instruction
+# sse = yes/no        --- -msse            --- Use Intel Streaming SIMD Extensions
+# mmx = yes/no        --- -mmmx            --- Use Intel MMX instructions
+# sse2 = yes/no       --- -msse2           --- Use Intel Streaming SIMD Extensions 2
+# ssse3 = yes/no      --- -mssse3          --- Use Intel Supplemental Streaming SIMD Extensions 3
+# sse41 = yes/no      --- -msse4.1         --- Use Intel Streaming SIMD Extensions 4.1
+# avx2 = yes/no       --- -mavx2           --- Use Intel Advanced Vector Extensions 2
+# avx512 = yes/no     --- -mavx512bw       --- Use Intel Advanced Vector Extensions 512
+# vnni256 = yes/no    --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 256
+# vnni512 = yes/no    --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 512
+# neon = yes/no       --- -DUSE_NEON       --- Use ARM SIMD architecture
+#
+# Note that Makefile is space sensitive, so when adding new architectures
+# or modifying existing flags, you have to make sure there are no extra spaces
+# at the end of the line for flag values.
+#
+# Example of use for these flags:
+# make build ARCH=x86-64-avx512 debug=on sanitize="address undefined"
 
 ### Add Lua configuration
 ifeq ($(lua),yes)
@@ -96,12 +129,12 @@ ifeq ($(lua),yes)
 
 	# Add combined flags for shared library
 	ifeq ($(KERNEL),Darwin)
-		CUSTOM_CFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA -std=c++17 -fPIC
-		CUSTOM_LDFLAGS += $(LUA_LDFLAGS)
+		CXXFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA -std=c++17 -fPIC
+		LDFLAGS += $(LUA_LDFLAGS)
 		LUA_MODULE_FLAGS = -dynamiclib -undefined dynamic_lookup
 	else
-		CUSTOM_CFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA -std=c++17 -fPIC
-		CUSTOM_LDFLAGS += $(LUA_LDFLAGS)
+		CXXFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA -std=c++17 -fPIC
+		LDFLAGS += $(LUA_LDFLAGS)
 		LUA_MODULE_FLAGS = -shared
 	endif
 endif
@@ -341,11 +374,9 @@ endif
 ### ==========================================================================
 
 ### 3.1 Selecting compiler (default = gcc)
-CXXFLAGS += $(CUSTOM_CFLAGS)
-LDFLAGS += $(CUSTOM_LDFLAGS)
-
-# Add C++17 support by default
-CXXFLAGS += -std=c++17
+CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
+DEPENDFLAGS += -std=c++17
+LDFLAGS += $(EXTRALDFLAGS)
 
 # Ignore warning due to missing profile information from unused NNUE features
 CXXFLAGS += -Wno-profile-instr-out-of-date
@@ -1010,3 +1041,7 @@ icc-profile-use:
 	-@$(CXX) $(DEPENDFLAGS) -MM $(SRCS) > $@ 2> /dev/null
 
 -include .depend
+
+# Special case for Lua bindings to enable exceptions
+luabindings.o: luabindings.cpp
+	$(CXX) $(CXXFLAGS:-fno-exceptions=) $(CPPFLAGS) $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -c $< -o $@
