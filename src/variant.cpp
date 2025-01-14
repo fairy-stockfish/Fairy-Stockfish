@@ -1743,6 +1743,14 @@ namespace {
         v->dropChecks = false;
         v->whiteDropRegion = v->mobilityRegion[WHITE][ELEPHANT];
         v->blackDropRegion = v->mobilityRegion[BLACK][ELEPHANT];
+        v->mobilityRegion[WHITE][FERS] = make_bitboard(SQ_D1, SQ_F1, SQ_E2, SQ_D3, SQ_F3);
+        v->mobilityRegion[BLACK][FERS] = make_bitboard(SQ_D8, SQ_F8, SQ_E9, SQ_D10, SQ_F10);
+        v->mobilityRegion[WHITE][ELEPHANT] = make_bitboard(SQ_C1, SQ_G1, SQ_A3, SQ_E3, SQ_I3, SQ_C5, SQ_G5);
+        v->mobilityRegion[BLACK][ELEPHANT] = make_bitboard(SQ_C6, SQ_G6, SQ_A8, SQ_E8, SQ_I8, SQ_C10, SQ_G10);
+        v->mobilityRegion[WHITE][SOLDIER] = Rank6BB | Rank7BB | Rank8BB | Rank9BB | Rank10BB |
+            make_bitboard(SQ_A4, SQ_A5, SQ_C4, SQ_C5, SQ_E4, SQ_E5, SQ_G4, SQ_G5, SQ_I4, SQ_I5);
+        v->mobilityRegion[BLACK][SOLDIER] = Rank1BB | Rank2BB | Rank3BB | Rank4BB | Rank5BB |
+            make_bitboard(SQ_A6, SQ_A7, SQ_C6, SQ_C7, SQ_E6, SQ_E7, SQ_G6, SQ_G7, SQ_I6, SQ_I7);
         return v;
     }
     // Janggi (Korean chess)
