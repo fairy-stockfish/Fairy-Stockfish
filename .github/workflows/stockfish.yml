@@ -27,6 +27,13 @@ jobs:
               comp: gcc,
               run_expensive_tests: true
             }
+          - {
+              name: "Ubuntu 20.04 Clang",
+              os: ubuntu-20.04,
+              compiler: clang++,
+              comp: clang,
+              run_expensive_tests: false
+            }
 
     defaults:
       run:
