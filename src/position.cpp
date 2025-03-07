@@ -185,7 +185,7 @@ void Position::init() {
   // Prepare the cuckoo tables
   std::memset(cuckoo, 0, sizeof(cuckoo));
   std::memset(cuckooMove, 0, sizeof(cuckooMove));
-  int count = 0;
+  [[maybe_unused]] int count = 0;
   for (Color c : {WHITE, BLACK})
       for (PieceSet ps = CHESS_PIECES & ~piece_set(PAWN); ps;)
       {
@@ -2856,7 +2856,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           current |= newBitboard;
       }
   }
-  
+
   if (connect_nxn())
   {
       Bitboard connectors = connectPieces;
