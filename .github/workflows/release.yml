@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         arch: ["x86-64-bmi2", "x86-64-modern", "x86-64"]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
@@ -61,6 +61,56 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: fairy-stockfish-linux-${{ matrix.arch }}
+          path: src/fairy-stockfish*
+          if-no-files-found: error
+          compression-level: 9
+
+  macos:
+    strategy:
+      matrix:
+        arch: ["x86-64"]
+    runs-on: macos-13
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: make
+        run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish_${{ matrix.arch }} && strip fairy-stockfish_${{ matrix.arch }}
+
+      - name: make largeboards
+        run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish-largeboards_${{ matrix.arch }} largeboards=yes && strip fairy-stockfish-largeboards_${{ matrix.arch }}
+
+      - name: make all
+        run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish-all_${{ matrix.arch }} largeboards=yes all=yes && strip fairy-stockfish-all_${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fairy-stockfish-macos-${{ matrix.arch }}
+          path: src/fairy-stockfish*
+          if-no-files-found: error
+          compression-level: 9
+
+  macos-m1:
+    strategy:
+      matrix:
+        arch: ["apple-silicon"]
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: make
+        run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish_${{ matrix.arch }} && strip fairy-stockfish_${{ matrix.arch }}
+
+      - name: make largeboards
+        run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish-largeboards_${{ matrix.arch }} largeboards=yes && strip fairy-stockfish-largeboards_${{ matrix.arch }}
+
+      - name: make all
+        run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish-all_${{ matrix.arch }} largeboards=yes all=yes && strip fairy-stockfish-all_${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fairy-stockfish-macos-m1-${{ matrix.arch }}
           path: src/fairy-stockfish*
           if-no-files-found: error
           compression-level: 9
