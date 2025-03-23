@@ -2,8 +2,8 @@
 
 ## Overview
 
-[![Build Status](https://github.com/fairy-stockfish/Fairy-Stockfish/workflows/Release/badge.svg?branch=master)](https://github.com/fairy-stockfish/Fairy-Stockfish/actions?query=workflow%3ARelease)
-[![Build Status](https://github.com/fairy-stockfish/Fairy-Stockfish/workflows/fairy/badge.svg?branch=master)](https://github.com/fairy-stockfish/Fairy-Stockfish/actions?query=workflow%3Afairy)
+[![Build Status](https://github.com/fairy-stockfish/Fairy-Stockfish/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/fairy-stockfish/Fairy-Stockfish/actions?query=workflow%3ARelease)
+[![Build Status](https://github.com/fairy-stockfish/Fairy-Stockfish/actions/workflows/fairy.yml/badge.svg?branch=master)](https://github.com/fairy-stockfish/Fairy-Stockfish/actions?query=workflow%3Afairy)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/fairy-stockfish/Fairy-Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/ianfab/Fairy-Stockfish/branch/master)
 [![PyPI version](https://badge.fury.io/py/pyffish.svg)](https://badge.fury.io/py/pyffish)
 [![NPM version](https://img.shields.io/npm/v/ffish.svg?sanitize=true)](https://www.npmjs.com/package/ffish)
