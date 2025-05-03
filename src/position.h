@@ -1395,8 +1395,18 @@ inline bool Position::capture(Move m) const {
 inline Square Position::capture_square(Square to) const {
   assert(is_ok(to));
   // The capture square of en passant is either the marked ep piece or the closest piece behind the target square
-  Bitboard b = ep_squares() & pieces() ? ep_squares() & pieces() : pieces(~sideToMove) & forward_file_bb(~sideToMove, to);
-  return sideToMove == WHITE ? msb(b) : lsb(b);
+  Bitboard customEp = ep_squares() & pieces();
+  if (customEp)
+  {
+      // For longer custom en passant paths, we take the frontmost piece
+      return sideToMove == WHITE ? lsb(customEp) : msb(customEp);
+  }
+  else
+  {
+      // The capture square of normal en passant is the closest piece behind the target square
+      Bitboard epCandidates = pieces(~sideToMove) & forward_file_bb(~sideToMove, to);
+      return sideToMove == WHITE ? msb(epCandidates) : lsb(epCandidates);
+  }
 }
 
 inline bool Position::virtual_drop(Move m) const {
