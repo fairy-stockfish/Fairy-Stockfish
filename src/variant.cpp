@@ -239,7 +239,7 @@ namespace {
         v->remove_piece(QUEEN);
         v->add_piece(ALFIL, 'b');
         v->add_piece(FERS, 'q');
-        v->startFen = "rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR w - - 0 1";
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR w - - 0 1";
         v->promotionPieceTypes[WHITE] = piece_set(FERS);
         v->promotionPieceTypes[BLACK] = piece_set(FERS);
         v->doubleStep = false;
