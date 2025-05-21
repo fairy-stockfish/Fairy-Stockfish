@@ -49,7 +49,6 @@ let ffish = null;
 new Module().then(loadedModule => {
     ffish = loadedModule;
     console.log(`initialized ${ffish} ${loadedModule}`);
-    }
 });
 ```
 
