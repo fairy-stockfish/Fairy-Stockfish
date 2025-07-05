@@ -174,6 +174,10 @@ variant_positions = {
     "newzealand": {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": (False, False),  # startpos
     },
+    "amazon": {
+        "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w KQkq - 0 1": (False, False),  # startpos
+        "8/8/8/8/A7/6k1/8/1K6 w - - 0 1": (False, True),  # KA vs K
+    },
     "seirawan": {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[HEhe] w KQBCDFGkqbcdfg - 0 1": (False, False),  # startpos
         "k7/8/8/8/8/8/8/K7[] w - - 0 1": (True, True),  # K vs K
