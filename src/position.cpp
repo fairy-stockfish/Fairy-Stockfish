@@ -275,10 +275,13 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   Rank r = max_rank();
   Square sq = SQ_A1 + r * NORTH;
 
+  int commitFile = 0;
+  int rank = 0;
+  
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
-  {
-      if (isdigit(token))
+  {      
+    if (isdigit(token) && (!commit_gates() || (rank != 0 && rank != max_rank() + 2)))
       {
 #ifdef LARGEBOARDS
           if (isdigit(ss.peek()))
@@ -291,12 +294,14 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       }
 
       else if (token == '/')
-      {
-          sq = SQ_A1 + --r * NORTH;
+      { 
+          if(!commit_gates() || (rank != 0 && rank <= max_rank())) sq += 2 * SOUTH + (FILE_MAX - max_file()) * EAST;
+          ++rank;
+          commitFile = 0;
           if (!is_ok(sq))
               break;
       }
-
+      else if(token == '*') ++commitFile;
       // Stop before pieces in hand
       else if (token == '[')
           break;
@@ -317,8 +322,15 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       {
           if (ss.peek() == '~')
               ss >> token;
-          put_piece(Piece(idx), sq, token == '~');
-          ++sq;
+
+          if(v->commitGates && (rank == 0 || rank == max_rank() + 2)){
+            commit_piece(Piece(idx), File(commitFile));
+            ++commitFile;
+          }
+          else{
+            put_piece(Piece(idx), sq, token == '~');
+            ++sq;
+          }
       }
 
       // Promoted shogi pieces
@@ -327,6 +339,14 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           ss >> token;
           put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
           ++sq;
+          if(v->commitGates && (rank == 0 || rank == max_rank() + 2)){
+            commit_piece(Piece(idx), File(commitFile));
+            ++commitFile;
+          }
+          else {
+            put_piece(make_piece(color_of(Piece(idx)), promoted_piece_type(type_of(Piece(idx)))), sq, true, Piece(idx));
+            ++sq;
+          }
       }
   }
   // Pieces in hand
@@ -388,7 +408,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           }
 
           // Set gates (and skip castling rights)
-          if (gating())
+          if (gating() && !commit_gates())
           {
               // Only add gates for occupied squares
               if (pieces(c) & rsq)
@@ -620,6 +640,7 @@ void Position::set_state(StateInfo* si) const {
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->checkersBB = count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove), ~sideToMove) : Bitboard(0);
   si->move = MOVE_NONE;
+  si->removedGatingType = NO_PIECE_TYPE;
 
   set_check_info(si);
 
@@ -693,6 +714,13 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   int emptyCnt;
   std::ostringstream ss;
+  if(commit_gates()){
+      for(File f = FILE_A; f < max_file(); ++f){
+          if(has_committed_piece(BLACK, f)) ss << piece_to_char()[make_piece(BLACK, committedGates[BLACK][f])];
+          else ss << "*";
+      }
+      ss << "/";
+  }
 
   for (Rank r = max_rank(); r >= RANK_1; --r)
   {
@@ -726,7 +754,13 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
       if (r > RANK_1)
           ss << '/';
   }
-
+  if(commit_gates()){
+      ss << "/";
+      for(File f = FILE_A; f <= max_file(); ++f){
+          if(has_committed_piece(WHITE, f)) ss << piece_to_char()[make_piece(WHITE, committedGates[WHITE][f])];
+          else ss << "*";
+      }
+  }
   // SFEN
   if (sfen)
   {
@@ -746,7 +780,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   }
 
   // pieces in hand
-  if (!variant()->freeDrops && (piece_drops() || seirawan_gating()))
+  if (!variant()->freeDrops && (piece_drops() || seirawan_gating()) && !commit_gates())
   {
       ss << '[';
       if (holdings != "-")
@@ -773,7 +807,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   if (can_castle(WHITE_OOO))
       ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OOO))) : 'Q');
 
-  if (gating() && gates(WHITE) && (!seirawan_gating() || count_in_hand(WHITE, ALL_PIECES) > 0 || captures_to_hand()))
+  if (gating() && !commit_gates() && gates(WHITE) && (!seirawan_gating() || count_in_hand(WHITE, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
           if (   (gates(WHITE) & file_bb(f))
               // skip gating flags redundant with castling flags
@@ -801,8 +835,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
               && !(can_castle(BLACK_OOO) && f == file_of(castling_rook_square(BLACK_OOO))))
               ss << char('a' + f);
 
-  if (!can_castle(ANY_CASTLING) && !(gating() && (gates(WHITE) | gates(BLACK))))
-      ss << '-';
+  if (!can_castle(ANY_CASTLING) && !(gating() && !commit_gates() && (gates(WHITE) | gates(BLACK))))
 
   // Counting limit or ep-square
   if (st->countingLimit)
@@ -1957,7 +1990,20 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece]];
       st->nonPawnMaterial[us] += PieceValue[MG][gating_piece];
   }
+  if(st->removedGatingType > NO_PIECE_TYPE){
+    commit_piece(piece_on(from), file_of(from));
+  }
 
+  // Musketeer gating
+  if(commit_gates()){
+      Rank r = rank_of(from);
+      if(r == RANK_1 && has_committed_piece(WHITE, file_of(from))){
+          st->removedGatingType = drop_committed_piece(WHITE, file_of(from));
+      } else if(r == max_rank() && has_committed_piece(BLACK, file_of(from))){
+          st->removedGatingType = drop_committed_piece(BLACK, file_of(from));
+      }
+      else st->removedGatingType = NO_PIECE_TYPE;
+  }
   // Remove gates
   if (gating())
   {
@@ -2182,6 +2228,10 @@ void Position::undo_move(Move m) {
       st->gatesBB[us] |= gating_square(m);
   }
 
+  if(st->removedGatingType > NO_PIECE_TYPE){
+      commit_piece(piece_on(from), file_of(from));
+  }
+
   if (type_of(m) == PROMOTION)
   {
       assert((promotion_zone(us) & to) || sittuyin_promotion());
@@ -2274,6 +2324,12 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
 
   Piece castlingKingPiece = piece_on(Do ? from : to);
   Piece castlingRookPiece = piece_on(Do ? rfrom : rto);
+
+  if(commit_gates()){
+      if(has_committed_piece(us, file_of(rfrom))){
+        drop_committed_piece(us, file_of(rfrom));
+      }
+  }
 
   if (Do && Eval::useNNUE)
   {

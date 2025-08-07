@@ -1227,6 +1227,36 @@ namespace {
         return v;
     }
 #ifdef LARGEBOARDS
+    // Musketeer Chess
+    // https://musketeerchess.net
+    // A Seirawan-inspired variant with unique gating mechanics.
+    // Pieces are introduced to predefined squares, chosen before game start, this is named Gating Selection = Where the chosen piece is going to be gated
+    // Gating of the additional pieces is activated when first-rank pieces move for the first time. Only the additional piece waiting to be gated on that specific square can be introduced.
+    // Features a variety of new pieces, thus there is a piece selection step where both players must agree to chose the additional piece combination.
+    // In Fairy Stockfish the Piece Selection is determined at the PieceToCharTable, this default combination can be changed in variant.ini
+    Variant* musketeer_variant() {
+        Variant* v = chess_variant();
+        v->variantTemplate = "seirawan";
+        v->pieceToCharTable = "PNBRQ.C..........LO..Kpnbrq.c..........lo..k";  // The default piece combo in Musketeer Chess is Leopard L and Musketeer Cannon O
+        v->add_piece(ARCHBISHOP, 'a');
+        v->add_piece(CHANCELLOR, 'c');
+        v->add_piece(AMAZON, 'd'); // also called Dragon in Musketeer, but Amazon is the most accurate  
+        v->add_piece(CUSTOM_PIECE_1, 'l', "F2N"); // Leopard
+        v->add_piece(CUSTOM_PIECE_2, 'h', "ADGH"); // Hawk
+        v->add_piece(CUSTOM_PIECE_3, 'u', "NC"); // Unicorn
+        V->add_piece(CUSTOM_PIECE_4, 's', "B2ND"); // Spider
+        v->add_piece(CUSTOM_PIECE_5, 'f', "B3vND"); // Fortress
+        v->add_piece(CUSTOM_PIECE_6, 'e', "FWDA"); // Musketeer Elephant
+        v->add_piece(CUSTOM_PIECE_7, 'o', "FWDsN"); // Musketeer Cannon
+
+        //"********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1"
+        v->startFen = "********/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/******** w KQkq - 0 1";
+        v->gating = true;
+        v->commitGates = true;
+        v->promotionPieceTypes[BLACK] = piece_set(CUSTOM_PIECE_1) | CUSTOM_PIECE_7 | QUEEN | ROOK | BISHOP | KNIGHT;
+        v->promotionPieceTypes[WHITE] = piece_set(CUSTOM_PIECE_1) | CUSTOM_PIECE_7 | QUEEN | ROOK | BISHOP | KNIGHT;
+        return v;
+    }
     // Shogi (Japanese chess)
     // https://en.wikipedia.org/wiki/Shogi
     Variant* shogi_variant() {
@@ -1914,6 +1944,7 @@ void VariantMap::init() {
     add("minixiangqi", minixiangqi_variant());
     add("raazuvaa", raazuvaa_variant());
 #ifdef LARGEBOARDS
+    add("musketeer", musketeer_variant());
     add("shogi", shogi_variant());
     add("checkshogi", checkshogi_variant());
     add("shoshogi", shoshogi_variant());
