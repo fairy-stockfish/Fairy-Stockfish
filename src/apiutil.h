@@ -422,6 +422,7 @@ namespace FEN {
 enum FenValidation : int {
     FEN_INVALID_COUNTING_RULE = -14,
     FEN_INVALID_CHECK_COUNT = -13,
+    FEN_INVALID_PROMOTED_PIECE = -12,
     FEN_INVALID_NB_PARTS = -11,
     FEN_INVALID_CHAR = -10,
     FEN_TOUCHING_KINGS = -9,
@@ -540,6 +541,47 @@ inline Validation check_for_valid_characters(const std::string& firstFenPart, co
         {
             std::cerr << "Invalid piece character: '" << c << "'." << std::endl;
             return NOK;
+        }
+    }
+    return OK;
+}
+
+inline Validation check_promoted_pieces(const std::string& firstFenPart, const Variant* v) {
+    // Only check promoted pieces if the variant supports shogi-style promotions
+    if (!v || !v->shogiStylePromotions)
+        return OK;
+    
+    for (size_t i = 0; i < firstFenPart.length() - 1; ++i) {
+        // Look for promoted pieces ('+' followed by piece character)
+        if (firstFenPart[i] == '+') {
+            char pieceChar = firstFenPart[i + 1];
+            
+            // Skip if next character is not a piece character or is a special character
+            if (isdigit(pieceChar) || pieceChar == '/' || pieceChar == ' ' || pieceChar == '[')
+                continue;
+                
+            // Find the piece type corresponding to this character
+            size_t idx = v->pieceToChar.find(pieceChar);
+            if (idx == std::string::npos) {
+                // Try synonyms
+                idx = v->pieceToCharSynonyms.find(pieceChar);
+                if (idx == std::string::npos)
+                    continue; // Character validation will catch this
+            }
+            
+            // Ensure idx is within valid range for piece types
+            if (idx >= PIECE_TYPE_NB)
+                continue;
+                
+            // Get the piece type directly from the index
+            PieceType pt = PieceType(idx);
+            
+            // Check if this piece type has a promoted form
+            if (pt != NO_PIECE_TYPE && pt < PIECE_TYPE_NB && v->promotedPieceType[pt] == NO_PIECE_TYPE) {
+                std::cerr << "Invalid promoted piece: '+' followed by '" << pieceChar 
+                         << "'. This piece cannot be promoted in variant." << std::endl;
+                return NOK;
+            }
         }
     }
     return OK;
@@ -952,6 +994,10 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     // check for valid characters
     if (check_for_valid_characters(fenParts[0], validSpecialCharactersFirstField, v) == NOK)
         return FEN_INVALID_CHAR;
+
+    // check for valid promoted pieces
+    if (check_promoted_pieces(fenParts[0], v) == NOK)
+        return FEN_INVALID_PROMOTED_PIECE;
 
     // check for number of ranks
     const int nbRanks = v->maxRank + 1;
