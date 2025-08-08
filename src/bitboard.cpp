@@ -47,18 +47,22 @@ Magic CannonMagicsH[SQUARE_NB];
 Magic CannonMagicsV[SQUARE_NB];
 Magic LameDabbabaMagics[SQUARE_NB];
 Magic HorseMagics[SQUARE_NB];
+Magic JamalMagics[SQUARE_NB];
 Magic ElephantMagics[SQUARE_NB];
 Magic JanggiElephantMagics[SQUARE_NB];
 Magic CannonDiagMagics[SQUARE_NB];
 Magic NightriderMagics[SQUARE_NB];
+Magic CamelriderMagics[SQUARE_NB];
+Magic AlfilriderMagics[SQUARE_NB];
+Magic DabbabariderMagics[SQUARE_NB];
 Magic GrasshopperMagicsH[SQUARE_NB];
 Magic GrasshopperMagicsV[SQUARE_NB];
 Magic GrasshopperMagicsD[SQUARE_NB];
 
 Magic* magics[] = {BishopMagics, RookMagicsH, RookMagicsV, CannonMagicsH, CannonMagicsV,
-                   LameDabbabaMagics, HorseMagics, ElephantMagics, JanggiElephantMagics, CannonDiagMagics, NightriderMagics,
-                   GrasshopperMagicsH, GrasshopperMagicsV, GrasshopperMagicsD};
-
+                  LameDabbabaMagics, HorseMagics, JamalMagics, ElephantMagics, JanggiElephantMagics, CannonDiagMagics,
+                  NightriderMagics, CamelriderMagics, AlfilriderMagics, DabbabariderMagics,
+                  GrasshopperMagicsH, GrasshopperMagicsV, GrasshopperMagicsD};
 namespace {
 
 // Some magics need to be split in order to reduce memory consumption.
@@ -66,18 +70,22 @@ namespace {
 #ifdef LARGEBOARDS
   Bitboard RookTableH[0x11800];  // To store horizontal rook attacks
   Bitboard RookTableV[0x4800];  // To store vertical rook attacks
-  Bitboard BishopTable[0x33C00]; // To store bishop attacks
+  Bitboard BishopTable[0x33C00];  // To store bishop attacks
   Bitboard CannonTableH[0x11800];  // To store horizontal cannon attacks
   Bitboard CannonTableV[0x4800];  // To store vertical cannon attacks
   Bitboard LameDabbabaTable[0x500];  // To store lame dabbaba attacks
   Bitboard HorseTable[0x500];  // To store horse attacks
+  Bitboard JamalTable[0x500];  // To store jamal attacks
   Bitboard ElephantTable[0x400];  // To store elephant attacks
   Bitboard JanggiElephantTable[0x1C000];  // To store janggi elephant attacks
-  Bitboard CannonDiagTable[0x33C00]; // To store diagonal cannon attacks
-  Bitboard NightriderTable[0x70200]; // To store nightrider attacks
+  Bitboard CannonDiagTable[0x33C00];  // To store diagonal cannon attacks
+  Bitboard NightriderTable[0x70200];  // To store nightrider attacks
+  Bitboard CamelriderTable[0x5400];  // To store camelrider attacks
+  Bitboard AlfilriderTable[0x880];  // To store alfilrider attacks
+  Bitboard DabbabariderTable[0x5400];  // To store dabbabarider attacks
   Bitboard GrasshopperTableH[0x11800];  // To store horizontal grasshopper attacks
   Bitboard GrasshopperTableV[0x4800];  // To store vertical grasshopper attacks
-  Bitboard GrasshopperTableD[0x33C00]; // To store diagonal grasshopper attacks
+  Bitboard GrasshopperTableD[0x33C00];  // To store diagonal grasshopper attacks
 #else
   Bitboard RookTableH[0xA00];  // To store horizontal rook attacks
   Bitboard RookTableV[0xA00];  // To store vertical rook attacks
@@ -86,30 +94,34 @@ namespace {
   Bitboard CannonTableV[0xA00];  // To store vertical cannon attacks
   Bitboard LameDabbabaTable[0x240];  // To store lame dabbaba attacks
   Bitboard HorseTable[0x240];  // To store horse attacks
+  Bitboard JamalTable[0x240];  // To store jamal attacks
   Bitboard ElephantTable[0x1A0];  // To store elephant attacks
   Bitboard JanggiElephantTable[0x5C00];  // To store janggi elephant attacks
-  Bitboard CannonDiagTable[0x1480]; // To store diagonal cannon attacks
-  Bitboard NightriderTable[0x1840]; // To store nightrider attacks
+  Bitboard CannonDiagTable[0x1480];  // To store diagonal cannon attacks
+  Bitboard NightriderTable[0x1840];  // To store nightrider attacks
+  Bitboard CamelriderTable[0x640];  // To store camelrider attacks
+  Bitboard AlfilriderTable[0x140];  // To store alfilrider attacks
+  Bitboard DabbabariderTable[0x640];  // To store dabbabarider attacks
   Bitboard GrasshopperTableH[0xA00];  // To store horizontal grasshopper attacks
   Bitboard GrasshopperTableV[0xA00];  // To store vertical grasshopper attacks
   Bitboard GrasshopperTableD[0x1480]; // To store diagonal grasshopper attacks
 #endif
-
+ 
   // Rider directions
-  const std::map<Direction, int> RookDirectionsV { {NORTH, 0}, {SOUTH, 0}};
-  const std::map<Direction, int> RookDirectionsH { {EAST, 0}, {WEST, 0} };
-  const std::map<Direction, int> BishopDirections { {NORTH_EAST, 0}, {SOUTH_EAST, 0}, {SOUTH_WEST, 0}, {NORTH_WEST, 0} };
-  const std::map<Direction, int> LameDabbabaDirections { {2 * NORTH, 0}, {2 * EAST, 0}, {2 * SOUTH, 0}, {2 * WEST, 0} };
-  const std::map<Direction, int> HorseDirections { {2 * SOUTH + WEST, 0}, {2 * SOUTH + EAST, 0}, {SOUTH + 2 * WEST, 0}, {SOUTH + 2 * EAST, 0},
-                                                   {NORTH + 2 * WEST, 0}, {NORTH + 2 * EAST, 0}, {2 * NORTH + WEST, 0}, {2 * NORTH + EAST, 0} };
-  const std::map<Direction, int> ElephantDirections { {2 * NORTH_EAST, 0}, {2 * SOUTH_EAST, 0}, {2 * SOUTH_WEST, 0}, {2 * NORTH_WEST, 0} };
-  const std::map<Direction, int> JanggiElephantDirections { {NORTH + 2 * NORTH_EAST, 0}, {EAST  + 2 * NORTH_EAST, 0},
-                                                            {EAST  + 2 * SOUTH_EAST, 0}, {SOUTH + 2 * SOUTH_EAST, 0},
-                                                            {SOUTH + 2 * SOUTH_WEST, 0}, {WEST  + 2 * SOUTH_WEST, 0},
-                                                            {WEST  + 2 * NORTH_WEST, 0}, {NORTH + 2 * NORTH_WEST, 0} };
-  const std::map<Direction, int> GrasshopperDirectionsV { {NORTH, 1}, {SOUTH, 1}};
-  const std::map<Direction, int> GrasshopperDirectionsH { {EAST, 1}, {WEST, 1} };
-  const std::map<Direction, int> GrasshopperDirectionsD { {NORTH_EAST, 1}, {SOUTH_EAST, 1}, {SOUTH_WEST, 1}, {NORTH_WEST, 1} };
+  const std::map<Direction, int> RookDirectionsV          { {SOUTH, 0}, {NORTH, 0} };
+  const std::map<Direction, int> RookDirectionsH          { {WEST, 0}, {EAST, 0} };
+  const std::map<Direction, int> BishopDirections         { {SOUTH_WEST, 0}, {SOUTH_EAST, 0}, {NORTH_WEST, 0}, {NORTH_EAST, 0} };
+  const std::map<Direction, int> LameDabbabaDirections    { {2 * SOUTH, 0}, {2 * NORTH, 0}, {2 * WEST, 0}, {2 * EAST, 0} };
+  const std::map<Direction, int> HorseDirections          { {2 * SOUTH + WEST, 0}, {2 * SOUTH + EAST, 0}, {SOUTH + 2 * WEST, 0}, {SOUTH + 2 * EAST, 0},
+                                                            {2 * NORTH + WEST, 0}, {2 * NORTH + EAST, 0}, {NORTH + 2 * WEST, 0}, {NORTH + 2 * EAST, 0} };
+  const std::map<Direction, int> JamalDirections          { {3 * SOUTH + WEST, 0}, {3 * SOUTH + EAST, 0}, {SOUTH + 3 * WEST, 0}, {SOUTH + 3 * EAST, 0}, 
+                                                            {3 * NORTH + WEST, 0}, {3 * NORTH + EAST, 0}, {NORTH + 3 * WEST, 0}, {NORTH + 3 * EAST, 0} };
+  const std::map<Direction, int> ElephantDirections       { {2 * SOUTH_WEST, 0}, {2 * SOUTH_EAST, 0}, {2 * NORTH_WEST, 0}, {2 * NORTH_EAST, 0} };
+  const std::map<Direction, int> JanggiElephantDirections { {SOUTH + 2 * SOUTH_WEST, 0}, {WEST + 2 * SOUTH_WEST, 0}, {SOUTH + 2 * SOUTH_EAST, 0}, {EAST + 2 * SOUTH_EAST, 0},
+                                                            {NORTH + 2 * NORTH_WEST, 0}, {WEST + 2 * NORTH_WEST, 0}, {NORTH + 2 * NORTH_EAST, 0}, {EAST + 2 * NORTH_EAST, 0}, };
+  const std::map<Direction, int> GrasshopperDirectionsV   { {SOUTH, 1}, {NORTH, 1} };
+  const std::map<Direction, int> GrasshopperDirectionsH   { {WEST, 1}, {EAST, 1} };
+  const std::map<Direction, int> GrasshopperDirectionsD   { {SOUTH_WEST, 1}, {SOUTH_EAST, 1}, {NORTH_EAST, 1}, {NORTH_WEST, 1} };
 
   enum MovementType { RIDER, HOPPER, LAME_LEAPER, HOPPER_RANGE };
 
@@ -131,7 +143,7 @@ namespace {
         int count = 0;
         bool hurdle = false;
         for (Square s = sq + (c == WHITE ? d : -d);
-             is_ok(s) && distance(s, s - (c == WHITE ? d : -d)) <= 2;
+             is_ok(s) && distance(s, s - (c == WHITE ? d : -d)) <= 3; // Distance 3 for jamal
              s += (c == WHITE ? d : -d))
         {
             if (MT != HOPPER || hurdle)
@@ -245,12 +257,15 @@ void Bitboards::init_pieces() {
                   continue;
               auto& riderTypes = modality == MODALITY_CAPTURE ? AttackRiderTypes[pt] : MoveRiderTypes[initial][pt];
               riderTypes = NO_RIDER;
+
               for (auto const& [d, limit] : pi->steps[initial][modality])
               {
                   if (limit && LameDabbabaDirections.find(d) != LameDabbabaDirections.end())
                       riderTypes |= RIDER_LAME_DABBABA;
                   if (limit && HorseDirections.find(d) != HorseDirections.end())
                       riderTypes |= RIDER_HORSE;
+                  if (limit && JamalDirections.find(d) != JamalDirections.end())
+                      riderTypes |= RIDER_JAMAL;
                   if (limit && ElephantDirections.find(d) != ElephantDirections.end())
                       riderTypes |= RIDER_ELEPHANT;
                   if (limit && JanggiElephantDirections.find(d) != JanggiElephantDirections.end())
@@ -266,6 +281,12 @@ void Bitboards::init_pieces() {
                       riderTypes |= RIDER_ROOK_V;
                   if (HorseDirections.find(d) != HorseDirections.end())
                       riderTypes |= RIDER_NIGHTRIDER;
+                  if (JamalDirections.find(d) != JamalDirections.end())
+                      riderTypes |= RIDER_CAMELRIDER;
+                  if (ElephantDirections.find(d) != ElephantDirections.end())
+                      riderTypes |= RIDER_ALFILRIDER;
+                  if (LameDabbabaDirections.find(d) != LameDabbabaDirections.end())
+                      riderTypes |= RIDER_DABBABARIDER;
               }
               for (auto const& [d, limit] : pi->hopper[initial][modality])
               {
@@ -338,10 +359,14 @@ void Bitboards::init() {
   init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV, CannonMagicVInit);
   init_magics<LAME_LEAPER>(LameDabbabaTable, LameDabbabaMagics, LameDabbabaDirections, LameDabbabaMagicInit);
   init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections, HorseMagicInit);
+  init_magics<LAME_LEAPER>(JamalTable, JamalMagics, JamalDirections, JamalMagicInit);
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections, ElephantMagicInit);
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections, JanggiElephantMagicInit);
   init_magics<HOPPER>(CannonDiagTable, CannonDiagMagics, BishopDirections, CannonDiagMagicInit);
   init_magics<RIDER>(NightriderTable, NightriderMagics, HorseDirections, NightriderMagicInit);
+  init_magics<RIDER>(CamelriderTable, CamelriderMagics, JamalDirections, CamelriderMagicInit);
+  init_magics<RIDER>(AlfilriderTable, AlfilriderMagics, ElephantDirections, AlfilriderMagicInit);
+  init_magics<RIDER>(DabbabariderTable, DabbabariderMagics, LameDabbabaDirections, DabbabariderMagicInit);
   init_magics<HOPPER>(GrasshopperTableH, GrasshopperMagicsH, GrasshopperDirectionsH, GrasshopperMagicHInit);
   init_magics<HOPPER>(GrasshopperTableV, GrasshopperMagicsV, GrasshopperDirectionsV, GrasshopperMagicVInit);
   init_magics<HOPPER>(GrasshopperTableD, GrasshopperMagicsD, GrasshopperDirectionsD, GrasshopperMagicDInit);
@@ -353,15 +378,19 @@ void Bitboards::init() {
   init_magics<HOPPER>(CannonTableV, CannonMagicsV, RookDirectionsV);
   init_magics<LAME_LEAPER>(LameDabbabaTable, LameDabbabaMagics, LameDabbabaDirections);
   init_magics<LAME_LEAPER>(HorseTable, HorseMagics, HorseDirections);
+  init_magics<LAME_LEAPER>(JamalTable, JamalMagics, JamalDirections);
   init_magics<LAME_LEAPER>(ElephantTable, ElephantMagics, ElephantDirections);
   init_magics<LAME_LEAPER>(JanggiElephantTable, JanggiElephantMagics, JanggiElephantDirections);
   init_magics<HOPPER>(CannonDiagTable, CannonDiagMagics, BishopDirections);
   init_magics<RIDER>(NightriderTable, NightriderMagics, HorseDirections);
+  init_magics<RIDER>(CamelriderTable, CamelriderMagics, JamalDirections);
+  init_magics<RIDER>(AlfilriderTable, AlfilriderMagics, ElephantDirections); 
+  init_magics<RIDER>(DabbabariderTable, DabbabariderMagics, LameDabbabaDirections);
   init_magics<HOPPER>(GrasshopperTableH, GrasshopperMagicsH, GrasshopperDirectionsH);
   init_magics<HOPPER>(GrasshopperTableV, GrasshopperMagicsV, GrasshopperDirectionsV);
   init_magics<HOPPER>(GrasshopperTableD, GrasshopperMagicsD, GrasshopperDirectionsD);
 #endif
-
+  
   init_pieces();
 
   for (Square s1 = SQ_A1; s1 <= SQ_MAX; ++s1)
