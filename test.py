@@ -1184,6 +1184,62 @@ class TestPyffish(unittest.TestCase):
                 fen = sf.start_fen(variant)
                 self.assertEqual(sf.validate_fen(fen, variant), sf.FEN_OK)
 
+    def test_validate_fen_promoted_pieces(self):
+        # Test promoted piece validation specifically
+        
+        # Valid promoted pieces should pass
+        valid_promoted_fens = {
+            "shogi": [
+                "lnsgkgsnl/1r5b1/pppppp+ppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1",  # promoted pawn
+                "lnsgkgsnl/1r5+b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1",  # promoted bishop
+                "lnsgkgsnl/1+r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1",  # promoted rook
+                "ln+sgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1",  # promoted silver
+                "l+nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1",  # promoted knight
+                "+lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1",  # promoted lance
+            ]
+        }
+        
+        # Invalid promoted pieces should fail with FEN_INVALID_PROMOTED_PIECE (-12)
+        invalid_promoted_fens = {
+            "kyotoshogi": [
+                "p+nks+l/5/5/5/+LS+K+NP[-] w 0 1",  # promoted king (+K) - kings cannot be promoted
+            ],
+            "shogi": [
+                "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSG++KGSNL[-] w - - 0 1",  # double promotion (++K)
+            ]
+        }
+        
+        # Non-shogi variants should ignore promoted piece syntax ('+' should be invalid character)
+        non_shogi_promoted_fens = {
+            "chess": [
+                "rnb+qkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # '+' not valid in chess
+            ]
+        }
+        
+        # Test valid promoted pieces
+        for variant, fens in valid_promoted_fens.items():
+            for fen in fens:
+                with self.subTest(variant=variant, fen=fen, test_type="valid_promoted"):
+                    result = sf.validate_fen(fen, variant)
+                    self.assertEqual(result, sf.FEN_OK, f"Expected valid promoted piece FEN to pass: {fen}")
+        
+        # Test invalid promoted pieces (should return FEN_INVALID_PROMOTED_PIECE = -12)
+        for variant, fens in invalid_promoted_fens.items():
+            for fen in fens:
+                with self.subTest(variant=variant, fen=fen, test_type="invalid_promoted"):
+                    result = sf.validate_fen(fen, variant)
+                    self.assertEqual(result, sf.FEN_INVALID_PROMOTED_PIECE, 
+                                   f"Expected invalid promoted piece FEN to return -12: {fen}, got {result}")
+        
+        # Test non-shogi variants (should fail with character validation, not promoted piece validation)
+        for variant, fens in non_shogi_promoted_fens.items():
+            for fen in fens:
+                with self.subTest(variant=variant, fen=fen, test_type="non_shogi"):
+                    result = sf.validate_fen(fen, variant)
+                    # Should fail with character validation (FEN_INVALID_CHAR = -10), not promoted piece validation
+                    self.assertEqual(result, -10, 
+                                   f"Expected non-shogi variant to fail with character error (-10): {fen}, got {result}")
+
     def test_get_fog_fen(self):
         fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"  # startpos
         result = sf.get_fog_fen(fen, "fogofwar")
