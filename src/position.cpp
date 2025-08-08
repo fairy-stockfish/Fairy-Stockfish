@@ -409,9 +409,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       }
 
       // Set castling rights for 960 gating variants
+      // For Seirawan gating with pieces in hand, preserve explicit gate notation
+      // and avoid auto-converting to castling rights
       if (gating() && castling_enabled())
           for (Color c : {WHITE, BLACK})
-              if ((gates(c) & pieces(castling_king_piece(c))) && !castling_rights(c) && (!seirawan_gating() || count_in_hand(c, ALL_PIECES) > 0 || captures_to_hand()))
+              if ((gates(c) & pieces(castling_king_piece(c))) && !castling_rights(c) && (!seirawan_gating() || count_in_hand(c, ALL_PIECES) == 0) && !captures_to_hand())
               {
                   Bitboard castling_rooks = gates(c) & pieces(c);
                   while (castling_rooks)
