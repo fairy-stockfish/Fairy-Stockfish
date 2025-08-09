@@ -1242,6 +1242,13 @@ namespace {
         v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
         return v;
     }
+    // Check-Shogi
+    // Shogi variant with check counting enabled
+    Variant* checkshogi_variant() {
+        Variant* v = shogi_variant()->init();
+        v->checkCounting = true;
+        return v;
+    }
     // Sho-Shogi
     // 16-th century shogi variant with one additional piece and no drops
     // https://en.wikipedia.org/wiki/Sho_shogi
@@ -1908,6 +1915,7 @@ void VariantMap::init() {
     add("raazuvaa", raazuvaa_variant());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
+    add("checkshogi", checkshogi_variant());
     add("shoshogi", shoshogi_variant());
     add("yarishogi", yarishogi_variant());
     add("okisakishogi", okisakishogi_variant());
