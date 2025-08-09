@@ -24,7 +24,11 @@ ffish.js
 venv
 *.so
 pyffish.egg-info
-__pycache__/
+__pycache__
+*.pyc
+
+# test artifacts
+tests/*.exp
 
 # IDEs
 .vscode

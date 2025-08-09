@@ -1,7 +1,0 @@
-   spawn ./stockfish
-   send "ucci\n"
-   expect "option UCI_Variant"
-   expect "default xiangqi"
-   expect "ucciok"
-   send "quit\n"
-   expect eof
