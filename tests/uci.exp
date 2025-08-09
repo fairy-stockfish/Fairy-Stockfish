@@ -1,0 +1,6 @@
+   spawn ./stockfish
+   send "uci\n"
+   expect "default chess"
+   expect "uciok"
+   send "quit\n"
+   expect eof

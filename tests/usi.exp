@@ -1,0 +1,6 @@
+   spawn ./stockfish
+   send "usi\n"
+   expect "default shogi"
+   expect "usiok"
+   send "quit\n"
+   expect eof
