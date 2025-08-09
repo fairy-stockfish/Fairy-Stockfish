@@ -410,6 +410,18 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         if (DoCheck && (idx == std::string::npos || idx2 == std::string::npos))
             std::cerr << "promotedPieceType - Invalid piece type: " << token << std::endl;
     }
+    // priority drops
+    const auto& it_pr_drop = config.find("priorityDropTypes");
+    if (it_pr_drop != config.end())
+    {
+        char token;
+        size_t idx = 0;
+        std::stringstream ss(it_pr_drop->second);
+        while (ss >> token && ((idx = v->pieceToChar.find(toupper(token))) != std::string::npos))
+            v->isPriorityDrop[PieceType(idx)] = true;
+        if (DoCheck && idx == std::string::npos && token != '-')
+            std::cerr << "priorityDropTypes - Invalid piece type: " << token << std::endl;
+    }
     parse_attribute("piecePromotionOnCapture", v->piecePromotionOnCapture);
     parse_attribute("mandatoryPawnPromotion", v->mandatoryPawnPromotion);
     parse_attribute("mandatoryPiecePromotion", v->mandatoryPiecePromotion);
