@@ -1175,7 +1175,7 @@ namespace {
         v->maxFile = FILE_H;
         v->reset_pieces();
         v->add_piece(IMMOBILE_PIECE, 'p');
-        v->startFen = "8/8/8/8/8/8/8/8[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp] w 0 1";
+        v->startFen = "8/8/8/8/8/8/8/8[PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpppppppppppppppppppppppppppppppp] w 0 1";
         v->pieceDrops = true;
         v->doubleStep = false;
         v->castling = false;
