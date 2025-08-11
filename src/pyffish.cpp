@@ -462,6 +462,7 @@ PyMODINIT_FUNC PyInit_pyffish() {
 
     // validation
     PyModule_AddObject(module, "FEN_OK", PyLong_FromLong(FEN::FEN_OK));
+    PyModule_AddObject(module, "FEN_INVALID_PROMOTED_PIECE", PyLong_FromLong(FEN::FEN_INVALID_PROMOTED_PIECE));
 
     // initialize stockfish
     pieceMap.init();
