@@ -6,7 +6,6 @@
 
 **Repository Statistics:**
 - **Languages:** C++17 (primary), Python, JavaScript, Shell scripts
-- **Size:** ~55MB with neural networks, ~15MB source code  
 - **Architecture:** Multi-protocol chess engine (UCI, UCCI, USI, XBoard/CECP)
 - **Target Platforms:** Windows, Linux, macOS, Android, WebAssembly
 - **Supported Variants:** 90+ chess variants including regional, historical, and modern variants
@@ -24,14 +23,7 @@
 
 **ALWAYS run commands from the `src/` directory unless specified otherwise.**
 
-#### 1. Download Neural Network (Required First Step)
-```bash
-cd src
-make net  # Downloads default NNUE network (~75MB)
-```
-**Note:** This step MUST be completed before building, or the engine will fail to start.
-
-#### 2. Basic Build Commands
+#### Basic Build Commands
 ```bash
 # Standard release build (recommended for most users)
 make -j2 ARCH=x86-64 build
@@ -39,17 +31,14 @@ make -j2 ARCH=x86-64 build
 # Debug build (for development)
 make -j2 ARCH=x86-64 debug=yes build
 
-# Large board variants (supports boards up to 12x12)  
+# Large board variants (supports boards up to 12x10)  
 make -j2 ARCH=x86-64 largeboards=yes build
 
-# All variants including Game of the Amazons
+# All variants including ones with large branching factor
 make -j2 ARCH=x86-64 largeboards=yes all=yes build
-
-# With NNUE evaluation (stronger play)
-make -j2 ARCH=x86-64 nnue=yes build
 ```
 
-#### 3. Architecture Options
+#### Architecture Options
 Common architectures (use `make help` for full list):
 - `x86-64-modern`: Modern 64-bit CPUs (recommended)
 - `x86-64-avx2`: CPUs with AVX2 support
@@ -57,11 +46,9 @@ Common architectures (use `make help` for full list):
 - `armv8`: ARM64 CPUs
 - `apple-silicon`: Apple M1/M2 processors
 
-#### 4. Build Troubleshooting
-- **"Network not found" error:** Run `make net` first
+#### Build Troubleshooting
 - **Compilation errors:** Ensure C++17 compiler (GCC 7+, Clang 5+)
 - **Linking errors on Linux:** Install `g++-multilib` for 32-bit builds
-- **Build takes >5 minutes:** Normal for release builds; use `-j4` for faster compilation
 
 ### Python Bindings (pyffish)
 ```bash
@@ -74,9 +61,9 @@ pip install pyffish
 ```
 
 ### JavaScript Bindings (ffish.js)
+See the tests/js directory.
 ```bash
-cd tests/js
-npm install  # Installs emscripten-built bindings
+npm install ffishjs # Installs emscripten-built bindings
 ```
 
 ## Testing & Validation
@@ -85,10 +72,10 @@ npm install  # Installs emscripten-built bindings
 ```bash
 cd src
 
-# Basic functionality test (3-5 minutes)
+# Basic functionality test
 ./stockfish bench
 
-# Variant-specific benchmarks  
+# Variant-specific benchmarks
 ./stockfish bench xiangqi
 ./stockfish bench shogi
 ./stockfish bench capablanca
@@ -101,21 +88,16 @@ cd src
 ```bash
 cd src  # Note: Run from src/ directory (same as build commands)
 
-# Protocol compliance tests (1-2 minutes)
+# Protocol compliance tests
 ../tests/protocol.sh
 
-# Move generation validation (10-15 minutes for all variants)
+# Move generation validation
 ../tests/perft.sh all
-../tests/perft.sh chess      # Chess only (2-3 minutes)  
+../tests/perft.sh chess      # Chess only
 ../tests/perft.sh largeboard # Large board variants only
 
 # Regression testing
 ../tests/regression.sh
-```
-
-### Performance Testing
-```bash
-cd src  # Note: Run from src/ directory
 
 # Reproducible search test
 ../tests/reprosearch.sh
@@ -135,11 +117,14 @@ cd src  # Note: Run from src/ directory
 │   ├── main.cpp           # Engine entry point
 │   ├── uci.cpp           # UCI protocol implementation  
 │   ├── xboard.cpp        # XBoard protocol implementation
-│   ├── position.cpp      # Game position management
+│   ├── position.h        # Position representation
+│   ├── position.cpp      # Board logic
 │   ├── movegen.cpp       # Move generation
 │   ├── search.cpp        # Search algorithm
 │   ├── evaluate.cpp      # Position evaluation
-│   ├── variants.ini      # Variant definitions (200+ variants)
+│   ├── variant.h         # Variant properties
+│   ├── variant.cpp       # Variant definitions (built-in variants)
+│   ├── variants.ini      # Variant definitions (runtime configurable variants)
 │   ├── nnue/             # Neural network evaluation
 │   ├── syzygy/           # Endgame tablebase support
 │   ├── pyffish.cpp       # Python bindings
@@ -155,17 +140,18 @@ cd src  # Note: Run from src/ directory
 ```
 
 ### Configuration Files
-- **`src/variants.ini`**: Defines all supported chess variants
-- **`setup.py`**: Python package build configuration  
-- **`appveyor.yml`**: Windows CI configuration
+- **`src/variants.ini`**: Defines examples for configuration of chess variants
+- **`setup.py`**: Python package build configuration
 - **`tests/js/package.json`**: JavaScript bindings configuration
 
 ### Key Source Files
+- **`src/variant.h`**: Variant rule properties
 - **`src/variant.cpp`**: Variant-specific game rules
-- **`src/parser.cpp`**: FEN/move parsing for all variants
+- **`src/position.h`**: Position representation
+- **`src/position.cpp`**: Board logic
+- **`src/movegen.cpp`**: Move generation logic
+- **`src/parser.cpp`**: Variant rule configuration parsing
 - **`src/piece.cpp`**: Piece type definitions and behavior
-- **`src/partner.cpp`**: Bughouse partnership logic
-- **`src/tune.cpp`**: Parameter tuning functionality
 
 ## Continuous Integration
 
@@ -188,25 +174,21 @@ cd src  # Note: Run from src/ directory
 ### Making Engine Changes
 1. **Always test basic functionality:** `./stockfish bench` after changes
 2. **Validate variant compatibility:** `./stockfish check variants.ini`  
-3. **Run relevant tests:** `../tests/perft.sh <variant>` for move generation changes
+3. **Run relevant tests:** `../tests/perft.sh all` for move generation changes
 4. **Check protocol compliance:** `../tests/protocol.sh` for interface changes
 
 ### Adding New Variants
 1. **Edit `src/variants.ini`**: Add variant configuration
 2. **Test parsing:** `./stockfish check variants.ini`
-3. **Add perft test:** Update `tests/perft.sh` with known-good positions
-4. **Validate gameplay:** `./stockfish bench <variant>`
 
 ### Performance Considerations
 - **Large board variants:** Use `largeboards=yes` build option
 - **NNUE networks:** Required for optimal strength in most variants
-- **Debug builds:** 3-10x slower than release builds
-- **Memory usage:** ~100MB+ for large hash tables and networks
+- **Debug builds:** significantly slower than release builds
 
 ## Troubleshooting Guide
 
 ### Build Failures
-- **Missing network:** Download with `make net`  
 - **C++ version:** Requires C++17-compatible compiler
 - **32-bit builds:** May need `g++-multilib` package
 - **Linking errors:** Ensure pthread library availability
@@ -215,11 +197,9 @@ cd src  # Note: Run from src/ directory
 - **"Variant not found":** Check `variants.ini` for typos
 - **Slow performance:** Use release build without `debug=yes`
 - **Memory errors:** Large board variants need more RAM
-- **Protocol errors:** Check UCI/XBoard command compatibility
 
 ### Test Failures  
 - **Perft mismatches:** Usually indicates move generation bugs
-- **Protocol timeouts:** Increase timeout in test scripts
 - **Benchmark variations:** Expected 1-5% variance across builds
 - **Missing expect:** Install expect utility for test scripts
 
@@ -228,8 +208,8 @@ cd src  # Note: Run from src/ directory
 **Trust these instructions.** Only search for additional information if these instructions are incomplete or incorrect. The build and test procedures documented here are validated and comprehensive.
 
 ### Typical Development Cycle
-1. **Setup:** `cd src && make net && make -j2 ARCH=x86-64 debug=yes build`
-2. **Test:** `./stockfish bench` (quick validation)  
+1. **Setup:** `cd src && make -j2 ARCH=x86-64 debug=yes build`
+2. **Test:** `./stockfish bench` (quick validation)
 3. **Develop:** Make focused changes to relevant source files
 4. **Validate:** Run appropriate tests from src/ (`../tests/perft.sh`, `../tests/protocol.sh`)
 5. **Release build:** `make clean && make -j2 ARCH=x86-64 build`
@@ -242,9 +222,6 @@ cd src  # Note: Run from src/ directory
 
 # Check variant parsing
 ./stockfish check variants.ini 2>&1 | grep -c "Invalid" | grep -q "^0$" && echo "Variants OK"
-
-# Protocol basic test
-echo -e "uci\nquit" | ./stockfish | grep -q "uciok" && echo "UCI OK"
 ```
 
-This documentation covers the essential information needed for effective development in Fairy-Stockfish. The build system is robust but requires following the documented steps precisely, especially the initial `make net` command.
+This documentation covers the essential information needed for effective development in Fairy-Stockfish.
