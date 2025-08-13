@@ -21,7 +21,7 @@
 
 ### Core Build Process
 
-**ALWAYS run commands from the `src/` directory unless specified otherwise.**
+Note: Run engine and test commands from the `src/` directory unless specified otherwise.
 
 #### Basic Build Commands
 ```bash
@@ -53,7 +53,6 @@ Common architectures (use `make help` for full list):
 ### Python Bindings (pyffish)
 ```bash
 # Build Python bindings (from repository root)
-python3 setup.py build_ext --inplace
 python3 setup.py install
 
 # Alternative: Install from PyPI
@@ -68,10 +67,10 @@ npm install ffishjs # Installs emscripten-built bindings
 
 ## Testing & Validation
 
+All test commands below assume the current directory is `src/`.
+
 ### Core Engine Tests
 ```bash
-cd src
-
 # Basic functionality test
 ./stockfish bench
 
@@ -86,8 +85,6 @@ cd src
 
 ### Comprehensive Test Suite
 ```bash
-cd src  # Note: Run from src/ directory (same as build commands)
-
 # Protocol compliance tests
 ../tests/protocol.sh
 
@@ -106,7 +103,6 @@ cd src  # Note: Run from src/ directory (same as build commands)
 ../tests/signature.sh
 ```
 
-**Test Prerequisites:** Install `expect` package (`sudo apt install expect` on Ubuntu).
 
 ## Project Architecture
 
@@ -147,6 +143,7 @@ cd src  # Note: Run from src/ directory (same as build commands)
 ### Key Source Files
 - **`src/variant.h`**: Variant rule properties
 - **`src/variant.cpp`**: Variant-specific game rules
+- **`src/variant.ini`**: Variant rule configuration examples and documentation of variant properties
 - **`src/position.h`**: Position representation
 - **`src/position.cpp`**: Board logic
 - **`src/movegen.cpp`**: Move generation logic
@@ -177,7 +174,7 @@ cd src  # Note: Run from src/ directory (same as build commands)
 3. **Run relevant tests:** `../tests/perft.sh all` for move generation changes
 4. **Check protocol compliance:** `../tests/protocol.sh` for interface changes
 
-### Adding New Variants
+### Adding New Configurable Variants
 1. **Edit `src/variants.ini`**: Add variant configuration
 2. **Test parsing:** `./stockfish check variants.ini`
 
@@ -193,35 +190,9 @@ cd src  # Note: Run from src/ directory (same as build commands)
 - **32-bit builds:** May need `g++-multilib` package
 - **Linking errors:** Ensure pthread library availability
 
-### Runtime Issues
-- **"Variant not found":** Check `variants.ini` for typos
-- **Slow performance:** Use release build without `debug=yes`
-- **Memory errors:** Large board variants need more RAM
-
 ### Test Failures  
 - **Perft mismatches:** Usually indicates move generation bugs
 - **Benchmark variations:** Expected 1-5% variance across builds
 - **Missing expect:** Install expect utility for test scripts
-
-## Development Workflow
-
-**Trust these instructions.** Only search for additional information if these instructions are incomplete or incorrect. The build and test procedures documented here are validated and comprehensive.
-
-### Typical Development Cycle
-1. **Setup:** `cd src && make -j2 ARCH=x86-64 debug=yes build`
-2. **Test:** `./stockfish bench` (quick validation)
-3. **Develop:** Make focused changes to relevant source files
-4. **Validate:** Run appropriate tests from src/ (`../tests/perft.sh`, `../tests/protocol.sh`)
-5. **Release build:** `make clean && make -j2 ARCH=x86-64 build`
-6. **Final test:** `./stockfish bench` and relevant test suite
-
-### Quick Verification Commands
-```bash
-# Verify build works
-./stockfish bench 2>/dev/null >/dev/null && echo "Build OK"
-
-# Check variant parsing
-./stockfish check variants.ini 2>&1 | grep -c "Invalid" | grep -q "^0$" && echo "Variants OK"
-```
 
 This documentation covers the essential information needed for effective development in Fairy-Stockfish.
