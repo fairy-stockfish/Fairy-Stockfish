@@ -60,9 +60,15 @@ pip install pyffish
 ```
 
 ### JavaScript Bindings (ffish.js)
-See the tests/js directory.
+Also see the `tests/js/README.md`.
 ```bash
-npm install ffishjs # Installs emscripten-built bindings
+cd src/
+
+# Build JavaScript bindings (requires emscripten)
+make -f Makefile_js build
+
+# Alternative: Install from npm
+npm install ffish
 ```
 
 ## Testing & Validation
@@ -172,16 +178,10 @@ All test commands below assume the current directory is `src/`.
 1. **Always test basic functionality:** `./stockfish bench` after changes
 2. **Validate variant compatibility:** `./stockfish check variants.ini`  
 3. **Run relevant tests:** `../tests/perft.sh all` for move generation changes
-4. **Check protocol compliance:** `../tests/protocol.sh` for interface changes
 
 ### Adding New Configurable Variants
 1. **Edit `src/variants.ini`**: Add variant configuration
 2. **Test parsing:** `./stockfish check variants.ini`
-
-### Performance Considerations
-- **Large board variants:** Use `largeboards=yes` build option
-- **NNUE networks:** Required for optimal strength in most variants
-- **Debug builds:** significantly slower than release builds
 
 ## Troubleshooting Guide
 
