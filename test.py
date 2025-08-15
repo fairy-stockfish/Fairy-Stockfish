@@ -46,8 +46,8 @@ promotedPieceType = p:c n:g b:a r:m f:q
 mandatoryPawnPromotion = false
 firstRankPawnDrops = true
 promotionZonePawnDrops = true
-whiteDropRegion = *1 *2 *3 *4 *5
-blackDropRegion = *4 *5 *6 *7 *8
+dropRegionWhite = *1 *2 *3 *4 *5
+dropRegionBlack = *4 *5 *6 *7 *8
 immobilityIllegal = true
 
 # Asymmetric variant with one army using pieces that move like knights but attack like other pieces (kniroo and knibis)

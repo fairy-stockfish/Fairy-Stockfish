@@ -218,7 +218,7 @@ void init(const Variant* v) {
       Score score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
 
       // Consider promotion types in pawn score
-      if (pt == v->promotionPawnType[WHITE])
+      if (pt == v->mainPromotionPawnType[WHITE])
       {
           score -= make_score(0, (QueenValueEg - maxPromotion) / 100);
           if (v->blastOnCapture)

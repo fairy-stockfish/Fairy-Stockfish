@@ -389,7 +389,7 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
 
     // Mating pieces
     for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR, AMAZON, BERS })
-        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, pos.promotion_pawn_type(c)) && (pos.promotion_piece_types(c) & pt)))
+        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, pos.main_promotion_pawn_type(c)) && (pos.promotion_piece_types(c) & pt)))
             return false;
 
     // Color-bound pieces
