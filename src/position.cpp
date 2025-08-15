@@ -746,7 +746,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   }
 
   // pieces in hand
-    if (!free_drops() && (piece_drops() || seirawan_gating()))
+  if (!free_drops() && (piece_drops() || seirawan_gating()))
   {
       ss << '[';
       if (holdings != "-")
@@ -2187,7 +2187,7 @@ void Position::undo_move(Move m) {
       assert((promotion_zone(us) & to) || sittuyin_promotion());
       assert(type_of(pc) == promotion_type(m));
       assert(type_of(pc) >= KNIGHT && type_of(pc) < KING);
-    assert(type_of(st->promotionPawn) == main_promotion_pawn_type(us) || !captures_to_hand());
+      assert(type_of(st->promotionPawn) == main_promotion_pawn_type(us) || !captures_to_hand());
 
       remove_piece(to);
       pc = st->promotionPawn;
