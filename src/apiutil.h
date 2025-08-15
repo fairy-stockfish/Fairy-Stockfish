@@ -368,14 +368,14 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     // Other win rules
     if (   pos.captures_to_hand()
         || pos.count_in_hand(c, ALL_PIECES)
-        || (pos.extinction_value() != VALUE_NONE && !pos.extinction_pseudo_royal())
+        || (pos.extinction_value() != VALUE_NONE && (pos.extinction_piece_types() & ~pos.pseudo_royal_types()))
         || (pos.flag_region(c) && pos.count(c, pos.flag_piece(c))))
         return false;
 
     // Restricted pieces
     Bitboard restricted = pos.pieces(~c, KING);
     // Atomic kings can not help checkmating
-    if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & COMMONER))
+    if (pos.pseudo_royal_types() & COMMONER)
         restricted |= pos.pieces(c, COMMONER);
     for (PieceSet ps = pos.piece_types(); ps;)
     {
@@ -414,7 +414,7 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
 
 inline Bitboard checked(const Position& pos) {
     return (pos.checkers() ? square_bb(pos.square<KING>(pos.side_to_move())) : Bitboard(0))
-        | (pos.extinction_pseudo_royal() ? pos.checked_pseudo_royals(pos.side_to_move()) : Bitboard(0));
+        | (pos.pseudo_royal_types() ? pos.checked_pseudo_royals(pos.side_to_move()) : Bitboard(0));
 }
 
 namespace FEN {
