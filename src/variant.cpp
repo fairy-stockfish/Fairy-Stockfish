@@ -471,7 +471,8 @@ namespace {
         Variant* v = chess_variant_base()->init();
         v->startFen = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
         v->doubleStepRegion[WHITE] |= Rank1BB;
-        v->enPassantRegion = Rank3BB | Rank6BB; // exclude en passant on second rank
+        v->enPassantRegion[WHITE] = Rank6BB; // exclude en passant on second rank
+        v->enPassantRegion[BLACK] = Rank3BB; // exclude en passant on second rank
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(ALL_PIECES);
         return v;
@@ -1073,7 +1074,8 @@ namespace {
         v->nMoveRuleTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | DRAGON | ARCHBISHOP | CUSTOM_PIECE_2 | CUSTOM_PIECE_3;
         v->promotionLimit[COMMONER] = 2;
-        v->enPassantRegion = 0;
+        v->enPassantRegion[WHITE] = 0;
+        v->enPassantRegion[BLACK] = 0;
         v->extinctionPieceCount = 0;
         v->extinctionPseudoRoyal = true;
         v->dupleCheck = true;

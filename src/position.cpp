@@ -447,7 +447,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
               // a) side to move have a pawn threatening epSquare
               // b) there is an enemy pawn one or two (for triple steps) squares in front of epSquare
               // c) there is no (non-wall) piece on epSquare or behind epSquare
-              if (   (var->enPassantRegion & epSquare)
+              if (   (var->enPassantRegion[sideToMove] & epSquare)
                   && (   !var->fastAttacks
                       || (var->enPassantTypes[sideToMove] & ~piece_set(PAWN))
                       || (   pawn_attacks_bb(~sideToMove, epSquare) & pieces(sideToMove, PAWN)
@@ -1607,7 +1607,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->captureSquare = capsq;
 
           assert(st->epSquares & to);
-          assert(var->enPassantRegion & to);
+          assert(var->enPassantRegion[us] & to);
           assert(piece_on(to) == NO_PIECE);
       }
 
@@ -1844,7 +1844,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           && (   std::abs(int(to) - int(from)) == 2 * NORTH
               || std::abs(int(to) - int(from)) == 3 * NORTH))
       {
-          if (   (var->enPassantRegion & (to - pawn_push(us)))
+          if (   (var->enPassantRegion[them] & (to - pawn_push(us)))
               && ((pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN)) || var->enPassantTypes[them] & ~piece_set(PAWN))
               && !(walling() && gating_square(m) == to - pawn_push(us)))
           {
@@ -1852,7 +1852,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               k ^= Zobrist::enpassant[file_of(to)];
           }
           if (   std::abs(int(to) - int(from)) == 3 * NORTH
-              && (var->enPassantRegion & (to - 2 * pawn_push(us)))
+              && (var->enPassantRegion[them] & (to - 2 * pawn_push(us)))
               && ((pawn_attacks_bb(us, to - 2 * pawn_push(us)) & pieces(them, PAWN)) || var->enPassantTypes[them] & ~piece_set(PAWN))
               && !(walling() && gating_square(m) == to - 2 * pawn_push(us)))
           {
@@ -1924,7 +1924,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
            && ((PseudoMoves[1][us][type_of(pc)][from] & ~PseudoMoves[0][us][type_of(pc)][from]) & to))
   {
       assert(type_of(pc) != PAWN);
-      st->epSquares = between_bb(from, to) & var->enPassantRegion;
+      st->epSquares = between_bb(from, to) & var->enPassantRegion[them];
       for (Bitboard b = st->epSquares; b; )
           k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
   }
@@ -2229,7 +2229,7 @@ void Position::undo_move(Move m) {
               capsq = st->captureSquare;
 
               assert(st->previous->epSquares & to);
-              assert(var->enPassantRegion & to);
+              assert(var->enPassantRegion[sideToMove] & to);
               assert(piece_on(capsq) == NO_PIECE);
           }
 
@@ -3237,7 +3237,7 @@ bool Position::pos_is_ok() const {
   if (   (sideToMove != WHITE && sideToMove != BLACK)
       || (count<KING>(WHITE) && piece_on(square<KING>(WHITE)) != make_piece(WHITE, KING))
       || (count<KING>(BLACK) && piece_on(square<KING>(BLACK)) != make_piece(BLACK, KING))
-      || (ep_squares() & ~var->enPassantRegion))
+      || (ep_squares() & ~(var->enPassantRegion[WHITE] | var->enPassantRegion[BLACK])))
       assert(0 && "pos_is_ok: Default");
 
   if (Fast)

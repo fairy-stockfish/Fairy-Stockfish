@@ -426,7 +426,10 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("doubleStepRegionBlack", v->doubleStepRegion[BLACK]);
     parse_attribute("tripleStepRegionWhite", v->tripleStepRegion[WHITE]);
     parse_attribute("tripleStepRegionBlack", v->tripleStepRegion[BLACK]);
-    parse_attribute("enPassantRegion", v->enPassantRegion);
+    parse_attribute("enPassantRegion", v->enPassantRegion[WHITE]);
+    parse_attribute("enPassantRegion", v->enPassantRegion[BLACK]);
+    parse_attribute("enPassantRegionWhite", v->enPassantRegion[WHITE]);
+    parse_attribute("enPassantRegionBlack", v->enPassantRegion[BLACK]);
     parse_attribute("enPassantTypes", v->enPassantTypes[WHITE], v->pieceToChar);
     parse_attribute("enPassantTypes", v->enPassantTypes[BLACK], v->pieceToChar);
     parse_attribute("enPassantTypesWhite", v->enPassantTypes[WHITE], v->pieceToChar);
