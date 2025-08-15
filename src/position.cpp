@@ -447,7 +447,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
               // a) side to move have a pawn threatening epSquare
               // b) there is an enemy pawn one or two (for triple steps) squares in front of epSquare
               // c) there is no (non-wall) piece on epSquare or behind epSquare
-              if (   (var->enPassantRegion[~sideToMove] & epSquare)
+              if (   (var->enPassantRegion[sideToMove] & epSquare)
                   && (   !var->fastAttacks
                       || (var->enPassantTypes[sideToMove] & ~piece_set(PAWN))
                       || (   pawn_attacks_bb(~sideToMove, epSquare) & pieces(sideToMove, PAWN)
