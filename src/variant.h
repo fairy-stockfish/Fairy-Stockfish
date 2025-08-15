@@ -97,8 +97,7 @@ struct Variant {
   bool promotionZonePawnDrops = false;
   EnclosingRule enclosingDrop = NO_ENCLOSING;
   Bitboard enclosingDropStart = 0;
-  Bitboard whiteDropRegion = AllSquares;
-  Bitboard blackDropRegion = AllSquares;
+  Bitboard dropRegion[COLOR_NB] = {AllSquares, AllSquares};
   bool sittuyinRookDrop = false;
   bool dropOppositeColoredBishop = false;
   bool dropPromoted = false;

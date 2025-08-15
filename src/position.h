@@ -158,11 +158,9 @@ public:
   Square nnue_king_square(Color c) const;
   bool nnue_use_pockets() const;
   bool nnue_applicable() const;
-  // NNUE index helpers (variant-aware)
   int nnue_piece_square_index(Color perspective, Piece pc) const;
   int nnue_piece_hand_index(Color perspective, Piece pc) const;
   int nnue_king_square_index(Square ksq) const;
-  // Low-level flags/tables exposed to external modules (prefer these over pos.variant()->...)
   bool free_drops() const;
   bool fast_attacks() const;
   bool fast_attacks2() const;
@@ -702,7 +700,7 @@ inline EnclosingRule Position::enclosing_drop() const {
 
 inline Bitboard Position::drop_region(Color c) const {
   assert(var != nullptr);
-  return c == WHITE ? var->whiteDropRegion : var->blackDropRegion;
+  return var->dropRegion[c];
 }
 
 inline Bitboard Position::drop_region(Color c, PieceType pt) const {
@@ -1498,7 +1496,7 @@ inline const std::string Position::piece_to_partner() const {
   if (!st->capturedPiece) return std::string();
   Color color = color_of(st->capturedPiece);
   Piece piece = st->capturedpromoted ?
-  (st->unpromotedCapturedPiece ? st->unpromotedCapturedPiece : make_piece(color, main_promotion_pawn_type(color))) :
+      (st->unpromotedCapturedPiece ? st->unpromotedCapturedPiece : make_piece(color, main_promotion_pawn_type(color))) :
       st->capturedPiece;
   return std::string(1, piece_to_char()[piece]);
 }

@@ -689,8 +689,8 @@ namespace {
         v->mustDrop = true;
         v->pieceDrops = true;
         v->capturesToHand = false;
-        v->whiteDropRegion = Rank1BB;
-        v->blackDropRegion = Rank8BB;
+        v->dropRegion[WHITE] = Rank1BB;
+        v->dropRegion[BLACK] = Rank8BB;
         v->dropOppositeColoredBishop = true;
         v->castlingDroppedPiece = true;
         v->nnueAlias = "nn-";
@@ -708,8 +708,8 @@ namespace {
         v->mustDrop = true;
         v->pieceDrops = true;
         v->capturesToHand = false;
-        v->whiteDropRegion = Rank1BB | Rank2BB | Rank3BB;
-        v->blackDropRegion = Rank8BB | Rank7BB | Rank6BB;
+        v->dropRegion[WHITE] = Rank1BB | Rank2BB | Rank3BB;
+        v->dropRegion[BLACK] = Rank8BB | Rank7BB | Rank6BB;
         v->sittuyinRookDrop = true;
         v->sittuyinPromotion = true;
         v->promotionRegion[WHITE] = make_bitboard(SQ_A8, SQ_B7, SQ_C6, SQ_D5, SQ_E5, SQ_F6, SQ_G7, SQ_H8);
@@ -760,8 +760,8 @@ namespace {
         v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Dd] w KQkq - 0 1";
         v->pieceDrops = true;
         v->capturesToHand = false;
-        v->whiteDropRegion = Rank1BB;
-        v->blackDropRegion = Rank8BB;
+        v->dropRegion[WHITE] = Rank1BB;
+        v->dropRegion[BLACK] = Rank8BB;
         v->promotionPieceTypes[WHITE] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
         v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
@@ -1748,8 +1748,8 @@ namespace {
         v->twoBoards = true;
         v->pieceDrops = true;
         v->dropChecks = false;
-        v->whiteDropRegion = v->mobilityRegion[WHITE][ELEPHANT];
-        v->blackDropRegion = v->mobilityRegion[BLACK][ELEPHANT];
+        v->dropRegion[WHITE] = v->mobilityRegion[WHITE][ELEPHANT];
+        v->dropRegion[BLACK] = v->mobilityRegion[BLACK][ELEPHANT];
         v->mobilityRegion[WHITE][FERS] = make_bitboard(SQ_D1, SQ_F1, SQ_E2, SQ_D3, SQ_F3);
         v->mobilityRegion[BLACK][FERS] = make_bitboard(SQ_D8, SQ_F8, SQ_E9, SQ_D10, SQ_F10);
         v->mobilityRegion[WHITE][ELEPHANT] = make_bitboard(SQ_C1, SQ_G1, SQ_A3, SQ_E3, SQ_I3, SQ_C5, SQ_G5);

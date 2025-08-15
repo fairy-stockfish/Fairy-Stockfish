@@ -345,6 +345,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute<false>("blackFlag", v->flagRegion[BLACK]);
     parse_attribute<false>("castlingRookPiece", v->castlingRookPieces[WHITE], v->pieceToChar);
     parse_attribute<false>("castlingRookPiece", v->castlingRookPieces[BLACK], v->pieceToChar);
+    parse_attribute<false>("whiteDropRegion", v->dropRegion[WHITE]);
+    parse_attribute<false>("blackDropRegion", v->dropRegion[BLACK]);
 
     bool dropOnTop = false;
     parse_attribute<false>("dropOnTop", dropOnTop);
@@ -458,8 +460,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("promotionZonePawnDrops", v->promotionZonePawnDrops);
     parse_attribute("enclosingDrop", v->enclosingDrop);
     parse_attribute("enclosingDropStart", v->enclosingDropStart);
-    parse_attribute("whiteDropRegion", v->whiteDropRegion);
-    parse_attribute("blackDropRegion", v->blackDropRegion);
+    parse_attribute("dropRegionWhite", v->dropRegion[WHITE]);
+    parse_attribute("dropRegionBlack", v->dropRegion[BLACK]);
     parse_attribute("sittuyinRookDrop", v->sittuyinRookDrop);
     parse_attribute("dropOppositeColoredBishop", v->dropOppositeColoredBishop);
     parse_attribute("dropPromoted", v->dropPromoted);
