@@ -152,7 +152,7 @@ tests/                # Test scripts and data
 - [Chess Variants on Chess.com](https://www.chess.com/variants)
 
 ### Development Best Practices
-* Make sure to only stage and commit changes that are intended to be part of the task.
+* Make sure to only stage and commit changes that were changed as part of the task, do not simply add all changes.
 * Keep changes minimal and focused on the task at hand.
 * After applying changes make sure that all places related to the task have been identified.
 * Stay consistent with the existing code style and conventions.
