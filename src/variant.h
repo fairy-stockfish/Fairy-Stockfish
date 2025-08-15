@@ -52,6 +52,9 @@ struct Variant {
   std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   Bitboard mobilityRegion[COLOR_NB][PIECE_TYPE_NB] = {};
   Bitboard promotionRegion[COLOR_NB] = {Rank8BB, Rank1BB};
+  bool pieceSpecificPromotionRegion = false;
+  PieceTypeBitboardGroup whitePiecePromotionRegion;
+  PieceTypeBitboardGroup blackPiecePromotionRegion;
   PieceType promotionPawnType[COLOR_NB] = {PAWN, PAWN};
   PieceSet promotionPawnTypes[COLOR_NB] = {piece_set(PAWN), piece_set(PAWN)};
   PieceSet promotionPieceTypes[COLOR_NB] = {piece_set(QUEEN) | ROOK | BISHOP | KNIGHT,
@@ -71,6 +74,12 @@ struct Variant {
   bool doubleStep = true;
   Bitboard doubleStepRegion[COLOR_NB] = {Rank2BB, Rank7BB};
   Bitboard tripleStepRegion[COLOR_NB] = {};
+  bool pieceSpecificDoubleStepRegion = false;
+  PieceTypeBitboardGroup whitePieceDoubleStepRegion;
+  PieceTypeBitboardGroup blackPieceDoubleStepRegion;
+  bool pieceSpecificTripleStepRegion = false;
+  PieceTypeBitboardGroup whitePieceTripleStepRegion;
+  PieceTypeBitboardGroup blackPieceTripleStepRegion;
   Bitboard enPassantRegion = AllSquares;
   PieceSet enPassantTypes[COLOR_NB] = {piece_set(PAWN), piece_set(PAWN)};
   bool castling = true;
@@ -99,6 +108,9 @@ struct Variant {
   Bitboard enclosingDropStart = 0;
   Bitboard whiteDropRegion = AllSquares;
   Bitboard blackDropRegion = AllSquares;
+  bool pieceSpecificDropRegion = false;
+  PieceTypeBitboardGroup whitePieceDropRegion;
+  PieceTypeBitboardGroup blackPieceDropRegion;
   bool sittuyinRookDrop = false;
   bool dropOppositeColoredBishop = false;
   bool dropPromoted = false;
