@@ -1119,7 +1119,7 @@ inline bool Position::connect_diagonal() const {
 
 inline const std::vector<Direction>& Position::getConnectDirections() const {
     assert(var != nullptr);
-    return var->connect_directions;
+    return var->connectDirections;
 }
 
 inline int Position::connect_nxn() const {

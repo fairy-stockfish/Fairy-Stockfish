@@ -2091,19 +2091,19 @@ Variant* Variant::conclude() {
             break;
         }
 
-    connect_directions.clear();
+    connectDirections.clear();
     if (connectHorizontal)
     {
-        connect_directions.push_back(EAST);
+        connectDirections.push_back(EAST);
     }
     if (connectVertical)
     {
-        connect_directions.push_back(NORTH);
+        connectDirections.push_back(NORTH);
     }
     if (connectDiagonal)
     {
-        connect_directions.push_back(NORTH_EAST);
-        connect_directions.push_back(SOUTH_EAST);
+        connectDirections.push_back(NORTH_EAST);
+        connectDirections.push_back(SOUTH_EAST);
     }
 
     // If not a connect variant, set connectPieceTypesTrimmed to no pieces.

@@ -2818,7 +2818,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   {
       Bitboard b;
 
-      for (Direction d : var->connect_directions)
+      for (Direction d : var->connectDirections)
       {
           b = connectPieces;
           for (int i = 1; i < connect_n() && b; i++)
@@ -2838,7 +2838,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
 
       while (true) {
           Bitboard newBitboard = 0;
-          for (Direction d : var->connect_directions) {
+          for (Direction d : var->connectDirections) {
               newBitboard |= shift(d, current | newBitboard) & connectPieces; // the "| newBitboard" here probably saves a few loops
           }
 
@@ -2872,7 +2872,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   // Collinear-n
   if (collinear_n() > 0) {
       Bitboard allPieces = connectPieces;
-      for (Direction d : var->connect_directions) {
+      for (Direction d : var->connectDirections) {
           Bitboard b = allPieces;
           while (b) {
               Square s = pop_lsb(b);
