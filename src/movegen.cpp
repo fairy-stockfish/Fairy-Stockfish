@@ -30,7 +30,7 @@ namespace {
 
     // Wall placing moves
     //if it's "wall or move", and they chose non-null move, skip even generating wall move
-    if (pos.walling() && !(pos.variant()->wallOrMove && (from!=to)))
+    if (pos.walling() && !(pos.wall_or_move() && (from!=to)))
     {
         Bitboard b = pos.board_bb() & ~((pos.pieces() ^ from) | to);
         if (T == CASTLING)
@@ -47,7 +47,7 @@ namespace {
             b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
 
         //Any current or future wall variant must follow the walling region rule if set:
-        b &= pos.variant()->wallingRegion[us];
+    b &= pos.walling_region(us);
 
         if (pos.walling_rule() == PAST)
             b &= square_bb(from);
@@ -275,7 +275,7 @@ namespace {
             Bitboard b = pawns & pawn_attacks_bb(Them, epSquare);
 
             // En passant square is already disabled for non-fairy variants if there is no attacker
-            assert(b || !pos.variant()->fastAttacks);
+            assert(b || !pos.fast_attacks());
 
             while (b)
                 moveList = make_move_and_gating<EN_PASSANT>(pos, moveList, Us, pop_lsb(b), epSquare);
@@ -306,8 +306,8 @@ namespace {
         PieceType promPt = pos.promoted_piece_type(Pt);
         Bitboard b2 = promPt && (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt)) ? b1 : Bitboard(0);
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
-        Bitboard pawnPromotions = pos.variant()->promotionPawnTypes[Us] & Pt ? b & (Type == EVASIONS ? target : ~pos.pieces(Us)) & promotion_zone : Bitboard(0);
-        Bitboard epSquares = pos.variant()->enPassantTypes[Us] & Pt ? attacks & ~quiets & pos.ep_squares() & ~pos.pieces() : Bitboard(0);
+    Bitboard pawnPromotions = (pos.promotion_pawn_types_set(Us) & Pt) ? (b & (Type == EVASIONS ? target : ~pos.pieces(Us)) & promotion_zone) : Bitboard(0);
+    Bitboard epSquares = (pos.en_passant_types(Us) & Pt) ? (attacks & ~quiets & pos.ep_squares() & ~pos.pieces()) : Bitboard(0);
 
         // target squares considering pawn promotions
         if (pawnPromotions && pos.mandatory_pawn_promotion())
@@ -446,7 +446,7 @@ namespace {
             *moveList++ = make<SPECIAL>(lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
 
         //if "wall or move", generate walling action with null move
-        if (pos.variant()->wallOrMove)
+    if (pos.wall_or_move())
         {
             moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
         }

@@ -158,6 +158,14 @@ public:
   Square nnue_king_square(Color c) const;
   bool nnue_use_pockets() const;
   bool nnue_applicable() const;
+  // NNUE index helpers (variant-aware)
+  int nnue_piece_square_index(Color perspective, Piece pc) const;
+  int nnue_piece_hand_index(Color perspective, Piece pc) const;
+  int nnue_king_square_index(Square ksq) const;
+  // Low-level flags/tables exposed to external modules (prefer these over pos.variant()->...)
+  bool free_drops() const;
+  bool fast_attacks() const;
+  bool fast_attacks2() const;
   bool checking_permitted() const;
   bool drop_checks() const;
   bool must_capture() const;
@@ -175,10 +183,14 @@ public:
   bool drop_opposite_colored_bishop() const;
   bool drop_promoted() const;
   PieceType drop_no_doubled() const;
+  PieceSet promotion_pawn_types_set(Color c) const;
+  PieceSet en_passant_types(Color c) const;
   bool immobility_illegal() const;
   bool gating() const;
   bool walling() const;
   WallingRule walling_rule() const;
+  bool wall_or_move() const;
+  Bitboard walling_region(Color c) const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
@@ -587,9 +599,39 @@ inline bool Position::nnue_applicable() const {
   return (!count_in_hand(ALL_PIECES) || nnue_use_pockets() || !must_drop()) && !virtualPieces;
 }
 
+inline int Position::nnue_piece_square_index(Color perspective, Piece pc) const {
+  assert(var != nullptr);
+  return var->pieceSquareIndex[perspective][pc];
+}
+
+inline int Position::nnue_piece_hand_index(Color perspective, Piece pc) const {
+  assert(var != nullptr);
+  return var->pieceHandIndex[perspective][pc];
+}
+
+inline int Position::nnue_king_square_index(Square ksq) const {
+  assert(var != nullptr);
+  return var->kingSquareIndex[ksq];
+}
+
 inline bool Position::checking_permitted() const {
   assert(var != nullptr);
   return var->checking;
+}
+
+inline bool Position::free_drops() const {
+  assert(var != nullptr);
+  return var->freeDrops;
+}
+
+inline bool Position::fast_attacks() const {
+  assert(var != nullptr);
+  return var->fastAttacks;
+}
+
+inline bool Position::fast_attacks2() const {
+  assert(var != nullptr);
+  return var->fastAttacks2;
 }
 
 inline bool Position::drop_checks() const {
@@ -781,6 +823,16 @@ inline PieceType Position::drop_no_doubled() const {
   return var->dropNoDoubled;
 }
 
+inline PieceSet Position::promotion_pawn_types_set(Color c) const {
+  assert(var != nullptr);
+  return var->promotionPawnTypes[c];
+}
+
+inline PieceSet Position::en_passant_types(Color c) const {
+  assert(var != nullptr);
+  return var->enPassantTypes[c];
+}
+
 inline bool Position::immobility_illegal() const {
   assert(var != nullptr);
   return var->immobilityIllegal;
@@ -799,6 +851,16 @@ inline bool Position::walling() const {
 inline WallingRule Position::walling_rule() const {
   assert(var != nullptr);
   return var->wallingRule;
+}
+
+inline bool Position::wall_or_move() const {
+  assert(var != nullptr);
+  return var->wallOrMove;
+}
+
+inline Bitboard Position::walling_region(Color c) const {
+  assert(var != nullptr);
+  return var->wallingRegion[c];
 }
 
 inline bool Position::seirawan_gating() const {

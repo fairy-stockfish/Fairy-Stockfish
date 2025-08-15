@@ -1074,7 +1074,7 @@ namespace {
     }
 
     // Passed custom pawns
-    for (PieceSet ps = pos.variant()->promotionPawnTypes[Us] & ~piece_set(PAWN); ps;)
+    for (PieceSet ps = (pos.promotion_pawn_types_set(Us) & ~piece_set(PAWN)); ps;)
     {
         PieceType pt = pop_lsb(ps);
         Bitboard b2 = pos.pieces(Us, pt);

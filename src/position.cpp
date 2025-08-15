@@ -76,7 +76,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
               os << " *";
           else
               os << "  ";
-          if (!pos.variant()->freeDrops && (pos.piece_drops() || pos.seirawan_gating()))
+          if (!pos.free_drops() && (pos.piece_drops() || pos.seirawan_gating()))
           {
               os << " [";
               for (PieceType pt = KING; pt >= PAWN; --pt)
@@ -746,7 +746,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   }
 
   // pieces in hand
-  if (!variant()->freeDrops && (piece_drops() || seirawan_gating()))
+    if (!free_drops() && (piece_drops() || seirawan_gating()))
   {
       ss << '[';
       if (holdings != "-")
