@@ -130,7 +130,7 @@ public:
   const std::string& piece_to_char_synonyms() const;
   Bitboard promotion_zone(Color c) const;
   Square promotion_square(Color c, Square s) const;
-  PieceType promotion_pawn_type(Color c) const;
+  PieceType main_promotion_pawn_type(Color c) const;
   PieceSet promotion_piece_types(Color c) const;
   bool sittuyin_promotion() const;
   int promotion_limit(PieceType pt) const;
@@ -183,7 +183,7 @@ public:
   bool drop_opposite_colored_bishop() const;
   bool drop_promoted() const;
   PieceType drop_no_doubled() const;
-  PieceSet promotion_pawn_types_set(Color c) const;
+  PieceSet promotion_pawn_types(Color c) const;
   PieceSet en_passant_types(Color c) const;
   bool immobility_illegal() const;
   bool gating() const;
@@ -460,9 +460,9 @@ inline Square Position::promotion_square(Color c, Square s) const {
   return !b ? SQ_NONE : c == WHITE ? lsb(b) : msb(b);
 }
 
-inline PieceType Position::promotion_pawn_type(Color c) const {
+inline PieceType Position::main_promotion_pawn_type(Color c) const {
   assert(var != nullptr);
-  return var->promotionPawnType[c];
+  return var->mainPromotionPawnType[c];
 }
 
 inline PieceSet Position::promotion_piece_types(Color c) const {
@@ -823,7 +823,7 @@ inline PieceType Position::drop_no_doubled() const {
   return var->dropNoDoubled;
 }
 
-inline PieceSet Position::promotion_pawn_types_set(Color c) const {
+inline PieceSet Position::promotion_pawn_types(Color c) const {
   assert(var != nullptr);
   return var->promotionPawnTypes[c];
 }
@@ -1498,7 +1498,7 @@ inline const std::string Position::piece_to_partner() const {
   if (!st->capturedPiece) return std::string();
   Color color = color_of(st->capturedPiece);
   Piece piece = st->capturedpromoted ?
-      (st->unpromotedCapturedPiece ? st->unpromotedCapturedPiece : make_piece(color, promotion_pawn_type(color))) :
+  (st->unpromotedCapturedPiece ? st->unpromotedCapturedPiece : make_piece(color, main_promotion_pawn_type(color))) :
       st->capturedPiece;
   return std::string(1, piece_to_char()[piece]);
 }

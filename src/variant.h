@@ -52,7 +52,7 @@ struct Variant {
   std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   Bitboard mobilityRegion[COLOR_NB][PIECE_TYPE_NB] = {};
   Bitboard promotionRegion[COLOR_NB] = {Rank8BB, Rank1BB};
-  PieceType promotionPawnType[COLOR_NB] = {PAWN, PAWN};
+  PieceType mainPromotionPawnType[COLOR_NB] = {PAWN, PAWN};
   PieceSet promotionPawnTypes[COLOR_NB] = {piece_set(PAWN), piece_set(PAWN)};
   PieceSet promotionPieceTypes[COLOR_NB] = {piece_set(QUEEN) | ROOK | BISHOP | KNIGHT,
                                             piece_set(QUEEN) | ROOK | BISHOP | KNIGHT};

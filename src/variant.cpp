@@ -86,7 +86,7 @@ namespace {
         Variant* v = chess_variant_base()->init();
         v->remove_piece(PAWN);
         v->add_piece(CUSTOM_PIECE_1, 'p', "mfFcfeWimfnA");
-        v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECE_1;
+    v->mainPromotionPawnType[WHITE] = v->mainPromotionPawnType[BLACK] = CUSTOM_PIECE_1;
         v->promotionPawnTypes[WHITE] = v->promotionPawnTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->enPassantTypes[WHITE] = v->enPassantTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->nMoveRuleTypes[WHITE] = v->nMoveRuleTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
@@ -98,7 +98,7 @@ namespace {
         Variant* v = chess_variant_base()->init();
         v->remove_piece(PAWN);
         v->add_piece(CUSTOM_PIECE_1, 'p', "fsmWfceFifmnD");
-        v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECE_1;
+    v->mainPromotionPawnType[WHITE] = v->mainPromotionPawnType[BLACK] = CUSTOM_PIECE_1;
         v->promotionPawnTypes[WHITE] = v->promotionPawnTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->enPassantTypes[WHITE] = v->enPassantTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->nMoveRuleTypes[WHITE] = v->nMoveRuleTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
@@ -112,7 +112,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'p', "fbmWfceFifmnD");
         v->mobilityRegion[WHITE][CUSTOM_PIECE_1] = (Rank2BB | Rank3BB | Rank4BB | Rank5BB | Rank6BB | Rank7BB | Rank8BB);
         v->mobilityRegion[BLACK][CUSTOM_PIECE_1] = (Rank7BB | Rank6BB | Rank5BB | Rank4BB | Rank3BB | Rank2BB | Rank1BB);
-        v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECE_1;
+    v->mainPromotionPawnType[WHITE] = v->mainPromotionPawnType[BLACK] = CUSTOM_PIECE_1;
         v->promotionPawnTypes[WHITE] = v->promotionPawnTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->enPassantTypes[WHITE] = v->enPassantTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->nMoveRuleTypes[WHITE] = v->nMoveRuleTypes[BLACK] = NO_PIECE_SET; // backwards pawn moves are reversible
@@ -126,7 +126,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_1, 'p', "mflFcflW");
         v->promotionRegion[WHITE] = make_bitboard(SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_A7, SQ_A6, SQ_A5);
         v->promotionRegion[BLACK] = make_bitboard(SQ_E1, SQ_F1, SQ_G1, SQ_H1, SQ_H2, SQ_H3, SQ_H4);
-        v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = CUSTOM_PIECE_1;
+    v->mainPromotionPawnType[WHITE] = v->mainPromotionPawnType[BLACK] = CUSTOM_PIECE_1;
         v->promotionPawnTypes[WHITE] = v->promotionPawnTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->nMoveRuleTypes[WHITE] = v->nMoveRuleTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->startFen = "knbrp3/bqpp4/npp5/rp1p3P/p3P1PR/5PPN/4PPQB/3PRBNK w - - 0 1";
@@ -1068,7 +1068,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_2, 'l', "FAsmW");
         v->add_piece(CUSTOM_PIECE_3, 'c', "WD");
         v->startFen = "lgkcckwl/hhhhhhhh/8/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1";
-        v->promotionPawnType[BLACK] = CUSTOM_PIECE_1;
+    v->mainPromotionPawnType[BLACK] = CUSTOM_PIECE_1;
         v->promotionPawnTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->nMoveRuleTypes[BLACK] = piece_set(CUSTOM_PIECE_1);
         v->promotionPieceTypes[BLACK] = piece_set(COMMONER) | DRAGON | ARCHBISHOP | CUSTOM_PIECE_2 | CUSTOM_PIECE_3;
@@ -1628,7 +1628,7 @@ namespace {
         v->add_piece(CUSTOM_PIECE_2, 'n', "NN"); // nightrider
         v->add_piece(CUSTOM_PIECE_3, 'e', "NNQ"); // elephant
         v->startFen = "qwfrbbnk/pssppssp/1pp2pp1/8/8/8/8/1PP2PP1/PSSPPSSP/KNBBRFWQ w - - 0 1";
-        v->promotionPawnType[WHITE] = v->promotionPawnType[BLACK] = PAWN;
+    v->mainPromotionPawnType[WHITE] = v->mainPromotionPawnType[BLACK] = PAWN;
         v->promotionPawnTypes[WHITE] = v->promotionPawnTypes[BLACK] = piece_set(PAWN) | piece_set(CUSTOM_PIECE_1);
         v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | CHANCELLOR | ARCHBISHOP | ROOK | BISHOP;
         v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | CHANCELLOR | ARCHBISHOP | ROOK | BISHOP;

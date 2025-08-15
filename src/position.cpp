@@ -1637,7 +1637,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
                              : unpromotedCaptured ? ~unpromotedCaptured
-                                                  : make_piece(~color_of(captured), promotion_pawn_type(color_of(captured)));
+                                                  : make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)));
           add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
@@ -2187,7 +2187,7 @@ void Position::undo_move(Move m) {
       assert((promotion_zone(us) & to) || sittuyin_promotion());
       assert(type_of(pc) == promotion_type(m));
       assert(type_of(pc) >= KNIGHT && type_of(pc) < KING);
-      assert(type_of(st->promotionPawn) == promotion_pawn_type(us) || !captures_to_hand());
+    assert(type_of(st->promotionPawn) == main_promotion_pawn_type(us) || !captures_to_hand());
 
       remove_piece(to);
       pc = st->promotionPawn;
@@ -2236,7 +2236,7 @@ void Position::undo_move(Move m) {
           put_piece(st->capturedPiece, capsq, st->capturedpromoted, st->unpromotedCapturedPiece); // Restore the captured piece
           if (captures_to_hand())
               remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
-                                                                                                   : make_piece(~color_of(st->capturedPiece), promotion_pawn_type(us)))
+                                                                                                   : make_piece(~color_of(st->capturedPiece), main_promotion_pawn_type(us)))
                                                                     : ~st->capturedPiece);
       }
   }
@@ -2361,7 +2361,7 @@ Key Position::key_after(Move m) const {
       k ^= Zobrist::psq[captured][to];
       if (captures_to_hand())
       {
-          Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), promotion_pawn_type(color_of(captured))) : ~captured;
+          Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured))) : ~captured;
           k ^= Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)] + 1]
               ^ Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)]];
       }

@@ -351,8 +351,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     if (dropOnTop) v->enclosingDrop=TOP;
 
     // Parse aliases
-    parse_attribute("pawnTypes", v->promotionPawnType[WHITE], v->pieceToChar);
-    parse_attribute("pawnTypes", v->promotionPawnType[BLACK], v->pieceToChar);
+    parse_attribute("pawnTypes", v->mainPromotionPawnType[WHITE], v->pieceToChar);
+    parse_attribute("pawnTypes", v->mainPromotionPawnType[BLACK], v->pieceToChar);
     parse_attribute("pawnTypes", v->promotionPawnTypes[WHITE], v->pieceToChar);
     parse_attribute("pawnTypes", v->promotionPawnTypes[BLACK], v->pieceToChar);
     parse_attribute("pawnTypes", v->enPassantTypes[WHITE], v->pieceToChar);
@@ -370,12 +370,12 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("promotionRegionWhite", v->promotionRegion[WHITE]);
     parse_attribute("promotionRegionBlack", v->promotionRegion[BLACK]);
     // Take the first promotionPawnTypes as the main promotionPawnType
-    parse_attribute("promotionPawnTypes", v->promotionPawnType[WHITE], v->pieceToChar);
-    parse_attribute("promotionPawnTypes", v->promotionPawnType[BLACK], v->pieceToChar);
+    parse_attribute("promotionPawnTypes", v->mainPromotionPawnType[WHITE], v->pieceToChar);
+    parse_attribute("promotionPawnTypes", v->mainPromotionPawnType[BLACK], v->pieceToChar);
     parse_attribute("promotionPawnTypes", v->promotionPawnTypes[WHITE], v->pieceToChar);
     parse_attribute("promotionPawnTypes", v->promotionPawnTypes[BLACK], v->pieceToChar);
-    parse_attribute("promotionPawnTypesWhite", v->promotionPawnType[WHITE], v->pieceToChar);
-    parse_attribute("promotionPawnTypesBlack", v->promotionPawnType[BLACK], v->pieceToChar);
+    parse_attribute("promotionPawnTypesWhite", v->mainPromotionPawnType[WHITE], v->pieceToChar);
+    parse_attribute("promotionPawnTypesBlack", v->mainPromotionPawnType[BLACK], v->pieceToChar);
     parse_attribute("promotionPawnTypesWhite", v->promotionPawnTypes[WHITE], v->pieceToChar);
     parse_attribute("promotionPawnTypesBlack", v->promotionPawnTypes[BLACK], v->pieceToChar);
     parse_attribute("promotionPieceTypes", v->promotionPieceTypes[WHITE], v->pieceToChar);
