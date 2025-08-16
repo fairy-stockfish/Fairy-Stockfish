@@ -161,6 +161,8 @@ public:
   int nnue_piece_square_index(Color perspective, Piece pc) const;
   int nnue_piece_hand_index(Color perspective, Piece pc) const;
   int nnue_king_square_index(Square ksq) const;
+  std::string variant_template() const;
+  ChasingRule chasing_rule() const;
   bool free_drops() const;
   bool fast_attacks() const;
   bool fast_attacks2() const;
@@ -391,6 +393,7 @@ private:
 };
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
+extern std::ostream& print_board_diagram(std::ostream& os, const Position& pos);
 
 inline const Variant* Position::variant() const {
   assert(var != nullptr);
@@ -615,6 +618,16 @@ inline int Position::nnue_king_square_index(Square ksq) const {
 inline bool Position::checking_permitted() const {
   assert(var != nullptr);
   return var->checking;
+}
+
+inline std::string Position::variant_template() const {
+  assert(var != nullptr);
+  return var->variantTemplate;
+}
+
+inline ChasingRule Position::chasing_rule() const {
+  assert(var != nullptr);
+  return var->chasingRule;
 }
 
 inline bool Position::free_drops() const {

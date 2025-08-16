@@ -53,6 +53,50 @@ namespace Zobrist {
 
 std::ostream& operator<<(std::ostream& os, const Position& pos) {
 
+  // Use the board diagram function
+  print_board_diagram(os, pos);
+  
+  // Add technical information
+  os << "\nFen: " << pos.fen();
+  if (pos.variant_template() == "shogi")
+      os << "\nSfen: " << pos.fen(true);
+  os << "\nKey: " << std::hex << std::uppercase
+     << std::setfill('0') << std::setw(16) << pos.key()
+     << std::setfill(' ') << std::dec << "\nCheckers: ";
+
+  for (Bitboard b = pos.checkers(); b; )
+      os << UCI::square(pos, pop_lsb(b)) << " ";
+
+  if (pos.chasing_rule() != NO_CHASING)
+  {
+      os << "\nChased: ";
+      for (Bitboard b = pos.state()->chased; b; )
+          os << UCI::square(pos, pop_lsb(b)) << " ";
+  }
+
+  if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
+      && Options["UCI_Variant"] == "chess"
+      && !pos.can_castle(ANY_CASTLING))
+  {
+      StateInfo st;
+      ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
+
+      Position p;
+      p.set(pos.variant(), pos.fen(), pos.is_chess960(), &st, pos.this_thread());
+      Tablebases::ProbeState s1, s2;
+      Tablebases::WDLScore wdl = Tablebases::probe_wdl(p, &s1);
+      int dtz = Tablebases::probe_dtz(p, &s2);
+      os << "\nTablebases WDL: " << std::setw(4) << wdl << " (" << s1 << ")"
+         << "\nTablebases DTZ: " << std::setw(4) << dtz << " (" << s2 << ")";
+  }
+
+  return os;
+}
+
+/// print_board_diagram(Position) returns just the board diagram without technical info
+
+std::ostream& print_board_diagram(std::ostream& os, const Position& pos) {
+
   os << "\n ";
   for (File f = FILE_A; f <= pos.max_file(); ++f)
       os << "+---";
@@ -93,32 +137,6 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
   for (File f = FILE_A; f <= pos.max_file(); ++f)
       os << "   " << char('a' + f);
   os << "\n";
-  os << "\nFen: " << pos.fen() << "\nSfen: " << pos.fen(true) << "\nKey: " << std::hex << std::uppercase
-     << std::setfill('0') << std::setw(16) << pos.key()
-     << std::setfill(' ') << std::dec << "\nCheckers: ";
-
-  for (Bitboard b = pos.checkers(); b; )
-      os << UCI::square(pos, pop_lsb(b)) << " ";
-
-  os << "\nChased: ";
-  for (Bitboard b = pos.state()->chased; b; )
-      os << UCI::square(pos, pop_lsb(b)) << " ";
-
-  if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
-      && Options["UCI_Variant"] == "chess"
-      && !pos.can_castle(ANY_CASTLING))
-  {
-      StateInfo st;
-      ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
-
-      Position p;
-      p.set(pos.variant(), pos.fen(), pos.is_chess960(), &st, pos.this_thread());
-      Tablebases::ProbeState s1, s2;
-      Tablebases::WDLScore wdl = Tablebases::probe_wdl(p, &s1);
-      int dtz = Tablebases::probe_dtz(p, &s2);
-      os << "\nTablebases WDL: " << std::setw(4) << wdl << " (" << s1 << ")"
-         << "\nTablebases DTZ: " << std::setw(4) << dtz << " (" << s2 << ")";
-  }
 
   return os;
 }

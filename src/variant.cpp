@@ -2237,21 +2237,235 @@ std::ostream& operator<<(std::ostream& os, const VariantMap::iterator& variantIt
 
     os << variantName << " is a chess variant played on a board of " << v->maxFile + 1 << " x " << v->maxRank + 1 << " squares." << std::endl;
 
-    // diagram
-    os << pos << std::endl << std::endl;
+    // Count different piece types using bit manipulation
+    int pieceTypeCount = 0;
+    uint64_t pieceTypeBits = v->pieceTypes;
+    while (pieceTypeBits) {
+        pieceTypeCount++;
+        pieceTypeBits &= pieceTypeBits - 1; // Clear least significant bit
+    }
+    
+    os << "The variant uses " << pieceTypeCount << " different piece types." << std::endl;
+    
+    // Chess960 mode
+    if (v->chess960)
+        os << "It is using a randomized starting position." << std::endl;
 
+    os << std::endl;
+
+    // diagram
+    os << "Initial board setup:" << std::endl;
+    print_board_diagram(os, pos);
+    os << std::endl << std::endl;
+
+    // Movement rules section
+    bool hasMovementRules = false;
+    os << "# Movement rules" << std::endl << std::endl;
+    
+    // Pawn double step
+    if (!v->doubleStep) {
+        os << "Pawns cannot make double steps." << std::endl;
+        hasMovementRules = true;
+    }
+        
+    // Castling
+    if (!v->castling) {
+        os << "Castling is not allowed." << std::endl;
+        hasMovementRules = true;
+    } else if (v->castlingDroppedPiece) {
+        os << "Castling is allowed even with dropped pieces." << std::endl;
+        hasMovementRules = true;
+    }
+        
+    // Checking
+    if (!v->checking) {
+        os << "Checks are not allowed in this variant." << std::endl;
+        hasMovementRules = true;
+    }
+        
+    // Mandatory moves
+    if (v->mustCapture) {
+        os << "Captures are mandatory when available (except for check evasion)." << std::endl;
+        hasMovementRules = true;
+    }
+    if (v->mustDrop) {
+        os << "Piece drops are mandatory when possible." << std::endl;
+        hasMovementRules = true;
+    }
+    
+    if (!hasMovementRules)
+        os << "Standard chess movement rules apply." << std::endl;
+        
+    os << std::endl;
+
+    // Piece handling rules section
+    bool hasPieceHandling = false;
+    os << "# Piece handling" << std::endl << std::endl;
+    
+    // Piece drops
+    if (v->pieceDrops) {
+        os << "Piece drops are allowed";
+        if (v->pocketSize > 0)
+            os << " (pocket size: " << v->pocketSize << ")";
+        os << "." << std::endl;
+        hasPieceHandling = true;
+        
+        if (v->capturesToHand) {
+            os << "Captured pieces go to the opponent's hand and can be dropped." << std::endl;
+        }
+        if (!v->firstRankPawnDrops) {
+            os << "Pawns cannot be dropped on the first rank." << std::endl;
+        }
+        if (!v->promotionZonePawnDrops) {
+            os << "Pawns cannot be dropped in the promotion zone." << std::endl;
+        }
+    }
+    
+    // Gating
+    if (v->gating) {
+        os << "Gating is allowed (pieces can be placed behind moving pieces)." << std::endl;
+        hasPieceHandling = true;
+    }
+    if (v->seirawanGating) {
+        os << "Seirawan-style gating is enabled." << std::endl;
+        hasPieceHandling = true;
+    }
+    
+    if (!hasPieceHandling)
+        os << "Standard piece handling rules apply." << std::endl;
+        
+    os << std::endl;
+
+    // Promotion rules section
+    bool hasPromotionRules = false;
+    os << "# Promotion" << std::endl << std::endl;
+    
+    if (!v->mandatoryPawnPromotion) {
+        os << "Pawn promotion is optional." << std::endl;
+        hasPromotionRules = true;
+    }
+    if (v->mandatoryPiecePromotion) {
+        os << "Piece promotion is mandatory when possible." << std::endl;
+        hasPromotionRules = true;
+    }
+    if (v->pieceDemotion) {
+        os << "Piece demotion is allowed." << std::endl;
+        hasPromotionRules = true;
+    }
+    if (v->piecePromotionOnCapture) {
+        os << "Pieces promote upon capturing." << std::endl;
+        hasPromotionRules = true;
+    }
+    if (v->sittuyinPromotion) {
+        os << "Sittuyin-style promotion rules apply." << std::endl;
+        hasPromotionRules = true;
+    }
+    
+    if (!hasPromotionRules)
+        os << "Standard promotion rules apply." << std::endl;
+        
+    os << std::endl;
+
+    // Special rules section
+    bool hasSpecialRules = false;
+    os << "# Special rules" << std::endl << std::endl;
+    
+    // Blast rules
+    if (v->blastOnCapture) {
+        os << "Pieces explode when captured, destroying adjacent pieces." << std::endl;
+        hasSpecialRules = true;
+    }
+    
+    // Pass moves
+    if (v->pass[WHITE] || v->pass[BLACK]) {
+        os << "Pass moves are allowed";
+        if (v->pass[WHITE] && v->pass[BLACK])
+            os << " for both sides";
+        else if (v->pass[WHITE])
+            os << " for White";
+        else
+            os << " for Black";
+        os << "." << std::endl;
+        hasSpecialRules = true;
+    }
+    
+    // Flying general
+    if (v->flyingGeneral) {
+        os << "Flying general rule: opposing kings/generals cannot face each other." << std::endl;
+        hasSpecialRules = true;
+    }
+    
+    // Bikjang rule
+    if (v->bikjangRule) {
+        os << "Bikjang rule: kings/generals cannot face each other for more than one move." << std::endl;
+        hasSpecialRules = true;
+    }
+    
+    // Makpong rule
+    if (v->makpongRule) {
+        os << "Makpong rule: repetition of moves leads to a loss." << std::endl;
+        hasSpecialRules = true;
+    }
+    
+    // Cambodian moves
+    if (v->cambodianMoves) {
+        os << "Cambodian movement rules apply." << std::endl;
+        hasSpecialRules = true;
+    }
+    
+    if (!hasSpecialRules)
+        os << "No special rules apply." << std::endl;
+        
+    os << std::endl;
+
+    // Game end conditions
     os << "# Game end" << std::endl << std::endl;
+    
     // checkmate
-    if (v->checking && (v->pieceTypes & KING))
+    if (v->checking && (v->pieceTypes & KING)) {
         os << "Checkmating the opponent's king leads to a "
-           << value_to_result(-v->checkmateValue)
-           << " for the the player who delivered the checkmate." << std::endl << std::endl;
+           << value_to_result(-v->checkmateValue);
+        if (-v->checkmateValue != VALUE_DRAW)
+            os << " for the the player who delivered the checkmate";
+        os << "." << std::endl;
+    }
 
     // stalemate
-    os << "Stalemate is adjudicated as a " << value_to_result(v->stalemateValue) << " for player who can not move." << std::endl;
-
-    // TODO: implement more options
-
+    os << "Stalemate is adjudicated as a " << value_to_result(v->stalemateValue);
+    if (v->stalemateValue != VALUE_DRAW)
+        os << " for player who can not move";
+    os << "." << std::endl;
+    
+    // Extinction rules
+    if (v->extinctionValue != VALUE_NONE) {
+        os << "Extinction rule: losing all pieces of certain types results in a "
+           << value_to_result(v->extinctionValue) << "." << std::endl;
+    }
+    
+    // Flag rules
+    if (v->flagPiece[WHITE] != ALL_PIECES || v->flagPiece[BLACK] != ALL_PIECES) {
+        os << "Flag rule: reaching the flag region with specific pieces wins the game." << std::endl;
+    }
+    
+    // Connect rules
+    if (v->connectN > 0) {
+        os << "Connect-" << v->connectN << " rule: connecting " << v->connectN 
+           << " pieces in a row wins the game." << std::endl;
+    }
+    
+    // Check counting
+    if (v->checkCounting) {
+        os << "Check counting: accumulating checks can lead to victory." << std::endl;
+    }
+    
+    // Move repetition and n-move rule
+    if (v->nMoveRule != 0) {
+        os << "Draw after " << v->nMoveRule << " moves without pawn move or capture." << std::endl;
+    }
+    if (v->nFoldRule != 0) {
+        os << "Draw by " << v->nFoldRule << "-fold repetition." << std::endl;
+    }
+    
     return os;
 }
 
