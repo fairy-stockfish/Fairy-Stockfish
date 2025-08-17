@@ -3214,8 +3214,17 @@ void Position::flip() {
   ss >> token; // Castling availability
   f += token + " ";
 
+  // Convert piece characters to opposite colors instead of just flipping case
   std::transform(f.begin(), f.end(), f.begin(),
-                 [](char c) { return char(islower(c) ? toupper(c) : tolower(c)); });
+                 [this](char c) { 
+                     size_t idx = piece_to_char().find(c);
+                     if (idx != std::string::npos) {
+                         Piece pc = Piece(idx);
+                         return piece_to_char()[make_piece(~color_of(pc), type_of(pc))];
+                     }
+                     // For non-piece characters (numbers, spaces, etc.), flip case as before
+                     return char(islower(c) ? toupper(c) : tolower(c));
+                 });
 
   ss >> token; // En passant square
   f += (token == "-" ? token : token.replace(1, 1, token[1] == '3' ? "6" : "3"));
