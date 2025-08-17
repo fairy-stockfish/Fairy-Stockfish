@@ -357,7 +357,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       while ((ss >> token) && !isspace(token))
       {
           Square rsq;
-          Color c = var->char_color(token);
+          Color c = islower(token) ? BLACK : WHITE;
 
           token = char(toupper(token));
 

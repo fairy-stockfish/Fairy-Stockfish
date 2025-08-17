@@ -311,8 +311,8 @@ void init(const Variant* v) {
       {
           if (token == '/')
               --rc;
-          else if (token == v->pieceToChar[make_piece(WHITE, PAWN)] || token == v->pieceToChar[make_piece(BLACK, PAWN)] || 
-                   token == v->pieceToChar[make_piece(WHITE, SHOGI_PAWN)] || token == v->pieceToChar[make_piece(BLACK, SHOGI_PAWN)])
+          else if (token == v->pieceToChar[make_piece(WHITE, PAWN)] || 
+                   token == v->pieceToChar[make_piece(WHITE, SHOGI_PAWN)])
               pawnRank = rc;
       }
 
