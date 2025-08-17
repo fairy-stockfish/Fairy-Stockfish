@@ -236,18 +236,6 @@ struct Variant {
       return idx != std::string::npos ? type_of(Piece(idx)) : NO_PIECE_TYPE;
   }
 
-  // Find piece type character by searching both cases
-  size_t find_piece_type_char(char c) const {
-      // First try direct lookup
-      size_t idx = find_piece_char(c);
-      if (idx != std::string::npos)
-          return idx;
-      
-      // Try opposite case
-      char alt_c = islower(c) ? toupper(c) : tolower(c);
-      return find_piece_char(alt_c);
-  }
-
   // Reset values that always need to be redefined
   Variant* init() {
       nnueAlias = "";

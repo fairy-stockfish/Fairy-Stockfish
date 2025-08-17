@@ -149,10 +149,37 @@ void on_variant_change(const Option &o) {
                     suffix += "s";
                 suffix += "@" + std::to_string(pt == PAWN && !v->promotionZonePawnDrops && v->promotionRegion[WHITE] ? rank_of(lsb(v->promotionRegion[WHITE])) : v->maxRank + 1);
             }
-            sync_cout << "piece " << v->pieceToChar[make_piece(WHITE, pt)] << "& " << pieceMap.find(pt == KING ? v->kingType : pt)->second->betza << suffix << sync_endl;
+            // Check if white and black pieces have the same character (case-insensitive)
+            char whiteChar = v->pieceToChar[make_piece(WHITE, pt)];
+            char blackChar = v->pieceToChar[make_piece(BLACK, pt)];
+            bool sameChar = (whiteChar != ' ' && blackChar != ' ' && std::tolower(whiteChar) == std::tolower(blackChar));
+            
+            if (sameChar) {
+                // Use & format when both colors have the same character
+                sync_cout << "piece " << whiteChar << "& " << pieceMap.find(pt == KING ? v->kingType : pt)->second->betza << suffix << sync_endl;
+            } else {
+                // Send separate commands for each color when characters differ
+                if (whiteChar != ' ')
+                    sync_cout << "piece " << whiteChar << " " << pieceMap.find(pt == KING ? v->kingType : pt)->second->betza << suffix << sync_endl;
+                if (blackChar != ' ')
+                    sync_cout << "piece " << blackChar << " " << pieceMap.find(pt == KING ? v->kingType : pt)->second->betza << suffix << sync_endl;
+            }
+            
             PieceType promType = v->promotedPieceType[pt];
-            if (promType)
-                sync_cout << "piece +" << v->pieceToChar[make_piece(WHITE, pt)] << "& " << pieceMap.find(promType)->second->betza << sync_endl;
+            if (promType) {
+                char whitePromChar = v->pieceToChar[make_piece(WHITE, pt)];
+                char blackPromChar = v->pieceToChar[make_piece(BLACK, pt)];
+                bool samePromChar = (whitePromChar != ' ' && blackPromChar != ' ' && std::tolower(whitePromChar) == std::tolower(blackPromChar));
+                
+                if (samePromChar) {
+                    sync_cout << "piece +" << whitePromChar << "& " << pieceMap.find(promType)->second->betza << sync_endl;
+                } else {
+                    if (whitePromChar != ' ')
+                        sync_cout << "piece +" << whitePromChar << " " << pieceMap.find(promType)->second->betza << sync_endl;
+                    if (blackPromChar != ' ')
+                        sync_cout << "piece +" << blackPromChar << " " << pieceMap.find(promType)->second->betza << sync_endl;
+                }
+            }
         }
     }
     else
