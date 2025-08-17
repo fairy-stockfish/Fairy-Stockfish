@@ -25,15 +25,17 @@ Note: Run engine and test commands from the `src/` directory unless specified ot
 
 #### Basic Build Commands
 ```bash
-# Standard release build (recommended for most users)
-make -j2 ARCH=x86-64 build
+# Most minimal build command
+make -j ARCH=x86-64 build
+
+# Typical build with all variants including ones with large boards (up to 12x10) and large branching factor (all)
+make -j ARCH=x86-64 largeboards=yes all=yes build
 
 # Debug build (for development)
-make -j2 ARCH=x86-64 debug=yes build
-
-# All variants including ones with large boards (up to 12x10) and large branching factor (all)
-make -j2 ARCH=x86-64 largeboards=yes all=yes build
+make -j ARCH=x86-64 debug=yes build
 ```
+
+When changing make arguments or in case of persistent compilation issues, run `make clean` before rebuilding to make sure to have a clean state.
 
 ### Python Bindings (pyffish)
 ```bash

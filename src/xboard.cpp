@@ -423,7 +423,17 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
           if (is >> color && is >> pieceType)
           {
               fen = pos.fen();
-              fen.insert(fen.find(']'), 1, toupper(color) == 'B' ? tolower(pieceType) : toupper(pieceType));
+              // Find the piece type from the character, then get the correct character for the color
+              PieceType pt = variants.find(Options["UCI_Variant"])->second->char_piece_type(pieceType);
+              if (pt != NO_PIECE_TYPE) {
+                  Color c = toupper(color) == 'B' ? BLACK : WHITE;
+                  char correctChar = variants.find(Options["UCI_Variant"])->second->pieceToChar[make_piece(c, pt)];
+                  fen.insert(fen.find(']'), 1, correctChar);
+              }
+              else {
+                  // Fallback to old behavior if piece type not found
+                  fen.insert(fen.find(']'), 1, toupper(color) == 'B' ? tolower(pieceType) : toupper(pieceType));
+              }
           }
           else
           {

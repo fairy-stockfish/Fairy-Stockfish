@@ -1060,8 +1060,8 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
         if (castlingInfoSplitted[WHITE].size() != 0 || castlingInfoSplitted[BLACK].size() != 0)
         {
             std::array<CharSquare, 2> kingPositions;
-            kingPositions[WHITE] = board.get_square_for_piece(toupper(v->pieceToChar[v->castlingKingPiece[WHITE]]));
-            kingPositions[BLACK] = board.get_square_for_piece(tolower(v->pieceToChar[v->castlingKingPiece[BLACK]]));
+            kingPositions[WHITE] = board.get_square_for_piece(v->pieceToChar[make_piece(WHITE, v->castlingKingPiece[WHITE])]);
+            kingPositions[BLACK] = board.get_square_for_piece(v->pieceToChar[make_piece(BLACK, v->castlingKingPiece[BLACK])]);
 
             CharBoard startBoard(board.get_nb_ranks(), board.get_nb_files());
             fill_char_board(startBoard, v->startFen, validSpecialCharactersFirstField, v);

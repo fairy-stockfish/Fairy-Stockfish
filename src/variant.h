@@ -218,6 +218,36 @@ struct Variant {
       promotionPieceTypes[BLACK] = NO_PIECE_SET;
   }
 
+  // Helper functions for flexible character-to-piece lookups
+  size_t find_piece_char(char c) const {
+      size_t idx = pieceToChar.find(c);
+      if (idx != std::string::npos)
+          return idx;
+      return pieceToCharSynonyms.find(c);
+  }
+
+  Color char_color(char c) const {
+      size_t idx = find_piece_char(c);
+      return idx != std::string::npos ? color_of(Piece(idx)) : WHITE;
+  }
+
+  PieceType char_piece_type(char c) const {
+      size_t idx = find_piece_char(c);
+      return idx != std::string::npos ? type_of(Piece(idx)) : NO_PIECE_TYPE;
+  }
+
+  // Find piece type character by searching both cases
+  size_t find_piece_type_char(char c) const {
+      // First try direct lookup
+      size_t idx = find_piece_char(c);
+      if (idx != std::string::npos)
+          return idx;
+      
+      // Try opposite case
+      char alt_c = islower(c) ? toupper(c) : tolower(c);
+      return find_piece_char(alt_c);
+  }
+
   // Reset values that always need to be redefined
   Variant* init() {
       nnueAlias = "";

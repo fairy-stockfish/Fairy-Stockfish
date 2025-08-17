@@ -28,6 +28,15 @@ namespace Stockfish {
 
 namespace {
 
+    size_t find_piece_in_string(char c, const std::string& pieceToChar) {
+        size_t idx = pieceToChar.find(c);
+        if (idx != std::string::npos)
+            return idx;
+        // Try opposite case if not found
+        char alt_c = islower(c) ? toupper(c) : tolower(c);
+        return pieceToChar.find(alt_c);
+    }
+
     template <typename T> bool set(const std::string& value, T& target)
     {
         std::stringstream ss(value);
@@ -228,8 +237,8 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
         char token;
         size_t idx = std::string::npos;
         std::stringstream ss(it->second);
-        while (ss >> token && (idx = token == '*' ? size_t(ALL_PIECES) : pieceToChar.find(toupper(token))) != std::string::npos)
-            set(PieceType(idx), target);
+        while (ss >> token && (idx = token == '*' ? size_t(ALL_PIECES) : find_piece_in_string(token, pieceToChar)) != std::string::npos)
+            set(PieceType(token == '*' ? ALL_PIECES : type_of(Piece(idx))), target);
         if (DoCheck && idx == std::string::npos && token != '-')
             std::cerr << key << " - Invalid piece type: " << token << std::endl;
         return idx != std::string::npos || token == '-';
@@ -316,8 +325,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             char token;
             size_t idx = 0;
             std::stringstream ss(pv->second);
-            while (!ss.eof() && ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
-                             && ss >> token && ss >> v->pieceValue[phase][idx]) {}
+            while (!ss.eof() && ss >> token && (idx = find_piece_in_string(token, v->pieceToChar)) != std::string::npos
+                             && ss >> token && ss >> v->pieceValue[phase][type_of(Piece(idx))]) {}
             if (DoCheck && idx == std::string::npos)
                 std::cerr << optionName << " - Invalid piece type: " << token << std::endl;
             else if (DoCheck && !ss.eof())
@@ -392,8 +401,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         char token;
         size_t idx = 0;
         std::stringstream ss(it_prom_limit->second);
-        while (!ss.eof() && ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
-                         && ss >> token && ss >> v->promotionLimit[idx]) {}
+        while (!ss.eof() && ss >> token && (idx = find_piece_in_string(token, v->pieceToChar)) != std::string::npos
+                         && ss >> token && ss >> v->promotionLimit[type_of(Piece(idx))]) {}
         if (DoCheck && idx == std::string::npos)
             std::cerr << "promotionLimit - Invalid piece type: " << token << std::endl;
         else if (DoCheck && !ss.eof())
@@ -406,9 +415,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         char token;
         size_t idx = 0, idx2 = 0;
         std::stringstream ss(it_prom_pt->second);
-        while (   ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos && ss >> token
-               && ss >> token && (idx2 = (token == '-' ? 0 : v->pieceToChar.find(toupper(token)))) != std::string::npos)
-            v->promotedPieceType[idx] = PieceType(idx2);
+        while (   ss >> token && (idx = find_piece_in_string(token, v->pieceToChar)) != std::string::npos && ss >> token
+               && ss >> token && (idx2 = (token == '-' ? 0 : find_piece_in_string(token, v->pieceToChar))) != std::string::npos)
+            v->promotedPieceType[type_of(Piece(idx))] = PieceType(token == '-' ? NO_PIECE_TYPE : type_of(Piece(idx2)));
         if (DoCheck && (idx == std::string::npos || idx2 == std::string::npos))
             std::cerr << "promotedPieceType - Invalid piece type: " << token << std::endl;
     }
@@ -582,15 +591,15 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             std::stringstream ss(v->pieceToCharTable);
             char token;
             while (ss >> token)
-                if (isalpha(token) && v->pieceToChar.find(toupper(token)) == std::string::npos)
+                if (isalpha(token) && find_piece_in_string(token, v->pieceToChar) == std::string::npos)
                     std::cerr << "pieceToCharTable - Invalid piece type: " << token << std::endl;
             for (PieceSet ps = v->pieceTypes; ps;)
             {
                 PieceType pt = pop_lsb(ps);
-                char ptl = tolower(v->pieceToChar[pt]);
+                char ptl = v->pieceToChar[make_piece(BLACK, pt)];
                 if (v->pieceToCharTable.find(ptl) == std::string::npos && fenBoard.find(ptl) != std::string::npos)
                     std::cerr << "pieceToCharTable - Missing piece type: " << ptl << std::endl;
-                char ptu = toupper(v->pieceToChar[pt]);
+                char ptu = v->pieceToChar[make_piece(WHITE, pt)];
                 if (v->pieceToCharTable.find(ptu) == std::string::npos && fenBoard.find(ptu) != std::string::npos)
                     std::cerr << "pieceToCharTable - Missing piece type: " << ptu << std::endl;
             }
