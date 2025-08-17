@@ -386,8 +386,8 @@ public:
     std::string pocket;
     for (PieceType pt = KING; pt >= PAWN; --pt) {
       for (int i = 0; i < pos.count_in_hand(c, pt); ++i) {
-        // only create BLACK pieces in order to convert to lower case
-        pocket += std::string(1, pos.piece_to_char()[make_piece(BLACK, pt)]);
+        // convert to lower case for pocket representation
+        pocket += std::string(1, tolower(pos.piece_to_char()[make_piece(c, pt)]));
       }
     }
     return pocket;
