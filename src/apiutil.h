@@ -133,7 +133,7 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
         return "+" + std::string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
     // Promoted drops
     else if (is_shogi(n) && type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
-        return "+" + std::string(1, toupper(pos.piece_to_char()[in_hand_piece_type(m)]));
+        return "+" + std::string(1, toupper(pos.piece_to_char()[make_piece(us, in_hand_piece_type(m))]));
     else if (is_thai(n))
         return piece_to_thai_char(pc, pos.is_promoted(from));
     else if (pos.piece_to_char_synonyms()[pc] != ' ')

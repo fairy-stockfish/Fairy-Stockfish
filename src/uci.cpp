@@ -496,9 +496,9 @@ string UCI::dropped_piece(const Position& pos, Move m) {
   assert(type_of(m) == DROP);
   if (dropped_piece_type(m) == pos.promoted_piece_type(in_hand_piece_type(m)))
       // Dropping as promoted piece
-      return std::string{'+', pos.piece_to_char()[in_hand_piece_type(m)]};
+      return std::string{'+', char(toupper(pos.piece_to_char()[make_piece(pos.side_to_move(), in_hand_piece_type(m))]))};
   else
-      return std::string{pos.piece_to_char()[dropped_piece_type(m)]};
+      return std::string{char(toupper(pos.piece_to_char()[make_piece(pos.side_to_move(), dropped_piece_type(m))]))};
 }
 
 
