@@ -539,14 +539,14 @@ string UCI::move(const Position& pos, Move m) {
       move += "," + UCI::square(pos, to) + UCI::square(pos, gating_square(m));
 
   if (type_of(m) == PROMOTION)
-      move += pos.piece_to_char()[make_piece(BLACK, promotion_type(m))];
+      move += tolower(pos.piece_to_char()[make_piece(pos.side_to_move(), promotion_type(m))]);
   else if (type_of(m) == PIECE_PROMOTION)
       move += '+';
   else if (type_of(m) == PIECE_DEMOTION)
       move += '-';
   else if (is_gating(m))
   {
-      move += pos.piece_to_char()[make_piece(BLACK, gating_type(m))];
+      move += tolower(pos.piece_to_char()[make_piece(pos.side_to_move(), gating_type(m))]);
       if (gating_square(m) != from)
           move += UCI::square(pos, gating_square(m));
   }
