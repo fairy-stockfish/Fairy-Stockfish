@@ -120,6 +120,10 @@ commoner = k
 castlingKingPiece = k
 extinctionValue = loss
 extinctionPieceTypes = k
+
+[coregaldrop:coregal]
+pieceDrops = true
+startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Qq] w KQkq - 0 1
 """
 
 sf.load_variant_config(ini_text)
@@ -345,6 +349,11 @@ class TestPyffish(unittest.TestCase):
         fen = "rnbq3r/pp2bkpp/8/2p1p2K/2p1P3/8/PPPP1PPP/RNB4R[EHeh] b ABCHabcdh - 0 10"
         result = sf.legal_moves("seirawan", fen, [])
         self.assertIn("c8g4h", result)
+
+        # Drop pseudo-royals into check
+        result = sf.legal_moves("coregaldrop", sf.start_fen("coregaldrop"), [])
+        self.assertIn("Q@a3", result)
+        self.assertNotIn("Q@a6", result)
 
         # In Cannon Shogi the FGC and FSC can also move one square diagonally and, besides,
         # move or capture two squares diagonally, by leaping an adjacent piece. 

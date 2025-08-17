@@ -1146,6 +1146,9 @@ bool Position::legal(Move m) const {
       if (capture(m) && (var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && (st->pseudoRoyals & from))
           return false;
       Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
+      // Add dropped pseudo-royal
+      if (type_of(m) == DROP && (extinction_piece_types() & type_of(moved_piece(m))))
+          pseudoRoyals |= square_bb(to);
       Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
       if (is_ok(from) && (pseudoRoyals & from))
           pseudoRoyals ^= square_bb(from) ^ kto;
