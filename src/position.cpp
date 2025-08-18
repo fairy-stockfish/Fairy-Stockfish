@@ -1127,10 +1127,12 @@ bool Position::legal(Move m) const {
           // Chess960 as they would be in standard chess.
           kto = make_square(to > from ? castling_kingside_file() : castling_queenside_file(), castling_rank(us));
           Direction step = kto > from ? EAST : WEST;
-          Square rto = kto - step;
+          Square rto = kto - (to > from ? EAST : WEST);
           // Pseudo-royal king
           if (st->pseudoRoyals & from)
-              for (Square s = from; s != kto; s += step)
+              // Loop over squares between the king and its final position
+              // Ensure to include the initial square if from == kto
+              for (Square s = from; from != kto ? s != kto : s == from; s += step)
                   if (  !(blast_on_capture() && (attacks_bb<KING>(s) & st->pseudoRoyals & pieces(~sideToMove)))
                       && attackers_to(s, occupied, ~us))
                       return false;
