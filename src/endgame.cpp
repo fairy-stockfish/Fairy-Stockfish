@@ -1126,20 +1126,27 @@ template<>
 Value Endgame<KQK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
   assert(pos.endgame_eval() == EG_EVAL_ATOMIC);
+  Square winnerKSq = pos.square<COMMONER>(strongSide);
+  Square loserKSq = pos.square<COMMONER>(weakSide);
+  Square queen = pos.square<QUEEN>(strongSide);
 
   // Stalemate detection with lone king
   if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
-      return VALUE_DRAW;
-
-  Square winnerKSq = pos.square<COMMONER>(strongSide);
-  Square loserKSq = pos.square<COMMONER>(weakSide);
+     return distance(loserKSq, queen) == 1 ? -VALUE_MATE : VALUE_DRAW;
 
   int dist = distance(winnerKSq, loserKSq);
-  // Draw in case of adjacent kings
-  // In the case of dist == 2, the square adjacent to both kings is ensured
-  // not be occupied by the queen, since eval is not called when in check.
-  if (dist <= (strongSide == pos.side_to_move() ? 1 : 2))
-      return VALUE_DRAW;
+  // Draw in case of adjacent kings.
+  if (dist == 1) return VALUE_DRAW;
+  if (
+    dist == 2 &&
+    pos.side_to_move() == weakSide &&
+    (
+      distance<File>(loserKSq, winnerKSq) < 2 ||
+      distance<Rank>(loserKSq, winnerKSq) < 2 ||
+      distance(loserKSq, queen) > 1 ||
+      distance(winnerKSq, queen) > 1
+    )
+  ) return VALUE_DRAW;
 
   Value result =  pos.non_pawn_material(strongSide)
                 + push_to_edge(loserKSq, pos)
