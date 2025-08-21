@@ -1141,7 +1141,7 @@ moves_loop: // When in check, search starts from here
       if (  !rootNode
           && (pos.non_pawn_material(us) || pos.count<ALL_PIECES>(us) == pos.count<PAWN>(us))
           && bestValue > VALUE_TB_LOSS_IN_MAX_PLY
-          && (!pos.blast_on_capture() || pos.count<ALL_PIECES>() > 3))
+          && (Options["UCI_Variant"] != "atomic" || pos.count<ALL_PIECES>() > 3 || pos.count<QUEEN>() != 1))
       {
           // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
           moveCountPruning = moveCount >= futility_move_count(improving, depth, pos);
