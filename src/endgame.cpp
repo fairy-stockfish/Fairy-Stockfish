@@ -1074,10 +1074,6 @@ Value Endgame<KXK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
   assert(pos.endgame_eval() == EG_EVAL_ATOMIC);
 
-  // Stalemate detection with lone king
-  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
-      return VALUE_DRAW;
-
   Square winnerKSq = pos.square<COMMONER>(strongSide);
   Square loserKSq = pos.square<COMMONER>(weakSide);
 
@@ -1127,22 +1123,19 @@ Value Endgame<KQK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
   assert(pos.endgame_eval() == EG_EVAL_ATOMIC);
 
-  // Stalemate detection with lone king
-  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
-      return VALUE_DRAW;
-
   Square winnerKSq = pos.square<COMMONER>(strongSide);
   Square loserKSq = pos.square<COMMONER>(weakSide);
 
   int dist = distance(winnerKSq, loserKSq);
   // Draw in case of adjacent kings
-  // In the case of dist == 2, the square adjacent to both kings is ensured
-  // not be occupied by the queen, since eval is not called when in check.
-  if (dist <= (strongSide == pos.side_to_move() ? 1 : 2))
+  if (dist ==  1)
+      return VALUE_DRAW;
+  // If the weaker side is to move and there is a way to connect kings, it is a draw
+  if (   pos.side_to_move() == weakSide
+      && (attacks_bb<KING>(winnerKSq) & attacks_bb<KING>(loserKSq) & ~pos.pieces()))
       return VALUE_DRAW;
 
-  Value result =  pos.non_pawn_material(strongSide)
-                + push_to_edge(loserKSq, pos)
+  Value result =  Value(push_to_edge(loserKSq, pos))
                 + push_away(winnerKSq, loserKSq);
 
   if (dist >= (strongSide == pos.side_to_move() ? 3 : 4))
