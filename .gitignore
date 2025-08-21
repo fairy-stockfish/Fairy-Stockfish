@@ -1,3 +1,8 @@
+# Ignore binaries in src/ that have no extension
+/src/*
+!/src/*.*
+!/src/*/
+
 # Files from build
 **/*.o
 **/*.s
@@ -29,6 +34,9 @@ __pycache__
 
 # test artifacts
 tests/*.exp
+src/*.log
+src/*.epd
+src/*.txt
 
 # IDEs
 .vscode
