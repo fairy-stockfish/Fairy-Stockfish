@@ -1043,7 +1043,7 @@ Value Endgame<KN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
   Square NSq = pos.square<KNIGHT>(weakSide);
 
   // wins for knight
-  if (pos.side_to_move() == strongSide && (attacks_bb<KNIGHT>(NSq) & KSq))
+  if (pos.side_to_move() == strongSide && (attacks_bb<KING>(KSq) & NSq))
       return -VALUE_KNOWN_WIN;
   if (pos.side_to_move() == weakSide && (attacks_bb<KNIGHT>(NSq) & attacks_bb<KING>(KSq)))
       return VALUE_KNOWN_WIN;
