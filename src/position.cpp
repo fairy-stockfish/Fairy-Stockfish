@@ -2415,14 +2415,39 @@ Value Position::blast_see(Move m) const {
   }
 
   // Sum up blast piece values
+  bool extinctsUs = false;
+  bool extinctsThem = false;
   while (blast)
   {
       Piece bpc = piece_on(pop_lsb(blast));
       if (extinction_piece_types() & type_of(bpc))
-          return color_of(bpc) == us ?  extinction_value()
-                        : capture(m) ? -extinction_value()
-                                     : VALUE_ZERO;
+      {
+          if (color_of(bpc) == us)
+              extinctsUs = true;
+          else
+              extinctsThem = true;
+      }
       result += color_of(bpc) == us ? -CapturePieceValue[MG][bpc] : CapturePieceValue[MG][bpc];
+  }
+
+  // Evaluate extinctions
+  if (!capture(m))
+  {
+      // For quiet moves, the opponent can decide whether to capture or not
+      // so they can pick the better of the two
+      if (extinctsThem && extinctsUs)
+          return VALUE_ZERO;
+      if (extinctsThem)
+          return std::min(-extinction_value(), VALUE_ZERO);
+      if (extinctsUs)
+          return std::min(extinction_value(), VALUE_ZERO);
+  }
+  else
+  {
+      if (extinctsUs)
+          return extinction_value();
+      if (extinctsThem)
+          return -extinction_value();
   }
 
   return capture(m) || must_capture() ? result - 1 : std::min(result, VALUE_ZERO);
