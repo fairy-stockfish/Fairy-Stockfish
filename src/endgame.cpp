@@ -1041,17 +1041,16 @@ Value Endgame<KN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
 
   Square KSq = pos.square<COMMONER>(strongSide);
   Square NSq = pos.square<KNIGHT>(weakSide);
-  Bitboard kingAttacks = attacks_bb<KING>(KSq);
-  Bitboard knightAttacks = attacks_bb<KNIGHT>(NSq);
-  bool strongSideToMove = pos.side_to_move() == strongSide;
 
-  if (strongSideToMove ? kingAttacks & NSq : knightAttacks & KSq) return mated_in(1);
-  if (kingAttacks & knightAttacks) return mate_in(2);
-  if (strongSideToMove ? knightAttacks & KSq : kingAttacks & NSq) return mated_in(3);
+  // wins for knight
+  if (pos.side_to_move() == strongSide && (attacks_bb<KNIGHT>(NSq) & KSq) && !(attacks_bb<KNIGHT>(NSq) & attacks_bb<KING>(KSq)))
+      return -VALUE_KNOWN_WIN;
+  if (pos.side_to_move() == weakSide && (attacks_bb<KNIGHT>(NSq) & attacks_bb<KING>(KSq)))
+      return VALUE_KNOWN_WIN;
 
   Value result = VALUE_KNOWN_WIN + push_to_edge(NSq, pos) - push_to_edge(KSq, pos);
 
-  return strongSideToMove ? result : -result;
+  return strongSide == pos.side_to_move() ? result : -result;
 }
 
 /// N vs N. The side to move always wins/loses if the knights are on
