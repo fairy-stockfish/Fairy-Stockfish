@@ -591,17 +591,17 @@ void Position::set_check_info(StateInfo* si) const {
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
   si->chased = var->chasingRule ? chased() : Bitboard(0);
   si->legalCapture = NO_VALUE;
-  if (var->extinctionPseudoRoyal)
+  if (var->pseudoRoyalTypes)
   {
       si->pseudoRoyalCandidates = 0;
       si->pseudoRoyals = 0;
-      for (PieceSet ps = extinction_piece_types(); ps;)
+      for (PieceSet ps = pseudo_royal_types(); ps;)
       {
           PieceType pt = pop_lsb(ps);
           si->pseudoRoyalCandidates |= pieces(pt);
-          if (count(sideToMove, pt) <= var->extinctionPieceCount + 1)
+          if (count(sideToMove, pt) <= var->pseudoRoyalCount)
               si->pseudoRoyals |= pieces(sideToMove, pt);
-          if (count(~sideToMove, pt) <= var->extinctionPieceCount + 1)
+          if (count(~sideToMove, pt) <= var->pseudoRoyalCount)
               si->pseudoRoyals |= pieces(~sideToMove, pt);
       }
   }
@@ -1005,7 +1005,7 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 /// Position::checked_pseudo_royals computes a bitboard of
 /// all pseudo-royal pieces of a particular color that are in check
 Bitboard Position::checked_pseudo_royals(Color c) const {
-  assert(extinction_pseudo_royal());
+  assert(pseudo_royal_types());
   Bitboard checked = 0;
   Bitboard pseudoRoyals = st->pseudoRoyals & pieces(c);
   Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~c);
@@ -1113,7 +1113,7 @@ bool Position::legal(Move m) const {
   }
 
   // Check for attacks to pseudo-royal pieces
-  if (var->extinctionPseudoRoyal)
+  if (var->pseudoRoyalTypes)
   {
       Square kto = to;
       Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces());
@@ -1154,9 +1154,9 @@ bool Position::legal(Move m) const {
       Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
       if (is_ok(from) && (pseudoRoyals & from))
           pseudoRoyals ^= square_bb(from) ^ kto;
-      if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
+      if (type_of(m) == PROMOTION && (pseudo_royal_types() & promotion_type(m)))
       {
-          if (count(sideToMove, promotion_type(m)) > extinction_piece_count())
+          if (count(sideToMove, promotion_type(m)) >= var->pseudoRoyalCount)
               // increase in count leads to loss of pseudo-royalty
               pseudoRoyals &= ~pieces(sideToMove, promotion_type(m));
           else
@@ -1168,7 +1168,7 @@ bool Position::legal(Move m) const {
           return false;
       // Petrifiable pseudo-royals can't capture
       Bitboard attackerCandidatesTheirs = occupied & ~square_bb(kto);
-      for (PieceSet ps = var->petrifyOnCaptureTypes & extinction_piece_types(); ps;)
+      for (PieceSet ps = var->petrifyOnCaptureTypes & pseudo_royal_types(); ps;)
           attackerCandidatesTheirs &= ~pieces(~us, pop_lsb(ps));
       // Check for legality unless we capture a pseudo-royal piece
       if (!(pseudoRoyalsTheirs & ~occupied))
@@ -1186,7 +1186,7 @@ bool Position::legal(Move m) const {
           Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(sideToMove);
           if (is_ok(from) && (pseudoRoyalCandidates & from))
               pseudoRoyalCandidates ^= square_bb(from) ^ kto;
-          if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
+          if (type_of(m) == PROMOTION && (pseudo_royal_types() & promotion_type(m)))
               pseudoRoyalCandidates |= kto;
           bool allCheck = bool(pseudoRoyalCandidates);
           while (allCheck && pseudoRoyalCandidates)
@@ -2754,7 +2754,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
 
   // Extinction
   // Extinction does not apply for pseudo-royal pieces, because they can not be captured
-  if (extinction_value() != VALUE_NONE && (!var->extinctionPseudoRoyal || blast_on_capture()))
+  if (extinction_value() != VALUE_NONE)
   {
       for (Color c : { ~sideToMove, sideToMove })
           for (PieceSet ps = extinction_piece_types(); ps;)
