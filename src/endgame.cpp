@@ -1033,7 +1033,7 @@ Value Endgame<RK, EG_EVAL_ANTI>::operator()(const Position& pos) const {
 }
 
 
-/// K vs N. The king usally wins, but there are a few exceptions.
+/// K vs N. The king usually wins, but there are a few exceptions.
 template<>
 Value Endgame<KN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
 
@@ -1045,11 +1045,13 @@ Value Endgame<KN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
   Bitboard knightAttacks = attacks_bb<KNIGHT>(NSq);
   bool strongSideToMove = pos.side_to_move() == strongSide;
 
-  if (strongSideToMove ? kingAttacks & NSq : knightAttacks & KSq) return mated_in(1);
-  if (kingAttacks & knightAttacks) return mate_in(2);
-  if (strongSideToMove ? knightAttacks & KSq : kingAttacks & NSq) return mated_in(3);
+  if (strongSideToMove ? kingAttacks & NSq : knightAttacks & KSq) return VALUE_TB_LOSS_IN_MAX_PLY + 1;
+  if (kingAttacks & knightAttacks) return VALUE_TB_WIN_IN_MAX_PLY - 2;
+  if (strongSideToMove ? knightAttacks & KSq : kingAttacks & NSq) return VALUE_TB_LOSS_IN_MAX_PLY + 3;
 
-  Value result = VALUE_KNOWN_WIN + push_to_edge(NSq, pos) - push_to_edge(KSq, pos);
+  Value result = Value(push_to_edge(NSq, pos)) - push_to_edge(KSq, pos);
+  if (!(KSq & (SQ_A1 | SQ_A8 | SQ_H1 | SQ_H8)))
+      result += VALUE_KNOWN_WIN;
 
   return strongSideToMove ? result : -result;
 }
