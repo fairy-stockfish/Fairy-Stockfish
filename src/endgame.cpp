@@ -1032,6 +1032,35 @@ Value Endgame<RK, EG_EVAL_ANTI>::operator()(const Position& pos) const {
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
+Value winInX(Square KSq, Square NSq, bool strongSideToMove, bool recurse)
+{
+    Bitboard kingAttacks = attacks_bb<KING>(KSq);
+    Bitboard knightAttacks = attacks_bb<KNIGHT>(NSq);
+    if (strongSideToMove ? kingAttacks & NSq : knightAttacks & KSq)
+        return VALUE_TB_LOSS_IN_MAX_PLY + 1;
+    if (kingAttacks & knightAttacks)
+        return VALUE_TB_WIN_IN_MAX_PLY - 2;
+    if (strongSideToMove ? knightAttacks & KSq : kingAttacks & NSq)
+        return VALUE_TB_LOSS_IN_MAX_PLY + 3;
+    if (KSq & (SQ_A1 | SQ_A8 | SQ_H1 | SQ_H8) && distance<File>(KSq, NSq) == 3 && distance<Rank>(KSq, NSq) == 3)
+        return strongSideToMove ? VALUE_TB_LOSS_IN_MAX_PLY + 3 : VALUE_TB_WIN_IN_MAX_PLY - 4;
+    if (!recurse)
+        return Value(0);
+    Bitboard sideToMoveAttacks = strongSideToMove ? kingAttacks : knightAttacks;
+    Value best = VALUE_TB_LOSS_IN_MAX_PLY;
+    while (sideToMoveAttacks && best <= 0)
+    {
+       Square currMove = pop_lsb(sideToMoveAttacks);
+       Square newKSq = strongSideToMove ? currMove : KSq;
+       Square newNSq = strongSideToMove ? NSq : currMove;
+
+       best = std::max(-winInX(newKSq, newNSq, !strongSideToMove, false), best);
+        // todo - prob doesn't matter, but could compensate for being a ply deeper in recursive call?
+        // also only recurse in certain conditions? Like K and N being certain distance apart.
+          // maybe only when it's knight's turn? Not sure about this one.
+    }
+    return best;
+}
 
 /// K vs N. The king usually wins, but there are a few exceptions.
 template<>
@@ -1041,18 +1070,10 @@ Value Endgame<KN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
 
   Square KSq = pos.square<COMMONER>(strongSide);
   Square NSq = pos.square<KNIGHT>(weakSide);
-  Bitboard kingAttacks = attacks_bb<KING>(KSq);
-  Bitboard knightAttacks = attacks_bb<KNIGHT>(NSq);
   bool strongSideToMove = pos.side_to_move() == strongSide;
-
-  if (strongSideToMove ? kingAttacks & NSq : knightAttacks & KSq) return VALUE_TB_LOSS_IN_MAX_PLY + 1;
-  if (kingAttacks & knightAttacks) return VALUE_TB_WIN_IN_MAX_PLY - 2;
-  if (strongSideToMove ? knightAttacks & KSq : kingAttacks & NSq) return VALUE_TB_LOSS_IN_MAX_PLY + 3;
-
-  Value result = Value(push_to_edge(NSq, pos)) - push_to_edge(KSq, pos);
-  if (!(KSq & (SQ_A1 | SQ_A8 | SQ_H1 | SQ_H8)))
-      result += VALUE_KNOWN_WIN;
-
+  Value definitive = winInX(KSq, NSq, strongSideToMove, true);
+  if (definitive != 0) return definitive;
+  Value result = Value(VALUE_KNOWN_WIN + push_to_edge(NSq, pos) - push_to_edge(KSq, pos));
   return strongSideToMove ? result : -result;
 }
 
