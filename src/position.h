@@ -142,6 +142,7 @@ public:
   bool blast_on_capture() const;
   PieceSet blast_immune_types() const;
   PieceSet mutually_immune_types() const;
+  PieceSet iron_piece_types() const;
   EndgameEval endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
@@ -516,6 +517,11 @@ inline PieceSet Position::blast_immune_types() const {
 inline PieceSet Position::mutually_immune_types() const {
   assert(var != nullptr);
   return var->mutuallyImmuneTypes;
+}
+
+inline PieceSet Position::iron_piece_types() const {
+  assert(var != nullptr);
+  return var->ironPieceTypes;
 }
 
 inline EndgameEval Position::endgame_eval() const {
