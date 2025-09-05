@@ -419,6 +419,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("blastOnCapture", v->blastOnCapture);
     parse_attribute("blastImmuneTypes", v->blastImmuneTypes, v->pieceToChar);
     parse_attribute("mutuallyImmuneTypes", v->mutuallyImmuneTypes, v->pieceToChar);
+    parse_attribute("ironPieceTypes", v->ironPieceTypes, v->pieceToChar);
     parse_attribute("petrifyOnCaptureTypes", v->petrifyOnCaptureTypes, v->pieceToChar);
     parse_attribute("petrifyBlastPieces", v->petrifyBlastPieces);
     parse_attribute("doubleStep", v->doubleStep);
