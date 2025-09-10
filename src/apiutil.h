@@ -378,6 +378,18 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & COMMONER))
         restricted |= pos.pieces(c, COMMONER);
 
+    // Precalculate if any promotion pawn types have pieces
+    bool hasPromotingPawn = false;
+    for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes; )
+    {
+        PieceType pawnType = pop_lsb(pawnTypes);
+        if (pos.count(c, pawnType) > 0)
+        {
+            hasPromotingPawn = true;
+            break;
+        }
+    }
+
     for (PieceSet ps = pos.piece_types(); ps;)
     {
         PieceType pt = pop_lsb(ps);
@@ -391,15 +403,8 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
                 return false;
                 
             // Check if any pawn can promote to this custom piece
-            if (pos.promotion_piece_types(c) & pt)
-            {
-                for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes; )
-                {
-                    PieceType pawnType = pop_lsb(pawnTypes);
-                    if (pos.count(c, pawnType) > 0)
-                        return false;
-                }
-            }
+            if (hasPromotingPawn && (pos.promotion_piece_types(c) & pt))
+                return false;
         }
     }
 
@@ -412,15 +417,8 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
         // Check if any pawn type that can promote has pieces and can promote to this piece type
         // Original: (pos.count(c, pos.main_promotion_pawn_type(c)) && (pos.promotion_piece_types(c) & pt))
         // Fixed: Check ALL promotion pawn types, not just the main one
-        if (pos.promotion_piece_types(c) & pt)
-        {
-            for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes; )
-            {
-                PieceType pawnType = pop_lsb(pawnTypes);
-                if (pos.count(c, pawnType) > 0)
-                    return false;
-            }
-        }
+        if (hasPromotingPawn && (pos.promotion_piece_types(c) & pt))
+            return false;
     }
 
     // Color-bound pieces
