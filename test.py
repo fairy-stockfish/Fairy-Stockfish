@@ -127,6 +127,10 @@ startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Qq] w KQkq - 0 1
 
 [cannonatomic:atomic]
 cannon = c
+
+[multipawn:chess]
+soldier = s
+pawnTypes = ps
 """
 
 sf.load_variant_config(ini_text)
@@ -242,6 +246,10 @@ variant_positions = {
     },
     "wazirking": {
         "7k/6K1/8/8/8/8/8/8 b - - 0 1": (False, False),  # K vs K
+    },
+    "multipawn": {
+        "k7/p7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KP
+        "k7/s7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KS
     },
 }
 
