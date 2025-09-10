@@ -372,12 +372,6 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
         || (pos.flag_region(c) && pos.count(c, pos.flag_piece(c))))
         return false;
 
-    // Restricted pieces
-    Bitboard restricted = pos.pieces(~c, KING);
-    // Atomic kings can not help checkmating
-    if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & COMMONER))
-        restricted |= pos.pieces(c, COMMONER);
-
     // Precalculate if any promotion pawn types have pieces
     bool hasPromotingPawn = false;
     for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes; )
@@ -390,42 +384,41 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
         }
     }
 
+    // Determine checkmating potential of present pieces
+    constexpr PieceSet MAJOR_PIECES = piece_set(ROOK) | QUEEN | ARCHBISHOP | CHANCELLOR
+                                     | SILVER | GOLD | COMMONER | CENTAUR | AMAZON | BERS;
+    constexpr PieceSet COLORBOUND_PIECES = piece_set(BISHOP) | FERS | FERS_ALFIL | ALFIL | ELEPHANT;
+    Bitboard restricted = pos.pieces(KING);
+    Bitboard colorbound = 0;
     for (PieceSet ps = pos.piece_types(); ps;)
     {
         PieceType pt = pop_lsb(ps);
-        if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)))
+
+        // Constrained pieces
+        if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)) || (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & pt)))
             restricted |= pos.pieces(c, pt);
-        else if (is_custom(pt))
+
+        // If piece is a major piece or a custom piece we consider it sufficient for mate.
+        // To avoid false positives, we assume any custom piece has mating potential.
+        else if ((MAJOR_PIECES & pt) || is_custom(pt))
         {
-            // Check if this custom piece is already on the board
+            // Check if piece is already on the board
             if (pos.count(c, pt) > 0)
-                // to be conservative, assume any custom piece has mating potential
                 return false;
-                
-            // Check if any pawn can promote to this custom piece
+
+            // Check if any pawn can promote to this piece type
             if (hasPromotingPawn && (pos.promotion_piece_types(c) & pt))
                 return false;
         }
+
+        // Collect color-bound pieces
+        else if (COLORBOUND_PIECES & pt)
+            colorbound |= pos.pieces(pt);
     }
 
-    // Mating pieces
-    for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR, AMAZON, BERS })
-    {
-        if (pos.pieces(c, pt) & ~restricted)
-            return false;
-        
-        // Check if any pawn type that can promote has pieces and can promote to this piece type
-        // Original: (pos.count(c, pos.main_promotion_pawn_type(c)) && (pos.promotion_piece_types(c) & pt))
-        // Fixed: Check ALL promotion pawn types, not just the main one
-        if (hasPromotingPawn && (pos.promotion_piece_types(c) & pt))
-            return false;
-    }
+    Bitboard unbound = pos.pieces() ^ restricted ^ colorbound;
 
     // Color-bound pieces
-    Bitboard colorbound = 0, unbound;
-    for (PieceType pt : { BISHOP, FERS, FERS_ALFIL, ALFIL, ELEPHANT })
-        colorbound |= pos.pieces(pt) & ~restricted;
-    unbound = pos.pieces() ^ restricted ^ colorbound;
     if ((colorbound & pos.pieces(c)) && (((DarkSquares & colorbound) && (~DarkSquares & colorbound)) || unbound || pos.stalemate_value() != VALUE_DRAW || pos.check_counting() || pos.makpong()))
         return false;
 
