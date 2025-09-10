@@ -348,6 +348,16 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute<false>("whiteDropRegion", v->dropRegion[WHITE]);
     parse_attribute<false>("blackDropRegion", v->dropRegion[BLACK]);
 
+    bool deprecatedPseudoRoyal = false;
+    parse_attribute<false>("extinctionPseudoRoyal", deprecatedPseudoRoyal);
+    if (deprecatedPseudoRoyal)
+    {
+        parse_attribute("extinctionPieceTypes", v->pseudoRoyalTypes, v->pieceToChar);
+        // pseudo royal count is one more than extinction count
+        if (parse_attribute("extinctionPieceCount", v->pseudoRoyalCount))
+            v->pseudoRoyalCount++;
+    }
+
     bool dropOnTop = false;
     parse_attribute<false>("dropOnTop", dropOnTop);
     if (dropOnTop) v->enclosingDrop=TOP;
@@ -511,10 +521,11 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("shogiPawnDropMateIllegal", v->shogiPawnDropMateIllegal);
     parse_attribute("shatarMateRule", v->shatarMateRule);
     parse_attribute("bikjangRule", v->bikjangRule);
+    parse_attribute("pseudoRoyalTypes", v->pseudoRoyalTypes, v->pieceToChar);
+    parse_attribute("pseudoRoyalCount", v->pseudoRoyalCount);
+    parse_attribute("dupleCheck", v->dupleCheck);
     parse_attribute("extinctionValue", v->extinctionValue);
     parse_attribute("extinctionClaim", v->extinctionClaim);
-    parse_attribute("extinctionPseudoRoyal", v->extinctionPseudoRoyal);
-    parse_attribute("dupleCheck", v->dupleCheck);
     // extinction piece types
     parse_attribute("extinctionPieceTypes", v->extinctionPieceTypes, v->pieceToChar);
     parse_attribute("extinctionPieceCount", v->extinctionPieceCount);
@@ -635,7 +646,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         // 1. In blast variants, moving a (pseudo-)royal blastImmuneType into another piece is legal.
         // 2. In blast variants, capturing a piece next to a (pseudo-)royal blastImmuneType is legal.
         // 3. Moving a (pseudo-)royal mutuallyImmuneType into a square threatened by the same type is legal.
-        if ((v->extinctionPseudoRoyal) || (v->pieceTypes & KING))
+        if (v->pseudoRoyalTypes || (v->pieceTypes & KING))
         {
             if (v->blastImmuneTypes)
                 std::cerr << "Can not use kings or pseudo-royal with blastImmuneTypes." << std::endl;
