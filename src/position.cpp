@@ -1210,6 +1210,14 @@ bool Position::legal(Move m) const {
   )
   return false;
 
+  // Iron pieces: any attempt to capture them is illegal (but they can capture normally)
+  if (capture(m)) {
+      Square csq = (type_of(m) == EN_PASSANT) ? capture_square(to) : to;
+      Piece  cpc = piece_on(csq);
+      if (cpc != NO_PIECE && (iron_piece_types() & type_of(cpc)))
+          return false;
+  }
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
