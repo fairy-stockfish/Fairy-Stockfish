@@ -377,48 +377,39 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     // Atomic kings can not help checkmating
     if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & COMMONER))
         restricted |= pos.pieces(c, COMMONER);
+
+    // Helper lambda to check if any pawn type that can promote has pieces and can promote to a given piece type  
+    auto has_promoting_pawn = [&](PieceType promoteTo) -> bool {
+        if (!(pos.promotion_piece_types(c) & promoteTo))
+            return false;
+        
+        for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes; )
+        {
+            PieceType pawnType = pop_lsb(pawnTypes);
+            if (pos.count(c, pawnType) > 0)
+            {
+                // Temporary debug output 
+                // std::cerr << "DEBUG: Found promoting pawn type " << pawnType << " for piece " << promoteTo << std::endl;
+                return true;
+            }
+        }
+        return false;
+    };
+
     for (PieceSet ps = pos.piece_types(); ps;)
     {
         PieceType pt = pop_lsb(ps);
         if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)))
             restricted |= pos.pieces(c, pt);
-        else if (is_custom(pt))
-        {
-            // Check if this custom piece is already on the board
-            if (pos.count(c, pt) > 0)
-                // to be conservative, assume any custom piece has mating potential
-                return false;
-                
-            // Check if any pawn can promote to this custom piece
-            if (pos.promotion_piece_types(c) & pt)
-            {
-                for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes; )
-                {
-                    PieceType pawnType = pop_lsb(pawnTypes);
-                    if (pos.count(c, pawnType) > 0)
-                        return false;
-                }
-            }
-        }
+        else if (is_custom(pt) && (pos.count(c, pt) > 0 || has_promoting_pawn(pt)))
+            // to be conservative, assume any custom piece has mating potential
+            return false;
     }
 
     // Mating pieces
     for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR, AMAZON, BERS })
-    {
-        if (pos.pieces(c, pt) & ~restricted)
+        if ((pos.pieces(c, pt) & ~restricted) || has_promoting_pawn(pt))
             return false;
-        
-        // Check if any pawn type that can promote has pieces and can promote to this piece type
-        if (pos.promotion_piece_types(c) & pt)
-        {
-            for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes; )
-            {
-                PieceType pawnType = pop_lsb(pawnTypes);
-                if (pos.count(c, pawnType) > 0)
-                    return false;
-            }
-        }
-    }
 
     // Color-bound pieces
     Bitboard colorbound = 0, unbound;
