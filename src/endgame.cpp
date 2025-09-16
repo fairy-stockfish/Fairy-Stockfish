@@ -1033,7 +1033,7 @@ Value Endgame<RK, EG_EVAL_ANTI>::operator()(const Position& pos) const {
 }
 
 
-/// K vs N. The king usally wins, but there are a few exceptions.
+/// K vs N. The king usually wins, but there are a few exceptions.
 template<>
 Value Endgame<KN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
 
@@ -1041,16 +1041,26 @@ Value Endgame<KN, EG_EVAL_ANTI>::operator()(const Position& pos) const {
 
   Square KSq = pos.square<COMMONER>(strongSide);
   Square NSq = pos.square<KNIGHT>(weakSide);
+  Bitboard kingAttacks = attacks_bb<KING>(KSq) & pos.board_bb();
+  Bitboard knightAttacks = attacks_bb<KNIGHT>(NSq) & pos.board_bb();
+  bool strongSideToMove = pos.side_to_move() == strongSide;
 
-  // wins for knight
-  if (pos.side_to_move() == strongSide && (attacks_bb<KNIGHT>(NSq) & KSq))
-      return -VALUE_KNOWN_WIN;
-  if (pos.side_to_move() == weakSide && (attacks_bb<KNIGHT>(NSq) & attacks_bb<KING>(KSq)))
-      return VALUE_KNOWN_WIN;
+  // Loss in 1 play
+  if (strongSideToMove ? kingAttacks & NSq : knightAttacks & KSq)
+      return VALUE_TB_LOSS_IN_MAX_PLY + 1;
+  // Win in 2 ply
+  if (kingAttacks & knightAttacks)
+      return VALUE_TB_WIN_IN_MAX_PLY - 2;
+  // Loss in 3 ply
+  if (strongSideToMove ? knightAttacks & KSq : kingAttacks & NSq)
+      return VALUE_TB_LOSS_IN_MAX_PLY + 3;
 
-  Value result = VALUE_KNOWN_WIN + push_to_edge(NSq, pos) - push_to_edge(KSq, pos);
+  Value result = Value(push_to_edge(NSq, pos)) - push_to_edge(KSq, pos);
+  // The king usually wins, but scenarios with king on the edge are more complicated
+  if (!(KSq & (FileABB | FileHBB | Rank1BB | Rank8BB)))
+      result += VALUE_KNOWN_WIN;
 
-  return strongSide == pos.side_to_move() ? result : -result;
+  return strongSideToMove ? result : -result;
 }
 
 /// N vs N. The side to move always wins/loses if the knights are on
