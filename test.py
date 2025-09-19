@@ -698,6 +698,27 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fen("cambodian", fen, moves, False, False, True)
         self.assertEqual(result, "Rnsmksnr/8/1ppppppp/8/8/1PPPPPPP/8/1NSKMSNR b DEd - 0 1")
 
+    def test_capture_anything_knight_self_capture(self):
+        chess_start = sf.start_fen("chess")
+        chess_moves = sf.legal_moves("chess", chess_start, [])
+        self.assertNotIn("g1e2", chess_moves)
+
+        capture_anything_start = sf.start_fen("capture-anything")
+        capture_moves = sf.legal_moves("capture-anything", capture_anything_start, [])
+        self.assertIn("g1e2", capture_moves)
+
+        san = sf.get_san("capture-anything", capture_anything_start, "g1e2")
+        self.assertIn("x", san)
+
+    def test_capture_anything_pawn_self_capture_resets_clock(self):
+        fen = "8/8/8/5N2/4P3/8/8/8 w - - 17 1"
+        moves = sf.legal_moves("capture-anything", fen, [])
+        self.assertIn("e4f5", moves)
+        self.assertTrue(sf.is_capture("capture-anything", fen, [], "e4f5"))
+
+        new_fen = sf.get_fen("capture-anything", fen, ["e4f5"])
+        self.assertEqual(int(new_fen.split()[4]), 0)
+
     def test_get_san(self):
         fen = "4k3/8/3R4/8/1R3R2/8/3R4/4K3 w - - 0 1"
         result = sf.get_san("chess", fen, "b4d4")

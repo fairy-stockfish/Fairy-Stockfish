@@ -167,6 +167,7 @@ public:
   bool fast_attacks2() const;
   bool checking_permitted() const;
   bool drop_checks() const;
+  bool self_capture() const;
   bool must_capture() const;
   bool has_capture() const;
   bool must_drop() const;
@@ -641,6 +642,11 @@ inline bool Position::fast_attacks2() const {
 inline bool Position::drop_checks() const {
   assert(var != nullptr);
   return var->dropChecks;
+}
+
+inline bool Position::self_capture() const {
+  assert(var != nullptr);
+  return var->selfCapture;
 }
 
 inline bool Position::must_capture() const {
