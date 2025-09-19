@@ -50,13 +50,6 @@ namespace {
         v->nnueAlias = "nn-";
         return v;
     }
-    // Capture Anything Chess
-    // https://www.chess.com/terms/capture-anything-chess
-    Variant* capture_anything_variant() {
-        Variant* v = chess_variant()->init();
-        v->selfCapture = true;
-        return v;
-    }
     // Chess960 aka Fischer random chess
     // https://en.wikipedia.org/wiki/Fischer_random_chess
     Variant* chess960_variant() {
@@ -1839,7 +1832,6 @@ void VariantMap::init() {
     add("fischerandom", chess960_variant());
     add("nocastle", nocastle_variant());
     add("armageddon", armageddon_variant());
-    add("capture-anything", capture_anything_variant());
     add("torpedo", torpedo_variant());
     add("berolina", berolina_variant());
     add("pawnsideways", pawnsideways_variant());
