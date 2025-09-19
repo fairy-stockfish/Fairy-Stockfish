@@ -1371,8 +1371,15 @@ bool Position::pseudo_legal(const Move m) const {
       return false;
 
   // The destination square cannot be occupied by a friendly piece unless self capture is allowed
-  if ((pieces(us) & to) && !(self_capture() && capture(m)))
-      return false;
+  if (pieces(us) & to)
+  {
+      if (!(self_capture() && capture(m)))
+          return false;
+
+      // Friendly kings are never capturable, even when self-capture is enabled
+      if (type_of(piece_on(to)) == KING)
+          return false;
+  }
 
   // Handle the special case of a pawn move
   if (type_of(pc) == PAWN)
