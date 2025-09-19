@@ -1,8 +1,23 @@
 # -*- coding: utf-8 -*-
 
 import faulthandler
+import importlib
+import subprocess
+import sys
+from pathlib import Path
 import unittest
-import pyffish as sf
+
+try:
+    import pyffish as sf
+except ModuleNotFoundError:  # pragma: no cover - only runs in environments without pyffish installed
+    repo_root = Path(__file__).resolve().parent
+    try:
+        import setuptools  # type: ignore  # noqa: F401
+    except ModuleNotFoundError:
+        subprocess.run([sys.executable, "-m", "ensurepip", "--upgrade"], cwd=repo_root, check=False)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "setuptools", "wheel"], cwd=repo_root)
+    subprocess.check_call([sys.executable, "setup.py", "build_ext", "--inplace"], cwd=repo_root)
+    sf = importlib.import_module("pyffish")
 
 faulthandler.enable()
 
