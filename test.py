@@ -131,6 +131,10 @@ cannon = c
 [multipawn:chess]
 soldier = s
 pawnTypes = ps
+
+# Capture-anything: allow self-capture while keeping standard chess rules otherwise
+[capture-anything:chess]
+selfCapture = true
 """
 
 sf.load_variant_config(ini_text)
@@ -711,7 +715,7 @@ class TestPyffish(unittest.TestCase):
         self.assertIn("x", san)
 
     def test_capture_anything_pawn_self_capture_resets_clock(self):
-        fen = "8/8/8/5N2/4P3/8/8/8 w - - 17 1"
+        fen = "6k1/8/8/5N2/4P3/8/8/6K1 w - - 17 1"
         moves = sf.legal_moves("capture-anything", fen, [])
         self.assertIn("e4f5", moves)
         self.assertTrue(sf.is_capture("capture-anything", fen, [], "e4f5"))
