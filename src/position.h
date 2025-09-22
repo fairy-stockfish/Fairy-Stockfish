@@ -142,6 +142,7 @@ public:
   bool blast_on_capture() const;
   PieceSet blast_immune_types() const;
   PieceSet mutually_immune_types() const;
+  PieceSet iron_piece_types() const;
   EndgameEval endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
@@ -166,6 +167,7 @@ public:
   bool fast_attacks2() const;
   bool checking_permitted() const;
   bool drop_checks() const;
+  bool self_capture() const;
   bool must_capture() const;
   bool has_capture() const;
   bool must_drop() const;
@@ -518,6 +520,11 @@ inline PieceSet Position::mutually_immune_types() const {
   return var->mutuallyImmuneTypes;
 }
 
+inline PieceSet Position::iron_piece_types() const {
+  assert(var != nullptr);
+  return var->ironPieceTypes;
+}
+
 inline EndgameEval Position::endgame_eval() const {
   assert(var != nullptr);
   return !count_in_hand(ALL_PIECES) && (var->endgameEval != EG_EVAL_CHESS || count<KING>() == 2) ? var->endgameEval : NO_EG_EVAL;
@@ -635,6 +642,11 @@ inline bool Position::fast_attacks2() const {
 inline bool Position::drop_checks() const {
   assert(var != nullptr);
   return var->dropChecks;
+}
+
+inline bool Position::self_capture() const {
+  assert(var != nullptr);
+  return var->selfCapture;
 }
 
 inline bool Position::must_capture() const {
