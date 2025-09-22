@@ -1210,6 +1210,14 @@ bool Position::legal(Move m) const {
   )
   return false;
 
+  // Iron pieces: any attempt to capture them is illegal (but they can capture normally)
+  if (capture(m)) {
+      Square csq = (type_of(m) == EN_PASSANT) ? capture_square(to) : to;
+      Piece  cpc = piece_on(csq);
+      if (cpc != NO_PIECE && (iron_piece_types() & type_of(cpc)))
+          return false;
+  }
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
@@ -1362,9 +1370,16 @@ bool Position::pseudo_legal(const Move m) const {
   if (pc == NO_PIECE || color_of(pc) != us)
       return false;
 
-  // The destination square cannot be occupied by a friendly piece
+  // The destination square cannot be occupied by a friendly piece unless self capture is allowed
   if (pieces(us) & to)
-      return false;
+  {
+      if (!(self_capture() && capture(m)))
+          return false;
+
+      // Friendly kings are never capturable, even when self-capture is enabled
+      if (type_of(piece_on(to)) == KING)
+          return false;
+  }
 
   // Handle the special case of a pawn move
   if (type_of(pc) == PAWN)
@@ -1374,7 +1389,8 @@ bool Position::pseudo_legal(const Move m) const {
       if (mandatory_pawn_promotion() && (promotion_zone(us) & to) && !sittuyin_promotion())
           return false;
 
-      if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to)     // Not a capture
+      if (   !(pawn_attacks_bb(us, from)
+              & (self_capture() ? pieces() : pieces(~us)) & to)     // Not a capture
           && !((from + pawn_push(us) == to) && !(pieces() & to)) // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)               // Not a double push
                && (double_step_region(us) & from)
@@ -1584,7 +1600,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->pass = is_pass(m);
 
   assert(color_of(pc) == us);
-  assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
+  assert(captured == NO_PIECE
+         || (type_of(m) == CASTLING
+             ? color_of(captured) == us
+             : (color_of(captured) == them
+                || (self_capture() && color_of(captured) == us))));
   assert(type_of(captured) != KING);
 
   if (check_counting() && givesCheck)
@@ -1621,7 +1641,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (type_of(captured) == PAWN)
           st->pawnKey ^= Zobrist::psq[captured][capsq];
       else
-          st->nonPawnMaterial[them] -= PieceValue[MG][captured];
+          st->nonPawnMaterial[color_of(captured)] -= PieceValue[MG][captured];
 
       if (Eval::useNNUE)
       {
@@ -1640,10 +1660,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           board[capsq] = NO_PIECE;
       if (captures_to_hand())
       {
-          Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
-                             : unpromotedCaptured ? ~unpromotedCaptured
-                                                  : make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)));
-          add_to_hand(pieceToHand);
+           Piece pieceToHand = !capturedPromoted || drop_loop() ? make_piece(sideToMove, type_of(captured))
+		  				 : unpromotedCaptured ? make_piece(sideToMove, type_of(unpromotedCaptured))
+						                     : make_piece(sideToMove, main_promotion_pawn_type(color_of(captured)));
+		  add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
 
@@ -1653,6 +1673,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               dp.handCount[1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
           }
       }
+ 	  
       else if (Eval::useNNUE)
           dp.handPiece[1] = NO_PIECE;
 
@@ -2489,7 +2510,11 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (must_capture() || !checking_permitted() || is_gating(m) || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
       return VALUE_ZERO >= threshold;
 
-  int swap = PieceValue[MG][piece_on(to)] - threshold;
+  Piece victim = piece_on(to);
+  int victimValue = PieceValue[MG][victim];
+  if (victim != NO_PIECE && color_of(victim) == color_of(moved_piece(m)) && self_capture())
+      victimValue = -victimValue;
+  int swap = victimValue - threshold;
   if (swap < 0)
       return false;
 
