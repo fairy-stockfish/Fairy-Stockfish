@@ -1660,10 +1660,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           board[capsq] = NO_PIECE;
       if (captures_to_hand())
       {
-          Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
-                             : unpromotedCaptured ? ~unpromotedCaptured
-                                                  : make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)));
-          add_to_hand(pieceToHand);
+           Piece pieceToHand = !capturedPromoted || drop_loop() ? make_piece(sideToMove, type_of(captured))
+		  				 : unpromotedCaptured ? make_piece(sideToMove, type_of(unpromotedCaptured))
+						                     : make_piece(sideToMove, main_promotion_pawn_type(color_of(captured)));
+		  add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
 
@@ -1673,6 +1673,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               dp.handCount[1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
           }
       }
+ 	  
       else if (Eval::useNNUE)
           dp.handPiece[1] = NO_PIECE;
 
