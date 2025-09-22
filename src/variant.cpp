@@ -1559,6 +1559,36 @@ namespace {
         v->castling = false;
         return v;
     }
+    // Eurasian chess
+    // https://www.chessvariants.com/large.dir/eurasian.html
+    Variant* eurasian_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->pieceToCharTable = "PNBRQ.CV............Kpnbrq.cv............k";
+        v->maxRank = RANK_10;
+        v->maxFile = FILE_J;
+        v->add_piece(CANNON, 'c');
+        v->add_piece(CUSTOM_PIECE_1, 'v', "mBcpB");
+        v->startFen = "r1c4c1r/1nbvqkvbn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBVQKVBN1/R1C4C1R w - - 0 1";
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT | CANNON | CUSTOM_PIECE_1;
+        v->promotionPieceTypes[BLACK] = v->promotionPieceTypes[WHITE];
+        v->promotionRegion[WHITE] = Rank8BB | Rank9BB | Rank10BB;
+        v->promotionRegion[BLACK] = Rank3BB | Rank2BB | Rank1BB;
+        v->promotionLimit[QUEEN] = 1;
+        v->promotionLimit[ROOK] = 2;
+        v->promotionLimit[BISHOP] = 2;
+        v->promotionLimit[KNIGHT] = 2;
+        v->promotionLimit[CANNON] = 2;
+        v->promotionLimit[CUSTOM_PIECE_1] = 2;
+        v->mandatoryPawnPromotion = false;
+        v->doubleStepRegion[WHITE] = Rank3BB;
+        v->doubleStepRegion[BLACK] = Rank8BB;
+        v->castling = false;
+        v->flyingGeneral = true;
+        v->diagonalGeneral = true;
+        v->mobilityRegion[WHITE][KING] = Rank1BB | Rank2BB | Rank3BB | Rank4BB | Rank5BB;
+        v->mobilityRegion[BLACK][KING] = Rank6BB | Rank7BB | Rank8BB | Rank9BB | Rank10BB;
+        return v;
+    }
     // Opulent chess
     // Variant of Grand chess with two extra pieces
     // https://www.chessvariants.com/rules/opulent-chess
@@ -1955,6 +1985,7 @@ void VariantMap::init() {
     add("jesonmor", jesonmor_variant());
     add("courier", courier_variant());
     add("grand", grand_variant());
+    add("eurasian", eurasian_variant());
     add("opulent", opulent_variant());
     add("tencubed", tencubed_variant());
     add("omicron", omicron_variant());

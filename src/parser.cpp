@@ -493,6 +493,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("passOnStalemateBlack", v->passOnStalemate[BLACK]);
     parse_attribute("makpongRule", v->makpongRule);
     parse_attribute("flyingGeneral", v->flyingGeneral);
+    parse_attribute("diagonalGeneral", v->diagonalGeneral);
     parse_attribute("soldierPromotionRank", v->soldierPromotionRank);
     parse_attribute("flipEnclosedPieces", v->flipEnclosedPieces);
     // game end

@@ -19,6 +19,7 @@ SHOGI_SFEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
 SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[EHeh] w KQBCDFGkqbcdfg - 0 1"
 GRAND = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1"
 GRANDHOUSE = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R[] w - - 0 1"
+EURASIAN = "r1c4c1r/1nbvqkvbn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBVQKVBN1/R1C4C1R w - - 0 1"
 XIANGQI = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
 SHOGUN = "rnb+fkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB+FKBNR[] w KQkq - 0 1"
 JANGGI = "rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1"
@@ -315,6 +316,7 @@ class TestPyffish(unittest.TestCase):
     def test_variants_loaded(self):
         variants = sf.variants()
         self.assertTrue("shogun" in variants)
+        self.assertIn("eurasian", variants)
 
     def test_set_option(self):
         result = sf.set_option("UCI_Variant", "capablanca")
@@ -343,6 +345,9 @@ class TestPyffish(unittest.TestCase):
 
         result = sf.start_fen("shogun")
         self.assertEqual(result, SHOGUN)
+
+        result = sf.start_fen("eurasian")
+        self.assertEqual(result, EURASIAN)
 
     def test_legal_moves(self):
         fen = "10/10/10/10/10/k9/10/K9 w - - 0 1"
@@ -420,6 +425,16 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(['d4e2', 'd4b3', 'd4f5', 'd4c6'], result)
         result = sf.legal_moves("betzatest", "7/7/7/3D3/7/7/7 w - - 0 1", [])
         self.assertEqual(['d4c2', 'd4f3', 'd4b5', 'd4e6'], result)
+
+
+    def test_diagonal_faceoff_unblock_is_illegal(self):
+        # Eurasian board: white King c5, white Pawn d6 (blocking), black King e7
+        # Moving the pawn off d6 (e.g. d6d7) would expose the kings to a diagonal face-off.
+        fen = "10/10/10/4k5/3P6/2K7/10/10/10/10 w - - 0 1"
+        moves = sf.legal_moves("eurasian", fen, [])
+        self.assertNotIn("d6d7", moves)
+        # A neutral king move that keeps the block is still fine.
+        self.assertIn("c5c4", moves)
 
 
     def test_castling(self):
