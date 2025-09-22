@@ -596,7 +596,7 @@ namespace {
         v->flagRegion[WHITE] = Rank8BB;
         return v;
     }
-
+	
     // Three-check chess
     // Check the king three times to win
     // https://lichess.org/variant/threeCheck
@@ -614,6 +614,7 @@ namespace {
         v->nnueAlias = "3check";
         return v;
     }
+
     // Crazyhouse
     // Chess with piece drops
     // https://en.wikipedia.org/wiki/Crazyhouse
@@ -625,6 +626,7 @@ namespace {
         v->capturesToHand = true;
         return v;
     }
+	
     // Loop chess
     // Variant of crazyhouse where promoted pawns are not demoted when captured
     // https://en.wikipedia.org/wiki/Crazyhouse#Variations
@@ -634,6 +636,23 @@ namespace {
         v->nnueAlias = "crazyhouse";
         return v;
     }
+	
+	//Capture-Anything
+	// https://www.chess.com/terms/capture-anything-chess
+   Variant* captureanything_variant() {
+	   Variant* v = chess_variant_base()->init();
+	   v->selfCapture = true;
+	     return v;
+    }
+
+    //RecycleChess
+    //	# https://brainking.com/en/GameRules?tp=9
+    Variant* recycle_variant() {
+	 Variant* v = crazyhouse_variant()->init();
+       v->selfCapture = true; 
+  return v;
+    }	   
+
     // Chessgi
     // Variant of loop chess where pawns can be dropped to the first rank
     // https://en.wikipedia.org/wiki/Crazyhouse#Variations
@@ -1872,6 +1891,8 @@ void VariantMap::init() {
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
     add("fox-and-hounds", fox_and_hounds_variant());
+	add("captureanything", captureanything_variant());
+	add("recycle", recycle_variant());
 #ifdef ALLVARS
     add("duck", duck_variant());
 #endif
