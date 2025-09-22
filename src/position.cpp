@@ -1276,13 +1276,16 @@ bool Position::legal(Move m) const {
   // In case of bikjang passing is always allowed, even when in check
   if (st->bikjang && is_pass(m))
       return true;
-  if (((var->flyingGeneral || var->diagonalGeneral) && count<KING>(us)) || st->bikjang)
+  if ((var->flyingGeneral && count<KING>(us)) || st->bikjang)
   {
       Square s = type_of(moved_piece(m)) == KING ? to : square<KING>(us);
-      if ((var->flyingGeneral
-           && (attacks_bb(~us, ROOK, s, occupied) & pieces(~us, KING) & ~square_bb(to)))
-          || (var->diagonalGeneral
-           && (attacks_bb(~us, BISHOP, s, occupied) & pieces(~us, KING) & ~square_bb(to))))
+      if (attacks_bb(~us, ROOK, s, occupied) & pieces(~us, KING) & ~square_bb(to))
+          return false;
+  }
+  if (var->diagonalGeneral && count<KING>(us))
+  {
+      Square s = type_of(moved_piece(m)) == KING ? to : square<KING>(us);
+      if (attacks_bb(~us, BISHOP, s, occupied) & pieces(~us, KING) & ~square_bb(to))
           return false;
   }
 
