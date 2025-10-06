@@ -1210,6 +1210,14 @@ bool Position::legal(Move m) const {
   )
   return false;
 
+  // Iron pieces: any attempt to capture them is illegal (but they can capture normally)
+  if (capture(m)) {
+      Square csq = (type_of(m) == EN_PASSANT) ? capture_square(to) : to;
+      Piece  cpc = piece_on(csq);
+      if (cpc != NO_PIECE && (iron_piece_types() & type_of(cpc)))
+          return false;
+  }
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
@@ -1244,9 +1252,18 @@ bool Position::legal(Move m) const {
           return true;
 
       for (Square s = to; s != from; s += step)
-          if (attackers_to(s, ~us)
-              || (var->flyingGeneral && (attacks_bb(~us, ROOK, s, pieces() ^ from) & pieces(~us, KING))))
+      {
+          if (attackers_to(s, ~us))
               return false;
+
+          if (var->flyingGeneral
+              && (attacks_bb(~us, ROOK, s, pieces() ^ from) & pieces(~us, KING)))
+              return false;
+
+          if (var->diagonalGeneral
+              && (attacks_bb(~us, BISHOP, s, pieces() ^ from) & pieces(~us, KING)))
+              return false;
+      }
 
       // In case of Chess960, verify if the Rook blocks some checks
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
@@ -1263,6 +1280,12 @@ bool Position::legal(Move m) const {
   {
       Square s = type_of(moved_piece(m)) == KING ? to : square<KING>(us);
       if (attacks_bb(~us, ROOK, s, occupied) & pieces(~us, KING) & ~square_bb(to))
+          return false;
+  }
+  if (var->diagonalGeneral && count<KING>(us))
+  {
+      Square s = type_of(moved_piece(m)) == KING ? to : square<KING>(us);
+      if (attacks_bb(~us, BISHOP, s, occupied) & pieces(~us, KING) & ~square_bb(to))
           return false;
   }
 
@@ -1362,9 +1385,16 @@ bool Position::pseudo_legal(const Move m) const {
   if (pc == NO_PIECE || color_of(pc) != us)
       return false;
 
-  // The destination square cannot be occupied by a friendly piece
+  // The destination square cannot be occupied by a friendly piece unless self capture is allowed
   if (pieces(us) & to)
-      return false;
+  {
+      if (!(self_capture() && capture(m)))
+          return false;
+
+      // Friendly kings are never capturable, even when self-capture is enabled
+      if (type_of(piece_on(to)) == KING)
+          return false;
+  }
 
   // Handle the special case of a pawn move
   if (type_of(pc) == PAWN)
@@ -1374,7 +1404,8 @@ bool Position::pseudo_legal(const Move m) const {
       if (mandatory_pawn_promotion() && (promotion_zone(us) & to) && !sittuyin_promotion())
           return false;
 
-      if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to)     // Not a capture
+      if (   !(pawn_attacks_bb(us, from)
+              & (self_capture() ? pieces() : pieces(~us)) & to)     // Not a capture
           && !((from + pawn_push(us) == to) && !(pieces() & to)) // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)               // Not a double push
                && (double_step_region(us) & from)
@@ -1584,7 +1615,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->pass = is_pass(m);
 
   assert(color_of(pc) == us);
-  assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
+  assert(captured == NO_PIECE
+         || (type_of(m) == CASTLING
+             ? color_of(captured) == us
+             : (color_of(captured) == them
+                || (self_capture() && color_of(captured) == us))));
   assert(type_of(captured) != KING);
 
   if (check_counting() && givesCheck)
@@ -1621,7 +1656,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (type_of(captured) == PAWN)
           st->pawnKey ^= Zobrist::psq[captured][capsq];
       else
-          st->nonPawnMaterial[them] -= PieceValue[MG][captured];
+          st->nonPawnMaterial[color_of(captured)] -= PieceValue[MG][captured];
 
       if (Eval::useNNUE)
       {
@@ -1640,10 +1675,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           board[capsq] = NO_PIECE;
       if (captures_to_hand())
       {
-          Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
-                             : unpromotedCaptured ? ~unpromotedCaptured
-                                                  : make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)));
-          add_to_hand(pieceToHand);
+           Piece pieceToHand = !capturedPromoted || drop_loop() ? make_piece(sideToMove, type_of(captured))
+		  				 : unpromotedCaptured ? make_piece(sideToMove, type_of(unpromotedCaptured))
+						                     : make_piece(sideToMove, main_promotion_pawn_type(color_of(captured)));
+		  add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
 
@@ -1653,6 +1688,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               dp.handCount[1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
           }
       }
+ 	  
       else if (Eval::useNNUE)
           dp.handPiece[1] = NO_PIECE;
 
@@ -2489,7 +2525,11 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (must_capture() || !checking_permitted() || is_gating(m) || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
       return VALUE_ZERO >= threshold;
 
-  int swap = PieceValue[MG][piece_on(to)] - threshold;
+  Piece victim = piece_on(to);
+  int victimValue = PieceValue[MG][victim];
+  if (victim != NO_PIECE && color_of(victim) == color_of(moved_piece(m)) && self_capture())
+      victimValue = -victimValue;
+  int swap = victimValue - threshold;
   if (swap < 0)
       return false;
 
@@ -2514,6 +2554,13 @@ bool Position::see_ge(Move m, Value threshold) const {
           attackers |= attacks_bb(stm, ROOK, to, occupied & ~pieces(ROOK)) & pieces(~stm, KING);
       if (attackers & pieces(~stm, KING))
           attackers |= attacks_bb(~stm, ROOK, to, occupied & ~pieces(ROOK)) & pieces(stm, KING);
+  }
+  if (var->diagonalGeneral)
+  {
+      if (attackers & pieces(stm, KING))
+          attackers |= attacks_bb(stm, BISHOP, to, occupied & ~pieces(BISHOP)) & pieces(~stm, KING);
+      if (attackers & pieces(~stm, KING))
+          attackers |= attacks_bb(~stm, BISHOP, to, occupied & ~pieces(BISHOP)) & pieces(stm, KING);
   }
 
   // Janggi cannons can not capture each other
@@ -2975,6 +3022,20 @@ Bitboard Position::chased() const {
       if ((kingFilePieces & pieces(sideToMove, KING)) && !more_than_one(kingFilePieces & ~pieces(KING)))
           pins |= kingFilePieces & ~pieces(KING);
   }
+  if (var->diagonalGeneral)
+  {
+      Square enemyKing = square<KING>(~sideToMove);
+      Square ourKing = square<KING>(sideToMove);
+      int df = int(file_of(enemyKing)) - int(file_of(ourKing));
+      int dr = int(rank_of(enemyKing)) - int(rank_of(ourKing));
+      if (df == dr || df == -dr)
+      {
+          Bitboard kingDiagonalPieces = line_bb(enemyKing, ourKing) & pieces(sideToMove);
+          if ((kingDiagonalPieces & pieces(sideToMove, KING))
+              && !more_than_one(kingDiagonalPieces & ~pieces(KING)))
+              pins |= kingDiagonalPieces & ~pieces(KING);
+      }
+  }
   auto addChased = [&](Square attackerSq, PieceType attackerType, Bitboard attacks) {
       if (attacks & ~b)
       {
@@ -3006,8 +3067,14 @@ Bitboard Position::chased() const {
           {
               Square s = pop_lsb(attacks);
               Bitboard roots = attackers_to(s, pieces() ^ attackerSq, sideToMove) & ~pins;
-              if (!roots || (var->flyingGeneral && roots == pieces(sideToMove, KING) && (attacks_bb(sideToMove, ROOK, square<KING>(~sideToMove), pieces() ^ attackerSq) & s)))
+              if (!roots
+                  || (var->flyingGeneral && roots == pieces(sideToMove, KING)
+                      && (attacks_bb(sideToMove, ROOK, square<KING>(~sideToMove), pieces() ^ attackerSq) & s))
+                  || (var->diagonalGeneral && roots == pieces(sideToMove, KING)
+                      && (attacks_bb(sideToMove, BISHOP, square<KING>(~sideToMove), pieces() ^ attackerSq) & s)))
+              {
                   b |= s;
+              }
           }
       }
   };

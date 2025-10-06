@@ -2,6 +2,7 @@
 
 import faulthandler
 import unittest
+
 import pyffish as sf
 
 faulthandler.enable()
@@ -18,6 +19,7 @@ SHOGI_SFEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
 SEIRAWAN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[EHeh] w KQBCDFGkqbcdfg - 0 1"
 GRAND = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R w - - 0 1"
 GRANDHOUSE = "r8r/1nbqkcabn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBQKCABN1/R8R[] w - - 0 1"
+EURASIAN = "r1c4c1r/1nbvqkvbn1/pppppppppp/10/10/10/10/PPPPPPPPPP/1NBVQKVBN1/R1C4C1R w - - 0 1"
 XIANGQI = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
 SHOGUN = "rnb+fkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB+FKBNR[] w KQkq - 0 1"
 JANGGI = "rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1"
@@ -131,6 +133,10 @@ cannon = c
 [multipawn:chess]
 soldier = s
 pawnTypes = ps
+
+# Capture-anything: allow self-capture while keeping standard chess rules otherwise
+[capture-anything:chess]
+selfCapture = true
 """
 
 sf.load_variant_config(ini_text)
@@ -310,6 +316,7 @@ class TestPyffish(unittest.TestCase):
     def test_variants_loaded(self):
         variants = sf.variants()
         self.assertTrue("shogun" in variants)
+        self.assertIn("eurasian", variants)
 
     def test_set_option(self):
         result = sf.set_option("UCI_Variant", "capablanca")
@@ -338,6 +345,9 @@ class TestPyffish(unittest.TestCase):
 
         result = sf.start_fen("shogun")
         self.assertEqual(result, SHOGUN)
+
+        result = sf.start_fen("eurasian")
+        self.assertEqual(result, EURASIAN)
 
     def test_legal_moves(self):
         fen = "10/10/10/10/10/k9/10/K9 w - - 0 1"
@@ -415,6 +425,16 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(['d4e2', 'd4b3', 'd4f5', 'd4c6'], result)
         result = sf.legal_moves("betzatest", "7/7/7/3D3/7/7/7 w - - 0 1", [])
         self.assertEqual(['d4c2', 'd4f3', 'd4b5', 'd4e6'], result)
+
+
+    def test_diagonal_faceoff_unblock_is_illegal(self):
+        # Eurasian board: white King c5, white Pawn d6 (blocking), black King e7
+        # Moving the pawn off d6 (e.g. d6d7) would expose the kings to a diagonal face-off.
+        fen = "10/10/10/4k5/3P6/2K7/10/10/10/10 w - - 0 1"
+        moves = sf.legal_moves("eurasian", fen, [])
+        self.assertNotIn("d6d7", moves)
+        # A neutral king move that keeps the block is still fine.
+        self.assertIn("c5c4", moves)
 
 
     def test_castling(self):
@@ -697,6 +717,27 @@ class TestPyffish(unittest.TestCase):
         moves = ["a1a8"]
         result = sf.get_fen("cambodian", fen, moves, False, False, True)
         self.assertEqual(result, "Rnsmksnr/8/1ppppppp/8/8/1PPPPPPP/8/1NSKMSNR b DEd - 0 1")
+
+    def test_capture_anything_knight_self_capture(self):
+        chess_start = sf.start_fen("chess")
+        chess_moves = sf.legal_moves("chess", chess_start, [])
+        self.assertNotIn("g1e2", chess_moves)
+
+        capture_anything_start = sf.start_fen("capture-anything")
+        capture_moves = sf.legal_moves("capture-anything", capture_anything_start, [])
+        self.assertIn("g1e2", capture_moves)
+
+        san = sf.get_san("capture-anything", capture_anything_start, "g1e2")
+        self.assertIn("x", san)
+
+    def test_capture_anything_pawn_self_capture_resets_clock(self):
+        fen = "6k1/8/8/5N2/4P3/8/8/6K1 w - - 17 1"
+        moves = sf.legal_moves("capture-anything", fen, [])
+        self.assertIn("e4f5", moves)
+        self.assertTrue(sf.is_capture("capture-anything", fen, [], "e4f5"))
+
+        new_fen = sf.get_fen("capture-anything", fen, ["e4f5"])
+        self.assertEqual(int(new_fen.split()[4]), 0)
 
     def test_get_san(self):
         fen = "4k3/8/3R4/8/1R3R2/8/3R4/4K3 w - - 0 1"

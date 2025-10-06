@@ -419,6 +419,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("blastOnCapture", v->blastOnCapture);
     parse_attribute("blastImmuneTypes", v->blastImmuneTypes, v->pieceToChar);
     parse_attribute("mutuallyImmuneTypes", v->mutuallyImmuneTypes, v->pieceToChar);
+    parse_attribute("ironPieceTypes", v->ironPieceTypes, v->pieceToChar);
     parse_attribute("petrifyOnCaptureTypes", v->petrifyOnCaptureTypes, v->pieceToChar);
     parse_attribute("petrifyBlastPieces", v->petrifyBlastPieces);
     parse_attribute("doubleStep", v->doubleStep);
@@ -454,6 +455,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("checking", v->checking);
     parse_attribute("dropChecks", v->dropChecks);
     parse_attribute("mustCapture", v->mustCapture);
+    parse_attribute("selfCapture", v->selfCapture);
     parse_attribute("mustDrop", v->mustDrop);
     parse_attribute("mustDropType", v->mustDropType, v->pieceToChar);
     parse_attribute("pieceDrops", v->pieceDrops);
@@ -491,6 +493,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("passOnStalemateBlack", v->passOnStalemate[BLACK]);
     parse_attribute("makpongRule", v->makpongRule);
     parse_attribute("flyingGeneral", v->flyingGeneral);
+    parse_attribute("diagonalGeneral", v->diagonalGeneral);
     parse_attribute("soldierPromotionRank", v->soldierPromotionRank);
     parse_attribute("flipEnclosedPieces", v->flipEnclosedPieces);
     // game end
