@@ -1580,7 +1580,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       captured = NO_PIECE;
   }
   st->capturedpromoted = is_promoted(to);
-  st->unpromotedCapturedPiece = captured ? unpromoted_piece_on(to) : NO_PIsECE;
+  st->unpromotedCapturedPiece = captured ? unpromoted_piece_on(to) : NO_PIECE;
   st->pass = is_pass(m);
 
   assert(color_of(pc) == us);
