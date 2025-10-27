@@ -72,7 +72,7 @@ jobs:
         working-directory: src
         run: rm -f ../tests/js/ffish.js & rm -f ../tests/js/ffish.wasm & make -f Makefile_js build es6=yes
       - name: Upload ffish.js ES6/ES2015 module ZIP archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ffishjs-es6
           path: tests/js/*
@@ -82,7 +82,7 @@ jobs:
         working-directory: src
         run: rm -f ../tests/js/ffish.js & rm -f ../tests/js/ffish.wasm & make -f Makefile_js build
       - name: Upload ffish.js standard module ZIP archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ffishjs-standard
           path: tests/js/*
