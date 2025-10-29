@@ -594,7 +594,9 @@ inline bool Position::nnue_use_pockets() const {
 
 inline bool Position::nnue_applicable() const {
   // Do not use NNUE during setup phases (placement, sittuyin)
-  return (!count_in_hand(ALL_PIECES) || nnue_use_pockets() || !must_drop()) && !virtualPieces;
+  return (!count_in_hand(ALL_PIECES) || nnue_use_pockets() || !must_drop())
+         && !virtualPieces
+         && (!nnue_king() || (count(WHITE, nnue_king()) == 1 && count(BLACK, nnue_king()) == 1));
 }
 
 inline int Position::nnue_piece_square_index(Color perspective, Piece pc) const {
