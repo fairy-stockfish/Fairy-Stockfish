@@ -209,6 +209,16 @@ void init(OptionsMap& o) {
   o["TsumeMode"]             << Option(false);
   o["VariantPath"]           << Option("<empty>", on_variant_path);
   o["usemillisec"]           << Option(true); // time unit for UCCI
+
+  // Fog-of-War (FoW) Obscuro-style search options
+  o["UCI_FoW"]               << Option(false);  // Enable FoW mode
+  o["UCI_IISearch"]          << Option(true);   // Enable imperfect information search
+  o["UCI_MinInfosetSize"]    << Option(256, 1, 10000);  // Sample size for root infoset
+  o["UCI_ExpansionThreads"]  << Option(2, 1, 16);       // Number of expander threads
+  o["UCI_CFRThreads"]        << Option(1, 1, 8);        // Number of CFR solver threads
+  o["UCI_PurifySupport"]     << Option(3, 1, 10);       // Max actions in purified strategy
+  o["UCI_PUCT_C"]            << Option(100, 1, 1000);   // PUCT constant C (x100 for precision)
+  o["UCI_FoW_TimeMs"]        << Option(5000, 100, 600000); // Time budget per move in ms
 }
 
 

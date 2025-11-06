@@ -33,6 +33,7 @@
 #include "uci.h"
 #include "xboard.h"
 #include "syzygy/tbprobe.h"
+#include "imperfect/Planner.h"
 
 using namespace std;
 
@@ -171,7 +172,27 @@ namespace {
             limits.time[BLACK] += byoyomi;
         }
 
-    Threads.start_thinking(pos, states, limits, ponderMode);
+    // Check if Fog-of-War mode is enabled
+    if (Options["UCI_FoW"] && Options["UCI_IISearch"]) {
+        // Use FoW Obscuro-style planner instead of normal search
+        FogOfWar::Planner planner;
+        FogOfWar::PlannerConfig config;
+
+        config.minInfosetSize = Options["UCI_MinInfosetSize"];
+        config.numExpanderThreads = Options["UCI_ExpansionThreads"];
+        config.numSolverThreads = Options["UCI_CFRThreads"];
+        config.maxSupport = Options["UCI_PurifySupport"];
+        config.puctConstant = float(int(Options["UCI_PUCT_C"])) / 100.0f;
+        config.maxTimeMs = Options["UCI_FoW_TimeMs"];
+
+        Move bestMove = planner.plan_move(pos, config);
+
+        // Output best move
+        sync_cout << "bestmove " << UCI::move(pos, bestMove) << sync_endl;
+    } else {
+        // Normal perfect-information search
+        Threads.start_thinking(pos, states, limits, ponderMode);
+    }
   }
 
   // bench() is called when engine receives the "bench" command. Firstly

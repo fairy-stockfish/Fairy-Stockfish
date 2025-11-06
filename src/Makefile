@@ -43,11 +43,14 @@ SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp main.cpp 
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
 	nnue/evaluate_nnue.cpp nnue/features/half_ka_v2.cpp \
 	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
-	nnue/features/half_ka_v2_variants.cpp
+	nnue/features/half_ka_v2_variants.cpp \
+	imperfect/Visibility.cpp imperfect/Belief.cpp imperfect/Evaluator.cpp \
+	imperfect/Subgame.cpp imperfect/CFR.cpp imperfect/Expander.cpp \
+	imperfect/Selection.cpp imperfect/Planner.cpp
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
-VPATH = syzygy:nnue:nnue/features
+VPATH = syzygy:nnue:nnue/features:imperfect
 
 ### Establish the operating system name
 KERNEL = $(shell uname -s)
