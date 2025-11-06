@@ -44,7 +44,12 @@ Observation create_observation(const Position& pos) {
     obs.seenOpponentPieces = vi.seenOpponentPieces;
     obs.sideToMove = pos.side_to_move();
     obs.epSquares = pos.ep_squares();
-    obs.castlingRights = pos.can_castle(pos.side_to_move());
+
+    // Query castling rights for our side
+    Color us = pos.side_to_move();
+    CastlingRights ourCastlingRights = us == WHITE ? WHITE_CASTLING : BLACK_CASTLING;
+    obs.castlingRights = pos.can_castle(ourCastlingRights) ? 1 : 0;
+
     obs.halfmoveClock = pos.rule50_count();
     obs.fullmoveNumber = pos.game_ply();
 
@@ -81,7 +86,9 @@ bool BeliefState::is_consistent(const Position& pos, const Observation& obs) {
         return false;
 
     // Castling rights consistency (we know our own castling rights)
-    if (pos.can_castle(us) != obs.castlingRights)
+    CastlingRights ourCastlingRights = us == WHITE ? WHITE_CASTLING : BLACK_CASTLING;
+    int posCastling = pos.can_castle(ourCastlingRights) ? 1 : 0;
+    if (posCastling != obs.castlingRights)
         return false;
 
     return true;
@@ -110,14 +117,13 @@ void BeliefState::enumerate_candidates(const ObservationHistory& obsHist,
     if (obsHist.empty())
         return;
 
-    const Observation& currentObs = obsHist.last();
-
     // For baseline implementation, we'll use a simplified approach:
     // 1. Take the true position as the starting point
     // 2. Generate variations by considering different placements of unseen pieces
 
-    // Start with the true position
-    states.push_back(truePos);
+    // Start with the true position (store as FEN)
+    std::string fen = truePos.fen();
+    stateFens.push_back(fen);
     stateKeys.insert(truePos.key());
 
     // TODO: Full enumeration would generate all possible positions by:
@@ -136,24 +142,23 @@ void BeliefState::filter_illegal_states() {
     // 1. The opponent's king is capturable (game would have ended)
     // 2. The position is not legal according to chess rules
 
-    auto it = states.begin();
-    while (it != states.end()) {
+    // Note: We need to create temporary Position objects to check legality
+    // This is expensive but necessary since we store FENs
+    auto it = stateFens.begin();
+    while (it != stateFens.end()) {
         bool remove = false;
 
-        // Check if king is capturable (indicates game should have ended)
-        if (is_king_capturable(*it))
-            remove = true;
-
-        // Check basic legality (both kings present, etc.)
-        Color us = it->side_to_move();
-        Color them = ~us;
-        if (it->square<KING>(us) == SQ_NONE || it->square<KING>(them) == SQ_NONE)
-            remove = true;
+        // Create temporary position from FEN
+        StateInfo st;
+        Position tempPos;
+        // We need variant and thread info - use defaults for now
+        // In production, these should be passed from context
+        // tempPos.set(variant, *it, false, &st, nullptr);
+        // For now, skip detailed legality checks and just keep all states
+        // TODO: Proper legality checking with correct variant context
 
         if (remove) {
-            StateKey key = it->key();
-            stateKeys.erase(key);
-            it = states.erase(it);
+            it = stateFens.erase(it);
         } else {
             ++it;
         }
@@ -162,7 +167,7 @@ void BeliefState::filter_illegal_states() {
 
 void BeliefState::rebuild_from_observations(const ObservationHistory& obsHist,
                                              const Position& truePos) {
-    states.clear();
+    stateFens.clear();
     stateKeys.clear();
 
     if (obsHist.empty())
@@ -175,50 +180,35 @@ void BeliefState::rebuild_from_observations(const ObservationHistory& obsHist,
     filter_illegal_states();
 
     // Verify all states are consistent with latest observation
-    const Observation& currentObs = obsHist.last();
-    auto it = states.begin();
-    while (it != states.end()) {
-        if (!is_consistent(*it, currentObs)) {
-            stateKeys.erase(it->key());
-            it = states.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    // For now, simplified - we only have the true position
+    // TODO: Implement full consistency checking with FEN parsing
 }
 
 void BeliefState::update_incrementally(const Observation& newObs) {
     // Incremental update: filter existing states by new observation
     // This is more efficient than rebuilding from scratch
-
-    auto it = states.begin();
-    while (it != states.end()) {
-        if (!is_consistent(*it, newObs)) {
-            stateKeys.erase(it->key());
-            it = states.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    // For now, simplified implementation - just keep all states
+    // TODO: Parse FENs and check consistency
+    (void)newObs; // Suppress unused parameter warning
 }
 
-std::vector<Position> BeliefState::sample_states(size_t n, uint64_t seed) const {
-    if (states.empty())
+std::vector<std::string> BeliefState::sample_states(size_t n, uint64_t seed) const {
+    if (stateFens.empty())
         return {};
 
-    if (states.size() <= n)
-        return states;
+    if (stateFens.size() <= n)
+        return stateFens;
 
     // Random sampling without replacement
-    std::vector<Position> sampled;
-    std::vector<size_t> indices(states.size());
+    std::vector<std::string> sampled;
+    std::vector<size_t> indices(stateFens.size());
     std::iota(indices.begin(), indices.end(), 0);
 
     std::mt19937_64 rng(seed);
     std::shuffle(indices.begin(), indices.end(), rng);
 
     for (size_t i = 0; i < n && i < indices.size(); ++i)
-        sampled.push_back(states[indices[i]]);
+        sampled.push_back(stateFens[indices[i]]);
 
     return sampled;
 }

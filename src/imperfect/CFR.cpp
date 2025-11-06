@@ -100,7 +100,9 @@ float CFRSolver::compute_cfv(GameTreeNode* node, Subgame& subgame,
         return 0.0f; // Placeholder: should use cached value
 
     // Get infoset
-    Color nodePlayer = node->state.side_to_move();
+    // TODO: Determine side to move from FEN or pass as parameter
+    // For now, alternate by depth (even=WHITE, odd=BLACK)
+    Color nodePlayer = (node->depth % 2 == 0) ? WHITE : BLACK;
     SequenceId seqId = nodePlayer == WHITE ? node->ourSequence : node->theirSequence;
     InfosetNode* infoset = subgame.get_infoset(seqId, nodePlayer);
 

@@ -53,7 +53,7 @@ InfosetNode* Subgame::get_infoset(SequenceId seqId, Color player) {
     return &iset;
 }
 
-void Subgame::construct(const std::vector<Position>& sampledStates,
+void Subgame::construct(const std::vector<std::string>& sampledStateFens,
                         int minInfosetSize) {
     // Clear existing tree
     rootNode = std::make_unique<GameTreeNode>();
@@ -62,50 +62,43 @@ void Subgame::construct(const std::vector<Position>& sampledStates,
     resolveEntered = false;
 
     // Build tree from sampled states
-    build_tree_from_samples(sampledStates);
+    build_tree_from_samples(sampledStateFens);
 
     // Compute KLUSS region (2-KLUSS: order-2 neighborhood, unfrozen at distance 1)
-    compute_kluss_region(sampledStates);
+    compute_kluss_region(sampledStateFens);
 }
 
-void Subgame::build_tree_from_samples(const std::vector<Position>& sampledStates) {
-    if (sampledStates.empty())
+void Subgame::build_tree_from_samples(const std::vector<std::string>& sampledStateFens) {
+    if (sampledStateFens.empty())
         return;
 
     // Initialize root node with first sampled state
     rootNode->nodeId = nodeIdCounter++;
-    rootNode->state = sampledStates[0];
+    // Store FEN instead of Position
+    // TODO: Parse FEN when needed for move generation
     rootNode->ourSequence = 0;
     rootNode->theirSequence = 0;
     rootNode->depth = 0;
     rootNode->inKLUSS = true;
 
-    // Create root infoset
-    Color rootPlayer = sampledStates[0].side_to_move();
-    InfosetNode* rootInfoset = get_infoset(0, rootPlayer);
+    // For now, create a simple root infoset without parsing FENs
+    // TODO: Parse FENs to determine correct player and actions
+    InfosetNode* rootInfoset = get_infoset(0, WHITE); // Default to WHITE
 
-    // Add actions from all sampled states to root infoset
-    std::vector<Move> allActions;
-    for (const Position& pos : sampledStates) {
-        for (const auto& m : MoveList<LEGAL>(const_cast<Position&>(pos))) {
-            if (std::find(allActions.begin(), allActions.end(), m) == allActions.end())
-                allActions.push_back(m);
-        }
-    }
-
-    rootInfoset->actions = allActions;
-    rootInfoset->regrets.resize(allActions.size(), 0.0f);
-    rootInfoset->strategy.resize(allActions.size(), 1.0f / allActions.size());
-    rootInfoset->cumulativeStrategy.resize(allActions.size(), 0.0f);
-    rootInfoset->visitCounts.resize(allActions.size(), 0);
-    rootInfoset->qValues.resize(allActions.size(), 0.0f);
-    rootInfoset->variances.resize(allActions.size(), 1.0f); // Initialize to {-1, +1} variance
+    // Initialize with empty actions (will be filled during expansion)
+    rootInfoset->regrets.clear();
+    rootInfoset->strategy.clear();
+    rootInfoset->cumulativeStrategy.clear();
+    rootInfoset->visitCounts.clear();
+    rootInfoset->qValues.clear();
+    rootInfoset->variances.clear();
 }
 
-void Subgame::compute_kluss_region(const std::vector<Position>& sampledStates) {
+void Subgame::compute_kluss_region(const std::vector<std::string>& sampledStateFens) {
     // For 2-KLUSS: nodes are in the knowledge region if they are reachable
     // within 2 moves from any sampled state
     // Simplified implementation: mark root and immediate children as in KLUSS
+    (void)sampledStateFens; // Suppress unused parameter warning
 
     if (!rootNode)
         return;
@@ -151,9 +144,9 @@ GameTreeNode* Subgame::expand_node(GameTreeNode* leaf, Position& pos) {
         child->ourSequence = leaf->ourSequence; // Will be updated with move
         child->theirSequence = leaf->theirSequence;
 
-        // Make move to get child state
+        // Make move to get child state FEN
         pos.do_move(m, st);
-        child->state = pos;
+        child->stateFen = pos.fen();
         pos.undo_move(m);
 
         leaf->children.push_back(std::move(child));

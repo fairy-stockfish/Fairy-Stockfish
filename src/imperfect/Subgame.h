@@ -64,20 +64,21 @@ struct InfosetNode {
 /// GameTreeNode represents a specific state in the game tree
 struct GameTreeNode {
     NodeId nodeId;
-    Position state;                  // The actual position (for sampled states)
+    std::string stateFen;            // FEN string instead of Position object
     SequenceId ourSequence;          // Our move sequence to this node
     SequenceId theirSequence;        // Opponent's move sequence to this node
     bool terminal;                   // Is this a terminal node?
     float terminalValue;             // Value if terminal
     int depth;                       // Depth in tree
     bool inKLUSS;                    // Is this node in the KLUSS region?
+    bool expanded;                   // Has this node been expanded?
 
     // Parent and children
     GameTreeNode* parent;
     std::vector<std::unique_ptr<GameTreeNode>> children;
 
     GameTreeNode() : nodeId(0), terminal(false), terminalValue(0.0f),
-                     depth(0), inKLUSS(false), parent(nullptr) {}
+                     depth(0), inKLUSS(false), expanded(false), parent(nullptr) {}
 };
 
 /// GadgetType for resolve/maxmargin
@@ -95,7 +96,8 @@ public:
                 resolveEntered(false), nodeIdCounter(0) {}
 
     /// construct() builds the subgame from sampled states (Figure 9)
-    void construct(const std::vector<Position>& sampledStates,
+    /// Takes FEN strings representing sampled positions
+    void construct(const std::vector<std::string>& sampledStateFens,
                    int minInfosetSize = 256);
 
     /// expand_node() expands a leaf node by generating children
@@ -105,7 +107,8 @@ public:
     InfosetNode* get_infoset(SequenceId seqId, Color player);
 
     /// compute_kluss_region() computes the 2-KLUSS (order-2 knowledge region)
-    void compute_kluss_region(const std::vector<Position>& sampledStates);
+    /// Takes FEN strings representing sampled positions
+    void compute_kluss_region(const std::vector<std::string>& sampledStateFens);
 
     /// is_in_kluss() checks if a node is in the KLUSS region
     bool is_in_kluss(const GameTreeNode* node) const;
@@ -136,8 +139,8 @@ private:
     /// Helper: Generate sequence ID from move sequence
     SequenceId compute_sequence_id(const std::vector<Move>& moves);
 
-    /// Helper: Build tree from sampled states
-    void build_tree_from_samples(const std::vector<Position>& sampledStates);
+    /// Helper: Build tree from sampled states (FEN strings)
+    void build_tree_from_samples(const std::vector<std::string>& sampledStateFens);
 };
 
 /// compute_sequence_id() generates a unique ID for a move sequence

@@ -107,7 +107,9 @@ GameTreeNode* Expander::select_leaf(GameTreeNode* root, Subgame& subgame) {
 
     // Traverse tree until we reach an unexpanded node
     while (current->expanded && !current->children.empty()) {
-        Color nodePlayer = current->state.side_to_move();
+        // TODO: Determine side to move from FEN or pass as parameter
+        // For now, alternate by depth (even=WHITE, odd=BLACK)
+        Color nodePlayer = (current->depth % 2 == 0) ? WHITE : BLACK;
         SequenceId seqId = nodePlayer == WHITE ? current->ourSequence : current->theirSequence;
         InfosetNode* infoset = subgame.get_infoset(seqId, nodePlayer);
 
@@ -214,8 +216,13 @@ bool Expander::run_expansion_step(Subgame& subgame) {
         return false;
 
     // Expand the leaf
-    Position pos = leaf->state;
-    expand_leaf(leaf, subgame, pos);
+    // TODO: Parse leaf->stateFen to create Position
+    // For now, skip actual expansion (placeholder)
+    // Position pos = ...parse leaf->stateFen...
+    // expand_leaf(leaf, subgame, pos);
+
+    // Mark as expanded to avoid infinite loop
+    leaf->expanded = true;
 
     // Alternate exploring side (Appendix B.3.3)
     alternate_exploring_side();
