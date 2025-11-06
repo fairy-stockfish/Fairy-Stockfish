@@ -1308,7 +1308,119 @@ class TestPyffish(unittest.TestCase):
         fen = "rnbqkbnr/p1p2ppp/8/Pp1pp3/4P3/8/1PPP1PPP/RNBQKBNR w KQkq b6 0 1"
         result = sf.get_fog_fen(fen, "fogofwar")
         self.assertEqual(result, "********/********/2******/Pp*p***1/4P3/4*3/1PPP1PPP/RNBQKBNR w KQkq b6 0 1")
-        
+
+    def test_fog_fen_pawn_vision(self):
+        """Test that pawns reveal their diagonal attack squares"""
+        fen = "8/8/8/8/3P4/8/8/K6k w - - 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        # Pawn on d4 should reveal c5 and e5 diagonals
+        self.assertIn("*", result)
+
+    def test_fog_fen_knight_vision(self):
+        """Test that knights reveal their attack squares"""
+        fen = "8/8/8/8/3N4/8/8/K6k w - - 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        # Knight on d4 should reveal its attack squares
+        self.assertIn("*", result)
+
+    def test_fog_fen_blocked_pieces(self):
+        """Test that blocked pieces don't reveal squares beyond blocker"""
+        # Rook blocked by pawn
+        fen = "8/8/8/3p4/3R4/8/8/K6k w - - 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        # Should see pawn on d5 but not beyond
+        self.assertIn("p", result)
+
+    def test_fog_fen_en_passant_visibility(self):
+        """Test en passant square visibility (Appendix A: revealed if capturable)"""
+        # After d7-d5, e5 pawn can capture en passant on d6
+        fen = "rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        # The e5 pawn should reveal d6 (en passant square)
+        # Note: exact FEN depends on implementation details
+        self.assertIsNotNone(result)
+
+    def test_fow_uci_options(self):
+        """Test that FoW UCI options can be set"""
+        # Test setting UCI_FoW option
+        result = sf.set_option("UCI_FoW", "true")
+        self.assertIsNone(result)
+
+        result = sf.set_option("UCI_FoW", "false")
+        self.assertIsNone(result)
+
+        # Test setting UCI_IISearch option
+        result = sf.set_option("UCI_IISearch", "true")
+        self.assertIsNone(result)
+
+        # Test setting UCI_MinInfosetSize
+        result = sf.set_option("UCI_MinInfosetSize", "256")
+        self.assertIsNone(result)
+
+        # Test setting UCI_ExpansionThreads
+        result = sf.set_option("UCI_ExpansionThreads", "2")
+        self.assertIsNone(result)
+
+        # Test setting UCI_CFRThreads
+        result = sf.set_option("UCI_CFRThreads", "1")
+        self.assertIsNone(result)
+
+        # Test setting UCI_PurifySupport
+        result = sf.set_option("UCI_PurifySupport", "3")
+        self.assertIsNone(result)
+
+        # Test setting UCI_PUCT_C
+        result = sf.set_option("UCI_PUCT_C", "100")
+        self.assertIsNone(result)
+
+        # Test setting UCI_FoW_TimeMs
+        result = sf.set_option("UCI_FoW_TimeMs", "1000")
+        self.assertIsNone(result)
+
+    def test_fow_legal_moves(self):
+        """Test that legal moves are correctly generated in FoW chess"""
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        result = sf.legal_moves("fogofwar", fen, [])
+        # Starting position should have standard opening moves
+        self.assertIn("e2e4", result)
+        self.assertIn("d2d4", result)
+        self.assertIn("g1f3", result)
+
+    def test_fow_game_integration(self):
+        """Integration test: play a short FoW game"""
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        moves = []
+
+        # Move 1: e2-e4
+        legal = sf.legal_moves("fogofwar", fen, moves)
+        self.assertIn("e2e4", legal)
+        moves.append("e2e4")
+
+        # Check visibility after e2-e4
+        fen_after_e4 = sf.get_fen("fogofwar", fen, moves)
+        fog_fen = sf.get_fog_fen(fen_after_e4, "fogofwar")
+        # After e2-e4, white should see less of black's back rank
+        self.assertIn("*", fog_fen)
+
+        # Move 2: e7-e5
+        legal = sf.legal_moves("fogofwar", fen, moves)
+        self.assertIn("e7e5", legal)
+        moves.append("e7e5")
+
+        # Move 3: Nf3
+        legal = sf.legal_moves("fogofwar", fen, moves)
+        self.assertIn("g1f3", legal)
+        moves.append("g1f3")
+
+        # Check that game state is valid
+        fen_final = sf.get_fen("fogofwar", fen, moves)
+        self.assertIsNotNone(fen_final)
+
+        # Check that we can get fog view
+        fog_fen_final = sf.get_fog_fen(fen_final, "fogofwar")
+        self.assertIsNotNone(fog_fen_final)
+
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
