@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-24.04, windows-2022, macos-13]
+        os: [ubuntu-24.04, windows-2022, macos-14]
 
     steps:
       - uses: actions/checkout@v5
@@ -34,7 +34,7 @@ jobs:
           CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_* cp36-* cp37-* cp38"
           CIBW_TEST_COMMAND: python {project}/test.py
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dist-wheel-${{ matrix.os }}
           path: ./wheelhouse/*.whl
@@ -51,7 +51,7 @@ jobs:
       - name: Build sdist
         run: python setup.py sdist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dist-source
           path: dist/*.tar.gz
