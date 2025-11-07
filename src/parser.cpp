@@ -369,6 +369,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("chess960", v->chess960);
     parse_attribute("twoBoards", v->twoBoards);
     parse_attribute("startFen", v->startFen);
+    parse_attribute("nnueAlias", v->nnueAlias);
     parse_attribute("promotionRegionWhite", v->promotionRegion[WHITE]);
     parse_attribute("promotionRegionBlack", v->promotionRegion[BLACK]);
     // Take the first promotionPawnTypes as the main promotionPawnType

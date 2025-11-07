@@ -259,6 +259,21 @@ fog_fen = sf.get_fog_fen(fen, "fogofwar")
 print(fog_fen)  # Shows what black sees (e.g., "********/********/...")
 ```
 
+## NNUE Evaluation
+
+All three FoW variants use NNUE (neural network) evaluation:
+
+- **fogofwar**: Uses standard chess NNUE
+- **darkcrazyhouse**: Uses crazyhouse NNUE
+- **darkcrazyhouse2**: Uses crazyhouse NNUE
+
+The Obscuro search algorithm (CFR, KLUSS, GT-CFR) is for **search** (deciding which positions to evaluate), while NNUE is for **evaluation** (scoring individual positions). They work together seamlessly:
+- The search explores the game tree and belief states
+- NNUE evaluates leaf positions to guide the search
+- The fact that pieces use "commoner" instead of "king" doesn't affect NNUE
+
+**Note**: NNUE networks are trained on complete-information games. In FoW positions, NNUE evaluates each possible board state in the belief set as if it were a standard chess/crazyhouse position. The search algorithm then aggregates these evaluations to make decisions under uncertainty.
+
 ## FoW Rules Summary
 
 From the Obscuro paper (Appendix A), the key fog-of-war rules are:
