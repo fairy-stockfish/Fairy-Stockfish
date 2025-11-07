@@ -8,10 +8,11 @@ In Fog-of-War chess, players can only see squares that their pieces can attack o
 
 ## Available FoW Variants
 
-Fairy-Stockfish supports two FoW-based variants:
+Fairy-Stockfish supports three FoW-based variants:
 
 - **fogofwar**: Standard chess with fog-of-war rules
-- **suntzu**: Crazyhouse (pieces can be dropped) with fog-of-war rules
+- **darkcrazyhouse**: Crazyhouse with fog-of-war rules. When you have a piece in hand, all empty squares are visible (you can drop anywhere)
+- **darkcrazyhouse2**: Crazyhouse with fog-of-war rules. You can only drop pieces on visible squares (standard FoW vision rules apply)
 
 ## Basic Usage (Standard FoW Play)
 
@@ -185,22 +186,43 @@ setoption name UCI_ExpansionThreads value 2
 setoption name UCI_FoW_TimeMs value 500
 ```
 
-## Playing Sun-Tzu (Crazyhouse + FoW)
+## Playing Dark Crazyhouse Variants
 
-Sun-Tzu combines Crazyhouse rules (captured pieces can be dropped back on the board) with Fog-of-War:
+### Dark Crazyhouse
+
+Dark Crazyhouse combines Crazyhouse rules (captured pieces can be dropped back on the board) with Fog-of-War. **When you have a piece in hand, all empty squares become visible**, allowing you to drop anywhere:
 
 ```
 uci
-setoption name UCI_Variant value suntzu
+setoption name UCI_Variant value darkcrazyhouse
 setoption name UCI_FoW value true
 position startpos
 go movetime 5000
 ```
 
-In Sun-Tzu, you have the additional complexity of:
+Key features:
 - Not knowing what pieces your opponent has in their hand
-- Potential surprise drops in fog areas
+- When you capture a piece and have it in hand, you can see all empty squares
+- Drops allowed on any empty square when you have pieces
 - Managing your own captured pieces while dealing with incomplete information
+
+### Dark Crazyhouse 2
+
+Dark Crazyhouse 2 is a more restrictive variant where **you can only drop pieces on squares you can see** (based on standard FoW vision rules):
+
+```
+uci
+setoption name UCI_Variant value darkcrazyhouse2
+setoption name UCI_FoW value true
+position startpos
+go movetime 5000
+```
+
+Key differences from Dark Crazyhouse:
+- Drops restricted to visible squares only
+- No automatic visibility of empty squares when holding pieces
+- More strategic piece placement required
+- Surprise drops only possible in areas your pieces can already see
 
 ## Analyzing FoW Positions
 
