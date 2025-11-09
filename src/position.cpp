@@ -3232,8 +3232,16 @@ void Position::flip() {
   for (Rank r = max_rank(); r >= RANK_1; --r) // Piece placement
   {
       std::getline(ss, token, r > RANK_1 ? '/' : ' ');
-      f.insert(0, token + (f.empty() ? " " : "/"));
+      size_t bracketPos = token.find('[');
+      if (bracketPos != string::npos)
+      {
+          f.insert(0, token.substr(0, bracketPos) + (f.empty() ? "" : "/"));
+          f += token.substr(bracketPos);
+      }
+      else
+          f.insert(0, token + (f.empty() ? "" : "/"));
   }
+  f += " ";
 
   ss >> token; // Active color
   f += (token == "w" ? "B " : "W "); // Will be lowercased later
