@@ -18,6 +18,7 @@
 
 #include "Expander.h"
 #include "Evaluator.h"
+#include "../variant.h"
 #include "../position.h"
 #include <algorithm>
 #include <cmath>
@@ -216,13 +217,16 @@ bool Expander::run_expansion_step(Subgame& subgame) {
         return false;
 
     // Expand the leaf
-    // TODO: Parse leaf->stateFen to create Position
-    // For now, skip actual expansion (placeholder)
-    // Position pos = ...parse leaf->stateFen...
-    // expand_leaf(leaf, subgame, pos);
+    StateInfo st;
+    Position pos;
 
-    // Mark as expanded to avoid infinite loop
-    leaf->expanded = true;
+    // TODO: Use correct variant from belief/sample metadata
+    const auto chessVariant = variants.find("chess");
+    if (chessVariant == variants.end())
+        return false;
+
+    pos.set(chessVariant->second, leaf->stateFen, false, &st, nullptr, true);
+    expand_leaf(leaf, subgame, pos);
 
     // Alternate exploring side (Appendix B.3.3)
     alternate_exploring_side();

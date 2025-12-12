@@ -74,6 +74,7 @@ void Subgame::build_tree_from_samples(const std::vector<std::string>& sampledSta
 
     // Initialize root node with first sampled state
     rootNode->nodeId = nodeIdCounter++;
+    rootNode->stateFen = sampledStateFens.front();
     // Store FEN instead of Position
     // TODO: Parse FEN when needed for move generation
     rootNode->ourSequence = 0;
