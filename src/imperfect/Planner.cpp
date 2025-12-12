@@ -57,19 +57,19 @@ void Planner::construct_subgame(const Position& pos) {
     }
 
     // Step 2: Sample I ⊂ P (default 256 states)
-    std::vector<Position> sampledStates = beliefState.sample_states(
+    std::vector<std::string> sampledStateFens = beliefState.sample_states(
         config.minInfosetSize,
         std::chrono::steady_clock::now().time_since_epoch().count()
     );
 
-    // If belief state is empty or too small, use current position
-    if (sampledStates.empty()) {
-        sampledStates.push_back(pos);
+    // If belief state is empty or too small, use current position FEN
+    if (sampledStateFens.empty()) {
+        sampledStateFens.push_back(pos.fen());
     }
 
     // Step 3: Construct subgame (2-KLUSS)
     subgame = std::make_unique<Subgame>();
-    subgame->construct(sampledStates, config.minInfosetSize);
+    subgame->construct(sampledStateFens, config.minInfosetSize);
 
     // Step 4: Initialize Resolve and Maxmargin gadgets
     // The gadget switching is handled by the solver (Figure 10, lines 6-13)

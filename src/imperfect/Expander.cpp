@@ -18,6 +18,7 @@
 
 #include "Expander.h"
 #include "Evaluator.h"
+#include "../variant.h"
 #include "../position.h"
 #include <algorithm>
 #include <cmath>
@@ -107,7 +108,9 @@ GameTreeNode* Expander::select_leaf(GameTreeNode* root, Subgame& subgame) {
 
     // Traverse tree until we reach an unexpanded node
     while (current->expanded && !current->children.empty()) {
-        Color nodePlayer = current->state.side_to_move();
+        // TODO: Determine side to move from FEN or pass as parameter
+        // For now, alternate by depth (even=WHITE, odd=BLACK)
+        Color nodePlayer = (current->depth % 2 == 0) ? WHITE : BLACK;
         SequenceId seqId = nodePlayer == WHITE ? current->ourSequence : current->theirSequence;
         InfosetNode* infoset = subgame.get_infoset(seqId, nodePlayer);
 
@@ -214,7 +217,15 @@ bool Expander::run_expansion_step(Subgame& subgame) {
         return false;
 
     // Expand the leaf
-    Position pos = leaf->state;
+    StateInfo st;
+    Position pos;
+
+    // TODO: Use correct variant from belief/sample metadata
+    const auto chessVariant = variants.find("chess");
+    if (chessVariant == variants.end())
+        return false;
+
+    pos.set(chessVariant->second, leaf->stateFen, false, &st, nullptr, true);
     expand_leaf(leaf, subgame, pos);
 
     // Alternate exploring side (Appendix B.3.3)

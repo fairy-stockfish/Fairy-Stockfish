@@ -53,6 +53,7 @@ public:
     const std::vector<Observation>& observations() const { return history; }
     size_t size() const { return history.size(); }
     const Observation& last() const { return history.back(); }
+    bool empty() const { return history.empty(); }
 
 private:
     std::vector<Observation> history;
@@ -73,18 +74,19 @@ public:
     void update_incrementally(const Observation& newObs);
 
     /// Sample a subset of states for building the subgame
-    std::vector<Position> sample_states(size_t n, uint64_t seed = 0) const;
+    /// Returns FEN strings of sampled positions
+    std::vector<std::string> sample_states(size_t n, uint64_t seed = 0) const;
 
     /// Accessors
-    size_t size() const { return states.size(); }
-    const std::vector<Position>& all_states() const { return states; }
-    bool empty() const { return states.empty(); }
+    size_t size() const { return stateFens.size(); }
+    const std::vector<std::string>& all_states() const { return stateFens; }
+    bool empty() const { return stateFens.empty(); }
 
     /// Check if a position is consistent with observations
     static bool is_consistent(const Position& pos, const Observation& obs);
 
 private:
-    std::vector<Position> states;
+    std::vector<std::string> stateFens; // FEN strings instead of Position objects
     std::unordered_set<StateKey> stateKeys; // For deduplication
 
     /// Generate candidate positions from observations

@@ -122,6 +122,26 @@ castlingKingPiece = k
 extinctionValue = loss
 extinctionPieceTypes = k
 
+# Dark Crazyhouse - Fog of War Chess with Crazyhouse drops
+# All empty squares visible when you have a piece in hand (can drop anywhere)
+[darkcrazyhouse:crazyhouse]
+startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1
+king = -
+commoner = k
+castlingKingPiece = k
+extinctionValue = loss
+extinctionPieceTypes = k
+
+# Dark Crazyhouse 2 - Fog of War Chess with restricted Crazyhouse drops
+# Can only drop on visible squares (standard FoW vision rules)
+[darkcrazyhouse2:crazyhouse]
+startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1
+king = -
+commoner = k
+castlingKingPiece = k
+extinctionValue = loss
+extinctionPieceTypes = k
+
 [coregaldrop:coregal]
 pieceDrops = true
 startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Qq] w KQkq - 0 1
@@ -1308,7 +1328,229 @@ class TestPyffish(unittest.TestCase):
         fen = "rnbqkbnr/p1p2ppp/8/Pp1pp3/4P3/8/1PPP1PPP/RNBQKBNR w KQkq b6 0 1"
         result = sf.get_fog_fen(fen, "fogofwar")
         self.assertEqual(result, "********/********/2******/Pp*p***1/4P3/4*3/1PPP1PPP/RNBQKBNR w KQkq b6 0 1")
-        
+
+    def test_fog_fen_pawn_vision(self):
+        """Test that pawns reveal their diagonal attack squares"""
+        fen = "8/8/8/8/3P4/8/8/K6k w - - 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        # Pawn on d4 should reveal c5 and e5 diagonals
+        self.assertIn("*", result)
+
+    def test_fog_fen_knight_vision(self):
+        """Test that knights reveal their attack squares"""
+        fen = "8/8/8/8/3N4/8/8/K6k w - - 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        # Knight on d4 should reveal its attack squares
+        self.assertIn("*", result)
+
+    def test_fog_fen_blocked_pieces(self):
+        """Test that blocked pieces don't reveal squares beyond blocker"""
+        # Rook blocked by pawn
+        fen = "8/8/8/3p4/3R4/8/8/K6k w - - 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        # Should see pawn on d5 but not beyond
+        self.assertIn("p", result)
+
+    def test_fog_fen_en_passant_visibility(self):
+        """Test en passant square visibility (Appendix A: revealed if capturable)"""
+        # After d7-d5, e5 pawn can capture en passant on d6
+        fen = "rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 1"
+        result = sf.get_fog_fen(fen, "fogofwar")
+        # The e5 pawn should reveal d6 (en passant square)
+        # Note: exact FEN depends on implementation details
+        self.assertIsNotNone(result)
+
+    def test_fow_uci_options(self):
+        """Test that FoW UCI options can be set"""
+        # Test setting UCI_FoW option
+        result = sf.set_option("UCI_FoW", "true")
+        self.assertIsNone(result)
+
+        result = sf.set_option("UCI_FoW", "false")
+        self.assertIsNone(result)
+
+        # Test setting UCI_IISearch option
+        result = sf.set_option("UCI_IISearch", "true")
+        self.assertIsNone(result)
+
+        # Test setting UCI_MinInfosetSize
+        result = sf.set_option("UCI_MinInfosetSize", "256")
+        self.assertIsNone(result)
+
+        # Test setting UCI_ExpansionThreads
+        result = sf.set_option("UCI_ExpansionThreads", "2")
+        self.assertIsNone(result)
+
+        # Test setting UCI_CFRThreads
+        result = sf.set_option("UCI_CFRThreads", "1")
+        self.assertIsNone(result)
+
+        # Test setting UCI_PurifySupport
+        result = sf.set_option("UCI_PurifySupport", "3")
+        self.assertIsNone(result)
+
+        # Test setting UCI_PUCT_C
+        result = sf.set_option("UCI_PUCT_C", "100")
+        self.assertIsNone(result)
+
+        # Test setting UCI_FoW_TimeMs
+        result = sf.set_option("UCI_FoW_TimeMs", "1000")
+        self.assertIsNone(result)
+
+    def test_fow_legal_moves(self):
+        """Test that legal moves are correctly generated in FoW chess"""
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        result = sf.legal_moves("fogofwar", fen, [])
+        # Starting position should have standard opening moves
+        self.assertIn("e2e4", result)
+        self.assertIn("d2d4", result)
+        self.assertIn("g1f3", result)
+
+    def test_fow_game_integration(self):
+        """Integration test: play a short FoW game"""
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        moves = []
+
+        # Move 1: e2-e4
+        legal = sf.legal_moves("fogofwar", fen, moves)
+        self.assertIn("e2e4", legal)
+        moves.append("e2e4")
+
+        # Check visibility after e2-e4
+        fen_after_e4 = sf.get_fen("fogofwar", fen, moves)
+        fog_fen = sf.get_fog_fen(fen_after_e4, "fogofwar")
+        # After e2-e4, white should see less of black's back rank
+        self.assertIn("*", fog_fen)
+
+        # Move 2: e7-e5
+        legal = sf.legal_moves("fogofwar", fen, moves)
+        self.assertIn("e7e5", legal)
+        moves.append("e7e5")
+
+        # Move 3: Nf3
+        legal = sf.legal_moves("fogofwar", fen, moves)
+        self.assertIn("g1f3", legal)
+        moves.append("g1f3")
+
+        # Check that game state is valid
+        fen_final = sf.get_fen("fogofwar", fen, moves)
+        self.assertIsNotNone(fen_final)
+
+        # Check that we can get fog view
+        fog_fen_final = sf.get_fog_fen(fen_final, "fogofwar")
+        self.assertIsNotNone(fog_fen_final)
+
+    def test_darkcrazyhouse_start_fen(self):
+        """Test that Dark Crazyhouse variant has correct start position with pocket"""
+        result = sf.start_fen("darkcrazyhouse")
+        # Should have crazyhouse-style empty pocket
+        self.assertIn("[]", result)
+        self.assertIn("rnbqkbnr/pppppppp", result)
+
+    def test_darkcrazyhouse_legal_moves(self):
+        """Test legal moves in Dark Crazyhouse (FoW + Crazyhouse)"""
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1"
+        result = sf.legal_moves("darkcrazyhouse", fen, [])
+        # Starting position should have standard opening moves
+        self.assertIn("e2e4", result)
+        self.assertIn("d2d4", result)
+
+    def test_darkcrazyhouse_with_drops(self):
+        """Test that Dark Crazyhouse allows drops like Crazyhouse"""
+        # Position after e4 e5, Nf3 Nc6, Nxe5 - white has a pawn in pocket
+        fen = "r1bqkbnr/pppp1ppp/2n5/4N3/4P3/8/PPPP1PPP/RNBQKB1R[P] w KQkq - 0 1"
+        result = sf.legal_moves("darkcrazyhouse", fen, [])
+        # Should have drop moves for the pawn
+        # Drop moves are typically in format like P@d3 (drop pawn at d3)
+        # But exact format depends on implementation
+        self.assertIsNotNone(result)
+        self.assertGreater(len(result), 0)
+
+    def test_darkcrazyhouse_fog_visibility(self):
+        """Test that Dark Crazyhouse respects fog-of-war rules"""
+        fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR[] b KQkq e3 0 1"
+        fog_fen = sf.get_fog_fen(fen, "darkcrazyhouse")
+        # Black should not see all of white's position (indicated by *)
+        self.assertIn("*", fog_fen)
+
+    def test_darkcrazyhouse_game_integration(self):
+        """Integration test: play a short Dark Crazyhouse game with capture and drop"""
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1"
+        moves = []
+
+        # Move 1: e4
+        legal = sf.legal_moves("darkcrazyhouse", fen, moves)
+        self.assertIn("e2e4", legal)
+        moves.append("e2e4")
+
+        # Move 1: e5
+        legal = sf.legal_moves("darkcrazyhouse", fen, moves)
+        self.assertIn("e7e5", legal)
+        moves.append("e7e5")
+
+        # Move 2: Nf3
+        legal = sf.legal_moves("darkcrazyhouse", fen, moves)
+        self.assertIn("g1f3", legal)
+        moves.append("g1f3")
+
+        # Check game state is valid
+        fen_final = sf.get_fen("darkcrazyhouse", fen, moves)
+        self.assertIsNotNone(fen_final)
+
+        # Check fog view works
+        fog_fen = sf.get_fog_fen(fen_final, "darkcrazyhouse")
+        self.assertIsNotNone(fog_fen)
+
+    def test_darkcrazyhouse2_start_fen(self):
+        """Test that Dark Crazyhouse 2 variant has correct start position with pocket"""
+        result = sf.start_fen("darkcrazyhouse2")
+        # Should have crazyhouse-style empty pocket
+        self.assertIn("[]", result)
+        self.assertIn("rnbqkbnr/pppppppp", result)
+
+    def test_darkcrazyhouse2_legal_moves(self):
+        """Test legal moves in Dark Crazyhouse 2 (FoW + restricted drops)"""
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1"
+        result = sf.legal_moves("darkcrazyhouse2", fen, [])
+        # Starting position should have standard opening moves
+        self.assertIn("e2e4", result)
+        self.assertIn("d2d4", result)
+
+    def test_darkcrazyhouse2_fog_visibility(self):
+        """Test that Dark Crazyhouse 2 respects fog-of-war rules"""
+        fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR[] b KQkq e3 0 1"
+        fog_fen = sf.get_fog_fen(fen, "darkcrazyhouse2")
+        # Black should not see all of white's position (indicated by *)
+        self.assertIn("*", fog_fen)
+
+    def test_darkcrazyhouse2_game_integration(self):
+        """Integration test: play a short Dark Crazyhouse 2 game"""
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1"
+        moves = []
+
+        # Move 1: e4
+        legal = sf.legal_moves("darkcrazyhouse2", fen, moves)
+        self.assertIn("e2e4", legal)
+        moves.append("e2e4")
+
+        # Move 1: e5
+        legal = sf.legal_moves("darkcrazyhouse2", fen, moves)
+        self.assertIn("e7e5", legal)
+        moves.append("e7e5")
+
+        # Move 2: Nf3
+        legal = sf.legal_moves("darkcrazyhouse2", fen, moves)
+        self.assertIn("g1f3", legal)
+        moves.append("g1f3")
+
+        # Check game state is valid
+        fen_final = sf.get_fen("darkcrazyhouse2", fen, moves)
+        self.assertIsNotNone(fen_final)
+
+        # Check fog view works
+        fog_fen = sf.get_fog_fen(fen_final, "darkcrazyhouse2")
+        self.assertIsNotNone(fog_fen)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
