@@ -31,8 +31,13 @@ bool is_in_resolve(const Subgame& subgame) {
 }
 
 std::vector<float> ActionSelection::compute_margins(const InfosetNode* infoset) {
-    if (!infoset)
+    if (!infoset || infoset->actions.empty())
         return {};
+
+    // If qValues is empty, return zero margins (all actions equally good)
+    if (infoset->qValues.empty()) {
+        return std::vector<float>(infoset->actions.size(), 0.0f);
+    }
 
     // Simplified implementation: use Q-values as margins
     // Full implementation would compute actual Maxmargin margins
@@ -105,6 +110,11 @@ std::vector<float> ActionSelection::purify_strategy(const std::vector<float>& st
 Move ActionSelection::select_deterministic(const InfosetNode* infoset) {
     if (!infoset || infoset->actions.empty())
         return MOVE_NONE;
+
+    // If strategy is empty or mismatched, return first action
+    if (infoset->strategy.empty() || infoset->strategy.size() != infoset->actions.size()) {
+        return infoset->actions[0];
+    }
 
     // Select action with highest strategy weight
     size_t bestIdx = 0;

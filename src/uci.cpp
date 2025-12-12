@@ -41,12 +41,22 @@ namespace Stockfish {
 
 extern vector<string> setup_bench(const Position&, istream&);
 
+// Global fog FEN for FOW analysis
+static std::string g_fogFen;
+
+// Get the fog FEN for FOW analysis
+const std::string& get_fog_fen() { return g_fogFen; }
+
+// Clear the fog FEN
+void clear_fog_fen() { g_fogFen.clear(); }
+
 namespace {
 
   // position() is called when engine receives the "position" UCI command.
   // The function sets up the position described in the given FEN string ("fen")
   // or the starting position ("startpos") and then makes the moves given in the
   // following move list ("moves").
+  // Also supports "fog_fen" for Fog-of-War analysis positions.
 
   void position(Position& pos, istringstream& is, StateListPtr& states) {
 
@@ -57,6 +67,9 @@ namespace {
     // Parse as SFEN if specified
     bool sfen = token == "sfen";
 
+    // Clear any previous fog_fen
+    g_fogFen.clear();
+
     if (token == "startpos")
     {
         fen = variants.find(Options["UCI_Variant"])->second->startFen;
@@ -65,6 +78,22 @@ namespace {
     else if (token == "fen" || token == "sfen")
         while (is >> token && token != "moves")
             fen += token + " ";
+    else if (token == "fog_fen")
+    {
+        // fog_fen: stores the partial observation FEN for FOW analysis
+        // Format: position fog_fen <fog_fen_string>
+        // The fog FEN uses '?' for unknown squares
+        while (is >> token && token != "moves")
+            g_fogFen += token + " ";
+
+        // Trim trailing space
+        if (!g_fogFen.empty() && g_fogFen.back() == ' ')
+            g_fogFen.pop_back();
+
+        // For the actual position, use startpos (the FOW planner will use fog_fen)
+        fen = variants.find(Options["UCI_Variant"])->second->startFen;
+        sync_cout << "info string fog_fen set: " << g_fogFen << sync_endl;
+    }
     else
         return;
 

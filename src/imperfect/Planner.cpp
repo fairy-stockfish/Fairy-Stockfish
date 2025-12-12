@@ -19,6 +19,7 @@
 #include "Planner.h"
 #include "../position.h"
 #include "../misc.h"
+#include "../movegen.h"
 #include <chrono>
 #include <iostream>
 
@@ -71,7 +72,41 @@ void Planner::construct_subgame(const Position& pos) {
     subgame = std::make_unique<Subgame>();
     subgame->construct(sampledStateFens, config.minInfosetSize);
 
-    // Step 4: Initialize Resolve and Maxmargin gadgets
+    // Store the variant pointer for use by expanders
+    subgame->set_variant(pos.variant());
+
+    // Step 4: Initialize root infoset with legal moves from the position
+    Color us = pos.side_to_move();
+    InfosetNode* rootInfoset = subgame->get_infoset(0, us);
+    if (rootInfoset) {
+        // Generate legal moves and populate actions
+        rootInfoset->actions.clear();
+        for (const auto& m : MoveList<LEGAL>(pos)) {
+            rootInfoset->actions.push_back(m);
+        }
+
+        // Initialize strategy to uniform
+        size_t numActions = rootInfoset->actions.size();
+        if (numActions > 0) {
+            float uniform = 1.0f / static_cast<float>(numActions);
+            rootInfoset->strategy.assign(numActions, uniform);
+            rootInfoset->regrets.assign(numActions, 0.0f);
+            rootInfoset->cumulativeStrategy.assign(numActions, 0.0f);
+            rootInfoset->visitCounts.assign(numActions, 0);
+            rootInfoset->qValues.assign(numActions, 0.0f);
+            rootInfoset->variances.assign(numActions, 1.0f);
+        }
+
+        // Mark as expanded
+        rootInfoset->expanded = true;
+    }
+
+    // Mark root game tree node as expanded
+    if (subgame->root()) {
+        subgame->root()->expanded = true;
+    }
+
+    // Step 5: Initialize Resolve and Maxmargin gadgets
     // The gadget switching is handled by the solver (Figure 10, lines 6-13)
     subgame->set_gadget_type(GadgetType::RESOLVE);
 }

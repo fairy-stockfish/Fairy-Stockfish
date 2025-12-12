@@ -1558,7 +1558,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   assert(&newSt != st);
 
 #ifndef NO_THREADS
-  thisThread->nodes.fetch_add(1, std::memory_order_relaxed);
+  if (thisThread)
+      thisThread->nodes.fetch_add(1, std::memory_order_relaxed);
 #endif
   Key k = st->key ^ Zobrist::side;
 

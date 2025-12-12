@@ -114,6 +114,10 @@ constexpr bool is_uci_dialect(Protocol p) {
 
 extern Protocol CurrentProtocol;
 
+// Fog-of-War FEN support
+const std::string& get_fog_fen();
+void clear_fog_fen();
+
 } // namespace Stockfish
 
 #endif // #ifndef UCI_H_INCLUDED

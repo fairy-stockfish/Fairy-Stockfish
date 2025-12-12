@@ -93,12 +93,18 @@ enum class GadgetType {
 class Subgame {
 public:
     Subgame() : rootNode(nullptr), currentGadget(GadgetType::NONE),
-                resolveEntered(false), nodeIdCounter(0) {}
+                resolveEntered(false), nodeIdCounter(0), variantPtr(nullptr) {}
 
     /// construct() builds the subgame from sampled states (Figure 9)
     /// Takes FEN strings representing sampled positions
     void construct(const std::vector<std::string>& sampledStateFens,
                    int minInfosetSize = 256);
+
+    /// set_variant() sets the variant pointer for FEN parsing
+    void set_variant(const Stockfish::Variant* v) { variantPtr = v; }
+
+    /// get_variant() returns the variant pointer
+    const Stockfish::Variant* get_variant() const { return variantPtr; }
 
     /// expand_node() expands a leaf node by generating children
     GameTreeNode* expand_node(GameTreeNode* leaf, Position& pos);
@@ -135,6 +141,7 @@ private:
     GadgetType currentGadget;
     bool resolveEntered;
     std::atomic<NodeId> nodeIdCounter;
+    const Stockfish::Variant* variantPtr;
 
     /// Helper: Generate sequence ID from move sequence
     SequenceId compute_sequence_id(const std::vector<Move>& moves);

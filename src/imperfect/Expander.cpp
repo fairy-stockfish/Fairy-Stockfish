@@ -220,12 +220,12 @@ bool Expander::run_expansion_step(Subgame& subgame) {
     StateInfo st;
     Position pos;
 
-    // TODO: Use correct variant from belief/sample metadata
-    const auto chessVariant = variants.find("chess");
-    if (chessVariant == variants.end())
+    // Use the variant stored in the subgame
+    const Variant* variant = subgame.get_variant();
+    if (!variant)
         return false;
 
-    pos.set(chessVariant->second, leaf->stateFen, false, &st, nullptr, true);
+    pos.set(variant, leaf->stateFen, false, &st, nullptr, true);
     expand_leaf(leaf, subgame, pos);
 
     // Alternate exploring side (Appendix B.3.3)

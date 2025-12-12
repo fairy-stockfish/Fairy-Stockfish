@@ -226,7 +226,9 @@ Key differences from Dark Crazyhouse:
 
 ## Analyzing FoW Positions
 
-To analyze a specific FoW position, use the `position fen` command with a FoW FEN string:
+### Using Standard FEN
+
+To analyze a specific position where you know the full board state, use the `position fen` command:
 
 ```
 uci
@@ -240,6 +242,32 @@ To stop the search:
 ```
 stop
 ```
+
+### Using Fog FEN (Partial Observation)
+
+When you only know what you can see (your observation), use `position fog_fen` to specify the partial observation. This is useful for analyzing positions from the perspective of a player who has incomplete information:
+
+```
+uci
+setoption name UCI_Variant value darkcrazyhouse2
+setoption name UCI_FoW value true
+setoption name UCI_IISearch value true
+setoption name UCI_FoW_TimeMs value 10000
+position fog_fen ????????/??????pp/1?????1P/?1??p1?1/8/1P2P3/PB1P1PP1/NQ1NRBKR b KQk - 0 8
+go infinite
+```
+
+In a fog FEN:
+- `?` represents unknown/fogged squares
+- Visible pieces are shown normally (e.g., `p`, `P`, `N`, etc.)
+- Empty visible squares are shown as part of the rank count (e.g., `8`, `1`)
+
+The engine will:
+1. Parse and store the fog FEN
+2. Use it to initialize the belief state (set of possible positions consistent with observations)
+3. Search over the belief state to find the best move
+
+**Note**: The fog_fen feature is currently a basic implementation. The engine stores the fog FEN and reports it, but full integration with belief state enumeration requires additional development.
 
 ## Viewing the Fog-of-War Board State
 

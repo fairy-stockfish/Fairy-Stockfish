@@ -99,6 +99,10 @@ float CFRSolver::compute_cfv(GameTreeNode* node, Subgame& subgame,
     if (!node->inKLUSS)
         return 0.0f; // Placeholder: should use cached value
 
+    // If node hasn't been expanded yet, return 0
+    if (!node->expanded)
+        return 0.0f;
+
     // Get infoset
     // TODO: Determine side to move from FEN or pass as parameter
     // For now, alternate by depth (even=WHITE, odd=BLACK)
@@ -110,21 +114,28 @@ float CFRSolver::compute_cfv(GameTreeNode* node, Subgame& subgame,
         return 0.0f;
 
     // Compute strategy if needed
-    if (infoset->strategy.empty())
+    if (infoset->strategy.empty() || infoset->strategy.size() != infoset->actions.size())
         compute_strategy(infoset);
 
     // Compute value of each action
-    std::vector<float> actionValues(infoset->actions.size(), 0.0f);
+    size_t numActions = infoset->actions.size();
+    std::vector<float> actionValues(numActions, 0.0f);
     float nodeValue = 0.0f;
 
-    for (size_t i = 0; i < infoset->actions.size(); ++i) {
+    // Get a snapshot of children size to avoid race conditions
+    size_t numChildren = node->children.size();
+
+    for (size_t i = 0; i < numActions; ++i) {
         // Find child corresponding to this action
         // Simplified: assume children match actions in order
-        if (i < node->children.size()) {
+        if (i < numChildren) {
             GameTreeNode* child = node->children[i].get();
-            float childValue = compute_cfv(child, subgame, reach_probs, player);
-            actionValues[i] = childValue;
-            nodeValue += infoset->strategy[i] * childValue;
+            if (child) {
+                float childValue = compute_cfv(child, subgame, reach_probs, player);
+                actionValues[i] = childValue;
+                if (i < infoset->strategy.size())
+                    nodeValue += infoset->strategy[i] * childValue;
+            }
         }
     }
 
