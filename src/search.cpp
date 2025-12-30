@@ -201,10 +201,12 @@ void MainThread::search() {
       {
           // rotate MOVE_NONE to front (for optional game end)
           std::rotate(rootMoves.rbegin(), rootMoves.rbegin() + 1, rootMoves.rend());
-          sync_cout << (  result == VALUE_DRAW ? "1/2-1/2 {Draw}"
-                        : (rootPos.side_to_move() == BLACK ? -result : result) == VALUE_MATE ? "1-0 {White wins}"
-                        : "0-1 {Black wins}")
-                    << sync_endl;
+          // do not claim when pondering
+          if (!ponder)
+              sync_cout << (  result == VALUE_DRAW ? "1/2-1/2 {Draw}"
+                              : (rootPos.side_to_move() == BLACK ? -result : result) == VALUE_MATE ? "1-0 {White wins}"
+                              : "0-1 {Black wins}")
+                          << sync_endl;
       }
       else
       sync_cout << "info depth 0 score "
