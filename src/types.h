@@ -484,6 +484,7 @@ enum : int {
   DEPTH_QS_CHECKS     =  0,
   DEPTH_QS_NO_CHECKS  = -1,
   DEPTH_QS_RECAPTURES = -5,
+  DEPTH_QS_MAX        = -32,
 
   DEPTH_NONE   = -6,
 
