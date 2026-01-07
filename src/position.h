@@ -1282,7 +1282,47 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
-  if (var->fastAttacks || var->fastAttacks2)
+  if (var->fastAttacks)
+  {
+      Bitboard b = 0;
+      const Bitboard occupied = byTypeBB[ALL_PIECES];
+      switch (pt)
+      {
+      case PAWN:
+          b = pawn_attacks_bb(c, s);
+          break;
+      case KNIGHT:
+          b = attacks_bb<KNIGHT>(s);
+          break;
+      case BISHOP:
+          b = attacks_bb<BISHOP>(s, occupied);
+          break;
+      case ROOK:
+          b = attacks_bb<ROOK>(s, occupied);
+          break;
+      case QUEEN:
+          b = attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
+          break;
+      case KING:
+      case COMMONER:
+          b = attacks_bb<KING>(s);
+          break;
+      case ARCHBISHOP:
+          b = attacks_bb<BISHOP>(s, occupied) | attacks_bb<KNIGHT>(s);
+          break;
+      case CHANCELLOR:
+          b = attacks_bb<ROOK>(s, occupied) | attacks_bb<KNIGHT>(s);
+          break;
+      case IMMOBILE_PIECE:
+          b = Bitboard(0);
+          break;
+      default:
+          b = attacks_bb(c, pt, s, occupied);
+          break;
+      }
+      return b & board_bb();
+  }
+  if (var->fastAttacks2)
       return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb();
 
   PieceType movePt = pt == KING ? king_type() : pt;

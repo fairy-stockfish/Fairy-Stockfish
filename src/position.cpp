@@ -575,17 +575,44 @@ void Position::set_check_info(StateInfo* si) const {
   si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), count<KING>(BLACK) ? square<KING>(BLACK) : SQ_NONE, si->pinners[WHITE], WHITE);
 
   Square ksq = count<KING>(~sideToMove) ? square<KING>(~sideToMove) : SQ_NONE;
+  Bitboard occupied = pieces();
 
   // For unused piece types, the check squares are left uninitialized
-  si->nonSlidingRiders = 0;
-  for (PieceSet ps = piece_types(); ps;)
+  if (var->fastAttacks)
   {
-      PieceType pt = pop_lsb(ps);
-      PieceType movePt = pt == KING ? king_type() : pt;
-      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
-      // Collect special piece types that require slower check and evasion detection
-      if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
-          si->nonSlidingRiders |= pieces(pt);
+      const bool hasKing = ksq != SQ_NONE;
+      const Bitboard pawnAttacks = hasKing ? pawn_attacks_bb(~sideToMove, ksq) : Bitboard(0);
+      const Bitboard knightAttacks = hasKing ? attacks_bb<KNIGHT>(ksq) : Bitboard(0);
+      const Bitboard bishopAttacks = hasKing ? attacks_bb<BISHOP>(ksq, occupied) : Bitboard(0);
+      const Bitboard rookAttacks = hasKing ? attacks_bb<ROOK>(ksq, occupied) : Bitboard(0);
+      const Bitboard kingAttacks = hasKing ? attacks_bb<KING>(ksq) : Bitboard(0);
+      const Bitboard queenAttacks = bishopAttacks | rookAttacks;
+
+      si->checkSquares[PAWN] = pawnAttacks;
+      si->checkSquares[KNIGHT] = knightAttacks;
+      si->checkSquares[BISHOP] = bishopAttacks;
+      si->checkSquares[ROOK] = rookAttacks;
+      si->checkSquares[QUEEN] = queenAttacks;
+      si->checkSquares[KING] = kingAttacks;
+      si->checkSquares[COMMONER] = kingAttacks;
+      si->checkSquares[ARCHBISHOP] = bishopAttacks | knightAttacks;
+      si->checkSquares[CHANCELLOR] = rookAttacks | knightAttacks;
+      si->checkSquares[IMMOBILE_PIECE] = Bitboard(0);
+
+      si->nonSlidingRiders = 0;
+  }
+  else
+  {
+      si->nonSlidingRiders = 0;
+      for (PieceSet ps = piece_types(); ps;)
+      {
+          PieceType pt = pop_lsb(ps);
+          PieceType movePt = pt == KING ? king_type() : pt;
+          si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, occupied) : Bitboard(0);
+          // Collect special piece types that require slower check and evasion detection
+          if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
+              si->nonSlidingRiders |= pieces(pt);
+      }
   }
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
