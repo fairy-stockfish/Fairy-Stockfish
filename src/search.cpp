@@ -1554,6 +1554,10 @@ moves_loop: // When in check, search starts from here
     if (ss->ply >= MAX_PLY)
         return !ss->inCheck ? evaluate(pos) : VALUE_DRAW;
 
+    // Safeguard against too deep recursions in quiescence search
+    if (depth < DEPTH_QS_MAX && !ss->inCheck)
+        return evaluate(pos);
+
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Decide whether or not to include checks: this fixes also the type of
