@@ -1082,6 +1082,17 @@ class TestPyffish(unittest.TestCase):
         result = sf.game_result("suicide", "8/8/8/7p/7P/8/8/n7 w - - 0 1", [])
         self.assertEqual(result, sf.VALUE_MATE)
 
+        # armageddon
+        # black gets stalemated
+        result = sf.game_result("armageddon", "k7/P7/K7/8/8/8/8/8 b - - 0 1", [])
+        self.assertEqual(result, sf.VALUE_MATE)
+        # white gets stalemated
+        result = sf.game_result("armageddon", "8/8/8/8/8/k7/p7/K7 w - - 0 1", [])
+        self.assertEqual(result, -sf.VALUE_MATE)
+        # 50 move rule
+        result = sf.game_result("armageddon", "3n4/8/8/3k4/8/3K4/8/3BB3 w - - 100 80", [])
+        self.assertEqual(result, -sf.VALUE_MATE)
+
         # atomic check- and stalemate
         # checkmate
         result = sf.game_result("atomic", "BQ6/Rk6/8/8/8/8/8/4K3 b - - 0 1", [])

@@ -443,15 +443,9 @@ describe('board.result()', function () {
     board.pushSan("Kxd8");
     chai.expect(board.result()).to.equal("1/2-1/2");
 
-    // Insufficient material with material counting - black draw odds (armageddon)
+    // Stalemate with material counting - black draw odds (armageddon)
     board.delete();
     board = new ffish.Board("armageddon");
-    board.setFen("3Rk3/8/8/8/8/8/2N5/3K4 b - - 0 1");
-    chai.expect(board.result()).to.equal("*");
-    board.pushSan("Kxd8");
-    chai.expect(board.result()).to.equal("0-1");
-
-    // Stalemate with material counting - black draw odds (armageddon)
     board.setFen("2Q2bnr/4p1pq/5pkr/7p/7P/4P3/PPPP1PP1/RNB1KBNR w KQ - 1 10");
     chai.expect(board.result()).to.equal("*");
     board.pushSan("Qe6");

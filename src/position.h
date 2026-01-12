@@ -915,11 +915,6 @@ inline EnclosingRule Position::flip_enclosed_pieces() const {
 
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
-  if (var->stalematePieceCount)
-  {
-      int c = count<ALL_PIECES>(sideToMove) - count<ALL_PIECES>(~sideToMove);
-      return c == 0 ? VALUE_DRAW : convert_mate_value(c < 0 ? var->stalemateValue : -var->stalemateValue, ply);
-  }
   // Check for checkmate of pseudo-royal pieces
   if (var->extinctionPseudoRoyal)
   {
@@ -949,7 +944,17 @@ inline Value Position::stalemate_value(int ply) const {
               return convert_mate_value(var->checkmateValue, ply);
       }
   }
-  return convert_mate_value(var->stalemateValue, ply);
+  Value result = var->stalemateValue;
+  // Is piece count used to determine stalemate result?
+  if (var->stalematePieceCount)
+  {
+      int c = count<ALL_PIECES>(sideToMove) - count<ALL_PIECES>(~sideToMove);
+      result = c == 0 ? VALUE_DRAW : c < 0 ? var->stalemateValue : -var->stalemateValue;
+  }
+  // Apply material counting
+  if (result == VALUE_DRAW && var->materialCounting)
+      result = material_counting_result();
+  return convert_mate_value(result, ply);
 }
 
 inline Value Position::checkmate_value(int ply) const {
