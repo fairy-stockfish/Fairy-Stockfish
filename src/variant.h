@@ -87,6 +87,8 @@ struct Variant {
   PieceType kingType = KING;
   bool checking = true;
   bool dropChecks = true;
+  bool selfCapture = false;
+  bool capturingLast = false;
   bool mustCapture = false;
   bool mustDrop = false;
   PieceType mustDropType = ALL_PIECES;
