@@ -1228,6 +1228,18 @@ namespace {
         v->flyingGeneral = true;
         return v;
     }
+
+    // Benedict Morph
+    // Capturing piece morphs into the type of the captured piece
+    // Promotions on capturing moves are overridden by this morph
+    // King captures as usual
+    Variant* benedictmorph_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->nnueAlias = "benedictmorph";
+        v->captureMorph = true;
+        v->rexExclusiveMorph = true;
+        return v;
+}
 #ifdef LARGEBOARDS
     // Shogi (Japanese chess)
     // https://en.wikipedia.org/wiki/Shogi
@@ -1915,6 +1927,7 @@ void VariantMap::init() {
     add("flipello", flipello_variant());
     add("minixiangqi", minixiangqi_variant());
     add("raazuvaa", raazuvaa_variant());
+    add("benedictmorph", benedictmorph_variant());
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("checkshogi", checkshogi_variant());
