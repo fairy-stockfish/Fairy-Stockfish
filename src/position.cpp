@@ -65,10 +65,16 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
               os << " | *";
           else if (pos.unpromoted_piece_on(make_square(f, r)))
               os << " |+" << pos.piece_to_char()[pos.unpromoted_piece_on(make_square(f, r))];
+          else if (((pos.captures_to_hand() && !pos.drop_loop()) || pos.two_boards()) && pos.is_promoted(make_square(f, r)))
+              os << " |~" << pos.piece_to_char()[pos.piece_on(make_square(f, r))];
           else
               os << " | " << pos.piece_to_char()[pos.piece_on(make_square(f, r))];
 
+#ifdef LARGEBOARDS
+      os << " |" << (pos.max_rank() == RANK_10 && CurrentProtocol != UCI_GENERAL ? r : 1 + r);
+#else
       os << " |" << (1 + r);
+#endif
       if (r == pos.max_rank() || r == RANK_1)
       {
           Color c = r == RANK_1 ? WHITE : BLACK;
