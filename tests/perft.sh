@@ -115,6 +115,7 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp losers startpos 4 152955 > /dev/null
   expect perft.exp kinglet startpos 4 197742 > /dev/null
   expect perft.exp threekings startpos 4 199514 > /dev/null
+  expect perft.exp dobutsu startpos 6 71677 > /dev/null
   expect perft.exp dobutsu "fen g1e/1cL/lC1/E1G[] w - - 4 3" 4 2290 > /dev/null
 
   # pockets
