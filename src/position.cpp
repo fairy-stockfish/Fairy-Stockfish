@@ -2781,18 +2781,18 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   if ((flag_move() || var->flagPieceSafe) && flag_reached(sideToMove))
   {
       result = ((flag_move() && sideToMove == WHITE && flag_piece(~sideToMove) == KING)
-                 || var->flagPieceSafe) && flag_reached(~sideToMove) ? VALUE_DRAW : mate_in(ply);
+                 || (var->flagPieceSafe && !flag_move())) && flag_reached(~sideToMove) ? VALUE_DRAW : mate_in(ply);
       return true;
   }
   // A direct flag win is possible if the opponent does not get an extra flag move
   // or we can detect early for kings that they won't be able to reach the flag region
   // Note: This condition has to be after the above, since both might be true e.g. in racing kings.
-  if (   (!flag_move() || flag_piece(sideToMove) == KING) // we can do early win detection only for the king
+  if (   (!flag_move() || var->flagPieceSafe || flag_piece(sideToMove) == KING) // we can do early win detection only for the king
        && flag_reached(~sideToMove))
   {
       bool gameEnd = true;
       // Check whether king can move to CTF zone (racing kings) to draw
-      if (   flag_move() && sideToMove == BLACK && !checkers() && count<KING>(sideToMove)
+      if (   flag_move() && flag_piece(sideToMove) == KING && sideToMove == BLACK && !checkers() && count<KING>(sideToMove)
           && (flag_region(sideToMove) & attacks_from(sideToMove, KING, square<KING>(sideToMove))))
       {
           assert(flag_piece(sideToMove) == KING);

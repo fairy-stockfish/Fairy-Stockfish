@@ -1064,8 +1064,9 @@ inline bool Position::flag_reached(Color c) const {
         (flag_region(c) & pieces(c, flag_piece(c)))
         && (   popcount(flag_region(c) & pieces(c, flag_piece(c))) >= var->flagPieceCount
             || (var->flagPieceBlockedWin && !(flag_region(c) & ~pieces())));
-      
-  if (simpleResult && var->flagPieceSafe)
+
+  // When flagPieceSafe and flagMove are combined, it means that only unsafe pieces cause an extra move
+  if (simpleResult && var->flagPieceSafe && (!flag_move() || c == ~sideToMove))
   {
       Bitboard piecesInFlagZone = flag_region(c) & pieces(c, flag_piece(c));
       int potentialPieces = popcount(piecesInFlagZone);

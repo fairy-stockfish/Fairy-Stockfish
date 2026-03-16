@@ -1487,6 +1487,8 @@ namespace {
         v->flagRegion[WHITE] = make_bitboard(SQ_E5);
         v->flagRegion[BLACK] = make_bitboard(SQ_E5);
         v->flagMove = true;
+        // we could remove the useless extra move when the flag piece can not be captured
+        // v->flagPieceSafe = true;
         return v;
     }
     // Courier chess
