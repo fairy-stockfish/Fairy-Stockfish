@@ -1129,6 +1129,12 @@ class TestPyffish(unittest.TestCase):
         self._check_immediate_game_end("ataxx", "PPPpppp/pppPPPp/pPPPPPP/PPPPPPp/ppPPPpp/pPPPPpP/pPPPPPP b - - 99 50", [], True, -sf.VALUE_MATE)
         self._check_immediate_game_end("ataxx", "PPPpppp/pppPPPp/pPP*PPP/PP*P*Pp/ppP*Ppp/pPPPPpP/pPPPPPP b - - 99 50", [], True, -sf.VALUE_MATE)
 
+        # dobutsu flag rules
+        self._check_immediate_game_end("dobutsu", "1L1/1g1/1G1/1l1[] w - - 0 1", ["b2a2"], True, sf.VALUE_MATE)
+        self._check_immediate_game_end("dobutsu", "1L1/1g1/1G1/1l1[] w - - 0 1", ["b4a4"], True, -sf.VALUE_MATE)
+        self._check_immediate_game_end("dobutsu", "1L1/1g1/1G1/1l1[] w - - 0 1", ["b2b3"], True, sf.VALUE_DRAW)
+        self._check_immediate_game_end("dobutsu", "1L1/1g1/1G1/1l1[] w - - 0 1", ["b4b3"], False)
+
     def _check_optional_game_end(self, variant, fen, moves, game_end, game_result=None):
         with self.subTest(variant=variant, fen=fen, game_end=game_end, game_result=game_result):
             result = sf.is_optional_game_end(variant, fen, moves)

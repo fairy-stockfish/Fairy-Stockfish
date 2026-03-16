@@ -2775,12 +2775,12 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
   }
   // capture the flag
-  // A flag win by the side to move is only possible if flagMove is enabled
+  // A flag win by the side to move is only possible if flagMove or flagPieceSafe is enabled
   // and they already reached the flag region the move before.
   // In the case both colors reached it, it is a draw if white was first.
-  if (flag_move() && flag_reached(sideToMove))
+  if ((flag_move() || var->flagPieceSafe) && flag_reached(sideToMove))
   {
-      result = sideToMove == WHITE && flag_reached(BLACK) ? VALUE_DRAW : mate_in(ply);
+      result = ((flag_move() && sideToMove == WHITE) || var->flagPieceSafe) && flag_reached(~sideToMove) ? VALUE_DRAW : mate_in(ply);
       return true;
   }
   // A direct flag win is possible if the opponent does not get an extra flag move
