@@ -1069,18 +1069,14 @@ inline bool Position::flag_reached(Color c) const {
   {
       Bitboard piecesInFlagZone = flag_region(c) & pieces(c, flag_piece(c));
       int potentialPieces = popcount(piecesInFlagZone);
-      // If at least one piece is considered unsafe, it is deducted from the piece count.
-      while (piecesInFlagZone && !((potentialPieces < var->flagPieceCount) || (potentialPieces >= var->flagPieceCount + 1)))
+      // If we are exactly at the required piece count, all pieces in the flag zone need to be safe
+      while (piecesInFlagZone && potentialPieces == var->flagPieceCount)
       {
           Square sr = pop_lsb(piecesInFlagZone);
           Bitboard flagAttackers = attackers_to(sr, ~c);
           if (flagAttackers)
-          {
-              potentialPieces--;
-              break;
-          }
+              return false;
       }
-      return potentialPieces >= var->flagPieceCount;
   }
   return simpleResult;
 }
