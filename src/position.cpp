@@ -1368,9 +1368,16 @@ bool Position::pseudo_legal(const Move m) const {
   if (pc == NO_PIECE || color_of(pc) != us)
       return false;
 
-  // The destination square cannot be occupied by a friendly piece
+  // The destination square cannot be occupied by a friendly piece (unless self-capture)
   if (pieces(us) & to)
-      return false;
+  {
+      if (!(self_capture() && capture(m)))
+          return false;
+
+      // Friendly king is never capturable, even with self-capture enabled
+      if (type_of(piece_on(to)) == KING)
+          return false;
+  }
 
   // Handle the special case of a pawn move
   if (type_of(pc) == PAWN)
@@ -1380,7 +1387,8 @@ bool Position::pseudo_legal(const Move m) const {
       if (mandatory_pawn_promotion() && (promotion_zone(us) & to) && !sittuyin_promotion())
           return false;
 
-      if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to)     // Not a capture
+      if (   !(pawn_attacks_bb(us, from)
+              & (self_capture() ? (pieces() & ~pieces(KING)) : pieces(~us)) & to) // Not a capture
           && !((from + pawn_push(us) == to) && !(pieces() & to)) // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)               // Not a double push
                && (double_step_region(us) & from)
@@ -1646,9 +1654,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           board[capsq] = NO_PIECE;
       if (captures_to_hand())
       {
-          Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
-                             : unpromotedCaptured ? ~unpromotedCaptured
-                                                  : make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)));
+          Piece pieceToHand = !capturedPromoted || drop_loop()
+                             ? make_piece(us, type_of(captured))
+                             : unpromotedCaptured ? make_piece(us, type_of(unpromotedCaptured))
+                                                  : make_piece(us, main_promotion_pawn_type(color_of(captured)));
           add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
@@ -2029,7 +2038,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               st->promotedBycatch |= bsq;
           remove_piece(bsq);
           board[bsq] = NO_PIECE;
-          if (captures_to_hand())
+          if (captures_to_hand() && !(bsq == to && (var->petrifyOnCaptureTypes & type_of(bpc))))
           {
               Piece pieceToHand = !capturedPromoted || drop_loop() ? ~bpc
                                  : unpromotedCaptured ? ~unpromotedCaptured
@@ -2174,7 +2183,7 @@ void Position::undo_move(Move m) {
           if (bpc)
           {
               put_piece(bpc, bsq, isPromoted, st->demotedBycatch & bsq ? unpromotedBpc : NO_PIECE);
-              if (captures_to_hand())
+              if (captures_to_hand() && !(bsq == to && (var->petrifyOnCaptureTypes & type_of(bpc))))
                   remove_from_hand(!drop_loop() && (st->promotedBycatch & bsq) ? make_piece(~color_of(unpromotedBpc), PAWN)
                                                                                : ~unpromotedBpc);
           }
@@ -2246,9 +2255,9 @@ void Position::undo_move(Move m) {
 
           put_piece(st->capturedPiece, capsq, st->capturedpromoted, st->unpromotedCapturedPiece); // Restore the captured piece
           if (captures_to_hand())
-              remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
-                                                                                                   : make_piece(~color_of(st->capturedPiece), main_promotion_pawn_type(us)))
-                                                                    : ~st->capturedPiece);
+              remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? make_piece(us, type_of(st->unpromotedCapturedPiece))
+                                                                                                   : make_piece(us, main_promotion_pawn_type(color_of(st->capturedPiece))))
+                                                                    : make_piece(us, type_of(st->capturedPiece)));
       }
   }
 
@@ -2757,6 +2766,18 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 /// It does not detect stalemates.
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
+
+  // Capturing last opponent's piece wins
+  if (var->capturingLast)
+  {
+      if (st->capturedPiece != NO_PIECE
+          && color_of(st->capturedPiece) == sideToMove
+          && !pieces(sideToMove))
+      {
+          result = mated_in(ply);
+          return true;
+      }
+  }
 
   // Extinction
   // Extinction does not apply for pseudo-royal pieces, because they can not be captured
