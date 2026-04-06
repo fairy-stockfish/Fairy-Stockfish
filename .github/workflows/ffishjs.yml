@@ -26,7 +26,7 @@ jobs:
         with:
           path: ${{env.EM_CACHE_FOLDER}}
           key: emsdk-${{env.EM_VERSION}}-${{ runner.os }}
-      - uses: mymindstorm/setup-emsdk@v14
+      - uses: mymindstorm/setup-emsdk@v15
         with:
           version: ${{env.EM_VERSION}}
           actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
@@ -60,7 +60,7 @@ jobs:
         with:
           path: ${{env.EM_CACHE_FOLDER}}
           key: emsdk-${{env.EM_VERSION}}-${{ runner.os }}
-      - uses: mymindstorm/setup-emsdk@v14
+      - uses: mymindstorm/setup-emsdk@v15
         with:
           version: ${{env.EM_VERSION}}
           actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
