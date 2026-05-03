@@ -131,6 +131,9 @@ cannon = c
 [multipawn:chess]
 soldier = s
 pawnTypes = ps
+
+[repetitionloss:chess]
+nFoldValue = loss
 """
 
 sf.load_variant_config(ini_text)
@@ -250,6 +253,9 @@ variant_positions = {
     "multipawn": {
         "k7/p7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KP
         "k7/s7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KS
+    },
+    "repetitionloss": {
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (False, False),  # K vs K
     },
 }
 
