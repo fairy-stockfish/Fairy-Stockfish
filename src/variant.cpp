@@ -276,6 +276,20 @@ namespace {
         v->promotionPieceTypes[BLACK] = piece_set(AMAZON) | ROOK | BISHOP | KNIGHT;
         return v;
     }
+    // Georgian chess
+    // Traditional Georgian rules:
+    // - Queen moves as an Amazon (Queen + Knight)
+    // - No castling
+    // - No en passant
+    // Also see Murray p. 378
+    Variant* georgian_variant() {
+        Variant* v = amazon_variant()->init();
+        v->startFen = "rnbakbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBAKBNR w - - 0 1";
+        v->castling = false;
+        v->enPassantRegion[WHITE] = v->enPassantRegion[BLACK] = 0; // no en passant
+        v->nnueAlias = "amazon";
+        return v;
+    }
     // Nightrider chess
     // Knights are replaced by nightriders.
     // https://en.wikipedia.org/wiki/Nightrider_(chess)
@@ -1852,6 +1866,7 @@ void VariantMap::init() {
     add("shatranj", shatranj_variant());
     add("chaturanga", chaturanga_variant());
     add("amazon", amazon_variant());
+    add("georgian", georgian_variant());
     add("nightrider", nightrider_variant());
     add("grasshopper", grasshopper_variant());
     add("hoppelpoppel", hoppelpoppel_variant());
