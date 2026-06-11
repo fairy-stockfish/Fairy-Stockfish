@@ -246,6 +246,19 @@ describe('board.sanMove(ffish.Notation)', function () {
     chai.expect(board.sanMove("g1f3", ffish.Notation.SHOGI_HODGES_NUMBER)).to.equal("N-36");
     chai.expect(board.sanMove("g1f3", ffish.Notation.JANGGI)).to.equal("N87-66");
     chai.expect(board.sanMove("g1f3", ffish.Notation.XIANGQI_WXF)).to.equal("N2+3");
+
+    // Chinese notation
+    const xqBoard = new ffish.Board("xiangqi");
+    chai.expect(xqBoard.sanMove("h3e3", ffish.Notation.XIANGQI_CHINESE)).to.equal("炮二平五");
+    chai.expect(xqBoard.sanMove("h1g3", ffish.Notation.XIANGQI_CHINESE)).to.equal("馬二進三");
+    chai.expect(xqBoard.sanMove("c1e3", ffish.Notation.XIANGQI_CHINESE)).to.equal("相七進五");
+    chai.expect(xqBoard.sanMove("h3h10", ffish.Notation.XIANGQI_CHINESE)).to.equal("炮二進七");
+    chai.expect(xqBoard.sanMove("h3h5", ffish.Notation.XIANGQI_CHINESE)).to.equal("炮二進二");
+    chai.expect(xqBoard.sanMove("a4a5", ffish.Notation.XIANGQI_CHINESE)).to.equal("兵九進一");
+    chai.expect(xqBoard.sanMove("d1e2", ffish.Notation.XIANGQI_CHINESE)).to.equal("仕六進五");
+    chai.expect(xqBoard.sanMove("f1e2", ffish.Notation.XIANGQI_CHINESE)).to.equal("仕四進五");
+    xqBoard.delete();
+
     board.delete();
   });
 });

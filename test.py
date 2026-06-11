@@ -838,6 +838,85 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "P-+1")
 
+        # Chinese notation - standard opening
+        result = sf.get_san("xiangqi", XIANGQI, "h3e3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "炮二平五")
+
+        result = sf.get_san("xiangqi", XIANGQI, "h1g3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "馬二進三")
+
+        result = sf.get_san("xiangqi", XIANGQI, "c1e3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "相七進五")
+
+        # Chinese notation - cannon advance
+        result = sf.get_san("xiangqi", XIANGQI, "h3h10", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "炮二進七")
+
+        result = sf.get_san("xiangqi", XIANGQI, "h3h5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "炮二進二")
+
+        # Chinese notation - retreat
+        fen = "4k4/4a3R/9/9/9/9/9/9/4K4/9 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "i9e9", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "俥一平五")
+
+        result = sf.get_san("xiangqi", fen, "i9i10", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "俥一進一")
+
+        # Chinese notation does not denote check or checkmate
+        fen = "4k4/4a3R/9/9/9/9/9/9/4K4/9 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "i9e9", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "俥一平五")  # no + or #
+        result = sf.get_san("xiangqi", fen, "i9i10", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "俥一進一")  # no #
+
+        # Chinese notation - Black moves use Arabic numerals (test from Black's turn position)
+        fen_black = sf.get_fen("xiangqi", XIANGQI, ["h3e3"], False, False)
+        result = sf.get_san("xiangqi", fen_black, "h10g8", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "馬8進7")
+
+        # Chinese notation - Black advance (b8b5 is forward for Black)
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+        fen = sf.get_fen("xiangqi", fen, ["h3h10"], False, False)
+        result = sf.get_san("xiangqi", fen, "b8b5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "砲2進3")
+
+        # Chinese notation - advisor moves
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "d1e2", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "仕六進五")
+
+        result = sf.get_san("xiangqi", fen, "f1e2", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "仕四進五")
+
+        # Chinese notation - soldier moves
+        result = sf.get_san("xiangqi", fen, "a4a5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "兵九進一")
+
+        # Chinese notation - Black advance (h8h5 is forward for Black)
+        fen = sf.get_fen("xiangqi", XIANGQI, ["h3h10"], False, False)
+        result = sf.get_san("xiangqi", fen, "h8h5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "砲8進3")
+
+        # Chinese notation - skip disambiguation for elephants and advisors
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/4P4/1NB6/P1P1P3P/1C1A3C1/9/RNBAK4 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "c5e3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "相七退五")
+
+        result = sf.get_san("xiangqi", fen, "d1e2", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "仕六進五")
+
+        result = sf.get_san("xiangqi", fen, "b5c7", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "前馬進七")
+
+        # Chinese notation - get_san_moves
+        UCI_moves = ["h3e3", "h10g8", "h1g3", "c10e8", "a1a3", "i10h10"]
+        SAN_moves = ["炮二平五", "馬8進7",
+                     "馬二進三", "象3進5",
+                     "俥九進二", "車9平8"]
+        result = sf.get_san_moves("xiangqi", XIANGQI, UCI_moves, False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, SAN_moves)
+
         # Tandem pawns
         fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
         result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_WXF)

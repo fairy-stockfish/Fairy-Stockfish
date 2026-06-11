@@ -46,6 +46,7 @@ enum Notation {
     NOTATION_JANGGI,
     // https://en.wikipedia.org/wiki/Xiangqi#Notation
     NOTATION_XIANGQI_WXF,
+    NOTATION_XIANGQI_CHINESE,
     // https://web.archive.org/web/20180817205956/http://bgsthai.com/2018/05/07/lawofthaichessc/
     NOTATION_THAI_SAN,
     NOTATION_THAI_LAN,
@@ -87,6 +88,15 @@ inline bool is_thai(Notation n) {
     return n == NOTATION_THAI_SAN || n == NOTATION_THAI_LAN;
 }
 
+inline bool is_xiangqi_chinese(Notation n) {
+    return n == NOTATION_XIANGQI_CHINESE;
+}
+
+inline const std::string chinese_numeral_red(int n) {
+    static const std::string numerals[] = {"一", "二", "三", "四", "五", "六", "七", "八", "九"};
+    return numerals[n];
+}
+
 // is there more than one file with a pair of pieces?
 inline bool multi_tandem(Bitboard b) {
     int tandems = 0;
@@ -94,6 +104,22 @@ inline bool multi_tandem(Bitboard b) {
         if (more_than_one(b & file_bb(f)))
             tandems++;
     return tandems >= 2;
+}
+
+inline std::string piece_to_chinese_char(Piece pc) {
+    Color c = color_of(pc);
+    switch (type_of(pc)) {
+        case KING:    return c == WHITE ? "帥" : "將";
+        case FERS:    return c == WHITE ? "仕" : "士";
+        case ELEPHANT:return c == WHITE ? "相" : "象";
+        case HORSE:   return "馬";
+        case KNIGHT:  return "馬";
+        case ROOK:    return c == WHITE ? "俥" : "車";
+        case CANNON:  return c == WHITE ? "炮" : "砲";
+        case SOLDIER: return c == WHITE ? "兵" : "卒";
+        case PAWN:    return c == WHITE ? "兵" : "卒";
+        default:      return "?";
+    }
 }
 
 inline std::string piece_to_thai_char(Piece pc, bool promoted) {
@@ -136,6 +162,21 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
         return "+" + std::string(1, toupper(pos.piece_to_char()[in_hand_piece_type(m)]));
     else if (is_thai(n))
         return piece_to_thai_char(pc, pos.is_promoted(from));
+    else if (is_xiangqi_chinese(n))
+    {
+        // Chinese notation uses 前/後 prefix for disambiguation when two pieces on same file
+        Color us = pos.side_to_move();
+        PieceType pt = type_of(pc);
+        if (pt != ELEPHANT && pt != FERS && popcount(pos.pieces(us, pt) & file_bb(from)) == 2 && !multi_tandem(pos.pieces(us, pt)))
+        {
+            // Front piece is closer to player's side
+            if (pos.pieces(us, pt) & forward_file_bb(us, from))
+                return "後" + piece_to_chinese_char(pc);
+            else
+                return "前" + piece_to_chinese_char(pc);
+        }
+        return piece_to_chinese_char(pc);
+    }
     else if (pos.piece_to_char_synonyms()[pc] != ' ')
         return std::string(1, toupper(pos.piece_to_char_synonyms()[pc]));
     else
@@ -153,6 +194,11 @@ inline std::string file(const Position& pos, Square s, Notation n) {
         return std::to_string(file_of(s) + 1);
     case NOTATION_XIANGQI_WXF:
         return std::to_string((pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s)) + 1);
+    case NOTATION_XIANGQI_CHINESE:
+    {
+        int fileNum = pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s);
+        return pos.side_to_move() == WHITE ? chinese_numeral_red(fileNum) : std::to_string(fileNum + 1);
+    }
     case NOTATION_THAI_SAN:
     case NOTATION_THAI_LAN:
         return THAI_FILES[file_of(s)];
@@ -225,6 +271,15 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
             if (is_ok(otherTo) && (pos.board_bb(us, pt) & otherTo))
                 return RANK_DISAMBIGUATION;
         }
+        return FILE_DISAMBIGUATION;
+    }
+
+    // Chinese xiangqi uses 前/後 prefix in piece name for disambiguation
+    if (n == NOTATION_XIANGQI_CHINESE)
+    {
+        PieceType pt = type_of(pc);
+        if (pt != ELEPHANT && pt != FERS && popcount(pos.pieces(us, pt) & file_bb(from)) == 2 && !multi_tandem(pos.pieces(us, pt)))
+            return NO_DISAMBIGUATION;
         return FILE_DISAMBIGUATION;
     }
 
@@ -321,14 +376,31 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
             else
                 san += '-';
         }
+        else if (is_xiangqi_chinese(n))
+        {
+            if (rank_of(from) == rank_of(to))
+                san += "平";
+            else if (relative_rank(us, to, pos.max_rank()) > relative_rank(us, from, pos.max_rank()))
+                san += "進";
+            else
+                san += "退";
+        }
         else if (pos.capture(m))
             san += 'x';
         else if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || (is_shogi(n) && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION)) || n == NOTATION_JANGGI || (n == NOTATION_THAI_SAN && type_of(pos.moved_piece(m)) != PAWN))
             san += '-';
 
         // Destination square
-        if (n == NOTATION_XIANGQI_WXF && type_of(m) != DROP)
-            san += file_of(to) == file_of(from) ? std::to_string(std::abs(rank_of(to) - rank_of(from))) : file(pos, to, n);
+        if ((n == NOTATION_XIANGQI_WXF || is_xiangqi_chinese(n)) && type_of(m) != DROP)
+        {
+            if (file_of(to) == file_of(from))
+            {
+                int rankDist = std::abs(rank_of(to) - rank_of(from));
+                san += is_xiangqi_chinese(n) && us == WHITE ? chinese_numeral_red(rankDist - 1) : std::to_string(rankDist);
+            }
+            else
+                san += file(pos, to, n);
+        }
         else
             san += square(pos, to, n);
 
@@ -350,7 +422,7 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         san += "," + square(pos, gating_square(m), n);
 
     // Check and checkmate
-    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
+    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF && !is_xiangqi_chinese(n))
     {
         StateInfo st;
         pos.do_move(m, st);
