@@ -47,6 +47,8 @@ enum Notation {
     // https://en.wikipedia.org/wiki/Xiangqi#Notation
     NOTATION_XIANGQI_WXF,
     NOTATION_XIANGQI_CHINESE,
+    // Korean Janggi notation: (source)piece(destination)
+    NOTATION_JANGGI_KOREAN,
     // https://web.archive.org/web/20180817205956/http://bgsthai.com/2018/05/07/lawofthaichessc/
     NOTATION_THAI_SAN,
     NOTATION_THAI_LAN,
@@ -90,6 +92,10 @@ inline bool is_thai(Notation n) {
 
 inline bool is_xiangqi_chinese(Notation n) {
     return n == NOTATION_XIANGQI_CHINESE;
+}
+
+inline bool is_janggi_korean(Notation n) {
+    return n == NOTATION_JANGGI_KOREAN;
 }
 
 inline const std::string chinese_numeral_red(int n) {
@@ -143,6 +149,19 @@ inline std::string piece_to_thai_char(Piece pc, bool promoted) {
     }
 }
 
+inline std::string piece_to_janggi_korean_char(Piece pc, Color c) {
+    switch (type_of(pc)) {
+        case KING:            return "\u5c07";  // 將
+        case ROOK:            return "\u8eca";  // 車
+        case JANGGI_CANNON:   return "\u5305";  // 包
+        case HORSE:           return "\u99ac";  // 馬
+        case JANGGI_ELEPHANT: return "\u8c61";  // 象
+        case WAZIR:           return "\u58eb";  // 士
+        case SOLDIER:         return c == WHITE ? "\u5175" : "\u5352";  // 兵 (Han) / 卒 (Cho)
+        default:              return "?";
+    }
+}
+
 inline std::string piece(const Position& pos, Move m, Notation n) {
     Color us = pos.side_to_move();
     Square from = from_sq(m);
@@ -162,6 +181,11 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
         return "+" + std::string(1, toupper(pos.piece_to_char()[in_hand_piece_type(m)]));
     else if (is_thai(n))
         return piece_to_thai_char(pc, pos.is_promoted(from));
+    else if (is_janggi_korean(n))
+    {
+        Color us = pos.side_to_move();
+        return piece_to_janggi_korean_char(pc, us);
+    }
     else if (is_xiangqi_chinese(n))
     {
         // Chinese notation uses 前/後 prefix for disambiguation when two pieces on same file
@@ -171,9 +195,9 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
         {
             // Front piece is closer to player's side
             if (pos.pieces(us, pt) & forward_file_bb(us, from))
-                return "後" + piece_to_chinese_char(pc);
+                return "\u5f8c" + piece_to_chinese_char(pc);  // 後
             else
-                return "前" + piece_to_chinese_char(pc);
+                return "\u524d" + piece_to_chinese_char(pc);  // 前
         }
         return piece_to_chinese_char(pc);
     }
@@ -191,6 +215,7 @@ inline std::string file(const Position& pos, Square s, Notation n) {
     case NOTATION_SHOGI_HODGES_NUMBER:
         return std::to_string(pos.max_file() - file_of(s) + 1);
     case NOTATION_JANGGI:
+    case NOTATION_JANGGI_KOREAN:
         return std::to_string(file_of(s) + 1);
     case NOTATION_XIANGQI_WXF:
         return std::to_string((pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s)) + 1);
@@ -216,6 +241,7 @@ inline std::string rank(const Position& pos, Square s, Notation n) {
     case NOTATION_SHOGI_HODGES:
         return std::string(1, char('a' + pos.max_rank() - rank_of(s)));
     case NOTATION_JANGGI:
+    case NOTATION_JANGGI_KOREAN:
         return std::to_string((pos.max_rank() - rank_of(s) + 1) % 10);
     case NOTATION_XIANGQI_WXF:
     {
@@ -239,6 +265,7 @@ inline std::string square(const Position& pos, Square s, Notation n) {
     switch (n)
     {
     case NOTATION_JANGGI:
+    case NOTATION_JANGGI_KOREAN:
         return rank(pos, s, n) + file(pos, s, n);
     default:
         return file(pos, s, n) + rank(pos, s, n);
@@ -251,7 +278,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
         return NO_DISAMBIGUATION;
 
     // NOTATION_LAN and Janggi always use disambiguation
-    if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || n == NOTATION_JANGGI)
+    if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || n == NOTATION_JANGGI || n == NOTATION_JANGGI_KOREAN)
         return SQUARE_DISAMBIGUATION;
 
     Color us = pos.side_to_move();
@@ -354,15 +381,29 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
     }
     else
     {
-        // Piece
-        san += piece(pos, m, n);
+        Disambiguation d;
 
-        if (n == NOTATION_THAI_LAN)
-            san += " ";
+        if (is_janggi_korean(n))
+        {
+            // Korean: source(piece)destination
+            d = disambiguation_level(pos, m, n);
+            san += disambiguation(pos, from, n, d);
+            san += "(";
+            san += piece(pos, m, n);
+            san += ")";
+        }
+        else
+        {
+            // Piece
+            san += piece(pos, m, n);
 
-        // Origin square, disambiguation
-        Disambiguation d = disambiguation_level(pos, m, n);
-        san += disambiguation(pos, from, n, d);
+            if (n == NOTATION_THAI_LAN)
+                san += " ";
+
+            // Origin square, disambiguation
+            d = disambiguation_level(pos, m, n);
+            san += disambiguation(pos, from, n, d);
+        }
 
         // Separator/Operator
         if (type_of(m) == DROP)
@@ -422,7 +463,7 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         san += "," + square(pos, gating_square(m), n);
 
     // Check and checkmate
-    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF && !is_xiangqi_chinese(n))
+    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF && !is_xiangqi_chinese(n) && !is_janggi_korean(n))
     {
         StateInfo st;
         pos.do_move(m, st);

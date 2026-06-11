@@ -456,6 +456,7 @@ PyMODINIT_FUNC PyInit_pyffish() {
     PyModule_AddObject(module, "NOTATION_SHOGI_HODGES", PyLong_FromLong(NOTATION_SHOGI_HODGES));
     PyModule_AddObject(module, "NOTATION_SHOGI_HODGES_NUMBER", PyLong_FromLong(NOTATION_SHOGI_HODGES_NUMBER));
     PyModule_AddObject(module, "NOTATION_JANGGI", PyLong_FromLong(NOTATION_JANGGI));
+    PyModule_AddObject(module, "NOTATION_JANGGI_KOREAN", PyLong_FromLong(NOTATION_JANGGI_KOREAN));
     PyModule_AddObject(module, "NOTATION_XIANGQI_WXF", PyLong_FromLong(NOTATION_XIANGQI_WXF));
     PyModule_AddObject(module, "NOTATION_XIANGQI_CHINESE", PyLong_FromLong(NOTATION_XIANGQI_CHINESE));
     PyModule_AddObject(module, "NOTATION_THAI_SAN", PyLong_FromLong(NOTATION_THAI_SAN));

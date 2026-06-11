@@ -247,6 +247,15 @@ describe('board.sanMove(ffish.Notation)', function () {
     chai.expect(board.sanMove("g1f3", ffish.Notation.JANGGI)).to.equal("N87-66");
     chai.expect(board.sanMove("g1f3", ffish.Notation.XIANGQI_WXF)).to.equal("N2+3");
 
+    // Korean Janggi notation
+    const jgBoard = new ffish.Board("janggi");
+    chai.expect(jgBoard.sanMove("b1c3", ffish.Notation.JANGGI_KOREAN)).to.equal("02(\u99ac)83");
+    chai.expect(jgBoard.sanMove("e2e3", ffish.Notation.JANGGI_KOREAN)).to.equal("95(\u5c07)85");
+    chai.expect(jgBoard.sanMove("a1a2", ffish.Notation.JANGGI_KOREAN)).to.equal("01(\u8eca)91");
+    chai.expect(jgBoard.sanMove("a4a5", ffish.Notation.JANGGI_KOREAN)).to.equal("71(\u5175)61");
+    chai.expect(jgBoard.sanMove("e4e5", ffish.Notation.JANGGI_KOREAN)).to.equal("75(\u5175)65");
+    jgBoard.delete();
+
     // Chinese notation
     const xqBoard = new ffish.Board("xiangqi");
     chai.expect(xqBoard.sanMove("h3e3", ffish.Notation.XIANGQI_CHINESE)).to.equal("炮二平五");
