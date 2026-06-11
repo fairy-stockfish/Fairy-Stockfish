@@ -119,7 +119,6 @@ inline std::string piece_to_chinese_char(Piece pc) {
         case FERS:    return c == WHITE ? "仕" : "士";
         case ELEPHANT:return c == WHITE ? "相" : "象";
         case HORSE:   return "馬";
-        case KNIGHT:  return "馬";
         case ROOK:    return c == WHITE ? "俥" : "車";
         case CANNON:  return c == WHITE ? "炮" : "砲";
         case SOLDIER: return c == WHITE ? "兵" : "卒";
