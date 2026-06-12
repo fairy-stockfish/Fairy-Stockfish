@@ -39,9 +39,11 @@ enum Notation {
     NOTATION_SAN,
     NOTATION_LAN,
     // https://en.wikipedia.org/wiki/Shogi_notation#Western_notation
-    NOTATION_SHOGI_HOSKING, // Examples: P76, S’34
+    NOTATION_SHOGI_HOSKING, // Examples: P76, S'34
     NOTATION_SHOGI_HODGES, // Examples: P-7f, S*3d
     NOTATION_SHOGI_HODGES_NUMBER, // Examples: P-76, S*34
+    // Japanese notation: destination-first with kanji pieces
+    NOTATION_SHOGI_JAPANESE,
     // http://www.janggi.pl/janggi-notation/
     NOTATION_JANGGI,
     // https://en.wikipedia.org/wiki/Xiangqi#Notation
@@ -83,7 +85,7 @@ enum Disambiguation {
 };
 
 inline bool is_shogi(Notation n) {
-    return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES || n == NOTATION_SHOGI_HODGES_NUMBER;
+    return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES || n == NOTATION_SHOGI_HODGES_NUMBER || n == NOTATION_SHOGI_JAPANESE;
 }
 
 inline bool is_thai(Notation n) {
@@ -148,6 +150,32 @@ inline std::string piece_to_thai_char(Piece pc, bool promoted) {
     }
 }
 
+inline std::string piece_to_shogi_japanese_char(PieceType pt, bool promoted) {
+    if (promoted) {
+        switch (pt) {
+            case ROOK:         return "\u9f8d";  // 龍 (dragon)
+            case BISHOP:       return "\u99ac";  // 馬 (horse)
+            case SILVER:       return "\u6210\u9280";  // 成銀 (promoted silver)
+            case SHOGI_KNIGHT: return "\u6210\u6842";  // 成桂 (promoted knight)
+            case LANCE:        return "\u6210\u9999";  // 成香 (promoted lance)
+            case SHOGI_PAWN:   return "\u3068";  // と (tokin)
+            default:           return "?";
+        }
+    } else {
+        switch (pt) {
+            case KING:         return "\u7389";  // 玉 (king)
+            case ROOK:         return "\u98db";  // 飛 (rook)
+            case BISHOP:       return "\u89d2";  // 角 (bishop)
+            case GOLD:         return "\u91d1";  // 金 (gold)
+            case SILVER:       return "\u9280";  // 銀 (silver)
+            case SHOGI_KNIGHT: return "\u6842";  // 桂 (knight)
+            case LANCE:        return "\u9999";  // 香 (lance)
+            case SHOGI_PAWN:   return "\u6b69";  // 歩 (pawn)
+            default:           return "?";
+        }
+    }
+}
+
 inline std::string piece_to_janggi_korean_char(Piece pc, Color c) {
     switch (type_of(pc)) {
         case KING:            return "\u5c07";  // 將
@@ -172,6 +200,19 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     // Tandem pawns
     else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
         return std::to_string(popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1);
+    // Japanese Shogi notation: kanji pieces
+    else if (n == NOTATION_SHOGI_JAPANESE)
+    {
+        // For promoted pieces (non-drop)
+        if (type_of(m) != DROP && pos.unpromoted_piece_on(from))
+            return piece_to_shogi_japanese_char(type_of(pos.unpromoted_piece_on(from)), true);
+        // For promoted drops
+        else if (type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
+            return piece_to_shogi_japanese_char(in_hand_piece_type(m), true);
+        // For unpromoted pieces
+        else
+            return piece_to_shogi_japanese_char(pt, pos.is_promoted(from));
+    }
     // Moves of promoted pieces
     else if (is_shogi(n) && type_of(m) != DROP && pos.unpromoted_piece_on(from))
         return "+" + std::string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
@@ -206,6 +247,34 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
         return std::string(1, toupper(pos.piece_to_char()[pc]));
 }
 
+inline std::string number_to_fullwidth(int n) {
+    // Full-width digits １(0xEFBC91) through ９(0xEFBC99) in UTF-8
+    if (n >= 1 && n <= 9) {
+        char buf[4] = { char(0xEF), char(0xBC), char(char(0x90) + n), 0 };
+        return std::string(buf);
+    }
+    return std::to_string(n);
+}
+
+inline std::string number_to_kanji_rank(int n) {
+    // UTF-8 encoded kanji digits 一 through 九
+    static const char* kanji[] = {
+        "",
+        "\xe4\xb8\x80",  // 一
+        "\xe4\xba\x8c",  // 二
+        "\xe4\xb8\x89",  // 三
+        "\xe5\x9b\x9b",  // 四
+        "\xe4\xba\x94",  // 五
+        "\xe5\x85\xad",  // 六
+        "\xe4\xb8\x83",  // 七
+        "\xe5\x85\xab",  // 八
+        "\xe4\xb9\x9d",  // 九
+    };
+    if (n >= 1 && n <= 9)
+        return kanji[n];
+    return std::to_string(n);
+}
+
 inline std::string file(const Position& pos, Square s, Notation n) {
     switch (n)
     {
@@ -213,6 +282,8 @@ inline std::string file(const Position& pos, Square s, Notation n) {
     case NOTATION_SHOGI_HODGES:
     case NOTATION_SHOGI_HODGES_NUMBER:
         return std::to_string(pos.max_file() - file_of(s) + 1);
+    case NOTATION_SHOGI_JAPANESE:
+        return number_to_fullwidth(pos.max_file() - file_of(s) + 1);
     case NOTATION_JANGGI:
     case NOTATION_JANGGI_KOREAN:
         return std::to_string(file_of(s) + 1);
@@ -237,6 +308,8 @@ inline std::string rank(const Position& pos, Square s, Notation n) {
     case NOTATION_SHOGI_HOSKING:
     case NOTATION_SHOGI_HODGES_NUMBER:
         return std::to_string(pos.max_rank() - rank_of(s) + 1);
+    case NOTATION_SHOGI_JAPANESE:
+        return number_to_kanji_rank(pos.max_rank() - rank_of(s) + 1);
     case NOTATION_SHOGI_HODGES:
         return std::string(1, char('a' + pos.max_rank() - rank_of(s)));
     case NOTATION_JANGGI:
@@ -266,6 +339,8 @@ inline std::string square(const Position& pos, Square s, Notation n) {
     case NOTATION_JANGGI:
     case NOTATION_JANGGI_KOREAN:
         return rank(pos, s, n) + file(pos, s, n);
+    case NOTATION_SHOGI_JAPANESE:
+        return file(pos, s, n) + rank(pos, s, n);
     default:
         return file(pos, s, n) + rank(pos, s, n);
     }
@@ -362,7 +437,17 @@ inline std::string disambiguation(const Position& pos, Square s, Notation n, Dis
     }
 }
 
-inline const std::string move_to_san(Position& pos, Move m, Notation n) {
+inline Square uci_to_square(const Position& pos, const std::string& str) {
+    if (str.length() < 2) return SQ_NONE;
+    // UCI format: {file_letter}{rank_number} (e.g., "g6" = file g, rank 6)
+    int file = str[0] - 'a';
+    int rank = str[1] - '1';
+    if (file < 0 || file > pos.max_file() || rank < 0 || rank > pos.max_rank())
+        return SQ_NONE;
+    return make_square(File(file), Rank(rank));
+}
+
+inline const std::string move_to_san(Position& pos, Move m, Notation n, Square lastMoveDest = SQ_NONE) {
     std::string san = "";
     Color us = pos.side_to_move();
     Square from = from_sq(m);
@@ -391,6 +476,140 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
             san += piece(pos, m, n);
             san += ")";
         }
+        else if (n == NOTATION_SHOGI_JAPANESE)
+        {
+            // Japanese: [destination] [piece] [disambiguation] [promotion]
+            PieceType pt = type_of(pos.moved_piece(m));
+            bool isDrop = type_of(m) == DROP;
+            Color us = pos.side_to_move();
+
+            // Find ambiguous pieces that can reach the destination
+            bool needsAmb = false;
+            bool sameFileAmb = false;
+            int myFile = isDrop ? -1 : file_of(from);
+            int myRank = isDrop ? -1 : rank_of(from);
+            bool hasLeft = false, hasRight = false, hasSameFile = false;
+            bool movingForward = false, movingBackward = false, movingHorizontal = false;
+
+            if (!isDrop)
+            {
+                // Determine movement direction
+                if (rank_of(to) != rank_of(from))
+                {
+                    if ((us == BLACK && rank_of(to) > rank_of(from)) ||
+                        (us == WHITE && rank_of(to) < rank_of(from)))
+                        movingForward = true;
+                    else
+                        movingBackward = true;
+                }
+                else
+                    movingHorizontal = true;
+
+                // Find other pieces of same type that can reach the destination
+                Bitboard others = pos.pieces(us, pt) ^ from;
+                while (others)
+                {
+                    Square s = pop_lsb(others);
+                    Move testMove = Move(m ^ make_move(from, to) ^ make_move(s, to));
+                    if (pos.pseudo_legal(testMove) && pos.legal(testMove)
+                        && !(pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
+                    {
+                        needsAmb = true;
+                        int otherFile = file_of(s);
+                        if (otherFile == myFile)
+                            hasSameFile = true;
+                        // From sente's view: higher file index = right, lower = left
+                        // From gote's view: reversed
+                        if ((us == BLACK && otherFile > myFile) || (us == WHITE && otherFile < myFile))
+                            hasRight = true;
+                        else if ((us == BLACK && otherFile < myFile) || (us == WHITE && otherFile > myFile))
+                            hasLeft = true;
+                    }
+                }
+            }
+            else
+            {
+                // For drops: check if any on-board piece of same type can reach the destination
+                Bitboard sameType = pos.pieces(us, pt);
+                while (sameType)
+                {
+                    Square s = pop_lsb(sameType);
+                    Move testMove = make_move(s, to);
+                    if (pos.pseudo_legal(testMove) && pos.legal(testMove))
+                    {
+                        needsAmb = true;
+                        break;
+                    }
+                }
+            }
+
+            // Step 1: Destination — use 同　when same square as last move's destination
+            bool sameSquare = false;
+            if (lastMoveDest != SQ_NONE)
+                sameSquare = (lastMoveDest == to);
+            else if (pos.state() && pos.state()->move != MOVE_NONE)
+                sameSquare = (to_sq(pos.state()->move) == to);
+            if (sameSquare)
+                san += "\u540c\u3000";  // 同　(same square)
+            else
+                san += square(pos, to, n);
+
+            // Step 2: Piece kanji
+            san += piece(pos, m, n);
+
+            // Step 3: Disambiguation
+            if (needsAmb && !isDrop)
+            {
+                // Same file forward move for gold-like pieces: 直
+                bool sameFileForward = movingForward && hasSameFile
+                    && (pt == GOLD || pt == SILVER || pt == SHOGI_KNIGHT || pt == LANCE);
+
+                if (sameFileForward)
+                {
+                    san += "\u76f4";  // 直
+                }
+                else
+                {
+                    // Side: 左/右/中
+                    // hasRight = other pieces at higher file index (right for sente)
+                    // hasLeft = other pieces at lower file index (left for sente)
+                    bool pieceAtLowerIndex = !hasLeft && hasRight;  // piece is leftmost for sente
+                    bool pieceAtHigherIndex = !hasRight && hasLeft;  // piece is rightmost for sente
+                    bool isMiddle = hasSameFile && !hasLeft && !hasRight;
+
+                    if (isMiddle)
+                        san += "\u4e2d";  // 中
+                    else if (pieceAtLowerIndex)
+                        // Piece at lowest file index: left for sente, right for gote
+                        san += (us == BLACK) ? "\u5de6" : "\u53f3";  // 左 or 右
+                    else if (pieceAtHigherIndex)
+                        // Piece at highest file index: right for sente, left for gote
+                        san += (us == BLACK) ? "\u53f3" : "\u5de6";  // 右 or 左
+                    else if (hasLeft && hasRight)
+                        san += (us == BLACK) ? "\u53f3" : "\u5de6";  // default
+
+                    // Vertical: 上/引/寄
+                    if (movingForward)
+                        san += (pt == BISHOP || pt == ROOK) ? "\u884c" : "\u4e0a";  // 行 or 上
+                    else if (movingBackward)
+                        san += "\u5f15";  // 引
+                    else
+                        san += "\u5bc4";  // 寄
+                }
+            }
+
+            // Step 4: Drop indicator 打 (only when ambiguous)
+            if (isDrop && needsAmb)
+                san += "\u6253";  // 打
+
+            // Step 5: Promotion
+            if (type_of(m) == PIECE_PROMOTION)
+                san += "\u6210";  // 成
+            else if (type_of(m) == PIECE_DEMOTION)
+                san += "\u4e0d\u6210";  // 不成
+            else if (type_of(m) == NORMAL && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
+                san += "\u4e0d\u6210";  // 不成 (option to not promote)
+        }
         else
         {
             // Piece
@@ -405,8 +624,15 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         }
 
         // Separator/Operator
-        if (type_of(m) == DROP)
-            san += n == NOTATION_SHOGI_HOSKING ? '\'' : is_shogi(n) ? '*' : '@';
+        if (type_of(m) == DROP && n != NOTATION_SHOGI_JAPANESE)
+        {
+            if (n == NOTATION_SHOGI_HOSKING)
+                san += '\'';
+            else if (is_shogi(n) && n != NOTATION_SHOGI_JAPANESE)
+                san += '*';
+            else
+                san += '@';
+        }
         else if (n == NOTATION_XIANGQI_WXF)
         {
             if (rank_of(from) == rank_of(to))
@@ -425,13 +651,17 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
             else
                 san += "退";
         }
-        else if (pos.capture(m))
+        else if (pos.capture(m) && n != NOTATION_SHOGI_JAPANESE)
             san += 'x';
-        else if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || (is_shogi(n) && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION)) || n == NOTATION_JANGGI || (n == NOTATION_THAI_SAN && type_of(pos.moved_piece(m)) != PAWN))
+        else if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || (is_shogi(n) && n != NOTATION_SHOGI_JAPANESE && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION)) || n == NOTATION_JANGGI || (n == NOTATION_THAI_SAN && type_of(pos.moved_piece(m)) != PAWN))
             san += '-';
 
         // Destination square
-        if ((n == NOTATION_XIANGQI_WXF || is_xiangqi_chinese(n)) && type_of(m) != DROP)
+        if (n == NOTATION_SHOGI_JAPANESE)
+        {
+            // Japanese notation: destination is already added in the piece section
+        }
+        else if ((n == NOTATION_XIANGQI_WXF || is_xiangqi_chinese(n)) && type_of(m) != DROP)
         {
             if (file_of(to) == file_of(from))
             {
@@ -444,8 +674,12 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         else
             san += square(pos, to, n);
 
-        // Suffix
-        if (type_of(m) == PROMOTION)
+        // Suffix (non-Japanese notations)
+        if (n == NOTATION_SHOGI_JAPANESE)
+        {
+            // Already handled in the Japanese block above
+        }
+        else if (type_of(m) == PROMOTION)
             san += std::string("=") + (char)toupper(pos.piece_to_char()[make_piece(us, promotion_type(m))]);
         else if (type_of(m) == PIECE_PROMOTION)
             san += is_shogi(n) ? std::string("+") : std::string("=") + (char)toupper(pos.piece_to_char()[make_piece(us, pos.promoted_piece_type(type_of(pos.moved_piece(m))))]);

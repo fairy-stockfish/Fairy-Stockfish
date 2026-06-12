@@ -268,6 +268,25 @@ describe('board.sanMove(ffish.Notation)', function () {
     chai.expect(xqBoard.sanMove("f1e2", ffish.Notation.XIANGQI_CHINESE)).to.equal("仕四進五");
     xqBoard.delete();
 
+    // Japanese Shogi notation
+    const shogiBoard = new ffish.Board("shogi");
+    // Coordinates: full-width file + kanji rank
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff13\u56db\u6b69");  // ３四歩
+    chai.expect(shogiBoard.sanMove("b7b6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff18\u56db\u6b69");  // ８四歩
+    // Piece kanji
+    chai.expect(shogiBoard.sanMove("b8c8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff17\u4e8c\u98db");  // ７二飛
+    chai.expect(shogiBoard.sanMove("c9d8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u4e8c\u9280");  // ６二銀
+    chai.expect(shogiBoard.sanMove("a9a8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff19\u4e8c\u9999");  // ９二香
+    // King = 玉
+    chai.expect(shogiBoard.sanMove("e9d8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u4e8c\u7389");  // ６二玉
+    // Disambiguation
+    chai.expect(shogiBoard.sanMove("d9e8", ffish.Notation.SHOGI_JAPANESE)).to.include("\u5de6\u5f15");  // 左引
+    chai.expect(shogiBoard.sanMove("f9e8", ffish.Notation.SHOGI_JAPANESE)).to.include("\u53f3\u5f15");  // 右引
+    // 同 (same-square capture via lastMoveUci)
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\u540c\u3000\u6b69");  // 同　歩
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "d9e8")).to.equal("\uff13\u56db\u6b69");  // ３四歩
+    shogiBoard.delete();
+
     board.delete();
   });
 });
@@ -301,6 +320,19 @@ describe('board.variationSan(uciMoves, notation, moveNumbers)', function () {
     const sanMoves = board.variationSan("e7e5 g1f3 b8c6 f1c4", ffish.Notation.SAN, false);
     chai.expect(sanMoves).to.equal("e5 Nf3 Nc6 Bc4");
     board.delete();
+  });
+});
+
+describe('board.variationSan(uciMoves, notation, moveNumbers, lastMoveUci)', function () {
+  it("it converts a list of uci moves with 同 disambiguation for Japanese notation", () => {
+    const shogiBoard = new ffish.Board("shogi");
+    // variationSan with initial lastMoveUci that matches first move's dest → 同
+    const sanMoves = shogiBoard.variationSan("g7g6 c3c4", ffish.Notation.SHOGI_JAPANESE, false, "g7g6");
+    chai.expect(sanMoves).to.equal("\u540c\u3000\u6b69 \uff17\u516d\u6b69");  // 同　歩 七六歩
+    // Without lastMoveUci → no 同
+    const sanMoves2 = shogiBoard.variationSan("g7g6 c3c4", ffish.Notation.SHOGI_JAPANESE, false);
+    chai.expect(sanMoves2).to.equal("\uff13\u56db\u6b69 \uff17\u516d\u6b69");  // ３四歩 七六歩
+    shogiBoard.delete();
   });
 });
 

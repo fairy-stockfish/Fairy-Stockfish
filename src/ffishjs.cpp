@@ -201,6 +201,18 @@ public:
     return SAN::move_to_san(this->pos, UCI::to_move(this->pos, uciMove), notation);
   }
 
+  std::string san_move(std::string uciMove, Notation notation, std::string lastMoveUci) {
+    const Move move = UCI::to_move(this->pos, uciMove);
+    if (is_move_none<true>(move, uciMove, pos))
+      return "";
+    Square lastMoveDest = SQ_NONE;
+    if (!lastMoveUci.empty() && lastMoveUci.length() >= 4) {
+        std::string destStr = lastMoveUci.substr(2, 2);
+        lastMoveDest = SAN::uci_to_square(this->pos, destStr);
+    }
+    return SAN::move_to_san(this->pos, UCI::to_move(this->pos, uciMove), notation, lastMoveDest);
+  }
+
   std::string variation_san(std::string uciMoves) {
     return variation_san(uciMoves, NOTATION_SAN, true);
   }
@@ -210,12 +222,22 @@ public:
   }
 
   std::string variation_san(std::string uciMoves, Notation notation, bool moveNumbers) {
+    return variation_san(uciMoves, notation, moveNumbers, "");
+  }
+
+  std::string variation_san(std::string uciMoves, Notation notation, bool moveNumbers, std::string lastMoveUci) {
     std::stringstream ss(uciMoves);
     StateListPtr tempStates;
     std::vector<Move> moves;
     std::string variationSan = "";
     std::string uciMove;
     bool first = true;
+
+    Square lastMoveDest = SQ_NONE;
+    if (!lastMoveUci.empty() && lastMoveUci.length() >= 4) {
+        std::string destStr = lastMoveUci.substr(2, 2);
+        lastMoveDest = SAN::uci_to_square(this->pos, destStr);
+    }
 
     while (std::getline(ss, uciMove, ' ')) {
       const Move move = UCI::to_move(this->pos, uciMove);
@@ -231,7 +253,7 @@ public:
           else
           variationSan += "...";
         }
-        variationSan += SAN::move_to_san(this->pos, moves.back(), Notation(notation));
+        variationSan += SAN::move_to_san(this->pos, moves.back(), Notation(notation), lastMoveDest);
       }
       else {
         if (moveNumbers && pos.side_to_move() == WHITE) {
@@ -240,8 +262,9 @@ public:
           variationSan += ".";
         }
         variationSan += DELIM;
-        variationSan += SAN::move_to_san(this->pos, moves.back(), Notation(notation));
+        variationSan += SAN::move_to_san(this->pos, moves.back(), Notation(notation), lastMoveDest);
       }
+      lastMoveDest = to_sq(moves.back());
       states->emplace_back();
       pos.do_move(moves.back(), states->back());
     }
@@ -700,9 +723,11 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("setFen", &Board::set_fen)
     .function("sanMove", select_overload<std::string(std::string)>(&Board::san_move))
     .function("sanMove", select_overload<std::string(std::string, Notation)>(&Board::san_move))
+    .function("sanMove", select_overload<std::string(std::string, Notation, std::string)>(&Board::san_move))
     .function("variationSan", select_overload<std::string(std::string)>(&Board::variation_san))
     .function("variationSan", select_overload<std::string(std::string, Notation)>(&Board::variation_san))
     .function("variationSan", select_overload<std::string(std::string, Notation, bool)>(&Board::variation_san))
+    .function("variationSan", select_overload<std::string(std::string, Notation, bool, std::string)>(&Board::variation_san))
     .function("turn", &Board::turn)
     .function("fullmoveNumber", &Board::fullmove_number)
     .function("halfmoveClock", &Board::halfmove_clock)
@@ -737,6 +762,7 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .value("SHOGI_HOSKING", NOTATION_SHOGI_HOSKING)
     .value("SHOGI_HODGES", NOTATION_SHOGI_HODGES)
     .value("SHOGI_HODGES_NUMBER", NOTATION_SHOGI_HODGES_NUMBER)
+    .value("SHOGI_JAPANESE", NOTATION_SHOGI_JAPANESE)
     .value("JANGGI", NOTATION_JANGGI)
     .value("JANGGI_KOREAN", NOTATION_JANGGI_KOREAN)
     .value("XIANGQI_WXF", NOTATION_XIANGQI_WXF)

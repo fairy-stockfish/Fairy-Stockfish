@@ -761,6 +761,65 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", SHOGI, "f1e2", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
         self.assertEqual(result, "G49-58")
 
+        # Japanese Shogi notation
+        SHOGI_B = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1"
+        N = sf.NOTATION_SHOGI_JAPANESE
+
+        # === Coordinate format: full-width file + kanji rank ===
+        result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N)
+        self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩
+        result = sf.get_san("shogi", SHOGI_B, "b7b6", False, N)
+        self.assertEqual(result, "\uff18\u56db\u6b69")  # ８四歩
+        result = sf.get_san("shogi", SHOGI, "i3i4", False, N)
+        self.assertEqual(result, "\uff11\u516d\u6b69")  # １六歩
+
+        # === Piece kanji ===
+        result = sf.get_san("shogi", SHOGI_B, "b8c8", False, N)
+        self.assertEqual(result, "\uff17\u4e8c\u98db")  # ７二飛 (rook)
+        result = sf.get_san("shogi", SHOGI_B, "c9d8", False, N)
+        self.assertEqual(result, "\uff16\u4e8c\u9280")  # ６二銀 (silver)
+        result = sf.get_san("shogi", SHOGI_B, "a9a8", False, N)
+        self.assertEqual(result, "\uff19\u4e8c\u9999")  # ９二香 (lance)
+
+        # === King = 玉 (not 王) ===
+        result = sf.get_san("shogi", SHOGI_B, "e9d8", False, N)
+        self.assertEqual(result, "\uff16\u4e8c\u7389")  # ６二玉
+
+        # === Directional disambiguation ===
+        # Gold d9e8: two golds can reach e8, this one is leftmost moving backward → 左引
+        result = sf.get_san("shogi", SHOGI_B, "d9e8", False, N)
+        self.assertIn("\u5de6\u5f15", result)  # 左引
+        # Gold f9e8: rightmost moving backward → 右引
+        result = sf.get_san("shogi", SHOGI_B, "f9e8", False, N)
+        self.assertIn("\u53f3\u5f15", result)  # 右引
+
+        # === Capture: no x marker ===
+        fen = "4k4/4R4/9/4p3/9/9/9/9/4K4[-] b - - 0 1"
+        result = sf.get_san("shogi", fen, "e9e8", False, N)
+        self.assertEqual(result, "\uff15\u4e8c\u7389")  # ５二玉 (no x)
+
+        # === Drop: unambiguous → no 打 ===
+        fen = "k8/9/1P7/9/9/9/9/9/1K6[r] b - - 0 1"
+        result = sf.get_san("shogi", fen, "R@e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u98db")  # ５五飛 (no 打)
+
+        # === 同 (same-square capture via lastMoveUci) ===
+        result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N, "g7g6")
+        self.assertEqual(result, "\u540c\u3000\u6b69")  # 同　歩 (same dest)
+        result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N, "d9e8")
+        self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩 (diff dest)
+
+        # === get_san_moves batch ===
+        uci_moves = ["g7g6", "b3b4", "b8c8", "g3g4"]
+        san_moves = ["\uff13\u56db\u6b69", "\uff18\u516d\u6b69", "\uff17\u4e8c\u98db", "\uff13\u516d\u6b69"]
+        result = sf.get_san_moves("shogi", SHOGI_B, uci_moves, False, N)
+        self.assertEqual(result, san_moves)
+
+        # === get_san_moves with initial lastMoveUci ===
+        result = sf.get_san_moves("shogi", SHOGI_B, ["g7g6", "c3c4"], False, N, "g7g6")
+        self.assertEqual(result[0], "\u540c\u3000\u6b69")  # 同　歩 (matches initial lastMove)
+        self.assertEqual(result[1], "\uff17\u516d\u6b69")  # 七六歩 (no match)
+
         # Disambiguation of promotion moves
         fen = "p1ksS/n1n2/4P/5/+L1K1+L[] b - - 3 9"
         result = sf.get_san("kyotoshogi", fen, "c4b2+", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
