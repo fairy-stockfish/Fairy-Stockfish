@@ -8,7 +8,7 @@ import os
 
 
 if platform.python_compiler().startswith("MSC"):
-    args = ["/std:c++17"]
+    args = ["/std:c++17", "/utf-8"]
 else:
     args = ["-std=c++17", "-flto", "-Wno-date-time"]
 
