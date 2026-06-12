@@ -263,14 +263,11 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
         return piece_to_thai_char(pc, pos.is_promoted(from));
     else if (is_janggi_korean(n))
     {
-        Color us = pos.side_to_move();
         return piece_to_janggi_korean_char(pc, us);
     }
     else if (is_xiangqi_chinese(n))
     {
         // Chinese notation uses 前/後 prefix for disambiguation when two pieces on same file
-        Color us = pos.side_to_move();
-        PieceType pt = type_of(pc);
         if (pt != ELEPHANT && pt != FERS && popcount(pos.pieces(us, pt) & file_bb(from)) == 2 && !multi_tandem(pos.pieces(us, pt)))
         {
             // Front piece is closer to player's side
@@ -418,7 +415,6 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
     // Chinese xiangqi uses 前/後 prefix in piece name for disambiguation
     if (n == NOTATION_XIANGQI_CHINESE)
     {
-        PieceType pt = type_of(pc);
         if (pt != ELEPHANT && pt != FERS && popcount(pos.pieces(us, pt) & file_bb(from)) == 2 && !multi_tandem(pos.pieces(us, pt)))
             return NO_DISAMBIGUATION;
         return FILE_DISAMBIGUATION;
@@ -521,15 +517,12 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
             // Japanese: [destination] [piece] [disambiguation] [promotion]
             PieceType pt = type_of(pos.moved_piece(m));
             bool isDrop = type_of(m) == DROP;
-            Color us = pos.side_to_move();
 
             // Find ambiguous pieces that can reach the destination
             bool needsAmb = false;
-            bool sameFileAmb = false;
             int myFile = isDrop ? -1 : file_of(from);
-            int myRank = isDrop ? -1 : rank_of(from);
             bool hasLeft = false, hasRight = false, hasSameFile = false;
-            bool movingForward = false, movingBackward = false, movingHorizontal = false;
+            bool movingForward = false, movingBackward = false;
 
             if (!isDrop)
             {
@@ -542,8 +535,6 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
                     else
                         movingBackward = true;
                 }
-                else
-                    movingHorizontal = true;
 
                 // Find other pieces of same type that can reach the destination
                 Bitboard others = pos.pieces(us, pt) ^ from;
