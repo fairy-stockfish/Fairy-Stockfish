@@ -269,7 +269,7 @@ describe('board.sanMove(ffish.Notation)', function () {
     xqBoard.delete();
 
     // Japanese Shogi notation
-    const shogiBoard = new ffish.Board("shogi");
+    const shogiBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1");
     // Coordinates: full-width file + kanji rank
     chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff13\u56db\u6b69");  // ３四歩
     chai.expect(shogiBoard.sanMove("b7b6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff18\u56db\u6b69");  // ８四歩
@@ -325,7 +325,7 @@ describe('board.variationSan(uciMoves, notation, moveNumbers)', function () {
 
 describe('board.variationSan(uciMoves, notation, moveNumbers, lastMoveUci)', function () {
   it("it converts a list of uci moves with 同 disambiguation for Japanese notation", () => {
-    const shogiBoard = new ffish.Board("shogi");
+    const shogiBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1");
     // variationSan with initial lastMoveUci that matches first move's dest → 同
     const sanMoves = shogiBoard.variationSan("g7g6 c3c4", ffish.Notation.SHOGI_JAPANESE, false, "g7g6");
     chai.expect(sanMoves).to.equal("\u540c\u3000\u6b69 \uff17\u516d\u6b69");  // 同　歩 七六歩
