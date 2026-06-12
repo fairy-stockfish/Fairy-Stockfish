@@ -191,6 +191,7 @@ inline std::string piece_to_dobutsu_kanji(PieceType pt, bool promoted) {
     } else {
         switch (pt) {
             case KING:         return "\u30e9\u30a4\u30aa\u30f3";  // ライオン (lion)
+            case COMMONER:     return "\u30e9\u30a4\u30aa\u30f3";  // ライオン (lion, dobutsu king)
             case ROOK:         return "\u304d\u308a\u3093";  // きりん (giraffe)
             case BISHOP:       return "\u305e\u3046";  // ぞう (elephant)
             case SHOGI_PAWN:   return "\u3072\u3088\u3053";  // ひよこ (chick)
