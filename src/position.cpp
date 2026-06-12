@@ -2775,23 +2775,24 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           }
   }
   // capture the flag
-  // A flag win by the side to move is only possible if flagMove is enabled
+  // A flag win by the side to move is only possible if flagMove or flagPieceSafe are enabled
   // and they already reached the flag region the move before.
-  // In the case both colors reached it, it is a draw if white was first.
-  if (flag_move() && flag_reached(sideToMove))
+  // In the case both colors reached it, it is a draw for flagPieceSafe or if white's king was first (special case for racing kings).
+  if ((flag_move() || var->flagPieceSafe) && flag_reached(sideToMove))
   {
-      result = sideToMove == WHITE && flag_reached(BLACK) ? VALUE_DRAW : mate_in(ply);
+      result = ((flag_move() && sideToMove == WHITE && flag_piece(~sideToMove) == KING)
+                 || (var->flagPieceSafe && !flag_move())) && flag_reached(~sideToMove) ? VALUE_DRAW : mate_in(ply);
       return true;
   }
   // A direct flag win is possible if the opponent does not get an extra flag move
   // or we can detect early for kings that they won't be able to reach the flag region
   // Note: This condition has to be after the above, since both might be true e.g. in racing kings.
-  if (   (!flag_move() || flag_piece(sideToMove) == KING) // we can do early win detection only for the king
+  if (   (!flag_move() || var->flagPieceSafe || flag_piece(sideToMove) == KING) // we can do early win detection only for the king
        && flag_reached(~sideToMove))
   {
       bool gameEnd = true;
       // Check whether king can move to CTF zone (racing kings) to draw
-      if (   flag_move() && sideToMove == BLACK && !checkers() && count<KING>(sideToMove)
+      if (   flag_move() && flag_piece(sideToMove) == KING && sideToMove == BLACK && !checkers() && count<KING>(sideToMove)
           && (flag_region(sideToMove) & attacks_from(sideToMove, KING, square<KING>(sideToMove))))
       {
           assert(flag_piece(sideToMove) == KING);
