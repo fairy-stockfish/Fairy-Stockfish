@@ -125,6 +125,7 @@ inline std::string piece_to_chinese_char(Piece pc) {
         case CANNON:  return c == WHITE ? "炮" : "砲";
         case SOLDIER: return c == WHITE ? "兵" : "卒";
         case PAWN:    return c == WHITE ? "兵" : "卒";
+        case BANNER:  return c == WHITE ? "旗" : "?";  // Manchu banner (旗)
         default:      return "?";
     }
 }
@@ -163,15 +164,41 @@ inline std::string piece_to_shogi_japanese_char(PieceType pt, bool promoted) {
         }
     } else {
         switch (pt) {
-            case KING:         return "\u7389";  // 玉 (king)
-            case ROOK:         return "\u98db";  // 飛 (rook)
-            case BISHOP:       return "\u89d2";  // 角 (bishop)
+            case KING:            return "\u7389";  // 玉 (king)
+            case ROOK:            return "\u98db";  // 飛 (rook)
+            case BISHOP:          return "\u89d2";  // 角 (bishop)
+            case GOLD:            return "\u91d1";  // 金 (gold)
+            case SILVER:          return "\u9280";  // 銀 (silver)
+            case SHOGI_KNIGHT:    return "\u6842";  // 桂 (knight)
+            case LANCE:           return "\u9999";  // 香 (lance)
+            case SHOGI_PAWN:      return "\u6b69";  // 歩 (pawn)
+            case CUSTOM_PIECE_1:  return "\u9154\u8c61";  // 酔象 (drunken elephant, sho-shogi)
+            case COMMONER:        return "\u592a\u5b50";  // 太子 (crown prince, sho-shogi)
+            default:              return "?";
+        }
+    }
+}
+
+// Dobutsu shogi animal names (hiragana)
+inline std::string piece_to_dobutsu_kanji(PieceType pt, bool promoted) {
+    if (promoted) {
+        switch (pt) {
+            case ROOK:         return "\u9f8d";  // 龍 (dragon)
+            case BISHOP:       return "\u99ac";  // 馬 (horse)
+            case SHOGI_PAWN:   return "\u306b\u308f\u3068\u308a";  // にわとり (hen/tokin)
+            default:           return "";
+        }
+    } else {
+        switch (pt) {
+            case KING:         return "\u30e9\u30a4\u30aa\u30f3";  // ライオン (lion)
+            case ROOK:         return "\u304d\u308a\u3093";  // きりん (giraffe)
+            case BISHOP:       return "\u305e\u3046";  // ぞう (elephant)
+            case SHOGI_PAWN:   return "\u3072\u3088\u3053";  // ひよこ (chick)
+            case FERS:         return "\u305e\u3046";  // ぞう (elephant)
+            case WAZIR:        return "\u304d\u308a\u3093";  // きりん (giraffe)
             case GOLD:         return "\u91d1";  // 金 (gold)
-            case SILVER:       return "\u9280";  // 銀 (silver)
-            case SHOGI_KNIGHT: return "\u6842";  // 桂 (knight)
             case LANCE:        return "\u9999";  // 香 (lance)
-            case SHOGI_PAWN:   return "\u6b69";  // 歩 (pawn)
-            default:           return "?";
+            default:           return "";
         }
     }
 }
@@ -203,15 +230,28 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     // Japanese Shogi notation: kanji pieces
     else if (n == NOTATION_SHOGI_JAPANESE)
     {
+        // Detect dobutsu by checking if WAZIR is in the variant's piece types
+        bool isDobutsu = pos.variant()->pieceTypes & piece_set(WAZIR);
         // For promoted pieces (non-drop)
         if (type_of(m) != DROP && pos.unpromoted_piece_on(from))
-            return piece_to_shogi_japanese_char(type_of(pos.unpromoted_piece_on(from)), true);
+        {
+            PieceType origPt = type_of(pos.unpromoted_piece_on(from));
+            return isDobutsu ? piece_to_dobutsu_kanji(origPt, true)
+                             : piece_to_shogi_japanese_char(origPt, true);
+        }
         // For promoted drops
         else if (type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
-            return piece_to_shogi_japanese_char(in_hand_piece_type(m), true);
+        {
+            PieceType inHand = in_hand_piece_type(m);
+            return isDobutsu ? piece_to_dobutsu_kanji(inHand, true)
+                             : piece_to_shogi_japanese_char(inHand, true);
+        }
         // For unpromoted pieces
         else
-            return piece_to_shogi_japanese_char(pt, pos.is_promoted(from));
+        {
+            return isDobutsu ? piece_to_dobutsu_kanji(pt, pos.is_promoted(from))
+                             : piece_to_shogi_japanese_char(pt, pos.is_promoted(from));
+        }
     }
     // Moves of promoted pieces
     else if (is_shogi(n) && type_of(m) != DROP && pos.unpromoted_piece_on(from))
