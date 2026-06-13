@@ -1050,21 +1050,28 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("janggi", JANGGI, "b1c3", False, sf.NOTATION_JANGGI)
         self.assertEqual(result, "H02-83")
 
-        # Korean Janggi notation
+        # Korean Janggi notation - Han (White) uses 將, Cho (Black) uses 帥
         result = sf.get_san("janggi", JANGGI, "b1c3", False, sf.NOTATION_JANGGI_KOREAN)
-        self.assertEqual(result, "02(\u99ac)83")
+        self.assertEqual(result, "02\u99ac83")  # 02馬83
 
         result = sf.get_san("janggi", JANGGI, "e2e3", False, sf.NOTATION_JANGGI_KOREAN)
-        self.assertEqual(result, "95(\u5c07)85")
+        self.assertEqual(result, "95\u5c0785")  # 95將85 (Han general)
 
         result = sf.get_san("janggi", JANGGI, "a1a2", False, sf.NOTATION_JANGGI_KOREAN)
-        self.assertEqual(result, "01(\u8eca)91")
+        self.assertEqual(result, "01\u8eca91")  # 01車91
 
         result = sf.get_san("janggi", JANGGI, "a4a5", False, sf.NOTATION_JANGGI_KOREAN)
-        self.assertEqual(result, "71(\u5175)61")
+        self.assertEqual(result, "71\u517561")  # 71兵61
 
         result = sf.get_san("janggi", JANGGI, "e4e5", False, sf.NOTATION_JANGGI_KOREAN)
-        self.assertEqual(result, "75(\u5175)65")
+        self.assertEqual(result, "75\u517565")  # 75兵65
+
+        # Korean Janggi notation - Cho (Black) king uses 帥
+        fen = sf.get_fen("janggi", JANGGI, ["e2e3"], False, False)
+        result = sf.get_san("janggi", fen, "e9e8", False, sf.NOTATION_JANGGI_KOREAN)
+        self.assertEqual(result, "25\u5e2b35")  # 25帥35 (Cho commander)
+        result = sf.get_san("janggi", fen, "a7a6", False, sf.NOTATION_JANGGI_KOREAN)
+        self.assertEqual(result, "41\u535251")  # 41卒51 (Cho pawn)
 
         fen = "1b1aa2b1/5k3/3ncn3/1pp1pp3/5r2p/9/P1PPB1PPB/2N1CCN1c/9/R2AKAR2 w - - 19 17"
         result = sf.get_san("janggi", fen, "d1e2", False, sf.NOTATION_SAN)

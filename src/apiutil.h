@@ -206,7 +206,7 @@ inline std::string piece_to_dobutsu_kanji(PieceType pt, bool promoted) {
 
 inline std::string piece_to_janggi_korean_char(Piece pc, Color c) {
     switch (type_of(pc)) {
-        case KING:            return "\u5c07";  // 將
+        case KING:            return c == WHITE ? "\u5c07" : "\u5e2b";  // 將 (Han) / 帥 (Cho)
         case ROOK:            return "\u8eca";  // 車
         case JANGGI_CANNON:   return "\u5305";  // 包
         case HORSE:           return "\u99ac";  // 馬
@@ -524,12 +524,10 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
 
         if (is_janggi_korean(n))
         {
-            // Korean: source(piece)destination
+            // Korean: source piecedestination
             d = disambiguation_level(pos, m, n);
             san += disambiguation(pos, from, n, d);
-            san += "(";
             san += piece(pos, m, n);
-            san += ")";
         }
         else if (n == NOTATION_SHOGI_JAPANESE)
         {
