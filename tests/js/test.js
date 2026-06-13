@@ -247,13 +247,13 @@ describe('board.sanMove(ffish.Notation)', function () {
     chai.expect(board.sanMove("g1f3", ffish.Notation.JANGGI)).to.equal("N87-66");
     chai.expect(board.sanMove("g1f3", ffish.Notation.XIANGQI_WXF)).to.equal("N2+3");
 
-    // Korean Janggi notation
+    // Korean Janggi notation - Han (White) uses 將, Cho (Black) uses 帥
     const jgBoard = new ffish.Board("janggi");
-    chai.expect(jgBoard.sanMove("b1c3", ffish.Notation.JANGGI_KOREAN)).to.equal("02(\u99ac)83");
-    chai.expect(jgBoard.sanMove("e2e3", ffish.Notation.JANGGI_KOREAN)).to.equal("95(\u5c07)85");
-    chai.expect(jgBoard.sanMove("a1a2", ffish.Notation.JANGGI_KOREAN)).to.equal("01(\u8eca)91");
-    chai.expect(jgBoard.sanMove("a4a5", ffish.Notation.JANGGI_KOREAN)).to.equal("71(\u5175)61");
-    chai.expect(jgBoard.sanMove("e4e5", ffish.Notation.JANGGI_KOREAN)).to.equal("75(\u5175)65");
+    chai.expect(jgBoard.sanMove("b1c3", ffish.Notation.JANGGI_KOREAN)).to.equal("02\u99ac83");
+    chai.expect(jgBoard.sanMove("e2e3", ffish.Notation.JANGGI_KOREAN)).to.equal("95\u5c0785");
+    chai.expect(jgBoard.sanMove("a1a2", ffish.Notation.JANGGI_KOREAN)).to.equal("01\u8eca91");
+    chai.expect(jgBoard.sanMove("a4a5", ffish.Notation.JANGGI_KOREAN)).to.equal("71\u517561");
+    chai.expect(jgBoard.sanMove("e4e5", ffish.Notation.JANGGI_KOREAN)).to.equal("75\u517565");
     jgBoard.delete();
 
     // Chinese notation
@@ -283,7 +283,10 @@ describe('board.sanMove(ffish.Notation)', function () {
     chai.expect(shogiBoard.sanMove("d9e8", ffish.Notation.SHOGI_JAPANESE)).to.include("\u5de6\u5f15");  // 左引
     chai.expect(shogiBoard.sanMove("f9e8", ffish.Notation.SHOGI_JAPANESE)).to.include("\u53f3\u5f15");  // 右引
     // 同 (same-square capture via lastMoveUci)
-    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\u540c\u3000\u6b69");  // 同　歩
+    const captureBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/6P2/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - - 0 1");
+    chai.expect(captureBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\u540c\u3000\u6b69");  // 同　歩 (capture)
+    captureBoard.delete();
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\uff13\u56db\u6b69");  // ３四歩 (not a capture, no 同)
     chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "d9e8")).to.equal("\uff13\u56db\u6b69");  // ３四歩
     shogiBoard.delete();
 
@@ -325,8 +328,8 @@ describe('board.variationSan(uciMoves, notation, moveNumbers)', function () {
 
 describe('board.variationSan(uciMoves, notation, moveNumbers, lastMoveUci)', function () {
   it("it converts a list of uci moves with 同 disambiguation for Japanese notation", () => {
-    const shogiBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1");
-    // variationSan with initial lastMoveUci that matches first move's dest → 同
+    const shogiBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/6P2/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - - 0 1");
+    // variationSan with initial lastMoveUci that matches first move's dest and is a capture → 同
     const sanMoves = shogiBoard.variationSan("g7g6 c3c4", ffish.Notation.SHOGI_JAPANESE, false, "g7g6");
     chai.expect(sanMoves).to.equal("\u540c\u3000\u6b69 \uff17\u516d\u6b69");  // 同　歩 七六歩
     // Without lastMoveUci → no 同
