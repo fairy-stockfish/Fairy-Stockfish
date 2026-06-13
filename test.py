@@ -810,8 +810,11 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "\uff15\u4e94\u98db")  # ５五飛 (no 打)
 
         # === 同 (same-square capture via lastMoveUci) ===
+        fen_capture = "lnsgkgsnl/1r5b1/ppppppppp/6P2/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - - 0 1"
+        result = sf.get_san("shogi", fen_capture, "g7g6", False, N, "g7g6")
+        self.assertEqual(result, "\u540c\u3000\u6b69")  # 同　歩 (capture on same square)
         result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N, "g7g6")
-        self.assertEqual(result, "\u540c\u3000\u6b69")  # 同　歩 (same dest)
+        self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩 (not a capture, no 同)
         result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N, "d9e8")
         self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩 (diff dest)
 
@@ -822,8 +825,8 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, san_moves)
 
         # === get_san_moves with initial lastMoveUci ===
-        result = sf.get_san_moves("shogi", SHOGI_B, ["g7g6", "c3c4"], False, N, "g7g6")
-        self.assertEqual(result[0], "\u540c\u3000\u6b69")  # 同　歩 (matches initial lastMove)
+        result = sf.get_san_moves("shogi", fen_capture, ["g7g6", "c3c4"], False, N, "g7g6")
+        self.assertEqual(result[0], "\u540c\u3000\u6b69")  # 同　歩 (capture on same square)
         self.assertEqual(result[1], "\uff17\u516d\u6b69")  # 七六歩 (no match)
 
         # Disambiguation of promotion moves
@@ -997,6 +1000,17 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "26=5")
         result = sf.get_san("xiangqi", fen, "f6e6", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "24=5")
+
+        # Chinese tandem pawns - two tandem files must not collide
+        fen = "5k3/9/3P5/3P1P1P1/5P3/9/9/9/9/4K4 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "d8e8", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u524d\u5175\u516d\u5e73\u4e94")  # 前兵六平五
+        result = sf.get_san("xiangqi", fen, "d7e7", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u5f8c\u5175\u516d\u5e73\u4e94")  # 後兵六平五
+        result = sf.get_san("xiangqi", fen, "f6e6", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u5f8c\u5175\u56db\u5e73\u4e94")  # 後兵四平五
+        result = sf.get_san("xiangqi", fen, "f7e7", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u524d\u5175\u56db\u5e73\u4e94")  # 前兵四平五
 
         # Chinese tandem pawns - 3 soldiers on same file (front/middle/rear)
         fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"

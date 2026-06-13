@@ -270,9 +270,11 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     {
         int fileCount = popcount(pos.pieces(us, pt) & file_bb(from));
         // Chinese tandem pawns: 前/中/後 or 前/二/三/四/五 prefix
-        if (pt == SOLDIER && fileCount >= 3 && !multi_tandem(pos.pieces(us, pt)))
+        if (pt == SOLDIER && (fileCount >= 3 || (fileCount >= 2 && multi_tandem(pos.pieces(us, pt)))))
         {
             int rankPos = popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1;
+            if (fileCount == 2)
+                return std::string(rankPos == 1 ? "\u524d" : "\u5f8c") + piece_to_chinese_char(pc);
             if (fileCount == 3)
             {
                 switch (rankPos) {
@@ -281,16 +283,13 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
                     case 3: return "\u5f8c" + piece_to_chinese_char(pc);  // 後
                 }
             }
-            else
-            {
-                static const char* prefixes[] = {"", "\u524d", "\u4e8c", "\u4e09", "\u56db", "\u4e94"};
-                return std::string(prefixes[rankPos < 6 ? rankPos : 1]) + piece_to_chinese_char(pc);
-            }
+            static const char* prefixes[] = {"", "\u524d", "\u4e8c", "\u4e09", "\u56db", "\u4e94"};
+            return std::string(prefixes[rankPos < 6 ? rankPos : 1]) + piece_to_chinese_char(pc);
         }
         // Chinese notation uses 前/後 prefix for disambiguation when two pieces on same file
-        if (pt != ELEPHANT && pt != FERS && fileCount == 2 && !multi_tandem(pos.pieces(us, pt)))
+        if (pt != ELEPHANT && pt != FERS && fileCount == 2)
         {
-            // Front piece is closer to player's side
+            // Front piece is farther forward from the player's perspective
             if (pos.pieces(us, pt) & forward_file_bb(us, from))
                 return "\u5f8c" + piece_to_chinese_char(pc);  // 後
             else
@@ -594,14 +593,14 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
                 }
             }
 
-            // Step 1: Destination — use 同　when same square as last move's destination
+            // Step 1: Destination — use 同　when capturing on same square as last move's destination
             bool sameSquare = false;
             if (lastMoveDest != SQ_NONE)
                 sameSquare = (lastMoveDest == to);
             else if (pos.state() && pos.state()->move != MOVE_NONE)
                 sameSquare = (to_sq(pos.state()->move) == to);
-            if (sameSquare)
-                san += "\u540c\u3000";  // 同　(same square)
+            if (sameSquare && pos.capture(m))
+                san += "\u540c\u3000";  // 同　(same square capture)
             else
                 san += square(pos, to, n);
 
