@@ -226,7 +226,7 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     if ((n == NOTATION_SAN || n == NOTATION_LAN || n == NOTATION_THAI_SAN) && type_of(pc) == PAWN && type_of(m) != DROP)
         return "";
     // Tandem pawns
-    else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
+    else if ((n == NOTATION_XIANGQI_WXF || is_xiangqi_chinese(n)) && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
         return std::to_string(popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1);
     // Japanese Shogi notation: kanji pieces
     else if (n == NOTATION_SHOGI_JAPANESE)
@@ -652,7 +652,17 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
 
             // Origin square, disambiguation
             d = disambiguation_level(pos, m, n);
-            san += disambiguation(pos, from, n, d);
+            // Tandem pawns: use Arabic file for source
+            if ((n == NOTATION_XIANGQI_WXF || is_xiangqi_chinese(n)) && d == FILE_DISAMBIGUATION)
+            {
+                PieceType pt = type_of(pos.moved_piece(m));
+                if (popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
+                    san += std::to_string((us == WHITE ? pos.max_file() - file_of(from) : file_of(from)) + 1);
+                else
+                    san += disambiguation(pos, from, n, d);
+            }
+            else
+                san += disambiguation(pos, from, n, d);
         }
 
         // Separator/Operator
@@ -701,7 +711,15 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
                 san += is_xiangqi_chinese(n) && us == WHITE ? chinese_numeral_red(rankDist - 1) : std::to_string(rankDist);
             }
             else
-                san += file(pos, to, n);
+            {
+                // Tandem pawns use Arabic numerals per WXF §7.5
+                PieceType pt = type_of(pos.moved_piece(m));
+                bool isTandem = popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt));
+                if (isTandem)
+                    san += std::to_string((us == WHITE ? pos.max_file() - file_of(to) : file_of(to)) + 1);
+                else
+                    san += file(pos, to, n);
+            }
         }
         else
             san += square(pos, to, n);
