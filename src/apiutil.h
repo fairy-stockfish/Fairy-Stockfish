@@ -225,8 +225,8 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     // Quiet pawn moves
     if ((n == NOTATION_SAN || n == NOTATION_LAN || n == NOTATION_THAI_SAN) && type_of(pc) == PAWN && type_of(m) != DROP)
         return "";
-    // Tandem pawns
-    else if ((n == NOTATION_XIANGQI_WXF || is_xiangqi_chinese(n)) && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
+    // Tandem pawns — WXF uses numeric position
+    else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
         return std::to_string(popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1);
     // Japanese Shogi notation: kanji pieces
     else if (n == NOTATION_SHOGI_JAPANESE)
@@ -268,8 +268,27 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     }
     else if (is_xiangqi_chinese(n))
     {
+        int fileCount = popcount(pos.pieces(us, pt) & file_bb(from));
+        // Chinese tandem pawns: 前/中/後 or 前/二/三/四/五 prefix
+        if (pt == SOLDIER && fileCount >= 3 && !multi_tandem(pos.pieces(us, pt)))
+        {
+            int rankPos = popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1;
+            if (fileCount == 3)
+            {
+                switch (rankPos) {
+                    case 1: return "\u524d" + piece_to_chinese_char(pc);  // 前
+                    case 2: return "\u4e2d" + piece_to_chinese_char(pc);  // 中
+                    case 3: return "\u5f8c" + piece_to_chinese_char(pc);  // 後
+                }
+            }
+            else
+            {
+                static const char* prefixes[] = {"", "\u524d", "\u4e8c", "\u4e09", "\u56db", "\u4e94"};
+                return std::string(prefixes[rankPos < 6 ? rankPos : 1]) + piece_to_chinese_char(pc);
+            }
+        }
         // Chinese notation uses 前/後 prefix for disambiguation when two pieces on same file
-        if (pt != ELEPHANT && pt != FERS && popcount(pos.pieces(us, pt) & file_bb(from)) == 2 && !multi_tandem(pos.pieces(us, pt)))
+        if (pt != ELEPHANT && pt != FERS && fileCount == 2 && !multi_tandem(pos.pieces(us, pt)))
         {
             // Front piece is closer to player's side
             if (pos.pieces(us, pt) & forward_file_bb(us, from))
@@ -652,8 +671,8 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
 
             // Origin square, disambiguation
             d = disambiguation_level(pos, m, n);
-            // Tandem pawns: use Arabic file for source
-            if ((n == NOTATION_XIANGQI_WXF || is_xiangqi_chinese(n)) && d == FILE_DISAMBIGUATION)
+            // WXF tandem pawns: use Arabic file for source
+            if (n == NOTATION_XIANGQI_WXF && d == FILE_DISAMBIGUATION)
             {
                 PieceType pt = type_of(pos.moved_piece(m));
                 if (popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
@@ -712,9 +731,10 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
             }
             else
             {
-                // Tandem pawns use Arabic numerals per WXF §7.5
+                // WXF tandem pawns use Arabic numerals per WXF §7.5
                 PieceType pt = type_of(pos.moved_piece(m));
-                bool isTandem = popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt));
+                bool isTandem = n == NOTATION_XIANGQI_WXF
+                    && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt));
                 if (isTandem)
                     san += std::to_string((us == WHITE ? pos.max_file() - file_of(to) : file_of(to)) + 1);
                 else

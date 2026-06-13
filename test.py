@@ -998,6 +998,34 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", fen, "f6e6", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "24=5")
 
+        # Chinese tandem pawns - 3 soldiers on same file (front/middle/rear)
+        fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u524d\u5175\u4e94\u5e73\u516d")  # 前兵五平六
+        result = sf.get_san("xiangqi", fen, "e6d6", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u4e2d\u5175\u4e94\u5e73\u516d")  # 中兵五平六
+        result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u5f8c\u5175\u4e94\u9032\u4e00")  # 後兵五進一
+
+        # Chinese tandem pawns - 3 soldiers, retreat
+        fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
+        # Move e7 back is illegal (retreating soldier can only go forward or sideways)
+        # Test a different retreat: e4 to e3 would be going backward
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/4P4/4P4/4P4/1C5C1/9/RNBAKABNR w - - 0 1"
+        legal = sf.legal_moves("xiangqi", fen, [])
+        if "e6e7" in legal:
+            result = sf.get_san("xiangqi", fen, "e6e7", False, sf.NOTATION_XIANGQI_CHINESE)
+            self.assertEqual(result, "\u524d\u5175\u4e94\u9032\u4e00")  # 前兵五進一
+
+        # Chinese tandem pawns - Black uses Arabic file numbers
+        fen = "4k4/9/9/9/9/4p4/4p4/4p4/9/4K4 b - - 0 1"
+        result = sf.get_san("xiangqi", fen, "e3d3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u524d\u53525\u5e734")  # 前卒5平4
+        result = sf.get_san("xiangqi", fen, "e4d4", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u4e2d\u53525\u5e734")  # 中卒5平4
+        result = sf.get_san("xiangqi", fen, "e5d5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u5f8c\u53525\u5e734")  # 後卒5平4
+
         fen = "1rb1ka2r/4a4/2ncb1nc1/p1p1p1p1p/9/2P6/P3PNP1P/2N1C2C1/9/R1BAKAB1R w - - 1 7"
         result = sf.get_san("xiangqi", fen, "c3e2")
         self.assertEqual(result, "Hce2")
