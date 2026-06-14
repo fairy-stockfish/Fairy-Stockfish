@@ -77,7 +77,7 @@ def parse_kif_dest(dest_text):
             piece_char = ch
             break
 
-    is_promo = "成" in rest and "不成" not in rest
+    is_promo = rest.endswith("成") and not rest.startswith("成") and "不成" not in rest
     is_not_promo = "不成" in rest
 
     return file_num, rank_num, piece_char, is_promo, is_not_promo
@@ -102,11 +102,15 @@ def kif_move_to_uci(move_text, last_dest_sq=None):
     """
     # 同 (same-square capture)
     if move_text.startswith("同"):
-        piece_match = re.search(r"([歩香桂銀金角飛玉龍馬と成])", move_text)
+        after_dou = re.sub(r"^同[\s　]*", "", move_text)
+        after_dou = re.sub(r"[\(（]\d+[\)）]", "", after_dou).strip()
+
+        piece_match = re.search(r"([歩香桂銀金角飛玉龍馬と])", after_dou)
         if not piece_match:
             return None, False, False
         piece_char = piece_match.group(1)
-        is_promo = "成" in move_text and "不成" not in move_text
+        is_promo = (after_dou.endswith("成") and not after_dou.startswith("成")
+                    and "不成" not in after_dou)
         piece = KIF_PIECE_MAP.get(piece_char, "?")
 
         if "打" in move_text:
@@ -256,6 +260,12 @@ def main():
 
         for move_num, kif_text in moves:
             kif_notation = re.sub(r"[\(（]\d+[\)）]", "", kif_text).strip()
+
+            if kif_text in ("投了", "切れ負け", "詰み", "千日手", "入玉宣言",
+                            "反則勝ち", "反則負け", "中断"):
+                print(f"{move_num:4d}  {kif_notation:20s}  {'(end)':10s}  SKIP (end)")
+                skip += 1
+                continue
 
             uci, is_promo, is_drop = kif_move_to_uci(kif_text, last_dest_sq)
 
