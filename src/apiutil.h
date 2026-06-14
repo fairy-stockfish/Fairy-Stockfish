@@ -365,7 +365,7 @@ inline std::string rank(const Position& pos, Square s, Notation n) {
     case NOTATION_SHOGI_HODGES_NUMBER:
         return std::to_string(pos.max_rank() - rank_of(s) + 1);
     case NOTATION_SHOGI_JAPANESE:
-        return number_to_kanji_rank(pos.max_rank() - rank_of(s) + 1);
+        return number_to_kanji_rank(rank_of(s) + 1);
     case NOTATION_SHOGI_HODGES:
         return std::string(1, char('a' + pos.max_rank() - rank_of(s)));
     case NOTATION_JANGGI:
