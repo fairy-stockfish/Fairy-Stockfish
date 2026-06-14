@@ -270,15 +270,26 @@ def parse_kif_file(filepath):
     "開始日時" headers or blank lines. Each move line has format:
       "   1   ７六歩(77)   (00:00/00:00:00)"
 
-    Returns a list of games, each a list of (move_num, move_text) tuples.
+    Returns a list of (game_type, moves) tuples, where game_type is the
+    手合割 value (e.g. "平手", "王手将棋") and moves is a list of
+    (move_num, move_text) tuples.
+
+    Games without a 手合割 header that have non-standard first "moves"
+    (e.g. file header lines like "８ ７ ６ ５ ４ ３ ２ １") are
+    detected as variant games automatically.
     """
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
     games = []
     current_game = []
+    current_handicap = "平手"  # default to standard game
     for line in content.split("\n"):
         line = line.strip()
+        # Extract game type from 手合割 header
+        hm = re.match(r"^手合割[：:](.+)$", line)
+        if hm:
+            current_handicap = hm.group(1).strip()
         m = re.match(r"^\s*(\d+)\s+(.+?)(?:\s+\(.*\))?\s*$", line)
         if m:
             move_num = int(m.group(1))
@@ -288,10 +299,21 @@ def parse_kif_file(filepath):
             line.startswith("開始日時") or line == "" or line.startswith("*")
         ):
             if current_game:
-                games.append(current_game)
+                # Auto-detect variant games by checking first move.
+                # Variant games often have a file header line like
+                # "8  ８ ７ ６ ５ ４ ３ ２ １" parsed as a "move".
+                # A real KIF move never has spaces between kanji digits.
+                first_text = current_game[0][1]
+                if " " in first_text or "　" in first_text:
+                    current_handicap = "(variant)"
+                games.append((current_handicap, current_game))
                 current_game = []
+                current_handicap = "平手"
     if current_game:
-        games.append(current_game)
+        first_text = current_game[0][1]
+        if " " in first_text or "　" in first_text:
+            current_handicap = "(variant)"
+        games.append((current_handicap, current_game))
     return games
 
 
@@ -362,8 +384,17 @@ def main():
     total_ok = 0
     total_fail = 0
     total_skip = 0
+    skipped_variants = 0
 
-    for game_idx, moves in enumerate(games):
+    for game_idx, (handicap, moves) in enumerate(games):
+        # Skip non-standard game types (王手将棋, 5五将棋, etc.)
+        # These have different starting positions than the standard FEN.
+        if handicap != "平手":
+            print(f"=== Game {game_idx + 1} ({len(moves)} moves) [SKIPPED: {handicap}] ===")
+            skipped_variants += 1
+            total_skip += len(moves)
+            continue
+
         print(f"=== Game {game_idx + 1} ({len(moves)} moves) ===")
         fen = SHOGI_FEN
         last_dest_sq = None
@@ -477,7 +508,9 @@ def main():
         print()
 
     print(f"=== Summary ===")
-    print(f"Games: {len(games)}  Total moves: {total_ok + total_fail + total_skip}")
+    print(f"Games: {len(games)}  (平手: {len(games) - skipped_variants}, "
+          f"variant: {skipped_variants} skipped)")
+    print(f"Total moves: {total_ok + total_fail + total_skip}")
     print(f"OK: {total_ok}  MISMATCH: {total_fail}  SKIP: {total_skip}")
 
     sys.exit(1 if total_fail > 0 else 0)
