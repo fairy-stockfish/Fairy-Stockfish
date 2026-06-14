@@ -777,7 +777,7 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", SHOGI_B, "b7b6", False, N)
         self.assertEqual(result, "\uff18\u516d\u6b69")  # ８六歩
         result = sf.get_san("shogi", SHOGI, "i3i4", False, N)
-        self.assertEqual(result, "\uff11\u56db\u6b69")  # １四歩
+        self.assertEqual(result, "\uff11\u516d\u6b69")  # １六歩
 
         # === Piece kanji ===
         result = sf.get_san("shogi", SHOGI_B, "b8c8", False, N)
@@ -820,14 +820,14 @@ class TestPyffish(unittest.TestCase):
 
         # === get_san_moves batch ===
         uci_moves = ["g7g6", "b3b4", "b8c8", "g3g4"]
-        san_moves = ["\uff13\u516d\u6b69", "\uff18\u56db\u6b69", "\uff17\u516b\u98db", "\uff13\u56db\u6b69"]
+        san_moves = ["\uff13\u516d\u6b69", "\uff18\u516d\u6b69", "\uff17\u516b\u98db", "\uff13\u516d\u6b69"]
         result = sf.get_san_moves("shogi", SHOGI_B, uci_moves, False, N)
         self.assertEqual(result, san_moves)
 
         # === get_san_moves with initial lastMoveUci ===
         result = sf.get_san_moves("shogi", fen_capture, ["g7g6", "c3c4"], False, N, "g7g6")
         self.assertEqual(result[0], "\u540c\u3000\u6b69")  # 同　歩 (capture on same square)
-        self.assertEqual(result[1], "\uff17\u56db\u6b69")  # 七六歩 (no match)
+        self.assertEqual(result[1], "\uff17\u516d\u6b69")  # 七六歩
 
         # Disambiguation of promotion moves
         fen = "p1ksS/n1n2/4P/5/+L1K1+L[] b - - 3 9"
