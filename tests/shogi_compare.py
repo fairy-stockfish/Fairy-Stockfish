@@ -22,8 +22,8 @@ Three coordinate systems are involved:
     Note: In our FEN, sente is at the TOP, so USI rank a maps to UCI rank 9.
 
   KIF (KiFu) — the .kif game record format from lishogi.org
-    Files: 1-9, left to right    (1 = leftmost, same as UCI)
-    Ranks: 一-九, bottom to top  (一 = bottom, same as UCI)
+    Files: 1-9, right to left    (1 = rightmost from sente's view)
+    Ranks: 一-九, bottom to top  (一 = bottom from sente's view)
     Origin squares in parentheses: (XY) where X=file, Y=rank
     Example: 七六歩(77) = pawn from (7,7) to file 七 rank 六
 
@@ -34,18 +34,12 @@ Three coordinate systems are involved:
 
 == Engine notation conventions ==
 
-  File (横): The engine counts files from RIGHT (一 = rightmost).
-    This matches how shogi players count files (from right in standard orientation).
+  File (筋): The engine outputs full-width digits, e.g. "７".
+  Rank (段): The engine outputs kanji, e.g. "六".
 
-  Rank (段): The engine uses DIFFERENT conventions per side:
-    Sente (Black): rank = UCI rank (counts from bottom of the FEN)
-    Gote (White):  rank = 10 - UCI rank (counts from top of the FEN)
-    This is because the engine treats the FEN orientation literally:
-    sente's "forward" is toward rank 1 (bottom), gote's is toward rank 9 (top).
-
-  KIF always counts ranks from the BOTTOM (absolute), regardless of side.
-  Therefore: engine gote rank != KIF rank for gote moves.
-  The comparison accounts for this with engine_rank_to_kif_rank().
+  For Japanese shogi notation these coordinates are ABSOLUTE board coordinates
+  from sente's perspective for both sides, matching the KIF destination text.
+  Therefore the comparison can match engine SAN and KIF destinations directly.
 
 == KIF special notation ==
 
@@ -66,10 +60,13 @@ Three coordinate systems are involved:
 
 == KIF file mapping ==
 
-  KIF files count from LEFT (1=leftmost, 9=rightmost), same as UCI.
-  This is different from USI where files count from the right.
-  KIF rank numbers count from the bottom, same as UCI ranks.
-  Therefore: KIF (file, rank) -> UCI is simply chr(ord('a')+(file-1)) + str(rank).
+  KIF coordinates are standard shogi coordinates from sente's perspective.
+  Fairy-Stockfish's shogi FEN is mirrored relative to that view because sente
+  starts at the TOP of the FEN.
+
+  Therefore KIF (file, rank) -> UCI requires flipping both axes:
+    file = 10 - KIF_file
+    rank = 10 - KIF_rank
 """
 
 import re
@@ -81,8 +78,8 @@ import pyffish as sf
 
 # Standard shogi starting position in Fairy-Stockfish's FEN convention.
 # Sente (lowercase) at top, gote (uppercase) at bottom.
-# "b" = sente (black) to move.
-SHOGI_FEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1"
+# "w" is sente to move in Fairy-Stockfish's shogi FEN convention.
+SHOGI_FEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w 0 1"
 
 # KIF piece names -> UCI piece letters.
 # Includes base pieces and promoted forms (龍=promoted飛, 馬=promoted角, と=promoted歩).
@@ -110,13 +107,13 @@ def fullwidth_to_int(ch):
 
 
 def kif_file_to_uci(file_num):
-    """KIF file 1-9 (left-to-right, same as UCI) -> UCI file letter a-i."""
-    return chr(ord("a") + (int(file_num) - 1))
+    """KIF file 1-9 -> UCI file letter a-i for Fairy-Stockfish's flipped FEN."""
+    return chr(ord("a") + (9 - int(file_num)))
 
 
 def kif_rank_to_uci(rank_num):
-    """KIF rank 1-9 -> UCI rank number (both count from bottom)."""
-    return int(rank_num)
+    """KIF rank 1-9 -> UCI rank number for Fairy-Stockfish's flipped FEN."""
+    return 10 - int(rank_num)
 
 
 def kif_sq_to_uci(file_num, rank_num):
@@ -320,15 +317,13 @@ def parse_kif_file(filepath):
 def extract_dest_from_san(san):
     """Extract destination file and rank from engine Japanese SAN output.
 
-    The engine outputs notation like "３六歩" (file 三 rank 六 pawn).
-    This extracts the two kanji characters representing destination coordinates.
+    The engine outputs notation like "７六歩" (full-width digit + kanji rank).
 
     Returns (file_num, rank_num) or (None, None) for 同 or unrecognized format.
-    Note: file_num here is the ENGINE's file (counted from right), not KIF's.
     """
-    m = re.match(r"([一二三四五六七八九])([一二三四五六七八九])", san)
+    m = re.match(r"([１-９1-9])([一二三四五六七八九])", san)
     if m:
-        file_num = KIF_RANK_MAP.get(m.group(1), 0)
+        file_num = fullwidth_to_int(m.group(1))
         rank_num = KIF_RANK_MAP.get(m.group(2), 0)
         return file_num, rank_num
 
@@ -337,24 +332,6 @@ def extract_dest_from_san(san):
         return None, None
 
     return None, None
-
-
-def engine_rank_to_kif_rank(engine_rank, is_sente):
-    """Convert engine rank number to KIF rank number for comparison.
-
-    The engine and KIF use different rank conventions for gote moves:
-
-      Engine: sente rank = UCI rank (from bottom), gote rank = 10 - UCI rank
-      KIF:    always counts from the bottom (absolute), both sides
-
-      Therefore:
-        sente: engine_rank == KIF_rank (no conversion needed)
-        gote:  engine_rank == 10 - KIF_rank (need to flip)
-    """
-    if is_sente:
-        return engine_rank
-    else:
-        return 10 - engine_rank
 
 
 def main():
@@ -431,8 +408,6 @@ def main():
                 continue
 
             # Get engine's Japanese notation for this move
-            is_sente = move_num % 2 == 1
-
             try:
                 our_san = sf.get_san(
                     "shogi", fen, uci, False, sf.NOTATION_SHOGI_JAPANESE
@@ -453,19 +428,11 @@ def main():
                     kif_dest_file = kif_dest[0]
                     kif_dest_rank = kif_dest[1]
 
-                    # Engine files count from RIGHT, KIF files count from LEFT.
-                    # For a 9-file board: engine_file + kif_file = 10
-                    # (e.g. engine 三 = 3rd from right = KIF 七 = 7th from left)
-                    engine_as_kif_file = 10 - engine_file
-                    if engine_as_kif_file != kif_dest_file:
+                    if engine_file != kif_dest_file:
                         file_match = False
                         dest_match = False
 
-                    # Engine gote ranks are inverted relative to KIF
-                    kif_expected_rank = engine_rank_to_kif_rank(
-                        engine_rank, is_sente
-                    )
-                    if kif_expected_rank != kif_dest_rank:
+                    if engine_rank != kif_dest_rank:
                         rank_match = False
                         dest_match = False
 

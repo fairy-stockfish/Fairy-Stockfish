@@ -271,14 +271,14 @@ describe('board.sanMove(ffish.Notation)', function () {
     // Japanese Shogi notation
     const shogiBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1");
     // Coordinates: full-width file + kanji rank
-    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff13\u516d\u6b69");  // ３六歩
-    chai.expect(shogiBoard.sanMove("b7b6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff18\u516d\u6b69");  // ８六歩
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff13\u56db\u6b69");  // ３四歩
+    chai.expect(shogiBoard.sanMove("b7b6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff18\u56db\u6b69");  // ８四歩
     // Piece kanji
-    chai.expect(shogiBoard.sanMove("b8c8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff17\u516b\u98db");  // ７八飛
-    chai.expect(shogiBoard.sanMove("c9d8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u516b\u9280");  // ６八銀
-    chai.expect(shogiBoard.sanMove("a9a8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff19\u516b\u9999");  // ９八香
+    chai.expect(shogiBoard.sanMove("b8c8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff17\u4e8c\u98db");  // ７二飛
+    chai.expect(shogiBoard.sanMove("c9d8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u4e8c\u9280");  // ６二銀
+    chai.expect(shogiBoard.sanMove("a9a8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff19\u4e8c\u9999");  // ９二香
     // King = 玉
-    chai.expect(shogiBoard.sanMove("e9d8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u516b\u7389");  // ６八玉
+    chai.expect(shogiBoard.sanMove("e9d8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u4e8c\u7389");  // ６二玉
     // Disambiguation
     chai.expect(shogiBoard.sanMove("d9e8", ffish.Notation.SHOGI_JAPANESE)).to.include("\u5de6\u5f15");  // 左引
     chai.expect(shogiBoard.sanMove("f9e8", ffish.Notation.SHOGI_JAPANESE)).to.include("\u53f3\u5f15");  // 右引
@@ -286,8 +286,8 @@ describe('board.sanMove(ffish.Notation)', function () {
     const captureBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/6P2/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - - 0 1");
     chai.expect(captureBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\u540c\u3000\u6b69");  // 同　歩 (capture)
     captureBoard.delete();
-    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\uff13\u516d\u6b69");  // ３六歩 (not a capture, no 同)
-    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "d9e8")).to.equal("\uff13\u516d\u6b69");  // ３六歩
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\uff13\u56db\u6b69");  // ３四歩 (not a capture, no 同)
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "d9e8")).to.equal("\uff13\u56db\u6b69");  // ３四歩
     shogiBoard.delete();
 
     board.delete();
@@ -334,7 +334,14 @@ describe('board.variationSan(uciMoves, notation, moveNumbers, lastMoveUci)', fun
     chai.expect(sanMoves).to.equal("\u540c\u3000\u6b69 \uff17\u516d\u6b69");  // 同　歩 七六歩
     // Without lastMoveUci → no 同
     const sanMoves2 = shogiBoard.variationSan("g7g6 c3c4", ffish.Notation.SHOGI_JAPANESE, false);
-    chai.expect(sanMoves2).to.equal("\uff13\u516d\u6b69 \uff17\u516d\u6b69");  // ３六歩 七六歩
+    chai.expect(sanMoves2).to.equal("\uff13\u56db\u6b69 \uff17\u516d\u6b69");  // ３四歩 七六歩
+    shogiBoard.delete();
+  });
+
+  it("keeps absolute board coordinates for both sides", () => {
+    const shogiBoard = new ffish.Board("shogi");
+    const sanMoves = shogiBoard.variationSan("c3c4 g7g6", ffish.Notation.SHOGI_JAPANESE, false);
+    chai.expect(sanMoves).to.equal("\uff17\u516d\u6b69 \uff13\u56db\u6b69");  // ７六歩 ３四歩
     shogiBoard.delete();
   });
 });
