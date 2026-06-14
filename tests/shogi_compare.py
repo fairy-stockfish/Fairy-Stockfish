@@ -45,21 +45,29 @@ def kif_kanji_dest_to_uci(dest_text):
         return f"{uci_file}{uci_rank}"
     return None
 
-def parse_kif_moves(filepath):
-    """Parse .kif file, return list of (move_num, raw_move_text)."""
+def parse_kif_file(filepath):
+    """Parse a .kif file (single or multi-game). Returns list of games, each a list of (move_num, move_text)."""
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    moves = []
+    games = []
+    current_game = []
     for line in content.split('\n'):
         line = line.strip()
-        # Match: "   1   ５六歩(57)   (00:00/00:00:00)"
+        # Match move lines: "   1   ５六歩(57)   (00:00/00:00:00)"
         m = re.match(r'^\s*(\d+)\s+(.+?)(?:\s+\(.*\))?$', line)
         if m:
             move_num = int(m.group(1))
             move_text = m.group(2).strip()
-            moves.append((move_num, move_text))
-    return moves
+            current_game.append((move_num, move_text))
+        elif current_game and (line.startswith('開始日時') or line == ''):
+            # Game boundary: new game header or blank line after moves
+            if current_game:
+                games.append(current_game)
+                current_game = []
+    if current_game:
+        games.append(current_game)
+    return games
 
 def kif_move_to_uci(move_text, last_dest_sq=None):
     """Convert KIF move text to UCI. Returns (uci, is_promotion, is_drop)."""
@@ -132,71 +140,87 @@ def main():
         sys.exit(1)
 
     filepath = sys.argv[1]
-    moves = parse_kif_moves(filepath)
-    print(f"Parsed {len(moves)} moves from {filepath}\n")
+    games = parse_kif_file(filepath)
+    print(f"Parsed {len(games)} game(s) from {filepath}\n")
 
-    fen = SHOGI_FEN
-    last_dest_sq = None
-    ok = 0
-    fail = 0
-    skip = 0
+    total_ok = 0
+    total_fail = 0
+    total_skip = 0
+    total_moves = 0
 
-    for move_num, kif_text in moves:
-        # Strip .kif origin suffix for display/comparison
-        kif_notation = re.sub(r'[\(（]\d+[\)）]', '', kif_text).strip()
+    for game_idx, moves in enumerate(games):
+        print(f"=== Game {game_idx + 1} ({len(moves)} moves) ===")
+        fen = SHOGI_FEN
+        last_dest_sq = None
+        ok = 0
+        fail = 0
+        skip = 0
 
-        # Convert to UCI
-        uci, is_promo, is_drop = kif_move_to_uci(kif_text, last_dest_sq)
+        for move_num, kif_text in moves:
+            # Strip .kif origin suffix for display/comparison
+            kif_notation = re.sub(r'[\(（]\d+[\)）]', '', kif_text).strip()
 
-        # Handle 同 by looking at last destination
-        if kif_text.startswith('同') and not uci:
-            origin_match = re.search(r'\((\d)(\d)\)', kif_text)
-            if origin_match and last_dest_sq:
-                from_sq = kif_sq_to_uci(origin_match.group(1), origin_match.group(2))
-                is_promo = '成' in kif_text and '不成' not in kif_text
-                uci = from_sq + last_dest_sq + ('+' if is_promo else '')
+            # Convert to UCI
+            uci, is_promo, is_drop = kif_move_to_uci(kif_text, last_dest_sq)
 
-        if not uci:
-            print(f"{move_num:3d}  {kif_notation:20s}  {'?':10s}  SKIP (parse)")
-            skip += 1
-            continue
+            # Handle 同 by looking at last destination
+            if kif_text.startswith('同') and not uci:
+                origin_match = re.search(r'\((\d)(\d)\)', kif_text)
+                if origin_match and last_dest_sq:
+                    from_sq = kif_sq_to_uci(origin_match.group(1), origin_match.group(2))
+                    is_promo = '成' in kif_text and '不成' not in kif_text
+                    uci = from_sq + last_dest_sq + ('+' if is_promo else '')
 
-        # Get our notation
-        try:
-            our_san = sf.get_san('shogi', fen, uci, False, sf.NOTATION_SHOGI_JAPANESE)
-        except Exception as e:
-            our_san = f"ERROR({e})"
+            if not uci:
+                print(f"{move_num:3d}  {kif_notation:20s}  {'?':10s}  SKIP (parse)")
+                skip += 1
+                continue
 
-        # Check legality
-        legal = sf.legal_moves('shogi', fen, [])
-        if uci not in legal:
-            print(f"{move_num:3d}  {kif_notation:20s}  {uci:10s}  {our_san:20s}  ILLEGAL")
-            fail += 1
-            continue
+            # Get our notation
+            try:
+                our_san = sf.get_san('shogi', fen, uci, False, sf.NOTATION_SHOGI_JAPANESE)
+            except Exception as e:
+                our_san = f"ERROR({e})"
 
-        # Compare
-        match = (our_san == kif_notation or
-                 our_san.replace('同　', '') == kif_notation.replace('同', '') or
-                 our_san in kif_notation or kif_notation in our_san)
-        status = "OK" if match else "MISMATCH"
-        if not match:
-            fail += 1
-        else:
-            ok += 1
+            # Check legality
+            legal = sf.legal_moves('shogi', fen, [])
+            if uci not in legal:
+                print(f"{move_num:3d}  {kif_notation:20s}  {uci:10s}  {our_san:20s}  ILLEGAL")
+                fail += 1
+                continue
 
-        print(f"{move_num:3d}  {kif_notation:20s}  {uci:10s}  {our_san:20s}  {status}")
+            # Compare
+            match = (our_san == kif_notation or
+                     our_san.replace('同　', '') == kif_notation.replace('同', '') or
+                     our_san in kif_notation or kif_notation in our_san)
+            status = "OK" if match else "MISMATCH"
+            if not match:
+                fail += 1
+            else:
+                ok += 1
 
-        # Track last destination for 同
-        if len(uci) >= 4 and not is_drop:
-            last_dest_sq = uci[2:4]
+            print(f"{move_num:3d}  {kif_notation:20s}  {uci:10s}  {our_san:20s}  {status}")
 
-        # Update position
-        try:
-            fen = sf.get_fen('shogi', fen, [uci], False, False)
-        except:
-            pass
+            # Track last destination for 同
+            if len(uci) >= 4 and not is_drop:
+                last_dest_sq = uci[2:4]
 
-    print(f"\nOK: {ok}  MISMATCH: {fail}  SKIP: {skip}  Total: {len(moves)}")
+            # Update position
+            try:
+                fen = sf.get_fen('shogi', fen, [uci], False, False)
+            except:
+                pass
+
+        print(f"\nOK: {ok}  MISMATCH: {fail}  SKIP: {skip}  Total: {len(moves)}")
+        total_ok += ok
+        total_fail += fail
+        total_skip += skip
+        total_moves += len(moves)
+        print()
+
+    print(f"=== Summary ===")
+    print(f"Games: {len(games)}  Total moves: {total_moves}")
+    print(f"OK: {total_ok}  MISMATCH: {total_fail}  SKIP: {total_skip}")
 
 if __name__ == '__main__':
     main()
