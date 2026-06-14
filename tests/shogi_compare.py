@@ -1,67 +1,185 @@
 #!/usr/bin/env python3
 """Compare our Japanese Shogi notation against lishogi.org .kif exports.
 
-Usage: python3 tests/shogi_compare.py <game.kif>
+Verifies that KIF moves parse to legal UCI moves and that our engine's
+Japanese notation matches KIF conventions.
+
+Usage:
+  python3 tests/shogi_compare.py <game.kif>          # single game
+  python3 tests/shogi_compare.py <games.kif>          # multi-game
+  python3 tests/shogi_compare.py <games.kif> --max 5  # first 5 games only
 """
 
 import re
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import pyffish as sf
 
 SHOGI_FEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1"
 
 # KIF piece names -> UCI piece letters
 KIF_PIECE_MAP = {
-    '歩': 'P', '香': 'L', '桂': 'N', '銀': 'S', '金': 'G',
-    '角': 'B', '飛': 'R', '玉': 'K', '王': 'K',
+    "歩": "P", "香": "L", "桂": "N", "銀": "S", "金": "G",
+    "角": "B", "飛": "R", "玉": "K", "王": "K",
+    "龍": "R", "馬": "B", "と": "P",
 }
 
-# KIF rank kanji -> our rank numbers
-# KIF: 一=bottom(our 1), 九=top(our 9) — same as UCI
-KIF_RANK_MAP = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9}
+# KIF rank kanji -> number
+KIF_RANK_MAP = {
+    "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+    "六": 6, "七": 7, "八": 8, "九": 9,
+}
+
+# Number -> kanji rank (1-indexed)
+KANJI_RANK = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
+
+
+def fullwidth_to_int(ch):
+    """Convert full-width digit '１'-'９' or half-width '1'-'9' to int."""
+    if ord(ch) >= 0xFF11 and ord(ch) <= 0xFF19:
+        return ord(ch) - 0xFF10
+    return int(ch)
+
+
+def kif_file_to_uci(file_num):
+    """KIF file 1-9 (left-to-right, same as UCI) -> UCI file letter."""
+    return chr(ord("a") + (int(file_num) - 1))
+
+
+def kif_rank_to_uci(rank_num):
+    """KIF rank -> UCI rank (both count from bottom of the FEN)."""
+    return int(rank_num)
+
 
 def kif_sq_to_uci(file_num, rank_num):
-    """Convert KIF square (file 1-9 right-to-left, rank 1-9 same as UCI) to UCI."""
-    uci_file = chr(ord('a') + (9 - int(file_num)))
-    uci_rank = int(rank_num)
-    return f"{uci_file}{uci_rank}"
+    """KIF square (file, rank) -> UCI square string."""
+    return f"{kif_file_to_uci(file_num)}{kif_rank_to_uci(rank_num)}"
 
-def kif_kanji_dest_to_uci(dest_text):
-    """Convert KIF destination like '５六' to UCI square."""
-    # Full-width or half-width file number + kanji rank
-    m = re.match(r'([１-９1-9])([一二三四五六七八九])', dest_text)
+
+def parse_kif_dest(dest_text):
+    """Parse KIF destination text like '５六歩' or '７二角成'.
+    Returns (file_num, rank_num, piece_char, is_promo) or None.
+    """
+    m = re.match(r"([１-９1-9])([一二三四五六七八九])", dest_text)
+    if not m:
+        return None
+    file_num = fullwidth_to_int(m.group(1))
+    rank_num = KIF_RANK_MAP.get(m.group(2), 0)
+    if rank_num == 0:
+        return None
+
+    rest = dest_text[m.end():]
+    piece_char = None
+    for ch in rest:
+        if ch in KIF_PIECE_MAP:
+            piece_char = ch
+            break
+
+    is_promo = "成" in rest and "不成" not in rest
+    is_not_promo = "不成" in rest
+
+    return file_num, rank_num, piece_char, is_promo, is_not_promo
+
+
+def parse_kif_origin(origin_text):
+    """Parse KIF origin '(77)' or '（７７）'. Returns (file_num, rank_num) or None."""
+    m = re.search(r"[(\uff08](\d)(\d)[)\uff09]", origin_text)
     if m:
-        file_char = m.group(1)
-        # Normalize full-width to half-width
-        if ord(file_char) >= 0xFF11:
-            file_num = ord(file_char) - 0xFF10
-        else:
-            file_num = int(file_char)
-        rank_kanji = m.group(2)
-        uci_file = chr(ord('a') + (9 - file_num))
-        uci_rank = KIF_RANK_MAP.get(rank_kanji, 0)
-        return f"{uci_file}{uci_rank}"
+        return int(m.group(1)), int(m.group(2))
+    m = re.search(r"[(\uff08]([１-９1-9])([１-９1-9])[)\uff09]", origin_text)
+    if m:
+        return fullwidth_to_int(m.group(1)), fullwidth_to_int(m.group(2))
     return None
 
+
+def kif_move_to_uci(move_text, last_dest_sq=None):
+    """Convert KIF move text to UCI move string.
+
+    Returns (uci_move, is_promo, is_drop) or None on failure.
+    For 同 (same-square), last_dest_sq must be provided.
+    """
+    # 同 (same-square capture)
+    if move_text.startswith("同"):
+        piece_match = re.search(r"([歩香桂銀金角飛玉龍馬と成])", move_text)
+        if not piece_match:
+            return None, False, False
+        piece_char = piece_match.group(1)
+        is_promo = "成" in move_text and "不成" not in move_text
+        piece = KIF_PIECE_MAP.get(piece_char, "?")
+
+        if "打" in move_text:
+            if last_dest_sq:
+                return f"{piece}@{last_dest_sq}", False, True
+            return None, False, False
+
+        if last_dest_sq:
+            origin = parse_kif_origin(move_text)
+            if origin:
+                from_sq = kif_sq_to_uci(origin[0], origin[1])
+                uci = from_sq + last_dest_sq
+                if is_promo:
+                    uci += "+"
+                return uci, is_promo, False
+        return None, False, False
+
+    # Drop: ７七歩打, ５五金打, etc.
+    if "打" in move_text:
+        drop_dest = re.match(r"([^\(（]+?)打", move_text)
+        piece_match = re.search(r"([歩香桂銀金角飛])打", move_text)
+        if drop_dest and piece_match:
+            piece = KIF_PIECE_MAP.get(piece_match.group(1), "?")
+            dest = parse_kif_dest(drop_dest.group(1))
+            if dest:
+                uci_dest = kif_sq_to_uci(dest[0], dest[1])
+                return f"{piece}@{uci_dest}", False, True
+        return None, False, False
+
+    # Normal move: ５六歩(57) or ９三桂成(21)
+    origin = parse_kif_origin(move_text)
+    if not origin:
+        return None, False, False
+
+    from_sq = kif_sq_to_uci(origin[0], origin[1])
+
+    dest_text = re.match(r"(.+?)[\(（]", move_text)
+    if not dest_text:
+        return None, False, False
+
+    dest = parse_kif_dest(dest_text.group(1))
+    if not dest:
+        return None, False, False
+
+    to_sq = kif_sq_to_uci(dest[0], dest[1])
+    is_promo = dest[3]
+
+    uci = from_sq + to_sq
+    if is_promo:
+        uci += "+"
+
+    return uci, is_promo, False
+
+
 def parse_kif_file(filepath):
-    """Parse a .kif file (single or multi-game). Returns list of games, each a list of (move_num, move_text)."""
-    with open(filepath, 'r', encoding='utf-8') as f:
+    """Parse .kif file (single or multi-game).
+    Returns list of games, each a list of (move_num, move_text).
+    """
+    with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
     games = []
     current_game = []
-    for line in content.split('\n'):
+    for line in content.split("\n"):
         line = line.strip()
-        # Match move lines: "   1   ５六歩(57)   (00:00/00:00:00)"
-        m = re.match(r'^\s*(\d+)\s+(.+?)(?:\s+\(.*\))?$', line)
+        m = re.match(r"^\s*(\d+)\s+(.+?)(?:\s+\(.*\))?\s*$", line)
         if m:
             move_num = int(m.group(1))
             move_text = m.group(2).strip()
             current_game.append((move_num, move_text))
-        elif current_game and (line.startswith('開始日時') or line == ''):
-            # Game boundary: new game header or blank line after moves
+        elif current_game and (
+            line.startswith("開始日時") or line == "" or line.startswith("*")
+        ):
             if current_game:
                 games.append(current_game)
                 current_game = []
@@ -69,84 +187,64 @@ def parse_kif_file(filepath):
         games.append(current_game)
     return games
 
-def kif_move_to_uci(move_text, last_dest_sq=None):
-    """Convert KIF move text to UCI. Returns (uci, is_promotion, is_drop)."""
-    # 同 (same square capture)
-    if move_text.startswith('同'):
-        piece_match = re.search(r'([歩香桂銀金角飛玉龍馬と成])', move_text)
-        if not piece_match:
-            return None, False, False
-        piece_char = piece_match.group(1)
-        # Strip 成 for promotion detection
-        is_promo = '成' in move_text.replace(piece_char, '', 1)
-        piece = KIF_PIECE_MAP.get(piece_char, '?')
 
-        # Check for drop (同打)
-        if '打' in move_text:
-            if last_dest_sq:
-                return f"{piece}@{last_dest_sq}", False, True
-            return None, False, False
+def extract_dest_from_san(san):
+    """Extract destination file number and rank number from engine Japanese SAN.
+    Returns (file_num, rank_num) where file_num is 1-9 (right-to-left)
+    and rank_num is the engine's rank number.
+    """
+    m = re.match(r"([一二三四五六七八九])([一二三四五六七八九])", san)
+    if m:
+        file_num = KIF_RANK_MAP.get(m.group(1), 0)
+        rank_num = KIF_RANK_MAP.get(m.group(2), 0)
+        return file_num, rank_num
 
-        # 同 piece - capture on last destination
-        if last_dest_sq:
-            uci = last_dest_sq  # Will be prepended with from_sq later
-            return None, False, False  # Need more info
-        return None, False, False
+    m = re.match(r"同", san)
+    if m:
+        return None, None
 
-    # Drop: 歩打, 金打, etc.
-    drop_match = re.search(r'([歩香桂銀金角飛])打', move_text)
-    if drop_match:
-        piece = KIF_PIECE_MAP.get(drop_match.group(1), '?')
-        # Extract destination (before 打)
-        dest = re.match(r'([^\(]+?)打', move_text)
-        if dest:
-            uci_dest = kif_kanji_dest_to_uci(dest.group(1))
-            if uci_dest:
-                return f"{piece}@{uci_dest}", False, True
-        return None, False, False
+    return None, None
 
-    # Normal move: ５六歩(57)
-    origin_match = re.search(r'\((\d)(\d)\)', move_text)
-    if not origin_match:
-        return None, False, False
 
-    origin_file = origin_match.group(1)
-    origin_rank = origin_match.group(2)
-    from_sq = kif_sq_to_uci(origin_file, origin_rank)
+def engine_rank_to_kif_rank(engine_rank, is_sente):
+    """Convert engine rank number to KIF rank number.
 
-    # Destination: extract from move text (before the parenthesized origin)
-    dest_text = re.match(r'(.+?)[\(（]', move_text)
-    if not dest_text:
-        return None, False, False
-    dest_str = dest_text.group(1).strip()
+    Engine convention: sente counts from bottom (same as UCI), gote counts
+    from top (10 - UCI). KIF always counts from bottom (absolute).
+    """
+    if is_sente:
+        return engine_rank
+    else:
+        return 10 - engine_rank
 
-    # Strip piece name and promotion markers to get destination coordinates
-    # e.g., "５六歩" -> "５六", "９三桂成" -> "９三"
-    coord_match = re.match(r'([１-９1-9])([一二三四五六七八九])', dest_str)
-    if not coord_match:
-        return None, False, False
-
-    uci_dest = kif_kanji_dest_to_uci(dest_str)
-    if not uci_dest:
-        return None, False, False
-
-    is_promo = '成' in move_text and '不成' not in move_text
-
-    return f"{from_sq}{uci_dest}" + ('+' if is_promo else ''), is_promo, False
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python3 tests/shogi_compare.py <game.kif>")
+    max_games = None
+    filepath = None
+    args = sys.argv[1:]
+    i = 0
+    while i < len(args):
+        if args[i] == "--max" and i + 1 < len(args):
+            max_games = int(args[i + 1])
+            i += 2
+        elif not args[i].startswith("-"):
+            filepath = args[i]
+            i += 1
+        else:
+            i += 1
+
+    if not filepath:
+        print("Usage: python3 tests/shogi_compare.py <game.kif> [--max N]")
         sys.exit(1)
 
-    filepath = sys.argv[1]
     games = parse_kif_file(filepath)
+    if max_games:
+        games = games[:max_games]
     print(f"Parsed {len(games)} game(s) from {filepath}\n")
 
     total_ok = 0
     total_fail = 0
     total_skip = 0
-    total_moves = 0
 
     for game_idx, moves in enumerate(games):
         print(f"=== Game {game_idx + 1} ({len(moves)} moves) ===")
@@ -157,70 +255,101 @@ def main():
         skip = 0
 
         for move_num, kif_text in moves:
-            # Strip .kif origin suffix for display/comparison
-            kif_notation = re.sub(r'[\(（]\d+[\)）]', '', kif_text).strip()
+            kif_notation = re.sub(r"[\(（]\d+[\)）]", "", kif_text).strip()
 
-            # Convert to UCI
             uci, is_promo, is_drop = kif_move_to_uci(kif_text, last_dest_sq)
 
-            # Handle 同 by looking at last destination
-            if kif_text.startswith('同') and not uci:
-                origin_match = re.search(r'\((\d)(\d)\)', kif_text)
-                if origin_match and last_dest_sq:
-                    from_sq = kif_sq_to_uci(origin_match.group(1), origin_match.group(2))
-                    is_promo = '成' in kif_text and '不成' not in kif_text
-                    uci = from_sq + last_dest_sq + ('+' if is_promo else '')
-
             if not uci:
-                print(f"{move_num:3d}  {kif_notation:20s}  {'?':10s}  SKIP (parse)")
+                print(f"{move_num:4d}  {kif_notation:20s}  {'?':10s}  SKIP (parse)")
                 skip += 1
                 continue
 
-            # Get our notation
-            try:
-                our_san = sf.get_san('shogi', fen, uci, False, sf.NOTATION_SHOGI_JAPANESE)
-            except Exception as e:
-                our_san = f"ERROR({e})"
-
-            # Check legality
-            legal = sf.legal_moves('shogi', fen, [])
+            legal = sf.legal_moves("shogi", fen, [])
             if uci not in legal:
-                print(f"{move_num:3d}  {kif_notation:20s}  {uci:10s}  {our_san:20s}  ILLEGAL")
+                print(
+                    f"{move_num:4d}  {kif_notation:20s}  {uci:10s}  ILLEGAL"
+                )
                 fail += 1
                 continue
 
-            # Compare
-            match = (our_san == kif_notation or
-                     our_san.replace('同　', '') == kif_notation.replace('同', '') or
-                     our_san in kif_notation or kif_notation in our_san)
-            status = "OK" if match else "MISMATCH"
-            if not match:
-                fail += 1
-            else:
-                ok += 1
+            is_sente = move_num % 2 == 1
 
-            print(f"{move_num:3d}  {kif_notation:20s}  {uci:10s}  {our_san:20s}  {status}")
-
-            # Track last destination for 同
-            if len(uci) >= 4 and not is_drop:
-                last_dest_sq = uci[2:4]
-
-            # Update position
             try:
-                fen = sf.get_fen('shogi', fen, [uci], False, False)
-            except:
+                our_san = sf.get_san(
+                    "shogi", fen, uci, False, sf.NOTATION_SHOGI_JAPANESE
+                )
+            except Exception as e:
+                our_san = f"ERROR({e})"
+
+            engine_file, engine_rank = extract_dest_from_san(our_san)
+
+            dest_match = True
+            file_match = True
+            rank_match = True
+
+            if engine_file is not None and engine_rank is not None:
+                kif_dest = parse_kif_dest(kif_notation)
+                if kif_dest:
+                    kif_dest_file = kif_dest[0]
+                    kif_dest_rank = kif_dest[1]
+
+                    engine_as_kif_file = 10 - engine_file
+                    if engine_as_kif_file != kif_dest_file:
+                        file_match = False
+                        dest_match = False
+
+                    kif_expected_rank = engine_rank_to_kif_rank(
+                        engine_rank, is_sente
+                    )
+                    if kif_expected_rank != kif_dest_rank:
+                        rank_match = False
+                        dest_match = False
+
+            if dest_match:
+                status = "OK"
+                ok += 1
+            else:
+                reason = []
+                if not file_match:
+                    reason.append("file")
+                if not rank_match:
+                    reason.append("rank")
+                status = f"MISMATCH ({'+'.join(reason)})"
+                fail += 1
+
+            origin_str = ""
+            origin = parse_kif_origin(kif_text)
+            if origin:
+                origin_str = f"({origin[0]}{origin[1]})"
+
+            print(
+                f"{move_num:4d}  {kif_notation:20s}  {uci:10s}  "
+                f"{our_san:20s}  {status}"
+            )
+
+            if len(uci) >= 4:
+                if is_drop:
+                    last_dest_sq = uci[2:]
+                else:
+                    last_dest_sq = uci[2:4]
+
+            try:
+                fen = sf.get_fen("shogi", fen, [uci], False, False)
+            except Exception:
                 pass
 
         print(f"\nOK: {ok}  MISMATCH: {fail}  SKIP: {skip}  Total: {len(moves)}")
         total_ok += ok
         total_fail += fail
         total_skip += skip
-        total_moves += len(moves)
         print()
 
     print(f"=== Summary ===")
-    print(f"Games: {len(games)}  Total moves: {total_moves}")
+    print(f"Games: {len(games)}  Total moves: {total_ok + total_fail + total_skip}")
     print(f"OK: {total_ok}  MISMATCH: {total_fail}  SKIP: {total_skip}")
 
-if __name__ == '__main__':
+    sys.exit(1 if total_fail > 0 else 0)
+
+
+if __name__ == "__main__":
     main()
