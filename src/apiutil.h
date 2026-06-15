@@ -172,8 +172,8 @@ inline std::string piece_to_shogi_japanese_char(PieceType pt, bool promoted) {
             case SHOGI_KNIGHT:    return "\u6842";  // 桂 (knight)
             case LANCE:           return "\u9999";  // 香 (lance)
             case SHOGI_PAWN:      return "\u6b69";  // 歩 (pawn)
-            case CUSTOM_PIECE_1:  return "\u9154\u8c61";  // 酔象 (drunken elephant, sho-shogi)
-            case COMMONER:        return "\u592a\u5b50";  // 太子 (crown prince, sho-shogi)
+            case CUSTOM_PIECE_1:  return "\u8c61";  // 象 (drunken elephant, sho-shogi)
+            case COMMONER:        return "\u592a";  // 太 (crown prince, sho-shogi)
             default:              return "?";
         }
     }
