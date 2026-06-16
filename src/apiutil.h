@@ -125,7 +125,7 @@ inline std::string piece_to_chinese_char(Piece pc) {
         case CANNON:  return c == WHITE ? "炮" : "砲";
         case SOLDIER: return c == WHITE ? "兵" : "卒";
         case PAWN:    return c == WHITE ? "兵" : "卒";
-        case BANNER:  return c == WHITE ? "旗" : "?";  // Manchu banner (旗)
+        case BANNER:  return "旗";  // Manchu banner (旗, both colors)
         default:      return "?";
     }
 }
