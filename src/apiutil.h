@@ -233,16 +233,45 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     {
         // Detect dobutsu by checking if WAZIR is in the variant's piece types
         bool isDobutsu = pos.variant()->pieceTypes & piece_set(WAZIR);
+        // For pieceDemotion variants (e.g. kyotoshogi), pieces swap between paired types
+        // on promotion/demotion. Show the piece's identity after the move.
         // For promoted pieces (non-drop)
         if (type_of(m) != DROP && pos.unpromoted_piece_on(from))
         {
             PieceType origPt = type_of(pos.unpromoted_piece_on(from));
+            if (pos.piece_demotion())
+            {
+                if (type_of(m) == PIECE_DEMOTION)
+                    return piece_to_shogi_japanese_char(origPt, false);
+                // PIECE_PROMOTION or NORMAL move of promoted piece:
+                // show the promoted piece identity
+                switch (origPt)
+                {
+                    case LANCE:        return "\u3068";  // と (tokin)
+                    case SHOGI_KNIGHT: return "\u91d1";  // 金 (gold)
+                    case SHOGI_PAWN:   return "\u98db";  // 飛 (rook)
+                    case SILVER:       return "\u89d2";  // 角 (bishop)
+                    default:           return piece_to_shogi_japanese_char(pt, false);
+                }
+            }
             return isDobutsu ? piece_to_dobutsu_kanji(origPt, true)
                              : piece_to_shogi_japanese_char(origPt, true);
         }
         // For promoted drops
         else if (type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
         {
+            if (pos.piece_demotion())
+            {
+                PieceType inHand = in_hand_piece_type(m);
+                switch (inHand)
+                {
+                    case LANCE:        return "\u3068";  // と (tokin)
+                    case SHOGI_KNIGHT: return "\u91d1";  // 金 (gold)
+                    case SHOGI_PAWN:   return "\u98db";  // 飛 (rook)
+                    case SILVER:       return "\u89d2";  // 角 (bishop)
+                    default:           return piece_to_shogi_japanese_char(pt, false);
+                }
+            }
             PieceType inHand = in_hand_piece_type(m);
             return isDobutsu ? piece_to_dobutsu_kanji(inHand, true)
                              : piece_to_shogi_japanese_char(inHand, true);
@@ -250,6 +279,17 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
         // For unpromoted pieces
         else
         {
+            if (type_of(m) == PIECE_PROMOTION && pos.piece_demotion())
+            {
+                switch (pt)
+                {
+                    case LANCE:        return "\u3068";  // と (tokin)
+                    case SHOGI_KNIGHT: return "\u91d1";  // 金 (gold)
+                    case SHOGI_PAWN:   return "\u98db";  // 飛 (rook)
+                    case SILVER:       return "\u89d2";  // 角 (bishop)
+                    default:           break;
+                }
+            }
             return isDobutsu ? piece_to_dobutsu_kanji(pt, pos.is_promoted(from))
                              : piece_to_shogi_japanese_char(pt, pos.is_promoted(from));
         }
@@ -653,12 +693,17 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
                 san += "\u6253";  // 打
 
             // Step 5: Promotion
-            if (type_of(m) == PIECE_PROMOTION)
-                san += "\u6210";  // 成
-            else if (type_of(m) == PIECE_DEMOTION)
-                san += "\u4e0d\u6210";  // 不成
-            else if (type_of(m) == NORMAL && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
-                san += "\u4e0d\u6210";  // 不成 (option to not promote)
+            // In pieceDemotion variants (e.g. kyotoshogi), pieces swap between paired
+            // types. No 成/不成 — the piece kanji already reflects the board state.
+            if (!pos.piece_demotion())
+            {
+                if (type_of(m) == PIECE_PROMOTION)
+                    san += "\u6210";  // 成
+                else if (type_of(m) == PIECE_DEMOTION)
+                    san += "\u4e0d\u6210";  // 不成
+                else if (type_of(m) == NORMAL && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
+                    san += "\u4e0d\u6210";  // 不成 (option to not promote)
+            }
         }
         else
         {

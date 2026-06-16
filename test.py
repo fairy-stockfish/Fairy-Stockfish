@@ -845,6 +845,43 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("kyotoshogi", fen, "e5e4-", False, sf.NOTATION_SAN)
         self.assertEqual(result, "Ge4=L")
 
+        # Kyotoshogi Japanese notation: all 9 move types (81dojo style)
+        # No 成/不成 — single kanji showing the piece after the move.
+        # Promotion pairs: pawn<->rook, lance<->tokin, knight<->gold, silver<->bishop
+        fen = "p+nks+l/5/5/5/+LSK+NP[-] w 0 1"
+        # 1. Pawn promotes to rook: 歩 -> 飛
+        result = sf.get_san("kyotoshogi", fen, "e1e2+", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff11\u56db\u98db")  # １四飛
+        # 2. Silver promotes to bishop: 銀 -> 角
+        result = sf.get_san("kyotoshogi", fen, "b1a2+", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff15\u56db\u89d2")  # ５四角
+        # 3. Gold demotes to knight: 金 -> 桂
+        result = sf.get_san("kyotoshogi", fen, "d1c2-", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff13\u56db\u6842")  # ３四桂
+        # 4. Tokin demotes to lance: と -> 香
+        result = sf.get_san("kyotoshogi", fen, "a1a2-", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff15\u56db\u9999")  # ５四香
+        # 5. King (no change): 玉
+        result = sf.get_san("kyotoshogi", fen, "c1c2", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff13\u56db\u7389")  # ３四玉
+
+        # 6. Rook demotes to pawn: 飛 -> 歩
+        fen = "+p+nks+l/5/5/5/1K4[-] b 0 1"
+        result = sf.get_san("kyotoshogi", fen, "a5a4-", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff15\u4e8c\u6b69")  # ５二歩
+        # 7. Lance promotes to tokin: 香 -> と (gote to move)
+        fen = "p+nks+l/5/5/5/L1K4[-] w 0 1"
+        result = sf.get_san("kyotoshogi", fen, "a1a2+", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff15\u56db\u3068")  # ５四と
+        # 8. Knight promotes to gold: 桂 -> 金 (gote to move)
+        fen = "p+nks+l/5/5/5/N1K4[-] w 0 1"
+        result = sf.get_san("kyotoshogi", fen, "a1b3+", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff14\u4e09\u91d1")  # ４三金
+        # 9. Bishop demotes to silver: 角 -> 銀 (gote to move)
+        fen = "p+nks+l/5/5/5/+S1K4[-] w 0 1"
+        result = sf.get_san("kyotoshogi", fen, "a1b2-", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff14\u56db\u9280")  # ４四銀
+
         fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -"
         result = sf.get_san("shogi", fen, "b2h8", False, sf.NOTATION_SHOGI_HODGES)
         self.assertEqual(result, "Bx2b=")
