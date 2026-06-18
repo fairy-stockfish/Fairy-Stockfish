@@ -280,8 +280,18 @@ describe('board.sanMove(ffish.Notation)', function () {
     // King = 玉
     chai.expect(shogiBoard.sanMove("e9d8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u4e8c\u7389");  // ６二玉
     // Disambiguation
-    chai.expect(shogiBoard.sanMove("d9e8", ffish.Notation.SHOGI_JAPANESE)).to.include("\u5de6\u5f15");  // 左引
-    chai.expect(shogiBoard.sanMove("f9e8", ffish.Notation.SHOGI_JAPANESE)).to.include("\u53f3\u5f15");  // 右引
+    chai.expect(shogiBoard.sanMove("d9e8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e8c\u91d1\u53f3");  // ５二金右
+    chai.expect(shogiBoard.sanMove("f9e8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e8c\u91d1\u5de6");  // ５二金左
+
+    const shogiAmbBoard = new ffish.Board("shogi", "4k4/9/9/9/9/3GGG3/9/9/4K4[-] w - - 0 1");
+    chai.expect(shogiAmbBoard.sanMove("d4e5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e94\u91d1\u5de6");  // ５五金左
+    chai.expect(shogiAmbBoard.sanMove("e4e5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e94\u91d1\u76f4");  // ５五金直
+    chai.expect(shogiAmbBoard.sanMove("f4e5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e94\u91d1\u53f3");  // ５五金右
+    shogiAmbBoard.delete();
+
+    const shogiTokinBoard = new ffish.Board("shogi", "4k4/9/9/9/9/3+P+P+P3/9/9/4K4[-] w - - 0 1");
+    chai.expect(shogiTokinBoard.sanMove("e4e5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e94\u3068\u76f4");  // ５五と直
+    shogiTokinBoard.delete();
     // 同 (same-square capture via lastMoveUci)
     const captureBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/6P2/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - - 0 1");
     chai.expect(captureBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\u540c\u3000\u6b69");  // 同　歩 (capture)

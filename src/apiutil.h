@@ -371,6 +371,65 @@ inline std::string number_to_kanji_rank(int n) {
     return std::to_string(n);
 }
 
+enum JapaneseMoveDirection {
+    JAPANESE_MOVE_HORIZONTAL,
+    JAPANESE_MOVE_FORWARD,
+    JAPANESE_MOVE_BACKWARD,
+};
+
+inline bool is_shogi_gold_like(const Position& pos, Move m) {
+    PieceType pt = type_of(pos.moved_piece(m));
+
+    if (pt == GOLD || pt == SILVER)
+        return true;
+
+    Square from = from_sq(m);
+    Piece unpromoted = from != SQ_NONE ? pos.unpromoted_piece_on(from) : NO_PIECE;
+    if (!unpromoted)
+        return false;
+
+    switch (type_of(unpromoted)) {
+        case SHOGI_PAWN:
+        case LANCE:
+        case SHOGI_KNIGHT:
+        case SILVER:
+            return true;
+        default:
+            return false;
+    }
+}
+
+inline bool is_shogi_major_like(const Position& pos, Move m) {
+    PieceType pt = type_of(pos.moved_piece(m));
+    return pt == BISHOP || pt == ROOK;
+}
+
+inline int japanese_view_file(const Position& pos, Square s, Color c) {
+    return c == WHITE ? pos.max_file() - file_of(s) + 1 : file_of(s) + 1;
+}
+
+inline JapaneseMoveDirection japanese_move_direction(Color c, Square from, Square to) {
+    if (rank_of(from) == rank_of(to))
+        return JAPANESE_MOVE_HORIZONTAL;
+
+    bool forward = c == WHITE ? rank_of(to) > rank_of(from) : rank_of(to) < rank_of(from);
+    return forward ? JAPANESE_MOVE_FORWARD : JAPANESE_MOVE_BACKWARD;
+}
+
+inline std::string japanese_vertical_disambiguation(const Position& pos, Move m, JapaneseMoveDirection dir) {
+    if (dir == JAPANESE_MOVE_HORIZONTAL)
+        return "\u5bc4";  // 寄
+    if (dir == JAPANESE_MOVE_FORWARD)
+        return is_shogi_major_like(pos, m) ? "\u884c" : "\u4e0a";  // 行 / 上
+    return "\u5f15";  // 引
+}
+
+inline std::string japanese_side_disambiguation(bool right, bool left) {
+    if (right == left)
+        return "\u4e2d";  // 中
+    return right ? "\u53f3" : "\u5de6";  // 右 / 左
+}
+
 inline std::string file(const Position& pos, Square s, Notation n) {
     switch (n)
     {
@@ -579,41 +638,24 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
 
             // Find ambiguous pieces that can reach the destination
             bool needsAmb = false;
-            int myFile = isDrop ? -1 : file_of(from);
-            bool hasLeft = false, hasRight = false, hasSameFile = false;
-            bool movingForward = false, movingBackward = false;
+            JapaneseMoveDirection myDir = JAPANESE_MOVE_HORIZONTAL;
+            std::vector<Square> others;
 
             if (!isDrop)
             {
-                // Determine movement direction
-                if (rank_of(to) != rank_of(from))
-                {
-                    if ((us == BLACK && rank_of(to) > rank_of(from)) ||
-                        (us == WHITE && rank_of(to) < rank_of(from)))
-                        movingForward = true;
-                    else
-                        movingBackward = true;
-                }
+                myDir = japanese_move_direction(us, from, to);
 
                 // Find other pieces of same type that can reach the destination
-                Bitboard others = pos.pieces(us, pt) ^ from;
-                while (others)
+                Bitboard b = pos.pieces(us, pt) ^ from;
+                while (b)
                 {
-                    Square s = pop_lsb(others);
+                    Square s = pop_lsb(b);
                     Move testMove = Move(m ^ make_move(from, to) ^ make_move(s, to));
                     if (pos.pseudo_legal(testMove) && pos.legal(testMove)
                         && !(pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
                     {
                         needsAmb = true;
-                        int otherFile = file_of(s);
-                        if (otherFile == myFile)
-                            hasSameFile = true;
-                        // From sente's view: higher file index = right, lower = left
-                        // From gote's view: reversed
-                        if ((us == BLACK && otherFile > myFile) || (us == WHITE && otherFile < myFile))
-                            hasRight = true;
-                        else if ((us == BLACK && otherFile < myFile) || (us == WHITE && otherFile > myFile))
-                            hasLeft = true;
+                        others.push_back(s);
                     }
                 }
             }
@@ -650,41 +692,41 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
             // Step 3: Disambiguation
             if (needsAmb && !isDrop)
             {
-                // Same file forward move for gold-like pieces: 直
-                bool sameFileForward = movingForward && hasSameFile
-                    && (pt == GOLD || pt == SILVER || pt == SHOGI_KNIGHT || pt == LANCE);
+                bool sameRankConflict = false;
+                bool sameDirectionConflict = false;
+                int myViewFile = japanese_view_file(pos, from, us);
+                int rightest = FILE_MAX + 2;
+                int leftest = -1;
 
-                if (sameFileForward)
+                for (Square s : others)
+                {
+                    sameRankConflict |= rank_of(s) == rank_of(from);
+                    sameDirectionConflict |= japanese_move_direction(us, s, to) == myDir;
+                    int viewFile = japanese_view_file(pos, s, us);
+                    rightest = std::min(rightest, viewFile);
+                    leftest = std::max(leftest, viewFile);
+                }
+
+                if (file_of(from) == file_of(to) && myDir == JAPANESE_MOVE_FORWARD
+                    && is_shogi_gold_like(pos, m) && sameRankConflict)
                 {
                     san += "\u76f4";  // 直
                 }
+                else if (!sameDirectionConflict)
+                {
+                    san += japanese_vertical_disambiguation(pos, m, myDir);
+                }
                 else
                 {
-                    // Side: 左/右/中
-                    // hasRight = other pieces at higher file index (right for sente)
-                    // hasLeft = other pieces at lower file index (left for sente)
-                    bool pieceAtLowerIndex = !hasLeft && hasRight;  // piece is leftmost for sente
-                    bool pieceAtHigherIndex = !hasRight && hasLeft;  // piece is rightmost for sente
-                    bool isMiddle = hasSameFile && !hasLeft && !hasRight;
-
-                    if (isMiddle)
-                        san += "\u4e2d";  // 中
-                    else if (pieceAtLowerIndex)
-                        // Piece at lowest file index: left for sente, right for gote
-                        san += (us == BLACK) ? "\u5de6" : "\u53f3";  // 左 or 右
-                    else if (pieceAtHigherIndex)
-                        // Piece at highest file index: right for sente, left for gote
-                        san += (us == BLACK) ? "\u53f3" : "\u5de6";  // 右 or 左
-                    else if (hasLeft && hasRight)
-                        san += (us == BLACK) ? "\u53f3" : "\u5de6";  // default
-
-                    // Vertical: 上/引/寄
-                    if (movingForward)
-                        san += (pt == BISHOP || pt == ROOK) ? "\u884c" : "\u4e0a";  // 行 or 上
-                    else if (movingBackward)
-                        san += "\u5f15";  // 引
+                    bool sideOnly = rightest > myViewFile || leftest < myViewFile
+                        || (others.size() == 2 && rightest < myViewFile && leftest > myViewFile);
+                    if (sideOnly)
+                        san += japanese_side_disambiguation(rightest > myViewFile, leftest < myViewFile);
                     else
-                        san += "\u5bc4";  // 寄
+                    {
+                        san += japanese_side_disambiguation(rightest >= myViewFile, leftest <= myViewFile);
+                        san += japanese_vertical_disambiguation(pos, m, myDir);
+                    }
                 }
             }
 

@@ -49,8 +49,8 @@ export interface Board {
     is960(): boolean;
     fen(showPromoted?: boolean, countStarted?: number): string;
     setFen(fen: string): void;
-    sanMove(uciMove: string, notation?: Notation): string;
-    variationSan(uciMoves: string, notation?: Notation, moveNumbers?: boolean): string;
+    sanMove(uciMove: string, notation?: Notation, lastMoveUci?: string): string;
+    variationSan(uciMoves: string, notation?: Notation, moveNumbers?: boolean, lastMoveUci?: string): string;
     turn(): boolean;
     fullmoveNumber(): number;
     halfmoveClock(): number;
@@ -86,8 +86,11 @@ export declare enum Notation {
     SHOGI_HOSKING,
     SHOGI_HODGES,
     SHOGI_HODGES_NUMBER,
+    SHOGI_JAPANESE,
     JANGGI,
+    JANGGI_KOREAN,
     XIANGQI_WXF,
+    XIANGQI_CHINESE,
     THAI_SAN,
     THAI_LAN,
 }

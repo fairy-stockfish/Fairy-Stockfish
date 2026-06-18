@@ -796,12 +796,26 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, ["\uff17\u516d\u6b69", "\uff13\u56db\u6b69"])  # ７六歩 ３四歩
 
         # === Directional disambiguation ===
-        # Gold d9e8: two golds can reach e8, this one is leftmost moving backward → 左引
+        # Gold d9e8: two golds can reach e8, this one is right-side for gote → 右
         result = sf.get_san("shogi", SHOGI_B, "d9e8", False, N)
-        self.assertIn("\u5de6\u5f15", result)  # 左引
-        # Gold f9e8: rightmost moving backward → 右引
+        self.assertEqual(result, "\uff15\u4e8c\u91d1\u53f3")  # ５二金右
+        # Gold f9e8: left-side for gote → 左
         result = sf.get_san("shogi", SHOGI_B, "f9e8", False, N)
-        self.assertIn("\u53f3\u5f15", result)  # 右引
+        self.assertEqual(result, "\uff15\u4e8c\u91d1\u5de6")  # ５二金左
+
+        # Three golds side-by-side: right / straight / left
+        fen = "4k4/9/9/9/9/3GGG3/9/9/4K4[-] w - - 0 1"
+        result = sf.get_san("shogi", fen, "d4e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u91d1\u5de6")  # ５五金左
+        result = sf.get_san("shogi", fen, "e4e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u91d1\u76f4")  # ５五金直
+        result = sf.get_san("shogi", fen, "f4e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u91d1\u53f3")  # ５五金右
+
+        # Promoted gold-like pieces also use 直
+        fen = "4k4/9/9/9/9/3+P+P+P3/9/9/4K4[-] w - - 0 1"
+        result = sf.get_san("shogi", fen, "e4e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u3068\u76f4")  # ５五と直
 
         # === Capture: no x marker ===
         fen = "4k4/4R4/9/4p3/9/9/9/9/4K4[-] b - - 0 1"
@@ -821,6 +835,8 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩 (not a capture, no 同)
         result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N, "d9e8")
         self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩 (diff dest)
+        result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N, None)
+        self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩 (explicit None)
 
         # === get_san_moves batch ===
         uci_moves = ["g7g6", "b3b4", "b8c8", "g3g4"]

@@ -79,7 +79,7 @@ import pyffish as sf
 # Standard shogi starting position in Fairy-Stockfish's FEN convention.
 # Sente (lowercase) at top, gote (uppercase) at bottom.
 # "w" is sente to move in Fairy-Stockfish's shogi FEN convention.
-SHOGI_FEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w 0 1"
+SHOGI_FEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1"
 
 # KIF piece names -> UCI piece letters.
 # Includes base pieces and promoted forms (龍=promoted飛, 馬=promoted角, と=promoted歩).
@@ -375,6 +375,7 @@ def main():
         print(f"=== Game {game_idx + 1} ({len(moves)} moves) ===")
         fen = SHOGI_FEN
         last_dest_sq = None
+        last_move_uci = None
         ok = 0
         fail = 0
         skip = 0
@@ -410,7 +411,7 @@ def main():
             # Get engine's Japanese notation for this move
             try:
                 our_san = sf.get_san(
-                    "shogi", fen, uci, False, sf.NOTATION_SHOGI_JAPANESE
+                    "shogi", fen, uci, False, sf.NOTATION_SHOGI_JAPANESE, last_move_uci
                 )
             except Exception as e:
                 our_san = f"ERROR({e})"
@@ -461,6 +462,7 @@ def main():
                     last_dest_sq = uci[2:]  # e.g. "P@e5" -> "e5"
                 else:
                     last_dest_sq = uci[2:4]  # e.g. "g7g6" -> "g6"
+            last_move_uci = uci
 
             # Advance position for the next move
             try:

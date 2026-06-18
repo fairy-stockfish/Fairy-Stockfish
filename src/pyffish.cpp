@@ -149,7 +149,7 @@ extern "C" PyObject* pyffish_getSAN(PyObject* self, PyObject *args) {
     int chess960 = false;
     Notation notation = NOTATION_DEFAULT;
     const char *lastMoveStr = NULL;
-    if (!PyArg_ParseTuple(args, "sss|pis", &variant, &fen,  &move, &chess960, &notation, &lastMoveStr)) {
+    if (!PyArg_ParseTuple(args, "sss|piz", &variant, &fen,  &move, &chess960, &notation, &lastMoveStr)) {
         return NULL;
     }
     if (notation == NOTATION_DEFAULT)
@@ -180,7 +180,7 @@ extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
     int chess960 = false;
     Notation notation = NOTATION_DEFAULT;
     const char *lastMoveStr = NULL;
-    if (!PyArg_ParseTuple(args, "ssO!|pis", &variant, &fen, &PyList_Type, &moveList, &chess960, &notation, &lastMoveStr)) {
+    if (!PyArg_ParseTuple(args, "ssO!|piz", &variant, &fen, &PyList_Type, &moveList, &chess960, &notation, &lastMoveStr)) {
         return NULL;
     }
     if (notation == NOTATION_DEFAULT)
