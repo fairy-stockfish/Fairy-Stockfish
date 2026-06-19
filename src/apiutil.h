@@ -377,6 +377,7 @@ enum JapaneseMoveDirection {
     JAPANESE_MOVE_BACKWARD,
 };
 
+// Gold-like qualifiers apply to gold, silver, and promoted minor pieces that move as golds.
 inline bool is_shogi_gold_like(const Position& pos, Move m) {
     PieceType pt = type_of(pos.moved_piece(m));
 
@@ -399,15 +400,18 @@ inline bool is_shogi_gold_like(const Position& pos, Move m) {
     }
 }
 
+// Major pieces use 行 instead of 上 when the vertical qualifier points forward.
 inline bool is_shogi_major_like(const Position& pos, Move m) {
     PieceType pt = type_of(pos.moved_piece(m));
     return pt == BISHOP || pt == ROOK;
 }
 
+// Convert a file into the mover's Japanese notation view: 9..1 for sente, mirrored for gote.
 inline int japanese_view_file(const Position& pos, Square s, Color c) {
     return c == WHITE ? pos.max_file() - file_of(s) + 1 : file_of(s) + 1;
 }
 
+// Classify the move as forward, backward, or horizontal from the mover's perspective.
 inline JapaneseMoveDirection japanese_move_direction(Color c, Square from, Square to) {
     if (rank_of(from) == rank_of(to))
         return JAPANESE_MOVE_HORIZONTAL;
@@ -416,6 +420,7 @@ inline JapaneseMoveDirection japanese_move_direction(Color c, Square from, Squar
     return forward ? JAPANESE_MOVE_FORWARD : JAPANESE_MOVE_BACKWARD;
 }
 
+// Map the movement class to the vertical qualifier used in Japanese notation.
 inline std::string japanese_vertical_disambiguation(const Position& pos, Move m, JapaneseMoveDirection dir) {
     if (dir == JAPANESE_MOVE_HORIZONTAL)
         return "\u5bc4";  // 寄
@@ -424,6 +429,7 @@ inline std::string japanese_vertical_disambiguation(const Position& pos, Move m,
     return "\u5f15";  // 引
 }
 
+// Resolve side qualifiers after converting candidate files into the mover's board view.
 inline std::string japanese_side_disambiguation(bool right, bool left) {
     if (right == left)
         return "\u4e2d";  // 中
@@ -692,6 +698,10 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n, Square l
             // Step 3: Disambiguation
             if (needsAmb && !isDrop)
             {
+                // Japanese move qualifiers are chosen from the mover's board view, not from
+                // raw file/rank coordinates. We first decide whether 直 applies, then whether
+                // a vertical-only qualifier (上/引/寄 or 行) is sufficient, and only fall back
+                // to side labels when multiple candidates share the same movement direction.
                 bool sameRankConflict = false;
                 bool sameDirectionConflict = false;
                 int myViewFile = japanese_view_file(pos, from, us);
