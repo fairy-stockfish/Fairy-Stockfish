@@ -3,6 +3,7 @@
 import faulthandler
 import unittest
 import pyffish as sf
+from tests.shogi_compare import compare_japanese_notation, parse_japanese_notation
 
 faulthandler.enable()
 
@@ -827,6 +828,17 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", fen, "R@e5", False, N)
         self.assertEqual(result, "\uff15\u4e94\u98db")  # ５五飛 (no 打)
 
+        # Regression: a plain drop has no source square, so the Japanese piece
+        # name must come from the hand piece rather than a bogus promoted board
+        # lookup via SQ_NONE.
+        fen = "ln1gk2nl/1r1s2g2/2p+bppspp/p2p2p2/7P1/PPP3P2/2GPP1GSP/3S3R1/LN2K2NL[PBp] b - - 0 18"
+        result = sf.get_san("shogi", fen, "P@b2", False, N)
+        self.assertEqual(result, "\uff18\u516b\u6b69")  # ８八歩
+
+        fen = "l6nl/1r5k1/ppn+R2ssp/6pp1/7P1/1P+b6/P3PPP1P/5GS2/L3s1KNL[GGGPPnppppb] w - - 0 52"
+        result = sf.get_san("shogi", fen, "G@e2", False, N)
+        self.assertEqual(result, "\uff15\u516b\u91d1\u6253")  # ５八金打
+
         # === 同 (same-square capture via lastMoveUci) ===
         fen_capture = "lnsgkgsnl/1r5b1/ppppppppp/6P2/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - - 0 1"
         result = sf.get_san("shogi", fen_capture, "g7g6", False, N, "g7g6")
@@ -1565,7 +1577,56 @@ class TestPyffish(unittest.TestCase):
         fen = "rnbqkbnr/p1p2ppp/8/Pp1pp3/4P3/8/1PPP1PPP/RNBQKBNR w KQkq b6 0 1"
         result = sf.get_fog_fen(fen, "fogofwar")
         self.assertEqual(result, "********/********/2******/Pp*p***1/4P3/4*3/1PPP1PPP/RNBQKBNR w KQkq b6 0 1")
-        
+
+
+class TestShogiCompareHelpers(unittest.TestCase):
+    def test_parse_japanese_notation(self):
+        parsed = parse_japanese_notation("同　金右")
+        self.assertTrue(parsed["same"])
+        self.assertEqual(parsed["piece"], "G")
+        self.assertEqual(parsed["qualifiers"], "右")
+
+        parsed = parse_japanese_notation("８四銀不成")
+        self.assertEqual(parsed["dest"], (8, 4))
+        self.assertEqual(parsed["piece"], "S")
+        self.assertTrue(parsed["not_promote"])
+
+        parsed = parse_japanese_notation("３三歩打")
+        self.assertEqual(parsed["dest"], (3, 3))
+        self.assertEqual(parsed["piece"], "P")
+        self.assertTrue(parsed["drop"])
+
+    def test_compare_japanese_notation_exact(self):
+        hard, style = compare_japanese_notation("７六歩", "７六歩")
+        self.assertEqual(hard, [])
+        self.assertEqual(style, [])
+
+    def test_compare_japanese_notation_style_differences(self):
+        hard, style = compare_japanese_notation("３三歩打", "３三歩")
+        self.assertEqual(hard, [])
+        self.assertIn("drop", style)
+
+        hard, style = compare_japanese_notation("５二金", "５二金右")
+        self.assertEqual(hard, [])
+        self.assertIn("qualifier", style)
+
+        hard, style = compare_japanese_notation("８四銀", "８四銀不成")
+        self.assertEqual(hard, [])
+        self.assertIn("not_promote", style)
+
+    def test_compare_japanese_notation_mismatches(self):
+        hard, style = compare_japanese_notation("８八歩打", "８八と")
+        self.assertIn("piece", hard)
+        self.assertIn("drop", style)
+
+        hard, style = compare_japanese_notation("５五金左", "５五金右")
+        self.assertIn("qualifier", hard)
+        self.assertEqual(style, [])
+
+        hard, style = compare_japanese_notation("５八金打", "５八?打")
+        self.assertIn("actual_placeholder", hard)
+        self.assertEqual(style, [])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

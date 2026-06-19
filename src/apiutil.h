@@ -279,6 +279,11 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
         // For unpromoted pieces
         else
         {
+            // Drops have no source square on the board. Using from_sq(m) here would
+            // read SQ_NONE as if it were a board square, which can misclassify plain
+            // drops as promoted pieces in Japanese notation.
+            bool promotedOnBoard = type_of(m) != DROP && pos.is_promoted(from);
+
             if (type_of(m) == PIECE_PROMOTION && pos.piece_demotion())
             {
                 switch (pt)
@@ -290,8 +295,8 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
                     default:           break;
                 }
             }
-            return isDobutsu ? piece_to_dobutsu_kanji(pt, pos.is_promoted(from))
-                             : piece_to_shogi_japanese_char(pt, pos.is_promoted(from));
+            return isDobutsu ? piece_to_dobutsu_kanji(pt, promotedOnBoard)
+                             : piece_to_shogi_japanese_char(pt, promotedOnBoard);
         }
     }
     // Moves of promoted pieces

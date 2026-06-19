@@ -4,7 +4,7 @@
 This script verifies our engine's Japanese notation output by:
   1. Parsing KIF game records into UCI moves
   2. Checking each move is legal in the current position
-  3. Comparing our engine's notation output against the KIF destination
+  3. Comparing our engine's notation output against the exported notation
 
 == Coordinate systems ==
 
@@ -39,7 +39,24 @@ Three coordinate systems are involved:
 
   For Japanese shogi notation these coordinates are ABSOLUTE board coordinates
   from sente's perspective for both sides, matching the KIF destination text.
-  Therefore the comparison can match engine SAN and KIF destinations directly.
+
+== Comparison policy ==
+
+  The checker distinguishes between semantic mismatches and notation-style
+  differences.
+
+  Semantic mismatches are treated as failures:
+    - destination or 同 mismatch
+    - wrong piece name (e.g. 歩 vs と)
+    - wrong promotion marker when the export explicitly says 成
+    - wrong explicit qualifier when the export explicitly says 右/左/直/...
+    - unparseable or placeholder engine output such as '?'
+
+  Style differences are reported but do not fail the run:
+    - lishogi KIF exports always write 打 for drops, while the engine omits 打
+      for unambiguous drops
+    - lishogi often omits optional qualifiers like 右/左/直/上/引/寄/行
+    - lishogi often omits optional 不成 where the engine spells it out
 
 == KIF special notation ==
 
@@ -97,6 +114,165 @@ KIF_RANK_MAP = {
 
 # Number -> kanji rank for display (index 0 unused, 1="一" through 9="九").
 KANJI_RANK = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
+
+PIECE_TOKENS = [
+    ("成銀", "+S"),
+    ("成桂", "+N"),
+    ("成香", "+L"),
+    ("龍", "+R"),
+    ("竜", "+R"),
+    ("馬", "+B"),
+    ("と", "+P"),
+    ("歩", "P"),
+    ("香", "L"),
+    ("桂", "N"),
+    ("銀", "S"),
+    ("金", "G"),
+    ("角", "B"),
+    ("飛", "R"),
+    ("玉", "K"),
+    ("王", "K"),
+]
+
+ALLOWED_QUALIFIERS = {"右", "左", "直", "上", "引", "寄", "行", "中", "跳"}
+
+
+def normalize_notation_text(text):
+    """Remove KIF spacing that is not semantically relevant."""
+    return text.replace(" ", "").replace("\u3000", "")
+
+
+def parse_japanese_notation(text):
+    """Parse Japanese move text into semantic components.
+
+    The parser is intentionally lightweight: it understands standard shogi move
+    text well enough to classify whether a difference is semantic (piece,
+    destination, promotion, explicit qualifier) or merely stylistic
+    (omitted 打/不成/qualifier).
+    """
+    raw = normalize_notation_text(text)
+    parsed = {
+        "raw": raw,
+        "same": False,
+        "dest": None,
+        "piece": None,
+        "piece_token": None,
+        "qualifiers": "",
+        "drop": False,
+        "promote": False,
+        "not_promote": False,
+        "unknown": False,
+        "parse_error": None,
+    }
+
+    if not raw:
+        parsed["unknown"] = True
+        parsed["parse_error"] = "empty"
+        return parsed
+
+    if "?" in raw:
+        parsed["unknown"] = True
+        parsed["parse_error"] = "placeholder"
+        return parsed
+
+    idx = 0
+    if raw.startswith("同"):
+        parsed["same"] = True
+        idx = 1
+    else:
+        m = re.match(r"([１-９1-9])([一二三四五六七八九])", raw)
+        if not m:
+            parsed["unknown"] = True
+            parsed["parse_error"] = "destination"
+            return parsed
+        parsed["dest"] = (
+            fullwidth_to_int(m.group(1)),
+            KIF_RANK_MAP.get(m.group(2), 0),
+        )
+        idx = m.end()
+
+    rest = raw[idx:]
+    for token, canonical_piece in PIECE_TOKENS:
+        if rest.startswith(token):
+            parsed["piece"] = canonical_piece
+            parsed["piece_token"] = token
+            rest = rest[len(token):]
+            break
+
+    if parsed["piece"] is None:
+        parsed["unknown"] = True
+        parsed["parse_error"] = "piece"
+        return parsed
+
+    if "不成" in rest:
+        parsed["not_promote"] = True
+        rest = rest.replace("不成", "")
+
+    if rest.endswith("成"):
+        parsed["promote"] = True
+        rest = rest[:-1]
+
+    if rest.endswith("打"):
+        parsed["drop"] = True
+        rest = rest[:-1]
+
+    parsed["qualifiers"] = rest
+    unknown_qualifiers = [ch for ch in rest if ch not in ALLOWED_QUALIFIERS]
+    if unknown_qualifiers:
+        parsed["unknown"] = True
+        parsed["parse_error"] = "qualifier"
+
+    return parsed
+
+
+def compare_japanese_notation(expected_text, actual_text):
+    """Compare exported notation with engine notation.
+
+    Returns (hard_reasons, style_reasons). Hard reasons indicate a semantic
+    mismatch; style reasons indicate acceptable convention differences.
+    """
+    expected = parse_japanese_notation(expected_text)
+    actual = parse_japanese_notation(actual_text)
+
+    hard_reasons = []
+    style_reasons = []
+
+    if expected["unknown"]:
+        hard_reasons.append(f"expected_{expected['parse_error']}")
+        return hard_reasons, style_reasons
+    if actual["unknown"]:
+        hard_reasons.append(f"actual_{actual['parse_error']}")
+        return hard_reasons, style_reasons
+
+    if expected["same"] != actual["same"]:
+        hard_reasons.append("same")
+
+    if not expected["same"] and expected["dest"] != actual["dest"]:
+        hard_reasons.append("destination")
+
+    if expected["piece"] != actual["piece"]:
+        hard_reasons.append("piece")
+
+    if expected["promote"] != actual["promote"]:
+        hard_reasons.append("promotion")
+
+    if expected["not_promote"] and not actual["not_promote"]:
+        hard_reasons.append("not_promote")
+    elif actual["not_promote"] and not expected["not_promote"]:
+        style_reasons.append("not_promote")
+
+    if expected["qualifiers"]:
+        if expected["qualifiers"] != actual["qualifiers"]:
+            hard_reasons.append("qualifier")
+    elif actual["qualifiers"]:
+        style_reasons.append("qualifier")
+
+    # KIF exports include 打 for drops, while the engine intentionally omits it
+    # for unambiguous drops. That is informative but not a semantic mismatch.
+    if expected["drop"] != actual["drop"]:
+        style_reasons.append("drop")
+
+    return hard_reasons, style_reasons
 
 
 def fullwidth_to_int(ch):
@@ -358,7 +534,8 @@ def main():
         games = games[:max_games]
     print(f"Parsed {len(games)} game(s) from {filepath}\n")
 
-    total_ok = 0
+    total_exact = 0
+    total_style = 0
     total_fail = 0
     total_skip = 0
     skipped_variants = 0
@@ -376,7 +553,8 @@ def main():
         fen = SHOGI_FEN
         last_dest_sq = None
         last_move_uci = None
-        ok = 0
+        exact = 0
+        style = 0
         fail = 0
         skip = 0
 
@@ -416,38 +594,16 @@ def main():
             except Exception as e:
                 our_san = f"ERROR({e})"
 
-            # Compare engine output with KIF destination
-            engine_file, engine_rank = extract_dest_from_san(our_san)
-
-            dest_match = True
-            file_match = True
-            rank_match = True
-
-            if engine_file is not None and engine_rank is not None:
-                kif_dest = parse_kif_dest(kif_notation)
-                if kif_dest:
-                    kif_dest_file = kif_dest[0]
-                    kif_dest_rank = kif_dest[1]
-
-                    if engine_file != kif_dest_file:
-                        file_match = False
-                        dest_match = False
-
-                    if engine_rank != kif_dest_rank:
-                        rank_match = False
-                        dest_match = False
-
-            if dest_match:
-                status = "OK"
-                ok += 1
-            else:
-                reason = []
-                if not file_match:
-                    reason.append("file")
-                if not rank_match:
-                    reason.append("rank")
-                status = f"MISMATCH ({'+'.join(reason)})"
+            hard_reasons, style_reasons = compare_japanese_notation(kif_notation, our_san)
+            if hard_reasons:
+                status = f"MISMATCH ({'+'.join(hard_reasons)})"
                 fail += 1
+            elif style_reasons:
+                status = f"STYLE ({'+'.join(sorted(set(style_reasons)))})"
+                style += 1
+            else:
+                status = "OK"
+                exact += 1
 
             print(
                 f"{move_num:4d}  {kif_notation:20s}  {uci:10s}  "
@@ -470,8 +626,12 @@ def main():
             except Exception:
                 pass
 
-        print(f"\nOK: {ok}  MISMATCH: {fail}  SKIP: {skip}  Total: {len(moves)}")
-        total_ok += ok
+        print(
+            f"\nOK: {exact}  STYLE: {style}  MISMATCH: {fail}  "
+            f"SKIP: {skip}  Total: {len(moves)}"
+        )
+        total_exact += exact
+        total_style += style
         total_fail += fail
         total_skip += skip
         print()
@@ -479,8 +639,11 @@ def main():
     print(f"=== Summary ===")
     print(f"Games: {len(games)}  (平手: {len(games) - skipped_variants}, "
           f"variant: {skipped_variants} skipped)")
-    print(f"Total moves: {total_ok + total_fail + total_skip}")
-    print(f"OK: {total_ok}  MISMATCH: {total_fail}  SKIP: {total_skip}")
+    print(f"Total moves: {total_exact + total_style + total_fail + total_skip}")
+    print(
+        f"OK: {total_exact}  STYLE: {total_style}  "
+        f"MISMATCH: {total_fail}  SKIP: {total_skip}"
+    )
 
     sys.exit(1 if total_fail > 0 else 0)
 
