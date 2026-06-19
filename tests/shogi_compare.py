@@ -115,6 +115,10 @@ KIF_RANK_MAP = {
 # Number -> kanji rank for display (index 0 unused, 1="一" through 9="九").
 KANJI_RANK = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
 
+GAME_END_MARKERS = (
+    "投了", "切れ負け", "詰み", "千日手", "入玉宣言", "反則勝ち", "反則負け", "中断"
+)
+
 PIECE_TOKENS = [
     ("成銀", "+S"),
     ("成桂", "+N"),
@@ -273,6 +277,113 @@ def compare_japanese_notation(expected_text, actual_text):
         style_reasons.append("drop")
 
     return hard_reasons, style_reasons
+
+
+def print_usage():
+    print(
+        "Usage: python3 tests/shogi_compare.py <game.kif> [--max N] [--summary-only]"
+    )
+
+
+def print_move(verbose, text):
+    if verbose:
+        print(text)
+
+
+def process_game(game_idx, handicap, moves, verbose):
+    """Compare one game and return aggregate counters.
+
+    The summary-only path intentionally uses the same legality, SAN, and FEN
+    checks as the verbose mode. It only suppresses the per-move log so large
+    exports can be validated without spending most of the runtime on I/O.
+    """
+    if handicap != "平手":
+        print_move(
+            verbose,
+            f"=== Game {game_idx + 1} ({len(moves)} moves) [SKIPPED: {handicap}] ===",
+        )
+        return 0, 0, 0, len(moves), True
+
+    print_move(verbose, f"=== Game {game_idx + 1} ({len(moves)} moves) ===")
+    fen = SHOGI_FEN
+    last_dest_sq = None
+    last_move_uci = None
+    exact = 0
+    style = 0
+    fail = 0
+    skip = 0
+
+    for move_num, kif_text in moves:
+        # Strip origin suffix for display: "七六歩(77)" -> "七六歩"
+        kif_notation = re.sub(r"[\(（]\d+[\)）]", "", kif_text).strip()
+
+        if kif_text in GAME_END_MARKERS:
+            print_move(
+                verbose,
+                f"{move_num:4d}  {kif_notation:20s}  {'(end)':10s}  SKIP (end)",
+            )
+            skip += 1
+            continue
+
+        uci, is_promo, is_drop = kif_move_to_uci(kif_text, last_dest_sq)
+
+        if not uci:
+            print_move(
+                verbose,
+                f"{move_num:4d}  {kif_notation:20s}  {'?':10s}  SKIP (parse)",
+            )
+            skip += 1
+            continue
+
+        legal = sf.legal_moves("shogi", fen, [])
+        if uci not in legal:
+            print_move(verbose, f"{move_num:4d}  {kif_notation:20s}  {uci:10s}  ILLEGAL")
+            fail += 1
+            continue
+
+        try:
+            our_san = sf.get_san(
+                "shogi", fen, uci, False, sf.NOTATION_SHOGI_JAPANESE, last_move_uci
+            )
+        except Exception as e:
+            our_san = f"ERROR({e})"
+
+        hard_reasons, style_reasons = compare_japanese_notation(kif_notation, our_san)
+        if hard_reasons:
+            status = f"MISMATCH ({'+'.join(hard_reasons)})"
+            fail += 1
+        elif style_reasons:
+            status = f"STYLE ({'+'.join(sorted(set(style_reasons)))})"
+            style += 1
+        else:
+            status = "OK"
+            exact += 1
+
+        print_move(
+            verbose,
+            f"{move_num:4d}  {kif_notation:20s}  {uci:10s}  "
+            f"{our_san:20s}  {status}",
+        )
+
+        if len(uci) >= 4:
+            if is_drop:
+                last_dest_sq = uci[2:]
+            else:
+                last_dest_sq = uci[2:4]
+        last_move_uci = uci
+
+        try:
+            fen = sf.get_fen("shogi", fen, [uci], False, False)
+        except Exception:
+            pass
+
+    print_move(
+        verbose,
+        f"\nOK: {exact}  STYLE: {style}  MISMATCH: {fail}  "
+        f"SKIP: {skip}  Total: {len(moves)}",
+    )
+    print_move(verbose, "")
+    return exact, style, fail, skip, False
 
 
 def fullwidth_to_int(ch):
@@ -513,20 +624,25 @@ def extract_dest_from_san(san):
 def main():
     max_games = None
     filepath = None
+    summary_only = False
     args = sys.argv[1:]
     i = 0
     while i < len(args):
         if args[i] == "--max" and i + 1 < len(args):
             max_games = int(args[i + 1])
             i += 2
+        elif args[i] == "--summary-only":
+            summary_only = True
+            i += 1
         elif not args[i].startswith("-"):
             filepath = args[i]
             i += 1
         else:
-            i += 1
+            print_usage()
+            sys.exit(1)
 
     if not filepath:
-        print("Usage: python3 tests/shogi_compare.py <game.kif> [--max N]")
+        print_usage()
         sys.exit(1)
 
     games = parse_kif_file(filepath)
@@ -539,102 +655,18 @@ def main():
     total_fail = 0
     total_skip = 0
     skipped_variants = 0
+    verbose = not summary_only
 
     for game_idx, (handicap, moves) in enumerate(games):
-        # Skip non-standard game types (王手将棋, 5五将棋, etc.)
-        # These have different starting positions than the standard FEN.
-        if handicap != "平手":
-            print(f"=== Game {game_idx + 1} ({len(moves)} moves) [SKIPPED: {handicap}] ===")
-            skipped_variants += 1
-            total_skip += len(moves)
-            continue
-
-        print(f"=== Game {game_idx + 1} ({len(moves)} moves) ===")
-        fen = SHOGI_FEN
-        last_dest_sq = None
-        last_move_uci = None
-        exact = 0
-        style = 0
-        fail = 0
-        skip = 0
-
-        for move_num, kif_text in moves:
-            # Strip origin suffix for display: "七六歩(77)" -> "七六歩"
-            kif_notation = re.sub(r"[\(（]\d+[\)）]", "", kif_text).strip()
-
-            # Skip game-end tokens (not actual moves)
-            if kif_text in ("投了", "切れ負け", "詰み", "千日手", "入玉宣言",
-                            "反則勝ち", "反則負け", "中断"):
-                print(f"{move_num:4d}  {kif_notation:20s}  {'(end)':10s}  SKIP (end)")
-                skip += 1
-                continue
-
-            # Parse KIF move text to UCI format
-            uci, is_promo, is_drop = kif_move_to_uci(kif_text, last_dest_sq)
-
-            if not uci:
-                print(f"{move_num:4d}  {kif_notation:20s}  {'?':10s}  SKIP (parse)")
-                skip += 1
-                continue
-
-            # Verify move is legal in current position
-            legal = sf.legal_moves("shogi", fen, [])
-            if uci not in legal:
-                print(
-                    f"{move_num:4d}  {kif_notation:20s}  {uci:10s}  ILLEGAL"
-                )
-                fail += 1
-                continue
-
-            # Get engine's Japanese notation for this move
-            try:
-                our_san = sf.get_san(
-                    "shogi", fen, uci, False, sf.NOTATION_SHOGI_JAPANESE, last_move_uci
-                )
-            except Exception as e:
-                our_san = f"ERROR({e})"
-
-            hard_reasons, style_reasons = compare_japanese_notation(kif_notation, our_san)
-            if hard_reasons:
-                status = f"MISMATCH ({'+'.join(hard_reasons)})"
-                fail += 1
-            elif style_reasons:
-                status = f"STYLE ({'+'.join(sorted(set(style_reasons)))})"
-                style += 1
-            else:
-                status = "OK"
-                exact += 1
-
-            print(
-                f"{move_num:4d}  {kif_notation:20s}  {uci:10s}  "
-                f"{our_san:20s}  {status}"
-            )
-
-            # Track last destination for 同 disambiguation.
-            # Drops use "piece@square" format, so the square starts at index 2.
-            # Normal moves have fixed-length format: from_sq(2) + to_sq(2).
-            if len(uci) >= 4:
-                if is_drop:
-                    last_dest_sq = uci[2:]  # e.g. "P@e5" -> "e5"
-                else:
-                    last_dest_sq = uci[2:4]  # e.g. "g7g6" -> "g6"
-            last_move_uci = uci
-
-            # Advance position for the next move
-            try:
-                fen = sf.get_fen("shogi", fen, [uci], False, False)
-            except Exception:
-                pass
-
-        print(
-            f"\nOK: {exact}  STYLE: {style}  MISMATCH: {fail}  "
-            f"SKIP: {skip}  Total: {len(moves)}"
+        exact, style, fail, skip, variant_skipped = process_game(
+            game_idx, handicap, moves, verbose
         )
         total_exact += exact
         total_style += style
         total_fail += fail
         total_skip += skip
-        print()
+        if variant_skipped:
+            skipped_variants += 1
 
     print(f"=== Summary ===")
     print(f"Games: {len(games)}  (平手: {len(games) - skipped_variants}, "
