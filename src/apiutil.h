@@ -179,6 +179,10 @@ inline std::string piece_to_shogi_japanese_char(PieceType pt, bool promoted) {
     }
 }
 
+inline bool is_dobutsu_variant(const Variant* v) {
+    return v && (v->pieceTypes & piece_set(WAZIR));
+}
+
 // Dobutsu shogi animal names (hiragana)
 inline std::string piece_to_dobutsu_kanji(PieceType pt, bool promoted) {
     if (promoted) {
@@ -202,6 +206,55 @@ inline std::string piece_to_dobutsu_kanji(PieceType pt, bool promoted) {
             default:           return "";
         }
     }
+}
+
+inline bool is_torishogi_variant(const Variant* v) {
+    return v
+        && v->variantTemplate == "shogi"
+        && v->maxFile == FILE_G
+        && v->maxRank == RANK_7
+        && v->pieceToChar[make_piece(WHITE, SHOGI_PAWN)] == 'S'
+        && v->pieceToChar[make_piece(WHITE, KING)] == 'K'
+        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_1)] == 'F'
+        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_2)] == 'C'
+        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_3)] == 'L'
+        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_4)] == 'R'
+        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_5)] == 'P'
+        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_6)] == 'G'
+        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_7)] == 'E';
+}
+
+inline std::string piece_to_torishogi_kanji(PieceType pt, bool promoted) {
+    if (promoted) {
+        switch (pt) {
+            case CUSTOM_PIECE_1:
+            case CUSTOM_PIECE_7:  return "\u9d70";  // 鵰 (eagle)
+            case SHOGI_PAWN:
+            case CUSTOM_PIECE_6:  return "\u9d08";  // 鴈 (goose)
+            default:              return "?";
+        }
+    } else {
+        switch (pt) {
+            case KING:            return "\u9d6c";  // 鵬 (phoenix)
+            case CUSTOM_PIECE_1:  return "\u9df9";  // 鷹 (falcon)
+            case CUSTOM_PIECE_2:  return "\u9db4";  // 鶴 (crane)
+            case CUSTOM_PIECE_3:
+            case CUSTOM_PIECE_4:  return "\u9d89";  // 鶉 (quail)
+            case CUSTOM_PIECE_5:  return "\u96c9";  // 雉 (pheasant)
+            case SHOGI_PAWN:      return "\u71d5";  // 燕 (swallow)
+            case CUSTOM_PIECE_6:  return "\u9d08";  // 鴈 (goose)
+            case CUSTOM_PIECE_7:  return "\u9d70";  // 鵰 (eagle)
+            default:              return "?";
+        }
+    }
+}
+
+inline std::string piece_to_shogi_family_japanese_char(const Variant* v, PieceType pt, bool promoted) {
+    if (is_torishogi_variant(v))
+        return piece_to_torishogi_kanji(pt, promoted);
+    if (is_dobutsu_variant(v))
+        return piece_to_dobutsu_kanji(pt, promoted);
+    return piece_to_shogi_japanese_char(pt, promoted);
 }
 
 inline std::string piece_to_janggi_korean_char(Piece pc, Color c) {
@@ -231,8 +284,7 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     // Japanese Shogi notation: kanji pieces
     else if (n == NOTATION_SHOGI_JAPANESE)
     {
-        // Detect dobutsu by checking if WAZIR is in the variant's piece types
-        bool isDobutsu = pos.variant()->pieceTypes & piece_set(WAZIR);
+        const Variant* variant = pos.variant();
         // For pieceDemotion variants (e.g. kyotoshogi), pieces swap between paired types
         // on promotion/demotion. Show the piece's identity after the move.
         // For promoted pieces (non-drop)
@@ -251,11 +303,10 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
                     case SHOGI_KNIGHT: return "\u91d1";  // 金 (gold)
                     case SHOGI_PAWN:   return "\u98db";  // 飛 (rook)
                     case SILVER:       return "\u89d2";  // 角 (bishop)
-                    default:           return piece_to_shogi_japanese_char(pt, false);
+                    default:           return piece_to_shogi_family_japanese_char(variant, pt, false);
                 }
             }
-            return isDobutsu ? piece_to_dobutsu_kanji(origPt, true)
-                             : piece_to_shogi_japanese_char(origPt, true);
+            return piece_to_shogi_family_japanese_char(variant, origPt, true);
         }
         // For promoted drops
         else if (type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
@@ -269,12 +320,11 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
                     case SHOGI_KNIGHT: return "\u91d1";  // 金 (gold)
                     case SHOGI_PAWN:   return "\u98db";  // 飛 (rook)
                     case SILVER:       return "\u89d2";  // 角 (bishop)
-                    default:           return piece_to_shogi_japanese_char(pt, false);
+                    default:           return piece_to_shogi_family_japanese_char(variant, pt, false);
                 }
             }
             PieceType inHand = in_hand_piece_type(m);
-            return isDobutsu ? piece_to_dobutsu_kanji(inHand, true)
-                             : piece_to_shogi_japanese_char(inHand, true);
+            return piece_to_shogi_family_japanese_char(variant, inHand, true);
         }
         // For unpromoted pieces
         else
@@ -295,8 +345,7 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
                     default:           break;
                 }
             }
-            return isDobutsu ? piece_to_dobutsu_kanji(pt, promotedOnBoard)
-                             : piece_to_shogi_japanese_char(pt, promotedOnBoard);
+            return piece_to_shogi_family_japanese_char(variant, pt, promotedOnBoard);
         }
     }
     // Moves of promoted pieces

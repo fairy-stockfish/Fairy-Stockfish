@@ -3,6 +3,9 @@ before(() => {
   return new Promise((resolve) => {
     pgnDir = __dirname + '/../pgn/';
     srcDir = __dirname + '/../../src/';
+    // Node 24 exposes fetch globally, but the generated loader passes a plain
+    // filesystem path to it for the local wasm file. Force the Node FS path.
+    global.fetch = undefined;
     ffish = require('./ffish.js');
     WHITE = true;
     BLACK = false;
@@ -299,6 +302,42 @@ describe('board.sanMove(ffish.Notation)', function () {
     chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\uff13\u56db\u6b69");  // ３四歩 (not a capture, no 同)
     chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "d9e8")).to.equal("\uff13\u56db\u6b69");  // ３四歩
     shogiBoard.delete();
+
+    const toriBoard = new ffish.Board("torishogi");
+    chai.expect(toriBoard.sanMove("a3a4", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff17\u56db\u71d5");  // ７四燕
+    toriBoard.delete();
+
+    const toriPhoenixBoard = new ffish.Board("torishogi", "3k3/7/7/7/7/7/3K3[-] w 0 1");
+    chai.expect(toriPhoenixBoard.sanMove("d1d2", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u516d\u9d6c");  // ４六鵬
+    toriPhoenixBoard.delete();
+
+    const toriBirdBoard = new ffish.Board("torishogi", "3k3/7/7/7/3C3/7/3K3[-] w 0 1");
+    chai.expect(toriBirdBoard.sanMove("d3d4", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u56db\u9db4");  // ４四鶴
+    toriBirdBoard.delete();
+
+    const toriQuailBoard = new ffish.Board("torishogi", "3k3/7/7/7/3L3/7/3K3[-] w 0 1");
+    chai.expect(toriQuailBoard.sanMove("d3d4", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u56db\u9d89");  // ４四鶉
+    toriQuailBoard.delete();
+
+    const toriPheasantBoard = new ffish.Board("torishogi", "3k3/7/7/7/3P3/7/3K3[-] w 0 1");
+    chai.expect(toriPheasantBoard.sanMove("d3c2", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u516d\u96c9");  // ５六雉
+    toriPheasantBoard.delete();
+
+    const toriPromotionBoard = new ffish.Board("torishogi", "3k3/7/3S3/7/7/7/3K3[-] w 0 1");
+    chai.expect(toriPromotionBoard.sanMove("d5d6+", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u4e8c\u71d5\u6210");  // ４二燕成
+    toriPromotionBoard.delete();
+
+    const toriPromotedBoard = new ffish.Board("torishogi", "3k3/7/7/7/3+S3/7/3K3[-] w 0 1");
+    chai.expect(toriPromotedBoard.sanMove("d3b5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u4e09\u9d08");  // ６三鴈
+    toriPromotedBoard.delete();
+
+    const toriFalconPromotionBoard = new ffish.Board("torishogi", "3k3/7/3F3/7/7/7/3K3[-] w 0 1");
+    chai.expect(toriFalconPromotionBoard.sanMove("d5d6+", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u4e8c\u9df9\u6210");  // ４二鷹成
+    toriFalconPromotionBoard.delete();
+
+    const toriEagleBoard = new ffish.Board("torishogi", "3k3/7/7/7/3+F3/7/3K3[-] w 0 1");
+    chai.expect(toriEagleBoard.sanMove("d3d4", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u56db\u9d70");  // ４四鵰
+    toriEagleBoard.delete();
 
     board.delete();
   });
