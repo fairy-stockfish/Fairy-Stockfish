@@ -112,7 +112,10 @@ customPiece2 = c:mBcpB
 customPiece3 = i:pB
 customPiece4 = w:mRpRmFpB2
 customPiece5 = f:mBpBmWpR2
-promotedPieceType = u:w a:w c:f i:f
+promotedPieceType = u:w a:w c:f i:f p:g
+japanesePieceNames = shogi
+japanesePieceNameOverrides = u:金砲 a:銀砲 c:銅砲 i:鉄砲
+japanesePromotedPieceNameOverrides = u:成金砲 a:成銀砲 c:成銅砲 i:成鉄砲
 startFen = lnsgkgsnl/1rci1uab1/p1p1p1p1p/9/9/9/P1P1P1P1P/1BAU1ICR1/LNSGKGSNL[-] w 0 1
 
 [fogofwar:chess]
@@ -374,7 +377,7 @@ class TestPyffish(unittest.TestCase):
         self.assertNotIn("Q@a6", result)
 
         # In Cannon Shogi the FGC and FSC can also move one square diagonally and, besides,
-        # move or capture two squares diagonally, by leaping an adjacent piece. 
+        # move or capture two squares diagonally, by leaping an adjacent piece.
         fen = "lnsg1gsnl/1rc1kuab1/p1+A1p1p1p/3P5/6i2/6P2/P1P1P3P/1B1U1ICR1/LNSGKGSNL[] w - - 1 3"
         result = sf.legal_moves("cannonshogi", fen, [])
         # mF
@@ -1526,7 +1529,7 @@ class TestPyffish(unittest.TestCase):
 
     def test_validate_fen_promoted_pieces(self):
         # Test promoted piece validation specifically
-        
+
         # Valid promoted pieces should pass
         valid_promoted_fens = {
             "shogi": [
@@ -1538,7 +1541,7 @@ class TestPyffish(unittest.TestCase):
                 "+lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1",  # promoted lance
             ]
         }
-        
+
         # Invalid promoted pieces should fail with FEN_INVALID_PROMOTED_PIECE (-12)
         invalid_promoted_fens = {
             "kyotoshogi": [
@@ -1548,36 +1551,36 @@ class TestPyffish(unittest.TestCase):
                 "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSG++KGSNL[-] w - - 0 1",  # double promotion (++K)
             ]
         }
-        
+
         # Non-shogi variants should ignore promoted piece syntax ('+' should be invalid character)
         non_shogi_promoted_fens = {
             "chess": [
                 "rnb+qkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # '+' not valid in chess
             ]
         }
-        
+
         # Test valid promoted pieces
         for variant, fens in valid_promoted_fens.items():
             for fen in fens:
                 with self.subTest(variant=variant, fen=fen, test_type="valid_promoted"):
                     result = sf.validate_fen(fen, variant)
                     self.assertEqual(result, sf.FEN_OK, f"Expected valid promoted piece FEN to pass: {fen}")
-        
+
         # Test invalid promoted pieces (should return FEN_INVALID_PROMOTED_PIECE = -12)
         for variant, fens in invalid_promoted_fens.items():
             for fen in fens:
                 with self.subTest(variant=variant, fen=fen, test_type="invalid_promoted"):
                     result = sf.validate_fen(fen, variant)
-                    self.assertEqual(result, sf.FEN_INVALID_PROMOTED_PIECE, 
+                    self.assertEqual(result, sf.FEN_INVALID_PROMOTED_PIECE,
                                    f"Expected invalid promoted piece FEN to return -12: {fen}, got {result}")
-        
+
         # Test non-shogi variants (should fail with character validation, not promoted piece validation)
         for variant, fens in non_shogi_promoted_fens.items():
             for fen in fens:
                 with self.subTest(variant=variant, fen=fen, test_type="non_shogi"):
                     result = sf.validate_fen(fen, variant)
                     # Should fail with character validation (FEN_INVALID_CHAR = -10), not promoted piece validation
-                    self.assertEqual(result, -10, 
+                    self.assertEqual(result, -10,
                                    f"Expected non-shogi variant to fail with character error (-10): {fen}, got {result}")
 
     def test_get_fog_fen(self):
