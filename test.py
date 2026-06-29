@@ -1203,6 +1203,17 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("makruk", fen, "d3d4", False, sf.NOTATION_THAI_LAN)
         self.assertEqual(result, "ค ง๓-ง๔")
 
+        # Cannon Shogi uses a shogi-family notation grammar, but its custom
+        # cannon pieces need variant-specific Japanese names from variants.ini.
+        result = sf.get_san(
+            "cannonshogi",
+            "lnsgkgsnl/1rci1uab1/p1p1p1p1p/9/9/9/P1P1P1P1P/1BAU1ICR1/LNSGKGSNL[-] w 0 1",
+            "d2d3",
+            False,
+            sf.NOTATION_SHOGI_JAPANESE,
+        )
+        self.assertEqual(result, "６七金砲")
+
 
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
         SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]

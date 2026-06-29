@@ -343,6 +343,14 @@ describe('board.sanMove(ffish.Notation)', function () {
   });
 });
 
+describe('board.sanMove(ffish.Notation.SHOGI_JAPANESE)', function () {
+  it("it uses variants.ini Japanese names for Cannon Shogi custom pieces", () => {
+    const board = new ffish.Board("cannonshogi");
+    chai.expect(board.sanMove("d2d3", ffish.Notation.SHOGI_JAPANESE)).to.equal("６七金砲");
+    board.delete();
+  });
+});
+
 describe('board.variationSan(uciMoves)', function () {
   it("it converts a list of uci moves into san notation. The board will not changed by this method.", () => {
     let board = new ffish.Board();

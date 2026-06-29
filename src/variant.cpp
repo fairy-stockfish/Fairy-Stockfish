@@ -156,6 +156,7 @@ namespace {
     Variant* makruk_variant() {
         Variant* v = chess_variant_base()->init();
         v->variantTemplate = "makruk";
+        v->thaiPieceNameStyle = PIECE_NAME_STYLE_MAKRUK_THAI;
         v->pieceToCharTable = "PN.R.M....SKpn.r.m....sk";
         v->remove_piece(BISHOP);
         v->remove_piece(QUEEN);
@@ -796,6 +797,7 @@ namespace {
     Variant* minishogi_variant_base() {
         Variant* v = variant_base()->init();
         v->variantTemplate = "shogi";
+        v->japanesePieceNameStyle = PIECE_NAME_STYLE_SHOGI_JAPANESE;
         v->maxRank = RANK_5;
         v->maxFile = FILE_E;
         v->reset_pieces();
@@ -888,6 +890,7 @@ namespace {
     // https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi
     Variant* dobutsu_variant() {
         Variant* v = minishogi_variant_base()->init();
+        v->japanesePieceNameStyle = PIECE_NAME_STYLE_DOBUTSU_JAPANESE;
         v->pieceToCharTable = "C....E...G.+.....Lc....e...g.+.....l";
         v->pocketSize = 3;
         v->maxRank = RANK_4;
@@ -947,6 +950,7 @@ namespace {
     Variant* torishogi_variant() {
         Variant* v = variant_base()->init();
         v->variantTemplate = "shogi";
+        v->japanesePieceNameStyle = PIECE_NAME_STYLE_TORI_JAPANESE;
         v->pieceToCharTable = "S.....FLR.C+.....+.PKs.....flr.c+.....+.pk";
         v->maxRank = RANK_7;
         v->maxFile = FILE_G;
@@ -1730,6 +1734,7 @@ namespace {
     // Xiangqi base variant for inheriting rules without chasing rules
     Variant* xiangqi_variant_base() {
         Variant* v = minixiangqi_variant()->init();
+        v->chinesePieceNameStyle = PIECE_NAME_STYLE_XIANGQI_CHINESE;
         v->pieceToCharTable = "PN.R.AB..K.C..........pn.r.ab..k.c..........";
         v->maxRank = RANK_10;
         v->maxFile = FILE_I;
@@ -1787,6 +1792,7 @@ namespace {
     Variant* janggi_variant() {
         Variant* v = xiangqi_variant_base()->init();
         v->variantTemplate = "janggi";
+        v->koreanPieceNameStyle = PIECE_NAME_STYLE_JANGGI_KOREAN;
         v->pieceToCharTable = ".N.R.AB.P..C.........K.n.r.ab.p..c.........k";
         v->remove_piece(FERS);
         v->remove_piece(CANNON);

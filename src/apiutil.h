@@ -20,6 +20,7 @@
 #define APIUTIL_H_INCLUDED
 
 #include <array>
+#include <map>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -114,23 +115,50 @@ inline bool multi_tandem(Bitboard b) {
     return tandems >= 2;
 }
 
-inline std::string piece_to_chinese_char(Piece pc) {
+inline std::string localized_piece_name_override(const std::map<PieceType, std::string>& overrides, PieceType pt) {
+    auto it = overrides.find(pt);
+    return it != overrides.end() ? it->second : "";
+}
+
+inline std::string localized_piece_name_override(const std::map<Piece, std::string>& overrides, Piece pc) {
+    auto it = overrides.find(pc);
+    return it != overrides.end() ? it->second : "";
+}
+
+inline std::string piece_to_xiangqi_chinese_char(Piece pc) {
     Color c = color_of(pc);
     switch (type_of(pc)) {
-        case KING:    return c == WHITE ? "帥" : "將";
-        case FERS:    return c == WHITE ? "仕" : "士";
-        case ELEPHANT:return c == WHITE ? "相" : "象";
-        case HORSE:   return "馬";
-        case ROOK:    return c == WHITE ? "俥" : "車";
-        case CANNON:  return c == WHITE ? "炮" : "砲";
-        case SOLDIER: return c == WHITE ? "兵" : "卒";
-        case PAWN:    return c == WHITE ? "兵" : "卒";
-        case BANNER:  return "旗";  // Manchu banner (旗, both colors)
-        default:      return "?";
+    case KING:    return c == WHITE ? "帥" : "將";
+    case FERS:    return c == WHITE ? "仕" : "士";
+    case ELEPHANT:return c == WHITE ? "相" : "象";
+    case HORSE:   return "馬";
+    case ROOK:    return c == WHITE ? "俥" : "車";
+    case CANNON:  return c == WHITE ? "炮" : "砲";
+    case SOLDIER: return c == WHITE ? "兵" : "卒";
+    case PAWN:    return c == WHITE ? "兵" : "卒";
+    case BANNER:  return "旗"; // Manchu banner (旗, both colors)
+    default:      return "?";
     }
 }
 
-inline std::string piece_to_thai_char(Piece pc, bool promoted) {
+inline std::string piece_to_chinese_char(const Variant* v, Piece pc) {
+    if (v)
+    {
+        std::string overrideName = localized_piece_name_override(v->chinesePieceNameOverrides, pc);
+        if (!overrideName.empty())
+            return overrideName;
+    }
+
+    switch (v ? v->chinesePieceNameStyle : PIECE_NAME_STYLE_DEFAULT)
+    {
+    case PIECE_NAME_STYLE_XIANGQI_CHINESE:
+    case PIECE_NAME_STYLE_DEFAULT:
+    default:
+        return piece_to_xiangqi_chinese_char(pc);
+    }
+}
+
+inline std::string piece_to_makruk_thai_char(Piece pc, bool promoted) {
     switch(type_of(pc)) {
         case KING:
             return "ข";
@@ -149,9 +177,27 @@ inline std::string piece_to_thai_char(Piece pc, bool promoted) {
         default:
             return "X";
     }
-}
+    }
 
-inline std::string piece_to_shogi_japanese_char(PieceType pt, bool promoted) {
+    inline std::string piece_to_thai_char(const Variant* v, Piece pc, bool promoted) {
+    if (v)
+    {
+        const auto& overrides = promoted ? v->thaiPromotedPieceNameOverrides : v->thaiPieceNameOverrides;
+        std::string overrideName = localized_piece_name_override(overrides, type_of(pc));
+        if (!overrideName.empty())
+            return overrideName;
+    }
+
+    switch (v ? v->thaiPieceNameStyle : PIECE_NAME_STYLE_DEFAULT)
+    {
+    case PIECE_NAME_STYLE_MAKRUK_THAI:
+    case PIECE_NAME_STYLE_DEFAULT:
+    default:
+        return piece_to_makruk_thai_char(pc, promoted);
+    }
+    }
+
+    inline std::string piece_to_shogi_japanese_char(PieceType pt, bool promoted) {
     if (promoted) {
         switch (pt) {
             case ROOK:         return "\u9f8d";  // 龍 (dragon)
@@ -179,10 +225,6 @@ inline std::string piece_to_shogi_japanese_char(PieceType pt, bool promoted) {
     }
 }
 
-inline bool is_dobutsu_variant(const Variant* v) {
-    return v && (v->pieceTypes & piece_set(WAZIR));
-}
-
 // Dobutsu shogi animal names (hiragana)
 inline std::string piece_to_dobutsu_kanji(PieceType pt, bool promoted) {
     if (promoted) {
@@ -206,22 +248,6 @@ inline std::string piece_to_dobutsu_kanji(PieceType pt, bool promoted) {
             default:           return "";
         }
     }
-}
-
-inline bool is_torishogi_variant(const Variant* v) {
-    return v
-        && v->variantTemplate == "shogi"
-        && v->maxFile == FILE_G
-        && v->maxRank == RANK_7
-        && v->pieceToChar[make_piece(WHITE, SHOGI_PAWN)] == 'S'
-        && v->pieceToChar[make_piece(WHITE, KING)] == 'K'
-        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_1)] == 'F'
-        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_2)] == 'C'
-        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_3)] == 'L'
-        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_4)] == 'R'
-        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_5)] == 'P'
-        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_6)] == 'G'
-        && v->pieceToChar[make_piece(WHITE, CUSTOM_PIECE_7)] == 'E';
 }
 
 inline std::string piece_to_torishogi_kanji(PieceType pt, bool promoted) {
@@ -250,23 +276,58 @@ inline std::string piece_to_torishogi_kanji(PieceType pt, bool promoted) {
 }
 
 inline std::string piece_to_shogi_family_japanese_char(const Variant* v, PieceType pt, bool promoted) {
-    if (is_torishogi_variant(v))
-        return piece_to_torishogi_kanji(pt, promoted);
-    if (is_dobutsu_variant(v))
-        return piece_to_dobutsu_kanji(pt, promoted);
+    if (v)
+    {
+        const auto& overrides = promoted ? v->japanesePromotedPieceNameOverrides : v->japanesePieceNameOverrides;
+        std::string overrideName = localized_piece_name_override(overrides, pt);
+        if (!overrideName.empty())
+            return overrideName;
+
+        switch (v->japanesePieceNameStyle)
+        {
+        case PIECE_NAME_STYLE_TORI_JAPANESE:
+            return piece_to_torishogi_kanji(pt, promoted);
+        case PIECE_NAME_STYLE_DOBUTSU_JAPANESE:
+        {
+            std::string name = piece_to_dobutsu_kanji(pt, promoted);
+            return !name.empty() ? name : piece_to_shogi_japanese_char(pt, promoted);
+        }
+        case PIECE_NAME_STYLE_SHOGI_JAPANESE:
+        case PIECE_NAME_STYLE_DEFAULT:
+        default:
+            break;
+        }
+    }
     return piece_to_shogi_japanese_char(pt, promoted);
 }
 
-inline std::string piece_to_janggi_korean_char(Piece pc, Color c) {
+inline std::string piece_to_janggi_korean_char_default(Piece pc, Color c) {
     switch (type_of(pc)) {
-        case KING:            return c == WHITE ? "\u5c07" : "\u5e2b";  // 將 (Han) / 帥 (Cho)
-        case ROOK:            return "\u8eca";  // 車
-        case JANGGI_CANNON:   return "\u5305";  // 包
-        case HORSE:           return "\u99ac";  // 馬
-        case JANGGI_ELEPHANT: return "\u8c61";  // 象
-        case WAZIR:           return "\u58eb";  // 士
-        case SOLDIER:         return c == WHITE ? "\u5175" : "\u5352";  // 兵 (Han) / 卒 (Cho)
-        default:              return "?";
+    case KING:           return c == WHITE ? "\u5c07" : "\u5e2b"; // 將 (Han) / 帥 (Cho)
+    case ROOK:           return "\u8eca"; // 車
+    case JANGGI_CANNON:  return "\u5305"; // 包
+    case HORSE:          return "\u99ac"; // 馬
+    case JANGGI_ELEPHANT:return "\u8c61"; // 象
+    case WAZIR:          return "\u58eb"; // 士
+    case SOLDIER:        return c == WHITE ? "\u5175" : "\u5352"; // 兵 (Han) / 卒 (Cho)
+    default:             return "?";
+    }
+}
+
+inline std::string piece_to_janggi_korean_char(const Variant* v, Piece pc, Color c) {
+    if (v)
+    {
+        std::string overrideName = localized_piece_name_override(v->koreanPieceNameOverrides, pc);
+        if (!overrideName.empty())
+            return overrideName;
+    }
+
+    switch (v ? v->koreanPieceNameStyle : PIECE_NAME_STYLE_DEFAULT)
+    {
+    case PIECE_NAME_STYLE_JANGGI_KOREAN:
+    case PIECE_NAME_STYLE_DEFAULT:
+    default:
+        return piece_to_janggi_korean_char_default(pc, c);
     }
 }
 
@@ -294,7 +355,7 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
             if (pos.piece_demotion())
             {
                 if (type_of(m) == PIECE_DEMOTION)
-                    return piece_to_shogi_japanese_char(origPt, false);
+                    return piece_to_shogi_family_japanese_char(variant, origPt, false);
                 // PIECE_PROMOTION or NORMAL move of promoted piece:
                 // show the promoted piece identity
                 switch (origPt)
@@ -355,10 +416,10 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     else if (is_shogi(n) && type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
         return "+" + std::string(1, toupper(pos.piece_to_char()[in_hand_piece_type(m)]));
     else if (is_thai(n))
-        return piece_to_thai_char(pc, pos.is_promoted(from));
+        return piece_to_thai_char(pos.variant(), pc, pos.is_promoted(from));
     else if (is_janggi_korean(n))
     {
-        return piece_to_janggi_korean_char(pc, us);
+        return piece_to_janggi_korean_char(pos.variant(), pc, us);
     }
     else if (is_xiangqi_chinese(n))
     {
@@ -368,28 +429,28 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
         {
             int rankPos = popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1;
             if (fileCount == 2)
-                return std::string(rankPos == 1 ? "\u524d" : "\u5f8c") + piece_to_chinese_char(pc);
+                return std::string(rankPos == 1 ? "\u524d" : "\u5f8c") + piece_to_chinese_char(pos.variant(), pc);
             if (fileCount == 3)
             {
                 switch (rankPos) {
-                    case 1: return "\u524d" + piece_to_chinese_char(pc);  // 前
-                    case 2: return "\u4e2d" + piece_to_chinese_char(pc);  // 中
-                    case 3: return "\u5f8c" + piece_to_chinese_char(pc);  // 後
+                    case 1: return "\u524d" + piece_to_chinese_char(pos.variant(), pc);  // 前
+                    case 2: return "\u4e2d" + piece_to_chinese_char(pos.variant(), pc);  // 中
+                    case 3: return "\u5f8c" + piece_to_chinese_char(pos.variant(), pc);  // 後
                 }
             }
             static const char* prefixes[] = {"", "\u524d", "\u4e8c", "\u4e09", "\u56db", "\u4e94"};
-            return std::string(prefixes[rankPos < 6 ? rankPos : 1]) + piece_to_chinese_char(pc);
+            return std::string(prefixes[rankPos < 6 ? rankPos : 1]) + piece_to_chinese_char(pos.variant(), pc);
         }
         // Chinese notation uses 前/後 prefix for disambiguation when two pieces on same file
         if (pt != ELEPHANT && pt != FERS && fileCount == 2)
         {
             // Front piece is farther forward from the player's perspective
             if (pos.pieces(us, pt) & forward_file_bb(us, from))
-                return "\u5f8c" + piece_to_chinese_char(pc);  // 後
+                return "\u5f8c" + piece_to_chinese_char(pos.variant(), pc);  // 後
             else
-                return "\u524d" + piece_to_chinese_char(pc);  // 前
+                return "\u524d" + piece_to_chinese_char(pos.variant(), pc);  // 前
         }
-        return piece_to_chinese_char(pc);
+        return piece_to_chinese_char(pos.variant(), pc);
     }
     else if (pos.piece_to_char_synonyms()[pc] != ' ')
         return std::string(1, toupper(pos.piece_to_char_synonyms()[pc]));
