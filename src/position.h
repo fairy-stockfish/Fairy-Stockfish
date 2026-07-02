@@ -83,6 +83,10 @@ struct StateInfo {
   bool       pass;
   Move       move;
   int        repetition;
+  bool       didMorph;
+  Piece      morphedFrom;
+  Piece      morphedTo;
+  Square     morphSquare;
 
   // Used by NNUE
   Eval::NNUE::Accumulator accumulator;
