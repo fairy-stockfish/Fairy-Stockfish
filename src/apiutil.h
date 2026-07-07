@@ -20,6 +20,7 @@
 #define APIUTIL_H_INCLUDED
 
 #include <array>
+#include <map>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -39,13 +40,18 @@ enum Notation {
     NOTATION_SAN,
     NOTATION_LAN,
     // https://en.wikipedia.org/wiki/Shogi_notation#Western_notation
-    NOTATION_SHOGI_HOSKING, // Examples: P76, S’34
+    NOTATION_SHOGI_HOSKING, // Examples: P76, S'34
     NOTATION_SHOGI_HODGES, // Examples: P-7f, S*3d
     NOTATION_SHOGI_HODGES_NUMBER, // Examples: P-76, S*34
+    // Japanese notation: destination-first with kanji pieces
+    NOTATION_SHOGI_JAPANESE,
     // http://www.janggi.pl/janggi-notation/
     NOTATION_JANGGI,
     // https://en.wikipedia.org/wiki/Xiangqi#Notation
     NOTATION_XIANGQI_WXF,
+    NOTATION_XIANGQI_CHINESE,
+    // Korean Janggi notation: (source)piece(destination)
+    NOTATION_JANGGI_KOREAN,
     // https://web.archive.org/web/20180817205956/http://bgsthai.com/2018/05/07/lawofthaichessc/
     NOTATION_THAI_SAN,
     NOTATION_THAI_LAN,
@@ -80,11 +86,24 @@ enum Disambiguation {
 };
 
 inline bool is_shogi(Notation n) {
-    return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES || n == NOTATION_SHOGI_HODGES_NUMBER;
+    return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES || n == NOTATION_SHOGI_HODGES_NUMBER || n == NOTATION_SHOGI_JAPANESE;
 }
 
 inline bool is_thai(Notation n) {
     return n == NOTATION_THAI_SAN || n == NOTATION_THAI_LAN;
+}
+
+inline bool is_xiangqi_chinese(Notation n) {
+    return n == NOTATION_XIANGQI_CHINESE;
+}
+
+inline bool is_janggi_korean(Notation n) {
+    return n == NOTATION_JANGGI_KOREAN;
+}
+
+inline const std::string chinese_numeral_red(int n) {
+    static const std::string numerals[] = {"一", "二", "三", "四", "五", "六", "七", "八", "九"};
+    return numerals[n];
 }
 
 // is there more than one file with a pair of pieces?
@@ -96,7 +115,50 @@ inline bool multi_tandem(Bitboard b) {
     return tandems >= 2;
 }
 
-inline std::string piece_to_thai_char(Piece pc, bool promoted) {
+inline std::string localized_piece_name_override(const std::map<PieceType, std::string>& overrides, PieceType pt) {
+    auto it = overrides.find(pt);
+    return it != overrides.end() ? it->second : "";
+}
+
+inline std::string localized_piece_name_override(const std::map<Piece, std::string>& overrides, Piece pc) {
+    auto it = overrides.find(pc);
+    return it != overrides.end() ? it->second : "";
+}
+
+inline std::string piece_to_xiangqi_chinese_char(Piece pc) {
+    Color c = color_of(pc);
+    switch (type_of(pc)) {
+    case KING:    return c == WHITE ? "帥" : "將";
+    case FERS:    return c == WHITE ? "仕" : "士";
+    case ELEPHANT:return c == WHITE ? "相" : "象";
+    case HORSE:   return "馬";
+    case ROOK:    return c == WHITE ? "俥" : "車";
+    case CANNON:  return c == WHITE ? "炮" : "砲";
+    case SOLDIER: return c == WHITE ? "兵" : "卒";
+    case PAWN:    return c == WHITE ? "兵" : "卒";
+    case BANNER:  return "旗"; // Manchu banner (旗, both colors)
+    default:      return "?";
+    }
+}
+
+inline std::string piece_to_chinese_char(const Variant* v, Piece pc) {
+    if (v)
+    {
+        std::string overrideName = localized_piece_name_override(v->chinesePieceNameOverrides, pc);
+        if (!overrideName.empty())
+            return overrideName;
+    }
+
+    switch (v ? v->chinesePieceNameStyle : PIECE_NAME_STYLE_DEFAULT)
+    {
+    case PIECE_NAME_STYLE_XIANGQI_CHINESE:
+    case PIECE_NAME_STYLE_DEFAULT:
+    default:
+        return piece_to_xiangqi_chinese_char(pc);
+    }
+}
+
+inline std::string piece_to_makruk_thai_char(Piece pc, bool promoted) {
     switch(type_of(pc)) {
         case KING:
             return "ข";
@@ -115,6 +177,158 @@ inline std::string piece_to_thai_char(Piece pc, bool promoted) {
         default:
             return "X";
     }
+    }
+
+    inline std::string piece_to_thai_char(const Variant* v, Piece pc, bool promoted) {
+    if (v)
+    {
+        const auto& overrides = promoted ? v->thaiPromotedPieceNameOverrides : v->thaiPieceNameOverrides;
+        std::string overrideName = localized_piece_name_override(overrides, type_of(pc));
+        if (!overrideName.empty())
+            return overrideName;
+    }
+
+    switch (v ? v->thaiPieceNameStyle : PIECE_NAME_STYLE_DEFAULT)
+    {
+    case PIECE_NAME_STYLE_MAKRUK_THAI:
+    case PIECE_NAME_STYLE_DEFAULT:
+    default:
+        return piece_to_makruk_thai_char(pc, promoted);
+    }
+    }
+
+    inline std::string piece_to_shogi_japanese_char(PieceType pt, bool promoted) {
+    if (promoted) {
+        switch (pt) {
+            case ROOK:         return "\u9f8d";  // 龍 (dragon)
+            case BISHOP:       return "\u99ac";  // 馬 (horse)
+            case SILVER:       return "\u6210\u9280";  // 成銀 (promoted silver)
+            case SHOGI_KNIGHT: return "\u6210\u6842";  // 成桂 (promoted knight)
+            case LANCE:        return "\u6210\u9999";  // 成香 (promoted lance)
+            case SHOGI_PAWN:   return "\u3068";  // と (tokin)
+            default:           return "?";
+        }
+    } else {
+        switch (pt) {
+            case KING:            return "\u7389";  // 玉 (king)
+            case ROOK:            return "\u98db";  // 飛 (rook)
+            case BISHOP:          return "\u89d2";  // 角 (bishop)
+            case GOLD:            return "\u91d1";  // 金 (gold)
+            case SILVER:          return "\u9280";  // 銀 (silver)
+            case SHOGI_KNIGHT:    return "\u6842";  // 桂 (knight)
+            case LANCE:           return "\u9999";  // 香 (lance)
+            case SHOGI_PAWN:      return "\u6b69";  // 歩 (pawn)
+            case CUSTOM_PIECE_1:  return "\u8c61";  // 象 (drunken elephant, sho-shogi)
+            case COMMONER:        return "\u592a";  // 太 (crown prince, sho-shogi)
+            default:              return "?";
+        }
+    }
+}
+
+// Dobutsu shogi animal names (hiragana)
+inline std::string piece_to_dobutsu_kanji(PieceType pt, bool promoted) {
+    if (promoted) {
+        switch (pt) {
+            case ROOK:         return "\u9f8d";  // 龍 (dragon)
+            case BISHOP:       return "\u99ac";  // 馬 (horse)
+            case SHOGI_PAWN:   return "\u306b\u308f\u3068\u308a";  // にわとり (hen/tokin)
+            default:           return "";
+        }
+    } else {
+        switch (pt) {
+            case KING:         return "\u30e9\u30a4\u30aa\u30f3";  // ライオン (lion)
+            case COMMONER:     return "\u30e9\u30a4\u30aa\u30f3";  // ライオン (lion, dobutsu king)
+            case ROOK:         return "\u304d\u308a\u3093";  // きりん (giraffe)
+            case BISHOP:       return "\u305e\u3046";  // ぞう (elephant)
+            case SHOGI_PAWN:   return "\u3072\u3088\u3053";  // ひよこ (chick)
+            case FERS:         return "\u305e\u3046";  // ぞう (elephant)
+            case WAZIR:        return "\u304d\u308a\u3093";  // きりん (giraffe)
+            case GOLD:         return "\u91d1";  // 金 (gold)
+            case LANCE:        return "\u9999";  // 香 (lance)
+            default:           return "";
+        }
+    }
+}
+
+inline std::string piece_to_torishogi_kanji(PieceType pt, bool promoted) {
+    if (promoted) {
+        switch (pt) {
+            case CUSTOM_PIECE_1:
+            case CUSTOM_PIECE_7:  return "\u9d70";  // 鵰 (eagle)
+            case SHOGI_PAWN:
+            case CUSTOM_PIECE_6:  return "\u9d08";  // 鴈 (goose)
+            default:              return "?";
+        }
+    } else {
+        switch (pt) {
+            case KING:            return "\u9d6c";  // 鵬 (phoenix)
+            case CUSTOM_PIECE_1:  return "\u9df9";  // 鷹 (falcon)
+            case CUSTOM_PIECE_2:  return "\u9db4";  // 鶴 (crane)
+            case CUSTOM_PIECE_3:
+            case CUSTOM_PIECE_4:  return "\u9d89";  // 鶉 (quail)
+            case CUSTOM_PIECE_5:  return "\u96c9";  // 雉 (pheasant)
+            case SHOGI_PAWN:      return "\u71d5";  // 燕 (swallow)
+            case CUSTOM_PIECE_6:  return "\u9d08";  // 鴈 (goose)
+            case CUSTOM_PIECE_7:  return "\u9d70";  // 鵰 (eagle)
+            default:              return "?";
+        }
+    }
+}
+
+inline std::string piece_to_shogi_family_japanese_char(const Variant* v, PieceType pt, bool promoted) {
+    if (v)
+    {
+        const auto& overrides = promoted ? v->japanesePromotedPieceNameOverrides : v->japanesePieceNameOverrides;
+        std::string overrideName = localized_piece_name_override(overrides, pt);
+        if (!overrideName.empty())
+            return overrideName;
+
+        switch (v->japanesePieceNameStyle)
+        {
+        case PIECE_NAME_STYLE_TORI_JAPANESE:
+            return piece_to_torishogi_kanji(pt, promoted);
+        case PIECE_NAME_STYLE_DOBUTSU_JAPANESE:
+        {
+            std::string name = piece_to_dobutsu_kanji(pt, promoted);
+            return !name.empty() ? name : piece_to_shogi_japanese_char(pt, promoted);
+        }
+        case PIECE_NAME_STYLE_SHOGI_JAPANESE:
+        case PIECE_NAME_STYLE_DEFAULT:
+        default:
+            break;
+        }
+    }
+    return piece_to_shogi_japanese_char(pt, promoted);
+}
+
+inline std::string piece_to_janggi_korean_char_default(Piece pc, Color c) {
+    switch (type_of(pc)) {
+    case KING:           return c == WHITE ? "\u5c07" : "\u5e2b"; // 將 (Han) / 帥 (Cho)
+    case ROOK:           return "\u8eca"; // 車
+    case JANGGI_CANNON:  return "\u5305"; // 包
+    case HORSE:          return "\u99ac"; // 馬
+    case JANGGI_ELEPHANT:return "\u8c61"; // 象
+    case WAZIR:          return "\u58eb"; // 士
+    case SOLDIER:        return c == WHITE ? "\u5175" : "\u5352"; // 兵 (Han) / 卒 (Cho)
+    default:             return "?";
+    }
+}
+
+inline std::string piece_to_janggi_korean_char(const Variant* v, Piece pc, Color c) {
+    if (v)
+    {
+        std::string overrideName = localized_piece_name_override(v->koreanPieceNameOverrides, pc);
+        if (!overrideName.empty())
+            return overrideName;
+    }
+
+    switch (v ? v->koreanPieceNameStyle : PIECE_NAME_STYLE_DEFAULT)
+    {
+    case PIECE_NAME_STYLE_JANGGI_KOREAN:
+    case PIECE_NAME_STYLE_DEFAULT:
+    default:
+        return piece_to_janggi_korean_char_default(pc, c);
+    }
 }
 
 inline std::string piece(const Position& pos, Move m, Notation n) {
@@ -125,9 +339,76 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     // Quiet pawn moves
     if ((n == NOTATION_SAN || n == NOTATION_LAN || n == NOTATION_THAI_SAN) && type_of(pc) == PAWN && type_of(m) != DROP)
         return "";
-    // Tandem pawns
+    // Tandem pawns — WXF uses numeric position
     else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
         return std::to_string(popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1);
+    // Japanese Shogi notation: kanji pieces
+    else if (n == NOTATION_SHOGI_JAPANESE)
+    {
+        const Variant* variant = pos.variant();
+        // For pieceDemotion variants (e.g. kyotoshogi), pieces swap between paired types
+        // on promotion/demotion. Show the piece's identity after the move.
+        // For promoted pieces (non-drop)
+        if (type_of(m) != DROP && pos.unpromoted_piece_on(from))
+        {
+            PieceType origPt = type_of(pos.unpromoted_piece_on(from));
+            if (pos.piece_demotion())
+            {
+                if (type_of(m) == PIECE_DEMOTION)
+                    return piece_to_shogi_family_japanese_char(variant, origPt, false);
+                // PIECE_PROMOTION or NORMAL move of promoted piece:
+                // show the promoted piece identity
+                switch (origPt)
+                {
+                    case LANCE:        return "\u3068";  // と (tokin)
+                    case SHOGI_KNIGHT: return "\u91d1";  // 金 (gold)
+                    case SHOGI_PAWN:   return "\u98db";  // 飛 (rook)
+                    case SILVER:       return "\u89d2";  // 角 (bishop)
+                    default:           return piece_to_shogi_family_japanese_char(variant, pt, false);
+                }
+            }
+            return piece_to_shogi_family_japanese_char(variant, origPt, true);
+        }
+        // For promoted drops
+        else if (type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
+        {
+            if (pos.piece_demotion())
+            {
+                PieceType inHand = in_hand_piece_type(m);
+                switch (inHand)
+                {
+                    case LANCE:        return "\u3068";  // と (tokin)
+                    case SHOGI_KNIGHT: return "\u91d1";  // 金 (gold)
+                    case SHOGI_PAWN:   return "\u98db";  // 飛 (rook)
+                    case SILVER:       return "\u89d2";  // 角 (bishop)
+                    default:           return piece_to_shogi_family_japanese_char(variant, pt, false);
+                }
+            }
+            PieceType inHand = in_hand_piece_type(m);
+            return piece_to_shogi_family_japanese_char(variant, inHand, true);
+        }
+        // For unpromoted pieces
+        else
+        {
+            // Drops have no source square on the board. Using from_sq(m) here would
+            // read SQ_NONE as if it were a board square, which can misclassify plain
+            // drops as promoted pieces in Japanese notation.
+            bool promotedOnBoard = type_of(m) != DROP && pos.is_promoted(from);
+
+            if (type_of(m) == PIECE_PROMOTION && pos.piece_demotion())
+            {
+                switch (pt)
+                {
+                    case LANCE:        return "\u3068";  // と (tokin)
+                    case SHOGI_KNIGHT: return "\u91d1";  // 金 (gold)
+                    case SHOGI_PAWN:   return "\u98db";  // 飛 (rook)
+                    case SILVER:       return "\u89d2";  // 角 (bishop)
+                    default:           break;
+                }
+            }
+            return piece_to_shogi_family_japanese_char(variant, pt, promotedOnBoard);
+        }
+    }
     // Moves of promoted pieces
     else if (is_shogi(n) && type_of(m) != DROP && pos.unpromoted_piece_on(from))
         return "+" + std::string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
@@ -135,11 +416,139 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
     else if (is_shogi(n) && type_of(m) == DROP && dropped_piece_type(m) != in_hand_piece_type(m))
         return "+" + std::string(1, toupper(pos.piece_to_char()[in_hand_piece_type(m)]));
     else if (is_thai(n))
-        return piece_to_thai_char(pc, pos.is_promoted(from));
+        return piece_to_thai_char(pos.variant(), pc, pos.is_promoted(from));
+    else if (is_janggi_korean(n))
+    {
+        return piece_to_janggi_korean_char(pos.variant(), pc, us);
+    }
+    else if (is_xiangqi_chinese(n))
+    {
+        int fileCount = popcount(pos.pieces(us, pt) & file_bb(from));
+        // Chinese tandem pawns: 前/中/後 or 前/二/三/四/五 prefix
+        if (pt == SOLDIER && (fileCount >= 3 || (fileCount >= 2 && multi_tandem(pos.pieces(us, pt)))))
+        {
+            int rankPos = popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1;
+            if (fileCount == 2)
+                return std::string(rankPos == 1 ? "\u524d" : "\u5f8c") + piece_to_chinese_char(pos.variant(), pc);
+            if (fileCount == 3)
+            {
+                switch (rankPos) {
+                    case 1: return "\u524d" + piece_to_chinese_char(pos.variant(), pc);  // 前
+                    case 2: return "\u4e2d" + piece_to_chinese_char(pos.variant(), pc);  // 中
+                    case 3: return "\u5f8c" + piece_to_chinese_char(pos.variant(), pc);  // 後
+                }
+            }
+            static const char* prefixes[] = {"", "\u524d", "\u4e8c", "\u4e09", "\u56db", "\u4e94"};
+            return std::string(prefixes[rankPos < 6 ? rankPos : 1]) + piece_to_chinese_char(pos.variant(), pc);
+        }
+        // Chinese notation uses 前/後 prefix for disambiguation when two pieces on same file
+        if (pt != ELEPHANT && pt != FERS && fileCount == 2)
+        {
+            // Front piece is farther forward from the player's perspective
+            if (pos.pieces(us, pt) & forward_file_bb(us, from))
+                return "\u5f8c" + piece_to_chinese_char(pos.variant(), pc);  // 後
+            else
+                return "\u524d" + piece_to_chinese_char(pos.variant(), pc);  // 前
+        }
+        return piece_to_chinese_char(pos.variant(), pc);
+    }
     else if (pos.piece_to_char_synonyms()[pc] != ' ')
         return std::string(1, toupper(pos.piece_to_char_synonyms()[pc]));
     else
         return std::string(1, toupper(pos.piece_to_char()[pc]));
+}
+
+inline std::string number_to_fullwidth(int n) {
+    // Full-width digits １(0xEFBC91) through ９(0xEFBC99) in UTF-8
+    if (n >= 1 && n <= 9) {
+        char buf[4] = { char(0xEF), char(0xBC), char(char(0x90) + n), 0 };
+        return std::string(buf);
+    }
+    return std::to_string(n);
+}
+
+inline std::string number_to_kanji_rank(int n) {
+    // UTF-8 encoded kanji digits 一 through 九
+    static const char* kanji[] = {
+        "",
+        "\xe4\xb8\x80",  // 一
+        "\xe4\xba\x8c",  // 二
+        "\xe4\xb8\x89",  // 三
+        "\xe5\x9b\x9b",  // 四
+        "\xe4\xba\x94",  // 五
+        "\xe5\x85\xad",  // 六
+        "\xe4\xb8\x83",  // 七
+        "\xe5\x85\xab",  // 八
+        "\xe4\xb9\x9d",  // 九
+    };
+    if (n >= 1 && n <= 9)
+        return kanji[n];
+    return std::to_string(n);
+}
+
+enum JapaneseMoveDirection {
+    JAPANESE_MOVE_HORIZONTAL,
+    JAPANESE_MOVE_FORWARD,
+    JAPANESE_MOVE_BACKWARD,
+};
+
+// Gold-like qualifiers apply to gold, silver, and promoted minor pieces that move as golds.
+inline bool is_shogi_gold_like(const Position& pos, Move m) {
+    PieceType pt = type_of(pos.moved_piece(m));
+
+    if (pt == GOLD || pt == SILVER)
+        return true;
+
+    Square from = from_sq(m);
+    Piece unpromoted = from != SQ_NONE ? pos.unpromoted_piece_on(from) : NO_PIECE;
+    if (!unpromoted)
+        return false;
+
+    switch (type_of(unpromoted)) {
+        case SHOGI_PAWN:
+        case LANCE:
+        case SHOGI_KNIGHT:
+        case SILVER:
+            return true;
+        default:
+            return false;
+    }
+}
+
+// Major pieces use 行 instead of 上 when the vertical qualifier points forward.
+inline bool is_shogi_major_like(const Position& pos, Move m) {
+    PieceType pt = type_of(pos.moved_piece(m));
+    return pt == BISHOP || pt == ROOK;
+}
+
+// Convert a file into the mover's Japanese notation view: 9..1 for sente, mirrored for gote.
+inline int japanese_view_file(const Position& pos, Square s, Color c) {
+    return c == WHITE ? pos.max_file() - file_of(s) + 1 : file_of(s) + 1;
+}
+
+// Classify the move as forward, backward, or horizontal from the mover's perspective.
+inline JapaneseMoveDirection japanese_move_direction(Color c, Square from, Square to) {
+    if (rank_of(from) == rank_of(to))
+        return JAPANESE_MOVE_HORIZONTAL;
+
+    bool forward = c == WHITE ? rank_of(to) > rank_of(from) : rank_of(to) < rank_of(from);
+    return forward ? JAPANESE_MOVE_FORWARD : JAPANESE_MOVE_BACKWARD;
+}
+
+// Map the movement class to the vertical qualifier used in Japanese notation.
+inline std::string japanese_vertical_disambiguation(const Position& pos, Move m, JapaneseMoveDirection dir) {
+    if (dir == JAPANESE_MOVE_HORIZONTAL)
+        return "\u5bc4";  // 寄
+    if (dir == JAPANESE_MOVE_FORWARD)
+        return is_shogi_major_like(pos, m) ? "\u884c" : "\u4e0a";  // 行 / 上
+    return "\u5f15";  // 引
+}
+
+// Resolve side qualifiers after converting candidate files into the mover's board view.
+inline std::string japanese_side_disambiguation(bool right, bool left) {
+    if (right == left)
+        return "\u4e2d";  // 中
+    return right ? "\u53f3" : "\u5de6";  // 右 / 左
 }
 
 inline std::string file(const Position& pos, Square s, Notation n) {
@@ -149,10 +558,18 @@ inline std::string file(const Position& pos, Square s, Notation n) {
     case NOTATION_SHOGI_HODGES:
     case NOTATION_SHOGI_HODGES_NUMBER:
         return std::to_string(pos.max_file() - file_of(s) + 1);
+    case NOTATION_SHOGI_JAPANESE:
+        return number_to_fullwidth(pos.max_file() - file_of(s) + 1);
     case NOTATION_JANGGI:
+    case NOTATION_JANGGI_KOREAN:
         return std::to_string(file_of(s) + 1);
     case NOTATION_XIANGQI_WXF:
         return std::to_string((pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s)) + 1);
+    case NOTATION_XIANGQI_CHINESE:
+    {
+        int fileNum = pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s);
+        return pos.side_to_move() == WHITE ? chinese_numeral_red(fileNum) : std::to_string(fileNum + 1);
+    }
     case NOTATION_THAI_SAN:
     case NOTATION_THAI_LAN:
         return THAI_FILES[file_of(s)];
@@ -167,9 +584,14 @@ inline std::string rank(const Position& pos, Square s, Notation n) {
     case NOTATION_SHOGI_HOSKING:
     case NOTATION_SHOGI_HODGES_NUMBER:
         return std::to_string(pos.max_rank() - rank_of(s) + 1);
+    case NOTATION_SHOGI_JAPANESE:
+    {
+        return number_to_kanji_rank(pos.max_rank() - rank_of(s) + 1);
+    }
     case NOTATION_SHOGI_HODGES:
         return std::string(1, char('a' + pos.max_rank() - rank_of(s)));
     case NOTATION_JANGGI:
+    case NOTATION_JANGGI_KOREAN:
         return std::to_string((pos.max_rank() - rank_of(s) + 1) % 10);
     case NOTATION_XIANGQI_WXF:
     {
@@ -193,7 +615,10 @@ inline std::string square(const Position& pos, Square s, Notation n) {
     switch (n)
     {
     case NOTATION_JANGGI:
+    case NOTATION_JANGGI_KOREAN:
         return rank(pos, s, n) + file(pos, s, n);
+    case NOTATION_SHOGI_JAPANESE:
+        return file(pos, s, n) + rank(pos, s, n);
     default:
         return file(pos, s, n) + rank(pos, s, n);
     }
@@ -205,7 +630,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
         return NO_DISAMBIGUATION;
 
     // NOTATION_LAN and Janggi always use disambiguation
-    if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || n == NOTATION_JANGGI)
+    if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || n == NOTATION_JANGGI || n == NOTATION_JANGGI_KOREAN)
         return SQUARE_DISAMBIGUATION;
 
     Color us = pos.side_to_move();
@@ -225,6 +650,14 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
             if (is_ok(otherTo) && (pos.board_bb(us, pt) & otherTo))
                 return RANK_DISAMBIGUATION;
         }
+        return FILE_DISAMBIGUATION;
+    }
+
+    // Chinese xiangqi uses 前/後 prefix in piece name for disambiguation
+    if (n == NOTATION_XIANGQI_CHINESE)
+    {
+        if (pt != ELEPHANT && pt != FERS && popcount(pos.pieces(us, pt) & file_bb(from)) == 2 && !multi_tandem(pos.pieces(us, pt)))
+            return NO_DISAMBIGUATION;
         return FILE_DISAMBIGUATION;
     }
 
@@ -281,7 +714,17 @@ inline std::string disambiguation(const Position& pos, Square s, Notation n, Dis
     }
 }
 
-inline const std::string move_to_san(Position& pos, Move m, Notation n) {
+inline Square uci_to_square(const Position& pos, const std::string& str) {
+    if (str.length() < 2) return SQ_NONE;
+    // UCI format: {file_letter}{rank_number} (e.g., "g6" = file g, rank 6)
+    int file = str[0] - 'a';
+    int rank = str[1] - '1';
+    if (file < 0 || file > pos.max_file() || rank < 0 || rank > pos.max_rank())
+        return SQ_NONE;
+    return make_square(File(file), Rank(rank));
+}
+
+inline const std::string move_to_san(Position& pos, Move m, Notation n, Square lastMoveDest = SQ_NONE) {
     std::string san = "";
     Color us = pos.side_to_move();
     Square from = from_sq(m);
@@ -299,19 +742,169 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
     }
     else
     {
-        // Piece
-        san += piece(pos, m, n);
+        Disambiguation d;
 
-        if (n == NOTATION_THAI_LAN)
-            san += " ";
+        if (is_janggi_korean(n))
+        {
+            // Korean: source piecedestination
+            d = disambiguation_level(pos, m, n);
+            san += disambiguation(pos, from, n, d);
+            san += piece(pos, m, n);
+        }
+        else if (n == NOTATION_SHOGI_JAPANESE)
+        {
+            // Japanese: [destination] [piece] [disambiguation] [promotion]
+            PieceType pt = type_of(pos.moved_piece(m));
+            bool isDrop = type_of(m) == DROP;
 
-        // Origin square, disambiguation
-        Disambiguation d = disambiguation_level(pos, m, n);
-        san += disambiguation(pos, from, n, d);
+            // Find ambiguous pieces that can reach the destination
+            bool needsAmb = false;
+            JapaneseMoveDirection myDir = JAPANESE_MOVE_HORIZONTAL;
+            std::vector<Square> others;
+
+            if (!isDrop)
+            {
+                myDir = japanese_move_direction(us, from, to);
+
+                // Find other pieces of same type that can reach the destination
+                Bitboard b = pos.pieces(us, pt) ^ from;
+                while (b)
+                {
+                    Square s = pop_lsb(b);
+                    Move testMove = Move(m ^ make_move(from, to) ^ make_move(s, to));
+                    if (pos.pseudo_legal(testMove) && pos.legal(testMove)
+                        && !(pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
+                    {
+                        needsAmb = true;
+                        others.push_back(s);
+                    }
+                }
+            }
+            else
+            {
+                // For drops: check if any on-board piece of same type can reach the destination
+                Bitboard sameType = pos.pieces(us, pt);
+                while (sameType)
+                {
+                    Square s = pop_lsb(sameType);
+                    Move testMove = make_move(s, to);
+                    if (pos.pseudo_legal(testMove) && pos.legal(testMove))
+                    {
+                        needsAmb = true;
+                        break;
+                    }
+                }
+            }
+
+            // Step 1: Destination — use 同　when capturing on same square as last move's destination
+            bool sameSquare = false;
+            if (lastMoveDest != SQ_NONE)
+                sameSquare = (lastMoveDest == to);
+            else if (pos.state() && pos.state()->move != MOVE_NONE)
+                sameSquare = (to_sq(pos.state()->move) == to);
+            if (sameSquare && pos.capture(m))
+                san += "\u540c\u3000";  // 同　(same square capture)
+            else
+                san += square(pos, to, n);
+
+            // Step 2: Piece kanji
+            san += piece(pos, m, n);
+
+            // Step 3: Disambiguation
+            if (needsAmb && !isDrop)
+            {
+                // Japanese move qualifiers are chosen from the mover's board view, not from
+                // raw file/rank coordinates. We first decide whether 直 applies, then whether
+                // a vertical-only qualifier (上/引/寄 or 行) is sufficient, and only fall back
+                // to side labels when multiple candidates share the same movement direction.
+                bool sameRankConflict = false;
+                bool sameDirectionConflict = false;
+                int myViewFile = japanese_view_file(pos, from, us);
+                int rightest = FILE_MAX + 2;
+                int leftest = -1;
+
+                for (Square s : others)
+                {
+                    sameRankConflict |= rank_of(s) == rank_of(from);
+                    sameDirectionConflict |= japanese_move_direction(us, s, to) == myDir;
+                    int viewFile = japanese_view_file(pos, s, us);
+                    rightest = std::min(rightest, viewFile);
+                    leftest = std::max(leftest, viewFile);
+                }
+
+                if (file_of(from) == file_of(to) && myDir == JAPANESE_MOVE_FORWARD
+                    && is_shogi_gold_like(pos, m) && sameRankConflict)
+                {
+                    san += "\u76f4";  // 直
+                }
+                else if (!sameDirectionConflict)
+                {
+                    san += japanese_vertical_disambiguation(pos, m, myDir);
+                }
+                else
+                {
+                    bool sideOnly = rightest > myViewFile || leftest < myViewFile
+                        || (others.size() == 2 && rightest < myViewFile && leftest > myViewFile);
+                    if (sideOnly)
+                        san += japanese_side_disambiguation(rightest > myViewFile, leftest < myViewFile);
+                    else
+                    {
+                        san += japanese_side_disambiguation(rightest >= myViewFile, leftest <= myViewFile);
+                        san += japanese_vertical_disambiguation(pos, m, myDir);
+                    }
+                }
+            }
+
+            // Step 4: Drop indicator 打 (only when ambiguous)
+            if (isDrop && needsAmb)
+                san += "\u6253";  // 打
+
+            // Step 5: Promotion
+            // In pieceDemotion variants (e.g. kyotoshogi), pieces swap between paired
+            // types. No 成/不成 — the piece kanji already reflects the board state.
+            if (!pos.piece_demotion())
+            {
+                if (type_of(m) == PIECE_PROMOTION)
+                    san += "\u6210";  // 成
+                else if (type_of(m) == PIECE_DEMOTION)
+                    san += "\u4e0d\u6210";  // 不成
+                else if (type_of(m) == NORMAL && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
+                    san += "\u4e0d\u6210";  // 不成 (option to not promote)
+            }
+        }
+        else
+        {
+            // Piece
+            san += piece(pos, m, n);
+
+            if (n == NOTATION_THAI_LAN)
+                san += " ";
+
+            // Origin square, disambiguation
+            d = disambiguation_level(pos, m, n);
+            // WXF tandem pawns: use Arabic file for source
+            if (n == NOTATION_XIANGQI_WXF && d == FILE_DISAMBIGUATION)
+            {
+                PieceType pt = type_of(pos.moved_piece(m));
+                if (popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
+                    san += std::to_string((us == WHITE ? pos.max_file() - file_of(from) : file_of(from)) + 1);
+                else
+                    san += disambiguation(pos, from, n, d);
+            }
+            else
+                san += disambiguation(pos, from, n, d);
+        }
 
         // Separator/Operator
-        if (type_of(m) == DROP)
-            san += n == NOTATION_SHOGI_HOSKING ? '\'' : is_shogi(n) ? '*' : '@';
+        if (type_of(m) == DROP && n != NOTATION_SHOGI_JAPANESE)
+        {
+            if (n == NOTATION_SHOGI_HOSKING)
+                san += '\'';
+            else if (is_shogi(n) && n != NOTATION_SHOGI_JAPANESE)
+                san += '*';
+            else
+                san += '@';
+        }
         else if (n == NOTATION_XIANGQI_WXF)
         {
             if (rank_of(from) == rank_of(to))
@@ -321,19 +914,53 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
             else
                 san += '-';
         }
-        else if (pos.capture(m))
+        else if (is_xiangqi_chinese(n))
+        {
+            if (rank_of(from) == rank_of(to))
+                san += "平";
+            else if (relative_rank(us, to, pos.max_rank()) > relative_rank(us, from, pos.max_rank()))
+                san += "進";
+            else
+                san += "退";
+        }
+        else if (pos.capture(m) && n != NOTATION_SHOGI_JAPANESE)
             san += 'x';
-        else if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || (is_shogi(n) && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION)) || n == NOTATION_JANGGI || (n == NOTATION_THAI_SAN && type_of(pos.moved_piece(m)) != PAWN))
+        else if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || (is_shogi(n) && n != NOTATION_SHOGI_JAPANESE && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION)) || n == NOTATION_JANGGI || (n == NOTATION_THAI_SAN && type_of(pos.moved_piece(m)) != PAWN))
             san += '-';
 
         // Destination square
-        if (n == NOTATION_XIANGQI_WXF && type_of(m) != DROP)
-            san += file_of(to) == file_of(from) ? std::to_string(std::abs(rank_of(to) - rank_of(from))) : file(pos, to, n);
+        if (n == NOTATION_SHOGI_JAPANESE)
+        {
+            // Japanese notation: destination is already added in the piece section
+        }
+        else if ((n == NOTATION_XIANGQI_WXF || is_xiangqi_chinese(n)) && type_of(m) != DROP)
+        {
+            if (file_of(to) == file_of(from))
+            {
+                int rankDist = std::abs(rank_of(to) - rank_of(from));
+                san += is_xiangqi_chinese(n) && us == WHITE ? chinese_numeral_red(rankDist - 1) : std::to_string(rankDist);
+            }
+            else
+            {
+                // WXF tandem pawns use Arabic numerals per WXF §7.5
+                PieceType pt = type_of(pos.moved_piece(m));
+                bool isTandem = n == NOTATION_XIANGQI_WXF
+                    && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt));
+                if (isTandem)
+                    san += std::to_string((us == WHITE ? pos.max_file() - file_of(to) : file_of(to)) + 1);
+                else
+                    san += file(pos, to, n);
+            }
+        }
         else
             san += square(pos, to, n);
 
-        // Suffix
-        if (type_of(m) == PROMOTION)
+        // Suffix (non-Japanese notations)
+        if (n == NOTATION_SHOGI_JAPANESE)
+        {
+            // Already handled in the Japanese block above
+        }
+        else if (type_of(m) == PROMOTION)
             san += std::string("=") + (char)toupper(pos.piece_to_char()[make_piece(us, promotion_type(m))]);
         else if (type_of(m) == PIECE_PROMOTION)
             san += is_shogi(n) ? std::string("+") : std::string("=") + (char)toupper(pos.piece_to_char()[make_piece(us, pos.promoted_piece_type(type_of(pos.moved_piece(m))))]);
@@ -350,7 +977,7 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         san += "," + square(pos, gating_square(m), n);
 
     // Check and checkmate
-    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
+    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF && !is_xiangqi_chinese(n) && !is_janggi_korean(n))
     {
         StateInfo st;
         pos.do_move(m, st);

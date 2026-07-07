@@ -148,7 +148,8 @@ extern "C" PyObject* pyffish_getSAN(PyObject* self, PyObject *args) {
 
     int chess960 = false;
     Notation notation = NOTATION_DEFAULT;
-    if (!PyArg_ParseTuple(args, "sss|pi", &variant, &fen,  &move, &chess960, &notation)) {
+    const char *lastMoveStr = NULL;
+    if (!PyArg_ParseTuple(args, "sss|piz", &variant, &fen,  &move, &chess960, &notation, &lastMoveStr)) {
         return NULL;
     }
     if (notation == NOTATION_DEFAULT)
@@ -157,8 +158,17 @@ extern "C" PyObject* pyffish_getSAN(PyObject* self, PyObject *args) {
     buildPosition(pos, states, variant, fen, moveList, chess960);
     std::string moveStr = move;
 
+    Square lastMoveDest = SQ_NONE;
+    if (lastMoveStr) {
+        std::string s(lastMoveStr);
+        if (s.length() >= 4) {
+            std::string destStr = s.substr(2, 2);
+            lastMoveDest = SAN::uci_to_square(pos, destStr);
+        }
+    }
+
     Py_XDECREF(moveList);
-    return Py_BuildValue("s", SAN::move_to_san(pos, UCI::to_move(pos, moveStr), notation).c_str());
+    return Py_BuildValue("s", SAN::move_to_san(pos, UCI::to_move(pos, moveStr), notation, lastMoveDest).c_str());
 }
 
 // INPUT variant, fen, movelist
@@ -169,13 +179,23 @@ extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
 
     int chess960 = false;
     Notation notation = NOTATION_DEFAULT;
-    if (!PyArg_ParseTuple(args, "ssO!|pi", &variant, &fen, &PyList_Type, &moveList, &chess960, &notation)) {
+    const char *lastMoveStr = NULL;
+    if (!PyArg_ParseTuple(args, "ssO!|piz", &variant, &fen, &PyList_Type, &moveList, &chess960, &notation, &lastMoveStr)) {
         return NULL;
     }
     if (notation == NOTATION_DEFAULT)
         notation = default_notation(variants.find(std::string(variant))->second);
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, sanMoves, chess960);
+
+    Square lastMoveDest = SQ_NONE;
+    if (lastMoveStr) {
+        std::string s(lastMoveStr);
+        if (s.length() >= 4) {
+            std::string destStr = s.substr(2, 2);
+            lastMoveDest = SAN::uci_to_square(pos, destStr);
+        }
+    }
 
     int numMoves = PyList_Size(moveList);
     for (int i=0; i<numMoves ; i++) {
@@ -186,9 +206,12 @@ extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
         if ((m = UCI::to_move(pos, moveStr)) != MOVE_NONE)
         {
             //add to the san move list
-            PyObject *move = Py_BuildValue("s", SAN::move_to_san(pos, m, notation).c_str());
+            PyObject *move = Py_BuildValue("s", SAN::move_to_san(pos, m, notation, lastMoveDest).c_str());
             PyList_Append(sanMoves, move);
             Py_XDECREF(move);
+
+            // Track last move destination for next iteration's 同
+            lastMoveDest = to_sq(m);
 
             //do the move
             states->emplace_back();
@@ -409,7 +432,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"start_fen", (PyCFunction)pyffish_startFen, METH_VARARGS, "Get starting position FEN."},
     {"two_boards", (PyCFunction)pyffish_twoBoards, METH_VARARGS, "Checks whether the variant is played on two boards."},
     {"captures_to_hand", (PyCFunction)pyffish_capturesToHand, METH_VARARGS, "Checks whether the variant rules contains capturesToHand."},
-    {"get_san", (PyCFunction)pyffish_getSAN, METH_VARARGS, "Get SAN move from given FEN and UCI move."},
+    {"get_san", (PyCFunction)pyffish_getSAN, METH_VARARGS, "Get SAN move from given FEN and UCI move. Optional args: chess960, notation, lastMove (UCI string for 同 disambiguation)."},
     {"get_san_moves", (PyCFunction)pyffish_getSANmoves, METH_VARARGS, "Get SAN movelist from given FEN and UCI movelist."},
     {"legal_moves", (PyCFunction)pyffish_legalMoves, METH_VARARGS, "Get legal moves from given FEN and movelist."},
     {"get_fen", (PyCFunction)pyffish_getFEN, METH_VARARGS, "Get resulting FEN from given FEN and movelist."},
@@ -455,8 +478,11 @@ PyMODINIT_FUNC PyInit_pyffish() {
     PyModule_AddObject(module, "NOTATION_SHOGI_HOSKING", PyLong_FromLong(NOTATION_SHOGI_HOSKING));
     PyModule_AddObject(module, "NOTATION_SHOGI_HODGES", PyLong_FromLong(NOTATION_SHOGI_HODGES));
     PyModule_AddObject(module, "NOTATION_SHOGI_HODGES_NUMBER", PyLong_FromLong(NOTATION_SHOGI_HODGES_NUMBER));
+    PyModule_AddObject(module, "NOTATION_SHOGI_JAPANESE", PyLong_FromLong(NOTATION_SHOGI_JAPANESE));
     PyModule_AddObject(module, "NOTATION_JANGGI", PyLong_FromLong(NOTATION_JANGGI));
+    PyModule_AddObject(module, "NOTATION_JANGGI_KOREAN", PyLong_FromLong(NOTATION_JANGGI_KOREAN));
     PyModule_AddObject(module, "NOTATION_XIANGQI_WXF", PyLong_FromLong(NOTATION_XIANGQI_WXF));
+    PyModule_AddObject(module, "NOTATION_XIANGQI_CHINESE", PyLong_FromLong(NOTATION_XIANGQI_CHINESE));
     PyModule_AddObject(module, "NOTATION_THAI_SAN", PyLong_FromLong(NOTATION_THAI_SAN));
     PyModule_AddObject(module, "NOTATION_THAI_LAN", PyLong_FromLong(NOTATION_THAI_LAN));
 

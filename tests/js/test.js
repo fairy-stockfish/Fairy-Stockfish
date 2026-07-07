@@ -3,6 +3,9 @@ before(() => {
   return new Promise((resolve) => {
     pgnDir = __dirname + '/../pgn/';
     srcDir = __dirname + '/../../src/';
+    // Node 24 exposes fetch globally, but the generated loader passes a plain
+    // filesystem path to it for the local wasm file. Force the Node FS path.
+    global.fetch = undefined;
     ffish = require('./ffish.js');
     WHITE = true;
     BLACK = false;
@@ -246,6 +249,104 @@ describe('board.sanMove(ffish.Notation)', function () {
     chai.expect(board.sanMove("g1f3", ffish.Notation.SHOGI_HODGES_NUMBER)).to.equal("N-36");
     chai.expect(board.sanMove("g1f3", ffish.Notation.JANGGI)).to.equal("N87-66");
     chai.expect(board.sanMove("g1f3", ffish.Notation.XIANGQI_WXF)).to.equal("N2+3");
+
+    // Korean Janggi notation - Han (White) uses 將, Cho (Black) uses 帥
+    const jgBoard = new ffish.Board("janggi");
+    chai.expect(jgBoard.sanMove("b1c3", ffish.Notation.JANGGI_KOREAN)).to.equal("02\u99ac83");
+    chai.expect(jgBoard.sanMove("e2e3", ffish.Notation.JANGGI_KOREAN)).to.equal("95\u5c0785");
+    chai.expect(jgBoard.sanMove("a1a2", ffish.Notation.JANGGI_KOREAN)).to.equal("01\u8eca91");
+    chai.expect(jgBoard.sanMove("a4a5", ffish.Notation.JANGGI_KOREAN)).to.equal("71\u517561");
+    chai.expect(jgBoard.sanMove("e4e5", ffish.Notation.JANGGI_KOREAN)).to.equal("75\u517565");
+    jgBoard.delete();
+
+    // Chinese notation
+    const xqBoard = new ffish.Board("xiangqi");
+    chai.expect(xqBoard.sanMove("h3e3", ffish.Notation.XIANGQI_CHINESE)).to.equal("炮二平五");
+    chai.expect(xqBoard.sanMove("h1g3", ffish.Notation.XIANGQI_CHINESE)).to.equal("馬二進三");
+    chai.expect(xqBoard.sanMove("c1e3", ffish.Notation.XIANGQI_CHINESE)).to.equal("相七進五");
+    chai.expect(xqBoard.sanMove("h3h10", ffish.Notation.XIANGQI_CHINESE)).to.equal("炮二進七");
+    chai.expect(xqBoard.sanMove("h3h5", ffish.Notation.XIANGQI_CHINESE)).to.equal("炮二進二");
+    chai.expect(xqBoard.sanMove("a4a5", ffish.Notation.XIANGQI_CHINESE)).to.equal("兵九進一");
+    chai.expect(xqBoard.sanMove("d1e2", ffish.Notation.XIANGQI_CHINESE)).to.equal("仕六進五");
+    chai.expect(xqBoard.sanMove("f1e2", ffish.Notation.XIANGQI_CHINESE)).to.equal("仕四進五");
+    xqBoard.delete();
+
+    // Japanese Shogi notation
+    const shogiBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1");
+    // Coordinates: full-width file + kanji rank
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff13\u56db\u6b69");  // ３四歩
+    chai.expect(shogiBoard.sanMove("b7b6", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff18\u56db\u6b69");  // ８四歩
+    // Piece kanji
+    chai.expect(shogiBoard.sanMove("b8c8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff17\u4e8c\u98db");  // ７二飛
+    chai.expect(shogiBoard.sanMove("c9d8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u4e8c\u9280");  // ６二銀
+    chai.expect(shogiBoard.sanMove("a9a8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff19\u4e8c\u9999");  // ９二香
+    // King = 玉
+    chai.expect(shogiBoard.sanMove("e9d8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u4e8c\u7389");  // ６二玉
+    // Disambiguation
+    chai.expect(shogiBoard.sanMove("d9e8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e8c\u91d1\u53f3");  // ５二金右
+    chai.expect(shogiBoard.sanMove("f9e8", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e8c\u91d1\u5de6");  // ５二金左
+
+    const shogiAmbBoard = new ffish.Board("shogi", "4k4/9/9/9/9/3GGG3/9/9/4K4[-] w - - 0 1");
+    chai.expect(shogiAmbBoard.sanMove("d4e5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e94\u91d1\u5de6");  // ５五金左
+    chai.expect(shogiAmbBoard.sanMove("e4e5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e94\u91d1\u76f4");  // ５五金直
+    chai.expect(shogiAmbBoard.sanMove("f4e5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e94\u91d1\u53f3");  // ５五金右
+    shogiAmbBoard.delete();
+
+    const shogiTokinBoard = new ffish.Board("shogi", "4k4/9/9/9/9/3+P+P+P3/9/9/4K4[-] w - - 0 1");
+    chai.expect(shogiTokinBoard.sanMove("e4e5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u4e94\u3068\u76f4");  // ５五と直
+    shogiTokinBoard.delete();
+    // 同 (same-square capture via lastMoveUci)
+    const captureBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/6P2/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - - 0 1");
+    chai.expect(captureBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\u540c\u3000\u6b69");  // 同　歩 (capture)
+    captureBoard.delete();
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "g7g6")).to.equal("\uff13\u56db\u6b69");  // ３四歩 (not a capture, no 同)
+    chai.expect(shogiBoard.sanMove("g7g6", ffish.Notation.SHOGI_JAPANESE, "d9e8")).to.equal("\uff13\u56db\u6b69");  // ３四歩
+    shogiBoard.delete();
+
+    const toriBoard = new ffish.Board("torishogi");
+    chai.expect(toriBoard.sanMove("a3a4", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff17\u56db\u71d5");  // ７四燕
+    toriBoard.delete();
+
+    const toriPhoenixBoard = new ffish.Board("torishogi", "3k3/7/7/7/7/7/3K3[-] w 0 1");
+    chai.expect(toriPhoenixBoard.sanMove("d1d2", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u516d\u9d6c");  // ４六鵬
+    toriPhoenixBoard.delete();
+
+    const toriBirdBoard = new ffish.Board("torishogi", "3k3/7/7/7/3C3/7/3K3[-] w 0 1");
+    chai.expect(toriBirdBoard.sanMove("d3d4", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u56db\u9db4");  // ４四鶴
+    toriBirdBoard.delete();
+
+    const toriQuailBoard = new ffish.Board("torishogi", "3k3/7/7/7/3L3/7/3K3[-] w 0 1");
+    chai.expect(toriQuailBoard.sanMove("d3d4", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u56db\u9d89");  // ４四鶉
+    toriQuailBoard.delete();
+
+    const toriPheasantBoard = new ffish.Board("torishogi", "3k3/7/7/7/3P3/7/3K3[-] w 0 1");
+    chai.expect(toriPheasantBoard.sanMove("d3c2", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff15\u516d\u96c9");  // ５六雉
+    toriPheasantBoard.delete();
+
+    const toriPromotionBoard = new ffish.Board("torishogi", "3k3/7/3S3/7/7/7/3K3[-] w 0 1");
+    chai.expect(toriPromotionBoard.sanMove("d5d6+", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u4e8c\u71d5\u6210");  // ４二燕成
+    toriPromotionBoard.delete();
+
+    const toriPromotedBoard = new ffish.Board("torishogi", "3k3/7/7/7/3+S3/7/3K3[-] w 0 1");
+    chai.expect(toriPromotedBoard.sanMove("d3b5", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff16\u4e09\u9d08");  // ６三鴈
+    toriPromotedBoard.delete();
+
+    const toriFalconPromotionBoard = new ffish.Board("torishogi", "3k3/7/3F3/7/7/7/3K3[-] w 0 1");
+    chai.expect(toriFalconPromotionBoard.sanMove("d5d6+", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u4e8c\u9df9\u6210");  // ４二鷹成
+    toriFalconPromotionBoard.delete();
+
+    const toriEagleBoard = new ffish.Board("torishogi", "3k3/7/7/7/3+F3/7/3K3[-] w 0 1");
+    chai.expect(toriEagleBoard.sanMove("d3d4", ffish.Notation.SHOGI_JAPANESE)).to.equal("\uff14\u56db\u9d70");  // ４四鵰
+    toriEagleBoard.delete();
+
+    board.delete();
+  });
+});
+
+describe('board.sanMove(ffish.Notation.SHOGI_JAPANESE)', function () {
+  it("it uses variants.ini Japanese names for Cannon Shogi custom pieces", () => {
+    const board = new ffish.Board("cannonshogi");
+    chai.expect(board.sanMove("d2d3", ffish.Notation.SHOGI_JAPANESE)).to.equal("６七金砲");
     board.delete();
   });
 });
@@ -279,6 +380,26 @@ describe('board.variationSan(uciMoves, notation, moveNumbers)', function () {
     const sanMoves = board.variationSan("e7e5 g1f3 b8c6 f1c4", ffish.Notation.SAN, false);
     chai.expect(sanMoves).to.equal("e5 Nf3 Nc6 Bc4");
     board.delete();
+  });
+});
+
+describe('board.variationSan(uciMoves, notation, moveNumbers, lastMoveUci)', function () {
+  it("it converts a list of uci moves with 同 disambiguation for Japanese notation", () => {
+    const shogiBoard = new ffish.Board("shogi", "lnsgkgsnl/1r5b1/ppppppppp/6P2/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - - 0 1");
+    // variationSan with initial lastMoveUci that matches first move's dest and is a capture → 同
+    const sanMoves = shogiBoard.variationSan("g7g6 c3c4", ffish.Notation.SHOGI_JAPANESE, false, "g7g6");
+    chai.expect(sanMoves).to.equal("\u540c\u3000\u6b69 \uff17\u516d\u6b69");  // 同　歩 七六歩
+    // Without lastMoveUci → no 同
+    const sanMoves2 = shogiBoard.variationSan("g7g6 c3c4", ffish.Notation.SHOGI_JAPANESE, false);
+    chai.expect(sanMoves2).to.equal("\uff13\u56db\u6b69 \uff17\u516d\u6b69");  // ３四歩 七六歩
+    shogiBoard.delete();
+  });
+
+  it("keeps absolute board coordinates for both sides", () => {
+    const shogiBoard = new ffish.Board("shogi");
+    const sanMoves = shogiBoard.variationSan("c3c4 g7g6", ffish.Notation.SHOGI_JAPANESE, false);
+    chai.expect(sanMoves).to.equal("\uff17\u516d\u6b69 \uff13\u56db\u6b69");  // ７六歩 ３四歩
+    shogiBoard.delete();
   });
 });
 

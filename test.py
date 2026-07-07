@@ -3,6 +3,7 @@
 import faulthandler
 import unittest
 import pyffish as sf
+from tests.shogi_compare import compare_japanese_notation, parse_japanese_notation
 
 faulthandler.enable()
 
@@ -111,7 +112,10 @@ customPiece2 = c:mBcpB
 customPiece3 = i:pB
 customPiece4 = w:mRpRmFpB2
 customPiece5 = f:mBpBmWpR2
-promotedPieceType = u:w a:w c:f i:f
+promotedPieceType = u:w a:w c:f i:f p:g
+japanesePieceNames = shogi
+japanesePieceNameOverrides = u:金砲 a:銀砲 c:銅砲 i:鉄砲
+japanesePromotedPieceNameOverrides = u:成金砲 a:成銀砲 c:成銅砲 i:成鉄砲
 startFen = lnsgkgsnl/1rci1uab1/p1p1p1p1p/9/9/9/P1P1P1P1P/1BAU1ICR1/LNSGKGSNL[-] w 0 1
 
 [fogofwar:chess]
@@ -373,7 +377,7 @@ class TestPyffish(unittest.TestCase):
         self.assertNotIn("Q@a6", result)
 
         # In Cannon Shogi the FGC and FSC can also move one square diagonally and, besides,
-        # move or capture two squares diagonally, by leaping an adjacent piece. 
+        # move or capture two squares diagonally, by leaping an adjacent piece.
         fen = "lnsg1gsnl/1rc1kuab1/p1+A1p1p1p/3P5/6i2/6P2/P1P1P3P/1B1U1ICR1/LNSGKGSNL[] w - - 1 3"
         result = sf.legal_moves("cannonshogi", fen, [])
         # mF
@@ -767,6 +771,99 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("shogi", SHOGI, "f1e2", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
         self.assertEqual(result, "G49-58")
 
+        # Japanese Shogi notation
+        SHOGI_B = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] b - - 0 1"
+        N = sf.NOTATION_SHOGI_JAPANESE
+
+        # === Coordinate format: full-width file + kanji rank ===
+        result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N)
+        self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩
+        result = sf.get_san("shogi", SHOGI_B, "b7b6", False, N)
+        self.assertEqual(result, "\uff18\u56db\u6b69")  # ８四歩
+        result = sf.get_san("shogi", SHOGI, "i3i4", False, N)
+        self.assertEqual(result, "\uff11\u516d\u6b69")  # １六歩
+
+        # === Piece kanji ===
+        result = sf.get_san("shogi", SHOGI_B, "b8c8", False, N)
+        self.assertEqual(result, "\uff17\u4e8c\u98db")  # ７二飛 (rook)
+        result = sf.get_san("shogi", SHOGI_B, "c9d8", False, N)
+        self.assertEqual(result, "\uff16\u4e8c\u9280")  # ６二銀 (silver)
+        result = sf.get_san("shogi", SHOGI_B, "a9a8", False, N)
+        self.assertEqual(result, "\uff19\u4e8c\u9999")  # ９二香 (lance)
+
+        # === King = 玉 (not 王) ===
+        result = sf.get_san("shogi", SHOGI_B, "e9d8", False, N)
+        self.assertEqual(result, "\uff16\u4e8c\u7389")  # ６二玉
+
+        # Sequential moves must keep absolute board coordinates for both sides
+        result = sf.get_san_moves("shogi", SHOGI, ["c3c4", "g7g6"], False, N)
+        self.assertEqual(result, ["\uff17\u516d\u6b69", "\uff13\u56db\u6b69"])  # ７六歩 ３四歩
+
+        # === Directional disambiguation ===
+        # Gold d9e8: two golds can reach e8, this one is right-side for gote → 右
+        result = sf.get_san("shogi", SHOGI_B, "d9e8", False, N)
+        self.assertEqual(result, "\uff15\u4e8c\u91d1\u53f3")  # ５二金右
+        # Gold f9e8: left-side for gote → 左
+        result = sf.get_san("shogi", SHOGI_B, "f9e8", False, N)
+        self.assertEqual(result, "\uff15\u4e8c\u91d1\u5de6")  # ５二金左
+
+        # Three golds side-by-side: right / straight / left
+        fen = "4k4/9/9/9/9/3GGG3/9/9/4K4[-] w - - 0 1"
+        result = sf.get_san("shogi", fen, "d4e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u91d1\u5de6")  # ５五金左
+        result = sf.get_san("shogi", fen, "e4e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u91d1\u76f4")  # ５五金直
+        result = sf.get_san("shogi", fen, "f4e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u91d1\u53f3")  # ５五金右
+
+        # Promoted gold-like pieces also use 直
+        fen = "4k4/9/9/9/9/3+P+P+P3/9/9/4K4[-] w - - 0 1"
+        result = sf.get_san("shogi", fen, "e4e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u3068\u76f4")  # ５五と直
+
+        # === Capture: no x marker ===
+        fen = "4k4/4R4/9/4p3/9/9/9/9/4K4[-] b - - 0 1"
+        result = sf.get_san("shogi", fen, "e9e8", False, N)
+        self.assertEqual(result, "\uff15\u4e8c\u7389")  # ５二玉 (no x)
+
+        # === Drop: unambiguous → no 打 ===
+        fen = "k8/9/1P7/9/9/9/9/9/1K6[r] b - - 0 1"
+        result = sf.get_san("shogi", fen, "R@e5", False, N)
+        self.assertEqual(result, "\uff15\u4e94\u98db")  # ５五飛 (no 打)
+
+        # Regression: a plain drop has no source square, so the Japanese piece
+        # name must come from the hand piece rather than a bogus promoted board
+        # lookup via SQ_NONE.
+        fen = "ln1gk2nl/1r1s2g2/2p+bppspp/p2p2p2/7P1/PPP3P2/2GPP1GSP/3S3R1/LN2K2NL[PBp] b - - 0 18"
+        result = sf.get_san("shogi", fen, "P@b2", False, N)
+        self.assertEqual(result, "\uff18\u516b\u6b69")  # ８八歩
+
+        fen = "l6nl/1r5k1/ppn+R2ssp/6pp1/7P1/1P+b6/P3PPP1P/5GS2/L3s1KNL[GGGPPnppppb] w - - 0 52"
+        result = sf.get_san("shogi", fen, "G@e2", False, N)
+        self.assertEqual(result, "\uff15\u516b\u91d1\u6253")  # ５八金打
+
+        # === 同 (same-square capture via lastMoveUci) ===
+        fen_capture = "lnsgkgsnl/1r5b1/ppppppppp/6P2/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - - 0 1"
+        result = sf.get_san("shogi", fen_capture, "g7g6", False, N, "g7g6")
+        self.assertEqual(result, "\u540c\u3000\u6b69")  # 同　歩 (capture on same square)
+        result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N, "g7g6")
+        self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩 (not a capture, no 同)
+        result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N, "d9e8")
+        self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩 (diff dest)
+        result = sf.get_san("shogi", SHOGI_B, "g7g6", False, N, None)
+        self.assertEqual(result, "\uff13\u56db\u6b69")  # ３四歩 (explicit None)
+
+        # === get_san_moves batch ===
+        uci_moves = ["g7g6", "b3b4", "b8c8", "g3g4"]
+        san_moves = ["\uff13\u56db\u6b69", "\uff18\u516d\u6b69", "\uff17\u4e8c\u98db", "\uff13\u516d\u6b69"]
+        result = sf.get_san_moves("shogi", SHOGI_B, uci_moves, False, N)
+        self.assertEqual(result, san_moves)
+
+        # === get_san_moves with initial lastMoveUci ===
+        result = sf.get_san_moves("shogi", fen_capture, ["g7g6", "c3c4"], False, N, "g7g6")
+        self.assertEqual(result[0], "\u540c\u3000\u6b69")  # 同　歩 (capture on same square)
+        self.assertEqual(result[1], "\uff17\u516d\u6b69")  # 七六歩
+
         # Disambiguation of promotion moves
         fen = "p1ksS/n1n2/4P/5/+L1K1+L[] b - - 3 9"
         result = sf.get_san("kyotoshogi", fen, "c4b2+", False, sf.NOTATION_SHOGI_HODGES_NUMBER)
@@ -778,6 +875,43 @@ class TestPyffish(unittest.TestCase):
         fen = "p+nks+l/5/5/L4/1SK+NP[-] b 0 1"
         result = sf.get_san("kyotoshogi", fen, "e5e4-", False, sf.NOTATION_SAN)
         self.assertEqual(result, "Ge4=L")
+
+        # Kyotoshogi Japanese notation: all 9 move types (81dojo style)
+        # No 成/不成 — single kanji showing the piece after the move.
+        # Promotion pairs: pawn<->rook, lance<->tokin, knight<->gold, silver<->bishop
+        fen = "p+nks+l/5/5/5/+LSK+NP[-] w 0 1"
+        # 1. Pawn promotes to rook: 歩 -> 飛
+        result = sf.get_san("kyotoshogi", fen, "e1e2+", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff11\u56db\u98db")  # １四飛
+        # 2. Silver promotes to bishop: 銀 -> 角
+        result = sf.get_san("kyotoshogi", fen, "b1a2+", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff15\u56db\u89d2")  # ５四角
+        # 3. Gold demotes to knight: 金 -> 桂
+        result = sf.get_san("kyotoshogi", fen, "d1c2-", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff13\u56db\u6842")  # ３四桂
+        # 4. Tokin demotes to lance: と -> 香
+        result = sf.get_san("kyotoshogi", fen, "a1a2-", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff15\u56db\u9999")  # ５四香
+        # 5. King (no change): 玉
+        result = sf.get_san("kyotoshogi", fen, "c1c2", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff13\u56db\u7389")  # ３四玉
+
+        # 6. Rook demotes to pawn: 飛 -> 歩
+        fen = "+p+nks+l/5/5/5/1K4[-] b 0 1"
+        result = sf.get_san("kyotoshogi", fen, "a5a4-", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff15\u4e8c\u6b69")  # ５二歩
+        # 7. Lance promotes to tokin: 香 -> と (gote to move)
+        fen = "p+nks+l/5/5/5/L1K4[-] w 0 1"
+        result = sf.get_san("kyotoshogi", fen, "a1a2+", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff15\u56db\u3068")  # ５四と
+        # 8. Knight promotes to gold: 桂 -> 金 (gote to move)
+        fen = "p+nks+l/5/5/5/N1K4[-] w 0 1"
+        result = sf.get_san("kyotoshogi", fen, "a1b3+", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff14\u4e09\u91d1")  # ４三金
+        # 9. Bishop demotes to silver: 角 -> 銀 (gote to move)
+        fen = "p+nks+l/5/5/5/+S1K4[-] w 0 1"
+        result = sf.get_san("kyotoshogi", fen, "a1b2-", False, sf.NOTATION_SHOGI_JAPANESE)
+        self.assertEqual(result, "\uff14\u56db\u9280")  # ４四銀
 
         fen = "lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -"
         result = sf.get_san("shogi", fen, "b2h8", False, sf.NOTATION_SHOGI_HODGES)
@@ -844,6 +978,85 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "P-+1")
 
+        # Chinese notation - standard opening
+        result = sf.get_san("xiangqi", XIANGQI, "h3e3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "炮二平五")
+
+        result = sf.get_san("xiangqi", XIANGQI, "h1g3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "馬二進三")
+
+        result = sf.get_san("xiangqi", XIANGQI, "c1e3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "相七進五")
+
+        # Chinese notation - cannon advance
+        result = sf.get_san("xiangqi", XIANGQI, "h3h10", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "炮二進七")
+
+        result = sf.get_san("xiangqi", XIANGQI, "h3h5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "炮二進二")
+
+        # Chinese notation - retreat
+        fen = "4k4/4a3R/9/9/9/9/9/9/4K4/9 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "i9e9", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "俥一平五")
+
+        result = sf.get_san("xiangqi", fen, "i9i10", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "俥一進一")
+
+        # Chinese notation does not denote check or checkmate
+        fen = "4k4/4a3R/9/9/9/9/9/9/4K4/9 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "i9e9", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "俥一平五")  # no + or #
+        result = sf.get_san("xiangqi", fen, "i9i10", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "俥一進一")  # no #
+
+        # Chinese notation - Black moves use Arabic numerals (test from Black's turn position)
+        fen_black = sf.get_fen("xiangqi", XIANGQI, ["h3e3"], False, False)
+        result = sf.get_san("xiangqi", fen_black, "h10g8", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "馬8進7")
+
+        # Chinese notation - Black advance (b8b5 is forward for Black)
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+        fen = sf.get_fen("xiangqi", fen, ["h3h10"], False, False)
+        result = sf.get_san("xiangqi", fen, "b8b5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "砲2進3")
+
+        # Chinese notation - advisor moves
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "d1e2", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "仕六進五")
+
+        result = sf.get_san("xiangqi", fen, "f1e2", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "仕四進五")
+
+        # Chinese notation - soldier moves
+        result = sf.get_san("xiangqi", fen, "a4a5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "兵九進一")
+
+        # Chinese notation - Black advance (h8h5 is forward for Black)
+        fen = sf.get_fen("xiangqi", XIANGQI, ["h3h10"], False, False)
+        result = sf.get_san("xiangqi", fen, "h8h5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "砲8進3")
+
+        # Chinese notation - skip disambiguation for elephants and advisors
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/4P4/1NB6/P1P1P3P/1C1A3C1/9/RNBAK4 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "c5e3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "相七退五")
+
+        result = sf.get_san("xiangqi", fen, "d1e2", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "仕六進五")
+
+        result = sf.get_san("xiangqi", fen, "b5c7", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "前馬進七")
+
+        # Chinese notation - get_san_moves
+        UCI_moves = ["h3e3", "h10g8", "h1g3", "c10e8", "a1a3", "i10h10"]
+        SAN_moves = ["炮二平五", "馬8進7",
+                     "馬二進三", "象3進5",
+                     "俥九進二", "車9平8"]
+        result = sf.get_san_moves("xiangqi", XIANGQI, UCI_moves, False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, SAN_moves)
+
         # Tandem pawns
         fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
         result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_WXF)
@@ -860,6 +1073,45 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("xiangqi", fen, "f6e6", False, sf.NOTATION_XIANGQI_WXF)
         self.assertEqual(result, "24=5")
 
+        # Chinese tandem pawns - two tandem files must not collide
+        fen = "5k3/9/3P5/3P1P1P1/5P3/9/9/9/9/4K4 w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "d8e8", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u524d\u5175\u516d\u5e73\u4e94")  # 前兵六平五
+        result = sf.get_san("xiangqi", fen, "d7e7", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u5f8c\u5175\u516d\u5e73\u4e94")  # 後兵六平五
+        result = sf.get_san("xiangqi", fen, "f6e6", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u5f8c\u5175\u56db\u5e73\u4e94")  # 後兵四平五
+        result = sf.get_san("xiangqi", fen, "f7e7", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u524d\u5175\u56db\u5e73\u4e94")  # 前兵四平五
+
+        # Chinese tandem pawns - 3 soldiers on same file (front/middle/rear)
+        fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
+        result = sf.get_san("xiangqi", fen, "e7d7", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u524d\u5175\u4e94\u5e73\u516d")  # 前兵五平六
+        result = sf.get_san("xiangqi", fen, "e6d6", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u4e2d\u5175\u4e94\u5e73\u516d")  # 中兵五平六
+        result = sf.get_san("xiangqi", fen, "e4e5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u5f8c\u5175\u4e94\u9032\u4e00")  # 後兵五進一
+
+        # Chinese tandem pawns - 3 soldiers, retreat
+        fen = "rnbakabnr/9/1c5c1/p1p1P1p1p/4P4/9/P3P3P/1C5C1/9/RNBAKABNR w - - 0 1"
+        # Move e7 back is illegal (retreating soldier can only go forward or sideways)
+        # Test a different retreat: e4 to e3 would be going backward
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/4P4/4P4/4P4/1C5C1/9/RNBAKABNR w - - 0 1"
+        legal = sf.legal_moves("xiangqi", fen, [])
+        if "e6e7" in legal:
+            result = sf.get_san("xiangqi", fen, "e6e7", False, sf.NOTATION_XIANGQI_CHINESE)
+            self.assertEqual(result, "\u524d\u5175\u4e94\u9032\u4e00")  # 前兵五進一
+
+        # Chinese tandem pawns - Black uses Arabic file numbers
+        fen = "4k4/9/9/9/9/4p4/4p4/4p4/9/4K4 b - - 0 1"
+        result = sf.get_san("xiangqi", fen, "e3d3", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u524d\u53525\u5e734")  # 前卒5平4
+        result = sf.get_san("xiangqi", fen, "e4d4", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u4e2d\u53525\u5e734")  # 中卒5平4
+        result = sf.get_san("xiangqi", fen, "e5d5", False, sf.NOTATION_XIANGQI_CHINESE)
+        self.assertEqual(result, "\u5f8c\u53525\u5e734")  # 後卒5平4
+
         fen = "1rb1ka2r/4a4/2ncb1nc1/p1p1p1p1p/9/2P6/P3PNP1P/2N1C2C1/9/R1BAKAB1R w - - 1 7"
         result = sf.get_san("xiangqi", fen, "c3e2")
         self.assertEqual(result, "Hce2")
@@ -869,6 +1121,29 @@ class TestPyffish(unittest.TestCase):
 
         result = sf.get_san("janggi", JANGGI, "b1c3", False, sf.NOTATION_JANGGI)
         self.assertEqual(result, "H02-83")
+
+        # Korean Janggi notation - Han (White) uses 將, Cho (Black) uses 帥
+        result = sf.get_san("janggi", JANGGI, "b1c3", False, sf.NOTATION_JANGGI_KOREAN)
+        self.assertEqual(result, "02\u99ac83")  # 02馬83
+
+        result = sf.get_san("janggi", JANGGI, "e2e3", False, sf.NOTATION_JANGGI_KOREAN)
+        self.assertEqual(result, "95\u5c0785")  # 95將85 (Han general)
+
+        result = sf.get_san("janggi", JANGGI, "a1a2", False, sf.NOTATION_JANGGI_KOREAN)
+        self.assertEqual(result, "01\u8eca91")  # 01車91
+
+        result = sf.get_san("janggi", JANGGI, "a4a5", False, sf.NOTATION_JANGGI_KOREAN)
+        self.assertEqual(result, "71\u517561")  # 71兵61
+
+        result = sf.get_san("janggi", JANGGI, "e4e5", False, sf.NOTATION_JANGGI_KOREAN)
+        self.assertEqual(result, "75\u517565")  # 75兵65
+
+        # Korean Janggi notation - Cho (Black) king uses 帥
+        fen = sf.get_fen("janggi", JANGGI, ["e2e3"], False, False)
+        result = sf.get_san("janggi", fen, "e9e8", False, sf.NOTATION_JANGGI_KOREAN)
+        self.assertEqual(result, "25\u5e2b35")  # 25帥35 (Cho commander)
+        result = sf.get_san("janggi", fen, "a7a6", False, sf.NOTATION_JANGGI_KOREAN)
+        self.assertEqual(result, "41\u535251")  # 41卒51 (Cho pawn)
 
         fen = "1b1aa2b1/5k3/3ncn3/1pp1pp3/5r2p/9/P1PPB1PPB/2N1CCN1c/9/R2AKAR2 w - - 19 17"
         result = sf.get_san("janggi", fen, "d1e2", False, sf.NOTATION_SAN)
@@ -930,6 +1205,17 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "ค-ง๔")
         result = sf.get_san("makruk", fen, "d3d4", False, sf.NOTATION_THAI_LAN)
         self.assertEqual(result, "ค ง๓-ง๔")
+
+        # Cannon Shogi uses a shogi-family notation grammar, but its custom
+        # cannon pieces need variant-specific Japanese names from variants.ini.
+        result = sf.get_san(
+            "cannonshogi",
+            "lnsgkgsnl/1rci1uab1/p1p1p1p1p/9/9/9/P1P1P1P1P/1BAU1ICR1/LNSGKGSNL[-] w 0 1",
+            "d2d3",
+            False,
+            sf.NOTATION_SHOGI_JAPANESE,
+        )
+        self.assertEqual(result, "６七金砲")
 
 
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
@@ -1243,7 +1529,7 @@ class TestPyffish(unittest.TestCase):
 
     def test_validate_fen_promoted_pieces(self):
         # Test promoted piece validation specifically
-        
+
         # Valid promoted pieces should pass
         valid_promoted_fens = {
             "shogi": [
@@ -1255,7 +1541,7 @@ class TestPyffish(unittest.TestCase):
                 "+lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w - - 0 1",  # promoted lance
             ]
         }
-        
+
         # Invalid promoted pieces should fail with FEN_INVALID_PROMOTED_PIECE (-12)
         invalid_promoted_fens = {
             "kyotoshogi": [
@@ -1265,36 +1551,36 @@ class TestPyffish(unittest.TestCase):
                 "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSG++KGSNL[-] w - - 0 1",  # double promotion (++K)
             ]
         }
-        
+
         # Non-shogi variants should ignore promoted piece syntax ('+' should be invalid character)
         non_shogi_promoted_fens = {
             "chess": [
                 "rnb+qkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",  # '+' not valid in chess
             ]
         }
-        
+
         # Test valid promoted pieces
         for variant, fens in valid_promoted_fens.items():
             for fen in fens:
                 with self.subTest(variant=variant, fen=fen, test_type="valid_promoted"):
                     result = sf.validate_fen(fen, variant)
                     self.assertEqual(result, sf.FEN_OK, f"Expected valid promoted piece FEN to pass: {fen}")
-        
+
         # Test invalid promoted pieces (should return FEN_INVALID_PROMOTED_PIECE = -12)
         for variant, fens in invalid_promoted_fens.items():
             for fen in fens:
                 with self.subTest(variant=variant, fen=fen, test_type="invalid_promoted"):
                     result = sf.validate_fen(fen, variant)
-                    self.assertEqual(result, sf.FEN_INVALID_PROMOTED_PIECE, 
+                    self.assertEqual(result, sf.FEN_INVALID_PROMOTED_PIECE,
                                    f"Expected invalid promoted piece FEN to return -12: {fen}, got {result}")
-        
+
         # Test non-shogi variants (should fail with character validation, not promoted piece validation)
         for variant, fens in non_shogi_promoted_fens.items():
             for fen in fens:
                 with self.subTest(variant=variant, fen=fen, test_type="non_shogi"):
                     result = sf.validate_fen(fen, variant)
                     # Should fail with character validation (FEN_INVALID_CHAR = -10), not promoted piece validation
-                    self.assertEqual(result, -10, 
+                    self.assertEqual(result, -10,
                                    f"Expected non-shogi variant to fail with character error (-10): {fen}, got {result}")
 
     def test_get_fog_fen(self):
@@ -1305,7 +1591,56 @@ class TestPyffish(unittest.TestCase):
         fen = "rnbqkbnr/p1p2ppp/8/Pp1pp3/4P3/8/1PPP1PPP/RNBQKBNR w KQkq b6 0 1"
         result = sf.get_fog_fen(fen, "fogofwar")
         self.assertEqual(result, "********/********/2******/Pp*p***1/4P3/4*3/1PPP1PPP/RNBQKBNR w KQkq b6 0 1")
-        
+
+
+class TestShogiCompareHelpers(unittest.TestCase):
+    def test_parse_japanese_notation(self):
+        parsed = parse_japanese_notation("同　金右")
+        self.assertTrue(parsed["same"])
+        self.assertEqual(parsed["piece"], "G")
+        self.assertEqual(parsed["qualifiers"], "右")
+
+        parsed = parse_japanese_notation("８四銀不成")
+        self.assertEqual(parsed["dest"], (8, 4))
+        self.assertEqual(parsed["piece"], "S")
+        self.assertTrue(parsed["not_promote"])
+
+        parsed = parse_japanese_notation("３三歩打")
+        self.assertEqual(parsed["dest"], (3, 3))
+        self.assertEqual(parsed["piece"], "P")
+        self.assertTrue(parsed["drop"])
+
+    def test_compare_japanese_notation_exact(self):
+        hard, style = compare_japanese_notation("７六歩", "７六歩")
+        self.assertEqual(hard, [])
+        self.assertEqual(style, [])
+
+    def test_compare_japanese_notation_style_differences(self):
+        hard, style = compare_japanese_notation("３三歩打", "３三歩")
+        self.assertEqual(hard, [])
+        self.assertIn("drop", style)
+
+        hard, style = compare_japanese_notation("５二金", "５二金右")
+        self.assertEqual(hard, [])
+        self.assertIn("qualifier", style)
+
+        hard, style = compare_japanese_notation("８四銀", "８四銀不成")
+        self.assertEqual(hard, [])
+        self.assertIn("not_promote", style)
+
+    def test_compare_japanese_notation_mismatches(self):
+        hard, style = compare_japanese_notation("８八歩打", "８八と")
+        self.assertIn("piece", hard)
+        self.assertIn("drop", style)
+
+        hard, style = compare_japanese_notation("５五金左", "５五金右")
+        self.assertIn("qualifier", hard)
+        self.assertEqual(style, [])
+
+        hard, style = compare_japanese_notation("５八金打", "５八?打")
+        self.assertIn("actual_placeholder", hard)
+        self.assertEqual(style, [])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
