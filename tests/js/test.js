@@ -604,6 +604,37 @@ describe('board.moveStack()', function () {
     chai.expect(board.moveStack()).to.equal("h5f7");
     board.delete();
   });
+
+  it("it preserves castling notation in non-chess960 mode (issue #911)", () => {
+    // Test the specific issue: castling move should remain in standard notation
+    // even when the position changes after more moves are played
+    let board = new ffish.Board("seirawan","4kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[EH] w KQBCDFGk - 0 1", false);
+    
+    // Play the exact sequence from the issue
+    board.pushMoves("e2e4 g8f6 e4e5 f6d5 c2c4 d5b4 a2a3 b4c6 d2d4 e7e6 b1c3h f8e7 g1f3e e7d8 b2b4 c6e7 b1e4 a7a6 h2h4 h7h6 e4b7 e8g8 g2g4 a6a5 b4a5 c7c5 d4c5 g8h7 d1d7 h7h8 a5a6 e7g6 a6a7 d8a5 b7a5 h8h7 g4g5 h6h5 g1g3 g6f4 c1f4 g7g6 a1b1 h7g8 b1b8 g8g7 b8f8 g7f8 a7a8q f8g7 a8e8");
+    
+    let moveStackBefore = board.moveStack();
+    // The castling move should be e8g8 (standard notation), not e8h8 (chess960 notation)
+    chai.expect(moveStackBefore).to.include("e8g8");
+    chai.expect(moveStackBefore).to.not.include("e8h8");
+    
+    // Push another move that changes the position significantly
+    board.push("g7h7");
+    let moveStackAfter = board.moveStack();
+    // The castling move should still be e8g8, not change to e8h8
+    chai.expect(moveStackAfter).to.include("e8g8");
+    chai.expect(moveStackAfter).to.not.include("e8h8");
+    chai.expect(moveStackAfter).to.include("g7h7"); // The new move should be there
+    
+    // Pop the move and verify it goes back to the original state
+    board.pop();
+    let moveStackAfterPop = board.moveStack();
+    chai.expect(moveStackAfterPop).to.equal(moveStackBefore);
+    chai.expect(moveStackAfterPop).to.include("e8g8");
+    chai.expect(moveStackAfterPop).to.not.include("e8h8");
+    
+    board.delete();
+  });
 });
 
 describe('board.pushMoves(uciMoves)', function () {
