@@ -1,0 +1,6 @@
+[submodule "build/ThirdParty/LuaBridge3"]
+	path = build/ThirdParty/LuaBridge3
+	url = https://github.com/kunitoki/LuaBridge3.git
+[submodule "ThirdParty/LuaBridge3"]
+	path = ThirdParty/LuaBridge3
+	url = https://github.com/kunitoki/LuaBridge3.git
