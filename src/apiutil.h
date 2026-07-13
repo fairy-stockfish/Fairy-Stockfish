@@ -33,6 +33,8 @@
 
 namespace Stockfish {
 
+std::string variant_info_json(const std::string& name);
+
 enum Notation {
     NOTATION_DEFAULT,
     // https://en.wikipedia.org/wiki/Algebraic_notation_(chess)

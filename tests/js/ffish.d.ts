@@ -31,6 +31,7 @@ export interface FairyStockfish {
     readGamePGN(pgn: string): Game;
     variants(): string;
     loadVariantConfig(variantInitContent: string): void;
+    variantInfo(uciVariant: string): string;
     capturesToHand(uciVariant: string): boolean;
     startingFen(uciVariant: string): string;
     validateFen(fen: string, uciVariant?: string, chess960?: boolean): number;

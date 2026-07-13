@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import faulthandler
+import json
 import unittest
 import pyffish as sf
 
@@ -316,6 +317,26 @@ class TestPyffish(unittest.TestCase):
     def test_variants_loaded(self):
         variants = sf.variants()
         self.assertTrue("shogun" in variants)
+
+    def test_variant_info(self):
+        info = json.loads(sf.variant_info("chess"))
+        self.assertEqual(info["schemaVersion"], 1)
+        self.assertEqual(info["name"], "chess")
+        self.assertEqual(info["board"]["width"], 8)
+        self.assertEqual(info["board"]["height"], 8)
+        self.assertEqual(info["board"]["startFen"], CHESS)
+        self.assertEqual(
+            [piece["fen"]["white"] for piece in info["pieces"]],
+            ["P", "N", "B", "R", "Q", "K"],
+        )
+        self.assertEqual(info["gameEnd"]["kingType"], "king")
+
+        custom_info = json.loads(sf.variant_info("repetitionloss"))
+        self.assertEqual(custom_info["name"], "repetitionloss")
+        self.assertEqual(custom_info["gameEnd"]["nFoldValue"], "loss")
+
+        with self.assertRaisesRegex(ValueError, "Unknown variant"):
+            sf.variant_info("does-not-exist")
 
     def test_set_option(self):
         result = sf.set_option("UCI_Variant", "capablanca")
