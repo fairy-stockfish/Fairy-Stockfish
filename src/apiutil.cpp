@@ -147,6 +147,13 @@ std::string color_regions(Bitboard white, Bitboard black, File maxFile, Rank max
 std::string color_bools(bool white, bool black) {
     return std::string("{\"white\":") + boolean(white) + ",\"black\":" + boolean(black) + '}';
 }
+std::string castling_rights_json(CastlingRights rights) {
+    return std::string("{\"white\":{\"kingSide\":")
+         + boolean(bool(rights & WHITE_OO))
+         + ",\"queenSide\":" + boolean(bool(rights & WHITE_OOO))
+         + "},\"black\":{\"kingSide\":" + boolean(bool(rights & BLACK_OO))
+         + ",\"queenSide\":" + boolean(bool(rights & BLACK_OOO)) + "}}";
+}
 
 } // namespace
 
@@ -170,6 +177,7 @@ std::string variant_info_json(const std::string& name) {
     field(board, b, "startFen", quote(v.startFen));
     field(board, b, "chess960", boolean(v.chess960));
     field(board, b, "twoBoards", boolean(v.twoBoards));
+    field(board, b, "diagonalLines", region_json(v.diagonalLines, v.maxFile, v.maxRank));
     board << '}'; field(out, first, "board", board.str());
 
     std::ostringstream pieces;
@@ -189,12 +197,20 @@ std::string variant_info_json(const std::string& name) {
         if (ws == ' ' && bs == ' ') pieces << "null";
         else pieces << "{\"white\":" << quote(std::string(1, ws)) << ",\"black\":" << quote(std::string(1, bs)) << '}';
         pieces << ",\"customBetza\":";
-        if (is_custom(pt)) pieces << quote(v.customPiece[pt - CUSTOM_PIECES]); else pieces << "null";
+        if (pt == KING && is_custom(v.kingType))
+            pieces << quote(v.customPiece[v.kingType - CUSTOM_PIECES]);
+        else if (is_custom(pt))
+            pieces << quote(v.customPiece[pt - CUSTOM_PIECES]);
+        else
+            pieces << "null";
         pieces << ",\"value\":{\"midgame\":" << v.pieceValue[MG][pt]
                << ",\"endgame\":" << v.pieceValue[EG][pt] << "}}";
     }
     pieces << ']'; field(out, first, "pieces", pieces.str());
     field(out, first, "pieceTypes", piece_set_json(v.pieceTypes));
+    PieceSet royalPieceTypes = (v.pieceTypes & piece_set(KING))
+                                | (v.extinctionPseudoRoyal ? v.extinctionPieceTypes : NO_PIECE_SET);
+    field(out, first, "royalPieceTypes", piece_set_json(royalPieceTypes));
 
     std::ostringstream movement; movement << '{'; b = true;
     std::ostringstream mobility; mobility << '{'; bool mf = true;
@@ -218,6 +234,7 @@ std::string variant_info_json(const std::string& name) {
     field(movement, b, "cambodianMoves", boolean(v.cambodianMoves));
     field(movement, b, "makpongRule", boolean(v.makpongRule));
     field(movement, b, "flyingGeneral", boolean(v.flyingGeneral));
+    field(movement, b, "soldierPromotionRank", std::to_string(int(v.soldierPromotionRank) + 1));
     movement << '}'; field(out, first, "movement", movement.str());
 
     std::ostringstream promotion; promotion << '{'; b = true;
@@ -256,10 +273,12 @@ std::string variant_info_json(const std::string& name) {
     field(castling, b, "queenSideFile", std::to_string(int(v.castlingQueensideFile) + 1));
     field(castling, b, "rank", std::to_string(int(v.castlingRank) + 1));
     field(castling, b, "kingFile", std::to_string(int(v.castlingKingFile) + 1));
+    field(castling, b, "rookKingSideFile", std::to_string(int(v.castlingRookKingsideFile) + 1));
+    field(castling, b, "rookQueenSideFile", std::to_string(int(v.castlingRookQueensideFile) + 1));
     field(castling, b, "kingPieces", color_piece_types(v.castlingKingPiece[WHITE], v.castlingKingPiece[BLACK]));
     field(castling, b, "rookPieces", color_piece_sets(v.castlingRookPieces[WHITE], v.castlingRookPieces[BLACK]));
     field(castling, b, "opposite", boolean(v.oppositeCastling));
-    field(castling, b, "wins", std::to_string(int(v.castlingWins)));
+    field(castling, b, "wins", castling_rights_json(v.castlingWins));
     castling << '}'; field(out, first, "castling", castling.str());
 
     std::ostringstream drops; drops << '{'; b = true;
@@ -348,6 +367,11 @@ std::string variant_info_json(const std::string& name) {
     std::ostringstream enclosing; enclosing << '{'; b = true;
     field(enclosing, b, "flipRule", quote(enclosing_name(v.flipEnclosedPieces)));
     enclosing << '}'; field(out, first, "enclosing", enclosing.str());
+
+    std::ostringstream protocol; protocol << '{'; b = true;
+    field(protocol, b, "pieceToCharTable", quote(v.pieceToCharTable));
+    field(protocol, b, "pocketSize", std::to_string(v.pocketSize));
+    protocol << '}'; field(out, first, "protocol", protocol.str());
 
     out << '}';
     return out.str();

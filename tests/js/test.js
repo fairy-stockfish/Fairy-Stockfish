@@ -22,6 +22,18 @@ describe('ffish.variantInfo(uciVariant)', function () {
     chai.expect(info.board.startFen).to.equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     chai.expect(info.pieces.map(piece => piece.fen.white)).to.deep.equal(["P", "N", "B", "R", "Q", "K"]);
     chai.expect(info.gameEnd.kingType).to.equal("king");
+    chai.expect(info.royalPieceTypes).to.deep.equal(["king"]);
+    chai.expect(info.castling.wins.white.kingSide).to.equal(false);
+    chai.expect(info.protocol.pieceToCharTable).to.be.a("string");
+
+    const janggiInfo = JSON.parse(ffish.variantInfo("janggi"));
+    chai.expect(janggiInfo.board.diagonalLines).to.include("e2");
+    chai.expect(janggiInfo.movement.soldierPromotionRank).to.equal(1);
+
+    ffish.loadVariantConfig("[variantinfocustomroyal:chess]\nking = k:KN\n");
+    const centaurKingInfo = JSON.parse(ffish.variantInfo("variantinfocustomroyal"));
+    const king = centaurKingInfo.pieces.find(piece => piece.type === "king");
+    chai.expect(king.customBetza).to.equal("KN");
 
     ffish.loadVariantConfig("[variantinfotest:chess]\nnFoldValue = loss\n");
     const customInfo = JSON.parse(ffish.variantInfo("variantinfotest"));
