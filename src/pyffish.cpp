@@ -4,6 +4,8 @@
 */
 
 #include <Python.h>
+#include <exception>
+#include <new>
 #include <sstream>
 
 #include "misc.h"
@@ -105,6 +107,40 @@ extern "C" PyObject* pyffish_loadVariantConfig(PyObject* self, PyObject *args) {
     variants.parse_istream<false>(ss);
     Options["UCI_Variant"].set_combo(variants.get_keys());
     Py_RETURN_NONE;
+}
+
+// INPUT variant
+extern "C" PyObject* pyffish_variantInfo(PyObject* self, PyObject *args) {
+    const char *variant;
+    if (!PyArg_ParseTuple(args, "s", &variant))
+        return NULL;
+
+    try {
+        const std::string json = variant_info_json(variant);
+        if (json.empty()) {
+            PyErr_Format(PyExc_ValueError, "Unknown variant: %s", variant);
+            return NULL;
+        }
+        if (json.size() > static_cast<size_t>(PY_SSIZE_T_MAX)) {
+            PyErr_SetString(PyExc_OverflowError, "Variant information is too large for a Python string");
+            return NULL;
+        }
+
+        // PyUnicode_FromStringAndSize() returns a new owned reference. Returning it
+        // transfers that reference to the Python caller; no Py_DECREF is needed here.
+        return PyUnicode_FromStringAndSize(json.data(), static_cast<Py_ssize_t>(json.size()));
+    }
+    catch (const std::bad_alloc&) {
+        return PyErr_NoMemory();
+    }
+    catch (const std::exception& error) {
+        PyErr_SetString(PyExc_RuntimeError, error.what());
+        return NULL;
+    }
+    catch (...) {
+        PyErr_SetString(PyExc_RuntimeError, "Unknown error while exporting variant information");
+        return NULL;
+    }
 }
 
 // INPUT variant
@@ -406,6 +442,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"variants", (PyCFunction)pyffish_variants, METH_NOARGS, "Get supported variants."},
     {"set_option", (PyCFunction)pyffish_setOption, METH_VARARGS, "Set UCI option."},
     {"load_variant_config", (PyCFunction)pyffish_loadVariantConfig, METH_VARARGS, "Load variant configuration."},
+    {"variant_info", (PyCFunction)pyffish_variantInfo, METH_VARARGS, "Get resolved variant rules as versioned JSON."},
     {"start_fen", (PyCFunction)pyffish_startFen, METH_VARARGS, "Get starting position FEN."},
     {"two_boards", (PyCFunction)pyffish_twoBoards, METH_VARARGS, "Checks whether the variant is played on two boards."},
     {"captures_to_hand", (PyCFunction)pyffish_capturesToHand, METH_VARARGS, "Checks whether the variant rules contains capturesToHand."},

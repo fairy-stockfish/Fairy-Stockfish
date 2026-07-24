@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import faulthandler
+import json
 import unittest
 import pyffish as sf
 
@@ -316,6 +317,38 @@ class TestPyffish(unittest.TestCase):
     def test_variants_loaded(self):
         variants = sf.variants()
         self.assertTrue("shogun" in variants)
+
+    def test_variant_info(self):
+        info = json.loads(sf.variant_info("chess"))
+        self.assertEqual(info["schemaVersion"], 1)
+        self.assertEqual(info["name"], "chess")
+        self.assertEqual(info["board"]["width"], 8)
+        self.assertEqual(info["board"]["height"], 8)
+        self.assertEqual(info["board"]["startFen"], CHESS)
+        self.assertEqual(
+            [piece["fen"]["white"] for piece in info["pieces"]],
+            ["P", "N", "B", "R", "Q", "K"],
+        )
+        self.assertEqual(info["gameEnd"]["kingType"], "king")
+        self.assertEqual(info["royalPieceTypes"], ["king"])
+        self.assertFalse(info["castling"]["wins"]["white"]["kingSide"])
+        self.assertIsInstance(info["protocol"]["pieceToCharTable"], str)
+
+        janggi_info = json.loads(sf.variant_info("janggi"))
+        self.assertIn("e2", janggi_info["board"]["diagonalLines"])
+        self.assertEqual(janggi_info["movement"]["soldierPromotionRank"], 1)
+
+        sf.load_variant_config("[variantinfocustomroyal:chess]\nking = k:KN\n")
+        centaur_king_info = json.loads(sf.variant_info("variantinfocustomroyal"))
+        king = next(piece for piece in centaur_king_info["pieces"] if piece["type"] == "king")
+        self.assertEqual(king["customBetza"], "KN")
+
+        custom_info = json.loads(sf.variant_info("repetitionloss"))
+        self.assertEqual(custom_info["name"], "repetitionloss")
+        self.assertEqual(custom_info["gameEnd"]["nFoldValue"], "loss")
+
+        with self.assertRaisesRegex(ValueError, "Unknown variant"):
+            sf.variant_info("does-not-exist")
 
     def test_set_option(self):
         result = sf.set_option("UCI_Variant", "capablanca")

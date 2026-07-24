@@ -12,6 +12,38 @@ before(() => {
   });
 });
 
+describe('ffish.variantInfo(uciVariant)', function () {
+  it("returns resolved variant rules as versioned JSON", () => {
+    const info = JSON.parse(ffish.variantInfo("chess"));
+    chai.expect(info.schemaVersion).to.equal(1);
+    chai.expect(info.name).to.equal("chess");
+    chai.expect(info.board.width).to.equal(8);
+    chai.expect(info.board.height).to.equal(8);
+    chai.expect(info.board.startFen).to.equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    chai.expect(info.pieces.map(piece => piece.fen.white)).to.deep.equal(["P", "N", "B", "R", "Q", "K"]);
+    chai.expect(info.gameEnd.kingType).to.equal("king");
+    chai.expect(info.royalPieceTypes).to.deep.equal(["king"]);
+    chai.expect(info.castling.wins.white.kingSide).to.equal(false);
+    chai.expect(info.protocol.pieceToCharTable).to.be.a("string");
+
+    const janggiInfo = JSON.parse(ffish.variantInfo("janggi"));
+    chai.expect(janggiInfo.board.diagonalLines).to.include("e2");
+    chai.expect(janggiInfo.movement.soldierPromotionRank).to.equal(1);
+
+    ffish.loadVariantConfig("[variantinfocustomroyal:chess]\nking = k:KN\n");
+    const centaurKingInfo = JSON.parse(ffish.variantInfo("variantinfocustomroyal"));
+    const king = centaurKingInfo.pieces.find(piece => piece.type === "king");
+    chai.expect(king.customBetza).to.equal("KN");
+
+    ffish.loadVariantConfig("[variantinfotest:chess]\nnFoldValue = loss\n");
+    const customInfo = JSON.parse(ffish.variantInfo("variantinfotest"));
+    chai.expect(customInfo.name).to.equal("variantinfotest");
+    chai.expect(customInfo.gameEnd.nFoldValue).to.equal("loss");
+
+    chai.expect(ffish.variantInfo("does-not-exist")).to.equal("");
+  });
+});
+
 describe('ffish.loadVariantConfig(config)', function () {
   it("it loads a custom variant configuration from a string", () => {
     fs = require('fs');
