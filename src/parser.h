@@ -52,6 +52,8 @@ private:
     Config config;
     template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target);
     template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target, std::string pieceToChar);
+    bool parse_piece_type_name_overrides(const std::string& key, std::map<PieceType, std::string>& target, const std::string& pieceToChar);
+    bool parse_piece_name_overrides(const std::string& key, std::map<Piece, std::string>& target, const std::string& pieceToChar);
 };
 
 } // namespace Stockfish

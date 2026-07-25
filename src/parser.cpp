@@ -123,6 +123,23 @@ namespace {
         return value == "arrow" || value == "duck" || value == "edge" || value =="past" || value == "static" || value == "none";
     }
 
+    template <> bool set(const std::string& value, PieceNameStyle& target) {
+        target =  value == "shogi" || value == "shogiJapanese" ? PIECE_NAME_STYLE_SHOGI_JAPANESE
+                : value == "dobutsu" || value == "dobutsuJapanese" ? PIECE_NAME_STYLE_DOBUTSU_JAPANESE
+                : value == "tori" || value == "toriJapanese" ? PIECE_NAME_STYLE_TORI_JAPANESE
+                : value == "xiangqi" || value == "xiangqiChinese" ? PIECE_NAME_STYLE_XIANGQI_CHINESE
+                : value == "janggi" || value == "janggiKorean" ? PIECE_NAME_STYLE_JANGGI_KOREAN
+                : value == "makruk" || value == "thai" || value == "makrukThai" ? PIECE_NAME_STYLE_MAKRUK_THAI
+                : PIECE_NAME_STYLE_DEFAULT;
+        return value == "default" || value == "none"
+            || value == "shogi" || value == "shogiJapanese"
+            || value == "dobutsu" || value == "dobutsuJapanese"
+            || value == "tori" || value == "toriJapanese"
+            || value == "xiangqi" || value == "xiangqiChinese"
+            || value == "janggi" || value == "janggiKorean"
+            || value == "makruk" || value == "thai" || value == "makrukThai";
+    }
+
     template <> bool set(const std::string& value, Bitboard& target) {
         std::string symbol;
         std::stringstream ss(value);
@@ -211,6 +228,7 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
                                   : std::is_same<T, Bitboard>() ? "Bitboard"
                                   : std::is_same<T, CastlingRights>() ? "CastlingRights"
                                   : std::is_same<T, WallingRule>() ? "WallingRule"
+                                  : std::is_same<T, PieceNameStyle>() ? "PieceNameStyle"
                                   : typeid(T).name();
             std::cerr << key << " - Invalid value " << it->second << " for type " << typeName << std::endl;
         }
@@ -235,6 +253,85 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
         return idx != std::string::npos || token == '-';
     }
     return false;
+}
+
+template <bool DoCheck>
+bool VariantParser<DoCheck>::parse_piece_type_name_overrides(const std::string& key, std::map<PieceType, std::string>& target, const std::string& pieceToChar) {
+    const auto& it = config.find(key);
+    if (it == config.end())
+        return false;
+
+    target.clear();
+    std::stringstream ss(it->second);
+    std::string token;
+    bool valid = true;
+
+    while (ss >> token && token != "-")
+    {
+        size_t sep = token.find(':');
+        if (sep == std::string::npos)
+            sep = token.find('=');
+        size_t pieceOffset = token.size() > 1 && token[0] == '+' ? 1 : 0;
+        if (sep == std::string::npos || sep <= pieceOffset || sep + 1 >= token.size())
+        {
+            valid = false;
+            if (DoCheck)
+                std::cerr << key << " - Invalid piece-name override: " << token << std::endl;
+            continue;
+        }
+
+        char pieceChar = token[pieceOffset];
+        size_t idx = pieceToChar.find(toupper(pieceChar));
+        if (idx == std::string::npos)
+        {
+            valid = false;
+            if (DoCheck)
+                std::cerr << key << " - Invalid piece type: " << pieceChar << std::endl;
+            continue;
+        }
+        target[PieceType(idx)] = token.substr(sep + 1);
+    }
+
+    return valid;
+}
+
+template <bool DoCheck>
+bool VariantParser<DoCheck>::parse_piece_name_overrides(const std::string& key, std::map<Piece, std::string>& target, const std::string& pieceToChar) {
+    const auto& it = config.find(key);
+    if (it == config.end())
+        return false;
+
+    target.clear();
+    std::stringstream ss(it->second);
+    std::string token;
+    bool valid = true;
+
+    while (ss >> token && token != "-")
+    {
+        size_t sep = token.find(':');
+        if (sep == std::string::npos)
+            sep = token.find('=');
+        if (sep == std::string::npos || sep < 1 || sep + 1 >= token.size())
+        {
+            valid = false;
+            if (DoCheck)
+                std::cerr << key << " - Invalid piece-name override: " << token << std::endl;
+            continue;
+        }
+
+        char pieceChar = token[0];
+        size_t idx = pieceToChar.find(toupper(pieceChar));
+        if (idx == std::string::npos)
+        {
+            valid = false;
+            if (DoCheck)
+                std::cerr << key << " - Invalid piece type: " << pieceChar << std::endl;
+            continue;
+        }
+        target[make_piece(isupper(pieceChar) ? WHITE : BLACK, PieceType(idx))] = token.substr(sep + 1);
+    }
+
+    return valid;
 }
 
 template <bool DoCheck>
@@ -548,6 +645,24 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("adjudicateFullBoard", v->adjudicateFullBoard);
     parse_attribute("countingRule", v->countingRule);
     parse_attribute("castlingWins", v->castlingWins);
+
+    // Localized notation piece-name profiles and per-variant overrides.
+    // These intentionally do not use pieceToCharTable semantics; the letters
+    // here are only keys to identify engine piece types in the variant config.
+    parse_attribute("japanesePieceNames", v->japanesePieceNameStyle);
+    parse_attribute("japanesePieceNameStyle", v->japanesePieceNameStyle);
+    parse_attribute("chinesePieceNames", v->chinesePieceNameStyle);
+    parse_attribute("chinesePieceNameStyle", v->chinesePieceNameStyle);
+    parse_attribute("koreanPieceNames", v->koreanPieceNameStyle);
+    parse_attribute("koreanPieceNameStyle", v->koreanPieceNameStyle);
+    parse_attribute("thaiPieceNames", v->thaiPieceNameStyle);
+    parse_attribute("thaiPieceNameStyle", v->thaiPieceNameStyle);
+    parse_piece_type_name_overrides("japanesePieceNameOverrides", v->japanesePieceNameOverrides, v->pieceToChar);
+    parse_piece_type_name_overrides("japanesePromotedPieceNameOverrides", v->japanesePromotedPieceNameOverrides, v->pieceToChar);
+    parse_piece_name_overrides("chinesePieceNameOverrides", v->chinesePieceNameOverrides, v->pieceToChar);
+    parse_piece_name_overrides("koreanPieceNameOverrides", v->koreanPieceNameOverrides, v->pieceToChar);
+    parse_piece_type_name_overrides("thaiPieceNameOverrides", v->thaiPieceNameOverrides, v->pieceToChar);
+    parse_piece_type_name_overrides("thaiPromotedPieceNameOverrides", v->thaiPromotedPieceNameOverrides, v->pieceToChar);
     
     // Report invalid options
     if (DoCheck)

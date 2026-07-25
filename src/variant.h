@@ -33,6 +33,16 @@
 
 namespace Stockfish {
 
+enum PieceNameStyle {
+  PIECE_NAME_STYLE_DEFAULT,
+  PIECE_NAME_STYLE_SHOGI_JAPANESE,
+  PIECE_NAME_STYLE_DOBUTSU_JAPANESE,
+  PIECE_NAME_STYLE_TORI_JAPANESE,
+  PIECE_NAME_STYLE_XIANGQI_CHINESE,
+  PIECE_NAME_STYLE_JANGGI_KOREAN,
+  PIECE_NAME_STYLE_MAKRUK_THAI,
+};
+
 /// Variant struct stores information needed to determine the rules of a variant.
 
 struct Variant {
@@ -49,6 +59,20 @@ struct Variant {
   std::string pieceToChar =  " PNBRQ" + std::string(KING - QUEEN - 1, ' ') + "K" + std::string(PIECE_TYPE_NB - KING - 1, ' ')
                            + " pnbrq" + std::string(KING - QUEEN - 1, ' ') + "k" + std::string(PIECE_TYPE_NB - KING - 1, ' ');
   std::string pieceToCharSynonyms = std::string(PIECE_NB, ' ');
+
+  // Localized piece-name profiles used by human notation output.
+  // These are deliberately separate from pieceToChar/pieceToCharTable,
+  // which are protocol / FEN piece-letter maps.
+  PieceNameStyle japanesePieceNameStyle = PIECE_NAME_STYLE_DEFAULT;
+  PieceNameStyle chinesePieceNameStyle = PIECE_NAME_STYLE_DEFAULT;
+  PieceNameStyle koreanPieceNameStyle = PIECE_NAME_STYLE_DEFAULT;
+  PieceNameStyle thaiPieceNameStyle = PIECE_NAME_STYLE_DEFAULT;
+  std::map<PieceType, std::string> japanesePieceNameOverrides;
+  std::map<PieceType, std::string> japanesePromotedPieceNameOverrides;
+  std::map<Piece, std::string> chinesePieceNameOverrides;
+  std::map<Piece, std::string> koreanPieceNameOverrides;
+  std::map<PieceType, std::string> thaiPieceNameOverrides;
+  std::map<PieceType, std::string> thaiPromotedPieceNameOverrides;
   std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   Bitboard mobilityRegion[COLOR_NB][PIECE_TYPE_NB] = {};
   Bitboard promotionRegion[COLOR_NB] = {Rank8BB, Rank1BB};
