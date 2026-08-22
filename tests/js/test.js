@@ -623,6 +623,23 @@ describe('board.moveStack()', function () {
     chai.expect(board.moveStack()).to.equal("h5f7");
     board.delete();
   });
+  it("it keeps non-960 castling notation when later moves obscure it (issue #911)", () => {
+    // After castling, the rook returns to the king's origin square e8 and the king
+    // vacates g8, which used to flip the rendered castling move to 960 notation e8h8.
+    let board = new ffish.Board("chess");
+    const chessMoves = "e2e4 e7e5 g1f3 g8f6 f1c4 f8c5 d2d3 e8g8 c1g5 f8e8 b1c3 g8h8 a2a3";
+    board.pushMoves(chessMoves);
+    chai.expect(board.moveStack()).to.equal(chessMoves);
+    board.delete();
+    board = new ffish.Board("seirawan", "4kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[EH] w KQBCDFGk - 0 1");
+    const moves = "e2e4 g8f6 e4e5 f6d5 c2c4 d5b4 a2a3 b4c6 d2d4 e7e6 b1c3h f8e7 g1f3e e7d8 b2b4 c6e7 " +
+                  "b1e4 a7a6 h2h4 h7h6 e4b7 e8g8 g2g4 a6a5 b4a5 c7c5 d4c5 g8h7 d1d7 h7h8 a5a6 e7g6 " +
+                  "a6a7 d8a5 b7a5 h8h7 g4g5 h6h5 g1g3 g6f4 c1f4 g7g6 a1b1 h7g8 b1b8 g8g7 b8f8 g7f8 " +
+                  "a7a8q f8g7 a8e8 g7h7";
+    board.pushMoves(moves);
+    chai.expect(board.moveStack()).to.equal(moves);
+    board.delete();
+  });
 });
 
 describe('board.pushMoves(uciMoves)', function () {
