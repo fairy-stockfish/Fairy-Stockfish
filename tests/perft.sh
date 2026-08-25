@@ -166,6 +166,7 @@ if [[ $1 == "all" ||  $1 == "largeboard" ]]; then
   expect perft.exp shoshogi startpos 4 445372 > /dev/null  # configurable pieces
   expect perft.exp yarishogi startpos 4 158404 > /dev/null  # configurable pieces
   expect perft.exp capablanca startpos 4 805128 > /dev/null
+  expect perft.exp capahouse "fen 3k6/10/10/10/10/10/10/4K5[CAQRBNPcaqrbnp] w - - 0 1" 2 234785 > /dev/null
   expect perft.exp embassy startpos 4 809539 > /dev/null
   expect perft.exp janus startpos 4 772074 > /dev/null
   expect perft.exp modern startpos 4 433729 > /dev/null
