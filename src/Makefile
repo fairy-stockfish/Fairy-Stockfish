@@ -26,6 +26,13 @@ else
 EXE = stockfish
 endif
 
+### Lua module name (if Lua is enabled)
+ifeq ($(KERNEL),Darwin)
+LUA_MODULE = fairystockfish.so
+else
+LUA_MODULE = fairystockfish.so
+endif
+
 ### Installation dir definitions
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
@@ -44,6 +51,11 @@ SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp main.cpp 
 	nnue/evaluate_nnue.cpp nnue/features/half_ka_v2.cpp \
 	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
 	nnue/features/half_ka_v2_variants.cpp
+
+# Add Lua bindings if enabled
+ifeq ($(lua),yes)
+	SRCS += luabindings.cpp
+endif
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
@@ -92,12 +104,47 @@ endif
 # Example of use for these flags:
 # make build ARCH=x86-64-avx512 debug=on sanitize="address undefined"
 
+### Add Lua configuration
+ifeq ($(lua),yes)
+	# Try to detect Lua using pkg-config first
+	LUA_VERSION = $(shell pkg-config --exists lua5.1 && echo 5.1 || (pkg-config --exists lua-5.1 && echo 5.1 || (pkg-config --exists luajit && echo 5.1)))
+
+	ifeq ($(LUA_VERSION),5.1)
+		LUA_CFLAGS = $(shell pkg-config --cflags luajit 2>/dev/null || pkg-config --cflags lua5.1 || pkg-config --cflags lua-5.1)
+		LUA_LDFLAGS = $(shell pkg-config --libs luajit 2>/dev/null || pkg-config --libs lua5.1 || pkg-config --libs lua-5.1)
+	else
+		# Fallback paths for common Lua/LuaJIT installations
+		ifeq ($(KERNEL),Darwin)
+			LUA_CFLAGS = -I/usr/local/include/luajit-2.1
+			LUA_LDFLAGS = -L/usr/local/lib -lluajit-5.1
+		else
+			LUA_CFLAGS = -I/usr/include/luajit-2.1
+			LUA_LDFLAGS = -lluajit-5.1
+		endif
+	endif
+
+	# Add LuaBridge3 include path
+	LUABRIDGE_PATH = ../ThirdParty/LuaBridge3/Source
+	LUABRIDGE_CFLAGS = -I$(LUABRIDGE_PATH)
+
+	# Add combined flags for shared library
+	ifeq ($(KERNEL),Darwin)
+		CXXFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA -std=c++17 -fPIC
+		LDFLAGS += $(LUA_LDFLAGS)
+		LUA_MODULE_FLAGS = -dynamiclib -undefined dynamic_lookup
+	else
+		CXXFLAGS += $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -DUSE_LUA -std=c++17 -fPIC
+		LDFLAGS += $(LUA_LDFLAGS)
+		LUA_MODULE_FLAGS = -shared
+	endif
+endif
 
 ### 2.1. General and architecture defaults
 largeboards = no
 all = no
 precomputedmagics = yes
 nnue = no
+lua = no
 load_net = $(if $(filter $(nnue),yes),net)
 
 ifeq ($(ARCH),)
@@ -718,6 +765,13 @@ help:
 	@echo "install                 > Install executable"
 	@echo "clean                   > Clean up"
 	@echo ""
+	@echo "Optional features:"
+	@echo ""
+	@echo "make build ARCH=x86-64 largeboards=yes   > Version for large board variants"
+	@echo "make build ARCH=x86-64 all=yes          > Include all variants"
+	@echo "make build ARCH=x86-64 nnue=yes         > Enable NNUE"
+	@echo "make build ARCH=x86-64 lua=yes          > Enable Lua bindings (requires Lua 5.1 for LuaJIT compatibility)"
+	@echo ""
 	@echo "Supported archs:"
 	@echo ""
 	@echo "x86-64-vnni512          > x86 64-bit with vnni support 512bit wide"
@@ -874,7 +928,7 @@ default:
 ### Section 5. Private Targets
 ### ==========================================================================
 
-all: $(EXE) .depend
+all: $(EXE) $(if $(filter $(lua),yes),$(LUA_MODULE)) .depend
 
 config-sanity: $(load_net)
 	@echo ""
@@ -905,6 +959,7 @@ config-sanity: $(load_net)
 	@echo "all: '$(all)'"
 	@echo "precomputedmagics: '$(precomputedmagics)'"
 	@echo "nnue: '$(nnue)'"
+	@echo "lua: '$(lua)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "CXX: $(CXX)"
@@ -938,6 +993,12 @@ config-sanity: $(load_net)
 
 $(EXE): $(OBJS)
 	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+
+$(LUA_MODULE): luabindings.o bitboard.o position.o piece.o variant.o parser.o benchmark.o endgame.o evaluate.o \
+	material.o misc.o movegen.o movepick.o pawns.o psqt.o search.o thread.o timeman.o tt.o uci.o ucioption.o tune.o \
+	syzygy/tbprobe.o nnue/evaluate_nnue.o nnue/features/half_ka_v2.o nnue/features/half_ka_v2_variants.o \
+	bitbase.o partner.o xboard.o
+	$(CXX) $(LUA_MODULE_FLAGS) -o $@ $^ $(LDFLAGS)
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
@@ -980,3 +1041,7 @@ icc-profile-use:
 	-@$(CXX) $(DEPENDFLAGS) -MM $(SRCS) > $@ 2> /dev/null
 
 -include .depend
+
+# Special case for Lua bindings to enable exceptions
+luabindings.o: luabindings.cpp
+	$(CXX) $(CXXFLAGS:-fno-exceptions=) $(CPPFLAGS) $(LUA_CFLAGS) $(LUABRIDGE_CFLAGS) -c $< -o $@

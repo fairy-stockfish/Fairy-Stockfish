@@ -43,7 +43,11 @@ before_build:
            'set(CMAKE_CXX_STANDARD_REQUIRED ON)',
            'set (CMAKE_CXX_EXTENSIONS OFF)',
            'set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src)',
+           'option(BUILD_WITH_LUA "Build with Lua support" OFF)',
            'set(source_files', $src, ')',
+           'if(NOT BUILD_WITH_LUA)',
+           '    list(REMOVE_ITEM source_files "${CMAKE_SOURCE_DIR}/src/luabindings.cpp")',
+           'endif()',
            'add_compile_definitions(NNUE_EMBEDDING_OFF)',
            'add_executable(stockfish ${source_files})'
 
