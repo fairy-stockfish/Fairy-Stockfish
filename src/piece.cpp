@@ -50,6 +50,38 @@ namespace {
   };
   const std::string verticals = "fbvh";
   const std::string horizontals = "rlsh";
+  // The eight queen directions in rotational order, as (file, rank) offsets:
+  // one step along this table is a 45 degree turn. Must stay in the same order
+  // as QueenDirections in bitboard.h, which indexes RayBB the same way.
+  constexpr int BentRotation[8][2] = { {0,1}, {1,1}, {1,0}, {1,-1}, {0,-1}, {-1,-1}, {-1,0}, {-1,1} };
+
+  int bent_direction_index(int df, int dr) {
+      for (int i = 0; i < 8; i++)
+          if (BentRotation[i][0] == df && BentRotation[i][1] == dr)
+              return i;
+      return -1;
+  }
+
+  // Which of the two continuations of a bent leg survive the filter. Bit 1 is
+  // the direction 45 degrees clockwise from the leg, bit 2 the one 45 degrees
+  // counter-clockwise; filter 0 keeps both, 1 keeps only continuations running
+  // along a file, 2 only those running along a rank. Returns 0 for legs longer
+  // than a single step, which is what neutralizes a nonsensical y on a rider.
+  int continuation_mask(int df, int dr, int filter) {
+      int i = bent_direction_index(df, dr);
+      if (i < 0)
+          return 0;
+      int mask = 0;
+      for (int k = 0; k < 2; k++)
+      {
+          const int* cont = BentRotation[(i + (k ? 7 : 1)) & 7];
+          if (   filter == 0
+              || (filter == 1 && cont[0] == 0)
+              || (filter == 2 && cont[1] == 0))
+              mask |= 1 << k;
+      }
+      return mask;
+  }
   // from_betza creates a piece by parsing Betza notation
   // https://en.wikipedia.org/wiki/Betza%27s_funny_notation
   PieceInfo* from_betza(const std::string& betza, const std::string& name) {
@@ -61,6 +93,8 @@ namespace {
       bool rider = false;
       bool lame = false;
       bool initial = false;
+      bool bent = false;
+      int contFilter = 0;
       int distance = 0;
       std::vector<std::string> prelimDirections = {};
       for (std::string::size_type i = 0; i < betza.size(); i++)
@@ -80,6 +114,24 @@ namespace {
           // Lame leaper
           else if (c == 'n')
               lame = true;
+          // Bent rider: the atom gives the first leg, on which the piece may
+          // stop, and the ride then continues without limit 45 degrees off it.
+          else if (c == 'y')
+          {
+              bent = true;
+              // Accept the "afs" spelling XBoard/Winboard uses for the second
+              // leg, so that a piece written yafsF there parses unchanged here.
+              if (betza.compare(i + 1, 3, "afs") == 0)
+                  i += 3;
+              // A single v or h straight after the y restricts the ride to the
+              // continuations running along a file, or along a rank. That is
+              // what separates the Ship (yvF) from the Griffon (yF).
+              // Directional modifiers written *before* the y keep their usual
+              // meaning and restrict the first leg instead, hence vyW for the
+              // Snake against yW for the Rhino.
+              else if (i + 1 < betza.size() && (betza[i+1] == 'v' || betza[i+1] == 'h'))
+                  contFilter = betza[++i] == 'v' ? 1 : 2;
+          }
           // Initial move
           else if (c == 'i')
               initial = true;
@@ -148,22 +200,37 @@ namespace {
                       auto has_dir = [&](std::string s) {
                         return std::find(directions.begin(), directions.end(), s) != directions.end();
                       };
+                      // Records one direction as an ordinary move and, for a
+                      // bent rider, as a bent leg as well, carrying the mask of
+                      // the continuations that survived the yv/yh filter. The
+                      // ordinary move is what lets the piece stop on the corner
+                      // square, which is how every bent rider in use behaves.
+                      auto add_dir = [&](int df, int dr) {
+                          Direction d = Direction(dr * FILE_NB + df);
+                          v[d] = distance;
+                          if (bent && !rider && !hopper)
+                          {
+                              int mask = continuation_mask(df, dr, contFilter);
+                              if (mask)
+                                  p->bent[initial][modality][d] = mask;
+                          }
+                      };
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("rf") || has_dir("rv") || has_dir("fh") || has_dir("rh") || has_dir("hr"))
-                          v[Direction(atom.first * FILE_NB + atom.second)] = distance;
+                          add_dir(atom.second, atom.first);
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("lb") || has_dir("lv") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
-                          v[Direction(-atom.first * FILE_NB - atom.second)] = distance;
+                          add_dir(-atom.second, -atom.first);
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("br") || has_dir("bs") || has_dir("bh") || has_dir("rh") || has_dir("hr"))
-                          v[Direction(-atom.second * FILE_NB + atom.first)] = distance;
+                          add_dir(atom.first, -atom.second);
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("fl") || has_dir("fs") || has_dir("fh") || has_dir("lh") || has_dir("hr"))
-                          v[Direction(atom.second * FILE_NB - atom.first)] = distance;
+                          add_dir(-atom.first, atom.second);
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("fr") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hl"))
-                          v[Direction(atom.second * FILE_NB + atom.first)] = distance;
+                          add_dir(atom.first, atom.second);
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("bl") || has_dir("bs") || has_dir("bh") || has_dir("lh") || has_dir("hl"))
-                          v[Direction(-atom.second * FILE_NB - atom.first)] = distance;
+                          add_dir(-atom.first, -atom.second);
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("rb") || has_dir("rv") || has_dir("bh") || has_dir("rh") || has_dir("hl"))
-                          v[Direction(-atom.first * FILE_NB + atom.second)] = distance;
+                          add_dir(atom.second, -atom.first);
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("lf") || has_dir("lv") || has_dir("fh") || has_dir("lh") || has_dir("hl"))
-                          v[Direction(atom.first * FILE_NB - atom.second)] = distance;
+                          add_dir(-atom.second, atom.first);
                   }
               }
               // Reset state
@@ -173,6 +240,8 @@ namespace {
               rider = false;
               lame = false;
               initial = false;
+              bent = false;
+              contFilter = 0;
               distance = 0;
           }
       }

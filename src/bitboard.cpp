@@ -37,6 +37,9 @@ Bitboard PseudoMoves[2][COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperMoves[2][COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard BoardSizeBB[FILE_NB][RANK_NB];
+Bitboard RayBB[8][SQUARE_NB];
+BentRider BentAttacks[COLOR_NB][PIECE_TYPE_NB];
+BentRider BentMoves[2][COLOR_NB][PIECE_TYPE_NB];
 RiderType AttackRiderTypes[PIECE_TYPE_NB];
 RiderType MoveRiderTypes[2][PIECE_TYPE_NB];
 
@@ -186,7 +189,21 @@ namespace {
     return b;
   }
 
-  Bitboard lame_leaper_attack(std::map<Direction, int> directions, Square s, Bitboard occupied) {
+  void init_rays() {
+
+  for (int i = 0; i < 8; ++i)
+      for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+      {
+          Bitboard b = 0;
+          for (Square t = s + QueenDirections[i];
+               is_ok(t) && distance(t, t - QueenDirections[i]) == 1;
+               t += QueenDirections[i])
+              b |= t;
+          RayBB[i][s] = b;
+      }
+}
+
+Bitboard lame_leaper_attack(std::map<Direction, int> directions, Square s, Bitboard occupied) {
     Bitboard b = 0;
     for (const auto& i : directions)
     {
@@ -198,6 +215,52 @@ namespace {
   }
 
 }
+
+/// bent_path_bb() returns the squares a bent rider of type 'pt' standing on
+/// 'from' has to pass through to reach 'to', excluding both end points, or 0
+/// if 'to' is out of reach or is reached by the plain step onto the corner.
+/// Unlike a straight slider, the path depends on which end the piece starts
+/// from: a Griffon on a1 reaches b5 through b2-b3-b4, while a Griffon on b5
+/// reaches a1 through a4-a3-a2. Colour is not available here, and matters
+/// only for bent riders whose legs are not centrally symmetric, so both are
+/// tried; a miss costs a pin that goes undetected, never a legality error,
+/// since bent riders are in NON_SLIDING_RIDERS and legal() recomputes.
+
+Bitboard bent_path_bb(PieceType pt, Square from, Square to) {
+
+  assert(is_ok(from) && is_ok(to));
+
+  for (Color c : { WHITE, BLACK })
+  {
+      const BentRider& br = BentAttacks[c][pt];
+      for (int k = 0; k < br.count; k++)
+      {
+          int i = br.dir[k];
+          Square corner = Square(from + QueenDirections[i]);
+          if (!is_ok(corner) || distance(from, corner) != 1)
+              continue;
+          if (corner == to)
+              return 0; // reached by the plain step, nothing in between
+          for (int j = 0; j < 2; j++)
+          {
+              if (!(br.cont[k] & (1 << j)))
+                  continue;
+              Direction d = QueenDirections[(i + (j ? 7 : 1)) & 7];
+              Bitboard b = square_bb(corner);
+              for (Square s = Square(corner + d);
+                   is_ok(s) && distance(s, s - d) == 1;
+                   s += d)
+              {
+                  if (s == to)
+                      return b;
+                  b |= s;
+              }
+          }
+      }
+  }
+  return 0;
+}
+
 
 /// safe_destination() returns the bitboard of target square for the given step
 /// from the given square. If the step is off the board, returns empty bitboard.
@@ -276,6 +339,33 @@ void Bitboards::init_pieces() {
                   if (BishopDirections.find(d) != BishopDirections.end())
                       riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_D : RIDER_CANNON_DIAG;
               }
+              // Bent riders. One rider bit covers every shape; the shape
+              // itself is flattened into BentAttacks/BentMoves, mirrored for
+              // black by turning each leg through 180 degrees, which is a
+              // half turn around the QueenDirections table and leaves the
+              // continuation mask unchanged.
+              if (!pi->bent[initial][modality].empty())
+              {
+                  riderTypes |= RIDER_BENT;
+                  for (Color c : { WHITE, BLACK })
+                  {
+                      BentRider& br = modality == MODALITY_CAPTURE ? BentAttacks[c][pt]
+                                                                   : BentMoves[initial][c][pt];
+                      br.count = 0;
+                      for (auto const& [d, mask] : pi->bent[initial][modality])
+                      {
+                          int i = -1;
+                          for (int k = 0; k < 8; k++)
+                              if (QueenDirections[k] == (c == WHITE ? d : -d))
+                                  i = k;
+                          if (i < 0 || br.count >= 8)
+                              continue;
+                          br.dir[br.count] = i;
+                          br.cont[br.count] = mask;
+                          br.count++;
+                      }
+                  }
+              }
           }
       }
 
@@ -303,6 +393,9 @@ void Bitboards::init_pieces() {
                       }
                       pseudo |= sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
                       pseudo |= sliding_attack<HOPPER_RANGE>(pi->hopper[initial][modality], s, 0, c);
+                      if (!pi->bent[initial][modality].empty())
+                          pseudo |= bent_attacks_bb(modality == MODALITY_CAPTURE ? BentAttacks[c][pt]
+                                                                                 : BentMoves[initial][c][pt], s, 0);
                   }
               }
           }
@@ -361,6 +454,8 @@ void Bitboards::init() {
   init_magics<HOPPER>(GrasshopperTableV, GrasshopperMagicsV, GrasshopperDirectionsV);
   init_magics<HOPPER>(GrasshopperTableD, GrasshopperMagicsD, GrasshopperDirectionsD);
 #endif
+
+  init_rays();
 
   init_pieces();
 
