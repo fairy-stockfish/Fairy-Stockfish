@@ -37,6 +37,13 @@ struct PieceInfo {
   std::map<Direction, int> steps[2][MOVE_MODALITY_NB] = {};
   std::map<Direction, int> slider[2][MOVE_MODALITY_NB] = {};
   std::map<Direction, int> hopper[2][MOVE_MODALITY_NB] = {};
+  // Bent riders. The key is the direction of the *first* leg; the ride then
+  // continues, without limit, in the two directions obtained by rotating that
+  // first leg by +/- 45 degrees, i.e. away from the origin square. Diagonal
+  // keys describe a Griffon. The corner square is not a destination here: a
+  // piece that may stop there declares the step separately, so that the
+  // Griffon is "F" plus the four bent diagonal legs.
+  std::map<Direction, int> bent[2][MOVE_MODALITY_NB] = {};
 };
 
 struct PieceMap : public std::map<PieceType, const PieceInfo*> {

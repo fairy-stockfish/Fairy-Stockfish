@@ -178,6 +178,17 @@ namespace {
       }
       return p;
   }
+  // Special multi-leg betza description for the Griffon, a bent rider:
+  // one diagonal step (on which it may stop, hence the Ferz base) followed by
+  // an unlimited orthogonal ride away from the origin square.
+  PieceInfo* griffon_piece() {
+      PieceInfo* p = from_betza("F", "griffon");
+      p->betza = "FyafsF"; // for compatibility with XBoard/Winboard
+      for (Direction d : {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST})
+          for (MoveModality m : {MODALITY_QUIET, MODALITY_CAPTURE})
+              p->bent[0][m][d] = 0;
+      return p;
+  }
   // Special multi-leg betza description for Janggi elephant
   PieceInfo* janggi_elephant_piece() {
       PieceInfo* p = from_betza("nZ", "janggiElephant");
@@ -224,6 +235,7 @@ void PieceMap::init(const Variant* v) {
   add(WAZIR, from_betza("W", "wazir"));
   add(COMMONER, from_betza("K", "commoner"));
   add(CENTAUR, from_betza("KN", "centaur"));
+  add(GRIFFON, griffon_piece());
   add(KING, from_betza("K", "king"));
   // Add custom pieces
   for (PieceType pt = CUSTOM_PIECES; pt <= CUSTOM_PIECES_END; ++pt)

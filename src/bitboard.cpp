@@ -37,6 +37,7 @@ Bitboard PseudoMoves[2][COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperMoves[2][COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard BoardSizeBB[FILE_NB][RANK_NB];
+Bitboard RayBB[8][SQUARE_NB];
 RiderType AttackRiderTypes[PIECE_TYPE_NB];
 RiderType MoveRiderTypes[2][PIECE_TYPE_NB];
 
@@ -107,7 +108,9 @@ namespace {
                                                             {EAST  + 2 * SOUTH_EAST, 0}, {SOUTH + 2 * SOUTH_EAST, 0},
                                                             {SOUTH + 2 * SOUTH_WEST, 0}, {WEST  + 2 * SOUTH_WEST, 0},
                                                             {WEST  + 2 * NORTH_WEST, 0}, {NORTH + 2 * NORTH_WEST, 0} };
-  const std::map<Direction, int> GrasshopperDirectionsV { {NORTH, 1}, {SOUTH, 1}};
+  // Bent riders: the key is the direction of the first (single step) leg.
+const std::map<Direction, int> GriffonDirections { {NORTH_EAST, 0}, {SOUTH_EAST, 0}, {SOUTH_WEST, 0}, {NORTH_WEST, 0} };
+const std::map<Direction, int> GrasshopperDirectionsV { {NORTH, 1}, {SOUTH, 1}};
   const std::map<Direction, int> GrasshopperDirectionsH { {EAST, 1}, {WEST, 1} };
   const std::map<Direction, int> GrasshopperDirectionsD { {NORTH_EAST, 1}, {SOUTH_EAST, 1}, {SOUTH_WEST, 1}, {NORTH_WEST, 1} };
 
@@ -186,7 +189,21 @@ namespace {
     return b;
   }
 
-  Bitboard lame_leaper_attack(std::map<Direction, int> directions, Square s, Bitboard occupied) {
+  void init_rays() {
+
+  for (int i = 0; i < 8; ++i)
+      for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+      {
+          Bitboard b = 0;
+          for (Square t = s + QueenDirections[i];
+               is_ok(t) && distance(t, t - QueenDirections[i]) == 1;
+               t += QueenDirections[i])
+              b |= t;
+          RayBB[i][s] = b;
+      }
+}
+
+Bitboard lame_leaper_attack(std::map<Direction, int> directions, Square s, Bitboard occupied) {
     Bitboard b = 0;
     for (const auto& i : directions)
     {
@@ -198,6 +215,42 @@ namespace {
   }
 
 }
+
+/// griffon_path_bb() returns the squares a Griffon standing on 'from' has to
+/// pass through in order to reach 'to', excluding both end points, or 0 if
+/// 'to' is not reachable or is reached by the plain Ferz step. Unlike a
+/// straight slider, the path depends on which end the piece starts from: a
+/// Griffon on a1 reaches b5 through b2-b3-b4, while a Griffon on b5 reaches
+/// a1 through a4-a3-a2.
+
+Bitboard griffon_path_bb(Square from, Square to) {
+
+  assert(is_ok(from) && is_ok(to));
+
+  int df = file_of(to) - file_of(from);
+  int dr = rank_of(to) - rank_of(from);
+
+  // Reachable iff both offsets are non-zero and at least one of them is 1
+  if (!df || !dr || (std::abs(df) > 1 && std::abs(dr) > 1))
+      return 0;
+
+  Direction sf = df > 0 ? EAST : WEST;
+  Direction sr = dr > 0 ? NORTH : SOUTH;
+  Square corner = Square(from + sf + sr);
+
+  if (corner == to)
+      return 0; // plain Ferz step, nothing in between
+
+  Bitboard b = square_bb(corner);
+  Direction d = std::abs(df) == 1 ? sr : sf;
+  for (Square s = Square(corner + d); s != to; s += d)
+  {
+      assert(is_ok(s));
+      b |= s;
+  }
+  return b;
+}
+
 
 /// safe_destination() returns the bitboard of target square for the given step
 /// from the given square. If the step is off the board, returns empty bitboard.
@@ -276,6 +329,14 @@ void Bitboards::init_pieces() {
                   if (BishopDirections.find(d) != BishopDirections.end())
                       riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_D : RIDER_CANNON_DIAG;
               }
+              // Bent riders. Only the full set of four diagonal legs, i.e. the
+              // Griffon, is supported so far; partial sets and range limits
+              // would need per piece type direction tables.
+              if (!pi->bent[initial][modality].empty())
+              {
+                  assert(pi->bent[initial][modality] == GriffonDirections);
+                  riderTypes |= RIDER_GRIFFON;
+              }
           }
       }
 
@@ -303,6 +364,8 @@ void Bitboards::init_pieces() {
                       }
                       pseudo |= sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
                       pseudo |= sliding_attack<HOPPER_RANGE>(pi->hopper[initial][modality], s, 0, c);
+                      if (!pi->bent[initial][modality].empty())
+                          pseudo |= griffon_attacks_bb(s, 0);
                   }
               }
           }
@@ -361,6 +424,8 @@ void Bitboards::init() {
   init_magics<HOPPER>(GrasshopperTableV, GrasshopperMagicsV, GrasshopperDirectionsV);
   init_magics<HOPPER>(GrasshopperTableD, GrasshopperMagicsD, GrasshopperDirectionsD);
 #endif
+
+  init_rays();
 
   init_pieces();
 

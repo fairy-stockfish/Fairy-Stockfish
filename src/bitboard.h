@@ -161,6 +161,18 @@ extern Magic GrasshopperMagicsD[SQUARE_NB];
 
 extern Magic* magics[];
 
+// The eight queen directions, in rotational order: rotating by 45 degrees is
+// a +/-1 step in this array. Diagonals sit at the odd indices.
+constexpr Direction QueenDirections[8] = { NORTH, NORTH_EAST, EAST, SOUTH_EAST,
+                                           SOUTH, SOUTH_WEST, WEST, NORTH_WEST };
+
+// RayBB[d][s] holds every square from s to the board edge in direction
+// QueenDirections[d], excluding s. Used to keep only the half of a rook attack
+// set that points away from a bent rider's origin square.
+extern Bitboard RayBB[8][SQUARE_NB];
+
+Bitboard griffon_path_bb(Square from, Square to);
+
 constexpr Bitboard make_bitboard() { return 0; }
 
 template<typename ...Squares>
@@ -326,6 +338,10 @@ inline Bitboard between_bb(Square s1, Square s2, PieceType pt) {
   else if (pt == JANGGI_ELEPHANT)
       return  (PseudoAttacks[WHITE][WAZIR][s2] & PseudoAttacks[WHITE][ALFIL][s1])
             | (PseudoAttacks[WHITE][KNIGHT][s2] & PseudoAttacks[WHITE][FERS][s1]);
+  else if (pt == GRIFFON)
+      // The path of a bent rider depends on which end it starts from, so it
+      // has to be traced from the piece (s2) towards the target (s1).
+      return griffon_path_bb(s2, s1);
   else
       return between_bb(s1, s2);
 }
@@ -461,6 +477,27 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
   }
 }
 
+/// griffon_attacks_bb() returns the bent-rider component of a Griffon: one
+/// diagonal step onto a corner square, which has to be empty for the move to
+/// continue, then an unlimited orthogonal ride away from the origin square.
+/// The corner square itself is not included, it is covered by the Ferz step.
+/// Both continuation directions of a diagonal leg are orthogonal, so a single
+/// rook lookup per corner suffices; RayBB discards the half pointing back.
+
+inline Bitboard griffon_attacks_bb(Square s, Bitboard occupied) {
+
+  Bitboard b = 0;
+  for (int i = 1; i < 8; i += 2) // the four diagonals
+  {
+      Square t = Square(s + QueenDirections[i]);
+      if (!is_ok(t) || distance(s, t) != 1 || (occupied & t))
+          continue;
+      b |= attacks_bb<ROOK>(t, occupied) & (RayBB[(i + 1) & 7][t] | RayBB[(i + 7) & 7][t]);
+  }
+  return b;
+}
+
+
 /// pop_rider() finds and clears a rider in a (hybrid) rider type
 
 inline RiderType pop_rider(RiderType* r) {
@@ -473,6 +510,9 @@ inline RiderType pop_rider(RiderType* r) {
 inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperAttacks[c][pt][s];
   RiderType r = AttackRiderTypes[pt];
+  if (r & RIDER_GRIFFON)
+      b |= griffon_attacks_bb(s, occupied);
+  r &= MAGIC_RIDERS;
   while (r)
       b |= rider_attacks_bb(pop_rider(&r), s, occupied);
   return b & PseudoAttacks[c][pt][s];
@@ -483,6 +523,9 @@ template <bool Initial=false>
 inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperMoves[Initial][c][pt][s];
   RiderType r = MoveRiderTypes[Initial][pt];
+  if (r & RIDER_GRIFFON)
+      b |= griffon_attacks_bb(s, occupied);
+  r &= MAGIC_RIDERS;
   while (r)
       b |= rider_attacks_bb(pop_rider(&r), s, occupied);
   return b & PseudoMoves[Initial][c][pt][s];

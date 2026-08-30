@@ -411,7 +411,7 @@ enum PieceType {
   SHOGI_PAWN, LANCE, SHOGI_KNIGHT, GOLD, DRAGON_HORSE,
   CLOBBER_PIECE, BREAKTHROUGH_PIECE, IMMOBILE_PIECE, CANNON, JANGGI_CANNON,
   SOLDIER, HORSE, ELEPHANT, JANGGI_ELEPHANT, BANNER,
-  WAZIR, COMMONER, CENTAUR,
+  WAZIR, COMMONER, CENTAUR, GRIFFON,
 
   CUSTOM_PIECE_1, CUSTOM_PIECE_2, CUSTOM_PIECE_3, CUSTOM_PIECE_4,
   CUSTOM_PIECE_5, CUSTOM_PIECE_6, CUSTOM_PIECE_7, CUSTOM_PIECE_8,
@@ -466,12 +466,24 @@ enum RiderType : int {
   RIDER_GRASSHOPPER_H = 1 << 11,
   RIDER_GRASSHOPPER_V = 1 << 12,
   RIDER_GRASSHOPPER_D = 1 << 13,
+  // Bent riders are not backed by a magic table: their relevant occupancy
+  // spans two files and two ranks, which would be prohibitive on 12x10.
+  // They are composed from the rook/bishop magics instead, see
+  // griffon_attacks_bb(). Keep them after all magic-backed riders, since
+  // rider_attacks_bb() indexes magics[] by the bit position.
+  RIDER_GRIFFON = 1 << 14,
+  MAGIC_RIDERS = RIDER_GRIFFON - 1,
+  BENT_RIDERS = RIDER_GRIFFON,
   HOPPING_RIDERS =  RIDER_CANNON_H | RIDER_CANNON_V | RIDER_CANNON_DIAG
                   | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
   LAME_LEAPERS = RIDER_LAME_DABBABA | RIDER_HORSE | RIDER_ELEPHANT | RIDER_JANGGI_ELEPHANT,
+  // Bent riders are asymmetrical: a Griffon on a1 reaches b5 via b2-b3-b4,
+  // while a Griffon on b5 reaches a1 via a4-a3-a2. Reachability is symmetric
+  // but the path is not, so attacks may not be derived from the target square.
   ASYMMETRICAL_RIDERS =  RIDER_HORSE | RIDER_JANGGI_ELEPHANT
-                       | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
-  NON_SLIDING_RIDERS = HOPPING_RIDERS | LAME_LEAPERS | RIDER_NIGHTRIDER,
+                       | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D
+                       | BENT_RIDERS,
+  NON_SLIDING_RIDERS = HOPPING_RIDERS | LAME_LEAPERS | RIDER_NIGHTRIDER | BENT_RIDERS,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
