@@ -50,6 +50,69 @@ namespace {
   };
   const std::string verticals = "fbvh";
   const std::string horizontals = "rlsh";
+  // The eight queen directions in rotational order, as (file, rank) offsets:
+  // one step along this table is a 45 degree turn. Must stay in the same order
+  // as QueenDirections in bitboard.h, which indexes RayBB the same way.
+  constexpr int BentRotation[8][2] = { {0,1}, {1,1}, {1,0}, {1,-1}, {0,-1}, {-1,-1}, {-1,0}, {-1,1} };
+
+  int bent_direction_index(int df, int dr) {
+      for (int i = 0; i < 8; i++)
+          if (BentRotation[i][0] == df && BentRotation[i][1] == dr)
+              return i;
+      return -1;
+  }
+
+  // Splits a bent rider's first leg into a direction and a length, so that a
+  // leg of more than one square turns as easily as a step: the osprey leaps
+  // two squares orthogonally, [D?B], before riding out diagonally, and turning
+  // that leap is turning the direction it points in. Returns -1 for a leg that
+  // is not a multiple of a queen direction, a knight's for instance, where a
+  // 45 degree turn means nothing.
+  int bent_leg(int df, int dr, int* length) {
+      int len = std::max(std::abs(df), std::abs(dr));
+      if (!len || (df && dr && std::abs(df) != std::abs(dr)))
+          return -1;
+      *length = len;
+      return bent_direction_index(df / len, dr / len);
+  }
+  // Which continuations of a bent leg survive, given the atom the second leg
+  // rides with and the filter from any modifier written outside the brackets.
+  //
+  // The second atom decides how far the move turns. Riding with the other
+  // family - [F?R], [W?B], [D?B] - is a 45 degree turn, and it forks: bit 1
+  // for the direction 45 degrees clockwise from the leg, bit 2 for the one
+  // counter-clockwise. Riding with the same family - [F-B], the Tamerlane
+  // Picket, or [W-R], a rook that must move at least two squares - carries
+  // straight on, recorded as bit 4.
+  //
+  // filter 0 keeps every continuation, 1 keeps only those running along a
+  // file (v[F?R], the ship), 2 only those running along a rank. The leg
+  // length is packed above the mask, so one int carries the whole leg.
+  int continuation_mask(int df, int dr, int filter, char rideAtom) {
+      int len = 0;
+      int i = bent_leg(df, dr, &len);
+      if (i < 0)
+          return 0;
+      bool legDiagonal = i & 1;
+      bool rideDiagonal = rideAtom == 'B';
+      int mask = 0;
+      if (legDiagonal == rideDiagonal)
+      {
+          // straight on: the ride keeps the leg's own direction
+          if (filter == 0 || (filter == 1 && !BentRotation[i][0]) || (filter == 2 && !BentRotation[i][1]))
+              mask = 4;
+      }
+      else
+          for (int k = 0; k < 2; k++)
+          {
+              const int* cont = BentRotation[(i + (k ? 7 : 1)) & 7];
+              if (   filter == 0
+                  || (filter == 1 && cont[0] == 0)
+                  || (filter == 2 && cont[1] == 0))
+                  mask |= 1 << k;
+          }
+      return mask ? (mask | (len << 3)) : 0;
+  }
   // from_betza creates a piece by parsing Betza notation
   // https://en.wikipedia.org/wiki/Betza%27s_funny_notation
   PieceInfo* from_betza(const std::string& betza, const std::string& name) {
@@ -61,6 +124,13 @@ namespace {
       bool rider = false;
       bool lame = false;
       bool initial = false;
+      bool bent = false;
+      // 'bent' is cleared once the leg's atom has been handled, like every
+      // other qualifier; this one has to survive until the group closes.
+      bool inBracket = false;
+      bool bentStop = true;
+      char bentRide = 0;
+      int contFilter = 0;
       int distance = 0;
       std::vector<std::string> prelimDirections = {};
       for (std::string::size_type i = 0; i < betza.size(); i++)
@@ -80,6 +150,45 @@ namespace {
           // Lame leaper
           else if (c == 'n')
               lame = true;
+          // Bent riders, in the bracket notation of XBetza: [A?B] is a leg
+          // with atom A, which the piece may stop on, followed by a ride with
+          // atom B in the outward direction; [A-B] is the same with the leg
+          // square only passed through. Modifiers written inside the brackets
+          // restrict the leg as usual, so the snake is [vW?B]. Modifiers
+          // written outside apply to the move as a whole, the brackets
+          // standing in for an oblique atom, so the ship is v[F?R].
+          //
+          // Everything but the leg is read here, when the group opens; the
+          // leg itself then goes through the ordinary atom handling below,
+          // which is what gives it its directional modifiers for free.
+          else if (c == '[')
+          {
+              std::string::size_type close = betza.find(']', i);
+              std::string::size_type sep = betza.find_first_of("?-", i);
+              if (close == std::string::npos || sep == std::string::npos || sep > close)
+                  continue;
+              // The second leg carrying its own directional modifiers, [W?sR],
+              // would be a turn of something other than 45 degrees, which is
+              // not supported; leave the group alone rather than read it as
+              // something it is not.
+              if (close - sep != 2)
+                  continue;
+              bent = inBracket = true;
+              bentStop = betza[sep] == '?';
+              bentRide = betza[close - 1];
+              for (auto s : prelimDirections)
+                  contFilter = s == "vv" ? 1 : s == "ss" ? 2 : contFilter;
+              prelimDirections.clear();
+          }
+          // End of a bracket group: the ride atom was taken when it opened
+          else if ((c == '?' || c == '-') && inBracket)
+          {
+              i = betza.find(']', i);
+              bent = inBracket = false;
+              bentStop = true;
+              bentRide = 0;
+              contFilter = 0;
+          }
           // Initial move
           else if (c == 'i')
               initial = true;
@@ -148,22 +257,36 @@ namespace {
                       auto has_dir = [&](std::string s) {
                         return std::find(directions.begin(), directions.end(), s) != directions.end();
                       };
+                      // Records one direction as an ordinary move and, for a
+                      // bent rider, as a bent leg as well, carrying the mask
+                      // of the continuations that survived the outer filter.
+                      // A leg written with ? is also an ordinary destination,
+                      // one written with - only a square passed through.
+                      auto add_dir = [&](int df, int dr) {
+                          Direction d = Direction(dr * FILE_NB + df);
+                          int mask = bent && !rider && !hopper
+                                   ? continuation_mask(df, dr, contFilter, bentRide) : 0;
+                          if (!bent || bentStop)
+                              v[d] = distance;
+                          if (mask)
+                              p->bent[initial][modality][d] = mask;
+                      };
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("rf") || has_dir("rv") || has_dir("fh") || has_dir("rh") || has_dir("hr"))
-                          v[Direction(atom.first * FILE_NB + atom.second)] = distance;
+                          add_dir(atom.second, atom.first);
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("lb") || has_dir("lv") || has_dir("bh") || has_dir("lh") || has_dir("hr"))
-                          v[Direction(-atom.first * FILE_NB - atom.second)] = distance;
+                          add_dir(-atom.second, -atom.first);
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("br") || has_dir("bs") || has_dir("bh") || has_dir("rh") || has_dir("hr"))
-                          v[Direction(-atom.second * FILE_NB + atom.first)] = distance;
+                          add_dir(atom.first, -atom.second);
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("fl") || has_dir("fs") || has_dir("fh") || has_dir("lh") || has_dir("hr"))
-                          v[Direction(atom.second * FILE_NB - atom.first)] = distance;
+                          add_dir(-atom.first, atom.second);
                       if (directions.size() == 0 || has_dir("rr") || has_dir("ss") || has_dir("fr") || has_dir("fs") || has_dir("fh") || has_dir("rh") || has_dir("hl"))
-                          v[Direction(atom.second * FILE_NB + atom.first)] = distance;
+                          add_dir(atom.first, atom.second);
                       if (directions.size() == 0 || has_dir("ll") || has_dir("ss") || has_dir("bl") || has_dir("bs") || has_dir("bh") || has_dir("lh") || has_dir("hl"))
-                          v[Direction(-atom.second * FILE_NB - atom.first)] = distance;
+                          add_dir(-atom.first, -atom.second);
                       if (directions.size() == 0 || has_dir("bb") || has_dir("vv") || has_dir("rb") || has_dir("rv") || has_dir("bh") || has_dir("rh") || has_dir("hl"))
-                          v[Direction(-atom.first * FILE_NB + atom.second)] = distance;
+                          add_dir(atom.second, -atom.first);
                       if (directions.size() == 0 || has_dir("ff") || has_dir("vv") || has_dir("lf") || has_dir("lv") || has_dir("fh") || has_dir("lh") || has_dir("hl"))
-                          v[Direction(atom.first * FILE_NB - atom.second)] = distance;
+                          add_dir(-atom.second, atom.first);
                   }
               }
               // Reset state
@@ -173,6 +296,8 @@ namespace {
               rider = false;
               lame = false;
               initial = false;
+              bent = false;
+              contFilter = 0;
               distance = 0;
           }
       }

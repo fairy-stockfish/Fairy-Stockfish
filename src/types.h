@@ -466,12 +466,29 @@ enum RiderType : int {
   RIDER_GRASSHOPPER_H = 1 << 11,
   RIDER_GRASSHOPPER_V = 1 << 12,
   RIDER_GRASSHOPPER_D = 1 << 13,
+  // Bent riders take one step, then ride away without limit in one or both
+  // of the directions 45 degrees off that step (Griffon, Rhino, and the
+  // half-versions of either). They are not backed by a magic table: their
+  // relevant occupancy spans two files and two ranks, which would be
+  // prohibitive on 12x10, so they are composed from the rook/bishop magics
+  // instead, see bent_attacks_bb(). One bit is enough for all of them - the
+  // per piece type shape lives in BentAttacks/BentMoves. Keep the bit after
+  // every magic-backed rider, since rider_attacks_bb() indexes magics[] by
+  // bit position.
+  RIDER_BENT = 1 << 14,
+  MAGIC_RIDERS = RIDER_BENT - 1,
+  BENT_RIDERS = RIDER_BENT,
   HOPPING_RIDERS =  RIDER_CANNON_H | RIDER_CANNON_V | RIDER_CANNON_DIAG
                   | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
   LAME_LEAPERS = RIDER_LAME_DABBABA | RIDER_HORSE | RIDER_ELEPHANT | RIDER_JANGGI_ELEPHANT,
+  // Bent riders are asymmetrical: a Griffon on a1 reaches b5 via b2-b3-b4,
+  // while a Griffon on b5 reaches a1 via a4-a3-a2. Reachability is symmetric
+  // but the path is not, so attacks may not be derived from the target
+  // square. For the half-versions not even reachability is symmetric.
   ASYMMETRICAL_RIDERS =  RIDER_HORSE | RIDER_JANGGI_ELEPHANT
-                       | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D,
-  NON_SLIDING_RIDERS = HOPPING_RIDERS | LAME_LEAPERS | RIDER_NIGHTRIDER,
+                       | RIDER_GRASSHOPPER_H | RIDER_GRASSHOPPER_V | RIDER_GRASSHOPPER_D
+                       | BENT_RIDERS,
+  NON_SLIDING_RIDERS = HOPPING_RIDERS | LAME_LEAPERS | RIDER_NIGHTRIDER | BENT_RIDERS,
 };
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
