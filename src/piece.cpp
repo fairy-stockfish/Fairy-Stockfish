@@ -62,13 +62,28 @@ namespace {
       return -1;
   }
 
+  // Splits a bent rider's first leg into a direction and a length, so that a
+  // leg of more than one square is turned as easily as a step: the osprey
+  // leaps two squares orthogonally (yD) before riding out diagonally, and
+  // turning that leap by 45 degrees is turning the direction it points in.
+  // Returns -1 for a leg that is not a multiple of a queen direction, a
+  // knight's for instance, where a 45 degree turn means nothing.
+  int bent_leg(int df, int dr, int* length) {
+      int len = std::max(std::abs(df), std::abs(dr));
+      if (!len || (df && dr && std::abs(df) != std::abs(dr)))
+          return -1;
+      *length = len;
+      return bent_direction_index(df / len, dr / len);
+  }
+
   // Which of the two continuations of a bent leg survive the filter. Bit 1 is
   // the direction 45 degrees clockwise from the leg, bit 2 the one 45 degrees
   // counter-clockwise; filter 0 keeps both, 1 keeps only continuations running
-  // along a file, 2 only those running along a rank. Returns 0 for legs longer
-  // than a single step, which is what neutralizes a nonsensical y on a rider.
+  // along a file, 2 only those running along a rank. The leg length is packed
+  // above them, so that one int carries the whole shape of the leg.
   int continuation_mask(int df, int dr, int filter) {
-      int i = bent_direction_index(df, dr);
+      int len = 0;
+      int i = bent_leg(df, dr, &len);
       if (i < 0)
           return 0;
       int mask = 0;
@@ -80,7 +95,7 @@ namespace {
               || (filter == 2 && cont[1] == 0))
               mask |= 1 << k;
       }
-      return mask;
+      return mask ? (mask | (len << 2)) : 0;
   }
   // from_betza creates a piece by parsing Betza notation
   // https://en.wikipedia.org/wiki/Betza%27s_funny_notation

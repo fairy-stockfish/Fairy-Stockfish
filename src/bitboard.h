@@ -178,7 +178,8 @@ extern Bitboard RayBB[8][SQUARE_NB];
 
 struct BentRider {
   int count = 0;
-  int dir[8] = {};
+  int dir[8] = {};   // index into QueenDirections
+  int len[8] = {};   // squares covered by the first leg, jumped over if > 1
   int cont[8] = {};
 };
 
@@ -491,11 +492,11 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
   }
 }
 
-/// bent_attacks_bb() returns the riding part of a bent rider: one step onto a
+/// bent_attacks_bb() returns the riding part of a bent rider: one leg onto a
 /// corner square, which has to be empty for the move to continue, then an
-/// unlimited ride 45 degrees off that step, away from the origin. The corner
-/// square itself is not included here, it is covered by the ordinary step the
-/// parser records alongside every bent leg.
+/// unlimited ride 45 degrees off that leg, away from the origin. The corner
+/// square itself is not included here, it is covered by the ordinary step or
+/// leap the parser records alongside every bent leg.
 /// Both continuations of a diagonal leg are orthogonal and both continuations
 /// of an orthogonal leg are diagonal, so one rook or bishop lookup covers a
 /// whole corner; RayBB then discards everything pointing back at the origin.
@@ -506,8 +507,11 @@ inline Bitboard bent_attacks_bb(const BentRider& br, Square s, Bitboard occupied
   for (int k = 0; k < br.count; k++)
   {
       int i = br.dir[k];
-      Square t = Square(s + QueenDirections[i]);
-      if (!is_ok(t) || distance(s, t) != 1 || (occupied & t))
+      // A first leg of more than one square is a leap: only where it lands
+      // matters, never what it passes over. distance() catches the wrap of a
+      // leg that ran off the side of the board.
+      Square t = Square(s + br.len[k] * QueenDirections[i]);
+      if (!is_ok(t) || distance(s, t) != br.len[k] || (occupied & t))
           continue;
       Bitboard rays = 0;
       if (br.cont[k] & 1)

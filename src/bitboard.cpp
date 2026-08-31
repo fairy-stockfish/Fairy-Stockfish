@@ -236,11 +236,13 @@ Bitboard bent_path_bb(PieceType pt, Square from, Square to) {
       for (int k = 0; k < br.count; k++)
       {
           int i = br.dir[k];
-          Square corner = Square(from + QueenDirections[i]);
-          if (!is_ok(corner) || distance(from, corner) != 1)
+          Square corner = Square(from + br.len[k] * QueenDirections[i]);
+          if (!is_ok(corner) || distance(from, corner) != br.len[k])
               continue;
           if (corner == to)
-              return 0; // reached by the plain step, nothing in between
+              return 0; // reached by the leg alone, nothing in between
+          // A leg of more than one square is jumped, so it contributes no
+          // blocking squares - only the ride does.
           for (int j = 0; j < 2; j++)
           {
               if (!(br.cont[k] & (1 << j)))
@@ -352,16 +354,23 @@ void Bitboards::init_pieces() {
                       BentRider& br = modality == MODALITY_CAPTURE ? BentAttacks[c][pt]
                                                                    : BentMoves[initial][c][pt];
                       br.count = 0;
-                      for (auto const& [d, mask] : pi->bent[initial][modality])
+                      for (auto const& [d, shape] : pi->bent[initial][modality])
                       {
+                          // The parser packs the leg length above the two
+                          // continuation bits, and the key is the whole leg
+                          // vector, so dividing it by the length recovers the
+                          // direction the leg points in.
+                          int len = shape >> 2;
+                          Direction leg = c == WHITE ? d : -d;
                           int i = -1;
-                          for (int k = 0; k < 8; k++)
-                              if (QueenDirections[k] == (c == WHITE ? d : -d))
+                          for (int k = 0; len && k < 8; k++)
+                              if (QueenDirections[k] == Direction(leg / len))
                                   i = k;
                           if (i < 0 || br.count >= 8)
                               continue;
                           br.dir[br.count] = i;
-                          br.cont[br.count] = mask;
+                          br.len[br.count] = len;
+                          br.cont[br.count] = shape & 3;
                           br.count++;
                       }
                   }

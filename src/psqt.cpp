@@ -171,8 +171,8 @@ int slider_fraction(std::map<Direction, int> slider) {
 // Ship, Snake - correctly valued at about half of the full piece.
 int bent_fraction(std::map<Direction, int> bent) {
     int s = 0;
-    for (auto const& [_, mask] : bent)
-        s += 75 * ((mask & 1) + ((mask >> 1) & 1));
+    for (auto const& [_, shape] : bent)
+        s += 75 * ((shape & 1) + ((shape >> 1) & 1));
     return s;
 }
 
