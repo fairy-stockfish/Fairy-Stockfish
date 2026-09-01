@@ -85,9 +85,24 @@ namespace {
   // Picket, or [W-R], a rook that must move at least two squares - carries
   // straight on, recorded as bit 4.
   //
-  // filter 0 keeps every continuation, 1 keeps only those running along a
-  // file (v[F?R], the ship), 2 only those running along a rank. The leg
-  // length is packed above the mask, so one int carries the whole leg.
+  // A modifier written outside the brackets sorts moves by the shape of the
+  // whole displacement, the brackets standing in for an oblique atom: v keeps
+  // the moves that travel further along a file than across one, s the other
+  // way round, and a move that goes equally far both ways is kept by either.
+  //
+  // Taking the displacement after a single step of the ride is enough. The
+  // comparison never changes as the ride lengthens: for a ride running along
+  // a file or a rank one component is fixed while the other grows, and for a
+  // diagonal ride off an orthogonal leg both grow at the same rate, so the
+  // leg's own offset decides once and for all.
+  bool passes_filter(int f, int r, int filter) {
+      return filter == 0
+          || (filter == 1 && std::abs(r) >= std::abs(f))
+          || (filter == 2 && std::abs(f) >= std::abs(r));
+  }
+
+  // Which continuations of a bent leg survive. The leg length is packed above
+  // the mask, so one int carries the whole leg.
   int continuation_mask(int df, int dr, int filter, char rideAtom) {
       int len = 0;
       int i = bent_leg(df, dr, &len);
@@ -99,16 +114,16 @@ namespace {
       if (legDiagonal == rideDiagonal)
       {
           // straight on: the ride keeps the leg's own direction
-          if (filter == 0 || (filter == 1 && !BentRotation[i][0]) || (filter == 2 && !BentRotation[i][1]))
+          if (passes_filter(len * BentRotation[i][0] + BentRotation[i][0],
+                            len * BentRotation[i][1] + BentRotation[i][1], filter))
               mask = 4;
       }
       else
           for (int k = 0; k < 2; k++)
           {
               const int* cont = BentRotation[(i + (k ? 7 : 1)) & 7];
-              if (   filter == 0
-                  || (filter == 1 && cont[0] == 0)
-                  || (filter == 2 && cont[1] == 0))
+              if (passes_filter(len * BentRotation[i][0] + cont[0],
+                                len * BentRotation[i][1] + cont[1], filter))
                   mask |= 1 << k;
           }
       return mask ? (mask | (len << 3)) : 0;
@@ -266,7 +281,11 @@ namespace {
                           Direction d = Direction(dr * FILE_NB + df);
                           int mask = bent && !rider && !hopper
                                    ? continuation_mask(df, dr, contFilter, bentRide) : 0;
-                          if (!bent || bentStop)
+                          // The square the leg lands on is part of the compound
+                          // move, so an outer modifier sorts it the same way:
+                          // v[W?B], the snake, keeps neither the sideways rides
+                          // nor the sideways steps that would start them.
+                          if (!bent || (bentStop && passes_filter(df, dr, contFilter)))
                               v[d] = distance;
                           if (mask)
                               p->bent[initial][modality][d] = mask;

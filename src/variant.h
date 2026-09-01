@@ -73,6 +73,11 @@ struct Variant {
   Bitboard tripleStepRegion[COLOR_NB] = {};
   Bitboard enPassantRegion[COLOR_NB] = {AllSquares, AllSquares};
   PieceSet enPassantTypes[COLOR_NB] = {piece_set(PAWN), piece_set(PAWN)};
+  // Non-pawn pieces that leave en passant squares behind them on any move of
+  // more than one square. Without this, a non-pawn is only capturable en
+  // passant on a move that its *initial* move set alone can make, which does
+  // not cover pieces whose multi-square step stays available all game.
+  PieceSet enPassantTargetTypes = NO_PIECE_SET;
   bool castling = true;
   bool castlingDroppedPiece = false;
   File castlingKingsideFile = FILE_G;
