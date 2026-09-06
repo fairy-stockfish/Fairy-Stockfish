@@ -1674,6 +1674,9 @@ std::string Eval::trace(Position& pos) {
   if (pos.checkers())
       return "Final evaluation: none (in check)";
 
+  if (pos.is_immediate_game_end())
+      return "Final evaluation: none (variant end)";
+
   std::stringstream ss;
   ss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2);
 
