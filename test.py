@@ -78,6 +78,14 @@ pass = true
 [royalduck:duck]
 extinctionPseudoRoyal = true
 
+[atomicduck:atomic]
+wallingRule = duck
+stalemateValue = win
+
+[immuneduck:atomicduck]
+extinctionPseudoRoyal = false
+blastImmuneTypes = q
+
 [makhouse:makruk]
 startFen = rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR[] w - - 0 1
 pieceDrops = true
@@ -470,6 +478,54 @@ class TestPyffish(unittest.TestCase):
         result = sf.legal_moves("shako", "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/RR3K4/10 w Qkq - 0 1", [])
         self.assertIn("f2d2", result)
 
+        # Atomic duck: capture
+        fen = "7k/8/8/2Ppq3/*7/8/8/K2R4 w - - 0 1"
+        moves = sf.legal_moves("atomicduck", fen, [])
+        self.assertEqual(sum(move.startswith("d1d5,") for move in moves), 60)
+        for square in ("d1", "d5", "e5"):
+            self.assertIn(f"d1d5,d5{square}", moves)
+        for square in ("c5", "a4", "h8"):
+            self.assertNotIn(f"d1d5,d5{square}", moves)
+
+        # Atomic duck: en passant
+        moves = sf.legal_moves("atomicduck", "7k/8/4r3/2PpP3/*7/8/8/K7 w - d6 0 1", [])
+        for square in ("e5", "d5", "d6", "e6"):
+            self.assertIn(f"e5d6,d6{square}", moves)
+        self.assertNotIn("e5d6,d6c5", moves)
+
+        # Atomic duck: promotion capture
+        moves = sf.legal_moves("atomicduck", "1rb4k/P7/8/8/*7/8/8/7K w - - 0 1", [])
+        for promotion in "qrbn":
+            for square in ("a7", "b8", "c8"):
+                self.assertIn(f"a7b8{promotion},b8{square}", moves)
+
+        # Atomic duck: wall blocks check after blast
+        moves = sf.legal_moves("atomicduck", "4r2k/8/8/3pq3/*7/8/8/3RK3 w - - 0 1", [])
+        self.assertIn("d1d5,d5e5", moves)
+        self.assertNotIn("d1d5,d5d5", moves)
+
+        # Atomic duck: wall cannot replace exploded king
+        moves = sf.legal_moves("atomicduck", "7k/8/8/3pq3/*3K3/8/8/3R4 w - - 0 1", [])
+        self.assertFalse(any(move.startswith("d1d5,") for move in moves))
+
+        # Atomic duck: wall on exploded opponent king
+        moves = sf.legal_moves("atomicduck", "8/8/4k3/3p4/*7/8/8/K2R4 w - - 0 1", [])
+        self.assertIn("d1d5,d5e6", moves)
+
+        # Atomic duck: blast immunity
+        moves = sf.legal_moves("immuneduck", "7k/8/8/3pq3/*7/8/8/K2R4 w - - 0 1", [])
+        self.assertIn("d1d5,d5d5", moves)
+        self.assertNotIn("d1d5,d5e5", moves)
+        moves = sf.legal_moves("immuneduck", "1rb4k/P7/8/8/*7/8/8/7K w - - 0 1", [])
+        self.assertNotIn("a7b8q,b8b8", moves)
+        self.assertIn("a7b8q,b8c8", moves)
+        self.assertIn("a7b8n,b8b8", moves)
+
+        # Atomic duck: quiet move
+        moves = sf.legal_moves("atomicduck", "7k/8/8/8/*7/8/8/K2R4 w - - 0 1", [])
+        self.assertIn("d1d5,d5d1", moves)
+        self.assertNotIn("d1d5,d5d5", moves)
+
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
         self.assertEqual(result, CHESS)
@@ -543,6 +599,11 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 2 2")
         result = sf.get_fen("pocketknight", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1", ["N@e4"])
         self.assertEqual(result, "rnbqkbnr/pppppppp/8/8/4N3/8/PPPPPPPP/RNBQKBNR[n] b KQkq - 0 1")
+
+        # Atomic duck: place the duck on an exploded piece
+        fen = "7k/8/8/2Ppq3/*7/8/8/K2R4 w - - 0 1"
+        result = sf.get_fen("atomicduck", fen, ["d1d5,d5e5"])
+        self.assertEqual(result, "7k/8/8/2P1*3/8/8/8/K7 b - - 0 1")
 
         # duck chess en passant
         fen = "r1b1k3/pp3pb1/4p3/2p2p2/2PpP2q/1P1P1P2/P1K1*3/RN1Q2N1 b q e3 0 17"

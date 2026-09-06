@@ -1176,8 +1176,13 @@ bool Position::legal(Move m) const {
       Bitboard attackerCandidatesTheirs = occupied & ~square_bb(kto);
       for (PieceSet ps = var->petrifyOnCaptureTypes & extinction_piece_types(); ps;)
           attackerCandidatesTheirs &= ~pieces(~us, pop_lsb(ps));
+      bool extinctsThem = bool(pseudoRoyalsTheirs & ~occupied);
+      // Walls are placed after the blast. Preserve the surviving pieces above
+      // so that a wall cannot stand in for an exploded pseudo-royal or attacker.
+      if (walling())
+          occupied |= gating_square(m);
       // Check for legality unless we capture a pseudo-royal piece
-      if (!(pseudoRoyalsTheirs & ~occupied))
+      if (!extinctsThem)
           while (pseudoRoyals)
           {
               Square sr = pop_lsb(pseudoRoyals);
@@ -1323,7 +1328,7 @@ bool Position::pseudo_legal(const Move m) const {
 
   // Use a slower but simpler function for uncommon cases
   // yet we skip the legality check of MoveList<LEGAL>().
-  if (type_of(m) != NORMAL || is_gating(m))
+  if (type_of(m) != NORMAL || is_gating(m) || (walling() && blast_on_capture() && capture(m)))
       return checkers() ? MoveList<    EVASIONS>(*this).contains(m)
                         : MoveList<NON_EVASIONS>(*this).contains(m);
 
