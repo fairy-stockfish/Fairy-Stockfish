@@ -71,6 +71,16 @@ cat << EOF > xboard.exp
    expect "pong"
    send "variant 3check-crazyhouse\\n"
    expect "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\\\\\[] w KQkq - 3+3 0 1"
+   send "variant fischerandom\\n"
+   send "setboard 4k3/8/8/8/8/8/8/R3K2R w HA - 0 1\\n"
+   send "force\\n"
+   send "usermove O-O\\n"
+   send "d\\n"
+   expect "Fen: 4k3/8/8/8/8/8/8/R4RK1 b - - 1 1"
+   send "setboard 4k3/8/8/8/8/8/8/R3K2R w HA - 0 1\\n"
+   send "usermove O-O-O\\n"
+   send "d\\n"
+   expect "Fen: 4k3/8/8/8/8/8/8/2KR3R b - - 1 1"
    send "quit\\n"
    expect eof
 EOF
