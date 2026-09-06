@@ -40,12 +40,35 @@ namespace Zobrist {
 
   Key psq[PIECE_NB][SQUARE_NB];
   Key enpassant[FILE_NB];
+  Key enpassantSquare[SQUARE_NB];
   Key castling[CASTLING_RIGHT_NB];
   Key side, noPawns;
   Key inHand[PIECE_NB][SQUARE_NB];
   Key checks[COLOR_NB][CHECKS_NB];
   Key wall[SQUARE_NB];
   Key endgame[EG_EVAL_NB];
+}
+
+Key en_passant_key(Bitboard epSquares) {
+
+  Key key = 0;
+  Bitboard files = 0;
+
+  while (epSquares)
+  {
+      Square s = pop_lsb(epSquares);
+      Bitboard file = file_bb(file_of(s));
+
+      if (files & file)
+          key ^= Zobrist::enpassantSquare[s];
+      else
+      {
+          files |= file;
+          key ^= Zobrist::enpassant[file_of(s)];
+      }
+  }
+
+  return key;
 }
 
 
@@ -166,6 +189,10 @@ void Position::init() {
 
   for (File f = FILE_A; f <= FILE_MAX; ++f)
       Zobrist::enpassant[f] = rng.rand<Key>();
+
+  PRNG enPassantRng(1070373);
+  for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+      Zobrist::enpassantSquare[s] = enPassantRng.rand<Key>();
 
   for (int cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
       Zobrist::castling[cr] = rng.rand<Key>();
@@ -645,8 +672,7 @@ void Position::set_state(StateInfo* si) const {
           si->nonPawnMaterial[color_of(pc)] += PieceValue[MG][pc];
   }
 
-  for (Bitboard b = si->epSquares; b; )
-      si->key ^= Zobrist::enpassant[file_of(pop_lsb(b))];
+  si->key ^= en_passant_key(si->epSquares);
 
   if (sideToMove == BLACK)
       si->key ^= Zobrist::side;
@@ -1698,8 +1724,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Reset en passant squares
-  while (st->epSquares)
-      k ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];
+  k ^= en_passant_key(st->epSquares);
+  st->epSquares = 0;
 
   // Update castling rights if needed
   if (type_of(m) != DROP && !is_pass(m) && st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
@@ -1860,7 +1886,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               && !(walling() && gating_square(m) == to - pawn_push(us)))
           {
               st->epSquares |= to - pawn_push(us);
-              k ^= Zobrist::enpassant[file_of(to)];
           }
           if (   std::abs(int(to) - int(from)) == 3 * NORTH
               && (var->enPassantRegion[them] & (to - 2 * pawn_push(us)))
@@ -1868,8 +1893,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               && !(walling() && gating_square(m) == to - 2 * pawn_push(us)))
           {
               st->epSquares |= to - 2 * pawn_push(us);
-              k ^= Zobrist::enpassant[file_of(to)];
           }
+          k ^= en_passant_key(st->epSquares);
       }
 
       // Update pawn hash key
@@ -1936,8 +1961,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       assert(type_of(pc) != PAWN);
       st->epSquares = between_bb(from, to) & var->enPassantRegion[them];
-      for (Bitboard b = st->epSquares; b; )
-          k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
+      k ^= en_passant_key(st->epSquares);
   }
 
   // Set capture piece
@@ -2325,8 +2349,8 @@ void Position::do_null_move(StateInfo& newSt) {
   st->accumulator.computed[WHITE] = false;
   st->accumulator.computed[BLACK] = false;
 
-  while (st->epSquares)
-      st->key ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];
+  st->key ^= en_passant_key(st->epSquares);
+  st->epSquares = 0;
 
   st->key ^= Zobrist::side;
   prefetch(TT.first_entry(key()));
