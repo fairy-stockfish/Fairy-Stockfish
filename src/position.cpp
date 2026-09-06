@@ -1059,6 +1059,10 @@ bool Position::legal(Move m) const {
   assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
   assert(board_bb() & to);
 
+  // Illegal captures
+  if (capture(m) && !can_capture(type_of(moved_piece(m)), type_of(piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to))))
+      return false;
+
   // Illegal checks
   if ((!checking_permitted() || (sittuyin_promotion() && type_of(m) == PROMOTION) || (!drop_checks() && type_of(m) == DROP)) && gives_check(m))
       return false;
@@ -1370,6 +1374,10 @@ bool Position::pseudo_legal(const Move m) const {
 
   // The destination square cannot be occupied by a friendly piece
   if (pieces(us) & to)
+      return false;
+
+  // The moving piece may be restricted to particular capture target types.
+  if (capture(m) && !can_capture(type_of(pc), type_of(piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to))))
       return false;
 
   // Handle the special case of a pawn move

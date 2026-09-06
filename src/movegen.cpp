@@ -25,6 +25,18 @@ namespace Stockfish {
 
 namespace {
 
+  template<Color Us>
+  Bitboard capture_targets(const Position& pos, PieceType attacker) {
+
+    if (!pos.has_capture_target_types(attacker))
+        return pos.pieces(~Us);
+
+    Bitboard targets = 0;
+    for (PieceSet ps = pos.capture_target_types(attacker); ps;)
+        targets |= pos.pieces(~Us, pop_lsb(ps));
+    return targets;
+  }
+
   template<MoveType T>
   ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
@@ -149,7 +161,7 @@ namespace {
 
     const Bitboard pawns      = pos.pieces(Us, PAWN);
     const Bitboard movable    = pos.board_bb(Us, PAWN) & ~pos.pieces();
-    const Bitboard capturable = pos.board_bb(Us, PAWN) &  pos.pieces(Them);
+    const Bitboard capturable = pos.board_bb(Us, PAWN) & capture_targets<Us>(pos, PAWN);
 
     target = Type == EVASIONS ? target : AllSquares;
 
@@ -264,7 +276,7 @@ namespace {
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpLeft, to);
         }
 
-        for (Bitboard epSquares = pos.ep_squares() & ~pos.pieces(); epSquares; )
+        for (Bitboard epSquares = pos.can_capture(PAWN, PAWN) ? pos.ep_squares() & ~pos.pieces() : Bitboard(0); epSquares; )
         {
             Square epSquare = pop_lsb(epSquares);
 
@@ -299,7 +311,7 @@ namespace {
 
         Bitboard attacks = pos.attacks_from(Us, Pt, from);
         Bitboard quiets = pos.moves_from(Us, Pt, from);
-        Bitboard b = (  (attacks & pos.pieces())
+        Bitboard b = (  (attacks & capture_targets<Us>(pos, Pt))
                        | (quiets & ~pos.pieces()));
         Bitboard b1 = b & target;
         Bitboard promotion_zone = pos.promotion_zone(Us);
@@ -455,7 +467,7 @@ namespace {
     // King moves
     if (pos.count<KING>(Us) && (!Checks || pos.blockers_for_king(~Us) & ksq))
     {
-        Bitboard b = (  (pos.attacks_from(Us, KING, ksq) & pos.pieces())
+        Bitboard b = (  (pos.attacks_from(Us, KING, ksq) & capture_targets<Us>(pos, KING))
                       | (pos.moves_from(Us, KING, ksq) & ~pos.pieces())) & (Type == EVASIONS ? ~pos.pieces(Us) : target);
         while (b)
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, ksq, pop_lsb(b));

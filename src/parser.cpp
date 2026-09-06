@@ -238,6 +238,47 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
 }
 
 template <bool DoCheck>
+template <bool Current> bool VariantParser<DoCheck>::parse_attribute(const std::string& key, PieceSet (&targetTypes)[PIECE_TYPE_NB], bool (&defined)[PIECE_TYPE_NB], std::string pieceToChar) {
+    const auto& it = config.find(key);
+    if (it != config.end())
+    {
+        std::string mapping;
+        std::stringstream ss(it->second);
+        while (ss >> mapping)
+        {
+            size_t attacker = mapping.size() > 2 && mapping[1] == ':' ? pieceToChar.find(toupper(mapping[0])) : std::string::npos;
+            if (attacker == std::string::npos)
+            {
+                if (DoCheck)
+                    std::cerr << key << " - Invalid mapping: " << mapping << std::endl;
+                continue;
+            }
+
+            defined[attacker] = true;
+            targetTypes[attacker] = NO_PIECE_SET;
+            for (size_t i = 2; i < mapping.size() && mapping[i] != '-'; ++i)
+            {
+                if (mapping[i] == '*')
+                {
+                    targetTypes[attacker] = ~NO_PIECE_SET;
+                    break;
+                }
+                size_t targetPiece = pieceToChar.find(toupper(mapping[i]));
+                if (targetPiece == std::string::npos)
+                {
+                    if (DoCheck)
+                        std::cerr << key << " - Invalid target piece type: " << mapping[i] << std::endl;
+                    continue;
+                }
+                targetTypes[attacker] |= PieceType(targetPiece);
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+template <bool DoCheck>
 Variant* VariantParser<DoCheck>::parse() {
     Variant* v = new Variant();
     v->reset_pieces();
@@ -419,6 +460,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("blastOnCapture", v->blastOnCapture);
     parse_attribute("blastImmuneTypes", v->blastImmuneTypes, v->pieceToChar);
     parse_attribute("mutuallyImmuneTypes", v->mutuallyImmuneTypes, v->pieceToChar);
+    parse_attribute("captureTargetTypes", v->captureTargetTypes, v->captureTargetTypesDefined, v->pieceToChar);
     parse_attribute("petrifyOnCaptureTypes", v->petrifyOnCaptureTypes, v->pieceToChar);
     parse_attribute("petrifyBlastPieces", v->petrifyBlastPieces);
     parse_attribute("doubleStep", v->doubleStep);
