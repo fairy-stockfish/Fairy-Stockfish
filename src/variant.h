@@ -66,6 +66,8 @@ struct Variant {
   bool blastOnCapture = false;
   PieceSet blastImmuneTypes = NO_PIECE_SET;
   PieceSet mutuallyImmuneTypes = NO_PIECE_SET;
+  PieceSet captureTargetTypes[PIECE_TYPE_NB] = {};
+  bool captureTargetTypesDefined[PIECE_TYPE_NB] = {};
   PieceSet petrifyOnCaptureTypes = NO_PIECE_SET;
   bool petrifyBlastPieces = false;
   bool doubleStep = true;
