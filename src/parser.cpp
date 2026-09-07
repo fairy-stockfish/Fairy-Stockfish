@@ -246,6 +246,8 @@ template <bool Current> bool VariantParser<DoCheck>::parse_attribute(const std::
         std::stringstream ss(it->second);
         while (ss >> mapping)
         {
+            if (!mapping.empty() && (mapping[0] == '#' || mapping[0] == ';'))
+                break;
             size_t attacker = mapping.size() > 2 && mapping[1] == ':' ? pieceToChar.find(toupper(mapping[0])) : std::string::npos;
             if (attacker == std::string::npos)
             {
