@@ -126,6 +126,7 @@ class MovePicker {
 public:
   MovePicker(const MovePicker&) = delete;
   MovePicker& operator=(const MovePicker&) = delete;
+  ~MovePicker();
   MovePicker(const Position&, Move, Value, const GateHistory*, const CapturePieceToHistory*);
   MovePicker(const Position&, Move, Depth, const ButterflyHistory*,
                                            const GateHistory*,
@@ -161,7 +162,10 @@ private:
   Value threshold;
   Depth depth;
   int ply;
-  ExtMove moves[MAX_MOVES];
+  // Move buffer taken from a per-thread pool. Keeping it off the stack bounds
+  // the per-frame stack usage of the recursive search, which would otherwise
+  // overflow the 8MB thread stack in deep searches when MAX_MOVES is large.
+  ExtMove* moves;
 };
 
 } // namespace Stockfish

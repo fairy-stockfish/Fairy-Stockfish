@@ -17,6 +17,8 @@
 */
 
 #include <cassert>
+#include <memory>
+#include <vector>
 
 #include "movepick.h"
 
@@ -53,8 +55,30 @@ namespace {
         }
   }
 
+  // Per-thread LIFO pool of move buffers. MovePicker instances have strictly
+  // nested lifetimes within a search thread, so buffers can be handed out and
+  // returned stack-wise. This keeps the large MAX_MOVES array off the machine
+  // stack, whose 8MB limit deep searches can otherwise exceed (see issue #957).
+  thread_local std::vector<std::unique_ptr<ExtMove[]>> moveBuffers;
+  thread_local size_t usedMoveBuffers = 0;
+
+  ExtMove* acquire_move_buffer() {
+    if (usedMoveBuffers == moveBuffers.size())
+        moveBuffers.emplace_back(new ExtMove[MAX_MOVES]);
+    return moveBuffers[usedMoveBuffers++].get();
+  }
+
+  void release_move_buffer() {
+    assert(usedMoveBuffers > 0);
+    --usedMoveBuffers;
+  }
+
 } // namespace
 
+
+MovePicker::~MovePicker() {
+  release_move_buffer();
+}
 
 /// Constructors of the MovePicker class. As arguments we pass information
 /// to help it to return the (presumably) good moves first, to decide which
@@ -66,7 +90,7 @@ namespace {
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh, const GateHistory* dh, const LowPlyHistory* lp,
                        const CapturePieceToHistory* cph, const PieceToHistory** ch, Move cm, const Move* killers, int pl)
            : pos(p), mainHistory(mh), gateHistory(dh), lowPlyHistory(lp), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d), ply(pl) {
+             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d), ply(pl), moves(acquire_move_buffer()) {
 
   assert(d > 0);
 
@@ -77,7 +101,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 /// MovePicker constructor for quiescence search
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh, const GateHistory* dh,
                        const CapturePieceToHistory* cph, const PieceToHistory** ch, Square rs)
-           : pos(p), mainHistory(mh), gateHistory(dh), captureHistory(cph), continuationHistory(ch), ttMove(ttm), recaptureSquare(rs), depth(d) {
+           : pos(p), mainHistory(mh), gateHistory(dh), captureHistory(cph), continuationHistory(ch), ttMove(ttm), recaptureSquare(rs), depth(d), moves(acquire_move_buffer()) {
 
   assert(d <= 0);
 
@@ -90,7 +114,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
 /// than or equal to the given threshold.
 MovePicker::MovePicker(const Position& p, Move ttm, Value th, const GateHistory* dh, const CapturePieceToHistory* cph)
-           : pos(p), gateHistory(dh), captureHistory(cph), ttMove(ttm), threshold(th) {
+           : pos(p), gateHistory(dh), captureHistory(cph), ttMove(ttm), threshold(th), moves(acquire_move_buffer()) {
 
   assert(!pos.checkers());
 
