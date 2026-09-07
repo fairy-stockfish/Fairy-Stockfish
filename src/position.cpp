@@ -1937,11 +1937,61 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       assert(type_of(pc) != PAWN);
       st->epSquares = between_bb(from, to) & var->enPassantRegion[them];
       for (Bitboard b = st->epSquares; b; )
-          k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
+        k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
   }
 
   // Set capture piece
   st->capturedPiece = captured;
+
+  // Benedict Morph
+  if (var->captureMorph
+      && captured != NO_PIECE
+      && type_of(m) != DROP
+      && !is_pass(m))
+  {
+      Piece cur = piece_on(to);
+      if (!(var->rexExclusiveMorph && type_of(cur) == KING)){
+          PieceType targetType = type_of(captured);
+
+          // If it captures the same type of piece, nothing to do
+          if (type_of(cur) != targetType) 
+          {
+              // Record for undo
+              st->didMorph   = true;
+              st->morphedFrom = cur;
+              st->morphedTo   = make_piece(us, targetType);
+              st->morphSquare = to;
+  
+              // Replace piece type on the board
+              remove_piece(to);
+              put_piece(st->morphedTo, to);
+  
+              if (Eval::useNNUE) {
+                  bool patched = false;
+            
+                  // Patch the mover's existing "to" entry so NNUE sees only the final identity
+                  for (int i = 0; i < dp.dirty_num; ++i) {
+                      if (dp.to[i] == to) {
+                          dp.piece[i] = st->morphedTo;   // Overwrite with final (morphed) piece
+                          patched = true;
+                          break;
+                      }
+                  }
+          
+                  // If no "to" entry exists, append a replacement-in-place
+                  if (!patched) {
+                      dp.piece[dp.dirty_num]     = st->morphedTo;
+                      dp.handPiece[dp.dirty_num] = NO_PIECE;
+                      dp.from[dp.dirty_num]      = SQ_NONE;
+                      dp.to[dp.dirty_num]        = to;
+                      dp.dirty_num++;
+                  }
+              }
+          } 
+      }
+  } else {
+      st->didMorph = false;
+  }
 
   // Add gating piece
   if (is_gating(m))
@@ -2154,6 +2204,19 @@ void Position::undo_move(Move m) {
          || (type_of(m) == PROMOTION && sittuyin_promotion())
          || (is_pass(m) && (pass(us) || var->wallOrMove)));
   assert(type_of(st->capturedPiece) != KING);
+  
+  if (st->didMorph && st->morphSquare == to)
+  {
+    // Replace morphed piece back to original type at 'to'
+    remove_piece(to);
+    put_piece(st->morphedFrom, to);
+
+    // Update 'pc' to the pre-morph piece so the rest of undo logic sees the right type.
+    pc = st->morphedFrom;
+
+    // Clear flag
+    st->didMorph = false;
+  }
 
   // Reset wall squares
   byTypeBB[ALL_PIECES] ^= st->wallSquares ^ st->previous->wallSquares;
