@@ -1930,9 +1930,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Update material
       st->nonPawnMaterial[us] += PieceValue[MG][demotion] - PieceValue[MG][pc];
   }
-  // Set en passant square(s) if the moved piece can be captured
+  // Set en passant square(s) if the moved piece can be captured, either
+  // because the destination is one only its initial move set could reach, or
+  // because the piece is declared an en passant target and moved more than one
+  // square - the latter covers pieces that keep a multi-square step all game,
+  // such as the prince of Timurid.
   else if (   type_of(m) != DROP
-           && ((PseudoMoves[1][us][type_of(pc)][from] & ~PseudoMoves[0][us][type_of(pc)][from]) & to))
+           && (   ((PseudoMoves[1][us][type_of(pc)][from] & ~PseudoMoves[0][us][type_of(pc)][from]) & to)
+               || ((var->enPassantTargetTypes & type_of(pc)) && distance(from, to) > 1)))
   {
       assert(type_of(pc) != PAWN);
       st->epSquares = between_bb(from, to) & var->enPassantRegion[them];
