@@ -31,6 +31,12 @@ all = yes
 optimize = yes
 debug = no
 
+# Embed WebAssembly for a self-contained module (also usable by Node's local
+# CommonJS loader without fetching a filesystem path as an HTTP URL).
+ifeq ($(singlefile),yes)
+	CXXFLAGS += -s SINGLE_FILE=1
+endif
+
 ### Debugging
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG -s ASSERTIONS=0 -s SAFE_HEAP=0

@@ -80,6 +80,7 @@ struct StateInfo {
   bool       shak;
   bool       bikjang;
   Bitboard   chased;
+  Bitboard   coordinationSquares[COLOR_NB];
   bool       pass;
   Move       move;
   int        repetition;
@@ -162,6 +163,10 @@ public:
   int nnue_piece_hand_index(Color perspective, Piece pc) const;
   int nnue_king_square_index(Square ksq) const;
   bool free_drops() const;
+  bool spark_rule() const;
+  Bitboard spark_pawn_region(Color c) const;
+  Bitboard coordination_squares(Color c) const;
+  Bitboard coordination_knights(Color c, Square s1, Square s2) const;
   bool fast_attacks() const;
   bool fast_attacks2() const;
   bool checking_permitted() const;
@@ -355,9 +360,13 @@ private:
   void set_castling_right(Color c, Square rfrom);
   void set_state(StateInfo* si) const;
   void set_check_info(StateInfo* si) const;
+  void set_coordination_info(StateInfo* si) const;
 
   // Other helpers
   void move_piece(Square from, Square to);
+  void swap_pieces(Square s1, Square s2);
+  bool exchange_ge(Square to, Bitboard occupied, Color stm, PieceType movedPt, int swap) const;
+  bool coordination_see_ge(Move m, Value threshold) const;
   template<bool Do>
   void do_castling(Color us, Square from, Square& to, Square& rfrom, Square& rto);
 
@@ -622,6 +631,29 @@ inline bool Position::checking_permitted() const {
 inline bool Position::free_drops() const {
   assert(var != nullptr);
   return var->freeDrops;
+}
+
+inline bool Position::spark_rule() const {
+  assert(var != nullptr);
+  return var->sparkRule;
+}
+
+// A spark move may not put a pawn on a square where it would have to promote,
+// so both the shift target and the swapping piece stay out of the promotion zone.
+inline Bitboard Position::spark_pawn_region(Color c) const {
+  return board_bb() & ~promotion_zone(c);
+}
+
+// Squares influenced at least twice by non-pawn pieces of the given color.
+inline Bitboard Position::coordination_squares(Color c) const {
+  assert(spark_rule());
+  return st->coordinationSquares[c];
+}
+
+// Knights of the given color that attack both squares of a spark move and
+// therefore remain in place while the move is played.
+inline Bitboard Position::coordination_knights(Color c, Square s1, Square s2) const {
+  return attacks_bb<KNIGHT>(s1) & attacks_bb<KNIGHT>(s2) & pieces(c, KNIGHT);
 }
 
 inline bool Position::fast_attacks() const {
@@ -1436,13 +1468,18 @@ inline bool Position::is_chess960() const {
 
 inline bool Position::capture_or_promotion(Move m) const {
   assert(is_ok(m));
-  return type_of(m) == PROMOTION || type_of(m) == EN_PASSANT || (type_of(m) != CASTLING && !empty(to_sq(m)));
+  // Castling is encoded as "king captures rook", a coordination move as
+  // "piece captures own pawn", so neither of them captures anything
+  return type_of(m) == PROMOTION || type_of(m) == EN_PASSANT
+      || (type_of(m) != CASTLING && type_of(m) != COORDINATION && !empty(to_sq(m)));
 }
 
 inline bool Position::capture(Move m) const {
   assert(is_ok(m));
-  // Castling is encoded as "king captures rook"
-  return (!empty(to_sq(m)) && type_of(m) != CASTLING && from_sq(m) != to_sq(m)) || type_of(m) == EN_PASSANT;
+  // Castling is encoded as "king captures rook", a coordination move as
+  // "piece captures own pawn"
+  return (   !empty(to_sq(m)) && type_of(m) != CASTLING && type_of(m) != COORDINATION
+          && from_sq(m) != to_sq(m)) || type_of(m) == EN_PASSANT;
 }
 
 inline Square Position::capture_square(Square to) const {
@@ -1539,6 +1576,24 @@ inline void Position::move_piece(Square from, Square to) {
       promotedPieces ^= fromTo;
   unpromotedBoard[to] = unpromotedBoard[from];
   unpromotedBoard[from] = NO_PIECE;
+}
+
+// Exchange two occupied squares, as required by a spark swap. Both pieces keep
+// their promotion state, so the boards are exchanged along with them.
+inline void Position::swap_pieces(Square s1, Square s2) {
+
+  assert(!empty(s1) && !empty(s2));
+
+  Piece pc1 = board[s1], pc2 = board[s2];
+  Bitboard s1s2 = square_bb(s1) ^ s2;
+  byTypeBB[type_of(pc1)] ^= s1s2;
+  byTypeBB[type_of(pc2)] ^= s1s2;
+  board[s1] = pc2;
+  board[s2] = pc1;
+  psq += PSQT::psq[pc1][s2] - PSQT::psq[pc1][s1] + PSQT::psq[pc2][s1] - PSQT::psq[pc2][s2];
+  if (is_promoted(s1) != is_promoted(s2))
+      promotedPieces ^= s1s2;
+  std::swap(unpromotedBoard[s1], unpromotedBoard[s2]);
 }
 
 inline void Position::do_move(Move m, StateInfo& newSt) {

@@ -149,7 +149,10 @@ public:
   bool push_san(std::string sanMove, Notation notation) {
     Move foundMove = MOVE_NONE;
     for (const ExtMove& move : MoveList<LEGAL>(pos)) {
-      if (sanMove == SAN::move_to_san(this->pos, move, notation)) {
+      std::string candidate = SAN::move_to_san(this->pos, move, notation);
+      // Older Spark Chess exports omitted the optional attack warning.
+      if (sanMove == candidate || (pos.spark_rule() && !candidate.empty()
+          && candidate.back() == '+' && sanMove == candidate.substr(0, candidate.size() - 1))) {
         foundMove = move;
         break;
       }
@@ -501,6 +504,11 @@ namespace ffish {
   }
 
   int validate_fen(std::string fen, std::string uciVariant, bool chess960) {
+    // FEN validation may be the first API call, before any Board exists.
+    if (!Board::sfInitialized) {
+      initialize_stockfish();
+      Board::sfInitialized = true;
+    }
     const Variant* v = get_variant(uciVariant);
     return FEN::validate_fen(fen, v, chess960);
   }
@@ -596,6 +604,8 @@ Game read_game_pgn(std::string pgn) {
           }
           std::transform(game.variant.begin(), game.variant.end(), game.variant.begin(),
           [](unsigned char c){ return std::tolower(c); });
+          if (game.variant == "spark chess")
+            game.variant = "sparkchess";
         }
 
         it = game.header.find("FEN");

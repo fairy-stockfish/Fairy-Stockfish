@@ -204,6 +204,11 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
     if (type_of(m) == DROP)
         return NO_DISAMBIGUATION;
 
+    // Spark moves always state the origin square, since the piece does not
+    // reach the destination by any of its ordinary moves
+    if (type_of(m) == COORDINATION)
+        return SQUARE_DISAMBIGUATION;
+
     // NOTATION_LAN and Janggi always use disambiguation
     if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || n == NOTATION_JANGGI)
         return SQUARE_DISAMBIGUATION;
@@ -312,6 +317,8 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         // Separator/Operator
         if (type_of(m) == DROP)
             san += n == NOTATION_SHOGI_HOSKING ? '\'' : is_shogi(n) ? '*' : '@';
+        else if (type_of(m) == COORDINATION)
+            san += '>';
         else if (n == NOTATION_XIANGQI_WXF)
         {
             if (rank_of(from) == rank_of(to))
@@ -350,7 +357,17 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         san += "," + square(pos, gating_square(m), n);
 
     // Check and checkmate
-    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
+    if (pos.spark_rule() && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
+    {
+        // In Spark Chess, '+' denotes an attack, not an obligation to evade it.
+        StateInfo st;
+        pos.do_move(m, st);
+        Bitboard kings = pos.pieces(pos.side_to_move(), COMMONER);
+        if (kings && pos.attackers_to(lsb(kings), ~pos.side_to_move()))
+            san += '+';
+        pos.undo_move(m);
+    }
+    else if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
     {
         StateInfo st;
         pos.do_move(m, st);
@@ -443,6 +460,7 @@ inline Bitboard checked(const Position& pos) {
 namespace FEN {
 
 enum FenValidation : int {
+    FEN_INVALID_PAWN_PLACEMENT = -15,
     FEN_INVALID_COUNTING_RULE = -14,
     FEN_INVALID_CHECK_COUNT = -13,
     FEN_INVALID_PROMOTED_PIECE = -12,
@@ -880,11 +898,11 @@ inline int piece_count(const std::string& fenBoard, Color c, PieceType pt, const
     return std::count(fenBoard.begin(), fenBoard.end(), v->pieceToChar[make_piece(c, pt)]);
 }
 
-inline Validation check_number_of_kings(const std::string& fenBoard, const std::string& startFenBoard, const Variant* v) {
-    int nbWhiteKings = piece_count(fenBoard, WHITE, KING, v);
-    int nbBlackKings = piece_count(fenBoard, BLACK, KING, v);
-    int nbWhiteKingsStart = piece_count(startFenBoard, WHITE, KING, v);
-    int nbBlackKingsStart = piece_count(startFenBoard, BLACK, KING, v);
+inline Validation check_number_of_kings(const std::string& fenBoard, const std::string& startFenBoard, PieceType king, const Variant* v) {
+    int nbWhiteKings = piece_count(fenBoard, WHITE, king, v);
+    int nbBlackKings = piece_count(fenBoard, BLACK, king, v);
+    int nbWhiteKingsStart = piece_count(startFenBoard, WHITE, king, v);
+    int nbBlackKingsStart = piece_count(startFenBoard, BLACK, king, v);
 
     if (nbWhiteKings > 1)
     {
@@ -1040,12 +1058,11 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     }
 
     // check for number of kings
-    if (v->pieceTypes & KING)
+    if ((v->pieceTypes & KING) || v->sparkRule)
     {
-        // we have a royal king in this variant,
-        // ensure that each side has exactly as many kings as in the starting position
-        // (variants like giveaway use the COMMONER piece type instead)
-        if (check_number_of_kings(fenParts[0], startFenParts[0], v) == NOK)
+        // Spark Chess represents its single capturable king as a commoner.
+        PieceType king = v->sparkRule ? COMMONER : KING;
+        if (check_number_of_kings(fenParts[0], startFenParts[0], king, v) == NOK)
             return FEN_INVALID_NUMBER_OF_KINGS;
 
         // check for touching kings if there are exactly two royal kings on the board (excluding pocket)
@@ -1060,6 +1077,15 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
                 return FEN_TOUCHING_KINGS;
         }
     }
+
+    if (v->sparkRule)
+        for (int file = 0; file < nbFiles; ++file)
+            if (   board.get_piece(nbRanks - 1, file) == v->pieceToChar[make_piece(WHITE, PAWN)]
+                || board.get_piece(0, file) == v->pieceToChar[make_piece(BLACK, PAWN)])
+            {
+                std::cerr << "A Spark Chess pawn cannot stand on its promotion rank." << std::endl;
+                return FEN_INVALID_PAWN_PLACEMENT;
+            }
 
     // 2) Part
     // check side to move char

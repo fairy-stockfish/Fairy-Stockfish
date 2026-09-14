@@ -36,6 +36,50 @@ using std::string;
 
 namespace Stockfish {
 
+namespace {
+
+  // Automatic draw zones for Spark Chess pawnless endings.
+  constexpr Bitboard SparkPetals = (FileBBB | FileGBB) & (Rank2BB | Rank7BB);
+  constexpr Bitboard SparkKnkDanger =
+        ((Rank1BB | Rank8BB) & (FileABB | FileBBB | FileCBB | FileFBB | FileGBB | FileHBB))
+      | ((FileABB | FileHBB) & (Rank1BB | Rank2BB | Rank3BB | Rank6BB | Rank7BB | Rank8BB))
+      | SparkPetals;
+  constexpr Bitboard SparkKbkDanger = FileABB | FileHBB | Rank1BB | Rank8BB | SparkPetals;
+
+  bool spark_proven_draw(const Position& pos) {
+
+    if (   pos.max_file() != FILE_H
+        || pos.max_rank() != RANK_8
+        || pos.count<COMMONER>(WHITE) != 1
+        || pos.count<COMMONER>(BLACK) != 1
+        || (attacks_bb<KING>(pos.square<COMMONER>(WHITE)) & pos.square<COMMONER>(BLACK)))
+        return false;
+
+    if (pos.count<ALL_PIECES>() == 2)
+        return true;
+
+    if (pos.count<ALL_PIECES>() != 3)
+        return false;
+
+    PieceType minor =  pos.count<KNIGHT>() == 1 && !pos.count<BISHOP>() ? KNIGHT
+                     : pos.count<BISHOP>() == 1 && !pos.count<KNIGHT>() ? BISHOP
+                                                                       : NO_PIECE_TYPE;
+    if (minor == NO_PIECE_TYPE)
+        return false;
+
+    Color strongSide = pos.count(WHITE, minor) ? WHITE : BLACK;
+    Square weakCommoner = pos.square<COMMONER>(~strongSide);
+    Square minorSquare = pos.square(strongSide, minor);
+
+    // Do not adjudicate while the lone commoner is attacked.
+    if (attacks_bb(strongSide, minor, minorSquare, pos.pieces()) & weakCommoner)
+        return false;
+
+    return !((minor == KNIGHT ? SparkKnkDanger : SparkKbkDanger) & weakCommoner);
+  }
+
+} // namespace
+
 namespace Zobrist {
 
   Key psq[PIECE_NB][SQUARE_NB];
@@ -597,6 +641,8 @@ void Position::set_check_info(StateInfo* si) const {
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
   si->chased = var->chasingRule ? chased() : Bitboard(0);
   si->legalCapture = NO_VALUE;
+  if (var->sparkRule)
+      set_coordination_info(si);
   if (var->extinctionPseudoRoyal)
   {
       si->pseudoRoyalCandidates = 0;
@@ -610,6 +656,53 @@ void Position::set_check_info(StateInfo* si) const {
           if (count(~sideToMove, pt) <= var->extinctionPieceCount + 1)
               si->pseudoRoyals |= pieces(~sideToMove, pt);
       }
+  }
+}
+
+
+/// Position::set_coordination_info() collects the squares that decide where the
+/// pawns of each color may perform a spark shift: the squares influenced at
+/// least twice by their non-pawn pieces. Compatible sliders are transparent to
+/// each other, so a battery contributes one impulse per piece. The set depends
+/// on the piece placement only, so it is computed once per position instead of
+/// once per move that has to be validated.
+
+void Position::set_coordination_info(StateInfo* si) const {
+
+  Bitboard occupied = pieces();
+
+  for (Color c : { WHITE, BLACK })
+  {
+      Bitboard diagonalSliders = pieces(c, BISHOP, QUEEN);
+      Bitboard orthogonalSliders = pieces(c, ROOK, QUEEN);
+      Bitboard attackedOnce = 0, attackedTwice = 0;
+
+      auto add_attacks = [&](Bitboard attacks) {
+          attacks &= board_bb();
+          attackedTwice |= attackedOnce & attacks;
+          attackedOnce |= attacks;
+      };
+
+      for (Bitboard b = pieces(c, KING, COMMONER); b; )
+          add_attacks(attacks_bb<KING>(pop_lsb(b)));
+
+      for (Bitboard b = pieces(c, KNIGHT); b; )
+          add_attacks(attacks_bb<KNIGHT>(pop_lsb(b)));
+
+      for (Bitboard b = pieces(c, BISHOP); b; )
+          add_attacks(attacks_bb<BISHOP>(pop_lsb(b), occupied & ~diagonalSliders));
+
+      for (Bitboard b = pieces(c, ROOK); b; )
+          add_attacks(attacks_bb<ROOK>(pop_lsb(b), occupied & ~orthogonalSliders));
+
+      for (Bitboard b = pieces(c, QUEEN); b; )
+      {
+          Square s = pop_lsb(b);
+          add_attacks(  attacks_bb<BISHOP>(s, occupied & ~diagonalSliders)
+                      | attacks_bb<ROOK>(s, occupied & ~orthogonalSliders));
+      }
+
+      si->coordinationSquares[c] = attackedTwice;
   }
 }
 
@@ -1321,6 +1414,41 @@ bool Position::pseudo_legal(const Move m) const {
             && (   type_of(pc) == in_hand_piece_type(m)
                 || (drop_promoted() && type_of(pc) == promoted_piece_type(in_hand_piece_type(m))));
 
+  // Use a fast check for spark moves, which are encoded either as a pawn moving
+  // to an influenced square or as a piece "capturing" its own pawn
+  if (type_of(m) == COORDINATION)
+  {
+      if (!spark_rule() || pc == NO_PIECE || color_of(pc) != us)
+          return false;
+
+      Bitboard pawnRegion = spark_pawn_region(us);
+
+      // Simple Shift: the pawn teleports to an empty influenced square. A
+      // destination that the pawn reaches by pushing is left to the ordinary
+      // pawn move generator.
+      if (type_of(pc) == PAWN)
+          return   empty(to)
+                && (pawnRegion & to)
+                && to != from + pawn_push(us)
+                && (coordination_squares(us) & to);
+
+      // A swap exchanges the piece with an own pawn, so the piece has to stand
+      // outside of the pawn's promotion zone.
+      PieceType pt = type_of(pc);
+      if (piece_on(to) != make_piece(us, PAWN) || !(pawnRegion & from))
+          return false;
+
+      // Direct Swap: a knight exchanges with a pawn it protects itself
+      if (pt == KNIGHT)
+          return attacks_bb<KNIGHT>(from) & to;
+
+      // Relay Swap: one knight protects both the piece and the pawn and stays
+      // where it is. An attacked commoner cannot use Relay Swap.
+      return   ((piece_set(COMMONER) | QUEEN | ROOK | BISHOP) & pt)
+            && !(pt == COMMONER && attackers_to(from, ~us))
+            && coordination_knights(us, from, to);
+  }
+
   // Use a slower but simpler function for uncommon cases
   // yet we skip the legality check of MoveList<LEGAL>().
   if (type_of(m) != NORMAL || is_gating(m))
@@ -1579,7 +1707,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Square from = from_sq(m);
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
-  Piece captured = piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to);
+  // A swap is encoded as a piece "capturing" the own pawn it exchanges with
+  Piece swapped = type_of(m) == COORDINATION ? piece_on(to) : NO_PIECE;
+  Piece captured = swapped ? NO_PIECE : piece_on(type_of(m) == EN_PASSANT ? capture_square(to) : to);
   if (to == from)
   {
       assert((type_of(m) == PROMOTION && sittuyin_promotion()) || (is_pass(m) && (pass(us) || var->wallOrMove )));
@@ -1687,6 +1817,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
 
+      // The pawn of a swap travels in the opposite direction
+      if (swapped)
+      {
+          k ^= Zobrist::psq[swapped][to] ^ Zobrist::psq[swapped][from];
+          st->pawnKey ^= Zobrist::psq[swapped][to] ^ Zobrist::psq[swapped][from];
+      }
+
       // Reset rule 50 draw counter for irreversible moves
       // - irreversible pawn/piece promotions
       // - irreversible pawn moves
@@ -1759,7 +1896,22 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Move the piece. The tricky Chess960 castling is handled earlier
-  if (type_of(m) == DROP)
+  if (swapped)
+  {
+      if (Eval::useNNUE)
+      {
+          dp.dirty_num = 2;
+          dp.piece[0] = pc;
+          dp.from[0] = from;
+          dp.to[0] = to;
+          dp.piece[1] = swapped;
+          dp.from[1] = to;
+          dp.to[1] = from;
+      }
+
+      swap_pieces(from, to);
+  }
+  else if (type_of(m) == DROP)
   {
       if (Eval::useNNUE)
       {
@@ -1850,8 +2002,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->nonPawnMaterial[us] += PieceValue[MG][promotion];
       }
 
-      // Set en passant square(s) if the moved pawn can be captured
+      // Set en passant square(s) if the moved pawn can be captured. A pawn that
+      // teleports does not pass the squares in between, so it can not be taken.
       else if (   type_of(m) != DROP
+          && type_of(m) != COORDINATION
           && (   std::abs(int(to) - int(from)) == 2 * NORTH
               || std::abs(int(to) - int(from)) == 3 * NORTH))
       {
@@ -2150,7 +2304,7 @@ void Position::undo_move(Move m) {
   Square to = to_sq(m);
   Piece pc = piece_on(to);
 
-  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
+  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || type_of(m) == COORDINATION || is_gating(m)
          || (type_of(m) == PROMOTION && sittuyin_promotion())
          || (is_pass(m) && (pass(us) || var->wallOrMove)));
   assert(type_of(st->capturedPiece) != KING);
@@ -2219,7 +2373,10 @@ void Position::undo_move(Move m) {
       put_piece(pc, to, true, unpromotedPc);
   }
 
-  if (type_of(m) == CASTLING)
+  // A swap left both squares occupied, so it is undone by swapping them back
+  if (type_of(m) == COORDINATION && !empty(from))
+      swap_pieces(from, to);
+  else if (type_of(m) == CASTLING)
   {
       Square rfrom, rto;
       do_castling<false>(us, from, to, rfrom, rto);
@@ -2367,6 +2524,13 @@ Key Position::key_after(Move m) const {
   Piece captured = piece_on(to);
   Key k = st->key ^ Zobrist::side;
 
+  // A spark move takes nothing, it only relocates one or two own pieces
+  if (type_of(m) == COORDINATION)
+  {
+      k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+      return captured ? k ^ Zobrist::psq[captured][to] ^ Zobrist::psq[captured][from] : k;
+  }
+
   if (captured)
   {
       k ^= Zobrist::psq[captured][to];
@@ -2468,6 +2632,10 @@ bool Position::see_ge(Move m, Value threshold) const {
 
   assert(is_ok(m));
 
+  // Spark moves leave pieces on up to two new squares
+  if (type_of(m) == COORDINATION)
+      return coordination_see_ge(m, threshold);
+
   // Only deal with normal moves, assume others pass a simple SEE
   if (type_of(m) != NORMAL && type_of(m) != DROP && type_of(m) != PIECE_PROMOTION)
       return VALUE_ZERO >= threshold;
@@ -2510,7 +2678,47 @@ bool Position::see_ge(Move m, Value threshold) const {
       return false;
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) ^ to;
-  Color stm = color_of(moved_piece(m));
+
+  return exchange_ge(to, occupied, color_of(moved_piece(m)), type_of(moved_piece(m)), swap);
+}
+
+
+/// Position::coordination_see_ge() evaluates a spark move. A spark move wins no
+/// material, but it exposes the pieces it relocates. A shift only relocates the
+/// pawn and is evaluated like any other quiet move. A swap relocates two pieces,
+/// so both squares are evaluated and the worse of the two decides. Each of them
+/// is measured with the other participant taken off the board, which is the
+/// convention of see_ge() and errs towards caution.
+
+bool Position::coordination_see_ge(Move m, Value threshold) const {
+
+  assert(type_of(m) == COORDINATION);
+
+  // A spark move never wins material
+  if (threshold > VALUE_ZERO)
+      return false;
+
+  Square from = from_sq(m), to = to_sq(m);
+  Color us = color_of(moved_piece(m));
+  Piece piece = piece_on(from), pawn = piece_on(to);
+
+  int swap = PieceValue[MG][piece] + threshold;
+  if (!pawn)
+      return swap <= 0 || exchange_ge(to, pieces() ^ from ^ to, us, type_of(piece), swap);
+
+  int pawnSwap = PieceValue[MG][pawn] + threshold;
+  return    (swap <= 0 || exchange_ge(to, pieces() ^ from, us, type_of(piece), swap))
+         && (pawnSwap <= 0 || exchange_ge(from, pieces() ^ to, us, type_of(pawn), pawnSwap));
+}
+
+
+/// Position::exchange_ge() plays out the capture sequence on a single square,
+/// starting from the given occupancy, the side that just moved there, and the
+/// material the opponent still has to win. It is the second half of see_ge(),
+/// factored out because a spark move has to evaluate two squares.
+
+bool Position::exchange_ge(Square to, Bitboard occupied, Color stm, PieceType movedPt, int swap) const {
+
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
   int res = 1;
@@ -2525,7 +2733,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   }
 
   // Janggi cannons can not capture each other
-  if (type_of(moved_piece(m)) == JANGGI_CANNON && !(attackers & pieces(~stm) & ~pieces(JANGGI_CANNON)))
+  if (movedPt == JANGGI_CANNON && !(attackers & pieces(~stm) & ~pieces(JANGGI_CANNON)))
       attackers &= ~pieces(~stm, JANGGI_CANNON);
 
   while (true)
@@ -2759,6 +2967,12 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 /// It does not detect stalemates.
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
+
+  if (spark_rule() && spark_proven_draw(*this))
+  {
+      result = VALUE_DRAW;
+      return true;
+  }
 
   // Extinction
   // Extinction does not apply for pseudo-royal pieces, because they can not be captured

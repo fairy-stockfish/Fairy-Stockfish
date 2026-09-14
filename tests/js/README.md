@@ -251,6 +251,11 @@ cd src
 make -f Makefile_js build
 ```
 
+For a self-contained module with embedded WebAssembly, use
+`make -f Makefile_js build singlefile=yes`. This also allows local Node.js
+tests to run with `npm test` without changing `global.fetch` when using an
+older Emscripten loader on a newer Node.js release.
+
 ### Compile as ES6/ES2015 module
 
 Some environments such as [vue-js](https://vuejs.org/) may require the library to be exported

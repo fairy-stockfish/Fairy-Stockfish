@@ -133,6 +133,31 @@ namespace {
         v->doubleStep = false;
         return v;
     }
+    // Spark Chess
+    // 8x8 variant invented by Aleksandr Solomachev.
+    // Standard chess pieces and setup. Besides their ordinary moves, pawns may
+    // perform "spark moves": a pawn teleports to an empty square that own pieces
+    // influence twice, or it exchanges squares with an own piece that a knight
+    // protects. Kings are ordinary commoners, so the game is decided by their
+    // capture instead of by checkmate.
+    Variant* sparkchess_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k');
+        v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        v->castling = false;
+        v->doubleStep = false;
+        v->sparkRule = true;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = piece_set(COMMONER);
+        // Draw on the second occurrence of a position, with no move-count rule.
+        v->nMoveRule = 0;
+        v->nMoveRuleTypes[WHITE] = v->nMoveRuleTypes[BLACK] = NO_PIECE_SET;
+        v->nFoldRule = 2;
+        v->nFoldValue = VALUE_DRAW;
+        return v;
+    }
     // Pseudo-variant only used for endgame initialization
     Variant* fairy_variant() {
         Variant* v = chess_variant_base()->init();
@@ -1856,6 +1881,7 @@ void VariantMap::init() {
     add("pawnsideways", pawnsideways_variant());
     add("pawnback", pawnback_variant());
     add("legan", legan_variant());
+    add("sparkchess", sparkchess_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("makpong", makpong_variant());

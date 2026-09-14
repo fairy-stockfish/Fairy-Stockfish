@@ -1660,7 +1660,9 @@ moves_loop: // When in check, search starts from here
           if (moveCount > 2)
               continue;
 
-          futilityValue = futilityBase + PieceValue[EG][pos.piece_on(to_sq(move))];
+          // A spark move stands on an own piece without winning it
+          futilityValue = futilityBase + (type_of(move) == COORDINATION ? VALUE_ZERO
+                                                                       : PieceValue[EG][pos.piece_on(to_sq(move))]);
 
           if (futilityValue <= alpha)
           {

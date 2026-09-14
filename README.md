@@ -61,6 +61,7 @@ The games currently supported besides chess are listed below. Fairy-Stockfish ca
 - [Spartan Chess](https://www.chessvariants.com/rules/spartan-chess)
 - [Wolf Chess](https://en.wikipedia.org/wiki/Wolf_chess)
 - [Troitzky Chess](https://www.chessvariants.com/play/troitzky-chess)
+- [Spark Chess](SPARK_CHESS.md)
 
 ### Shogi variants
 - [Minishogi](https://en.wikipedia.org/wiki/Minishogi), [EuroShogi](https://en.wikipedia.org/wiki/EuroShogi), [Judkins shogi](https://en.wikipedia.org/wiki/Judkins_shogi)

@@ -131,6 +131,63 @@ namespace {
     return moveList;
   }
 
+  // Spark moves. A pawn teleports to an empty square that own pieces influence
+  // twice, or it exchanges squares with an own piece that a knight protects.
+  // Both are encoded as COORDINATION, a swap being written as "piece takes own
+  // pawn". Shift and swap are disjoint, and the two swaps are disjoint by piece
+  // type, so no destination is generated twice.
+
+  template<Color Us>
+  ExtMove* generate_spark_moves(const Position& pos, ExtMove* moveList) {
+
+    constexpr Direction Up = Us == WHITE ? NORTH : SOUTH;
+
+    Bitboard pawns = pos.pieces(Us, PAWN);
+    Bitboard knights = pos.pieces(Us, KNIGHT);
+    Bitboard region = pos.spark_pawn_region(Us);
+
+    // Simple Shift: any pawn may enter an empty influenced square. Destinations
+    // that a pawn reaches by pushing are left to the pawn move generator.
+    Bitboard shiftTargets = pos.coordination_squares(Us) & region & ~pos.pieces();
+    for (Bitboard b = pawns; b; )
+    {
+        Square from = pop_lsb(b);
+        for (Bitboard t = shiftTargets & ~shift<Up>(square_bb(from)); t; )
+            *moveList++ = make<COORDINATION>(from, pop_lsb(t));
+    }
+
+    // Direct Swap: a knight exchanges with a pawn it protects itself
+    for (Bitboard b = knights & region; b; )
+    {
+        Square from = pop_lsb(b);
+        for (Bitboard t = attacks_bb<KNIGHT>(from) & pawns; t; )
+            *moveList++ = make<COORDINATION>(from, pop_lsb(t));
+    }
+
+    // Relay Swap: one knight protects both the piece and the pawn and stays
+    // where it is. Several knights may witness the same exchange, so the
+    // destinations are collected per piece and emitted once.
+    Bitboard relayPieces = (pos.pieces(Us, COMMONER, QUEEN) | pos.pieces(Us, ROOK, BISHOP)) & region;
+    for (Bitboard b = relayPieces; b; )
+    {
+        Square from = pop_lsb(b);
+
+        // An attacked king cannot use Relay Swap.
+        if (type_of(pos.piece_on(from)) == COMMONER && pos.attackers_to(from, ~Us))
+            continue;
+
+        Bitboard targets = 0;
+        for (Bitboard n = attacks_bb<KNIGHT>(from) & knights; n; )
+            targets |= attacks_bb<KNIGHT>(pop_lsb(n)) & pawns;
+
+        while (targets)
+            *moveList++ = make<COORDINATION>(from, pop_lsb(targets));
+    }
+
+    return moveList;
+  }
+
+
   template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
@@ -450,6 +507,10 @@ namespace {
         {
             moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
         }
+
+        // Spark moves
+        if (pos.spark_rule() && (Type == QUIETS || Type == NON_EVASIONS))
+            moveList = generate_spark_moves<Us>(pos, moveList);
     }
 
     // King moves

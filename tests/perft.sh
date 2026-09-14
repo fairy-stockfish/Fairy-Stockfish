@@ -151,6 +151,11 @@ if [[ $1 == "all" || $1 == "variant" ]]; then
   expect perft.exp clobber startpos 3 80063 > /dev/null
   expect perft.exp flipello startpos 7 55092 > /dev/null
   expect perft.exp flipersi startpos 9 38208 > /dev/null
+  expect perft.exp sparkchess startpos 4 104942 > /dev/null
+  expect perft.exp sparkchess "fen rnbqkbnr/pppp1ppp/4p3/8/8/2N2N2/PPPPPPPP/R1BQKB1R b - - 3 2" 4 3108350 > /dev/null
+  expect perft.exp sparkchess "fen 4k3/8/8/1P6/8/2N5/8/3QK3 w - - 0 1" 5 1443446 > /dev/null
+  expect perft.exp sparkchess "fen 4k3/8/8/3n4/8/2P5/1P6/4K3 w - - 0 1" 5 79969 > /dev/null
+  expect perft.exp sparkchess "fen nrbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/NRBQKBNR w HAha - 0 1" 4 83499 > /dev/null
   # 960 variants
   expect perft.exp atomic "fen 8/8/8/8/8/8/2k5/rR4KR w KQ - 0 1" 4 61401 true > /dev/null
   expect perft.exp atomic "fen r3k1rR/5K2/8/8/8/8/8/8 b kq - 0 1" 4 98729 true > /dev/null

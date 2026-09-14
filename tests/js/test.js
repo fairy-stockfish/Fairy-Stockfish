@@ -12,6 +12,12 @@ before(() => {
   });
 });
 
+describe('FEN validation before creating a board', function () {
+  it('initializes the engine for Spark Chess imports', () => {
+    chai.expect(ffish.validateFen('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 4 12', 'sparkchess')).to.equal(1);
+  });
+});
+
 describe('ffish.loadVariantConfig(config)', function () {
   it("it loads a custom variant configuration from a string", () => {
     fs = require('fs');
@@ -25,6 +31,109 @@ describe('ffish.loadVariantConfig(config)', function () {
        chai.expect(board.fen()).to.equal("3/3/3[PPPPPpppp] w - - 0 1");
        board.delete();
      });
+  });
+});
+
+describe('Spark Chess', function () {
+  it('adjudicates automatic endgame draws and their exceptions', () => {
+    for (const [fen, drawn] of [
+      ['8/8/8/8/4k3/8/8/KN6 w - - 0 1', true],
+      ['8/8/8/8/4k3/8/8/KB6 w - - 0 1', false],
+      ['8/8/8/8/3k4/8/8/KB6 b - - 0 1', true],
+      ['8/8/8/8/8/8/2k5/K7 w - - 0 1', true],
+      ['8/8/8/8/8/8/2k5/1K6 b - - 0 1', false],
+    ]) {
+      const board = new ffish.Board('sparkchess', fen);
+      try {
+        chai.expect(board.isGameOver(), fen).to.equal(drawn);
+        chai.expect(board.result(), fen).to.equal(drawn ? '1/2-1/2' : '*');
+      } finally {
+        board.delete();
+      }
+    }
+    const board = new ffish.Board('sparkchess', '8/8/8/8/8/k7/8/6NK b - - 0 1');
+    try {
+      chai.expect(board.isGameOver()).to.equal(false);
+      chai.expect(board.push('a3b4')).to.equal(true);
+      chai.expect(board.isGameOver()).to.equal(true);
+      chai.expect(board.result()).to.equal('1/2-1/2');
+    } finally {
+      board.delete();
+    }
+  });
+
+  it('ignores ordinary and Shredder-FEN castling flags', () => {
+    for (const [placement, flags] of [
+      ['r3k2r/8/8/8/8/8/8/R3K2R', 'KQkq'],
+      ['r3k2r/8/8/8/8/8/8/R3K2R', 'HAha'],
+      ['1r2k1r1/8/8/8/8/8/8/1R2K1R1', 'GBgb'],
+    ]) {
+      const fen = placement + ' w ' + flags + ' - 4 12';
+      const plain = placement + ' w - - 4 12';
+      chai.expect(ffish.validateFen(fen, 'sparkchess')).to.equal(1);
+      const board = new ffish.Board('sparkchess', fen);
+      const reference = new ffish.Board('sparkchess', plain);
+      try {
+        chai.expect(board.fen()).to.equal(plain);
+        chai.expect(board.legalMoves().split(' ').sort()).to.deep.equal(reference.legalMoves().split(' ').sort());
+        chai.expect(board.legalMovesSan()).not.to.contain('O-O');
+      } finally {
+        board.delete();
+        reference.delete();
+      }
+    }
+  });
+
+  it('reads the PGN display name Spark Chess', () => {
+    const pgn = '[Variant "Spark Chess"]\n[SetUp "1"]\n[FEN "4k3/8/8/8/8/1N6/3P4/4K3 w - - 0 1"]\n\n1. Nb3>d2 *\n';
+    const game = ffish.readGamePGN(pgn);
+    try {
+      chai.expect(game.mainlineMoves()).to.equal('b3d2');
+    } finally {
+      game.delete();
+    }
+  });
+
+  it('accepts adjacent kings and rejects pawns on their promotion rank', () => {
+    chai.expect(ffish.validateFen('8/8/8/8/8/8/4k3/4K3 w - - 0 1', 'sparkchess')).to.equal(1);
+    chai.expect(ffish.validateFen('P3k3/8/8/8/8/8/8/4K3 w - - 0 1', 'sparkchess')).to.be.below(1);
+    chai.expect(ffish.validateFen('p3k3/8/8/8/8/8/8/4K2P w - - 0 1', 'sparkchess')).to.equal(1);
+  });
+
+  it('uses coordinate moves and Spark SAN without changing the board', () => {
+    const board = new ffish.Board('sparkchess', '4k3/8/8/8/8/1N6/3P4/4K3 w - - 0 1');
+    try {
+      const initial = board.fen();
+      chai.expect(board.legalMoves().split(' ')).to.include('b3d2');
+      chai.expect(board.sanMove('b3d2')).to.equal('Nb3>d2');
+      chai.expect(board.fen()).to.equal(initial);
+      chai.expect(board.pushSan('Nb3>d2')).to.equal(true);
+      chai.expect(board.fen()).to.equal('4k3/8/8/8/8/1P6/3N4/4K3 b - - 1 1');
+    } finally {
+      board.delete();
+    }
+  });
+
+  it('accepts Spark SAN exported without the optional attack suffix', () => {
+    const board = new ffish.Board('sparkchess', '4k3/8/3R4/8/8/8/8/4K3 w - - 0 1');
+    try {
+      chai.expect(board.pushSan('Re6')).to.equal(true);
+    } finally {
+      board.delete();
+    }
+  });
+
+  it('marks an attack with + but not a king capture with #', () => {
+    const board = new ffish.Board('sparkchess', '4k3/8/3R4/8/8/8/8/4K3 w - - 0 1');
+    const capture = new ffish.Board('sparkchess', '3Rk3/8/8/8/8/8/8/4K3 w - - 0 1');
+    try {
+      chai.expect(board.sanMove('d6e6')).to.equal('Re6+');
+      chai.expect(board.pushSan('Re6+')).to.equal(true);
+      chai.expect(capture.sanMove('d8e8')).to.equal('Rxe8');
+    } finally {
+      board.delete();
+      capture.delete();
+    }
   });
 });
 

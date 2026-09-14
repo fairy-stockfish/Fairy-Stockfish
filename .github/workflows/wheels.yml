@@ -32,7 +32,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "10.14"
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_* cp36-* cp37-* cp38"
-          CIBW_TEST_COMMAND: python -c "import runpy; runpy.run_path(r'{project}/test.py', run_name='__main__')"
+          CIBW_TEST_COMMAND: python -c "import runpy; runpy.run_path(r'{project}/test.py', run_name='__main__')" && python -c "import runpy; runpy.run_path(r'{project}/tests/test_spark_chess.py', run_name='__main__')"
 
       - uses: actions/upload-artifact@v7
         with:
