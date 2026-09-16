@@ -232,8 +232,18 @@ std::string compiler_info() {
     compiler += " on unknown system";
 #endif
 
-    compiler += "\nCompilation settings include: ";
-    compiler += (Is64Bit ? " 64bit" : " 32bit");
+    compiler += "\nCompilation architecture   : ";
+#if defined(ARCH)
+    compiler += stringify(ARCH);
+#else
+    compiler += "(undefined architecture)";
+#endif
+
+    compiler += "\nCompilation settings       : ";
+    compiler += (Is64Bit ? "64bit" : "32bit");
+#if defined(USE_AVX512ICL)
+    compiler += " AVX512ICL";
+#endif
 #if defined(USE_VNNI)
     compiler += " VNNI";
 #endif

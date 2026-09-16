@@ -125,8 +125,7 @@ MovePicker::MovePicker(
 
     assert(!pos.checkers());
 
-    stage = PROBCUT_TT
-          + !(ttm && pos.capture_stage(ttm) && pos.pseudo_legal(ttm) && pos.see_ge(ttm, threshold));
+    stage = PROBCUT_TT + !(ttm && pos.capture_stage(ttm) && pos.pseudo_legal(ttm));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -152,12 +151,11 @@ void MovePicker::score() {
         {
             PieceType pt       = pop_lsb(ps);
             threatByLesser[pt] = Bitboard(0);
-            if (pt == KING)
-                continue;
             for (PieceSet ps2 = pos.piece_types(); ps2;)
             {
                 PieceType pt2 = pop_lsb(ps2);
-                if (PieceValue[MG][pt2] < PieceValue[MG][pt])
+                // The king is threatened by any piece
+                if (pt == KING || PieceValue[MG][pt2] < PieceValue[MG][pt])
                     threatByLesser[pt] |= attacksBy[pt2];
             }
             // Pieces threatened by pieces of lesser material value
@@ -188,7 +186,7 @@ void MovePicker::score() {
             // histories
             m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
             m.value += (*gateHistory)[pos.side_to_move()][gating_square(m)];
-            m.value += 2 * (*pawnHistory)[pawn_structure_index(pos)][pc][to];
+            m.value += 2 * (*pawnHistory)[pawn_history_index(pos)][pc][to];
             m.value += (*continuationHistory[0])[history_slot(pc)][to];
             m.value += (*continuationHistory[1])[history_slot(pc)][to];
             m.value += (*continuationHistory[2])[history_slot(pc)][to];
@@ -200,11 +198,11 @@ void MovePicker::score() {
 
             // penalty for moving to a square threatened by a lesser piece
             // or bonus for escaping an attack by a lesser piece.
-            if (type_of(m) != DROP && pt != KING)
+            if (type_of(m) != DROP)
             {
                 Square from = from_sq(m);
                 int    v    = threatByLesser[pt] & to ? -95 : 100 * bool(threatenedPieces & from);
-                m.value += int(PieceValue[MG][pt]) / 5 * v;
+                m.value += (pt == KING ? 10000 : int(PieceValue[MG][pt]) / 5) * v;
             }
 
             if (ply < LOW_PLY_HISTORY_SIZE)
@@ -220,7 +218,7 @@ void MovePicker::score() {
                 m.value = (*mainHistory)[pos.side_to_move()][from_to(m)]
                         + (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)];
                 if (ply < LOW_PLY_HISTORY_SIZE)
-                    m.value += 2 * (*lowPlyHistory)[ply][from_to(m)] / (1 + ply);
+                    m.value += (*lowPlyHistory)[ply][from_to(m)];
             }
         }
     }
@@ -351,17 +349,4 @@ top:
 void MovePicker::skip_quiet_moves() { skipQuiets = true; }
 
 // this function must be called after all quiet moves and captures have been generated
-bool MovePicker::can_move_king_or_pawn() const {
-    // SEE negative captures shouldn't be returned in GOOD_CAPTURE stage
-    assert(stage > GOOD_CAPTURE && stage != EVASION_INIT);
-
-    for (const ExtMove* m = moves; m < endGenerated; ++m)
-    {
-        PieceType movedPieceType = type_of(pos.moved_piece(*m));
-        if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(*m))
-            return true;
-    }
-    return false;
-}
-
 }  // namespace Stockfish

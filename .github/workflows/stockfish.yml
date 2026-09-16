@@ -271,12 +271,6 @@ jobs:
           make clean
           make -j2 ARCH=x86-64-vnni512 build
 
-      - name: Compile x86-64-vnni256 build
-        if: ${{ matrix.config.run_64bit_tests }}
-        run: |
-          make clean
-          make -j2 ARCH=x86-64-vnni256 build
-
       # armv8 tests
 
       - name: Test armv8 build
