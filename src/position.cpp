@@ -2384,7 +2384,10 @@ Key Position::key_after(Move m) const {
             ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1];
   }
 
-  return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
+  k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
+
+  return (captured || type_of(pc) == PAWN)
+      ? k : adjust_key50<true>(k);
 }
 
 
@@ -2540,7 +2543,12 @@ bool Position::see_ge(Move m, Value threshold) const {
       // Don't allow pinned pieces to attack as long as there are
       // pinners on their original square.
       if (pinners(~stm) & occupied)
+      {
           stmAttackers &= ~blockers_for_king(stm);
+
+          if (!stmAttackers)
+              break;
+      }
 
       // Ignore distant sliders
       if (walling_rule() == DUCK)

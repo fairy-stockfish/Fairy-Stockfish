@@ -137,12 +137,13 @@ namespace Stockfish::Eval::NNUE {
   }
 
   // Evaluation function. Perform differential calculation.
-  Value evaluate(const Position& pos, bool adjusted) {
+  Value evaluate(const Position& pos, bool adjusted, int* complexity) {
 
     // We manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 
     constexpr uint64_t alignment = CacheLineSize;
+    int delta = 24 - pos.non_pawn_material() / 9560;
 
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned[
@@ -162,20 +163,16 @@ namespace Stockfish::Eval::NNUE {
 
     const std::size_t bucket = std::min((pos.count<ALL_PIECES>() - 1) * 8 / currentNnueVariant->nnueMaxPieces, 7);
     const auto psqt = featureTransformer->transform(pos, transformedFeatures, bucket);
-    const auto output = network[bucket]->propagate(transformedFeatures, buffer);
+    const auto positional = network[bucket]->propagate(transformedFeatures, buffer)[0];
 
-    int materialist = psqt;
-    int positional  = output[0];
+    if (complexity)
+        *complexity = abs(psqt - positional) / OutputScale;
 
-    int delta_npm = abs(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK));
-    int entertainment = (adjusted && delta_npm <= BishopValueMg - KnightValueMg ? 7 : 0);
-
-    int A = 128 - entertainment;
-    int B = 128 + entertainment;
-
-    int sum = (A * materialist + B * positional) / 128;
-
-    return static_cast<Value>( sum / OutputScale );
+    // Give more value to positional evaluation when adjusted flag is set
+    if (adjusted)
+        return static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional) / (1024 * OutputScale));
+    else
+        return static_cast<Value>((psqt + positional) / OutputScale);
   }
 
   struct NnueEvalTrace {

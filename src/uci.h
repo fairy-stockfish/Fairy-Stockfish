@@ -43,15 +43,15 @@ void init_variant(const Variant* v);
 
 class Option;
 
-/// Custom comparator because UCI options should be case insensitive
+/// Define a custom comparator, because the UCI options should be case-insensitive
 struct CaseInsensitiveLess {
   bool operator() (const std::string&, const std::string&) const;
 };
 
-/// Our options container is actually a std::map
+/// The options container is defined as a std::map
 typedef std::map<std::string, Option, CaseInsensitiveLess> OptionsMap;
 
-/// Option class implements an option as defined by UCI protocol
+/// The Option class implements each option as specified by the UCI protocol
 class Option {
 
   typedef void (*OnChange)(const Option&);
@@ -89,7 +89,7 @@ std::string value(Value v);
 std::string square(const Position& pos, Square s);
 std::string dropped_piece(const Position& pos, Move m);
 std::string move(const Position& pos, Move m);
-std::string pv(const Position& pos, Depth depth, Value alpha, Value beta);
+std::string pv(const Position& pos, Depth depth);
 std::string wdl(Value v, int ply);
 Move to_move(const Position& pos, std::string& str);
 

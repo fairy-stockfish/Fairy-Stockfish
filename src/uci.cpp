@@ -70,7 +70,7 @@ namespace {
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
     pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
-    // Parse move list (if any)
+    // Parse the move list, if any
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
     {
         states->emplace_back();
@@ -78,8 +78,8 @@ namespace {
     }
   }
 
-  // trace_eval() prints the evaluation for the current position, consistent with the UCI
-  // options set so far.
+  // trace_eval() prints the evaluation of the current position, consistent with
+  // the UCI options set so far.
 
   void trace_eval(Position& pos) {
 
@@ -93,14 +93,14 @@ namespace {
   }
 
 
-  // setoption() is called when engine receives the "setoption" UCI command. The
-  // function updates the UCI option ("name") to the given value ("value").
+  // setoption() is called when the engine receives the "setoption" UCI command.
+  // The function updates the UCI option ("name") to the given value ("value").
 
   void setoption(istringstream& is) {
 
     string token, name, value;
 
-    is >> token; // Consume "name" token
+    is >> token; // Consume the "name" token
 
     if (CurrentProtocol == UCCI)
         name = token;
@@ -109,7 +109,7 @@ namespace {
     while (is >> token && token != "value")
         name += (name.empty() ? "" : " ") + token;
 
-    // Read option value (can contain spaces)
+    // Read the option value (can contain spaces)
     while (is >> token)
         value += (value.empty() ? "" : " ") + token;
 
@@ -123,9 +123,9 @@ namespace {
   }
 
 
-  // go() is called when engine receives the "go" UCI command. The function sets
-  // the thinking time and other parameters from the input string, then starts
-  // the search.
+  // go() is called when the engine receives the "go" UCI command. The function
+  // sets the thinking time and other parameters from the input string, then starts
+  // with a search.
 
   void go(Position& pos, istringstream& is, StateListPtr& states, const std::vector<Move>& banmoves = {}) {
 
@@ -133,7 +133,7 @@ namespace {
     string token;
     bool ponderMode = false;
 
-    limits.startTime = now(); // As early as possible!
+    limits.startTime = now(); // The search starts as early as possible
 
     limits.banmoves = banmoves;
     bool isUsi = CurrentProtocol == USI;
@@ -207,12 +207,12 @@ namespace {
         }
         else if (token == "setoption")  setoption(is);
         else if (token == "position")   position(pos, is, states);
-        else if (token == "ucinewgame") { Search::clear(); elapsed = now(); } // Search::clear() may take some while
+        else if (token == "ucinewgame") { Search::clear(); elapsed = now(); } // Search::clear() may take a while
     }
 
     elapsed = now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
 
-    dbg_print(); // Just before exiting
+    dbg_print();
 
     cerr << "\n==========================="
          << "\nTotal time (ms) : " << elapsed
@@ -220,8 +220,8 @@ namespace {
          << "\nNodes/second    : " << 1000 * nodes / elapsed << endl;
   }
 
-  // The win rate model returns the probability (per mille) of winning given an eval
-  // and a game-ply. The model fits rather accurately the LTC fishtest statistics.
+  // The win rate model returns the probability of winning (in per mille units) given an
+  // eval and a game ply. It fits the LTC fishtest statistics rather accurately.
   int win_rate_model(Value v, int ply) {
 
      // The model captures only up to 240 plies, so limit input (and rescale)
@@ -287,11 +287,11 @@ namespace {
 } // namespace
 
 
-/// UCI::loop() waits for a command from stdin, parses it and calls the appropriate
-/// function. Also intercepts EOF from stdin to ensure gracefully exiting if the
-/// GUI dies unexpectedly. When called with some command line arguments, e.g. to
-/// run 'bench', once the command is executed the function returns immediately.
-/// In addition to the UCI ones, also some additional debug commands are supported.
+/// UCI::loop() waits for a command from the stdin, parses it and then calls the appropriate
+/// function. It also intercepts an end-of-file (EOF) indication from the stdin to ensure a
+/// graceful exit if the GUI dies unexpectedly. When called with some command-line arguments,
+/// like running 'bench', the function returns immediately after the command is executed.
+/// In addition to the UCI ones, some additional debug commands are also supported.
 
 void UCI::loop(int argc, char* argv[]) {
 
@@ -324,24 +324,24 @@ void UCI::loop(int argc, char* argv[]) {
   }
 
   do {
-      if (argc == 1 && !getline(cin, cmd)) // Block here waiting for input or EOF
+      if (argc == 1 && !getline(cin, cmd)) // Wait for an input or an end-of-file (EOF) indication
           cmd = "quit";
 
       istringstream is(cmd);
 
-      token.clear(); // Avoid a stale if getline() returns empty or blank line
+      token.clear(); // Avoid a stale if getline() returns nothing or a blank line
       is >> skipws >> token;
 
       if (    token == "quit"
           ||  token == "stop")
           Threads.stop = true;
 
-      // The GUI sends 'ponderhit' to tell us the user has played the expected move.
-      // So 'ponderhit' will be sent if we were told to ponder on the same move the
-      // user has played. We should continue searching but switch from pondering to
-      // normal search.
+      // The GUI sends 'ponderhit' to tell that the user has played the expected move.
+      // So, 'ponderhit' is sent if pondering was done on the same move that the user
+      // has played. The search should continue, but should also switch from pondering
+      // to the normal search.
       else if (token == "ponderhit")
-          Threads.main()->ponder = false; // Switch to normal search
+          Threads.main()->ponder = false; // Switch to the normal search
 
       else if (token == "uci" || token == "usi" || token == "ucci" || token == "xboard" || token == "ucicyclone")
       {
@@ -383,8 +383,8 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "ucinewgame" || token == "usinewgame" || token == "uccinewgame") Search::clear();
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
 
-      // Additional custom non-UCI commands, mainly for debugging.
-      // Do not use these commands during a search!
+      // Add custom non-UCI commands, mainly for debugging purposes.
+      // These commands must not be used during a search!
       else if (token == "flip")     pos.flip();
       else if (token == "bench")    bench(pos, is, states);
       else if (token == "d")        sync_cout << pos << sync_endl;
@@ -414,18 +414,17 @@ void UCI::loop(int argc, char* argv[]) {
           position(pos, is, states);
       }
       else if (!token.empty() && token[0] != '#')
-          sync_cout << "Unknown command: " << cmd << sync_endl;
+          sync_cout << "Unknown command: '" << cmd << "'. Type help for more information." << sync_endl;
 
-  } while (token != "quit" && argc == 1); // Command line args are one-shot
+  } while (token != "quit" && argc == 1); // The command-line arguments are one-shot
 }
 
 
-/// UCI::value() converts a Value to a string suitable for use with the UCI
-/// protocol specification:
+/// UCI::value() converts a Value to a string by adhering to the UCI protocol specification:
 ///
 /// cp <x>    The score from the engine's point of view in centipawns.
-/// mate <y>  Mate in y moves, not plies. If the engine is getting mated
-///           use negative values for y.
+/// mate <y>  Mate in 'y' moves (not plies). If the engine is getting mated,
+///           uses negative values for 'y'.
 
 string UCI::value(Value v) {
 
@@ -453,8 +452,8 @@ string UCI::value(Value v) {
 }
 
 
-/// UCI::wdl() report WDL statistics given an evaluation and a game ply, based on
-/// data gathered for fishtest LTC games.
+/// UCI::wdl() reports the win-draw-loss (WDL) statistics given an evaluation
+/// and a game ply based on the data gathered for fishtest LTC games.
 
 string UCI::wdl(Value v, int ply) {
 
@@ -503,9 +502,9 @@ string UCI::dropped_piece(const Position& pos, Move m) {
 
 
 /// UCI::move() converts a Move to a string in coordinate notation (g1f3, a7a8q).
-/// The only special case is castling, where we print in the e1g1 notation in
-/// normal chess mode, and in e1h1 notation in chess960 mode. Internally all
-/// castling moves are always encoded as 'king captures rook'.
+/// The only special case is castling where the e1g1 notation is printed in
+/// standard chess mode and in e1h1 notation it is printed in Chess960 mode.
+/// Internally, all castling moves are always encoded as 'king captures rook'.
 
 string UCI::move(const Position& pos, Move m) {
 

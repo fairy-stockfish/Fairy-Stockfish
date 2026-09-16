@@ -67,9 +67,8 @@ namespace Stockfish {
 
 namespace {
 
-/// Version number. If Version is left empty, then compile date in the format
-/// DD-MM-YY and show in engine_info.
-const string Version = "15";
+/// Version number or dev.
+const string version = "";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -138,23 +137,42 @@ public:
 } // namespace
 
 
-/// engine_info() returns the full name of the current Stockfish version. This
-/// will be either "Stockfish <Tag> DD-MM-YY" (where DD-MM-YY is the date when
-/// the program was compiled) or "Stockfish <Version>", depending on whether
-/// Version is empty.
+/// engine_info() returns the full name of the current Stockfish version.
+/// For local dev compiles we try to append the commit sha and commit date
+/// from git if that fails only the local compilation date is set and "nogit" is specified:
+/// Stockfish dev-YYYYMMDD-SHA
+/// or
+/// Stockfish dev-YYYYMMDD-nogit
+///
+/// For releases (non dev builds) we only include the version number:
+/// Stockfish version
 
 string engine_info(bool to_uci, bool to_xboard) {
 
-  const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
-  string month, day, year;
-  stringstream ss, date(__DATE__); // From compiler, format is "Sep 21 2008"
+  stringstream ss;
+  ss << "Fairy-Stockfish " << version << setfill('0');
 
-  ss << "Fairy-Stockfish " << Version << setfill('0');
-
-  if (Version.empty())
+  if (version.empty())
   {
+      ss << "-";
+      #ifdef GIT_DATE
+      ss << GIT_DATE;
+      #else
+      const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
+      string month, day, year;
+      stringstream date(__DATE__); // From compiler, format is "Sep 21 2008"
+
       date >> month >> day >> year;
-      ss << setw(2) << day << setw(2) << (1 + months.find(month) / 4) << year.substr(2);
+      ss << year << setw(2) << setfill('0') << (1 + months.find(month) / 4) << setw(2) << setfill('0') << day;
+      #endif
+
+      ss << "-";
+
+      #ifdef GIT_SHA
+      ss << GIT_SHA;
+      #else
+      ss << "nogit";
+      #endif
   }
 
 #ifdef LARGEBOARDS
@@ -383,10 +401,9 @@ void std_aligned_free(void* ptr) {
 
 #if defined(_WIN32)
 
-static void* aligned_large_pages_alloc_windows(size_t allocSize) {
+static void* aligned_large_pages_alloc_windows([[maybe_unused]] size_t allocSize) {
 
   #if !defined(_WIN64)
-    (void)allocSize; // suppress unused-parameter compiler warning
     return nullptr;
   #else
 
@@ -631,8 +648,7 @@ string argv0;            // path+name of the executable binary, as given by argv
 string binaryDirectory;  // path of the executable directory
 string workingDirectory; // path of the working directory
 
-void init(int argc, char* argv[]) {
-    (void)argc;
+void init([[maybe_unused]] int argc, char* argv[]) {
     string pathSeparator;
 
     // extract the path+name of the executable binary

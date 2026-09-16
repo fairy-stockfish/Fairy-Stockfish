@@ -1493,7 +1493,7 @@ namespace {
     Score score = pos.psq_score();
     if (T)
         Trace::add(MATERIAL, score);
-    score += me->imbalance() + pos.this_thread()->trend;
+    score += me->imbalance();
 
     // Probe the pawn hash table
     pe = Pawns::probe(pos);
@@ -1603,49 +1603,53 @@ make_v:
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
 
-Value Eval::evaluate(const Position& pos) {
+Value Eval::evaluate(const Position& pos, int* complexity) {
 
   Value v;
-  bool useClassical = false;
+  Value psq = pos.psq_eg_stm();
 
-  if (!Eval::useNNUE || !pos.nnue_applicable())
+  // We use the much less accurate but faster Classical eval when the NNUE
+  // option is set to false. Otherwise we use the NNUE eval unless the
+  // PSQ advantage is decisive and several pieces remain. (~3 Elo)
+  // The latter is only applied to check counting variants, since NNUE is trusted otherwise.
+  bool useClassical =    !useNNUE
+                      || !pos.nnue_applicable()
+                      || (pos.check_counting() && pos.count<ALL_PIECES>() > 7 && abs(psq) > 1760);
+
+  if (useClassical)
       v = Evaluation<NO_TRACE>(pos).value();
   else
   {
-      // Deciding between classical and NNUE eval (~10 Elo): for high PSQ imbalance we use classical,
-      // but we switch to NNUE during long shuffling or with high material on the board.
-      // This is only applied to check counting variants, since NNUE is trusted otherwise.
-      if (   pos.check_counting()
-          && (pos.this_thread()->depth > 9 || pos.count<ALL_PIECES>() > 7)
-          && abs(eg_value(pos.psq_score())) * 5 > (856 + pos.non_pawn_material() / 64) * (10 + pos.rule50_count()))
+      int nnueComplexity;
+      int scale = 1064 + 106 * pos.non_pawn_material() / 5120;
+
+      Color stm = pos.side_to_move();
+      Value optimism = pos.this_thread()->optimism[stm];
+
+      Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
+
+      // Blend nnue complexity with (semi)classical complexity
+      nnueComplexity = (  416 * nnueComplexity
+                        + 424 * abs(psq - nnue)
+                        + (optimism  > 0 ? int(optimism) * int(psq - nnue) : 0)
+                        ) / 1024;
+
+      // Return hybrid NNUE complexity to caller
+      if (complexity)
+          *complexity = nnueComplexity;
+
+      optimism = optimism * (269 + nnueComplexity) / 256;
+      v = (nnue * scale + optimism * (scale - 754)) / 1024;
+
+      if (pos.is_chess960())
+          v += fix_FRC(pos);
+
+      if (pos.check_counting())
       {
-          v = Evaluation<NO_TRACE>(pos).value();          // classical
-          useClassical = abs(v) >= 297;
+          Color us = pos.side_to_move();
+          v +=  6 * scale / (5 * pos.checks_remaining( us))
+              - 6 * scale / (5 * pos.checks_remaining(~us));
       }
-
-      // If result of a classical evaluation is much lower than threshold fall back to NNUE
-      if (!useClassical)
-      {
-           Value nnue     = NNUE::evaluate(pos, true);     // NNUE
-           int scale      = 1036 + 22 * pos.non_pawn_material() / 1024;
-           Color stm      = pos.side_to_move();
-           Value optimism = pos.this_thread()->optimism[stm];
-           Value psq      = (stm == WHITE ? 1 : -1) * eg_value(pos.psq_score());
-           int complexity = 35 * abs(nnue - psq) / 256;
-
-           optimism = optimism * (44 + complexity) / 31;
-           v = (nnue + optimism) * scale / 1024 - optimism;
-
-           if (pos.is_chess960())
-               v += fix_FRC(pos);
-
-           if (pos.check_counting())
-           {
-               Color us = pos.side_to_move();
-               v +=  6 * scale / (5 * pos.checks_remaining( us))
-                   - 6 * scale / (5 * pos.checks_remaining(~us));
-           }
-    }
   }
 
   // Damp down the evaluation linearly when shuffling
@@ -1662,6 +1666,10 @@ Value Eval::evaluate(const Position& pos) {
 
   // Guarantee evaluation does not hit the tablebase range
   v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
+
+  // When not using NNUE, return classical complexity to caller
+  if (complexity && useClassical)
+      *complexity = abs(v - psq);
 
   return v;
 }
@@ -1687,8 +1695,6 @@ std::string Eval::trace(Position& pos) {
   std::memset(scores, 0, sizeof(scores));
 
   // Reset any global variable used in eval
-  pos.this_thread()->depth           = 0;
-  pos.this_thread()->trend           = SCORE_ZERO;
   pos.this_thread()->bestValue       = VALUE_ZERO;
   pos.this_thread()->optimism[WHITE] = VALUE_ZERO;
   pos.this_thread()->optimism[BLACK] = VALUE_ZERO;

@@ -123,7 +123,7 @@ ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni x86-64-bmi2 \
                  x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-ssse3 x86-64-sse3-popcnt \
                  x86-64 x86-32-sse41-popcnt x86-32-sse2 x86-32 ppc-64 ppc-32 e2k \
-                 armv7 armv7-neon armv8 apple-silicon general-64 general-32))
+                 armv7 armv7-neon armv8 apple-silicon general-64 general-32 riscv64))
    SUPPORTED_ARCH=true
 else
    SUPPORTED_ARCH=false
@@ -345,7 +345,11 @@ ifeq ($(findstring e2k,$(ARCH)),e2k)
 	popcnt = yes
 endif
 
+ifeq ($(ARCH),riscv64)
+	arch = riscv64
 endif
+endif
+
 
 # Disable precomputed magics when 64-bit PEXT is available
 ifeq ($(pext),yes)
@@ -357,9 +361,15 @@ endif
 ### ==========================================================================
 
 ### 3.1 Selecting compiler (default = gcc)
-CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
-DEPENDFLAGS += -std=c++17
-LDFLAGS += $(EXTRALDFLAGS)
+ifeq ($(MAKELEVEL),0)
+       export ENV_CXXFLAGS := $(CXXFLAGS)
+       export ENV_DEPENDFLAGS := $(DEPENDFLAGS)
+       export ENV_LDFLAGS := $(LDFLAGS)
+endif
+
+CXXFLAGS = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
+DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
+LDFLAGS = $(ENV_LDFLAGS) $(EXTRALDFLAGS)
 
 # Ignore warning due to missing profile information from unused NNUE features
 CXXFLAGS += -Wno-profile-instr-out-of-date
@@ -395,10 +405,13 @@ ifeq ($(COMP),gcc)
 		CXXFLAGS += -pedantic
 	endif
 
-	ifeq ($(arch),$(filter $(arch),armv7 armv8))
+	ifeq ($(arch),$(filter $(arch),armv7 armv8 riscv64))
 		ifeq ($(OS),Android)
 			CXXFLAGS += -m$(bits)
 			LDFLAGS += -m$(bits)
+		endif
+		ifeq ($(ARCH),riscv64)
+			CXXFLAGS += -latomic
 		endif
 	else
 		CXXFLAGS += -m$(bits)
@@ -460,10 +473,13 @@ ifeq ($(COMP),clang)
 	endif
 	endif
 
-	ifeq ($(arch),$(filter $(arch),armv7 armv8))
+	ifeq ($(arch),$(filter $(arch),armv7 armv8 riscv64))
 		ifeq ($(OS),Android)
 			CXXFLAGS += -m$(bits)
 			LDFLAGS += -m$(bits)
+		endif
+		ifeq ($(ARCH),riscv64)
+			CXXFLAGS += -latomic
 		endif
 	else
 		CXXFLAGS += -m$(bits)
@@ -579,17 +595,17 @@ ifeq ($(optimize),yes)
 		endif
 	endif
 
-    ifeq ($(KERNEL),Darwin)
-        ifeq ($(comp),$(filter $(comp),clang icc))
-            CXXFLAGS += -mdynamic-no-pic
-        endif
+	ifeq ($(KERNEL),Darwin)
+		ifeq ($(comp),$(filter $(comp),clang icc))
+			CXXFLAGS += -mdynamic-no-pic
+		endif
 
-        ifeq ($(comp),gcc)
-            ifneq ($(arch),arm64)
-                CXXFLAGS += -mdynamic-no-pic
-            endif
-        endif
-    endif
+		ifeq ($(comp),gcc)
+			ifneq ($(arch),arm64)
+				CXXFLAGS += -mdynamic-no-pic
+			endif
+		endif
+	endif
 
 	ifeq ($(comp),clang)
 		clangmajorversion = $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
@@ -706,13 +722,25 @@ ifeq ($(pext),yes)
 	endif
 endif
 
+### 3.7.1 Try to include git commit sha for versioning
+GIT_SHA = $(shell git rev-parse --short HEAD 2>/dev/null)
+ifneq ($(GIT_SHA), )
+	CXXFLAGS += -DGIT_SHA=\"$(GIT_SHA)\"
+endif
+
+### 3.7.2 Try to include git commit date for versioning
+GIT_DATE = $(shell git show -s --date=format:'%Y%m%d' --format=%cd HEAD 2>/dev/null)
+ifneq ($(GIT_DATE), )
+	CXXFLAGS += -DGIT_DATE=\"$(GIT_DATE)\"
+endif
+
 ### 3.8 Link Time Optimization
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
 ifeq ($(debug), no)
 	ifeq ($(comp),clang)
-		CXXFLAGS += -flto
+		CXXFLAGS += -flto=full
 		ifeq ($(target_windows),yes)
 			CXXFLAGS += -fuse-ld=lld
 		endif
@@ -722,20 +750,18 @@ ifeq ($(debug), no)
 # GCC on some systems.
 	else ifeq ($(comp),gcc)
 	ifeq ($(gccisclang),)
-		CXXFLAGS += -flto
+		CXXFLAGS += -flto -flto-partition=one
 		LDFLAGS += $(CXXFLAGS) -flto=jobserver
 	else
-		CXXFLAGS += -flto
+		CXXFLAGS += -flto=full
 		LDFLAGS += $(CXXFLAGS)
 	endif
 
 # To use LTO and static linking on Windows,
 # the tool chain requires gcc version 10.1 or later.
 	else ifeq ($(comp),mingw)
-	ifneq ($(arch),i386)
-		CXXFLAGS += -flto
+		CXXFLAGS += -flto -flto-partition=one
 		LDFLAGS += $(CXXFLAGS) -save-temps
-	endif
 	endif
 endif
 endif
@@ -793,6 +819,7 @@ help:
 	@echo "apple-silicon           > Apple silicon ARM64"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "general-32              > unspecified 32-bit"
+	@echo "riscv64                 > RISC-V 64-bit"
 	@echo ""
 	@echo "Supported compilers:"
 	@echo ""
@@ -839,7 +866,7 @@ endif
 
 .PHONY: help build profile-build strip install clean net objclean profileclean \
         config-sanity icc-profile-use icc-profile-make gcc-profile-use gcc-profile-make \
-        clang-profile-use clang-profile-make
+        clang-profile-use clang-profile-make FORCE
 
 build: $(load_net) config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
@@ -972,7 +999,7 @@ config-sanity: $(load_net)
 	@test "$(SUPPORTED_ARCH)" = "true"
 	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "e2k" || \
-	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64"
+	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || test "$(arch)" = "riscv64"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
@@ -992,6 +1019,10 @@ config-sanity: $(load_net)
 
 $(EXE): $(OBJS)
 	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+
+# Force recompilation to ensure version info is up-to-date
+misc.o: FORCE
+FORCE:
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \

@@ -73,6 +73,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 
   stage = (pos.checkers() ? EVASION_TT : MAIN_TT) +
           !(ttm && pos.pseudo_legal(ttm));
+  threatenedPieces = 0;
 }
 
 /// MovePicker constructor for quiescence search
@@ -84,14 +85,13 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 
   stage = (pos.checkers() ? EVASION_TT : QSEARCH_TT) +
           !(   ttm
-            && (pos.checkers() || depth > DEPTH_QS_RECAPTURES || to_sq(ttm) == recaptureSquare)
             && pos.pseudo_legal(ttm));
 }
 
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
 /// than or equal to the given threshold.
-MovePicker::MovePicker(const Position& p, Move ttm, Value th, Depth d, const GateHistory* dh, const CapturePieceToHistory* cph)
-           : pos(p), gateHistory(dh), captureHistory(cph), ttMove(ttm), threshold(th), depth(d) {
+MovePicker::MovePicker(const Position& p, Move ttm, Value th, const GateHistory* dh, const CapturePieceToHistory* cph)
+           : pos(p), gateHistory(dh), captureHistory(cph), ttMove(ttm), threshold(th) {
 
   assert(!pos.checkers());
 
@@ -109,7 +109,7 @@ void MovePicker::score() {
   static_assert(Type == CAPTURES || Type == QUIETS || Type == EVASIONS, "Wrong type");
 
   // Squares attacked by enemy pieces of lesser value than a given piece type
-  Bitboard threatened = Bitboard(0), threatByLesser[PIECE_TYPE_NB];
+  [[maybe_unused]] Bitboard threatByLesser[PIECE_TYPE_NB];
   if constexpr (Type == QUIETS)
   {
       Color us = pos.side_to_move();
@@ -131,14 +131,9 @@ void MovePicker::score() {
               if (PieceValue[MG][pt2] < PieceValue[MG][pt])
                   threatByLesser[pt] |= attacksBy[pt2];
           }
-          threatened |= pos.pieces(us, pt) & threatByLesser[pt];
+          // Pieces threatened by pieces of lesser material value
+          threatenedPieces |= pos.pieces(us, pt) & threatByLesser[pt];
       }
-  }
-  else
-  {
-      // Silence unused variable warnings
-      (void) threatened;
-      (void) threatByLesser;
   }
 
   for (auto& m : *this)
@@ -150,15 +145,16 @@ void MovePicker::score() {
       else if constexpr (Type == QUIETS)
       {
           Piece pc = pos.moved_piece(m);
-          m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
+          m.value =  2 * (*mainHistory)[pos.side_to_move()][from_to(m)]
                    +     (*gateHistory)[pos.side_to_move()][gating_square(m)]
                    + 2 * (*continuationHistory[0])[history_slot(pc)][to_sq(m)]
                    +     (*continuationHistory[1])[history_slot(pc)][to_sq(m)]
                    +     (*continuationHistory[3])[history_slot(pc)][to_sq(m)]
-                   +     (*continuationHistory[5])[history_slot(pc)][to_sq(m)];
+                   +     (*continuationHistory[5])[history_slot(pc)][to_sq(m)]
+                   +     bool(pos.check_squares(type_of(pc)) & to_sq(m)) * 16384;
 
           // Bonus for moving a piece threatened by a lesser piece to a safe square
-          if (type_of(m) != DROP && (threatened & from_sq(m)) && !(threatByLesser[type_of(pc)] & to_sq(m)))
+          if (type_of(m) != DROP && (threatenedPieces & from_sq(m)) && !(threatByLesser[type_of(pc)] & to_sq(m)))
               m.value += 20 * int(PieceValue[MG][type_of(pc)]);
       }
 
@@ -166,11 +162,11 @@ void MovePicker::score() {
       {
           if (pos.capture(m))
               m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
-                       - Value(type_of(pos.moved_piece(m)));
+                       - Value(type_of(pos.moved_piece(m)))
+                       + (1 << 28);
           else
-              m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
-                       + 2 * (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)]
-                       - (1 << 28);
+              m.value =  (*mainHistory)[pos.side_to_move()][from_to(m)]
+                       + (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)];
       }
 }
 
@@ -215,7 +211,7 @@ top:
       endMoves = generate<CAPTURES>(pos, cur);
 
       score<CAPTURES>();
-      partial_insertion_sort(cur, endMoves, -3000 * depth);
+      partial_insertion_sort(cur, endMoves, std::numeric_limits<int>::min());
       ++stage;
       goto top;
 
