@@ -20,10 +20,12 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 
 #include "benchmark.h"
+#include "engine.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "perft.h"
@@ -41,16 +43,13 @@ using namespace std;
 
 namespace Stockfish {
 
-namespace {
-
 // position() is called when engine receives the "position" UCI command.
 // The function sets up the position described in the given FEN string ("fen")
 // or the starting position ("startpos") and then makes the moves given in the
 // following move list ("moves").
 
-void position(Position& pos, istringstream& is, StateListPtr& states) {
+void UCIEngine::position(istringstream& is) {
 
-    Move   m;
     string token, fen;
 
     is >> token;
@@ -68,37 +67,19 @@ void position(Position& pos, istringstream& is, StateListPtr& states) {
     else
         return;
 
-    states = StateListPtr(new std::deque<StateInfo>(1));  // Drop old and create a new one
-    pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"],
-            &states->back(), Threads.main_thread()->worker.get(), sfen);
+    std::vector<std::string> moves;
 
-    // Parse the move list, if any
-    while (is >> token && (m = UCI::to_move(pos, token)) != Move::none())
-    {
-        states->emplace_back();
-        pos.do_move(m, states->back());
-    }
-}
+    while (is >> token)
+        moves.push_back(token);
 
-// Prints the evaluation of the current position,
-// consistent with the UCI options set so far.
-void trace_eval(Position& pos) {
-
-    StateListPtr states(new std::deque<StateInfo>(1));
-    Position     p;
-    p.set(pos.variant(), pos.fen(), Options["UCI_Chess960"], &states->back(),
-          Threads.main_thread()->worker.get());
-
-    Eval::NNUE::verify();
-
-    sync_cout << "\n" << Eval::trace(p) << sync_endl;
+    engine->set_position(fen, moves, sfen);
 }
 
 
 // Called when the engine receives the "setoption" UCI command.
 // The function updates the UCI option ("name") to the given value ("value").
 
-void setoption(istringstream& is) {
+static void setoption(istringstream& is) {
 
     string token, name, value;
 
@@ -128,11 +109,9 @@ void setoption(istringstream& is) {
 // Called when the engine receives the "go" UCI command. The function sets the
 // thinking time and other parameters from the input string then stars with a search
 
-void go(Position&                pos,
-        istringstream&           is,
-        StateListPtr&            states,
-        const std::vector<Move>& banmoves = {}) {
+void UCIEngine::go(istringstream& is, const std::vector<Move>& banmoves) {
 
+    const Position&    pos = engine->position();
     Search::LimitsType limits;
     string             token;
     bool               ponderMode = false;
@@ -194,19 +173,21 @@ void go(Position&                pos,
 
     if (limits.perft)
     {
-        perft(pos, limits.perft);
+        engine->perft(limits.perft);
         return;
     }
 
     limits.ponderMode = ponderMode;
-    Threads.start_thinking(Options, pos, states, limits);
+    engine->go(limits);
 }
 
 // bench() is called when engine receives the "bench" command. Firstly
 // a list of UCI commands is setup according to bench parameters, then
 // it is run one by one printing a summary at the end.
 
-void bench(Position& pos, istream& args, StateListPtr& states) {
+void UCIEngine::bench(istream& args) {
+
+    Position& pos = engine->position();
 
     string   token;
     uint64_t num, nodes = 0, cnt = 1;
@@ -227,20 +208,20 @@ void bench(Position& pos, istream& args, StateListPtr& states) {
             cerr << "\nPosition: " << cnt++ << '/' << num << " (" << pos.fen() << ")" << endl;
             if (token == "go")
             {
-                go(pos, is, states);
-                Threads.main_thread()->wait_for_search_finished();
+                go(is);
+                engine->wait_for_search_finished();
                 nodes += Threads.nodes_searched();
             }
             else
-                trace_eval(pos);
+                engine->trace_eval();
         }
         else if (token == "setoption")
             setoption(is);
         else if (token == "position")
-            position(pos, is, states);
+            position(is);
         else if (token == "ucinewgame")
         {
-            Search::clear();
+            engine->search_clear();
             elapsed = now();
         }  // Search::clear() may take a while
     }
@@ -256,7 +237,7 @@ void bench(Position& pos, istream& args, StateListPtr& states) {
 
 // The win rate model returns the probability of winning (in per mille units) given an
 // eval and a game ply. It fits the LTC fishtest statistics rather accurately.
-int win_rate_model(Value v, int ply) {
+static int win_rate_model(Value v, int ply) {
 
     // The model captures only up to 240 plies, so limit input (and rescale)
     double m = std::min(240, ply) / 64.0;
@@ -279,7 +260,7 @@ int win_rate_model(Value v, int ply) {
 // load() is called when engine receives the "load" or "check" command.
 // The function reads variant configuration files.
 
-void load(istringstream& is, bool check = false) {
+static void load(istringstream& is, bool check = false) {
 
     string token;
     std::getline(is >> std::ws, token);
@@ -318,30 +299,23 @@ void load(istringstream& is, bool check = false) {
     }
 }
 
-}  // namespace
-
-
 // Waits for a command from the stdin, parses it, and then calls the appropriate
 // function. It also intercepts an end-of-file (EOF) indication from the stdin to ensure a
 // graceful exit if the GUI dies unexpectedly. When called with some command-line arguments,
 // like running 'bench', the function returns immediately after the command is executed.
 // In addition to the UCI ones, some additional debug commands are also supported.
-void UCI::loop(int argc, char* argv[]) {
+void UCIEngine::loop() {
 
-    Position     pos;
-    string       token, cmd;
-    StateListPtr states(new std::deque<StateInfo>(1));
-
-    assert(variants.find(Options["UCI_Variant"])->second != nullptr);
-    pos.set(variants.find(Options["UCI_Variant"])->second,
-            variants.find(Options["UCI_Variant"])->second->startFen, false, &states->back(),
-            Threads.main_thread()->worker.get());
+    Position& pos = engine->position();
+    string    token, cmd;
+    int       argc = this->argc;
+    char**    argv = this->argv;
 
     for (int i = 1; i < argc; ++i)
         cmd += std::string(argv[i]) + " ";
 
     // XBoard state machine
-    XBoard::stateMachine = new XBoard::StateMachine(pos, states);
+    XBoard::stateMachine = new XBoard::StateMachine(engine->position(), engine->state_list());
     // UCCI banmoves state
     std::vector<Move> banmoves = {};
 
@@ -370,14 +344,14 @@ void UCI::loop(int argc, char* argv[]) {
         is >> skipws >> token;
 
         if (token == "quit" || token == "stop")
-            Threads.stop = true;
+            engine->stop();
 
         // The GUI sends 'ponderhit' to tell that the user has played the expected move.
         // So, 'ponderhit' is sent if pondering was done on the same move that the user
         // has played. The search should continue, but should also switch from pondering
         // to the normal search.
         else if (token == "ponderhit")
-            Threads.main_manager()->ponder = false;  // Switch to the normal search
+            engine->set_ponderhit(false);  // Switch to the normal search
 
         else if (token == "uci" || token == "usi" || token == "ucci" || token == "xboard"
                  || token == "ucicyclone")
@@ -399,7 +373,7 @@ void UCI::loop(int argc, char* argv[]) {
                                                                           : "chess");
             Options["UCI_Variant"].set_default(defaultVariant);
             std::istringstream ss("startpos");
-            position(pos, ss, states);
+            position(ss);
             if (is_uci_dialect(CurrentProtocol) && token != "ucicyclone")
                 sync_cout << "id name " << engine_info(true) << "\n"
                           << Options << "\n"
@@ -418,24 +392,24 @@ void UCI::loop(int argc, char* argv[]) {
             while (is >> token)
                 banmoves.push_back(UCI::to_move(pos, token));
         else if (token == "go")
-            go(pos, is, states, banmoves);
+            go(is, banmoves);
         else if (token == "position")
-            position(pos, is, states), banmoves.clear();
+            position(is), banmoves.clear();
         else if (token == "ucinewgame" || token == "usinewgame" || token == "uccinewgame")
-            Search::clear();
+            engine->search_clear();
         else if (token == "isready")
             sync_cout << "readyok" << sync_endl;
 
         // Add custom non-UCI commands, mainly for debugging purposes.
         // These commands must not be used during a search!
         else if (token == "flip")
-            pos.flip();
+            engine->flip();
         else if (token == "bench")
-            bench(pos, is, states);
+            bench(is);
         else if (token == "d")
-            sync_cout << pos << sync_endl;
+            sync_cout << engine->visualize() << sync_endl;
         else if (token == "eval")
-            trace_eval(pos);
+            engine->trace_eval();
         else if (token == "compiler")
             sync_cout << compiler_info() << sync_endl;
         else if (token == "export_net")
@@ -444,7 +418,7 @@ void UCI::loop(int argc, char* argv[]) {
             std::string                f;
             if (is >> skipws >> f)
                 filename = f;
-            Eval::NNUE::save_eval(filename);
+            engine->save_network(filename);
         }
         else if (token == "load")
         {
@@ -464,13 +438,90 @@ void UCI::loop(int argc, char* argv[]) {
             }
 #endif
             is.seekg(0);
-            position(pos, is, states);
+            position(is);
         }
         else if (!token.empty() && token[0] != '#')
             sync_cout << "Unknown command: '" << cmd << "'. Type help for more information."
                       << sync_endl;
 
     } while (token != "quit" && argc == 1);  // The command-line arguments are one-shot
+}
+
+
+UCIEngine::UCIEngine(int argc_, char** argv_) :
+    engine(std::make_unique<Engine>()),
+    argc(argc_),
+    argv(argv_) {
+
+    engine->set_on_iter([this](const auto& i) { on_iter(i); });
+    engine->set_on_update_no_moves([this](const auto& i) { on_update_no_moves(i); });
+    engine->set_on_update_full([this](const auto& i) { on_update_full(i); });
+    engine->set_on_bestmove([this](const auto& bm, const auto& p) { on_bestmove(bm, p); });
+
+    engine->load_networks();
+    engine->resize_threads();
+    engine->search_clear();  // After threads are up
+}
+
+UCIEngine::~UCIEngine() = default;
+
+void UCIEngine::on_update_no_moves(const Search::InfoShort& info) {
+    sync_cout << "info depth " << info.depth << " score " << UCI::value(info.score) << sync_endl;
+}
+
+void UCIEngine::on_update_full(const Search::InfoFull& info) {
+    std::stringstream ss;
+
+    if (CurrentProtocol == XBOARD)
+    {
+        ss << info.depth << " " << UCI::value(info.score) << " " << info.timeMs / 10 << " "
+           << info.nodes << " " << info.selDepth << " " << info.nps << " " << info.tbHits << "\t";
+
+        // Do not print PVs with virtual drops in bughouse variants
+        if (!engine->position().two_boards())
+            ss << " " << info.pv;
+    }
+    else
+    {
+        ss << "info";
+        ss << " depth " << info.depth               //
+           << " seldepth " << info.selDepth         //
+           << " multipv " << info.multiPV           //
+           << " score " << UCI::value(info.score);  //
+
+        if (!info.wdl.empty())
+            ss << info.wdl;
+
+        if (!info.bound.empty())
+            ss << " " << info.bound;
+
+        ss << " nodes " << info.nodes        //
+           << " nps " << info.nps            //
+           << " hashfull " << info.hashfull  //
+           << " tbhits " << info.tbHits      //
+           << " time " << info.timeMs        //
+           << " pv " << info.pv;             //
+    }
+
+    sync_cout << ss.str() << sync_endl;
+}
+
+void UCIEngine::on_iter(const Search::InfoIteration& info) {
+    std::stringstream ss;
+
+    ss << "info";
+    ss << " depth " << info.depth                     //
+       << " currmove " << info.currmove               //
+       << " currmovenumber " << info.currmovenumber;  //
+
+    sync_cout << ss.str() << sync_endl;
+}
+
+void UCIEngine::on_bestmove(std::string_view bestmove, std::string_view ponder) {
+    sync_cout << "bestmove " << bestmove;
+    if (!ponder.empty())
+        std::cout << " ponder " << ponder;
+    std::cout << sync_endl;
 }
 
 

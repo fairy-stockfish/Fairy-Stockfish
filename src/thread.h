@@ -84,7 +84,7 @@ class ThreadPool {
 
     void start_thinking(const OptionsMap&, Position&, StateListPtr&, Search::LimitsType);
     void clear();
-    void set(Search::SharedState);
+    void set(Search::SharedState, const Search::SearchManager::UpdateContext&);
     void destroy();
 
     Search::SearchManager* main_manager();

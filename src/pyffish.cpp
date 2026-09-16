@@ -15,6 +15,7 @@
 #include "syzygy/tbprobe.h"
 #include "thread.h"
 #include "tt.h"
+#include "engine.h"
 #include "uci.h"
 #include "piece.h"
 #include "variant.h"
@@ -521,8 +522,9 @@ PyMODINIT_FUNC PyInit__pyffish() {
     Bitboards::init();
     Position::init();
     Bitbases::init();
-    Threads.set(Search::SharedState(Options, Threads, TT));
-    Search::clear();  // After threads are up
+    static Engine engine;
+    engine.resize_threads();
+    engine.search_clear();  // After threads are up
 
     return module;
 };

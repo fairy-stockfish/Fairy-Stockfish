@@ -27,6 +27,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
+#include "tune.h"
 
 #include "piece.h"
 #include "variant.h"
@@ -49,11 +50,9 @@ int main(int argc, char* argv[]) {
     Position::init();
     Bitbases::init();
     Endgames::init();
-    Threads.set(Search::SharedState(Options, Threads, TT));
-    Search::clear();  // After threads are up
-    Eval::NNUE::init();
+    UCIEngine uci(argc, argv);
 
-    UCI::loop(argc, argv);
+    uci.loop();
 
     Threads.destroy();
     variants.clear_all();

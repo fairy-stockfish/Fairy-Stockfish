@@ -23,8 +23,12 @@
 #include <iosfwd>
 #include <map>
 #include <string>
+#include <memory>
+#include <sstream>
+#include <string_view>
 #include <vector>
 
+#include "search.h"
 #include "types.h"
 
 #include "variant.h"
@@ -94,7 +98,6 @@ class Option {
 };
 
 void        init(OptionsMap&);
-void        loop(int argc, char* argv[]);
 int         to_cp(Value v);
 std::string value(Value v);
 std::string square(const Position& pos, Square s);
@@ -121,6 +124,34 @@ enum Protocol {
 constexpr bool is_uci_dialect(Protocol p) { return p != XBOARD; }
 
 extern Protocol CurrentProtocol;
+
+class Engine;
+
+// The UCIEngine class implements the UCI protocol and its dialects (USI, UCCI,
+// UCI-Cyclone) as well as the dispatch to the XBoard state machine on top of an Engine.
+class UCIEngine {
+   public:
+    UCIEngine(int argc, char** argv);
+    ~UCIEngine();
+
+    void loop();
+
+    Engine& get_engine() { return *engine; }
+
+   private:
+    std::unique_ptr<Engine> engine;
+    int                     argc;
+    char**                  argv;
+
+    void go(std::istringstream& is, const std::vector<Move>& banmoves = {});
+    void bench(std::istream& args);
+    void position(std::istringstream& is);
+
+    void on_update_no_moves(const Search::InfoShort& info);
+    void on_update_full(const Search::InfoFull& info);
+    void on_iter(const Search::InfoIteration& info);
+    void on_bestmove(std::string_view bestmove, std::string_view ponder);
+};
 
 }  // namespace Stockfish
 
