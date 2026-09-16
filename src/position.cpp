@@ -645,10 +645,35 @@ void Position::set_check_info() const {
 // Computes the hash keys of the position, and other
 // data that once computed is updated incrementally as moves are made.
 // The function is only used when a new position is set up
+// Toggles the piece in the keys used by the correction histories. Called
+// whenever a piece is put on, removed from or moved on the board, so that
+// the keys stay consistent for all variant-specific move types as well.
+void Position::update_piece_keys(Piece pc, Square s) const {
+
+    if (type_of(pc) == PAWN)
+        return;
+
+    Key k = Zobrist::psq[pc][s];
+    st->nonPawnKey[color_of(pc)] ^= k;
+
+    if (type_of(pc) == KING)
+    {
+        st->majorPieceKey ^= k;
+        st->minorPieceKey ^= k;
+    }
+    else if (type_of(pc) == QUEEN || type_of(pc) == ROOK || PieceValue[MG][pc] >= RookValueMg)
+        st->majorPieceKey ^= k;
+    else
+        st->minorPieceKey ^= k;
+}
+
+
 void Position::set_state() const {
 
-    st->key = st->materialKey  = 0;
-    st->pawnKey                = Zobrist::noPawns;
+    st->key = st->materialKey = 0;
+    st->majorPieceKey = st->minorPieceKey = 0;
+    st->nonPawnKey[WHITE] = st->nonPawnKey[BLACK] = 0;
+    st->pawnKey                                   = Zobrist::noPawns;
     st->nonPawnMaterial[WHITE] = st->nonPawnMaterial[BLACK] = VALUE_ZERO;
     st->checkersBB =
       count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove), ~sideToMove) : Bitboard(0);
@@ -668,8 +693,13 @@ void Position::set_state() const {
         else if (type_of(pc) == PAWN)
             st->pawnKey ^= Zobrist::psq[pc][s];
 
-        else if (type_of(pc) != KING)
-            st->nonPawnMaterial[color_of(pc)] += PieceValue[MG][pc];
+        else
+        {
+            update_piece_keys(pc, s);
+
+            if (type_of(pc) != KING)
+                st->nonPawnMaterial[color_of(pc)] += PieceValue[MG][pc];
+        }
     }
 
     for (Bitboard b = st->epSquares; b;)
@@ -1628,6 +1658,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
     // our state pointer to point to the new (ready to be updated) state.
     std::memcpy(static_cast<void*>(&newSt), static_cast<void*>(st), offsetof(StateInfo, key));
     newSt.previous = st;
+    st->next       = &newSt;
     st             = &newSt;
     st->move       = m;
 
@@ -2025,6 +2056,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
         for (Bitboard b = st->epSquares; b;)
             k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
     }
+
 
     // Set capture piece
     st->capturedPiece = captured;
@@ -2428,6 +2460,7 @@ void Position::do_null_move(StateInfo& newSt, TranspositionTable& tt) {
     std::memcpy(&newSt, st, offsetof(StateInfo, accumulator));
 
     newSt.previous = st;
+    st->next       = &newSt;
     st             = &newSt;
 
     st->dirtyPiece.dirty_num        = 0;

@@ -26,6 +26,7 @@
 
 #include "benchmark.h"
 #include "engine.h"
+#include "memory.h"
 #include "movegen.h"
 #include "perft.h"
 #include "position.h"

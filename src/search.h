@@ -67,18 +67,19 @@ void clear();
 // shallower and deeper in the tree during the search. Each search thread has
 // its own array of Stack objects, indexed by the current ply.
 struct Stack {
-    Move*           pv;
-    PieceToHistory* continuationHistory;
-    int             ply;
-    Move            currentMove;
-    Move            excludedMove;
-    Value           staticEval;
-    int             statScore;
-    int             moveCount;
-    bool            inCheck;
-    bool            ttPv;
-    bool            ttHit;
-    int             cutoffCnt;
+    Move*                       pv;
+    PieceToHistory*             continuationHistory;
+    CorrectionHistory<PieceTo>* continuationCorrectionHistory;
+    int                         ply;
+    Move                        currentMove;
+    Move                        excludedMove;
+    Value                       staticEval;
+    int                         statScore;
+    int                         moveCount;
+    bool                        inCheck;
+    bool                        ttPv;
+    bool                        ttHit;
+    int                         cutoffCnt;
 };
 
 
@@ -96,15 +97,16 @@ struct RootMove {
         return m.score != score ? m.score < score : m.previousScore < previousScore;
     }
 
-    uint64_t          effort          = 0;
-    Value             score           = -VALUE_INFINITE;
-    Value             previousScore   = -VALUE_INFINITE;
-    Value             averageScore    = -VALUE_INFINITE;
-    Value             uciScore        = -VALUE_INFINITE;
-    bool              scoreLowerbound = false;
-    bool              scoreUpperbound = false;
-    int               selDepth        = 0;
-    int               tbRank          = 0;
+    uint64_t          effort           = 0;
+    Value             score            = -VALUE_INFINITE;
+    Value             previousScore    = -VALUE_INFINITE;
+    Value             averageScore     = -VALUE_INFINITE;
+    Value             meanSquaredScore = -VALUE_INFINITE * VALUE_INFINITE;
+    Value             uciScore         = -VALUE_INFINITE;
+    bool              scoreLowerbound  = false;
+    bool              scoreUpperbound  = false;
+    int               selDepth         = 0;
+    int               tbRank           = 0;
     Value             tbScore;
     std::vector<Move> pv;
 };
@@ -253,12 +255,19 @@ class Worker {
 
 
     // Public because they need to be updatable by the stats
-    ButterflyHistory      mainHistory;
-    GateHistory           gateHistory;
+    ButterflyHistory mainHistory;
+    GateHistory      gateHistory;
+    LowPlyHistory    lowPlyHistory;
+
     CapturePieceToHistory captureHistory;
     ContinuationHistory   continuationHistory[2][2];
     PawnHistory           pawnHistory;
-    CorrectionHistory     correctionHistory;
+
+    CorrectionHistory<Pawn>         pawnCorrectionHistory;
+    CorrectionHistory<Major>        majorPieceCorrectionHistory;
+    CorrectionHistory<Minor>        minorPieceCorrectionHistory;
+    CorrectionHistory<NonPawn>      nonPawnCorrectionHistory[COLOR_NB];
+    CorrectionHistory<Continuation> continuationCorrectionHistory;
 
     // Used by the classical evaluation for lazy evaluation and optimism
     Value bestValue = VALUE_ZERO;

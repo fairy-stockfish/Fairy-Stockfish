@@ -194,13 +194,13 @@ void TranspositionTable::clear(ThreadPool& threads) {
 // Returns an approximation of the hashtable
 // occupation during a search. The hash is x permill full, as per UCI protocol.
 // Only counts entries which match the current generation.
-int TranspositionTable::hashfull() const {
-
-    int cnt = 0;
+int TranspositionTable::hashfull(int maxAge) const {
+    int maxAgeInternal = maxAge << GENERATION_BITS;
+    int cnt            = 0;
     for (int i = 0; i < 1000; ++i)
         for (int j = 0; j < ClusterSize; ++j)
             cnt += table[i].entry[j].is_occupied()
-                && (table[i].entry[j].genBound8 & GENERATION_MASK) == generation8;
+                && table[i].entry[j].relative_age(generation8) <= maxAgeInternal;
 
     return cnt / ClusterSize;
 }

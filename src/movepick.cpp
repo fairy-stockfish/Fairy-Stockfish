@@ -88,17 +88,21 @@ MovePicker::MovePicker(const Position&              p,
                        Depth                        d,
                        const ButterflyHistory*      mh,
                        const GateHistory*           dh,
+                       const LowPlyHistory*         lph,
                        const CapturePieceToHistory* cph,
                        const PieceToHistory**       ch,
-                       const PawnHistory*           ph) :
+                       const PawnHistory*           ph,
+                       int                          pl) :
     pos(p),
     mainHistory(mh),
     gateHistory(dh),
+    lowPlyHistory(lph),
     captureHistory(cph),
     continuationHistory(ch),
     pawnHistory(ph),
     ttMove(ttm),
-    depth(d) {
+    depth(d),
+    ply(pl) {
 
     if (pos.checkers())
         stage = EVASION_TT + !(ttm && pos.pseudo_legal(ttm));
@@ -195,6 +199,9 @@ void MovePicker::score() {
                 else if (!(threatenedPieces & from) && (threatByLesser[pt] & to))
                     m.value -= 20 * int(PieceValue[MG][pt]);
             }
+
+            if (ply < LOW_PLY_HISTORY_SIZE)
+                m.value += 8 * (*lowPlyHistory)[ply][from_to(m)] / (1 + 2 * ply);
         }
 
         else  // Type == EVASIONS
@@ -230,7 +237,7 @@ Move MovePicker::select(Pred filter) {
 // This is the most important method of the MovePicker class. We emit one
 // new pseudo-legal move on every call until there are no more moves left,
 // picking the move with the highest score from a list of generated moves.
-Move MovePicker::next_move(bool skipQuiets) {
+Move MovePicker::next_move() {
 
     auto quiet_threshold = [](Depth d) { return -3550 * d; };
 
@@ -342,5 +349,7 @@ top:
     assert(false);
     return Move::none();  // Silence warning
 }
+
+void MovePicker::skip_quiet_moves() { skipQuiets = true; }
 
 }  // namespace Stockfish

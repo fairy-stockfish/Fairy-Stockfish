@@ -457,7 +457,7 @@ void remove_whitespace(std::string& s) {
     s.erase(std::remove_if(s.begin(), s.end(), [](char c) { return std::isspace(c); }), s.end());
 }
 
-bool is_whitespace(const std::string& s) {
+bool is_whitespace(std::string_view s) {
     return std::all_of(s.begin(), s.end(), [](char c) { return std::isspace(c); });
 }
 

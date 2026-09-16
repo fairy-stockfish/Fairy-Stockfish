@@ -82,6 +82,7 @@ class Engine {
     void set_on_update_full(std::function<void(const InfoFull&)>&&);
     void set_on_iter(std::function<void(const InfoIter&)>&&);
     void set_on_bestmove(std::function<void(std::string_view, std::string_view)>&&);
+    void set_on_verify_networks(std::function<void(std::string_view)>&&);
 
     // network related
 
@@ -96,12 +97,15 @@ class Engine {
     const OptionsMap& get_options() const;
     OptionsMap&       get_options();
 
+    int get_hashfull(int maxAge = 0) const;
+
     std::string                            fen() const;
     void                                   flip();
     std::string                            visualize() const;
     std::vector<std::pair<size_t, size_t>> get_bound_thread_count_by_numa_node() const;
     std::string                            get_numa_config_as_string() const;
     std::string                            numa_config_information_as_string() const;
+    std::string                            thread_allocation_information_as_string() const;
     std::string                            thread_binding_information_as_string() const;
 
     // Fairy-Stockfish: direct access to the game state for the XBoard
@@ -120,7 +124,8 @@ class Engine {
     ThreadPool&         threads;
     TranspositionTable& tt;
 
-    Search::SearchManager::UpdateContext updateContext;
+    Search::SearchManager::UpdateContext  updateContext;
+    std::function<void(std::string_view)> onVerifyNetworks;
 };
 
 // The engine instance created by the UCI loop or the bindings,

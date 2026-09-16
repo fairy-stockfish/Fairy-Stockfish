@@ -45,6 +45,9 @@ struct StateInfo {
     // Copied when making a move
     Key        pawnKey;
     Key        materialKey;
+    Key        majorPieceKey;
+    Key        minorPieceKey;
+    Key        nonPawnKey[COLOR_NB];
     Value      nonPawnMaterial[COLOR_NB];
     int        castlingRights;
     int        rule50;
@@ -65,6 +68,7 @@ struct StateInfo {
     Bitboard   promotedBycatch;
     Bitboard   demotedBycatch;
     StateInfo* previous;
+    StateInfo* next;
     Bitboard   blockersForKing[COLOR_NB];
     Bitboard   pinners[COLOR_NB];
     Bitboard   checkSquares[PIECE_TYPE_NB];
@@ -331,6 +335,9 @@ class Position {
     Key key_after(Move m) const;
     Key material_key(EndgameEval e = EG_EVAL_CHESS) const;
     Key pawn_key() const;
+    Key major_piece_key() const;
+    Key minor_piece_key() const;
+    Key non_pawn_key(Color c) const;
 
     // Other properties of the position
     Color           side_to_move() const;
@@ -367,6 +374,8 @@ class Position {
     StateInfo* state() const;
 
     void put_piece(Piece pc, Square s, bool isPromoted = false, Piece unpromotedPc = NO_PIECE);
+
+    void update_piece_keys(Piece pc, Square s) const;
     void remove_piece(Square s);
 
    private:
@@ -1390,6 +1399,12 @@ inline Score Position::psq_score() const { return psq; }
 
 inline Value Position::psq_eg_stm() const { return (sideToMove == WHITE ? 1 : -1) * eg_value(psq); }
 
+inline Key Position::major_piece_key() const { return st->majorPieceKey; }
+
+inline Key Position::minor_piece_key() const { return st->minorPieceKey; }
+
+inline Key Position::non_pawn_key(Color c) const { return st->nonPawnKey[c]; }
+
 inline Value Position::non_pawn_material(Color c) const { return st->nonPawnMaterial[c]; }
 
 inline Value Position::non_pawn_material() const {
@@ -1509,6 +1524,7 @@ inline void Position::put_piece(Piece pc, Square s, bool isPromoted, Piece unpro
     if (isPromoted)
         promotedPieces |= s;
     unpromotedBoard[s] = unpromotedPc;
+    update_piece_keys(pc, s);
 }
 
 inline void Position::remove_piece(Square s) {
@@ -1523,6 +1539,7 @@ inline void Position::remove_piece(Square s) {
     psq -= PSQT::psq[pc][s];
     promotedPieces -= s;
     unpromotedBoard[s] = NO_PIECE;
+    update_piece_keys(pc, s);
 }
 
 inline void Position::move_piece(Square from, Square to) {
@@ -1539,6 +1556,8 @@ inline void Position::move_piece(Square from, Square to) {
         promotedPieces ^= fromTo;
     unpromotedBoard[to]   = unpromotedBoard[from];
     unpromotedBoard[from] = NO_PIECE;
+    update_piece_keys(pc, from);
+    update_piece_keys(pc, to);
 }
 
 inline void Position::do_move(Move m, StateInfo& newSt) { do_move(m, newSt, gives_check(m)); }
