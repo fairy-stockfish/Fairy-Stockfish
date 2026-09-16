@@ -54,7 +54,10 @@ static_assert((CORRHIST_BASE_SIZE & (CORRHIST_BASE_SIZE - 1)) == 0,
 // when we update values with the << operator
 template<typename T, int D, bool Shared = false>
 struct StatsEntry {
-    static_assert(std::is_arithmetic_v<T>, "Not an arithmetic type");
+    static_assert(std::is_integral_v<T> && std::is_signed_v<T>, "Not a signed integer type");
+    static_assert(D > 0 && D <= std::numeric_limits<T>::max()
+                    && D <= std::numeric_limits<int>::max() / D,
+                  "D can lead to overflows");
 
    private:
     std::conditional_t<Shared, RelaxedAtomic<T>, T> entry;
@@ -141,7 +144,7 @@ using CapturePieceToHistory = Stats<i16, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_
 constexpr int PIECE_SLOTS = 8;
 int           history_slot(Piece pc);
 
-using PieceToHistory = Stats<std::int16_t, 30000, 2 * PIECE_SLOTS, SQUARE_NB>;
+using PieceToHistory = AtomicStats<std::int16_t, 30000, 2 * PIECE_SLOTS, SQUARE_NB>;
 
 // ContinuationHistory is the combined history of a given pair of moves, usually
 // the current one given a previous one. The nested history table is based on
@@ -202,6 +205,10 @@ using CorrectionHistory = typename Detail::CorrHistTypedef<T>::type;
 
 using TTMoveHistory = StatsEntry<i16, 8192>;
 
+struct ContinuationHistoryBlock {
+    ContinuationHistory table[2][2];
+};
+
 // Set of histories shared between groups of threads. To avoid excessive
 // cross-node data transfer, histories are shared only between threads
 // on a given NUMA node. The passed size must be a power of two to make
@@ -209,11 +216,14 @@ using TTMoveHistory = StatsEntry<i16, 8192>;
 struct SharedHistories {
     SharedHistories(usize threadCount) :
         correctionHistory(threadCount),
+        continuationHistoryBlock(make_unique_large_page<ContinuationHistoryBlock>()),
         pawnHistory(threadCount) {
         assert((threadCount & (threadCount - 1)) == 0 && threadCount != 0);
         sizeMinus1         = correctionHistory.get_size() - 1;
         pawnHistSizeMinus1 = pawnHistory.get_size() - 1;
     }
+
+    auto& continuationHistory() { return continuationHistoryBlock->table; }
 
     usize get_size() const { return sizeMinus1 + 1; }
 
@@ -247,8 +257,9 @@ struct SharedHistories {
         return correctionHistory[pos.non_pawn_key(c) & sizeMinus1];
     }
 
-    UnifiedCorrectionHistory correctionHistory;
-    PawnHistory              pawnHistory;
+    UnifiedCorrectionHistory               correctionHistory;
+    LargePagePtr<ContinuationHistoryBlock> continuationHistoryBlock;
+    PawnHistory                            pawnHistory;
 
 
    private:

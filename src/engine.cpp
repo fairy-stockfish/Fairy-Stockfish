@@ -49,6 +49,9 @@ Engine::Engine() :
     const Variant* v = variants.find(options["UCI_Variant"])->second;
     pos.set(v, v->startFen, options["UCI_Chess960"], &states->back(), nullptr);
     mainEngine = this;
+
+    // Default no-op callback, the UCI loop and the bindings may replace it
+    updateContext.onStart = []() {};
 }
 
 std::uint64_t Engine::perft(Depth depth) {
@@ -88,6 +91,8 @@ void Engine::set_on_update_full(std::function<void(const Engine::InfoFull&)>&& f
 void Engine::set_on_iter(std::function<void(const Engine::InfoIter&)>&& f) {
     updateContext.onIter = std::move(f);
 }
+
+void Engine::set_on_start(std::function<void()>&& f) { updateContext.onStart = std::move(f); }
 
 void Engine::set_on_bestmove(std::function<void(std::string_view, std::string_view)>&& f) {
     updateContext.onBestmove = std::move(f);

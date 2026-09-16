@@ -64,6 +64,10 @@ namespace Search {
 // Reset all search state, usually before a new game
 void clear();
 
+struct RootPVMoves: public std::vector<Move> {
+    RootPVMoves() { reserve(MAX_PLY); }
+};
+
 struct PVMoves {
     Move  moves[MAX_PLY + 1];
     usize length = 0;
@@ -96,12 +100,16 @@ struct PVMoves {
         length = childPv ? childPv->length : 0;
 
         if (childPv)
-        {
             std::memcpy(moves + 1, childPv->moves, length * sizeof(Move));
-        }
 
         moves[0] = move;
         ++length;
+    }
+
+    PVMoves& operator=(const RootPVMoves& rhs) {
+        length = std::min(rhs.size(), usize(MAX_PLY));
+        std::memcpy(moves, rhs.data(), length * sizeof(Move));
+        return *this;
     }
 };
 
@@ -134,29 +142,30 @@ struct RootMove {
 
     explicit RootMove(Move m) { pv.push_back(m); }
     bool extract_ponder_from_tt(const TranspositionTable& tt, Position& pos);
-    bool score_is_bound() const { return scoreLowerbound || scoreUpperbound; }
-    bool score_is_exact_loss() const {
-        return score != -VALUE_INFINITE && is_loss(score) && !score_is_bound();
+    bool is_inexact() const { return inexactLower || inexactUpper; }
+    bool is_exact_loss() const {
+        return score != -VALUE_INFINITE && is_loss(score) && !is_inexact();
     }
-    void unset_bound_flags() { scoreLowerbound = scoreUpperbound = false; }
+    void unset_inexact() { inexactLower = inexactUpper = false; }
     bool operator==(const Move& m) const { return pv[0] == m; }
     // Sort in descending order
     bool operator<(const RootMove& m) const {
         return m.score != score ? m.score < score : m.previousScore < previousScore;
     }
 
-    u64     effort           = 0;
-    Value   score            = -VALUE_INFINITE;
-    Value   previousScore    = -VALUE_INFINITE;
-    Value   averageScore     = -VALUE_INFINITE;
-    Value   meanSquaredScore = -VALUE_INFINITE * VALUE_INFINITE;
-    Value   uciScore         = -VALUE_INFINITE;
-    bool    scoreLowerbound  = false;
-    bool    scoreUpperbound  = false;
-    int     selDepth         = 0;
-    int     tbRank           = 0;
-    Value   tbScore;
-    PVMoves pv, previousPV;
+    u64         effort           = 0;
+    Value       score            = -VALUE_INFINITE;
+    Value       previousScore    = -VALUE_INFINITE;
+    Value       averageScore     = -VALUE_INFINITE;
+    Value       meanSquaredScore = -VALUE_INFINITE * VALUE_INFINITE;
+    Value       uciScore         = -VALUE_INFINITE;
+    bool        inexactLower     = false;  // By default root scores are exact, unless flagged as a
+    bool        inexactUpper     = false;  // one-sided bound here. See also `enum Bound` in types.h
+    bool        previousScoreExact = false;
+    int         selDepth           = 0;
+    int         tbRank             = 0;
+    Value       tbScore;
+    RootPVMoves pv, previousPV;
 };
 
 using RootMoves = std::vector<RootMove>;
@@ -243,12 +252,14 @@ class SearchManager: public ISearchManager {
     using UpdateFull     = std::function<void(const InfoFull&)>;
     using UpdateIter     = std::function<void(const InfoIteration&)>;
     using UpdateBestmove = std::function<void(std::string_view, std::string_view)>;
+    using UpdateStart    = std::function<void()>;
 
     struct UpdateContext {
         UpdateShort    onUpdateNoMoves;
         UpdateFull     onUpdateFull;
         UpdateIter     onIter;
         UpdateBestmove onBestmove;
+        UpdateStart    onStart;
     };
 
 
@@ -257,10 +268,10 @@ class SearchManager: public ISearchManager {
 
     void check_time(Search::Worker& worker) override;
 
-    void pv(Search::Worker&           worker,
-            const ThreadPool&         threads,
-            const TranspositionTable& tt,
-            Depth                     depth);
+    void output_pv(Search::Worker&           worker,
+                   const ThreadPool&         threads,
+                   const TranspositionTable& tt,
+                   Depth                     depth);
 
     Stockfish::TimeManagement tm;
     double                    originalTimeAdjust = -1;
@@ -272,8 +283,6 @@ class SearchManager: public ISearchManager {
     Value                bestPreviousScore;
     Value                bestPreviousAverageScore;
     bool                 stopOnPonderhit = false;
-
-    usize id;
 
     const UpdateContext& updates;
 };
@@ -312,7 +321,6 @@ class Worker {
     LowPlyHistory    lowPlyHistory;
 
     CapturePieceToHistory           captureHistory;
-    ContinuationHistory             continuationHistory[2][2];
     CorrectionHistory<Continuation> continuationCorrectionHistory;
 
     // Used by the classical evaluation for lazy evaluation and optimism
@@ -325,6 +333,7 @@ class Worker {
 
     TTMoveHistory    ttMoveHistory;
     SharedHistories& sharedHistory;
+    ContinuationHistory (&continuationHistory)[2][2];
 
    private:
     bool iterative_deepening();
@@ -338,7 +347,8 @@ class Worker {
 
     // This is the main search function, for both PV and non-PV nodes
     template<NodeType nodeType>
-    Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
+    Value
+    search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, const bool cutNode);
 
     // Quiescence search function, which is called by the main search
     template<NodeType nodeType>

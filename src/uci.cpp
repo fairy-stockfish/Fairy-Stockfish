@@ -483,6 +483,7 @@ UCIEngine::UCIEngine(int argc_, char** argv_) :
     engine->set_on_iter([this](const auto& i) { on_iter(i); });
     engine->set_on_update_no_moves([this](const auto& i) { on_update_no_moves(i); });
     engine->set_on_update_full([this](const auto& i) { on_update_full(i); });
+    engine->set_on_start([]() {});
     engine->set_on_bestmove([this](const auto& bm, const auto& p) { on_bestmove(bm, p); });
 
     engine->load_networks();

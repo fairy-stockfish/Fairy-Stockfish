@@ -55,7 +55,8 @@ Thread::Thread(Search::SharedState&                    sharedState,
     idxInNuma(numaN),
     totalNuma(totalNumaCount),
     nthreads(sharedState.options["Threads"]),
-    stdThread(&Thread::idle_loop, this) {
+    stdThread(
+      create_native_thread(NativeThreadOptions{}.setLargeStack(true), &Thread::idle_loop, this)) {
 
     wait_for_search_finished();
 
@@ -126,7 +127,9 @@ void Thread::idle_loop() {
         if (Threads.size() && this == Threads.main_thread() && XBoard::stateMachine
             && XBoard::stateMachine->ponderMove)
         {
-            NativeThread t(&XBoard::StateMachine::ponder, XBoard::stateMachine);
+            NativeThread t = create_native_thread(
+              NativeThreadOptions{}.setLargeStack(true), &XBoard::StateMachine::ponder,
+              static_cast<XBoard::StateMachine*>(XBoard::stateMachine));
             t.detach();
         }
         cv.wait(lk, [&] { return searching; });
@@ -399,9 +402,7 @@ Thread* ThreadPool::get_best_thread() const {
     for (auto&& th : threads)
         votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th.get());
 
-    auto has_bound = [](const Thread* th) {
-        return th->worker->rootMoves[0].scoreLowerbound || th->worker->rootMoves[0].scoreUpperbound;
-    };
+    auto has_bound = [](const Thread* th) { return th->worker->rootMoves[0].is_inexact(); };
 
     for (auto&& th : threads)
     {

@@ -420,6 +420,18 @@ void move_to_front(std::vector<T>& vec, Predicate pred) {
 namespace CommandLine {
 void init(int argc, char* argv[]);
 
+#ifndef __has_builtin
+    #define __has_builtin(x) 0
+#endif
+
+#if defined(__GNUC__)
+    #define sf_always_inline inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+    #define sf_always_inline __forceinline
+#else
+    #define sf_always_inline inline
+#endif
+
 extern std::string binaryDirectory;   // path of the executable directory
 extern std::string workingDirectory;  // path of the working directory
 }
@@ -439,6 +451,24 @@ extern std::string workingDirectory;  // path of the working directory
     // do nothing for other compilers
     #define sf_assume(cond)
 #endif
+
+#ifdef __GNUC__
+    #define sf_unreachable() __builtin_unreachable()
+#elif defined(_MSC_VER)
+    #define sf_unreachable() __assume(0)
+#else
+    #define sf_unreachable()
+#endif
+
+#ifdef __GNUC__
+    #define RESTRICT __restrict__
+#elif defined(_MSC_VER)
+    #define RESTRICT __restrict
+#else
+    #define RESTRICT
+#endif
+
+void set_console_utf8();
 
 }  // namespace Stockfish
 

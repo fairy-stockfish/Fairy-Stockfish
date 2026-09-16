@@ -61,7 +61,7 @@ enum Stages {
     QCAPTURE
 };
 
-#ifdef USE_AVX512ICL
+#ifdef USE_AVX512
 // Load the Move, and the ExtMove value, into all lanes of 512-bit registers
 static void splat_extmove(const ExtMove& m, __m512i& move, __m512i& value) {
     move  = _mm512_set1_epi32(m.raw());
@@ -116,7 +116,7 @@ struct MoveSorter {
 void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
     ExtMove *sortedEnd = begin, *p = begin + 1;
 
-#ifdef USE_AVX512ICL
+#ifdef USE_AVX512
     if (begin == end)
         return;
 
@@ -200,7 +200,7 @@ MovePicker::MovePicker(
 
 // Assigns a numerical value to each move in a list, used for sorting.
 // Captures are ordered by Most Valuable Victim (MVV), preferring captures
-// with a good history. Quiets moves are ordered using the history tables.
+// with a good history. Quiet moves are ordered using the history tables.
 template<GenType Type>
 void MovePicker::score() {
 
