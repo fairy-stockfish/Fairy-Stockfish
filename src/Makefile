@@ -844,7 +844,7 @@ help:
 	@echo "help                    > Display architecture details"
 	@echo "profile-build           > standard build with profile-guided optimization"
 	@echo "build                   > skip profile-guided optimization"
-	@echo "net                     > Download the default nnue net"
+	@echo "net                     > Download the default nnue nets"
 	@echo "strip                   > Strip executable"
 	@echo "install                 > Install executable"
 	@echo "clean                   > Clean up"

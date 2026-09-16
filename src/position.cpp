@@ -1091,8 +1091,8 @@ bool Position::legal(Move m) const {
     assert(type_of(m) != DROP || piece_drops());
 
     Color  us   = sideToMove;
-    Square from = from_sq(m);
-    Square to   = to_sq(m);
+    Square from = m.from_sq();
+    Square to   = m.to_sq();
 
     assert(color_of(moved_piece(m)) == us);
     assert(!count<KING>(us) || piece_on(square<KING>(us)) == make_piece(us, KING));
@@ -1280,7 +1280,7 @@ bool Position::legal(Move m) const {
 
     // Castling moves generation does not check if the castling path is clear of
     // enemy attacks, it is delayed at a later time: now!
-    if (type_of(m) == CASTLING)
+    if (m.type_of() == CASTLING)
     {
         // After castling, the rook and king final positions are the same in
         // Chess960 as they would be in standard chess.
@@ -1351,8 +1351,8 @@ bool Position::legal(Move m) const {
 bool Position::pseudo_legal(const Move m) const {
 
     Color  us   = sideToMove;
-    Square from = from_sq(m);
-    Square to   = to_sq(m);
+    Square from = m.from_sq();
+    Square to   = m.to_sq();
     Piece  pc   = moved_piece(m);
 
     // Illegal moves to squares outside of board or to wall squares
@@ -1479,11 +1479,11 @@ bool Position::pseudo_legal(const Move m) const {
 // Tests whether a pseudo-legal move gives a check
 bool Position::gives_check(Move m) const {
 
-    assert(is_ok(m));
+    assert(m.is_ok());
     assert(color_of(moved_piece(m)) == sideToMove);
 
-    Square from = from_sq(m);
-    Square to   = to_sq(m);
+    Square from = m.from_sq();
+    Square to   = m.to_sq();
 
     // No check possible without king
     if (!count<KING>(~sideToMove))
@@ -1552,7 +1552,7 @@ bool Position::gives_check(Move m) const {
             return true;
     }
 
-    switch (type_of(m))
+    switch (m.type_of())
     {
     case NORMAL :
     case DROP :
@@ -1614,7 +1614,7 @@ bool Position::gives_check(Move m) const {
 // moves should be filtered out before this function is called.
 void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
-    assert(is_ok(m));
+    assert(m.is_ok());
     assert(&newSt != st);
 
 #ifndef NO_THREADS
@@ -1661,7 +1661,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
     st->pass                    = is_pass(m);
 
     assert(color_of(pc) == us);
-    assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
+    assert(captured == NO_PIECE || color_of(captured) == (m.type_of() != CASTLING ? them : us));
     assert(type_of(captured) != KING);
 
     if (check_counting() && givesCheck)
@@ -2241,13 +2241,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 // be restored to exactly the same state as before the move was made.
 void Position::undo_move(Move m) {
 
-    assert(is_ok(m));
+    assert(m.is_ok());
 
     sideToMove = ~sideToMove;
 
     Color  us   = sideToMove;
-    Square from = from_sq(m);
-    Square to   = to_sq(m);
+    Square from = m.from_sq();
+    Square to   = m.to_sq();
     Piece  pc   = piece_on(to);
 
     assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING || is_gating(m)
@@ -2323,7 +2323,7 @@ void Position::undo_move(Move m) {
         put_piece(pc, to, true, unpromotedPc);
     }
 
-    if (type_of(m) == CASTLING)
+    if (m.type_of() == CASTLING)
     {
         Square rfrom, rto;
         do_castling<false>(us, from, to, rfrom, rto);
@@ -2339,7 +2339,7 @@ void Position::undo_move(Move m) {
         {
             Square capsq = to;
 
-            if (type_of(m) == EN_PASSANT)
+            if (m.type_of() == EN_PASSANT)
             {
                 capsq = st->captureSquare;
 
@@ -2429,10 +2429,10 @@ void Position::do_null_move(StateInfo& newSt) {
     newSt.previous = st;
     st             = &newSt;
 
-    st->dirtyPiece.dirty_num        = 0;
-    st->dirtyPiece.piece[0]         = NO_PIECE;  // Avoid checks in UpdateAccumulator()
-    st->accumulator.computed[WHITE] = false;
-    st->accumulator.computed[BLACK] = false;
+    st->dirtyPiece.dirty_num               = 0;
+    st->dirtyPiece.piece[0]                = NO_PIECE;  // Avoid checks in UpdateAccumulator()
+    st->accumulator.computed[WHITE]        = false;
+    st->accumulator.computed[BLACK]        = false;
 
     while (st->epSquares)
         st->key ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];
@@ -2587,13 +2587,13 @@ bool Position::see_ge(Move m, Bitboard& occupied, Value threshold) const {
     // Initialize occupancy for callers inspecting it even when SEE is not evaluated
     occupied = pieces();
 
-    assert(is_ok(m));
+    assert(m.is_ok());
 
     // Only deal with normal moves, assume others pass a simple SEE
     if (type_of(m) != NORMAL && type_of(m) != DROP && type_of(m) != PIECE_PROMOTION)
         return VALUE_ZERO >= threshold;
 
-    Square from = from_sq(m), to = to_sq(m);
+    Square from = m.from_sq(), to = m.to_sq();
 
     // nCheck
     if (check_counting() && color_of(moved_piece(m)) == sideToMove && gives_check(m))
@@ -3317,8 +3317,8 @@ bool Position::has_game_cycle(int ply) const {
         if ((j = H1(moveKey), cuckoo[j] == moveKey) || (j = H2(moveKey), cuckoo[j] == moveKey))
         {
             Move   move = cuckooMove[j];
-            Square s1   = from_sq(move);
-            Square s2   = to_sq(move);
+            Square s1   = move.from_sq();
+            Square s2   = move.to_sq();
 
             if (!((between_bb(s1, s2) ^ s2) & pieces()))
             {

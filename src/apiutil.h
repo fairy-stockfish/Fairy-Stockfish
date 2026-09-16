@@ -253,7 +253,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
         Square s = pop_lsb(b);
         // Construct a potential move with identical special move flags
         // and only a different "from" square.
-        Move testMove = Move(m ^ make_move(from, to) ^ make_move(s, to));
+        Move testMove = Move(m.raw() ^ make_move(from, to).raw() ^ make_move(s, to).raw());
         if (pos.pseudo_legal(testMove) && pos.legal(testMove)
             && !(is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
             others |= s;

@@ -147,7 +147,7 @@ using CorrectionHistory =
 // MovePicker class is used to pick one pseudo-legal move at a time from the
 // current position. The most important method is next_move(), which returns a
 // new pseudo-legal move each time it is called, until there are no moves left,
-// when MOVE_NONE is returned. In order to improve the efficiency of the
+// when Move::none() is returned. In order to improve the efficiency of the
 // alpha-beta algorithm, MovePicker attempts to return the moves which are most
 // likely to get a cut-off first.
 class MovePicker {
@@ -196,11 +196,11 @@ class MovePicker {
     const PieceToHistory**       continuationHistory;
     const PawnHistory*           pawnHistory;
     Move                         ttMove;
-    ExtMove                      refutations[3], *cur, *endMoves, *endBadCaptures;
-    int                          stage;
-    Value                        threshold;
-    Depth                        depth;
-    ExtMove                      moves[MAX_MOVES];
+    ExtMove refutations[3], *cur, *endMoves, *endBadCaptures, *beginBadQuiets, *endBadQuiets;
+    int     stage;
+    int     threshold;
+    Depth   depth;
+    ExtMove moves[MAX_MOVES];
 };
 
 }  // namespace Stockfish

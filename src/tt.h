@@ -50,7 +50,7 @@ struct TTEntry {
     uint16_t key16;
     uint8_t  depth8;
     uint8_t  genBound8;
-    uint32_t move32;
+    Move     move32;
     int16_t  value16;
     int16_t  eval16;
 };

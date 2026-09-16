@@ -72,7 +72,7 @@ void position(Position& pos, istringstream& is, StateListPtr& states) {
             &states->back(), Threads.main(), sfen);
 
     // Parse the move list, if any
-    while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
+    while (is >> token && (m = UCI::to_move(pos, token)) != Move::none())
     {
         states->emplace_back();
         pos.do_move(m, states->back());
@@ -560,8 +560,8 @@ string UCI::dropped_piece(const Position& pos, Move m) {
 
 string UCI::move(const Position& pos, Move m) {
 
-    Square from = from_sq(m);
-    Square to   = to_sq(m);
+    Square from = m.from_sq();
+    Square to   = m.to_sq();
 
     if (m == MOVE_NONE)
         return CurrentProtocol == USI ? "resign" : "(none)";
@@ -633,7 +633,7 @@ Move UCI::to_move(const Position& pos, string& str) {
             || (is_pass(m) && str == UCI::square(pos, from_sq(m)) + UCI::square(pos, to_sq(m))))
             return m;
 
-    return MOVE_NONE;
+    return Move::none();
 }
 
 std::string UCI::option_name(std::string name) {

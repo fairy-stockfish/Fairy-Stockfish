@@ -58,13 +58,15 @@ class Thread {
     size_t                pvIdx, pvLast;
     std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
     int                   selDepth, nmpMinPly;
-    Value                 bestValue, optimism[COLOR_NB];
+    Value                 bestValue;
+
+    int optimism[COLOR_NB];
 
     Position              rootPos;
     StateInfo             rootState;
     Search::RootMoves     rootMoves;
     Depth                 rootDepth, completedDepth;
-    Value                 rootDelta;
+    int                   rootDelta;
     Value                 rootSimpleEval;
     Pawns::Table          pawnsTable;
     Material::Table       materialTable;

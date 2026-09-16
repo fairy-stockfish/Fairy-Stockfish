@@ -46,8 +46,11 @@ enum Stages {
     GOOD_CAPTURE,
     REFUTATION,
     QUIET_INIT,
-    QUIET,
+    GOOD_QUIET,
     BAD_CAPTURE,
+    BAD_QUIET,
+
+    // generate evasion moves
     EVASION_TT,
     EVASION_INIT,
     EVASION,
@@ -252,13 +255,15 @@ Move MovePicker::select(Pred filter) {
 
         cur++;
     }
-    return MOVE_NONE;
+    return Move::none();
 }
 
 // Most important method of the MovePicker class. It
 // returns a new pseudo-legal move every time it is called until there are no more
 // moves left, picking the move with the highest score from a list of generated moves.
 Move MovePicker::next_move(bool skipQuiets) {
+
+    auto quiet_threshold = [](Depth d) { return -3330 * d; };
 
 top:
     switch (stage)
@@ -301,8 +306,7 @@ top:
         endMoves = std::end(refutations);
 
         // If the countermove is the same as a killer, skip it
-        if (refutations[0].move == refutations[2].move
-            || refutations[1].move == refutations[2].move)
+        if (refutations[0] == refutations[2] || refutations[1] == refutations[2])
             --endMoves;
 
         ++stage;
@@ -310,7 +314,7 @@ top:
 
     case REFUTATION :
         if (select<Next>([&]() {
-                return *cur != MOVE_NONE && !pos.capture_stage(*cur) && pos.pseudo_legal(*cur);
+                return *cur != Move::none() && !pos.capture_stage(*cur) && pos.pseudo_legal(*cur);
             }))
             return *(cur - 1);
         ++stage;
@@ -320,21 +324,34 @@ top:
         if (!skipQuiets && !(pos.must_capture() && pos.has_capture()))
         {
             cur      = endBadCaptures;
-            endMoves = generate<QUIETS>(pos, cur);
+            endMoves = beginBadQuiets = endBadQuiets = generate<QUIETS>(pos, cur);
 
             score<QUIETS>();
-            partial_insertion_sort(cur, endMoves, -3330 * depth);
+            partial_insertion_sort(cur, endMoves, quiet_threshold(depth));
         }
 
         ++stage;
         [[fallthrough]];
 
-    case QUIET :
+    case GOOD_QUIET :
         if (!skipQuiets && select<Next>([&]() {
-                return *cur != refutations[0].move && *cur != refutations[1].move
-                    && *cur != refutations[2].move;
+                return *cur != refutations[0] && *cur != refutations[1] && *cur != refutations[2];
             }))
-            return *(cur - 1);
+        {
+            Move tmp = *(cur - 1);
+            if ((cur - 1)->value < -7500 && (cur - 1)->value > quiet_threshold(depth))
+            {
+                // Remaining quiets are bad
+                beginBadQuiets = cur;
+
+                // Prepare the pointers to loop over the bad captures
+                cur      = moves;
+                endMoves = endBadCaptures;
+
+                ++stage;
+            }
+            return tmp;
+        }
 
         // Prepare the pointers to loop over the bad captures
         cur      = moves;
@@ -344,7 +361,23 @@ top:
         [[fallthrough]];
 
     case BAD_CAPTURE :
-        return select<Next>([]() { return true; });
+        if (select<Next>([]() { return true; }))
+            return *(cur - 1);
+
+        // Prepare the pointers to loop over the bad quiets
+        cur      = beginBadQuiets;
+        endMoves = endBadQuiets;
+
+        ++stage;
+        [[fallthrough]];
+
+    case BAD_QUIET :
+        if (!skipQuiets)
+            return select<Next>([&]() {
+                return *cur != refutations[0] && *cur != refutations[1] && *cur != refutations[2];
+            });
+
+        return Move::none();
 
     case EVASION_INIT :
         cur      = moves;
@@ -366,7 +399,7 @@ top:
 
         // If we did not find any move and we do not try checks, we have finished
         if (depth != DEPTH_QS_CHECKS)
-            return MOVE_NONE;
+            return Move::none();
 
         ++stage;
         [[fallthrough]];
@@ -383,7 +416,7 @@ top:
     }
 
     assert(false);
-    return MOVE_NONE;  // Silence warning
+    return Move::none();  // Silence warning
 }
 
 }  // namespace Stockfish
