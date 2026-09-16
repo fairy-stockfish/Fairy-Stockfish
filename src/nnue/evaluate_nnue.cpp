@@ -137,6 +137,13 @@ namespace Stockfish::Eval::NNUE {
   }
 
   // Evaluation function. Perform differential calculation.
+  // Hint that the position will be evaluated soon (used by upstream to
+  // precompute accumulators along the parent path). Not yet ported to
+  // Fairy-Stockfish's accumulator update logic, so this is a no-op for now.
+  void hint_common_parent_position(const Position& pos) {
+    (void) pos;
+  }
+
   Value evaluate(const Position& pos, bool adjusted, int* complexity) {
 
     // We manually align the arrays on the stack because with gcc < 9.3

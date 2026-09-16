@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <cstring> // For std::memset, std::memcmp
 #include <iomanip>
 #include <sstream>
+#include <string_view>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -132,7 +133,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
 
 // Marcel van Kervinck's cuckoo algorithm for fast detection of "upcoming repetition"
 // situations. Description of the algorithm in the following paper:
-// https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
+// http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 
 // First and second hash functions for indexing the cuckoo tables
 #ifdef LARGEBOARDS
@@ -543,7 +544,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   chess960 = isChess960 || v->chess960;
   tsumeMode = Options["TsumeMode"];
   thisThread = th;
-  set_state(st);
+  set_state();
 
   assert(pos_is_ok());
 
@@ -575,40 +576,40 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 /// Position::set_check_info() sets king attacks to detect if a move gives check
 
-void Position::set_check_info(StateInfo* si) const {
+void Position::set_check_info() const {
 
-  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), count<KING>(WHITE) ? square<KING>(WHITE) : SQ_NONE, si->pinners[BLACK], BLACK);
-  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), count<KING>(BLACK) ? square<KING>(BLACK) : SQ_NONE, si->pinners[WHITE], WHITE);
+  st->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), count<KING>(WHITE) ? square<KING>(WHITE) : SQ_NONE, st->pinners[BLACK], BLACK);
+  st->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), count<KING>(BLACK) ? square<KING>(BLACK) : SQ_NONE, st->pinners[WHITE], WHITE);
 
   Square ksq = count<KING>(~sideToMove) ? square<KING>(~sideToMove) : SQ_NONE;
 
   // For unused piece types, the check squares are left uninitialized
-  si->nonSlidingRiders = 0;
+  st->nonSlidingRiders = 0;
   for (PieceSet ps = piece_types(); ps;)
   {
       PieceType pt = pop_lsb(ps);
       PieceType movePt = pt == KING ? king_type() : pt;
-      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
+      st->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
       // Collect special piece types that require slower check and evasion detection
       if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
-          si->nonSlidingRiders |= pieces(pt);
+          st->nonSlidingRiders |= pieces(pt);
   }
-  si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
-  si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
-  si->chased = var->chasingRule ? chased() : Bitboard(0);
-  si->legalCapture = NO_VALUE;
+  st->shak = st->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
+  st->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
+  st->chased = var->chasingRule ? chased() : Bitboard(0);
+  st->legalCapture = NO_VALUE;
   if (var->extinctionPseudoRoyal)
   {
-      si->pseudoRoyalCandidates = 0;
-      si->pseudoRoyals = 0;
+      st->pseudoRoyalCandidates = 0;
+      st->pseudoRoyals = 0;
       for (PieceSet ps = extinction_piece_types(); ps;)
       {
           PieceType pt = pop_lsb(ps);
-          si->pseudoRoyalCandidates |= pieces(pt);
+          st->pseudoRoyalCandidates |= pieces(pt);
           if (count(sideToMove, pt) <= var->extinctionPieceCount + 1)
-              si->pseudoRoyals |= pieces(sideToMove, pt);
+              st->pseudoRoyals |= pieces(sideToMove, pt);
           if (count(~sideToMove, pt) <= var->extinctionPieceCount + 1)
-              si->pseudoRoyals |= pieces(~sideToMove, pt);
+              st->pseudoRoyals |= pieces(~sideToMove, pt);
       }
   }
 }
@@ -616,42 +617,41 @@ void Position::set_check_info(StateInfo* si) const {
 
 /// Position::set_state() computes the hash keys of the position, and other
 /// data that once computed is updated incrementally as moves are made.
-/// The function is only used when a new position is set up, and to verify
-/// the correctness of the StateInfo data when running in debug mode.
+/// The function is only used when a new position is set up
 
-void Position::set_state(StateInfo* si) const {
+void Position::set_state() const {
 
-  si->key = si->materialKey = 0;
-  si->pawnKey = Zobrist::noPawns;
-  si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
-  si->checkersBB = count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove), ~sideToMove) : Bitboard(0);
-  si->move = MOVE_NONE;
+  st->key = st->materialKey = 0;
+  st->pawnKey = Zobrist::noPawns;
+  st->nonPawnMaterial[WHITE] = st->nonPawnMaterial[BLACK] = VALUE_ZERO;
+  st->checkersBB = count<KING>(sideToMove) ? attackers_to(square<KING>(sideToMove), ~sideToMove) : Bitboard(0);
+  st->move = MOVE_NONE;
 
-  set_check_info(si);
+  set_check_info();
 
   for (Bitboard b = pieces(); b; )
   {
       Square s = pop_lsb(b);
       Piece pc = piece_on(s);
-      si->key ^= Zobrist::psq[pc][s];
+      st->key ^= Zobrist::psq[pc][s];
 
       if (!pc)
-          si->key ^= Zobrist::wall[s];
+          st->key ^= Zobrist::wall[s];
 
       else if (type_of(pc) == PAWN)
-          si->pawnKey ^= Zobrist::psq[pc][s];
+          st->pawnKey ^= Zobrist::psq[pc][s];
 
       else if (type_of(pc) != KING)
-          si->nonPawnMaterial[color_of(pc)] += PieceValue[MG][pc];
+          st->nonPawnMaterial[color_of(pc)] += PieceValue[MG][pc];
   }
 
-  for (Bitboard b = si->epSquares; b; )
-      si->key ^= Zobrist::enpassant[file_of(pop_lsb(b))];
+  for (Bitboard b = st->epSquares; b; )
+      st->key ^= Zobrist::enpassant[file_of(pop_lsb(b))];
 
   if (sideToMove == BLACK)
-      si->key ^= Zobrist::side;
+      st->key ^= Zobrist::side;
 
-  si->key ^= Zobrist::castling[si->castlingRights];
+  st->key ^= Zobrist::castling[st->castlingRights];
 
   for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)
@@ -659,15 +659,15 @@ void Position::set_state(StateInfo* si) const {
           Piece pc = make_piece(c, pt);
 
           for (int cnt = 0; cnt < pieceCount[pc]; ++cnt)
-              si->materialKey ^= Zobrist::psq[pc][cnt];
+              st->materialKey ^= Zobrist::psq[pc][cnt];
 
           if (piece_drops() || seirawan_gating())
-              si->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
+              st->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
       }
 
   if (check_counting())
       for (Color c : {WHITE, BLACK})
-          si->key ^= Zobrist::checks[c][si->checksRemaining[c]];
+          st->key ^= Zobrist::checks[c][st->checksRemaining[c]];
 }
 
 
@@ -2111,7 +2111,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Update king attacks used for fast check detection
-  set_check_info(st);
+  set_check_info();
 
   // Calculate the repetition info. It is the ply distance from the previous
   // occurrence of the same position, negative in the 3-fold case, or zero
@@ -2336,7 +2336,7 @@ void Position::do_null_move(StateInfo& newSt) {
 
   sideToMove = ~sideToMove;
 
-  set_check_info(st);
+  set_check_info();
 
   st->repetition = 0;
 
@@ -2467,7 +2467,10 @@ Value Position::blast_see(Move m) const {
 /// SEE value of move is greater or equal to the given threshold. We'll use an
 /// algorithm similar to alpha-beta pruning with a null window.
 
-bool Position::see_ge(Move m, Value threshold) const {
+bool Position::see_ge(Move m, Bitboard& occupied, Value threshold) const {
+
+  // Initialize occupancy for callers inspecting it even when SEE is not evaluated
+  occupied = pieces();
 
   assert(is_ok(m));
 
@@ -2512,7 +2515,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (var->petrifyOnCaptureTypes & type_of(moved_piece(m)) && capture(m))
       return false;
 
-  Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) ^ to;
+  occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) ^ to; // xoring to is important for pinned piece logic
   Color stm = color_of(moved_piece(m));
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
@@ -2563,45 +2566,44 @@ bool Position::see_ge(Move m, Value threshold) const {
       // the bitboard 'attackers' any X-ray attackers behind it.
       if ((bb = stmAttackers & pieces(PAWN)))
       {
+          occupied ^= least_significant_square_bb(bb);
           if ((swap = PawnValueMg - swap) < res)
               break;
 
-          occupied ^= least_significant_square_bb(bb);
           attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
       }
 
       else if ((bb = stmAttackers & pieces(KNIGHT)))
       {
+          occupied ^= least_significant_square_bb(bb);
           if ((swap = KnightValueMg - swap) < res)
               break;
-
-          occupied ^= least_significant_square_bb(bb);
       }
 
       else if ((bb = stmAttackers & pieces(BISHOP)))
       {
+          occupied ^= least_significant_square_bb(bb);
           if ((swap = BishopValueMg - swap) < res)
               break;
 
-          occupied ^= least_significant_square_bb(bb);
           attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
       }
 
       else if ((bb = stmAttackers & pieces(ROOK)))
       {
+          occupied ^= least_significant_square_bb(bb);
           if ((swap = RookValueMg - swap) < res)
               break;
 
-          occupied ^= least_significant_square_bb(bb);
           attackers |= attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN);
       }
 
       else if ((bb = stmAttackers & pieces(QUEEN)))
       {
+          occupied ^= least_significant_square_bb(bb);
           if ((swap = QueenValueMg - swap) < res)
               break;
 
-          occupied ^= least_significant_square_bb(bb);
           attackers |=  (attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN))
                       | (attacks_bb<ROOK  >(to, occupied) & pieces(ROOK  , QUEEN));
       }
@@ -2623,6 +2625,11 @@ bool Position::see_ge(Move m, Value threshold) const {
   }
 
   return bool(res);
+}
+
+bool Position::see_ge(Move m, Value threshold) const {
+    Bitboard occupied;
+    return see_ge(m, occupied, threshold);
 }
 
 /// Position::is_optional_game_end() tests whether the position may end the game by
@@ -3317,12 +3324,6 @@ bool Position::pos_is_ok() const {
           if (p1 != p2 && (pieces(p1) & pieces(p2)))
               assert(0 && "pos_is_ok: Bitboards");
 
-  StateInfo si = *st;
-  ASSERT_ALIGNED(&si, Eval::NNUE::CacheLineSize);
-
-  set_state(&si);
-  if (std::memcmp(&si, st, sizeof(StateInfo)))
-      assert(0 && "pos_is_ok: State");
 
   for (Color c : {WHITE, BLACK})
       for (PieceType pt = PAWN; pt <= KING; ++pt)

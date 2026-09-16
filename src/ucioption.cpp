@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -58,14 +58,13 @@ void init_variant(const Variant* v) {
 }
 
 /// 'On change' actions, triggered by an option's value change
-void on_clear_hash(const Option&) { Search::clear(); }
-void on_hash_size(const Option& o) { TT.resize(size_t(o)); }
-void on_logger(const Option& o) { start_logger(o); }
-void on_threads(const Option& o) { Threads.set(size_t(o)); }
-void on_tb_path(const Option& o) { Tablebases::init(o); }
-
-void on_use_NNUE(const Option& ) { Eval::NNUE::init(); }
-void on_eval_file(const Option& ) { Eval::NNUE::init(); }
+static void on_clear_hash(const Option&) { Search::clear(); }
+static void on_hash_size(const Option& o) { TT.resize(size_t(o)); }
+static void on_logger(const Option& o) { start_logger(o); }
+static void on_threads(const Option& o) { Threads.set(size_t(o)); }
+static void on_tb_path(const Option& o) { Tablebases::init(o); }
+static void on_use_NNUE(const Option&) { Eval::NNUE::init(); }
+static void on_eval_file(const Option&) { Eval::NNUE::init(); }
 
 void on_variant_path(const Option& o) {
     std::stringstream ss((std::string)o);
@@ -299,9 +298,12 @@ Option::Option(OnChange f) : type("button"), min(0), max(0), on_change(f)
 Option::Option(double v, int minv, int maxv, OnChange f) : type("spin"), min(minv), max(maxv), on_change(f)
 { defaultValue = currentValue = std::to_string(v); }
 
-Option::operator double() const {
+Option::Option(const char* v, const char* cur, OnChange f) : type("combo"), min(0), max(0), on_change(f)
+{ defaultValue = v; currentValue = cur; }
+
+Option::operator int() const {
   assert(type == "check" || type == "spin");
-  return (type == "spin" ? stof(currentValue) : currentValue == "true");
+  return (type == "spin" ? std::stoi(currentValue) : currentValue == "true");
 }
 
 Option::operator std::string() const {

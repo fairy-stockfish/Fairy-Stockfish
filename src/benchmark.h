@@ -16,24 +16,19 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef BENCHMARK_H_INCLUDED
+#define BENCHMARK_H_INCLUDED
 
-#ifndef PSQT_H_INCLUDED
-#define PSQT_H_INCLUDED
+#include <iosfwd>
+#include <string>
+#include <vector>
 
+namespace Stockfish {
 
-#include "types.h"
+class Position;
 
-#include "variant.h"
+std::vector<std::string> setup_bench(const Position&, std::istream&);
 
-namespace Stockfish::PSQT
-{
+} // namespace Stockfish
 
-extern Score psq[PIECE_NB][SQUARE_NB + 1];
-
-// Fill psqt array from a set of internally linked parameters
-extern void init(const Variant*);
-
-} // namespace Stockfish::PSQT
-
-
-#endif // PSQT_H_INCLUDED
+#endif // #ifndef BENCHMARK_H_INCLUDED

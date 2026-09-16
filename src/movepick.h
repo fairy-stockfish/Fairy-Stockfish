@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -62,14 +62,14 @@ public:
 template <typename T, int D, int Size, int... Sizes>
 struct Stats : public std::array<Stats<T, D, Sizes...>, Size>
 {
-  typedef Stats<T, D, Size, Sizes...> stats;
+  using stats = Stats<T, D, Size, Sizes...>;
 
   void fill(const T& v) {
 
     // For standard-layout 'this' points to first struct member
     assert(std::is_standard_layout<stats>::value);
 
-    typedef StatsEntry<T, D> entry;
+    using entry = StatsEntry<T, D>;
     entry* p = reinterpret_cast<entry*>(this);
     std::fill(p, p + sizeof(*this) / sizeof(entry), v);
   }
@@ -93,10 +93,10 @@ typedef Stats<int16_t, 7183, COLOR_NB, SQUARE_NB> GateHistory;
 
 /// CounterMoveHistory stores counter moves indexed by [piece][to] of the previous
 /// move, see www.chessprogramming.org/Countermove_Heuristic
-typedef Stats<Move, NOT_USED, PIECE_NB, SQUARE_NB> CounterMoveHistory;
+using CounterMoveHistory = Stats<Move, NOT_USED, PIECE_NB, SQUARE_NB>;
 
 /// CapturePieceToHistory is addressed by a move's [piece][to][captured piece type]
-typedef Stats<int16_t, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB> CapturePieceToHistory;
+using CapturePieceToHistory = Stats<int16_t, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 
 /// PieceToHistory is like ButterflyHistory but is addressed by a move's [piece][to]
 typedef Stats<int16_t, 29952, 2 * PIECE_SLOTS, SQUARE_NB> PieceToHistory;
@@ -134,8 +134,6 @@ public:
                                            Square);
   MovePicker(const Position&, Move, Value, const GateHistory*, const CapturePieceToHistory*);
   Move next_move(bool skipQuiets = false);
-
-  Bitboard threatenedPieces;
 
 private:
   template<PickType T, typename Pred> Move select(Pred);
