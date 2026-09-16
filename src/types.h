@@ -551,6 +551,7 @@ enum Piece {
     B_KING   = KING + PIECE_TYPE_NB,
     PIECE_NB = 2 * PIECE_TYPE_NB
 };
+// clang-format on
 
 enum PieceSet : uint64_t {
     NO_PIECE_SET = 0,
@@ -605,6 +606,7 @@ enum : int {
     DEPTH_OFFSET = -7  // value used only for TT entry occupancy check
 };
 
+// clang-format off
 enum Square : int {
     #ifdef LARGEBOARDS
     SQ_A1,
@@ -807,6 +809,7 @@ enum Square : int {
     SQUARE_NB_CHESS = 64,
     SQUARE_NB_SHOGI = 81,
 };
+// clang-format on
 
 enum Direction : int {
     #ifdef LARGEBOARDS

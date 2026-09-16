@@ -63,6 +63,15 @@ SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp main.cpp 
 	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
 	nnue/features/half_ka_v2_variants.cpp
 
+HEADERS = apiutil.h benchmark.h bitboard.h endgame.h evaluate.h material.h misc.h movegen.h movepick.h \
+		nnue/evaluate_nnue.h nnue/features/half_ka_v2.h nnue/features/half_ka_v2_variants.h \
+		nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
+		nnue/layers/clipped_relu.h nnue/layers/input_slice.h nnue/layers/simd.h \
+		nnue/layers/sqr_clipped_relu.h nnue/nnue_accumulator.h nnue/nnue_architecture.h \
+		nnue/nnue_common.h nnue/nnue_feature_transformer.h parser.h partner.h pawns.h piece.h \
+		position.h psqt.h search.h syzygy/tbprobe.h thread.h thread_win32_osx.h timeman.h \
+		tt.h tune.h types.h uci.h variant.h xboard.h
+
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
 VPATH = syzygy:nnue:nnue/features
@@ -151,6 +160,12 @@ neon = no
 dotprod = no
 arm_version = 0
 STRIP = strip
+
+ifneq ($(shell command -v clang-format-17),)
+	CLANG-FORMAT = clang-format-17
+else
+	CLANG-FORMAT = clang-format
+endif
 
 ### 2.2 Architecture specific
 
@@ -970,6 +985,9 @@ profileclean:
 	@rm -f stockfish.*lt*
 	@rm -f stockfish.res
 	@rm -f ./-lstdc++.res
+
+format:
+	$(CLANG-FORMAT) -i $(SRCS) $(HEADERS) -style=file:../.clang-format
 
 default:
 	help
