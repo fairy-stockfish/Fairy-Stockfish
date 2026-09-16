@@ -1698,48 +1698,36 @@ Value Eval::simple_eval(const Position& pos, Color c) {
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
-Value Eval::evaluate(const Position& pos) {
+Value Eval::evaluate(const Position& pos, int optimism) {
 
     assert(!pos.checkers());
 
     Value v;
-    Color stm        = pos.side_to_move();
-    int   shuffling  = pos.rule50_count();
-    int   simpleEval = simple_eval(pos, stm) + (int(pos.key() & 7) - 3);
 
     if (!useNNUE || !pos.nnue_applicable())
         v = Evaluation<NO_TRACE>(pos).value();
     else
     {
-        bool lazy = abs(simpleEval) >= RookValueMg + KnightValueMg + 16 * shuffling * shuffling
-                                         + abs(pos.this_thread()->bestValue)
-                                         + abs(pos.this_thread()->rootSimpleEval);
+        int simpleEval = simple_eval(pos, pos.side_to_move());
 
-        if (lazy)
-            v = Value(simpleEval);
-        else
+        int   nnueComplexity;
+        Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
+
+        // Blend optimism and eval with nnue complexity and material imbalance
+        optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
+        nnue -= nnue * (nnueComplexity + std::abs(simpleEval - nnue)) / 32768;
+
+        int npm = pos.non_pawn_material() / 64;
+        v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
+
+        if (pos.is_chess960())
+            v += fix_FRC(pos);
+
+        if (pos.check_counting())
         {
-            int   nnueComplexity;
-            Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
-
-            Value optimism = pos.this_thread()->optimism[stm];
-
-            // Blend optimism and eval with nnue complexity and material imbalance
-            optimism += optimism * (nnueComplexity + abs(simpleEval - nnue)) / 512;
-            nnue -= nnue * (nnueComplexity + abs(simpleEval - nnue)) / 32768;
-
-            int npm = pos.non_pawn_material() / 64;
-            v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
-
-            if (pos.is_chess960())
-                v += fix_FRC(pos);
-
-            if (pos.check_counting())
-            {
-                Color us = pos.side_to_move();
-                v += 6 * (915 + npm) / (5 * pos.checks_remaining(us))
-                   - 6 * (915 + npm) / (5 * pos.checks_remaining(~us));
-            }
+            Color us = pos.side_to_move();
+            v += 6 * (915 + npm) / (5 * pos.checks_remaining(us))
+               - 6 * (915 + npm) / (5 * pos.checks_remaining(~us));
         }
     }
 
@@ -1819,7 +1807,7 @@ std::string Eval::trace(Position& pos) {
         ss << "NNUE evaluation        " << to_cp(v) << " (white side)\n";
     }
 
-    v = evaluate(pos);
+    v = evaluate(pos, VALUE_ZERO);
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "Final evaluation       " << to_cp(v) << " (white side)";
     if (Eval::useNNUE && pos.nnue_applicable())

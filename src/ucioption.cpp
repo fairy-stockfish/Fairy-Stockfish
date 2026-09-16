@@ -58,9 +58,9 @@ void init_variant(const Variant* v) {
 
 /// 'On change' actions, triggered by an option's value change
 static void on_clear_hash(const Option&) { Search::clear(); }
-static void on_hash_size(const Option& o) { TT.resize(size_t(o)); }
+static void on_hash_size(const Option& o) { TT.resize(size_t(o), Options["Threads"]); }
 static void on_logger(const Option& o) { start_logger(o); }
-static void on_threads(const Option& o) { Threads.set(size_t(o)); }
+static void on_threads(const Option&) { Threads.set(Search::SharedState(Options, Threads, TT)); }
 static void on_tb_path(const Option& o) { Tablebases::init(o); }
 static void on_use_NNUE(const Option&) { Eval::NNUE::init(); }
 static void on_eval_file(const Option&) { Eval::NNUE::init(); }

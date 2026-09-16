@@ -36,13 +36,13 @@ namespace Stockfish {
 // eval value 16 bit
 struct TTEntry {
 
-    Move  move() const { return (Move) move32; }
-    Value value() const { return (Value) value16; }
-    Value eval() const { return (Value) eval16; }
-    Depth depth() const { return (Depth) depth8 + DEPTH_OFFSET; }
-    bool  is_pv() const { return (bool) (genBound8 & 0x4); }
-    Bound bound() const { return (Bound) (genBound8 & 0x3); }
-    void  save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev);
+    Move  move() const { return move32; }
+    Value value() const { return Value(value16); }
+    Value eval() const { return Value(eval16); }
+    Depth depth() const { return Depth(depth8 + DEPTH_OFFSET); }
+    bool  is_pv() const { return bool(genBound8 & 0x4); }
+    Bound bound() const { return Bound(genBound8 & 0x3); }
+    void  save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8);
 
    private:
     friend class TranspositionTable;
@@ -86,19 +86,21 @@ class TranspositionTable {
     void new_search() { generation8 += GENERATION_DELTA; }  // Lower bits are used for other things
     TTEntry* probe(const Key key, bool& found) const;
     int      hashfull() const;
-    void     resize(size_t mbSize);
-    void     clear();
+    void     resize(size_t mbSize, int threadCount);
+    void     clear(size_t threadCount);
 
     TTEntry* first_entry(const Key key) const {
         return &table[mul_hi64(key, clusterCount)].entry[0];
     }
 
+    uint8_t generation() const { return generation8; }
+
    private:
     friend struct TTEntry;
 
     size_t   clusterCount;
-    Cluster* table;
-    uint8_t  generation8;  // Size must be not bigger than TTEntry::genBound8
+    Cluster* table       = nullptr;
+    uint8_t  generation8 = 0;  // Size must be not bigger than TTEntry::genBound8
 };
 
 extern TranspositionTable TT;

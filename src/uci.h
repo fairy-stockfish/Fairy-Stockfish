@@ -51,7 +51,14 @@ struct CaseInsensitiveLess {
 };
 
 // The options container is defined as a std::map
-using OptionsMap = std::map<std::string, Option, CaseInsensitiveLess>;
+// The options container is a std::map with an additional read-only accessor,
+// so that search workers can read options through a const reference.
+struct OptionsMap: public std::map<std::string, Option, CaseInsensitiveLess> {
+    using std::map<std::string, Option, CaseInsensitiveLess>::operator[];
+    const Option& operator[](const std::string& name) const { return this->at(name); }
+};
+
+std::ostream& operator<<(std::ostream&, const OptionsMap&);
 
 // The Option class implements each option as specified by the UCI protocol
 class Option {
@@ -93,7 +100,6 @@ std::string value(Value v);
 std::string square(const Position& pos, Square s);
 std::string dropped_piece(const Position& pos, Move m);
 std::string move(const Position& pos, Move m);
-std::string pv(const Position& pos, Depth depth);
 std::string wdl(Value v, int ply);
 Move        to_move(const Position& pos, std::string& str);
 

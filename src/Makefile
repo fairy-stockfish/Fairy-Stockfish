@@ -68,7 +68,7 @@ HEADERS = apiutil.h benchmark.h bitboard.h endgame.h evaluate.h material.h misc.
 		nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
 		nnue/layers/clipped_relu.h nnue/layers/input_slice.h nnue/layers/simd.h \
 		nnue/layers/sqr_clipped_relu.h nnue/nnue_accumulator.h nnue/nnue_architecture.h \
-		nnue/nnue_common.h nnue/nnue_feature_transformer.h parser.h partner.h pawns.h piece.h \
+		nnue/nnue_common.h nnue/nnue_feature_transformer.h parser.h partner.h pawns.h perft.h piece.h \
 		position.h psqt.h search.h syzygy/tbprobe.h thread.h thread_win32_osx.h timeman.h \
 		tt.h tune.h types.h uci.h variant.h xboard.h
 

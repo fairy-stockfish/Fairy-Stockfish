@@ -43,19 +43,19 @@ int main(int argc, char* argv[]) {
     variants.init();
     CommandLine::init(argc, argv);
     UCI::init(Options);
-    Tune::init();
+    Tune::init(Options);
     PSQT::init(variants.find(Options["UCI_Variant"])->second);
     Bitboards::init();
     Position::init();
     Bitbases::init();
     Endgames::init();
-    Threads.set(size_t(Options["Threads"]));
+    Threads.set(Search::SharedState(Options, Threads, TT));
     Search::clear();  // After threads are up
     Eval::NNUE::init();
 
     UCI::loop(argc, argv);
 
-    Threads.set(0);
+    Threads.destroy();
     variants.clear_all();
     pieceMap.clear_all();
     delete XBoard::stateMachine;

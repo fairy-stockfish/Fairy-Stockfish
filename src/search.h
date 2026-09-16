@@ -19,19 +19,44 @@
 #ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
+#include <array>
+#include <atomic>
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <vector>
+#include <string>
 
+#include "material.h"
 #include "misc.h"
+#include "pawns.h"
 #include "movepick.h"
+#include "position.h"
+#include "syzygy/tbprobe.h"
+#include "timeman.h"
 #include "types.h"
 
 namespace Stockfish {
 
-class Position;
+// Different node types, used as a template parameter
+enum NodeType {
+    NonPV,
+    PV,
+    Root
+};
+
+class TranspositionTable;
+class ThreadPool;
+namespace UCI {
+struct OptionsMap;
+}
+using UCI::OptionsMap;
 
 namespace Search {
 
+// Reset all search state, usually before a new game
+void clear();
 
 // Stack struct keeps track of the information we need to remember from nodes
 // shallower and deeper in the tree during the search. Each search thread has
@@ -49,7 +74,7 @@ struct Stack {
     bool            inCheck;
     bool            ttPv;
     bool            ttHit;
-    int             doubleExtensions;
+    int             multipleExtensions;
     int             cutoffCnt;
 };
 
@@ -61,7 +86,7 @@ struct RootMove {
 
     explicit RootMove(Move m) :
         pv(1, m) {}
-    bool extract_ponder_from_tt(Position& pos);
+    bool extract_ponder_from_tt(const TranspositionTable& tt, Position& pos);
     bool operator==(const Move& m) const { return pv[0] == m; }
     // Sort in descending order
     bool operator<(const RootMove& m) const {
@@ -85,7 +110,6 @@ using RootMoves = std::vector<RootMove>;
 
 // LimitsType struct stores information sent by GUI about available time to
 // search the current move, maximum depth/time, or if we are in analysis mode.
-
 struct LimitsType {
 
     // Init explicitly due to broken value-initialization of non POD in MSVC
@@ -100,13 +124,149 @@ struct LimitsType {
     std::vector<Move> searchmoves, banmoves;
     TimePoint         time[COLOR_NB], inc[COLOR_NB], npmsec, movetime, startTime;
     int               movestogo, depth, mate, perft, infinite;
-    int64_t           nodes;
+    uint64_t          nodes;
 };
 
-extern LimitsType Limits;
 
-void init();
-void clear();
+// The UCI stores the uci options, thread pool, and transposition table.
+// This struct is used to easily forward data to the Search::Worker class.
+struct SharedState {
+    SharedState(const OptionsMap&   optionsMap,
+                ThreadPool&         threadPool,
+                TranspositionTable& transpositionTable) :
+        options(optionsMap),
+        threads(threadPool),
+        tt(transpositionTable) {}
+
+    const OptionsMap&   options;
+    ThreadPool&         threads;
+    TranspositionTable& tt;
+};
+
+class Worker;
+
+// Null Object Pattern, implement a common interface for the SearchManagers.
+// A Null Object will be given to non-mainthread workers.
+class ISearchManager {
+   public:
+    virtual ~ISearchManager() {}
+    virtual void check_time(Search::Worker&) = 0;
+};
+
+// SearchManager manages the search from the main thread. It is responsible for
+// keeping track of the time, and storing data strictly related to the main thread.
+class SearchManager: public ISearchManager {
+   public:
+    void check_time(Search::Worker& worker) override;
+
+    std::string pv(const Search::Worker&     worker,
+                   const ThreadPool&         threads,
+                   const TranspositionTable& tt,
+                   Depth                     depth) const;
+
+    Stockfish::TimeManagement tm;
+    int                       callsCnt;
+    std::atomic_bool          ponder;
+
+    std::array<Value, 4> iterValue;
+    double               previousTimeReduction;
+    Value                bestPreviousScore;
+    Value                bestPreviousAverageScore;
+    bool                 stopOnPonderhit;
+
+    size_t id;
+};
+
+class NullSearchManager: public ISearchManager {
+   public:
+    void check_time(Search::Worker&) override {}
+};
+
+// Search::Worker is the class that does the actual search.
+// It is instantiated once per thread, and it is responsible for keeping track
+// of the search history, and storing data required for the search.
+class Worker {
+   public:
+    Worker(SharedState&, std::unique_ptr<ISearchManager>, size_t);
+
+    // Called at instantiation to initialize Reductions tables
+    // Reset histories, usually before a new game
+    void clear();
+
+    // Called when the program receives the UCI 'go' command.
+    // It searches from the root position and outputs the "bestmove".
+    void start_searching();
+
+    bool is_mainthread() const { return thread_idx == 0; }
+
+    // Public because they need to be updatable by the stats
+    CounterMoveHistory    counterMoves;
+    ButterflyHistory      mainHistory;
+    GateHistory           gateHistory;
+    CapturePieceToHistory captureHistory;
+    ContinuationHistory   continuationHistory[2][2];
+    PawnHistory           pawnHistory;
+    CorrectionHistory     correctionHistory;
+
+    // Used by the classical evaluation for lazy evaluation and optimism
+    Value bestValue = VALUE_ZERO;
+    Value optimism[COLOR_NB];
+
+    // Per-thread hash tables of the classical evaluation
+    Pawns::Table    pawnsTable;
+    Material::Table materialTable;
+
+   private:
+    void iterative_deepening();
+
+    // Main search function for both PV and non-PV nodes
+    template<NodeType nodeType>
+    Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
+
+    // Quiescence search function, which is called by the main search
+    template<NodeType nodeType>
+    Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = 0);
+
+    Depth reduction(bool i, Depth d, int mn, int delta);
+
+    // Get a pointer to the search manager, only allowed to be called by the
+    // main thread.
+    SearchManager* main_manager() const {
+        assert(thread_idx == 0);
+        return static_cast<SearchManager*>(manager.get());
+    }
+
+    LimitsType limits;
+
+    size_t                pvIdx, pvLast;
+    std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
+    int                   selDepth, nmpMinPly;
+
+
+    Position  rootPos;
+    StateInfo rootState;
+    RootMoves rootMoves;
+    Depth     rootDepth, completedDepth;
+    Value     rootDelta;
+
+    size_t thread_idx;
+
+    // Reductions lookup table initialized at startup
+    std::array<int, MAX_MOVES> reductions;  // [depth or moveNumber]
+
+    // The main thread has a SearchManager, the others have a NullSearchManager
+    std::unique_ptr<ISearchManager> manager;
+
+    Tablebases::Config tbConfig;
+
+    const OptionsMap&   options;
+    ThreadPool&         threads;
+    TranspositionTable& tt;
+
+    friend class Stockfish::ThreadPool;
+    friend class SearchManager;
+};
+
 
 }  // namespace Search
 

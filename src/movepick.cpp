@@ -192,10 +192,9 @@ void MovePicker::score() {
     for (auto& m : *this)
         if constexpr (Type == CAPTURES)
             m.value =
-              (7 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
-               + (*gateHistory)[pos.side_to_move()][gating_square(m)]
-               + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))])
-              / 16;
+              7 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
+              + (*gateHistory)[pos.side_to_move()][gating_square(m)]
+              + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
         else if constexpr (Type == QUIETS)
         {
@@ -291,12 +290,10 @@ top:
 
     case GOOD_CAPTURE :
         if (select<Next>([&]() {
-                return pos.see_ge(*cur,
-                                  Value(-cur->value
-                                        - 500 * (pos.captures_to_hand() && pos.gives_check(*cur))))
-                       ?
-                       // Move losing capture to endBadCaptures to be tried later
-                         true
+                // Move losing capture to endBadCaptures to be tried later
+                return pos.see_ge(*cur, -cur->value / 18
+                                          - 500 * (pos.captures_to_hand() && pos.gives_check(*cur)))
+                       ? true
                        : (*endBadCaptures++ = *cur, false);
             }))
             return *(cur - 1);
@@ -321,6 +318,9 @@ top:
         [[fallthrough]];
 
     case QUIET_INIT :
+        // In case quiet moves are skipped, e.g., due to mandatory captures,
+        // make sure the bad quiet range is empty
+        beginBadQuiets = endBadQuiets = endBadCaptures;
         if (!skipQuiets && !(pos.must_capture() && pos.has_capture()))
         {
             cur      = endBadCaptures;
@@ -338,19 +338,11 @@ top:
                 return *cur != refutations[0] && *cur != refutations[1] && *cur != refutations[2];
             }))
         {
-            Move tmp = *(cur - 1);
-            if ((cur - 1)->value < -7500 && (cur - 1)->value > quiet_threshold(depth))
-            {
-                // Remaining quiets are bad
-                beginBadQuiets = cur;
+            if ((cur - 1)->value > -8000 || (cur - 1)->value <= quiet_threshold(depth))
+                return *(cur - 1);
 
-                // Prepare the pointers to loop over the bad captures
-                cur      = moves;
-                endMoves = endBadCaptures;
-
-                ++stage;
-            }
-            return tmp;
+            // Remaining quiets are bad
+            beginBadQuiets = cur - 1;
         }
 
         // Prepare the pointers to loop over the bad captures

@@ -29,12 +29,16 @@
 namespace Stockfish {
 
 class Position;
+namespace UCI {
+struct OptionsMap;
+}
+using UCI::OptionsMap;
 
 namespace Eval {
 
 std::string trace(Position& pos);
 Value       simple_eval(const Position& pos, Color c);
-Value       evaluate(const Position& pos);
+Value evaluate(const Position& pos, int optimism);
 
 extern bool        useNNUE;
 extern std::string currentEvalFileName;
@@ -43,6 +47,17 @@ extern std::string currentEvalFileName;
 // for the build process (profile-build and fishtest) to work. Do not change the
 // name of the macro, as it is used in the Makefile.
 #define EvalFileDefaultName "nn-5af11540bbfe.nnue"
+
+struct EvalFile {
+    // UCI option name
+    std::string optionName;
+    // Default net name, will use one of the macros above
+    std::string defaultName;
+    // Selected net name, either via uci option or default
+    std::string current;
+    // Net description extracted from the net file
+    std::string netDescription;
+};
 
 namespace NNUE {
 

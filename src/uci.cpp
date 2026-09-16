@@ -26,6 +26,7 @@
 #include "benchmark.h"
 #include "evaluate.h"
 #include "movegen.h"
+#include "perft.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
@@ -69,7 +70,7 @@ void position(Position& pos, istringstream& is, StateListPtr& states) {
 
     states = StateListPtr(new std::deque<StateInfo>(1));  // Drop old and create a new one
     pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"],
-            &states->back(), Threads.main(), sfen);
+            &states->back(), Threads.main_thread()->worker.get(), sfen);
 
     // Parse the move list, if any
     while (is >> token && (m = UCI::to_move(pos, token)) != Move::none())
@@ -85,7 +86,7 @@ void trace_eval(Position& pos) {
 
     StateListPtr states(new std::deque<StateInfo>(1));
     Position     p;
-    p.set(pos.variant(), pos.fen(), Options["UCI_Chess960"], &states->back(), Threads.main());
+    p.set(pos.variant(), pos.fen(), Options["UCI_Chess960"], &states->back(), Threads.main_thread()->worker.get());
 
     Eval::NNUE::verify();
 
@@ -190,7 +191,13 @@ void go(Position&                pos,
             limits.time[BLACK] += byoyomi;
         }
 
-    Threads.start_thinking(pos, states, limits, ponderMode);
+    if (limits.perft)
+    {
+        perft(pos, limits.perft);
+        return;
+    }
+
+    Threads.start_thinking(Options, pos, states, limits, ponderMode);
 }
 
 // bench() is called when engine receives the "bench" command. Firstly
@@ -219,7 +226,7 @@ void bench(Position& pos, istream& args, StateListPtr& states) {
             if (token == "go")
             {
                 go(pos, is, states);
-                Threads.main()->wait_for_search_finished();
+                Threads.main_thread()->wait_for_search_finished();
                 nodes += Threads.nodes_searched();
             }
             else
@@ -326,7 +333,7 @@ void UCI::loop(int argc, char* argv[]) {
     assert(variants.find(Options["UCI_Variant"])->second != nullptr);
     pos.set(variants.find(Options["UCI_Variant"])->second,
             variants.find(Options["UCI_Variant"])->second->startFen, false, &states->back(),
-            Threads.main());
+            Threads.main_thread()->worker.get());
 
     for (int i = 1; i < argc; ++i)
         cmd += std::string(argv[i]) + " ";
@@ -368,7 +375,7 @@ void UCI::loop(int argc, char* argv[]) {
         // has played. The search should continue, but should also switch from pondering
         // to the normal search.
         else if (token == "ponderhit")
-            Threads.main()->ponder = false;  // Switch to the normal search
+            Threads.main_manager()->ponder = false;  // Switch to the normal search
 
         else if (token == "uci" || token == "usi" || token == "ucci" || token == "xboard"
                  || token == "ucicyclone")

@@ -19,6 +19,7 @@
 #ifndef MISC_H_INCLUDED
 #define MISC_H_INCLUDED
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cstddef>
@@ -185,6 +186,19 @@ inline uint64_t mul_hi64(uint64_t a, uint64_t b) {
 // Peter Österlund.
 namespace WinProcGroup {
 void bindThisThread(size_t idx);
+}
+
+namespace Utility {
+
+template<typename T, typename Predicate>
+void move_to_front(std::vector<T>& vec, Predicate pred) {
+    auto it = std::find_if(vec.begin(), vec.end(), pred);
+
+    if (it != vec.end())
+    {
+        std::rotate(vec.begin(), it, it + 1);
+    }
+}
 }
 
 namespace CommandLine {

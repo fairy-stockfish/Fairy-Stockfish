@@ -101,7 +101,11 @@ using StateListPtr = std::unique_ptr<std::deque<StateInfo>>;
 /// pieces, side to move, hash keys, castling info, etc. Important methods are
 /// do_move() and undo_move(), used by the search to update node info when
 /// traversing the search tree.
-class Thread;
+class TranspositionTable;
+
+namespace Search {
+class Worker;
+}
 
 class Position {
    public:
@@ -116,7 +120,7 @@ class Position {
                     const std::string& fenStr,
                     bool               isChess960,
                     StateInfo*         si,
-                    Thread*            th,
+                    Search::Worker*    th,
                     bool               sfen = false);
     Position&   set(const std::string& code, Color c, StateInfo* si);
     std::string fen(bool        sfen         = false,
@@ -314,7 +318,7 @@ class Position {
     void do_move(Move m, StateInfo& newSt);
     void do_move(Move m, StateInfo& newSt, bool givesCheck);
     void undo_move(Move m);
-    void do_null_move(StateInfo& newSt);
+    void do_null_move(StateInfo& newSt, TranspositionTable& tt);
     void undo_null_move();
 
     // Static Exchange Evaluation
@@ -332,7 +336,7 @@ class Position {
     Color    side_to_move() const;
     int      game_ply() const;
     bool     is_chess960() const;
-    Thread*  this_thread() const;
+    Search::Worker* this_thread() const;
     bool     is_immediate_game_end() const;
     bool     is_immediate_game_end(Value& result, int ply = 0) const;
     bool     is_optional_game_end() const;
@@ -387,7 +391,6 @@ class Position {
     int        castlingRightsMask[SQUARE_NB];
     Square     castlingRookSquare[CASTLING_RIGHT_NB];
     Bitboard   castlingPath[CASTLING_RIGHT_NB];
-    Thread*    thisThread;
     StateInfo* st;
     int        gamePly;
     Color      sideToMove;
@@ -395,6 +398,7 @@ class Position {
 
     // variant-specific
     const Variant* var;
+    Search::Worker* thisThread;
     bool           tsumeMode;
     bool           chess960;
     int            pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
@@ -1264,13 +1268,11 @@ inline CastlingRights Position::castling_rights(Color c) const {
 
 inline bool Position::castling_impeded(CastlingRights cr) const {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-
     return pieces() & castlingPath[cr];
 }
 
 inline Square Position::castling_rook_square(CastlingRights cr) const {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-
     return castlingRookSquare[cr];
 }
 
@@ -1494,7 +1496,7 @@ inline const std::string Position::piece_to_partner() const {
     return std::string(1, piece_to_char()[piece]);
 }
 
-inline Thread* Position::this_thread() const { return thisThread; }
+inline Search::Worker* Position::this_thread() const { return thisThread; }
 
 inline void Position::put_piece(Piece pc, Square s, bool isPromoted, Piece unpromotedPc) {
 

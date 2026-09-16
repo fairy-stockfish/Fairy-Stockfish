@@ -20,14 +20,32 @@
 #define TBPROBE_H
 
 #include <string>
+#include <vector>
 
-#include "../search.h"
 
 namespace Stockfish {
 class Position;
+namespace UCI {
+struct OptionsMap;
+}
+using UCI::OptionsMap;
+
+using Depth = int;
+
+namespace Search {
+struct RootMove;
+using RootMoves = std::vector<RootMove>;
+}
 }
 
 namespace Stockfish::Tablebases {
+
+struct Config {
+    int   cardinality = 0;
+    bool  rootInTB    = false;
+    bool  useRule50   = false;
+    Depth probeDepth  = 0;
+};
 
 enum WDLScore {
     WDLLoss        = -2,  // Loss
@@ -47,12 +65,13 @@ enum ProbeState {
 
 extern int MaxCardinality;
 
+
 void     init(const std::string& paths);
 WDLScore probe_wdl(Position& pos, ProbeState* result);
 int      probe_dtz(Position& pos, ProbeState* result);
-bool     root_probe(Position& pos, Search::RootMoves& rootMoves);
-bool     root_probe_wdl(Position& pos, Search::RootMoves& rootMoves);
-void     rank_root_moves(Position& pos, Search::RootMoves& rootMoves);
+bool     root_probe(Position& pos, Search::RootMoves& rootMoves, bool rule50);
+bool     root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool rule50);
+Config   rank_root_moves(const OptionsMap& options, Position& pos, Search::RootMoves& rootMoves);
 
 }  // namespace Stockfish::Tablebases
 

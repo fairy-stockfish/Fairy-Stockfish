@@ -26,6 +26,7 @@
 #include "thread.h"
 #include "types.h"
 #include "uci.h"
+#include "perft.h"
 #include "xboard.h"
 
 namespace Stockfish {
@@ -50,7 +51,7 @@ void StateMachine::go(Search::LimitsType searchLimits, bool ponder) {
 
     searchLimits.startTime = now();  // As early as possible!
 
-    Threads.start_thinking(pos, states, searchLimits, ponder);
+    Threads.start_thinking(Options, pos, states, searchLimits, ponder);
 }
 
 // ponder() starts a ponder search
@@ -72,13 +73,13 @@ void StateMachine::stop(bool abort) {
     if (abort)
         Threads.abort = true;
     Threads.stop = true;
-    Threads.main()->wait_for_search_finished();
+    Threads.main_thread()->wait_for_search_finished();
     // Ensure that current position does not get out of sync with GUI
-    if (Threads.main()->ponder)
+    if (Threads.main_manager()->ponder)
     {
         assert(moveList.size());
         undo_move();
-        Threads.main()->ponder = false;
+        Threads.main_manager()->ponder = false;
     }
 }
 
@@ -92,7 +93,7 @@ void StateMachine::setboard(std::string fen) {
     states = StateListPtr(new std::deque<StateInfo>(1));  // Drop old and create a new one
     moveList.clear();
     pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"],
-            &states->back(), Threads.main());
+            &states->back(), Threads.main_thread()->worker.get());
 }
 
 // do_move() is called when engine needs to apply a move when using XBoard protocol.
@@ -195,7 +196,7 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
     {
         if (is >> token)
         {
-            if (Threads.main()->ponder)
+            if (Threads.main_manager()->ponder)
             {
                 if (token == UCI::square(pos, from_sq(moveList.back())))
                     sync_cout << "highlight " << ponderHighlight << sync_endl;
@@ -255,7 +256,7 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
     }
     else if (token == "?")
     {
-        if (!Threads.main()->ponder)
+        if (!Threads.main_manager()->ponder)
             stop(false);
     }
     else if (token == "go")
@@ -452,9 +453,9 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
     else if (token == "perft")
     {
         stop();
-        Search::LimitsType perft_limits;
-        is >> perft_limits.perft;
-        go(perft_limits);
+        Depth depth;
+        is >> depth;
+        perft(pos, depth);
     }
     else if (token == "d")
         sync_cout << pos << sync_endl;
@@ -472,14 +473,14 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
         }
 
         // Handle pondering
-        if (Threads.main()->ponder)
+        if (Threads.main_manager()->ponder)
         {
             assert(moveList.size());
             if (token == UCI::move(pos, moveList.back()))
             {
                 // ponderhit
                 moveAfterSearch        = true;
-                Threads.main()->ponder = false;
+                Threads.main_manager()->ponder = false;
                 return;
             }
         }

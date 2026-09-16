@@ -1,8 +1,8 @@
 name: Stockfish
 on:
   push:
-    tags:        
-      - '*' 
+    tags:
+      - "*"
     branches:
       - master
       - tools

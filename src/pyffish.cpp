@@ -36,7 +36,7 @@ void buildPosition(Position&     pos,
     UCI::init_variant(v);
     if (strcmp(fen, "startpos") == 0)
         fen = v->startFen.c_str();
-    pos.set(v, std::string(fen), chess960, &states->back(), Threads.main());
+    pos.set(v, std::string(fen), chess960, &states->back(), Threads.main_thread()->worker.get());
 
     // parse move list
     int numMoves = PyList_Size(moveList);
@@ -521,8 +521,7 @@ PyMODINIT_FUNC PyInit__pyffish() {
     Bitboards::init();
     Position::init();
     Bitbases::init();
-    Search::init();
-    Threads.set(Options["Threads"]);
+    Threads.set(Search::SharedState(Options, Threads, TT));
     Search::clear();  // After threads are up
 
     return module;

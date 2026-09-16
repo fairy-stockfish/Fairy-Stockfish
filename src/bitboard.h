@@ -296,7 +296,6 @@ constexpr Bitboard adjacent_files_bb(Square s) {
 inline Bitboard line_bb(Square s1, Square s2) {
 
     assert(is_ok(s1) && is_ok(s2));
-
     return LineBB[s1][s2];
 }
 
@@ -311,7 +310,6 @@ inline Bitboard line_bb(Square s1, Square s2) {
 inline Bitboard between_bb(Square s1, Square s2) {
 
     assert(is_ok(s1) && is_ok(s2));
-
     return BetweenBB[s1][s2];
 }
 

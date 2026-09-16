@@ -190,8 +190,8 @@ void Position::init() {
         Zobrist::endgame[i] = rng.rand<Key>();
 
     // Prepare the cuckoo tables
-    std::memset(cuckoo, 0, sizeof(cuckoo));
-    std::memset(cuckooMove, 0, sizeof(cuckooMove));
+    std::fill(std::begin(cuckoo), std::end(cuckoo), 0);
+    std::fill(std::begin(cuckooMove), std::end(cuckooMove), Move::none());
     [[maybe_unused]] int count = 0;
     for (Color c : {WHITE, BLACK})
         for (PieceSet ps = CHESS_PIECES & ~piece_set(PAWN); ps;)
@@ -231,7 +231,7 @@ Key Position::material_key(EndgameEval e) const { return st->materialKey ^ Zobri
 /// this is assumed to be the responsibility of the GUI.
 
 Position& Position::set(
-  const Variant* v, const string& fenStr, bool isChess960, StateInfo* si, Thread* th, bool sfen) {
+  const Variant* v, const string& fenStr, bool isChess960, StateInfo* si, Search::Worker* th, bool sfen) {
     /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -1617,9 +1617,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
     assert(m.is_ok());
     assert(&newSt != st);
 
-#ifndef NO_THREADS
-    thisThread->nodes.fetch_add(1, std::memory_order_relaxed);
-#endif
     Key k = st->key ^ Zobrist::side;
 
     // Copy some fields of the old state to our new StateInfo object except the
@@ -2419,7 +2416,7 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
 
 // Used to do a "null move": it flips
 // the side to move without executing any move on the board.
-void Position::do_null_move(StateInfo& newSt) {
+void Position::do_null_move(StateInfo& newSt, TranspositionTable& tt) {
 
     assert(!checkers());
     assert(&newSt != st);
@@ -2439,7 +2436,7 @@ void Position::do_null_move(StateInfo& newSt) {
 
     st->key ^= Zobrist::side;
     ++st->rule50;
-    prefetch(TT.first_entry(key()));
+    prefetch(tt.first_entry(key()));
 
     st->pliesFromNull = 0;
 
