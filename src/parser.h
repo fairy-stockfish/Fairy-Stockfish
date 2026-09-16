@@ -25,35 +25,37 @@
 
 namespace Stockfish {
 
-class Config : public std::map<std::string, std::string> {
-public:
-    Config::iterator find (const std::string& s) {
-        constexpr bool PrintOptions = false; // print config options?
+class Config: public std::map<std::string, std::string> {
+   public:
+    Config::iterator find(const std::string& s) {
+        constexpr bool PrintOptions = false;  // print config options?
         if (PrintOptions)
             std::cout << s << std::endl;
         consumedKeys.insert(s);
         return std::map<std::string, std::string>::find(s);
     }
-    const std::set<std::string>& get_consumed_keys() {
-        return consumedKeys;
-    }
-private:
+    const std::set<std::string>& get_consumed_keys() { return consumedKeys; }
+
+   private:
     std::set<std::string> consumedKeys = {};
 };
 
-template <bool DoCheck>
+template<bool DoCheck>
 class VariantParser {
-public:
-    VariantParser(const Config& c) : config (c) {};
+   public:
+    VariantParser(const Config& c) :
+        config(c){};
     Variant* parse();
     Variant* parse(Variant* v);
 
-private:
+   private:
     Config config;
-    template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target);
-    template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target, std::string pieceToChar);
+    template<bool Current = true, class T>
+    bool parse_attribute(const std::string& key, T& target);
+    template<bool Current = true, class T>
+    bool parse_attribute(const std::string& key, T& target, std::string pieceToChar);
 };
 
-} // namespace Stockfish
+}  // namespace Stockfish
 
-#endif // #ifndef PARSER_H_INCLUDED
+#endif  // #ifndef PARSER_H_INCLUDED

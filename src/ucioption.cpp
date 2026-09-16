@@ -36,21 +36,20 @@ using std::string;
 
 namespace Stockfish {
 
-UCI::OptionsMap Options; // Global object
+UCI::OptionsMap Options;  // Global object
 
 namespace PSQT {
-  void init(const Variant* v);
+void init(const Variant* v);
 }
 
 namespace UCI {
 
 // standard variants of XBoard/WinBoard
 std::set<string> standard_variants = {
-    "normal", "nocastle", "fischerandom", "knightmate", "3check", "makruk", "shatranj",
-    "asean", "seirawan", "crazyhouse", "bughouse", "suicide", "giveaway", "losers", "atomic",
-    "capablanca", "gothic", "janus", "caparandom", "grand", "shogi", "xiangqi", "duck",
-    "berolina", "spartan"
-};
+  "normal",  "nocastle",   "fischerandom", "knightmate", "3check",     "makruk",   "shatranj",
+  "asean",   "seirawan",   "crazyhouse",   "bughouse",   "suicide",    "giveaway", "losers",
+  "atomic",  "capablanca", "gothic",       "janus",      "caparandom", "grand",    "shogi",
+  "xiangqi", "duck",       "berolina",     "spartan"};
 
 void init_variant(const Variant* v) {
     pieceMap.init(v);
@@ -67,15 +66,15 @@ static void on_use_NNUE(const Option&) { Eval::NNUE::init(); }
 static void on_eval_file(const Option&) { Eval::NNUE::init(); }
 
 void on_variant_path(const Option& o) {
-    std::stringstream ss((std::string)o);
-    std::string path;
+    std::stringstream ss((std::string) o);
+    std::string       path;
 
     while (std::getline(ss, path, SepChar))
         variants.parse<false>(path);
 
     Options["UCI_Variant"].set_combo(variants.get_keys());
 }
-void on_variant_set(const Option &o) {
+void on_variant_set(const Option& o) {
     // Re-initialize NNUE
     Eval::NNUE::init();
 
@@ -83,7 +82,7 @@ void on_variant_set(const Option &o) {
     init_variant(v);
     PSQT::init(v);
 }
-void on_variant_change(const Option &o) {
+void on_variant_change(const Option& o) {
     // Variant initialization
     on_variant_set(o);
 
@@ -96,8 +95,7 @@ void on_variant_change(const Option &o) {
     {
         // Overwrite setup command for Janggi variants
         auto itJanggi = variants.find("janggi");
-        if (   itJanggi != variants.end()
-            && v->variantTemplate == itJanggi->second->variantTemplate
+        if (itJanggi != variants.end() && v->variantTemplate == itJanggi->second->variantTemplate
             && v->startFen == itJanggi->second->startFen
             && v->pieceToCharTable == itJanggi->second->pieceToCharTable)
         {
@@ -107,20 +105,18 @@ void on_variant_change(const Option &o) {
             return;
         }
         // Send setup command
-        sync_cout << "setup (" << v->pieceToCharTable << ") "
-                  << v->maxFile + 1 << "x" << v->maxRank + 1
-                  << "+" << pocketsize << "_" << v->variantTemplate
-                  << " " << v->startFen
-                  << sync_endl;
+        sync_cout << "setup (" << v->pieceToCharTable << ") " << v->maxFile + 1 << "x"
+                  << v->maxRank + 1 << "+" << pocketsize << "_" << v->variantTemplate << " "
+                  << v->startFen << sync_endl;
         // Send piece command with Betza notation
         // https://www.gnu.org/software/xboard/Betza.html
         for (PieceSet ps = v->pieceTypes; ps;)
         {
-            PieceType pt = pop_lsb(ps);
-            string suffix =   pt == PAWN && v->doubleStep     ? "ifmnD"
-                            : pt == KING && v->cambodianMoves ? "ismN"
-                            : pt == FERS && v->cambodianMoves ? "ifD"
-                                                              : "";
+            PieceType pt     = pop_lsb(ps);
+            string    suffix = pt == PAWN && v->doubleStep     ? "ifmnD"
+                             : pt == KING && v->cambodianMoves ? "ismN"
+                             : pt == FERS && v->cambodianMoves ? "ifD"
+                                                               : "";
             // Janggi palace moves
             if (v->diagonalLines)
             {
@@ -136,7 +132,8 @@ void on_variant_change(const Option &o) {
             }
             // Castling
             if (pt == KING && v->castling)
-                 suffix += "O" + std::to_string((v->castlingKingsideFile - v->castlingQueensideFile) / 2);
+                suffix +=
+                  "O" + std::to_string((v->castlingKingsideFile - v->castlingQueensideFile) / 2);
             // Drop region
             if (v->pieceDrops)
             {
@@ -146,30 +143,33 @@ void on_variant_change(const Option &o) {
                     suffix += std::string(v->dropNoDoubledCount, 'f');
                 else if (pt == BISHOP && v->dropOppositeColoredBishop)
                     suffix += "s";
-                suffix += "@" + std::to_string(pt == PAWN && !v->promotionZonePawnDrops && v->promotionRegion[WHITE] ? rank_of(lsb(v->promotionRegion[WHITE])) : v->maxRank + 1);
+                suffix += "@"
+                        + std::to_string(pt == PAWN && !v->promotionZonePawnDrops
+                                             && v->promotionRegion[WHITE]
+                                           ? rank_of(lsb(v->promotionRegion[WHITE]))
+                                           : v->maxRank + 1);
             }
-            sync_cout << "piece " << v->pieceToChar[pt] << "& " << pieceMap.find(pt == KING ? v->kingType : pt)->second->betza << suffix << sync_endl;
+            sync_cout << "piece " << v->pieceToChar[pt] << "& "
+                      << pieceMap.find(pt == KING ? v->kingType : pt)->second->betza << suffix
+                      << sync_endl;
             PieceType promType = v->promotedPieceType[pt];
             if (promType)
-                sync_cout << "piece +" << v->pieceToChar[pt] << "& " << pieceMap.find(promType)->second->betza << sync_endl;
+                sync_cout << "piece +" << v->pieceToChar[pt] << "& "
+                          << pieceMap.find(promType)->second->betza << sync_endl;
         }
     }
     else
-        sync_cout << "info string variant " << (std::string)o
-                << " files " << v->maxFile + 1
-                << " ranks " << v->maxRank + 1
-                << " pocket " << pocketsize
-                << " template " << v->variantTemplate
-                << " startpos " << v->startFen
-                << sync_endl;
+        sync_cout << "info string variant " << (std::string) o << " files " << v->maxFile + 1
+                  << " ranks " << v->maxRank + 1 << " pocket " << pocketsize << " template "
+                  << v->variantTemplate << " startpos " << v->startFen << sync_endl;
 }
 
 
 /// Our case insensitive less() function as required by UCI protocol
-bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const {
+bool CaseInsensitiveLess::operator()(const string& s1, const string& s2) const {
 
-  return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
-         [](char c1, char c2) { return tolower(c1) < tolower(c2); });
+    return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
+                                        [](char c1, char c2) { return tolower(c1) < tolower(c2); });
 }
 
 
@@ -177,37 +177,37 @@ bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
 
 void init(OptionsMap& o) {
 
-  constexpr int MaxHashMB = Is64Bit ? 33554432 : 2048;
+    constexpr int MaxHashMB = Is64Bit ? 33554432 : 2048;
 
-  o["Debug Log File"]        << Option("", on_logger);
-  o["Threads"]               << Option(1, 1, 1024, on_threads);
-  o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);
-  o["Clear Hash"]            << Option(on_clear_hash);
-  o["Ponder"]                << Option(false);
-  o["MultiPV"]               << Option(1, 1, 500);
-  o["Skill Level"]           << Option(20, -20, 20);
-  o["Move Overhead"]         << Option(10, 0, 5000);
-  o["Slow Mover"]            << Option(100, 10, 1000);
-  o["nodestime"]             << Option(0, 0, 10000);
-  o["UCI_Chess960"]          << Option(false);
-  o["UCI_Variant"]           << Option("chess", variants.get_keys(), on_variant_change);
-  o["UCI_AnalyseMode"]       << Option(false);
-  o["UCI_LimitStrength"]     << Option(false);
-  o["UCI_Elo"]               << Option(1350, 500, 2850);
-  o["UCI_ShowWDL"]           << Option(false);
-  o["SyzygyPath"]            << Option("<empty>", on_tb_path);
-  o["SyzygyProbeDepth"]      << Option(1, 1, 100);
-  o["Syzygy50MoveRule"]      << Option(true);
-  o["SyzygyProbeLimit"]      << Option(7, 0, 7);
-  o["Use NNUE"]              << Option(true, on_use_NNUE);
+    o["Debug Log File"] << Option("", on_logger);
+    o["Threads"] << Option(1, 1, 1024, on_threads);
+    o["Hash"] << Option(16, 1, MaxHashMB, on_hash_size);
+    o["Clear Hash"] << Option(on_clear_hash);
+    o["Ponder"] << Option(false);
+    o["MultiPV"] << Option(1, 1, 500);
+    o["Skill Level"] << Option(20, -20, 20);
+    o["Move Overhead"] << Option(10, 0, 5000);
+    o["Slow Mover"] << Option(100, 10, 1000);
+    o["nodestime"] << Option(0, 0, 10000);
+    o["UCI_Chess960"] << Option(false);
+    o["UCI_Variant"] << Option("chess", variants.get_keys(), on_variant_change);
+    o["UCI_AnalyseMode"] << Option(false);
+    o["UCI_LimitStrength"] << Option(false);
+    o["UCI_Elo"] << Option(1350, 500, 2850);
+    o["UCI_ShowWDL"] << Option(false);
+    o["SyzygyPath"] << Option("<empty>", on_tb_path);
+    o["SyzygyProbeDepth"] << Option(1, 1, 100);
+    o["Syzygy50MoveRule"] << Option(true);
+    o["SyzygyProbeLimit"] << Option(7, 0, 7);
+    o["Use NNUE"] << Option(true, on_use_NNUE);
 #ifndef NNUE_EMBEDDING_OFF
-  o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
+    o["EvalFile"] << Option(EvalFileDefaultName, on_eval_file);
 #else
-  o["EvalFile"]              << Option("<empty>", on_eval_file);
+    o["EvalFile"] << Option("<empty>", on_eval_file);
 #endif
-  o["TsumeMode"]             << Option(false);
-  o["VariantPath"]           << Option("<empty>", on_variant_path);
-  o["usemillisec"]           << Option(true); // time unit for UCCI
+    o["TsumeMode"] << Option(false);
+    o["VariantPath"] << Option("<empty>", on_variant_path);
+    o["usemillisec"] << Option(true);  // time unit for UCCI
 }
 
 
@@ -216,110 +216,138 @@ void init(OptionsMap& o) {
 
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
-  if (CurrentProtocol == XBOARD)
-  {
-      for (size_t idx = 0; idx < om.size(); ++idx)
-          for (const auto& it : om)
-              if (it.second.idx == idx && it.first != "UCI_Variant" && it.first != "Threads" && it.first != "Hash")
-              {
-                  const Option& o = it.second;
-                  os << "\nfeature option=\"" << it.first << " -" << o.type;
+    if (CurrentProtocol == XBOARD)
+    {
+        for (size_t idx = 0; idx < om.size(); ++idx)
+            for (const auto& it : om)
+                if (it.second.idx == idx && it.first != "UCI_Variant" && it.first != "Threads"
+                    && it.first != "Hash")
+                {
+                    const Option& o = it.second;
+                    os << "\nfeature option=\"" << it.first << " -" << o.type;
 
-                  if (o.type == "string" || o.type == "combo")
-                      os << " " << o.defaultValue;
-                  else if (o.type == "check")
-                      os << " " << int(o.defaultValue == "true");
+                    if (o.type == "string" || o.type == "combo")
+                        os << " " << o.defaultValue;
+                    else if (o.type == "check")
+                        os << " " << int(o.defaultValue == "true");
 
-                  if (o.type == "combo")
-                      for (string value : o.comboValues)
-                          if (value != o.defaultValue)
-                              os << " /// " << value;
+                    if (o.type == "combo")
+                        for (string value : o.comboValues)
+                            if (value != o.defaultValue)
+                                os << " /// " << value;
 
-                  if (o.type == "spin")
-                      os << " " << int(stof(o.defaultValue))
-                         << " " << o.min
-                         << " " << o.max;
+                    if (o.type == "spin")
+                        os << " " << int(stof(o.defaultValue)) << " " << o.min << " " << o.max;
 
-                  os << "\"";
+                    os << "\"";
 
-                  break;
-              }
-  }
-  else
+                    break;
+                }
+    }
+    else
 
-  for (size_t idx = 0; idx < om.size(); ++idx)
-      for (const auto& it : om)
-          if (it.second.idx == idx)
-          {
-              const Option& o = it.second;
-              // UCI dialects do not allow spaces
-              if (CurrentProtocol == UCCI || CurrentProtocol == USI)
-              {
-                  string name = option_name(it.first);
-                  // UCCI skips "name"
-                  os << "\noption " << (CurrentProtocol == UCCI ? "" : "name ") << name << " type " << o.type;
-              }
-              else
-                  os << "\noption name " << it.first << " type " << o.type;
+        for (size_t idx = 0; idx < om.size(); ++idx)
+            for (const auto& it : om)
+                if (it.second.idx == idx)
+                {
+                    const Option& o = it.second;
+                    // UCI dialects do not allow spaces
+                    if (CurrentProtocol == UCCI || CurrentProtocol == USI)
+                    {
+                        string name = option_name(it.first);
+                        // UCCI skips "name"
+                        os << "\noption " << (CurrentProtocol == UCCI ? "" : "name ") << name
+                           << " type " << o.type;
+                    }
+                    else
+                        os << "\noption name " << it.first << " type " << o.type;
 
-              if (o.type == "string" || o.type == "check" || o.type == "combo")
-                  os << " default " << o.defaultValue;
+                    if (o.type == "string" || o.type == "check" || o.type == "combo")
+                        os << " default " << o.defaultValue;
 
-              if (o.type == "combo")
-                  for (string value : o.comboValues)
-                      os << " var " << value;
+                    if (o.type == "combo")
+                        for (string value : o.comboValues)
+                            os << " var " << value;
 
-              if (o.type == "spin")
-                  os << " default " << int(stof(o.defaultValue))
-                     << " min "     << o.min
-                     << " max "     << o.max;
+                    if (o.type == "spin")
+                        os << " default " << int(stof(o.defaultValue)) << " min " << o.min
+                           << " max " << o.max;
 
-              break;
-          }
+                    break;
+                }
 
-  return os;
+    return os;
 }
 
 
 /// Option class constructors and conversion operators
 
-Option::Option(const char* v, OnChange f) : type("string"), min(0), max(0), on_change(f)
-{ defaultValue = currentValue = v; }
+Option::Option(const char* v, OnChange f) :
+    type("string"),
+    min(0),
+    max(0),
+    on_change(f) {
+    defaultValue = currentValue = v;
+}
 
-Option::Option(const char* v, const std::vector<std::string>& values, OnChange f) : type("combo"), min(0), max(0), comboValues(values), on_change(f)
-{ defaultValue = currentValue = v; }
+Option::Option(const char* v, const std::vector<std::string>& values, OnChange f) :
+    type("combo"),
+    min(0),
+    max(0),
+    comboValues(values),
+    on_change(f) {
+    defaultValue = currentValue = v;
+}
 
-Option::Option(bool v, OnChange f) : type("check"), min(0), max(0), on_change(f)
-{ defaultValue = currentValue = (v ? "true" : "false"); }
+Option::Option(bool v, OnChange f) :
+    type("check"),
+    min(0),
+    max(0),
+    on_change(f) {
+    defaultValue = currentValue = (v ? "true" : "false");
+}
 
-Option::Option(OnChange f) : type("button"), min(0), max(0), on_change(f)
-{}
+Option::Option(OnChange f) :
+    type("button"),
+    min(0),
+    max(0),
+    on_change(f) {}
 
-Option::Option(double v, int minv, int maxv, OnChange f) : type("spin"), min(minv), max(maxv), on_change(f)
-{ defaultValue = currentValue = std::to_string(v); }
+Option::Option(double v, int minv, int maxv, OnChange f) :
+    type("spin"),
+    min(minv),
+    max(maxv),
+    on_change(f) {
+    defaultValue = currentValue = std::to_string(v);
+}
 
-Option::Option(const char* v, const char* cur, OnChange f) : type("combo"), min(0), max(0), on_change(f)
-{ defaultValue = v; currentValue = cur; }
+Option::Option(const char* v, const char* cur, OnChange f) :
+    type("combo"),
+    min(0),
+    max(0),
+    on_change(f) {
+    defaultValue = v;
+    currentValue = cur;
+}
 
 Option::operator int() const {
-  assert(type == "check" || type == "spin");
-  return (type == "spin" ? std::stoi(currentValue) : currentValue == "true");
+    assert(type == "check" || type == "spin");
+    return (type == "spin" ? std::stoi(currentValue) : currentValue == "true");
 }
 
 Option::operator std::string() const {
-  assert(type == "string" || type == "combo");
-  return currentValue;
+    assert(type == "string" || type == "combo");
+    return currentValue;
 }
 
 bool Option::operator==(const char* s) const {
-  assert(type == "combo");
-  return   !CaseInsensitiveLess()(currentValue, s)
-        && !CaseInsensitiveLess()(s, currentValue);
+    assert(type == "combo");
+    return !CaseInsensitiveLess()(currentValue, s) && !CaseInsensitiveLess()(s, currentValue);
 }
 
 bool Option::operator!=(const char* s) const {
-  assert(type == "combo");
-  return !(*this == s);
+    assert(type == "combo");
+    return !(*this == s);
 }
 
 
@@ -327,10 +355,10 @@ bool Option::operator!=(const char* s) const {
 
 void Option::operator<<(const Option& o) {
 
-  static size_t insert_order = 0;
+    static size_t insert_order = 0;
 
-  *this = o;
-  idx = insert_order++;
+    *this = o;
+    idx   = insert_order++;
 }
 
 
@@ -340,35 +368,34 @@ void Option::operator<<(const Option& o) {
 
 Option& Option::operator=(const string& v) {
 
-  assert(!type.empty());
+    assert(!type.empty());
 
-  if (   (type != "button" && type != "string" && v.empty())
-      || (type == "check" && v != "true" && v != "false")
-      || (type == "combo" && (std::find(comboValues.begin(), comboValues.end(), v) == comboValues.end()))
-      || (type == "spin" && (stof(v) < min || stof(v) > max)))
-      return *this;
+    if ((type != "button" && type != "string" && v.empty())
+        || (type == "check" && v != "true" && v != "false")
+        || (type == "combo"
+            && (std::find(comboValues.begin(), comboValues.end(), v) == comboValues.end()))
+        || (type == "spin" && (stof(v) < min || stof(v) > max)))
+        return *this;
 
-  if (type == "combo")
-  {
-      OptionsMap comboMap; // To have case insensitive compare
-      for (string token : comboValues)
-          comboMap[token] << Option();
-      if (!comboMap.count(v) || v == "var")
-          return *this;
-  }
+    if (type == "combo")
+    {
+        OptionsMap comboMap;  // To have case insensitive compare
+        for (string token : comboValues)
+            comboMap[token] << Option();
+        if (!comboMap.count(v) || v == "var")
+            return *this;
+    }
 
-  if (type != "button")
-      currentValue = v;
+    if (type != "button")
+        currentValue = v;
 
-  if (on_change)
-      on_change(*this);
+    if (on_change)
+        on_change(*this);
 
-  return *this;
+    return *this;
 }
 
-void Option::set_combo(std::vector<std::string> newComboValues) {
-    comboValues = newComboValues;
-}
+void Option::set_combo(std::vector<std::string> newComboValues) { comboValues = newComboValues; }
 
 void Option::set_default(std::string newDefault) {
     defaultValue = currentValue = newDefault;
@@ -379,10 +406,8 @@ void Option::set_default(std::string newDefault) {
         (on_change == on_variant_change ? on_variant_set : on_change)(*this);
 }
 
-const std::string Option::get_type() const {
-    return type;
-}
+const std::string Option::get_type() const { return type; }
 
-} // namespace UCI
+}  // namespace UCI
 
-} // namespace Stockfish
+}  // namespace Stockfish

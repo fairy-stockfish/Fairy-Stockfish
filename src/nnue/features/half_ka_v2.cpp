@@ -24,67 +24,53 @@
 
 namespace Stockfish::Eval::NNUE::Features {
 
-  // Map square to numbering on 8x8 board
-  constexpr Square to_chess_square(Square s) {
-    return Square(s - rank_of(s) * (FILE_MAX - FILE_H));
-  }
+// Map square to numbering on 8x8 board
+constexpr Square to_chess_square(Square s) { return Square(s - rank_of(s) * (FILE_MAX - FILE_H)); }
 
-  // Orient a square according to perspective (rotates by 180 for black)
-  inline Square HalfKAv2::orient(Color perspective, Square s) {
+// Orient a square according to perspective (rotates by 180 for black)
+inline Square HalfKAv2::orient(Color perspective, Square s) {
     return Square(int(to_chess_square(s)) ^ (bool(perspective) * 56));
-  }
+}
 
-  // Index of a feature for a given king position and another piece on some square
-  inline IndexType HalfKAv2::make_index(Color perspective, Square s, Piece pc, Square ksq) {
+// Index of a feature for a given king position and another piece on some square
+inline IndexType HalfKAv2::make_index(Color perspective, Square s, Piece pc, Square ksq) {
     return IndexType(orient(perspective, s) + PieceSquareIndex[perspective][pc] + PS_NB * ksq);
-  }
+}
 
-  // Get a list of indices for active features
-  void HalfKAv2::append_active_indices(
-    const Position& pos,
-    Color perspective,
-    IndexList& active
-  ) {
-    Square ksq = orient(perspective, pos.square<KING>(perspective));
-    Bitboard bb = pos.pieces();
+// Get a list of indices for active features
+void HalfKAv2::append_active_indices(const Position& pos, Color perspective, IndexList& active) {
+    Square   ksq = orient(perspective, pos.square<KING>(perspective));
+    Bitboard bb  = pos.pieces();
     while (bb)
     {
-      Square s = pop_lsb(bb);
-      active.push_back(make_index(perspective, s, pos.piece_on(s), ksq));
+        Square s = pop_lsb(bb);
+        active.push_back(make_index(perspective, s, pos.piece_on(s), ksq));
     }
-  }
+}
 
 
-  // append_changed_indices() : get a list of indices for recently changed features
+// append_changed_indices() : get a list of indices for recently changed features
 
-  void HalfKAv2::append_changed_indices(
-    Square ksq,
-    StateInfo* st,
-    Color perspective,
-    IndexList& removed,
-    IndexList& added
-  ) {
-    const auto& dp = st->dirtyPiece;
-    Square oriented_ksq = orient(perspective, ksq);
-    for (int i = 0; i < dp.dirty_num; ++i) {
-      Piece pc = dp.piece[i];
-      if (dp.from[i] != SQ_NONE)
-        removed.push_back(make_index(perspective, dp.from[i], pc, oriented_ksq));
-      if (dp.to[i] != SQ_NONE)
-        added.push_back(make_index(perspective, dp.to[i], pc, oriented_ksq));
+void HalfKAv2::append_changed_indices(
+  Square ksq, StateInfo* st, Color perspective, IndexList& removed, IndexList& added) {
+    const auto& dp           = st->dirtyPiece;
+    Square      oriented_ksq = orient(perspective, ksq);
+    for (int i = 0; i < dp.dirty_num; ++i)
+    {
+        Piece pc = dp.piece[i];
+        if (dp.from[i] != SQ_NONE)
+            removed.push_back(make_index(perspective, dp.from[i], pc, oriented_ksq));
+        if (dp.to[i] != SQ_NONE)
+            added.push_back(make_index(perspective, dp.to[i], pc, oriented_ksq));
     }
-  }
+}
 
-  int HalfKAv2::update_cost(StateInfo* st) {
-    return st->dirtyPiece.dirty_num;
-  }
+int HalfKAv2::update_cost(StateInfo* st) { return st->dirtyPiece.dirty_num; }
 
-  int HalfKAv2::refresh_cost(const Position& pos) {
-    return pos.count<ALL_PIECES>();
-  }
+int HalfKAv2::refresh_cost(const Position& pos) { return pos.count<ALL_PIECES>(); }
 
-  bool HalfKAv2::requires_refresh(StateInfo* st, Color perspective) {
+bool HalfKAv2::requires_refresh(StateInfo* st, Color perspective) {
     return st->dirtyPiece.piece[0] == make_piece(perspective, KING);
-  }
+}
 
 }  // namespace Stockfish::Eval::NNUE::Features

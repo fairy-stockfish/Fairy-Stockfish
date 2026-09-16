@@ -29,23 +29,25 @@
 #include "half_ka_v2.h"
 
 namespace Stockfish {
-  struct StateInfo;
+struct StateInfo;
 }
 
 namespace Stockfish::Eval::NNUE::Features {
 
-  // Feature HalfKAv2: Combination of the position of own king
-  // and the position of pieces
-  class HalfKAv2Variants {
+// Feature HalfKAv2: Combination of the position of own king
+// and the position of pieces
+class HalfKAv2Variants {
 
     // Orient a square according to perspective (rotates by 180 for black)
     static Square orient(Color perspective, Square s, const Position& pos);
 
     // Index of a feature for a given king position and another piece on some square
-    static IndexType make_index(Color perspective, Square s, Piece pc, Square ksq, const Position& pos);
+    static IndexType
+    make_index(Color perspective, Square s, Piece pc, Square ksq, const Position& pos);
 
     // Index of a feature for a given king position and another piece in hand
-    static IndexType make_index(Color perspective, int handCount, Piece pc, Square ksq, const Position& pos);
+    static IndexType
+    make_index(Color perspective, int handCount, Piece pc, Square ksq, const Position& pos);
 
    public:
     // Feature name
@@ -55,11 +57,10 @@ namespace Stockfish::Eval::NNUE::Features {
     static constexpr std::uint32_t HashValue = 0x5f234cb8u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(SQUARE_NB) * 19;
+    static constexpr IndexType Dimensions =
+      static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(SQUARE_NB) * 19;
 
-    static IndexType get_dimensions() {
-      return currentNnueVariant->nnueDimensions;
-    }
+    static IndexType get_dimensions() { return currentNnueVariant->nnueDimensions; }
 
     // Maximum number of simultaneously active features.
     static constexpr IndexType MaxActiveDimensions = 128;
@@ -67,19 +68,15 @@ namespace Stockfish::Eval::NNUE::Features {
     using IndexList = ValueList<IndexType, MaxActiveDimensions>;
 
     // Get a list of indices for active features
-    static void append_active_indices(
-      const Position& pos,
-      Color perspective,
-      IndexList& active);
+    static void append_active_indices(const Position& pos, Color perspective, IndexList& active);
 
     // Get a list of indices for recently changed features
-    static void append_changed_indices(
-      Square ksq,
-      StateInfo* st,
-      Color perspective,
-      IndexList& removed,
-      IndexList& added,
-      const Position& pos);
+    static void append_changed_indices(Square          ksq,
+                                       StateInfo*      st,
+                                       Color           perspective,
+                                       IndexList&      removed,
+                                       IndexList&      added,
+                                       const Position& pos);
 
     // Returns the cost of updating one perspective, the most costly one.
     // Assumes no refresh needed.
@@ -89,8 +86,8 @@ namespace Stockfish::Eval::NNUE::Features {
     // Returns whether the change stored in this StateInfo means that
     // a full accumulator refresh is required.
     static bool requires_refresh(StateInfo* st, Color perspective, const Position& pos);
-  };
+};
 
 }  // namespace Stockfish::Eval::NNUE::Features
 
-#endif // #ifndef NNUE_FEATURES_HALF_KA_V2_VARIANTS_H_INCLUDED
+#endif  // #ifndef NNUE_FEATURES_HALF_KA_V2_VARIANTS_H_INCLUDED

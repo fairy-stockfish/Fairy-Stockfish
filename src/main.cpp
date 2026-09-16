@@ -37,27 +37,27 @@ using namespace Stockfish;
 
 int main(int argc, char* argv[]) {
 
-  std::cout << engine_info() << std::endl;
+    std::cout << engine_info() << std::endl;
 
-  pieceMap.init();
-  variants.init();
-  CommandLine::init(argc, argv);
-  UCI::init(Options);
-  Tune::init();
-  PSQT::init(variants.find(Options["UCI_Variant"])->second);
-  Bitboards::init();
-  Position::init();
-  Bitbases::init();
-  Endgames::init();
-  Threads.set(size_t(Options["Threads"]));
-  Search::clear(); // After threads are up
-  Eval::NNUE::init();
+    pieceMap.init();
+    variants.init();
+    CommandLine::init(argc, argv);
+    UCI::init(Options);
+    Tune::init();
+    PSQT::init(variants.find(Options["UCI_Variant"])->second);
+    Bitboards::init();
+    Position::init();
+    Bitbases::init();
+    Endgames::init();
+    Threads.set(size_t(Options["Threads"]));
+    Search::clear();  // After threads are up
+    Eval::NNUE::init();
 
-  UCI::loop(argc, argv);
+    UCI::loop(argc, argv);
 
-  Threads.set(0);
-  variants.clear_all();
-  pieceMap.clear_all();
-  delete XBoard::stateMachine;
-  return 0;
+    Threads.set(0);
+    variants.clear_all();
+    pieceMap.clear_all();
+    delete XBoard::stateMachine;
+    return 0;
 }

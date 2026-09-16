@@ -37,23 +37,23 @@ namespace Stockfish {
 
 struct TTEntry {
 
-  Move  move()  const { return (Move )move32; }
-  Value value() const { return (Value)value16; }
-  Value eval()  const { return (Value)eval16; }
-  Depth depth() const { return (Depth)depth8 + DEPTH_OFFSET; }
-  bool is_pv()  const { return (bool)(genBound8 & 0x4); }
-  Bound bound() const { return (Bound)(genBound8 & 0x3); }
-  void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev);
+    Move  move() const { return (Move) move32; }
+    Value value() const { return (Value) value16; }
+    Value eval() const { return (Value) eval16; }
+    Depth depth() const { return (Depth) depth8 + DEPTH_OFFSET; }
+    bool  is_pv() const { return (bool) (genBound8 & 0x4); }
+    Bound bound() const { return (Bound) (genBound8 & 0x3); }
+    void  save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev);
 
-private:
-  friend class TranspositionTable;
+   private:
+    friend class TranspositionTable;
 
-  uint16_t key16;
-  uint8_t  depth8;
-  uint8_t  genBound8;
-  uint32_t move32;
-  int16_t  value16;
-  int16_t  eval16;
+    uint16_t key16;
+    uint8_t  depth8;
+    uint8_t  genBound8;
+    uint32_t move32;
+    int16_t  value16;
+    int16_t  eval16;
 };
 
 
@@ -65,43 +65,45 @@ private:
 
 class TranspositionTable {
 
-  static constexpr int ClusterSize = 5;
+    static constexpr int ClusterSize = 5;
 
-  struct Cluster {
-    TTEntry entry[ClusterSize];
-    char padding[4]; // Pad to 64 bytes
-  };
+    struct Cluster {
+        TTEntry entry[ClusterSize];
+        char    padding[4];  // Pad to 64 bytes
+    };
 
-  static_assert(sizeof(Cluster) == 64, "Unexpected Cluster size");
+    static_assert(sizeof(Cluster) == 64, "Unexpected Cluster size");
 
-  // Constants used to refresh the hash table periodically
-  static constexpr unsigned GENERATION_BITS  = 3;                                // nb of bits reserved for other things
-  static constexpr int      GENERATION_DELTA = (1 << GENERATION_BITS);           // increment for generation field
-  static constexpr int      GENERATION_CYCLE = 255 + (1 << GENERATION_BITS);     // cycle length
-  static constexpr int      GENERATION_MASK  = (0xFF << GENERATION_BITS) & 0xFF; // mask to pull out generation number
+    // Constants used to refresh the hash table periodically
+    static constexpr unsigned GENERATION_BITS = 3;  // nb of bits reserved for other things
+    static constexpr int      GENERATION_DELTA =
+      (1 << GENERATION_BITS);  // increment for generation field
+    static constexpr int GENERATION_CYCLE = 255 + (1 << GENERATION_BITS);  // cycle length
+    static constexpr int GENERATION_MASK =
+      (0xFF << GENERATION_BITS) & 0xFF;  // mask to pull out generation number
 
-public:
- ~TranspositionTable() { aligned_large_pages_free(table); }
-  void new_search() { generation8 += GENERATION_DELTA; } // Lower bits are used for other things
-  TTEntry* probe(const Key key, bool& found) const;
-  int hashfull() const;
-  void resize(size_t mbSize);
-  void clear();
+   public:
+    ~TranspositionTable() { aligned_large_pages_free(table); }
+    void new_search() { generation8 += GENERATION_DELTA; }  // Lower bits are used for other things
+    TTEntry* probe(const Key key, bool& found) const;
+    int      hashfull() const;
+    void     resize(size_t mbSize);
+    void     clear();
 
-  TTEntry* first_entry(const Key key) const {
-    return &table[mul_hi64(key, clusterCount)].entry[0];
-  }
+    TTEntry* first_entry(const Key key) const {
+        return &table[mul_hi64(key, clusterCount)].entry[0];
+    }
 
-private:
-  friend struct TTEntry;
+   private:
+    friend struct TTEntry;
 
-  size_t clusterCount;
-  Cluster* table;
-  uint8_t generation8; // Size must be not bigger than TTEntry::genBound8
+    size_t   clusterCount;
+    Cluster* table;
+    uint8_t  generation8;  // Size must be not bigger than TTEntry::genBound8
 };
 
 extern TranspositionTable TT;
 
-} // namespace Stockfish
+}  // namespace Stockfish
 
-#endif // #ifndef TT_H_INCLUDED
+#endif  // #ifndef TT_H_INCLUDED

@@ -26,48 +26,43 @@
 namespace Stockfish::Eval::NNUE::Layers {
 
 // Input layer
-template <IndexType OutDims, IndexType Offset = 0>
+template<IndexType OutDims, IndexType Offset = 0>
 class InputSlice {
- public:
-  // Need to maintain alignment
-  static_assert(Offset % MaxSimdWidth == 0, "");
+   public:
+    // Need to maintain alignment
+    static_assert(Offset % MaxSimdWidth == 0, "");
 
-  // Output type
-  using OutputType = TransformedFeatureType;
+    // Output type
+    using OutputType = TransformedFeatureType;
 
-  // Output dimensionality
-  static constexpr IndexType OutputDimensions = OutDims;
+    // Output dimensionality
+    static constexpr IndexType OutputDimensions = OutDims;
 
-  // Size of forward propagation buffer used from the input layer to this layer
-  static constexpr std::size_t BufferSize = 0;
+    // Size of forward propagation buffer used from the input layer to this layer
+    static constexpr std::size_t BufferSize = 0;
 
-  // Hash value embedded in the evaluation file
-  static constexpr std::uint32_t get_hash_value() {
-    std::uint32_t hashValue = 0xEC42E90Du;
-    hashValue ^= OutputDimensions ^ (Offset << 10);
-    return hashValue;
-  }
+    // Hash value embedded in the evaluation file
+    static constexpr std::uint32_t get_hash_value() {
+        std::uint32_t hashValue = 0xEC42E90Du;
+        hashValue ^= OutputDimensions ^ (Offset << 10);
+        return hashValue;
+    }
 
-  // Read network parameters
-  bool read_parameters(std::istream& /*stream*/) {
-    return true;
-  }
+    // Read network parameters
+    bool read_parameters(std::istream& /*stream*/) { return true; }
 
-  // Write network parameters
-  bool write_parameters(std::ostream& /*stream*/) const {
-    return true;
-  }
+    // Write network parameters
+    bool write_parameters(std::ostream& /*stream*/) const { return true; }
 
-  // Forward propagation
-  const OutputType* propagate(
-      const TransformedFeatureType* transformedFeatures,
-      char* /*buffer*/) const {
-    return transformedFeatures + Offset;
-  }
+    // Forward propagation
+    const OutputType* propagate(const TransformedFeatureType* transformedFeatures,
+                                char* /*buffer*/) const {
+        return transformedFeatures + Offset;
+    }
 
- private:
+   private:
 };
 
 }  // namespace Stockfish::Eval::NNUE::Layers
 
-#endif // #ifndef NNUE_LAYERS_INPUT_SLICE_H_INCLUDED
+#endif  // #ifndef NNUE_LAYERS_INPUT_SLICE_H_INCLUDED

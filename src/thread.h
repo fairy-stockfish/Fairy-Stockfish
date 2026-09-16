@@ -43,60 +43,60 @@ namespace Stockfish {
 
 class Thread {
 
-  std::mutex mutex;
-  std::condition_variable cv;
-  size_t idx;
-  bool exit = false, searching = true; // Set before starting std::thread
-  NativeThread stdThread;
+    std::mutex              mutex;
+    std::condition_variable cv;
+    size_t                  idx;
+    bool                    exit = false, searching = true;  // Set before starting std::thread
+    NativeThread            stdThread;
 
-public:
-  explicit Thread(size_t);
-  virtual ~Thread();
-  virtual void search();
-  void clear();
-  void idle_loop();
-  void start_searching();
-  void wait_for_search_finished();
-  size_t id() const { return idx; }
+   public:
+    explicit Thread(size_t);
+    virtual ~Thread();
+    virtual void search();
+    void         clear();
+    void         idle_loop();
+    void         start_searching();
+    void         wait_for_search_finished();
+    size_t       id() const { return idx; }
 
-  size_t pvIdx, pvLast;
-  std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
-  int selDepth, nmpMinPly;
-  Value bestValue, optimism[COLOR_NB];
+    size_t                pvIdx, pvLast;
+    std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
+    int                   selDepth, nmpMinPly;
+    Value                 bestValue, optimism[COLOR_NB];
 
-  Position rootPos;
-  StateInfo rootState;
-  Search::RootMoves rootMoves;
-  Depth rootDepth, completedDepth;
-  Value rootDelta;
-  Value rootSimpleEval;
-  Pawns::Table pawnsTable;
-  Material::Table materialTable;
-  CounterMoveHistory counterMoves;
-  ButterflyHistory mainHistory;
-  GateHistory gateHistory;
-  CapturePieceToHistory captureHistory;
-  ContinuationHistory continuationHistory[2][2];
+    Position              rootPos;
+    StateInfo             rootState;
+    Search::RootMoves     rootMoves;
+    Depth                 rootDepth, completedDepth;
+    Value                 rootDelta;
+    Value                 rootSimpleEval;
+    Pawns::Table          pawnsTable;
+    Material::Table       materialTable;
+    CounterMoveHistory    counterMoves;
+    ButterflyHistory      mainHistory;
+    GateHistory           gateHistory;
+    CapturePieceToHistory captureHistory;
+    ContinuationHistory   continuationHistory[2][2];
 };
 
 
 // MainThread is a derived class specific for main thread
 
-struct MainThread : public Thread {
+struct MainThread: public Thread {
 
-  using Thread::Thread;
+    using Thread::Thread;
 
-  void search() override;
-  void check_time();
+    void search() override;
+    void check_time();
 
-  double previousTimeReduction;
-  Value bestPreviousScore;
-  Value bestPreviousAverageScore;
-  Value iterValue[4];
-  int callsCnt;
-  bool stopOnPonderhit;
-  std::atomic_bool ponder;
-  Thread* bestThread; // to fetch best move when in XBoard mode
+    double           previousTimeReduction;
+    Value            bestPreviousScore;
+    Value            bestPreviousAverageScore;
+    Value            iterValue[4];
+    int              callsCnt;
+    bool             stopOnPonderhit;
+    std::atomic_bool ponder;
+    Thread*          bestThread;  // to fetch best move when in XBoard mode
 };
 
 
@@ -106,44 +106,44 @@ struct MainThread : public Thread {
 
 struct ThreadPool {
 
-  void start_thinking(Position&, StateListPtr&, const Search::LimitsType&, bool = false);
-  void clear();
-  void set(size_t);
+    void start_thinking(Position&, StateListPtr&, const Search::LimitsType&, bool = false);
+    void clear();
+    void set(size_t);
 
-  MainThread* main()        const { return static_cast<MainThread*>(threads.front()); }
-  uint64_t nodes_searched() const { return accumulate(&Thread::nodes); }
-  uint64_t tb_hits()        const { return accumulate(&Thread::tbHits); }
-  Thread* get_best_thread() const;
-  void start_searching();
-  void wait_for_search_finished() const;
+    MainThread* main() const { return static_cast<MainThread*>(threads.front()); }
+    uint64_t    nodes_searched() const { return accumulate(&Thread::nodes); }
+    uint64_t    tb_hits() const { return accumulate(&Thread::tbHits); }
+    Thread*     get_best_thread() const;
+    void        start_searching();
+    void        wait_for_search_finished() const;
 
-  std::atomic_bool stop, increaseDepth;
-  std::atomic_bool abort, sit;
+    std::atomic_bool stop, increaseDepth;
+    std::atomic_bool abort, sit;
 
-  auto cbegin() const noexcept { return threads.cbegin(); }
-  auto begin() noexcept { return threads.begin(); }
-  auto end() noexcept { return threads.end(); }
-  auto cend() const noexcept { return threads.cend(); }
-  auto size() const noexcept { return threads.size(); }
-  auto empty() const noexcept { return threads.empty(); }
+    auto cbegin() const noexcept { return threads.cbegin(); }
+    auto begin() noexcept { return threads.begin(); }
+    auto end() noexcept { return threads.end(); }
+    auto cend() const noexcept { return threads.cend(); }
+    auto size() const noexcept { return threads.size(); }
+    auto empty() const noexcept { return threads.empty(); }
 
-  StateListPtr setupStates;
+    StateListPtr setupStates;
 
-private:
-  std::vector<Thread*> threads;
+   private:
+    std::vector<Thread*> threads;
 
-private:
-  uint64_t accumulate(std::atomic<uint64_t> Thread::* member) const {
+   private:
+    uint64_t accumulate(std::atomic<uint64_t> Thread::*member) const {
 
-    uint64_t sum = 0;
-    for (Thread* th : threads)
-        sum += (th->*member).load(std::memory_order_relaxed);
-    return sum;
-  }
+        uint64_t sum = 0;
+        for (Thread* th : threads)
+            sum += (th->*member).load(std::memory_order_relaxed);
+        return sum;
+    }
 };
 
 extern ThreadPool Threads;
 
-} // namespace Stockfish
+}  // namespace Stockfish
 
-#endif // #ifndef THREAD_H_INCLUDED
+#endif  // #ifndef THREAD_H_INCLUDED

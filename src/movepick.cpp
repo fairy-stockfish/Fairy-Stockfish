@@ -32,34 +32,51 @@ namespace Stockfish {
 // we need to reserve a limited number of slots and map piece types to these slots
 // in order to reduce memory consumption to a reasonable level.
 int history_slot(Piece pc) {
-    return pc == NO_PIECE ? 0 : (type_of(pc) == KING ? PIECE_SLOTS - 1 : type_of(pc) % (PIECE_SLOTS - 1)) + color_of(pc) * PIECE_SLOTS;
+    return pc == NO_PIECE
+           ? 0
+           : (type_of(pc) == KING ? PIECE_SLOTS - 1 : type_of(pc) % (PIECE_SLOTS - 1))
+               + color_of(pc) * PIECE_SLOTS;
 }
 
 namespace {
 
-  enum Stages {
-    MAIN_TT, CAPTURE_INIT, GOOD_CAPTURE, REFUTATION, QUIET_INIT, QUIET, BAD_CAPTURE,
-    EVASION_TT, EVASION_INIT, EVASION,
-    PROBCUT_TT, PROBCUT_INIT, PROBCUT,
-    QSEARCH_TT, QCAPTURE_INIT, QCAPTURE, QCHECK_INIT, QCHECK
-  };
+enum Stages {
+    MAIN_TT,
+    CAPTURE_INIT,
+    GOOD_CAPTURE,
+    REFUTATION,
+    QUIET_INIT,
+    QUIET,
+    BAD_CAPTURE,
+    EVASION_TT,
+    EVASION_INIT,
+    EVASION,
+    PROBCUT_TT,
+    PROBCUT_INIT,
+    PROBCUT,
+    QSEARCH_TT,
+    QCAPTURE_INIT,
+    QCAPTURE,
+    QCHECK_INIT,
+    QCHECK
+};
 
-  // partial_insertion_sort() sorts moves in descending order up to and including
-  // a given limit. The order of moves smaller than the limit is left unspecified.
-  void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
+// partial_insertion_sort() sorts moves in descending order up to and including
+// a given limit. The order of moves smaller than the limit is left unspecified.
+void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
 
     for (ExtMove *sortedEnd = begin, *p = begin + 1; p < end; ++p)
         if (p->value >= limit)
         {
             ExtMove tmp = *p, *q;
-            *p = *++sortedEnd;
+            *p          = *++sortedEnd;
             for (q = sortedEnd; q != begin && *(q - 1) < tmp; --q)
                 *q = *(q - 1);
             *q = tmp;
         }
-  }
+}
 
-} // namespace
+}  // namespace
 
 
 // Constructors of the MovePicker class. As arguments, we pass information
@@ -69,39 +86,66 @@ namespace {
 // move ordering is at the current node.
 
 /// MovePicker constructor for the main search
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh, const GateHistory* dh,
-                       const CapturePieceToHistory* cph, const PieceToHistory** ch, Move cm, const Move* killers)
-           : pos(p), mainHistory(mh), gateHistory(dh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d) {
+MovePicker::MovePicker(const Position&              p,
+                       Move                         ttm,
+                       Depth                        d,
+                       const ButterflyHistory*      mh,
+                       const GateHistory*           dh,
+                       const CapturePieceToHistory* cph,
+                       const PieceToHistory**       ch,
+                       Move                         cm,
+                       const Move*                  killers) :
+    pos(p),
+    mainHistory(mh),
+    gateHistory(dh),
+    captureHistory(cph),
+    continuationHistory(ch),
+    ttMove(ttm),
+    refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}},
+    depth(d) {
 
-  assert(d > 0);
+    assert(d > 0);
 
-  stage = (pos.checkers() ? EVASION_TT : MAIN_TT) +
-          !(ttm && pos.pseudo_legal(ttm));
+    stage = (pos.checkers() ? EVASION_TT : MAIN_TT) + !(ttm && pos.pseudo_legal(ttm));
 }
 
 /// MovePicker constructor for quiescence search
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh, const GateHistory* dh,
-                       const CapturePieceToHistory* cph, const PieceToHistory** ch, Square rs)
-           : pos(p), mainHistory(mh), gateHistory(dh), captureHistory(cph), continuationHistory(ch), ttMove(ttm), recaptureSquare(rs), depth(d) {
+MovePicker::MovePicker(const Position&              p,
+                       Move                         ttm,
+                       Depth                        d,
+                       const ButterflyHistory*      mh,
+                       const GateHistory*           dh,
+                       const CapturePieceToHistory* cph,
+                       const PieceToHistory**       ch,
+                       Square                       rs) :
+    pos(p),
+    mainHistory(mh),
+    gateHistory(dh),
+    captureHistory(cph),
+    continuationHistory(ch),
+    ttMove(ttm),
+    recaptureSquare(rs),
+    depth(d) {
 
-  assert(d <= 0);
+    assert(d <= 0);
 
-  stage = (pos.checkers() ? EVASION_TT : QSEARCH_TT) +
-          !(   ttm
-            && pos.pseudo_legal(ttm));
+    stage = (pos.checkers() ? EVASION_TT : QSEARCH_TT) + !(ttm && pos.pseudo_legal(ttm));
 }
 
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
 /// than or equal to the given threshold.
-MovePicker::MovePicker(const Position& p, Move ttm, Value th, const GateHistory* dh, const CapturePieceToHistory* cph)
-           : pos(p), gateHistory(dh), captureHistory(cph), ttMove(ttm), threshold(th) {
+MovePicker::MovePicker(
+  const Position& p, Move ttm, Value th, const GateHistory* dh, const CapturePieceToHistory* cph) :
+    pos(p),
+    gateHistory(dh),
+    captureHistory(cph),
+    ttMove(ttm),
+    threshold(th) {
 
-  assert(!pos.checkers());
+    assert(!pos.checkers());
 
-  stage = PROBCUT_TT + !(ttm && pos.capture_stage(ttm)
-                             && pos.pseudo_legal(ttm)
-                             && pos.see_ge(ttm, threshold));
+    stage = PROBCUT_TT
+          + !(ttm && pos.capture_stage(ttm) && pos.pseudo_legal(ttm) && pos.see_ge(ttm, threshold));
 }
 
 // MovePicker::score() assigns a numerical value to each move in a list, used
@@ -110,82 +154,83 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const GateHistory*
 template<GenType Type>
 void MovePicker::score() {
 
-  static_assert(Type == CAPTURES || Type == QUIETS || Type == EVASIONS, "Wrong type");
+    static_assert(Type == CAPTURES || Type == QUIETS || Type == EVASIONS, "Wrong type");
 
-  // Squares attacked by enemy pieces of lesser value than a given piece type
-  [[maybe_unused]] Bitboard threatByLesser[PIECE_TYPE_NB], threatenedPieces = Bitboard(0);
-  if constexpr (Type == QUIETS)
-  {
-      Color us = pos.side_to_move();
-      Bitboard attacksBy[PIECE_TYPE_NB];
-      for (PieceSet ps = pos.piece_types(); ps;)
-      {
-          PieceType pt = pop_lsb(ps);
-          attacksBy[pt] = pos.count(~us, pt) ? pos.attacks_by(~us, pt) : Bitboard(0);
-      }
-      for (PieceSet ps = pos.piece_types(); ps;)
-      {
-          PieceType pt = pop_lsb(ps);
-          threatByLesser[pt] = Bitboard(0);
-          if (pt == KING)
-              continue;
-          for (PieceSet ps2 = pos.piece_types(); ps2;)
-          {
-              PieceType pt2 = pop_lsb(ps2);
-              if (PieceValue[MG][pt2] < PieceValue[MG][pt])
-                  threatByLesser[pt] |= attacksBy[pt2];
-          }
-          // Pieces threatened by pieces of lesser material value
-          threatenedPieces |= pos.pieces(us, pt) & threatByLesser[pt];
-      }
-  }
+    // Squares attacked by enemy pieces of lesser value than a given piece type
+    [[maybe_unused]] Bitboard threatByLesser[PIECE_TYPE_NB], threatenedPieces = Bitboard(0);
+    if constexpr (Type == QUIETS)
+    {
+        Color    us = pos.side_to_move();
+        Bitboard attacksBy[PIECE_TYPE_NB];
+        for (PieceSet ps = pos.piece_types(); ps;)
+        {
+            PieceType pt  = pop_lsb(ps);
+            attacksBy[pt] = pos.count(~us, pt) ? pos.attacks_by(~us, pt) : Bitboard(0);
+        }
+        for (PieceSet ps = pos.piece_types(); ps;)
+        {
+            PieceType pt       = pop_lsb(ps);
+            threatByLesser[pt] = Bitboard(0);
+            if (pt == KING)
+                continue;
+            for (PieceSet ps2 = pos.piece_types(); ps2;)
+            {
+                PieceType pt2 = pop_lsb(ps2);
+                if (PieceValue[MG][pt2] < PieceValue[MG][pt])
+                    threatByLesser[pt] |= attacksBy[pt2];
+            }
+            // Pieces threatened by pieces of lesser material value
+            threatenedPieces |= pos.pieces(us, pt) & threatByLesser[pt];
+        }
+    }
 
-  for (auto& m : *this)
-      if constexpr (Type == CAPTURES)
-          m.value =  (7 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
-                   +     (*gateHistory)[pos.side_to_move()][gating_square(m)]
-                   +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))]) / 16;
+    for (auto& m : *this)
+        if constexpr (Type == CAPTURES)
+            m.value =
+              (7 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
+               + (*gateHistory)[pos.side_to_move()][gating_square(m)]
+               + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))])
+              / 16;
 
-      else if constexpr (Type == QUIETS)
-      {
-          Piece     pc   = pos.moved_piece(m);
-          PieceType pt   = type_of(pc);
-          Square    to   = to_sq(m);
+        else if constexpr (Type == QUIETS)
+        {
+            Piece     pc = pos.moved_piece(m);
+            PieceType pt = type_of(pc);
+            Square    to = to_sq(m);
 
-          // histories
-          m.value =  2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
-          m.value +=     (*gateHistory)[pos.side_to_move()][gating_square(m)];
-          m.value += 2 * (*continuationHistory[0])[history_slot(pc)][to];
-          m.value +=     (*continuationHistory[1])[history_slot(pc)][to];
-          m.value +=     (*continuationHistory[2])[history_slot(pc)][to] / 4;
-          m.value +=     (*continuationHistory[3])[history_slot(pc)][to];
-          m.value +=     (*continuationHistory[5])[history_slot(pc)][to];
+            // histories
+            m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
+            m.value += (*gateHistory)[pos.side_to_move()][gating_square(m)];
+            m.value += 2 * (*continuationHistory[0])[history_slot(pc)][to];
+            m.value += (*continuationHistory[1])[history_slot(pc)][to];
+            m.value += (*continuationHistory[2])[history_slot(pc)][to] / 4;
+            m.value += (*continuationHistory[3])[history_slot(pc)][to];
+            m.value += (*continuationHistory[5])[history_slot(pc)][to];
 
-          // bonus for checks
-          m.value += bool(pos.check_squares(pt) & to) * 16384;
+            // bonus for checks
+            m.value += bool(pos.check_squares(pt) & to) * 16384;
 
-          if (type_of(m) != DROP)
-          {
-              Square from = from_sq(m);
-              // bonus for escaping from capture by a lesser piece
-              if ((threatenedPieces & from) && !(threatByLesser[pt] & to))
-                  m.value += 20 * int(PieceValue[MG][pt]);
-              // malus for putting piece en prise to a lesser piece
-              else if (!(threatenedPieces & from) && (threatByLesser[pt] & to))
-                  m.value -= 20 * int(PieceValue[MG][pt]);
-          }
-      }
+            if (type_of(m) != DROP)
+            {
+                Square from = from_sq(m);
+                // bonus for escaping from capture by a lesser piece
+                if ((threatenedPieces & from) && !(threatByLesser[pt] & to))
+                    m.value += 20 * int(PieceValue[MG][pt]);
+                // malus for putting piece en prise to a lesser piece
+                else if (!(threatenedPieces & from) && (threatByLesser[pt] & to))
+                    m.value -= 20 * int(PieceValue[MG][pt]);
+            }
+        }
 
-      else // Type == EVASIONS
-      {
-          if (pos.capture_stage(m))
-              m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
-                       - Value(type_of(pos.moved_piece(m)))
-                       + (1 << 28);
-          else
-              m.value =  (*mainHistory)[pos.side_to_move()][from_to(m)]
-                       + (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)];
-      }
+        else  // Type == EVASIONS
+        {
+            if (pos.capture_stage(m))
+                m.value = PieceValue[MG][pos.piece_on(to_sq(m))]
+                        - Value(type_of(pos.moved_piece(m))) + (1 << 28);
+            else
+                m.value = (*mainHistory)[pos.side_to_move()][from_to(m)]
+                        + (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)];
+        }
 }
 
 // MovePicker::select() returns the next move satisfying a predicate function.
@@ -193,17 +238,17 @@ void MovePicker::score() {
 template<MovePicker::PickType T, typename Pred>
 Move MovePicker::select(Pred filter) {
 
-  while (cur < endMoves)
-  {
-      if constexpr (T == Best)
-          std::swap(*cur, *std::max_element(cur, endMoves));
+    while (cur < endMoves)
+    {
+        if constexpr (T == Best)
+            std::swap(*cur, *std::max_element(cur, endMoves));
 
-      if (*cur != ttMove && filter())
-          return *cur++;
+        if (*cur != ttMove && filter())
+            return *cur++;
 
-      cur++;
-  }
-  return MOVE_NONE;
+        cur++;
+    }
+    return MOVE_NONE;
 }
 
 // MovePicker::next_move() is the most important method of the MovePicker class. It
@@ -212,123 +257,130 @@ Move MovePicker::select(Pred filter) {
 Move MovePicker::next_move(bool skipQuiets) {
 
 top:
-  switch (stage) {
+    switch (stage)
+    {
 
-  case MAIN_TT:
-  case EVASION_TT:
-  case QSEARCH_TT:
-  case PROBCUT_TT:
-      ++stage;
-      assert(pos.legal(ttMove) == MoveList<LEGAL>(pos).contains(ttMove) || pos.virtual_drop(ttMove));
-      return ttMove;
+    case MAIN_TT :
+    case EVASION_TT :
+    case QSEARCH_TT :
+    case PROBCUT_TT :
+        ++stage;
+        assert(pos.legal(ttMove) == MoveList<LEGAL>(pos).contains(ttMove)
+               || pos.virtual_drop(ttMove));
+        return ttMove;
 
-  case CAPTURE_INIT:
-  case PROBCUT_INIT:
-  case QCAPTURE_INIT:
-      cur = endBadCaptures = moves;
-      endMoves = generate<CAPTURES>(pos, cur);
+    case CAPTURE_INIT :
+    case PROBCUT_INIT :
+    case QCAPTURE_INIT :
+        cur = endBadCaptures = moves;
+        endMoves             = generate<CAPTURES>(pos, cur);
 
-      score<CAPTURES>();
-      partial_insertion_sort(cur, endMoves, std::numeric_limits<int>::min());
-      ++stage;
-      goto top;
+        score<CAPTURES>();
+        partial_insertion_sort(cur, endMoves, std::numeric_limits<int>::min());
+        ++stage;
+        goto top;
 
-  case GOOD_CAPTURE:
-      if (select<Next>([&](){
-                       return pos.see_ge(*cur, Value(-cur->value - 500 * (pos.captures_to_hand() && pos.gives_check(*cur)))) ?
-                              // Move losing capture to endBadCaptures to be tried later
-                              true : (*endBadCaptures++ = *cur, false); }))
-          return *(cur - 1);
+    case GOOD_CAPTURE :
+        if (select<Next>([&]() {
+                return pos.see_ge(*cur,
+                                  Value(-cur->value
+                                        - 500 * (pos.captures_to_hand() && pos.gives_check(*cur))))
+                       ?
+                       // Move losing capture to endBadCaptures to be tried later
+                         true
+                       : (*endBadCaptures++ = *cur, false);
+            }))
+            return *(cur - 1);
 
-      // Prepare the pointers to loop over the refutations array
-      cur = std::begin(refutations);
-      endMoves = std::end(refutations);
+        // Prepare the pointers to loop over the refutations array
+        cur      = std::begin(refutations);
+        endMoves = std::end(refutations);
 
-      // If the countermove is the same as a killer, skip it
-      if (   refutations[0].move == refutations[2].move
-          || refutations[1].move == refutations[2].move)
-          --endMoves;
+        // If the countermove is the same as a killer, skip it
+        if (refutations[0].move == refutations[2].move
+            || refutations[1].move == refutations[2].move)
+            --endMoves;
 
-      ++stage;
-      [[fallthrough]];
+        ++stage;
+        [[fallthrough]];
 
-  case REFUTATION:
-      if (select<Next>([&](){ return    *cur != MOVE_NONE
-                                    && !pos.capture_stage(*cur)
-                                    &&  pos.pseudo_legal(*cur); }))
-          return *(cur - 1);
-      ++stage;
-      [[fallthrough]];
+    case REFUTATION :
+        if (select<Next>([&]() {
+                return *cur != MOVE_NONE && !pos.capture_stage(*cur) && pos.pseudo_legal(*cur);
+            }))
+            return *(cur - 1);
+        ++stage;
+        [[fallthrough]];
 
-  case QUIET_INIT:
-      if (!skipQuiets && !(pos.must_capture() && pos.has_capture()))
-      {
-          cur = endBadCaptures;
-          endMoves = generate<QUIETS>(pos, cur);
+    case QUIET_INIT :
+        if (!skipQuiets && !(pos.must_capture() && pos.has_capture()))
+        {
+            cur      = endBadCaptures;
+            endMoves = generate<QUIETS>(pos, cur);
 
-          score<QUIETS>();
-          partial_insertion_sort(cur, endMoves, -3000 * depth);
-      }
+            score<QUIETS>();
+            partial_insertion_sort(cur, endMoves, -3000 * depth);
+        }
 
-      ++stage;
-      [[fallthrough]];
+        ++stage;
+        [[fallthrough]];
 
-  case QUIET:
-      if (   !skipQuiets
-          && select<Next>([&](){return   *cur != refutations[0].move
-                                      && *cur != refutations[1].move
-                                      && *cur != refutations[2].move;}))
-          return *(cur - 1);
+    case QUIET :
+        if (!skipQuiets && select<Next>([&]() {
+                return *cur != refutations[0].move && *cur != refutations[1].move
+                    && *cur != refutations[2].move;
+            }))
+            return *(cur - 1);
 
-      // Prepare the pointers to loop over the bad captures
-      cur = moves;
-      endMoves = endBadCaptures;
+        // Prepare the pointers to loop over the bad captures
+        cur      = moves;
+        endMoves = endBadCaptures;
 
-      ++stage;
-      [[fallthrough]];
+        ++stage;
+        [[fallthrough]];
 
-  case BAD_CAPTURE:
-      return select<Next>([](){ return true; });
+    case BAD_CAPTURE :
+        return select<Next>([]() { return true; });
 
-  case EVASION_INIT:
-      cur = moves;
-      endMoves = generate<EVASIONS>(pos, cur);
+    case EVASION_INIT :
+        cur      = moves;
+        endMoves = generate<EVASIONS>(pos, cur);
 
-      score<EVASIONS>();
-      ++stage;
-      [[fallthrough]];
+        score<EVASIONS>();
+        ++stage;
+        [[fallthrough]];
 
-  case EVASION:
-      return select<Best>([](){ return true; });
+    case EVASION :
+        return select<Best>([]() { return true; });
 
-  case PROBCUT:
-      return select<Next>([&](){ return pos.see_ge(*cur, threshold); });
+    case PROBCUT :
+        return select<Next>([&]() { return pos.see_ge(*cur, threshold); });
 
-  case QCAPTURE:
-      if (select<Next>([&](){ return   depth > DEPTH_QS_RECAPTURES
-                                    || to_sq(*cur) == recaptureSquare; }))
-          return *(cur - 1);
+    case QCAPTURE :
+        if (select<Next>(
+              [&]() { return depth > DEPTH_QS_RECAPTURES || to_sq(*cur) == recaptureSquare; }))
+            return *(cur - 1);
 
-      // If we did not find any move and we do not try checks, we have finished
-      if (depth != DEPTH_QS_CHECKS)
-          return MOVE_NONE;
+        // If we did not find any move and we do not try checks, we have finished
+        if (depth != DEPTH_QS_CHECKS)
+            return MOVE_NONE;
 
-      ++stage;
-      [[fallthrough]];
+        ++stage;
+        [[fallthrough]];
 
-  case QCHECK_INIT:
-      cur = moves;
-      endMoves = generate<QUIET_CHECKS>(pos, cur);
+    case QCHECK_INIT :
+        cur      = moves;
+        endMoves = generate<QUIET_CHECKS>(pos, cur);
 
-      ++stage;
-      [[fallthrough]];
+        ++stage;
+        [[fallthrough]];
 
-  case QCHECK:
-      return select<Next>([](){ return true; });
-  }
+    case QCHECK :
+        return select<Next>([]() { return true; });
+    }
 
-  assert(false);
-  return MOVE_NONE; // Silence warning
+    assert(false);
+    return MOVE_NONE;  // Silence warning
 }
 
-} // namespace Stockfish
+}  // namespace Stockfish

@@ -51,13 +51,10 @@ const vector<string> Defaults = {
   "6k1/6p1/6Pp/ppp5/3pn2P/1P3K2/1PP2P2/3N4 b - - 0 1",
   "3b4/5kp1/1p1p1p1p/pP1PpP1P/P1P1P3/3KN3/8/8 w - - 0 1",
   "2K5/p7/7P/5pR1/8/5k2/r7/8 w - - 0 1 moves g5g6 f3e3 g6g5 e3f3",
-  "8/6pk/1p6/8/PP3p1p/5P2/4KP1q/3Q4 w - - 0 1",
-  "7k/3p2pp/4q3/8/4Q3/5Kp1/P6b/8 w - - 0 1",
-  "8/2p5/8/2kPKp1p/2p4P/2P5/3P4/8 w - - 0 1",
-  "8/1p3pp1/7p/5P1P/2k3P1/8/2K2P2/8 w - - 0 1",
+  "8/6pk/1p6/8/PP3p1p/5P2/4KP1q/3Q4 w - - 0 1", "7k/3p2pp/4q3/8/4Q3/5Kp1/P6b/8 w - - 0 1",
+  "8/2p5/8/2kPKp1p/2p4P/2P5/3P4/8 w - - 0 1", "8/1p3pp1/7p/5P1P/2k3P1/8/2K2P2/8 w - - 0 1",
   "8/pp2r1k1/2p1p3/3pP2p/1P1P1P1P/P5KR/8/8 w - - 0 1",
-  "8/3p4/p1bk3p/Pp6/1Kp1PpPp/2P2P1P/2P5/5B2 b - - 0 1",
-  "5k2/7R/4P2p/5K2/p1r2P1p/8/8/8 b - - 0 1",
+  "8/3p4/p1bk3p/Pp6/1Kp1PpPp/2P2P1P/2P5/5B2 b - - 0 1", "5k2/7R/4P2p/5K2/p1r2P1p/8/8/8 b - - 0 1",
   "6k1/6p1/P6p/r1N5/5p2/7P/1b3PP1/4R1K1 w - - 0 1",
   "1r3k2/4q3/2Pp3b/3Bp3/2Q2p2/1p1P2P1/1P2KP2/3N4 w - - 0 1",
   "6k1/4pp1p/3p2p1/P1pPb3/R7/1r2P1PP/3B1P2/6K1 w - - 0 1",
@@ -69,9 +66,9 @@ const vector<string> Defaults = {
   "4k3/3q1r2/1N2r1b1/3ppN2/2nPP3/1B1R2n1/2R1Q3/3K4 w - - 5 1",
 
   // 5-man positions
-  "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 1",     // Kc2 - mate
-  "8/8/8/5N2/8/p7/8/2NK3k w - - 0 1",      // Na2 - mate
-  "8/3k4/8/8/8/4B3/4KB2/2B5 w - - 0 1",    // draw
+  "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 1",   // Kc2 - mate
+  "8/8/8/5N2/8/p7/8/2NK3k w - - 0 1",    // Na2 - mate
+  "8/3k4/8/8/8/4B3/4KB2/2B5 w - - 0 1",  // draw
 
   // 6-man positions
   "8/8/1P6/5pr1/8/4R3/7k/2K5 w - - 0 1",   // Re5 - mate
@@ -79,22 +76,20 @@ const vector<string> Defaults = {
   "8/8/3P3k/8/1p6/8/1P6/1K3n2 b - - 0 1",  // Nd2 - draw
 
   // 7-man positions
-  "8/R7/2q5/8/6k1/8/1P5p/K6R w - - 0 124", // Draw
+  "8/R7/2q5/8/6k1/8/1P5p/K6R w - - 0 124",  // Draw
 
   // Mate and stalemate positions
   "6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1",
-  "r2r1n2/pp2bk2/2p1p2p/3q4/3PN1QP/2P3R1/P4PP1/5RK1 w - - 0 1",
-  "8/8/8/8/8/6k1/6p1/6K1 w - -",
+  "r2r1n2/pp2bk2/2p1p2p/3q4/3PN1QP/2P3R1/P4PP1/5RK1 w - - 0 1", "8/8/8/8/8/6k1/6p1/6K1 w - -",
   "7k/7P/6K1/8/3B4/8/8/8 b - -",
 
   // Chess 960
   "setoption name UCI_Chess960 value true",
   "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
   "nqbnrkrb/pppppppp/8/8/8/8/PPPPPPPP/NQBNRKRB w KQkq - 0 1",
-  "setoption name UCI_Chess960 value false"
-};
+  "setoption name UCI_Chess960 value false"};
 
-} // namespace
+}  // namespace
 
 namespace Stockfish {
 
@@ -113,86 +108,86 @@ namespace Stockfish {
 
 vector<string> setup_bench(const Position& current, istream& is) {
 
-  vector<string> fens, list;
-  string go, token, varname;
+    vector<string> fens, list;
+    string         go, token, varname;
 
-  streampos args = is.tellg();
-  // Check whether the next token is a variant name
-  if ((is >> token) && variants.find(token) != variants.end())
-  {
-      args = is.tellg();
-      varname = token;
-  }
-  else
-  {
-      is.seekg(args);
-      varname = string(Options["UCI_Variant"]);
-  }
-  const Variant* variant = variants.find(varname)->second;
+    streampos args = is.tellg();
+    // Check whether the next token is a variant name
+    if ((is >> token) && variants.find(token) != variants.end())
+    {
+        args    = is.tellg();
+        varname = token;
+    }
+    else
+    {
+        is.seekg(args);
+        varname = string(Options["UCI_Variant"]);
+    }
+    const Variant* variant = variants.find(varname)->second;
 
-  // Assign default values to missing arguments
-  string ttSize    = (is >> token) ? token : "16";
-  string threads   = (is >> token) ? token : "1";
-  string limit     = (is >> token) ? token : "13";
-  string fenFile   = (is >> token) ? token : "default";
-  string limitType = (is >> token) ? token : "depth";
-  string evalType  = (is >> token) ? token : "mixed";
+    // Assign default values to missing arguments
+    string ttSize    = (is >> token) ? token : "16";
+    string threads   = (is >> token) ? token : "1";
+    string limit     = (is >> token) ? token : "13";
+    string fenFile   = (is >> token) ? token : "default";
+    string limitType = (is >> token) ? token : "depth";
+    string evalType  = (is >> token) ? token : "mixed";
 
-  go = limitType == "eval" ? "eval" : "go " + limitType + " " + limit;
+    go = limitType == "eval" ? "eval" : "go " + limitType + " " + limit;
 
-  if (fenFile == "default")
-  {
-      if (varname != "chess")
-          fens.push_back(variant->startFen);
-      else
-          fens = Defaults;
-  }
+    if (fenFile == "default")
+    {
+        if (varname != "chess")
+            fens.push_back(variant->startFen);
+        else
+            fens = Defaults;
+    }
 
-  else if (fenFile == "current")
-      fens.push_back(current.fen());
+    else if (fenFile == "current")
+        fens.push_back(current.fen());
 
-  else
-  {
-      string fen;
-      ifstream file(fenFile);
+    else
+    {
+        string   fen;
+        ifstream file(fenFile);
 
-      if (!file.is_open())
-      {
-          cerr << "Unable to open file " << fenFile << endl;
-          exit(EXIT_FAILURE);
-      }
+        if (!file.is_open())
+        {
+            cerr << "Unable to open file " << fenFile << endl;
+            exit(EXIT_FAILURE);
+        }
 
-      while (getline(file, fen))
-          if (!fen.empty())
-              fens.push_back(fen);
+        while (getline(file, fen))
+            if (!fen.empty())
+                fens.push_back(fen);
 
-      file.close();
-  }
+        file.close();
+    }
 
-  list.emplace_back("setoption name Threads value " + threads);
-  list.emplace_back("setoption name Hash value " + ttSize);
-  list.emplace_back("setoption name UCI_Variant value " + varname);
-  list.emplace_back("ucinewgame");
+    list.emplace_back("setoption name Threads value " + threads);
+    list.emplace_back("setoption name Hash value " + ttSize);
+    list.emplace_back("setoption name UCI_Variant value " + varname);
+    list.emplace_back("ucinewgame");
 
-  size_t posCounter = 0;
+    size_t posCounter = 0;
 
-  for (const string& fen : fens)
-      if (fen.find("setoption") != string::npos)
-          list.emplace_back(fen);
-      else
-      {
-          if (evalType == "classical" || (evalType == "mixed" && posCounter % 2 == 0))
-              list.emplace_back("setoption name Use NNUE value false");
-          else if (evalType == "NNUE" || (evalType == "mixed" && posCounter % 2 != 0))
-              list.emplace_back("setoption name Use NNUE value true");
-          list.emplace_back("position fen " + fen);
-          list.emplace_back(go);
-          ++posCounter;
-      }
+    for (const string& fen : fens)
+        if (fen.find("setoption") != string::npos)
+            list.emplace_back(fen);
+        else
+        {
+            if (evalType == "classical" || (evalType == "mixed" && posCounter % 2 == 0))
+                list.emplace_back("setoption name Use NNUE value false");
+            else if (evalType == "NNUE" || (evalType == "mixed" && posCounter % 2 != 0))
+                list.emplace_back("setoption name Use NNUE value true");
+            list.emplace_back("position fen " + fen);
+            list.emplace_back(go);
+            ++posCounter;
+        }
 
-  list.emplace_back("setoption name Use NNUE value true");
+    list.emplace_back("setoption name Use NNUE value true");
 
-  return list;
+    return list;
 }
 
-} // namespace Stockfish
+}  // namespace Stockfish
