@@ -333,31 +333,31 @@ class Position {
     Key pawn_key() const;
 
     // Other properties of the position
-    Color    side_to_move() const;
-    int      game_ply() const;
-    bool     is_chess960() const;
+    Color           side_to_move() const;
+    int             game_ply() const;
+    bool            is_chess960() const;
     Search::Worker* this_thread() const;
-    bool     is_immediate_game_end() const;
-    bool     is_immediate_game_end(Value& result, int ply = 0) const;
-    bool     is_optional_game_end() const;
-    bool     is_optional_game_end(Value& result, int ply = 0, int countStarted = 0) const;
-    bool     is_game_end(Value& result, int ply = 0) const;
-    Value    material_counting_result() const;
-    bool     is_draw(int ply) const;
-    bool     has_game_cycle(int ply) const;
-    bool     has_repeated() const;
-    Bitboard chased() const;
-    int      count_limit(Color sideToCount) const;
-    int      board_honor_counting_ply(int countStarted) const;
-    bool     board_honor_counting_shorter(int countStarted) const;
-    int      counting_limit(int countStarted) const;
-    int      counting_ply(int countStarted) const;
-    int      rule50_count() const;
-    Score    psq_score() const;
-    Value    psq_eg_stm() const;
-    Value    non_pawn_material(Color c) const;
-    Value    non_pawn_material() const;
-    Bitboard fog_area() const;
+    bool            is_immediate_game_end() const;
+    bool            is_immediate_game_end(Value& result, int ply = 0) const;
+    bool            is_optional_game_end() const;
+    bool            is_optional_game_end(Value& result, int ply = 0, int countStarted = 0) const;
+    bool            is_game_end(Value& result, int ply = 0) const;
+    Value           material_counting_result() const;
+    bool            is_draw(int ply) const;
+    bool            has_game_cycle(int ply) const;
+    bool            has_repeated() const;
+    Bitboard        chased() const;
+    int             count_limit(Color sideToCount) const;
+    int             board_honor_counting_ply(int countStarted) const;
+    bool            board_honor_counting_shorter(int countStarted) const;
+    int             counting_limit(int countStarted) const;
+    int             counting_ply(int countStarted) const;
+    int             rule50_count() const;
+    Score           psq_score() const;
+    Value           psq_eg_stm() const;
+    Value           non_pawn_material(Color c) const;
+    Value           non_pawn_material() const;
+    Bitboard        fog_area() const;
 
     // Position consistency check, for debugging
     bool pos_is_ok() const;
@@ -397,18 +397,18 @@ class Position {
     Score      psq;
 
     // variant-specific
-    const Variant* var;
+    const Variant*  var;
     Search::Worker* thisThread;
-    bool           tsumeMode;
-    bool           chess960;
-    int            pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
-    int            virtualPieces;
-    Bitboard       promotedPieces;
-    void           add_to_hand(Piece pc);
-    void           remove_from_hand(Piece pc);
-    void           drop_piece(Piece pc_hand, Piece pc_drop, Square s);
-    void           undrop_piece(Piece pc_hand, Square s);
-    Bitboard       find_drop_region(Direction dir, Square s, Bitboard occupied) const;
+    bool            tsumeMode;
+    bool            chess960;
+    int             pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+    int             virtualPieces;
+    Bitboard        promotedPieces;
+    void            add_to_hand(Piece pc);
+    void            remove_from_hand(Piece pc);
+    void            drop_piece(Piece pc_hand, Piece pc_drop, Square s);
+    void            undrop_piece(Piece pc_hand, Square s);
+    Bitboard        find_drop_region(Direction dir, Square s, Bitboard occupied) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const Position& pos);

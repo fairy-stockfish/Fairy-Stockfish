@@ -230,8 +230,12 @@ Key Position::material_key(EndgameEval e) const { return st->materialKey ^ Zobri
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
 
-Position& Position::set(
-  const Variant* v, const string& fenStr, bool isChess960, StateInfo* si, Search::Worker* th, bool sfen) {
+Position& Position::set(const Variant*  v,
+                        const string&   fenStr,
+                        bool            isChess960,
+                        StateInfo*      si,
+                        Search::Worker* th,
+                        bool            sfen) {
     /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -2426,10 +2430,10 @@ void Position::do_null_move(StateInfo& newSt, TranspositionTable& tt) {
     newSt.previous = st;
     st             = &newSt;
 
-    st->dirtyPiece.dirty_num               = 0;
-    st->dirtyPiece.piece[0]                = NO_PIECE;  // Avoid checks in UpdateAccumulator()
-    st->accumulator.computed[WHITE]        = false;
-    st->accumulator.computed[BLACK]        = false;
+    st->dirtyPiece.dirty_num        = 0;
+    st->dirtyPiece.piece[0]         = NO_PIECE;  // Avoid checks in UpdateAccumulator()
+    st->accumulator.computed[WHITE] = false;
+    st->accumulator.computed[BLACK] = false;
 
     while (st->epSquares)
         st->key ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];

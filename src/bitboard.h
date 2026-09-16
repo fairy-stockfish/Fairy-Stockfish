@@ -569,21 +569,21 @@ inline Square msb(Bitboard b) {
 #elif defined(_MSC_VER)
     #ifdef _WIN64  // MSVC, WIN64
 
-    unsigned long idx;
+unsigned long idx;
         #ifdef LARGEBOARDS
-    if (uint64_t(b))
-    {
-        _BitScanForward64(&idx, uint64_t(b));
-        return Square(idx);
-    }
-    else
-    {
-        _BitScanForward64(&idx, uint64_t(b >> 64));
-        return Square(idx + 64);
-    }
+if (uint64_t(b))
+{
+    _BitScanForward64(&idx, uint64_t(b));
+    return Square(idx);
+}
+else
+{
+    _BitScanForward64(&idx, uint64_t(b >> 64));
+    return Square(idx + 64);
+}
         #else
-    _BitScanForward64(&idx, b);
-    return (Square) idx;
+_BitScanForward64(&idx, b);
+return (Square) idx;
         #endif
 }
 
@@ -608,40 +608,40 @@ inline Square msb(Bitboard b) {
 }
 
     #else  // MSVC, WIN32
-    unsigned long idx;
+unsigned long idx;
 
         #ifdef LARGEBOARDS
-    if (b << 96)
-    {
-        _BitScanForward(&idx, uint32_t(b));
-        return Square(idx);
-    }
-    else if (b << 64)
-    {
-        _BitScanForward(&idx, uint32_t(b >> 32));
-        return Square(idx + 32);
-    }
-    else if (b << 32)
-    {
-        _BitScanForward(&idx, uint32_t(b >> 64));
-        return Square(idx + 64);
-    }
-    else
-    {
-        _BitScanForward(&idx, uint32_t(b >> 96));
-        return Square(idx + 96);
-    }
+if (b << 96)
+{
+    _BitScanForward(&idx, uint32_t(b));
+    return Square(idx);
+}
+else if (b << 64)
+{
+    _BitScanForward(&idx, uint32_t(b >> 32));
+    return Square(idx + 32);
+}
+else if (b << 32)
+{
+    _BitScanForward(&idx, uint32_t(b >> 64));
+    return Square(idx + 64);
+}
+else
+{
+    _BitScanForward(&idx, uint32_t(b >> 96));
+    return Square(idx + 96);
+}
         #else
-    if (b & 0xffffffff)
-    {
-        _BitScanForward(&idx, uint32_t(b));
-        return Square(idx);
-    }
-    else
-    {
-        _BitScanForward(&idx, uint32_t(b >> 32));
-        return Square(idx + 32);
-    }
+if (b & 0xffffffff)
+{
+    _BitScanForward(&idx, uint32_t(b));
+    return Square(idx);
+}
+else
+{
+    _BitScanForward(&idx, uint32_t(b >> 32));
+    return Square(idx + 32);
+}
         #endif
 }
 
@@ -649,22 +649,22 @@ inline Square msb(Bitboard b) {
 inline Square msb(Bitboard b) {
     assert(b);
 
-#if defined(__GNUC__)  // GCC, Clang, ICX
+        #if defined(__GNUC__)  // GCC, Clang, ICX
 
     return Square(63 ^ __builtin_clzll(b));
 
-#elif defined(_MSC_VER)
-    #ifdef _WIN64  // MSVC, WIN64
+        #elif defined(_MSC_VER)
+            #ifdef _WIN64  // MSVC, WIN64
 
     unsigned long idx;
     _BitScanReverse64(&idx, b);
     return Square(idx);
 
-    #else  // MSVC, WIN32
+            #else  // MSVC, WIN32
 
     unsigned long idx;
 
-        #ifdef LARGEBOARDS
+                #ifdef LARGEBOARDS
     if (b >> 96)
     {
         _BitScanReverse(&idx, uint32_t(b >> 96));
@@ -676,7 +676,7 @@ inline Square msb(Bitboard b) {
         return Square(idx + 64);
     }
     else
-        #endif
+                #endif
       if (b >> 32)
     {
         _BitScanReverse(&idx, uint32_t(b >> 32));
@@ -687,10 +687,10 @@ inline Square msb(Bitboard b) {
         _BitScanReverse(&idx, uint32_t(b));
         return Square(idx);
     }
-    #endif
-#else  // Compiler is neither GCC nor MSVC compatible
-    #error "Compiler not supported."
-#endif
+            #endif
+        #else  // Compiler is neither GCC nor MSVC compatible
+            #error "Compiler not supported."
+        #endif
 }
 
     #endif

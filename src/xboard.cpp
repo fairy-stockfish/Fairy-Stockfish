@@ -479,7 +479,7 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
             if (token == UCI::move(pos, moveList.back()))
             {
                 // ponderhit
-                moveAfterSearch        = true;
+                moveAfterSearch                = true;
                 Threads.main_manager()->ponder = false;
                 return;
             }

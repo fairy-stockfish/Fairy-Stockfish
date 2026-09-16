@@ -38,7 +38,7 @@ namespace Eval {
 
 std::string trace(Position& pos);
 Value       simple_eval(const Position& pos, Color c);
-Value evaluate(const Position& pos, int optimism);
+Value       evaluate(const Position& pos, int optimism);
 
 extern bool        useNNUE;
 extern std::string currentEvalFileName;

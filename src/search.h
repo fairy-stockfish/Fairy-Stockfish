@@ -236,6 +236,9 @@ class Worker {
         return static_cast<SearchManager*>(manager.get());
     }
 
+    // Indexed by from and to square; drops use SQ_NONE as from square
+    std::array<std::array<uint64_t, SQUARE_NB>, SQUARE_NB + 1> effort;
+
     LimitsType limits;
 
     size_t                pvIdx, pvLast;
