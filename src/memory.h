@@ -20,12 +20,12 @@
 #define MEMORY_H_INCLUDED
 
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <new>
 #include <type_traits>
 #include <utility>
+#include <cstring>
 
 #include "types.h"
 
@@ -211,6 +211,17 @@ T* align_ptr_up(T* ptr) {
       reinterpret_cast<char*>((ptrint + (Alignment - 1)) / Alignment * Alignment));
 }
 
+
+template<typename T, typename ByteT>
+T load_as(const ByteT* buffer) {
+    static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable");
+    static_assert(sizeof(ByteT) == 1);
+
+    T value;
+    std::memcpy(&value, buffer, sizeof(T));
+
+    return value;
+}
 
 }  // namespace Stockfish
 

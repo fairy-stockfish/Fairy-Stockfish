@@ -43,26 +43,35 @@
 //     const unsigned char *const gEmbeddedNNUEEnd;     // a marker to the end
 //     const unsigned int         gEmbeddedNNUESize;    // the size of the embedded file
 // Note that this does not work in Microsoft Visual Studio.
-#if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
+#if !defined(UNIVERSAL_BINARY) && !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
 INCBIN(EmbeddedNNUEBig, EvalFileDefaultNameBig);
 INCBIN(EmbeddedNNUESmall, EvalFileDefaultNameSmall);
+#elif defined(UNIVERSAL_BINARY)
+    // When building for the universal binary, use C++26 #embed with weak symbols so that a
+    // separate, non-LTO nnue_embed.o (with strong symbols) can override them during the LTO link,
+    // (INCBIN can't deduplicate.)
+    #define WEAK_SYM __attribute__((weak))
+extern const unsigned char gEmbeddedNNUEBigData[] WEAK_SYM = {
+    #embed EvalFileDefaultNameBig
+};
+extern const unsigned int gEmbeddedNNUEBigSize WEAK_SYM = sizeof(gEmbeddedNNUEBigData);
+extern const unsigned char                     gEmbeddedNNUESmallData[] WEAK_SYM = {
+    #embed EvalFileDefaultNameSmall
+};
+extern const unsigned int gEmbeddedNNUESmallSize WEAK_SYM = sizeof(gEmbeddedNNUESmallData);
 #else
-const unsigned char        gEmbeddedNNUEBigData[1]   = {0x0};
-const unsigned char* const gEmbeddedNNUEBigEnd       = &gEmbeddedNNUEBigData[1];
-const unsigned int         gEmbeddedNNUEBigSize      = 1;
-const unsigned char        gEmbeddedNNUESmallData[1] = {0x0};
-const unsigned char* const gEmbeddedNNUESmallEnd     = &gEmbeddedNNUESmallData[1];
-const unsigned int         gEmbeddedNNUESmallSize    = 1;
+const unsigned char gEmbeddedNNUEBigData[1]   = {0x0};
+const unsigned int  gEmbeddedNNUEBigSize      = 1;
+const unsigned char gEmbeddedNNUESmallData[1] = {0x0};
+const unsigned int  gEmbeddedNNUESmallSize    = 1;
 #endif
 
 namespace {
 
 struct EmbeddedNNUE {
-    EmbeddedNNUE(const unsigned char* embeddedData,
-                 const unsigned char* embeddedEnd,
-                 const unsigned int   embeddedSize) :
+    EmbeddedNNUE(const unsigned char* embeddedData, const unsigned int embeddedSize) :
         data(embeddedData),
-        end(embeddedEnd),
+        end(embeddedData + embeddedSize),
         size(embeddedSize) {}
     const unsigned char* data;
     const unsigned char* end;
@@ -73,9 +82,9 @@ using namespace Stockfish::Eval::NNUE;
 
 EmbeddedNNUE get_embedded(EmbeddedNNUEType type) {
     if (type == EmbeddedNNUEType::BIG)
-        return EmbeddedNNUE(gEmbeddedNNUEBigData, gEmbeddedNNUEBigEnd, gEmbeddedNNUEBigSize);
+        return EmbeddedNNUE(gEmbeddedNNUEBigData, gEmbeddedNNUEBigSize);
     else
-        return EmbeddedNNUE(gEmbeddedNNUESmallData, gEmbeddedNNUESmallEnd, gEmbeddedNNUESmallSize);
+        return EmbeddedNNUE(gEmbeddedNNUESmallData, gEmbeddedNNUESmallSize);
 }
 
 }

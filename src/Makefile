@@ -160,6 +160,7 @@ else
    SUPPORTED_ARCH=false
 endif
 
+
 optimize = yes
 debug = no
 sanitize = none
@@ -532,14 +533,14 @@ ifeq ($(COMP),mingw)
 			CXX=i686-w64-mingw32-c++-posix
 		endif
 	endif
-	CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
+	CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fconstexpr-ops-limit=500000000
 endif
 
 ifeq ($(COMP),icx)
 	comp=icx
 	CXX=icpx
 	CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes \
-		-Wconditional-uninitialized -Wabi -Wdeprecated
+		-Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
 endif
 
 ifeq ($(COMP),clang)
@@ -550,7 +551,7 @@ ifeq ($(COMP),clang)
 	endif
 
 	CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes \
-	            -Wconditional-uninitialized
+	            -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
 
 	ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
 	ifeq ($(target_windows),)
@@ -658,7 +659,7 @@ ifeq ($(COMP),gcc)
 		profile_make = clang-profile-make
 		profile_use = clang-profile-use
 	else
-		CXXFLAGS += -Wstack-usage=128000
+		CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
 	endif
 endif
 
@@ -865,14 +866,29 @@ endif
 ifeq ($(pext),yes)
 	CXXFLAGS += -DUSE_PEXT
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw icx))
-		CXXFLAGS += -mbmi2
+		CXXFLAGS += -mbmi2 -DUSE_COMPTIME_ATTACKS
 	endif
 endif
 
-### 3.8.1 Try to include git commit sha for versioning
-GIT_SHA := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8)
-ifneq ($(GIT_SHA), )
-	CXXFLAGS += -DGIT_SHA=$(GIT_SHA)
+### 3.8.1 Try to include git info for versioning and avoid recompiles if nothing changes
+BUILD_SHA_FILE  := .build_sha.txt
+BUILD_DATE_FILE := .build_date.txt
+GIT_SHA         := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
+GIT_DATE        := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
+COMPILER_DATE   := $(shell date +%Y%m%d 2>/dev/null)
+
+BUILD_DATE      := $(if $(GIT_DATE),$(GIT_DATE),$(COMPILER_DATE))
+
+define cache_file_contents
+$(shell \
+	if [ ! -f "$(1)" ] || [ "$$(cat "$(1)" 2>/dev/null)" != "$(2)" ]; then \
+		printf '%s\n' "$(2)" > "$(1)"; \
+	fi)
+endef
+
+ifneq ($(filter $(MAKECMDGOALS),help strip install clean net objclean profileclean format config-sanity),$(MAKECMDGOALS))
+_ := $(call cache_file_contents,$(BUILD_SHA_FILE),$(GIT_SHA))
+_ := $(call cache_file_contents,$(BUILD_DATE_FILE),$(BUILD_DATE))
 endif
 
 ### 3.8.2 Try to include git commit date for versioning
@@ -881,31 +897,49 @@ ifneq ($(GIT_DATE), )
 	CXXFLAGS += -DGIT_DATE=$(GIT_DATE)
 endif
 
-### 3.8 Link Time Optimization
+### 3.8.3 Try to include architecture
+ifneq ($(ARCH), )
+	CXXFLAGS += -DARCH=$(ARCH)
+endif
+
+### 3.9 Link Time Optimization
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
-ifeq ($(debug), no)
+ifeq ($(debug),no)
+	ifneq ($(KERNEL),Darwin)
+		LLD_BIN := $(shell command -v ld.lld 2>/dev/null)
+		ifeq ($(LLD_BIN),)
+			LLD_BIN := $(shell command -v lld 2>/dev/null)
+		endif
+		ifneq ($(LLD_BIN),)
+			ifeq ($(comp),clang)
+				LDFLAGS += -fuse-ld=lld
+			else ifeq ($(comp),gcc)
+				ifneq ($(gccisclang),)
+					LDFLAGS += -fuse-ld=lld
+				endif
+			endif
+		endif
+	endif
+
 	ifeq ($(comp),$(filter $(comp),clang icx))
 		CXXFLAGS += -flto=full
 		ifeq ($(comp),icx)
 			CXXFLAGS += -fwhole-program-vtables
-                endif
-		ifeq ($(target_windows),yes)
-			CXXFLAGS += -fuse-ld=lld
 		endif
 		LDFLAGS += $(CXXFLAGS)
 
 # GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
 # GCC on some systems.
 	else ifeq ($(comp),gcc)
-	ifeq ($(gccisclang),)
-		CXXFLAGS += -flto -flto-partition=one
-		LDFLAGS += $(CXXFLAGS) -flto=jobserver
-	else
-		CXXFLAGS += -flto=full
-		LDFLAGS += $(CXXFLAGS)
-	endif
+		ifeq ($(gccisclang),)
+			CXXFLAGS += -flto -flto-partition=one
+			LDFLAGS += $(CXXFLAGS) -flto=jobserver
+		else
+			CXXFLAGS += -flto=full
+			LDFLAGS += $(CXXFLAGS)
+		endif
 
 # To use LTO and static linking on Windows,
 # the tool chain requires gcc version 10.1 or later.
@@ -921,6 +955,13 @@ endif
 ifeq ($(OS), Android)
 	CXXFLAGS += -fPIE
 	LDFLAGS += -fPIE -pie
+endif
+
+### 3.11 Inline settings
+ifeq ($(optimize), yes)
+	ifeq ($(comp), clang)
+		CXXFLAGS += -Xclang -mllvm -Xclang -inline-threshold=500
+	endif
 endif
 
 ### ==========================================================================
@@ -1092,7 +1133,7 @@ net:
 
 # clean binaries and objects
 objclean:
-	@rm -f stockfish stockfish.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
+	@rm -f stockfish stockfish.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o $(BUILD_SHA_FILE) $(BUILD_DATE_FILE)
 
 # clean auxiliary profiling files
 profileclean:
@@ -1193,9 +1234,11 @@ config-sanity: $(load_net)
 $(EXE): $(OBJS)
 	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
-# Force recompilation to ensure version info is up-to-date
-misc.o: FORCE
-FORCE:
+%.o: %.cpp
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
+
+misc.o: misc.cpp $(BUILD_SHA_FILE) $(BUILD_DATE_FILE)
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA)) $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE))) -c -o $@ $<
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
@@ -1244,3 +1287,4 @@ icx-profile-use:
 ifeq (, $(filter $(MAKECMDGOALS), help strip install clean net objclean profileclean format config-sanity))
 -include .depend
 endif
+

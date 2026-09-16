@@ -194,14 +194,14 @@ void MovePicker::score() {
             m.value += (*continuationHistory[5])[history_slot(pc)][to];
 
             // bonus for checks
-            m.value += (bool(pos.check_squares(pt) & to) && pos.see_ge(m, -75)) * 16384;
+            m.value += ((pos.check_squares(pt) & to) && pos.see_ge(m, -75)) * 16384;
 
             // penalty for moving to a square threatened by a lesser piece
             // or bonus for escaping an attack by a lesser piece.
             if (type_of(m) != DROP && pt != KING)
             {
                 Square from = from_sq(m);
-                int    v    = threatByLesser[pt] & to ? -19 : 20 * bool(threatenedPieces & from);
+                int    v    = 20 * (bool(threatenedPieces & from) - bool(threatByLesser[pt] & to));
                 m.value += int(PieceValue[MG][pt]) * v;
             }
 

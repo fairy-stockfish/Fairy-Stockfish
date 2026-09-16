@@ -606,7 +606,8 @@ enum : int {
     // is used only for the transposition table entry occupancy check (see tt.cpp),
     // and should thus be lower than DEPTH_UNSEARCHED.
     DEPTH_UNSEARCHED   = -2,
-    DEPTH_ENTRY_OFFSET = -3,
+    DEPTH_NONE         = -3,
+    DEPTH_ENTRY_OFFSET = DEPTH_NONE,
     // Fairy-Stockfish: safeguard against too deep recursions in quiescence search
     DEPTH_QS_MAX = -32
 };

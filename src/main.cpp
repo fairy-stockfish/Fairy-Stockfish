@@ -36,6 +36,12 @@
 
 using namespace Stockfish;
 
+#ifdef UNIVERSAL_BINARY
+namespace Stockfish {
+
+int main(int argc, char* argv[]);
+#endif
+
 int main(int argc, char* argv[]) {
 
     std::cout << engine_info() << std::endl;
@@ -60,3 +66,7 @@ int main(int argc, char* argv[]) {
     delete XBoard::stateMachine;
     return 0;
 }
+
+#ifdef UNIVERSAL_BINARY
+}
+#endif
