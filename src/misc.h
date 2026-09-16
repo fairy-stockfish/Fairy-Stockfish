@@ -23,6 +23,8 @@
 #include <array>
 #include <cassert>
 #include <chrono>
+#include <atomic>
+#include <type_traits>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -38,6 +40,101 @@
 #define stringify(x) stringify2(x)
 
 namespace Stockfish {
+
+
+// Wrapper around std::atomic with relaxed memory order, used for data that
+// may be accessed by several threads without synchronisation
+template<typename T>
+class RelaxedAtomic {
+    static constexpr bool UseAtomic =
+#ifdef USE_SLOPPY_ATOMICS
+      !std::atomic<T>::is_always_lock_free || sizeof(T) > sizeof(usize);
+#else
+      true;
+#endif
+
+   public:
+    RelaxedAtomic() = default;
+    RelaxedAtomic(T val) :
+        inner(val) {}
+    RelaxedAtomic(const RelaxedAtomic& a) :
+        inner(static_cast<T>(a)) {}
+
+    T operator=(T val) {
+        if constexpr (UseAtomic)
+            inner.store(val, std::memory_order_relaxed);
+        else
+            inner = val;
+        return val;
+    }
+
+    RelaxedAtomic& operator=(const RelaxedAtomic& a) {
+        this->store(static_cast<T>(a), std::memory_order_relaxed);
+        return *this;
+    }
+
+    operator T() const {
+        if constexpr (UseAtomic)
+            return inner.load(std::memory_order_relaxed);
+        else
+            return inner;
+    }
+
+    RelaxedAtomic& operator+=(T val) {
+        T res = this->load(std::memory_order_relaxed) + val;
+        this->store(res, std::memory_order_relaxed);
+        return *this;
+    }
+
+    RelaxedAtomic& operator++() {
+        T res = this->load(std::memory_order_relaxed) + 1;
+        this->store(res, std::memory_order_relaxed);
+        return *this;
+    }
+
+    RelaxedAtomic& operator--() {
+        T res = this->load(std::memory_order_relaxed) - 1;
+        this->store(res, std::memory_order_relaxed);
+        return *this;
+    }
+
+    T operator++(int) {
+        T val = this->load(std::memory_order_relaxed);
+        this->store(val + 1, std::memory_order_relaxed);
+        return val;
+    }
+
+    T operator--(int) {
+        T val = this->load(std::memory_order_relaxed);
+        this->store(val - 1, std::memory_order_relaxed);
+        return val;
+    }
+
+    RelaxedAtomic& operator-=(T val) {
+        T res = this->load(std::memory_order_relaxed) - val;
+        this->store(res, std::memory_order_relaxed);
+        return *this;
+    }
+
+    T load(std::memory_order order) const {
+        assert(order == std::memory_order_relaxed);
+        if constexpr (UseAtomic)
+            return inner.load(order);
+        else
+            return inner;
+    }
+
+    void store(T val, std::memory_order order) {
+        assert(order == std::memory_order_relaxed);
+        if constexpr (UseAtomic)
+            inner.store(val, order);
+        else
+            inner = val;
+    }
+
+   private:
+    std::conditional_t<UseAtomic, std::atomic<T>, T> inner;
+};
 
 std::string engine_info(bool to_uci = false, bool to_xboard = false);
 std::string compiler_info();

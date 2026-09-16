@@ -18,6 +18,7 @@
 
 #include "tt.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
@@ -76,6 +77,7 @@ struct TTEntry {
 
    private:
     friend class TranspositionTable;
+    friend struct TTWriter;
 
     uint16_t key16;
     uint8_t  depth8;
@@ -126,6 +128,11 @@ TTWriter::TTWriter(TTEntry* tte) :
 void TTWriter::write(
   Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t curr_generation) {
     entry->save(k, v, pv, b, d, m, ev, curr_generation);
+}
+
+void TTWriter::penalize(int penalty) {
+    // guard against racy underflows, default to "unoccupied"
+    entry->depth8 = std::max(int(entry->depth8) - penalty, 0);
 }
 
 

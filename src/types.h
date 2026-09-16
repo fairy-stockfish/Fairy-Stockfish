@@ -38,6 +38,7 @@
 
     #include <cassert>
     #include <cctype>
+    #include <cstddef>
     #include <cstdint>
     #include <cstdlib>
     #include <algorithm>
@@ -92,6 +93,20 @@
     #endif
 
 namespace Stockfish {
+
+// Fixed-width integer aliases (from upstream misc.h)
+using u64 = std::uint64_t;
+using u32 = std::uint32_t;
+using u16 = std::uint16_t;
+using u8  = std::uint8_t;
+
+using i64 = std::int64_t;
+using i32 = std::int32_t;
+using i16 = std::int16_t;
+using i8  = std::int8_t;
+
+using usize = std::size_t;
+using isize = std::ptrdiff_t;
 
     #ifdef USE_POPCNT
 constexpr bool HasPopCnt = true;
@@ -459,6 +474,18 @@ constexpr bool is_loss(Value value) {
 }
 
 constexpr bool is_decisive(Value value) { return is_win(value) || is_loss(value); }
+
+constexpr bool is_mate(Value value) {
+    assert(is_valid(value));
+    return value >= VALUE_MATE_IN_MAX_PLY;
+}
+
+constexpr bool is_mated(Value value) {
+    assert(is_valid(value));
+    return value <= VALUE_MATED_IN_MAX_PLY;
+}
+
+constexpr bool is_mate_or_mated(Value value) { return is_mate(value) || is_mated(value); }
 
 // clang-format off
 enum PieceType {

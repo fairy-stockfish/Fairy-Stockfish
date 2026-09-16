@@ -35,6 +35,7 @@
 #include "nnue_architecture.h"
 #include "nnue_common.h"
 #include "nnue_misc.h"
+#include "nnz_helper.h"
 
 // Macro to embed the default efficiently updatable neural network (NNUE) file
 // data in the engine binary (using incbin.h, by Dale Weiler).
@@ -44,51 +45,18 @@
 //     const unsigned int         gEmbeddedNNUESize;    // the size of the embedded file
 // Note that this does not work in Microsoft Visual Studio.
 #if !defined(UNIVERSAL_BINARY) && !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
-INCBIN(EmbeddedNNUEBig, EvalFileDefaultNameBig);
-INCBIN(EmbeddedNNUESmall, EvalFileDefaultNameSmall);
+INCBIN(EmbeddedNNUE, EvalFileDefaultName);
+#elif defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
+// Determined at runtime, see universal/nnue_embed.cpp
+extern const unsigned char* const gEmbeddedNNUEData;
+extern const unsigned int         gEmbeddedNNUESize;
 #elif defined(UNIVERSAL_BINARY)
-    // When building for the universal binary, use C++26 #embed with weak symbols so that a
-    // separate, non-LTO nnue_embed.o (with strong symbols) can override them during the LTO link,
-    // (INCBIN can't deduplicate.)
-    #define WEAK_SYM __attribute__((weak))
-extern const unsigned char gEmbeddedNNUEBigData[] WEAK_SYM = {
-    #embed EvalFileDefaultNameBig
-};
-extern const unsigned int gEmbeddedNNUEBigSize WEAK_SYM = sizeof(gEmbeddedNNUEBigData);
-extern const unsigned char                     gEmbeddedNNUESmallData[] WEAK_SYM = {
-    #embed EvalFileDefaultNameSmall
-};
-extern const unsigned int gEmbeddedNNUESmallSize WEAK_SYM = sizeof(gEmbeddedNNUESmallData);
+extern const unsigned char gEmbeddedNNUEData[];
+extern const unsigned int  gEmbeddedNNUESize;
 #else
-const unsigned char gEmbeddedNNUEBigData[1]   = {0x0};
-const unsigned int  gEmbeddedNNUEBigSize      = 1;
-const unsigned char gEmbeddedNNUESmallData[1] = {0x0};
-const unsigned int  gEmbeddedNNUESmallSize    = 1;
+const unsigned char gEmbeddedNNUEData[1] = {0x0};
+const unsigned int  gEmbeddedNNUESize    = 1;
 #endif
-
-namespace {
-
-struct EmbeddedNNUE {
-    EmbeddedNNUE(const unsigned char* embeddedData, const unsigned int embeddedSize) :
-        data(embeddedData),
-        end(embeddedData + embeddedSize),
-        size(embeddedSize) {}
-    const unsigned char* data;
-    const unsigned char* end;
-    const unsigned int   size;
-};
-
-using namespace Stockfish::Eval::NNUE;
-
-EmbeddedNNUE get_embedded(EmbeddedNNUEType type) {
-    if (type == EmbeddedNNUEType::BIG)
-        return EmbeddedNNUE(gEmbeddedNNUEBigData, gEmbeddedNNUEBigSize);
-    else
-        return EmbeddedNNUE(gEmbeddedNNUESmallData, gEmbeddedNNUESmallSize);
-}
-
-}
-
 
 namespace Stockfish::Eval::NNUE {
 
@@ -99,8 +67,8 @@ namespace Detail {
 template<typename T>
 bool read_parameters(std::istream& stream, T& reference) {
 
-    std::uint32_t header;
-    header = read_little_endian<std::uint32_t>(stream);
+    u32 header;
+    header = read_little_endian<u32>(stream);
     if (!stream || header != T::get_hash_value())
         return false;
     return reference.read_parameters(stream);
@@ -110,14 +78,13 @@ bool read_parameters(std::istream& stream, T& reference) {
 template<typename T>
 bool write_parameters(std::ostream& stream, const T& reference) {
 
-    write_little_endian<std::uint32_t>(stream, T::get_hash_value());
+    write_little_endian<u32>(stream, T::get_hash_value());
     return reference.write_parameters(stream);
 }
 
 }  // namespace Detail
 
-template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load(const std::string& rootDirectory, std::string evalfilePath) {
+void Network::load(const std::string& rootDirectory, std::string evalfilePath) {
 #if defined(DEFAULT_NNUE_DIRECTORY)
     std::vector<std::string> dirs = {"<internal>", "", rootDirectory,
                                      stringify(DEFAULT_NNUE_DIRECTORY)};
@@ -133,21 +100,15 @@ void Network<Arch, Transformer>::load(const std::string& rootDirectory, std::str
         if (std::string(evalFile.current) != evalfilePath)
         {
             if (directory != "<internal>")
-            {
                 load_user_net(directory, evalfilePath);
-            }
-
-            if (directory == "<internal>" && evalfilePath == std::string(evalFile.defaultName))
-            {
+            else if (evalfilePath == std::string(evalFile.defaultName))
                 load_internal();
-            }
         }
     }
 }
 
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename) const {
+bool Network::save(const std::optional<std::string>& filename) const {
     std::string actualFilename;
     std::string msg;
 
@@ -177,30 +138,28 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename
 }
 
 
-template<typename Arch, typename Transformer>
-NetworkOutput
-Network<Arch, Transformer>::evaluate(const Position&                         pos,
-                                     AccumulatorStack&                       accumulatorStack,
-                                     AccumulatorCaches::Cache<FTDimensions>& cache) const {
+NetworkOutput Network::evaluate(const Position&    pos,
+                                AccumulatorStack&  accumulatorStack,
+                                AccumulatorCaches& cache) const {
 
-    constexpr uint64_t alignment = CacheLineSize;
+    constexpr u64 alignment = CacheLineSize;
 
-    alignas(alignment)
-      TransformedFeatureType transformedFeatures[FeatureTransformer<FTDimensions>::BufferSize];
+    alignas(alignment) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
 
     ASSERT_ALIGNED(transformedFeatures, alignment);
 
-    const int  bucket = (pos.count<ALL_PIECES>() - 1) / 4;
-    const auto psqt =
-      featureTransformer.transform(pos, accumulatorStack, cache, transformedFeatures, bucket);
-    const auto positional = network[bucket].propagate(transformedFeatures);
+    NNZInfo<L1> nnzInfo;
+
+    const int  bucket     = (pos.count<ALL_PIECES>() - 1) / 4;
+    const auto psqt       = featureTransformer.transform(pos, accumulatorStack, cache,
+                                                         transformedFeatures, bucket, nnzInfo);
+    const auto positional = network[bucket].propagate(transformedFeatures, nnzInfo);
     return {static_cast<Value>(psqt / OutputScale), static_cast<Value>(positional / OutputScale)};
 }
 
 
-template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::verify(std::string                                  evalfilePath,
-                                        const std::function<void(std::string_view)>& f) const {
+void Network::verify(std::string                                  evalfilePath,
+                     const std::function<void(std::string_view)>& f) const {
     if (evalfilePath.empty())
         evalfilePath = evalFile.defaultName;
 
@@ -229,9 +188,9 @@ void Network<Arch, Transformer>::verify(std::string                             
 
     if (f)
     {
-        size_t size = sizeof(featureTransformer) + sizeof(Arch) * LayerStacks;
+        usize size = sizeof(featureTransformer) + sizeof(NetworkArchitecture) * LayerStacks;
         f("NNUE evaluation using " + evalfilePath + " (" + std::to_string(size / (1024 * 1024))
-          + "MiB, (" + std::to_string(featureTransformer.TotalInputDimensions) + ", "
+          + "MiB, (" + std::to_string(featureTransformer.InputDimensions) + ", "
           + std::to_string(network[0].TransformedFeatureDimensions) + ", "
           + std::to_string(network[0].FC_0_OUTPUTS) + ", " + std::to_string(network[0].FC_1_OUTPUTS)
           + ", 1))");
@@ -239,16 +198,13 @@ void Network<Arch, Transformer>::verify(std::string                             
 }
 
 
-template<typename Arch, typename Transformer>
-NnueEvalTrace
-Network<Arch, Transformer>::trace_evaluate(const Position&                         pos,
-                                           AccumulatorStack&                       accumulatorStack,
-                                           AccumulatorCaches::Cache<FTDimensions>& cache) const {
+NnueEvalTrace Network::trace_evaluate(const Position&    pos,
+                                      AccumulatorStack&  accumulatorStack,
+                                      AccumulatorCaches& cache) const {
 
-    constexpr uint64_t alignment = CacheLineSize;
+    constexpr u64 alignment = CacheLineSize;
 
-    alignas(alignment)
-      TransformedFeatureType transformedFeatures[FeatureTransformer<FTDimensions>::BufferSize];
+    alignas(alignment) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
 
     ASSERT_ALIGNED(transformedFeatures, alignment);
 
@@ -256,9 +212,10 @@ Network<Arch, Transformer>::trace_evaluate(const Position&                      
     t.correctBucket = (pos.count<ALL_PIECES>() - 1) / 4;
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        const auto materialist =
-          featureTransformer.transform(pos, accumulatorStack, cache, transformedFeatures, bucket);
-        const auto positional = network[bucket].propagate(transformedFeatures);
+        NNZInfo<L1> nnzInfo;
+        const auto  materialist = featureTransformer.transform(pos, accumulatorStack, cache,
+                                                               transformedFeatures, bucket, nnzInfo);
+        const auto  positional  = network[bucket].propagate(transformedFeatures, nnzInfo);
 
         t.psqt[bucket]       = static_cast<Value>(materialist / OutputScale);
         t.positional[bucket] = static_cast<Value>(positional / OutputScale);
@@ -268,9 +225,7 @@ Network<Arch, Transformer>::trace_evaluate(const Position&                      
 }
 
 
-template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load_user_net(const std::string& dir,
-                                               const std::string& evalfilePath) {
+void Network::load_user_net(const std::string& dir, const std::string& evalfilePath) {
     std::ifstream stream(dir + evalfilePath, std::ios::binary);
     auto          description = load(stream);
 
@@ -282,21 +237,23 @@ void Network<Arch, Transformer>::load_user_net(const std::string& dir,
 }
 
 
-template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load_internal() {
+void Network::load_internal() {
     // C++ way to prepare a buffer for a memory stream
     class MemoryBuffer: public std::basic_streambuf<char> {
        public:
-        MemoryBuffer(char* p, size_t n) {
+        MemoryBuffer(char* p, usize n) {
             setg(p, p, p + n);
             setp(p, p + n);
         }
     };
 
-    const auto embedded = get_embedded(embeddedType);
+#ifdef UNIVERSAL_BINARY_MACOS_X86_SLICE
+    if (gEmbeddedNNUEData == nullptr)  // failed embedded load
+        return;
+#endif
 
-    MemoryBuffer buffer(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
-                        size_t(embedded.size));
+    MemoryBuffer buffer(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
+                        usize(gEmbeddedNNUESize));
 
     std::istream stream(&buffer);
     auto         description = load(stream);
@@ -309,16 +266,12 @@ void Network<Arch, Transformer>::load_internal() {
 }
 
 
-template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::initialize() {
-    initialized = true;
-}
+void Network::initialize() { initialized = true; }
 
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::save(std::ostream&      stream,
-                                      const std::string& name,
-                                      const std::string& netDescription) const {
+bool Network::save(std::ostream&      stream,
+                   const std::string& name,
+                   const std::string& netDescription) const {
     if (name.empty() || name == "None")
         return false;
 
@@ -326,8 +279,7 @@ bool Network<Arch, Transformer>::save(std::ostream&      stream,
 }
 
 
-template<typename Arch, typename Transformer>
-std::optional<std::string> Network<Arch, Transformer>::load(std::istream& stream) {
+std::optional<std::string> Network::load(std::istream& stream) {
     initialize();
     std::string description;
 
@@ -335,30 +287,25 @@ std::optional<std::string> Network<Arch, Transformer>::load(std::istream& stream
 }
 
 
-template<typename Arch, typename Transformer>
-std::size_t Network<Arch, Transformer>::get_content_hash() const {
+usize Network::get_content_hash() const {
     if (!initialized)
         return 0;
 
-    std::size_t h = 0;
+    usize h = 0;
     hash_combine(h, featureTransformer);
     for (auto&& layerstack : network)
         hash_combine(h, layerstack);
     hash_combine(h, evalFile);
-    hash_combine(h, static_cast<int>(embeddedType));
     return h;
 }
 
 // Read network header
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::read_header(std::istream&  stream,
-                                             std::uint32_t* hashValue,
-                                             std::string*   desc) const {
-    std::uint32_t version, size;
+bool Network::read_header(std::istream& stream, u32* hashValue, std::string* desc) const {
+    u32 version, size;
 
-    version    = read_little_endian<std::uint32_t>(stream);
-    *hashValue = read_little_endian<std::uint32_t>(stream);
-    size       = read_little_endian<std::uint32_t>(stream);
+    version    = read_little_endian<u32>(stream);
+    *hashValue = read_little_endian<u32>(stream);
+    size       = read_little_endian<u32>(stream);
     if (!stream || version != Version)
         return false;
     desc->resize(size);
@@ -368,29 +315,24 @@ bool Network<Arch, Transformer>::read_header(std::istream&  stream,
 
 
 // Write network header
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::write_header(std::ostream&      stream,
-                                              std::uint32_t      hashValue,
-                                              const std::string& desc) const {
-    write_little_endian<std::uint32_t>(stream, Version);
-    write_little_endian<std::uint32_t>(stream, hashValue);
-    write_little_endian<std::uint32_t>(stream, std::uint32_t(desc.size()));
+bool Network::write_header(std::ostream& stream, u32 hashValue, const std::string& desc) const {
+    write_little_endian<u32>(stream, Version);
+    write_little_endian<u32>(stream, hashValue);
+    write_little_endian<u32>(stream, u32(desc.size()));
     stream.write(&desc[0], desc.size());
     return !stream.fail();
 }
 
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::read_parameters(std::istream& stream,
-                                                 std::string&  netDescription) {
-    std::uint32_t hashValue;
+bool Network::read_parameters(std::istream& stream, std::string& netDescription) {
+    u32 hashValue;
     if (!read_header(stream, &hashValue, &netDescription))
         return false;
     if (hashValue != Network::hash)
         return false;
     if (!Detail::read_parameters(stream, featureTransformer))
         return false;
-    for (std::size_t i = 0; i < LayerStacks; ++i)
+    for (usize i = 0; i < LayerStacks; ++i)
     {
         if (!Detail::read_parameters(stream, network[i]))
             return false;
@@ -399,27 +341,17 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& stream,
 }
 
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::write_parameters(std::ostream&      stream,
-                                                  const std::string& netDescription) const {
+bool Network::write_parameters(std::ostream& stream, const std::string& netDescription) const {
     if (!write_header(stream, Network::hash, netDescription))
         return false;
     if (!Detail::write_parameters(stream, featureTransformer))
         return false;
-    for (std::size_t i = 0; i < LayerStacks; ++i)
+    for (usize i = 0; i < LayerStacks; ++i)
     {
         if (!Detail::write_parameters(stream, network[i]))
             return false;
     }
     return bool(stream);
 }
-
-// Explicit template instantiations
-
-template class Network<NetworkArchitecture<TransformedFeatureDimensionsBig, L2Big, L3Big>,
-                       FeatureTransformer<TransformedFeatureDimensionsBig>>;
-
-template class Network<NetworkArchitecture<TransformedFeatureDimensionsSmall, L2Small, L3Small>,
-                       FeatureTransformer<TransformedFeatureDimensionsSmall>>;
 
 }  // namespace Stockfish::Eval::NNUE
