@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -378,10 +378,12 @@ enum Value : int {
     VALUE_INFINITE                = 32001,
     VALUE_NONE                    = 32002,
 
-    VALUE_TB_WIN_IN_MAX_PLY  = VALUE_MATE - 2 * MAX_PLY,
+    VALUE_MATE_IN_MAX_PLY  = VALUE_MATE - MAX_PLY,
+    VALUE_MATED_IN_MAX_PLY = -VALUE_MATE_IN_MAX_PLY,
+
+    VALUE_TB                 = VALUE_MATE_IN_MAX_PLY - 1,
+    VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY,
     VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY,
-    VALUE_MATE_IN_MAX_PLY    = VALUE_MATE - MAX_PLY,
-    VALUE_MATED_IN_MAX_PLY   = -VALUE_MATE_IN_MAX_PLY,
 
     // In the code, we make the assumption that these values
     // are such that non_pawn_material() can be used to uniquely

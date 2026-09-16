@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -36,13 +36,19 @@ namespace Stockfish {
 
 std::string engine_info(bool to_uci = false, bool to_xboard = false);
 std::string compiler_info();
-void        prefetch(void* addr);
-void        start_logger(const std::string& fname);
-void*       std_aligned_alloc(size_t alignment, size_t size);
-void        std_aligned_free(void* ptr);
-void*       aligned_large_pages_alloc(
-        size_t size);                      // memory aligned by page size, min alignment: 4096 bytes
-void aligned_large_pages_free(void* mem);  // nop if mem == nullptr
+
+// Preloads the given address in L1/L2 cache. This is a non-blocking
+// function that doesn't stall the CPU waiting for data to be loaded from memory,
+// which can be quite slow.
+void prefetch(void* addr);
+
+void  start_logger(const std::string& fname);
+void* std_aligned_alloc(size_t alignment, size_t size);
+void  std_aligned_free(void* ptr);
+// memory aligned by page size, min alignment: 4096 bytes
+void* aligned_large_pages_alloc(size_t size);
+// nop if mem == nullptr
+void aligned_large_pages_free(void* mem);
 
 void dbg_hit_on(bool cond, int slot = 0);
 void dbg_mean_of(int64_t value, int slot = 0);
@@ -69,7 +75,7 @@ std::ostream& operator<<(std::ostream&, SyncCout);
 #define sync_endl std::endl << IO_UNLOCK
 
 
-// align_ptr_up() : get the first aligned element of an array.
+// Get the first aligned element of an array.
 // ptr must point to an array of size at least `sizeof(T) * N + alignment` bytes,
 // where N is the number of elements in the array.
 template<uintptr_t Alignment, typename T>
@@ -177,7 +183,6 @@ inline uint64_t mul_hi64(uint64_t a, uint64_t b) {
 // cores. To overcome this, some special platform-specific API should be
 // called to set group affinity for each thread. Original code from Texel by
 // Peter Österlund.
-
 namespace WinProcGroup {
 void bindThisThread(size_t idx);
 }

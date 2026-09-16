@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -36,11 +36,7 @@
 
 namespace Stockfish {
 
-// Thread class keeps together all the thread-related stuff. We use
-// per-thread pawn and material hash tables so that once we get a
-// pointer to an entry its lifetime is unlimited and we don't have
-// to care about someone changing the entry under our feet.
-
+// Thread class keeps together all the thread-related stuff.
 class Thread {
 
     std::mutex              mutex;
@@ -77,11 +73,12 @@ class Thread {
     GateHistory           gateHistory;
     CapturePieceToHistory captureHistory;
     ContinuationHistory   continuationHistory[2][2];
+    PawnHistory           pawnHistory;
+    CorrectionHistory     correctionHistory;
 };
 
 
 // MainThread is a derived class specific for main thread
-
 struct MainThread: public Thread {
 
     using Thread::Thread;
@@ -103,7 +100,6 @@ struct MainThread: public Thread {
 // ThreadPool struct handles all the threads-related stuff like init, starting,
 // parking and, most importantly, launching a thread. All the access to threads
 // is done through this class.
-
 struct ThreadPool {
 
     void start_thinking(Position&, StateListPtr&, const Search::LimitsType&, bool = false);

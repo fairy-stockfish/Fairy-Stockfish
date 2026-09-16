@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>  // For std::memset
 #include <fstream>
@@ -65,14 +66,13 @@ namespace Eval {
 bool   useNNUE;
 string currentEvalFileName = "None";
 
-/// NNUE::init() tries to load a NNUE network at startup time, or when the engine
-/// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
-/// The name of the NNUE network is always retrieved from the EvalFile option.
-/// We search the given network in three locations: internally (the default
-/// network may be embedded in the binary), in the active working directory and
-/// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY
-/// variable to have the engine search in a special directory in their distro.
-
+// Tries to load a NNUE network at startup time, or when the engine
+// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
+// The name of the NNUE network is always retrieved from the EvalFile option.
+// We search the given network in three locations: internally (the default
+// network may be embedded in the binary), in the active working directory and
+// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY
+// variable to have the engine search in a special directory in their distro.
 void NNUE::init() {
 
     useNNUE = Options["Use NNUE"];
@@ -141,7 +141,7 @@ void NNUE::init() {
         }
 }
 
-/// NNUE::verify() verifies that the last net used was loaded successfully
+// Verifies that the last net used was loaded successfully
 void NNUE::verify() {
 
     string eval_file = string(Options["EvalFile"]);
@@ -151,16 +151,15 @@ void NNUE::verify() {
     if (useNNUE && eval_file.find(currentEvalFileName) == string::npos)
     {
 
-        string msg1 =
-          "If the UCI option \"Use NNUE\" is set to true, network evaluation parameters compatible with the engine must be available.";
-        string msg2 = "The option is set to true, but the network file " + eval_file
-                    + " was not loaded successfully.";
-        string msg3 =
-          "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file.";
-        string msg4 =
-          "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"
-          + std::string(EvalFileDefaultName);
-        string msg5 = "The engine will be terminated now.";
+        std::string msg1 =
+          "Network evaluation parameters compatible with the engine must be available.";
+        std::string msg2 = "The network file " + eval_file + " was not loaded successfully.";
+        std::string msg3 = "The UCI option EvalFile might need to specify the full path, "
+                           "including the directory name, to the network file.";
+        std::string msg4 = "The default net can be downloaded from: "
+                           "https://tests.stockfishchess.org/api/nn/"
+                         + std::string(EvalFileDefaultName);
+        std::string msg5 = "The engine will be terminated now.";
 
         sync_cout << "info string ERROR: " << msg1 << sync_endl;
         sync_cout << "info string ERROR: " << msg2 << sync_endl;
@@ -1697,6 +1696,8 @@ Value Eval::simple_eval(const Position& pos, Color c) {
 }
 
 
+// Evaluate is the evaluator for the outer world. It returns a static evaluation
+// of the position from the point of view of the side to move.
 Value Eval::evaluate(const Position& pos) {
 
     assert(!pos.checkers());
@@ -1761,11 +1762,10 @@ Value Eval::evaluate(const Position& pos) {
     return v;
 }
 
-/// trace() is like evaluate(), but instead of returning a value, it returns
-/// a string (suitable for outputting to stdout) that contains the detailed
-/// descriptions and values of each evaluation term. Useful for debugging.
-/// Trace scores are from white's point of view
-
+// Like evaluate(), but instead of returning a value, it returns
+// a string (suitable for outputting to stdout) that contains the detailed
+// descriptions and values of each evaluation term. Useful for debugging.
+// Trace scores are from white's point of view
 std::string Eval::trace(Position& pos) {
 
     if (pos.checkers())

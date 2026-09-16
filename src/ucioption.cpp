@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -173,8 +173,7 @@ bool CaseInsensitiveLess::operator()(const string& s1, const string& s2) const {
 }
 
 
-/// UCI::init() initializes the UCI options to their hard-coded default values
-
+// Initializes the UCI options to their hard-coded default values
 void init(OptionsMap& o) {
 
     constexpr int MaxHashMB = Is64Bit ? 33554432 : 2048;
@@ -184,10 +183,9 @@ void init(OptionsMap& o) {
     o["Hash"] << Option(16, 1, MaxHashMB, on_hash_size);
     o["Clear Hash"] << Option(on_clear_hash);
     o["Ponder"] << Option(false);
-    o["MultiPV"] << Option(1, 1, 500);
+    o["MultiPV"] << Option(1, 1, MAX_MOVES);
     o["Skill Level"] << Option(20, -20, 20);
     o["Move Overhead"] << Option(10, 0, 5000);
-    o["Slow Mover"] << Option(100, 10, 1000);
     o["nodestime"] << Option(0, 0, 10000);
     o["UCI_Chess960"] << Option(false);
     o["UCI_Variant"] << Option("chess", variants.get_keys(), on_variant_change);
@@ -211,9 +209,8 @@ void init(OptionsMap& o) {
 }
 
 
-/// operator<<() is used to print all the options default values in chronological
-/// insertion order (the idx field) and in the format defined by the UCI protocol.
-
+// Used to print all the options default values in chronological
+// insertion order (the idx field) and in the format defined by the UCI protocol.
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
     if (CurrentProtocol == XBOARD)
@@ -350,8 +347,7 @@ bool Option::operator!=(const char* s) const {
     return !(*this == s);
 }
 
-
-/// operator<<() inits options and assigns idx in the correct printing order
+// Inits options and assigns idx in the correct printing order
 
 void Option::operator<<(const Option& o) {
 
@@ -362,10 +358,9 @@ void Option::operator<<(const Option& o) {
 }
 
 
-/// operator=() updates currentValue and triggers on_change() action. It's up to
-/// the GUI to check for option's limits, but we could receive the new value
-/// from the user by console window, so let's check the bounds anyway.
-
+// Updates currentValue and triggers on_change() action. It's up to
+// the GUI to check for option's limits, but we could receive the new value
+// from the user by console window, so let's check the bounds anyway.
 Option& Option::operator=(const string& v) {
 
     assert(!type.empty());

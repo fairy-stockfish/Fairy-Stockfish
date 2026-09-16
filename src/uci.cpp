@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -79,9 +79,8 @@ void position(Position& pos, istringstream& is, StateListPtr& states) {
     }
 }
 
-// trace_eval() prints the evaluation of the current position, consistent with
-// the UCI options set so far.
-
+// Prints the evaluation of the current position,
+// consistent with the UCI options set so far.
 void trace_eval(Position& pos) {
 
     StateListPtr states(new std::deque<StateInfo>(1));
@@ -94,7 +93,7 @@ void trace_eval(Position& pos) {
 }
 
 
-// setoption() is called when the engine receives the "setoption" UCI command.
+// Called when the engine receives the "setoption" UCI command.
 // The function updates the UCI option ("name") to the given value ("value").
 
 void setoption(istringstream& is) {
@@ -124,9 +123,8 @@ void setoption(istringstream& is) {
 }
 
 
-// go() is called when the engine receives the "go" UCI command. The function
-// sets the thinking time and other parameters from the input string, then starts
-// with a search.
+// Called when the engine receives the "go" UCI command. The function sets the
+// thinking time and other parameters from the input string then stars with a search
 
 void go(Position&                pos,
         istringstream&           is,
@@ -314,12 +312,11 @@ void load(istringstream& is, bool check = false) {
 }  // namespace
 
 
-/// UCI::loop() waits for a command from the stdin, parses it and then calls the appropriate
-/// function. It also intercepts an end-of-file (EOF) indication from the stdin to ensure a
-/// graceful exit if the GUI dies unexpectedly. When called with some command-line arguments,
-/// like running 'bench', the function returns immediately after the command is executed.
-/// In addition to the UCI ones, some additional debug commands are also supported.
-
+// Waits for a command from the stdin, parses it, and then calls the appropriate
+// function. It also intercepts an end-of-file (EOF) indication from the stdin to ensure a
+// graceful exit if the GUI dies unexpectedly. When called with some command-line arguments,
+// like running 'bench', the function returns immediately after the command is executed.
+// In addition to the UCI ones, some additional debug commands are also supported.
 void UCI::loop(int argc, char* argv[]) {
 
     Position     pos;

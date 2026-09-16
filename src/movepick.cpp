@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ enum Stages {
     QCHECK
 };
 
-// partial_insertion_sort() sorts moves in descending order up to and including
+// Sort moves in descending order up to and including
 // a given limit. The order of moves smaller than the limit is left unspecified.
 void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
 
@@ -93,6 +93,7 @@ MovePicker::MovePicker(const Position&              p,
                        const GateHistory*           dh,
                        const CapturePieceToHistory* cph,
                        const PieceToHistory**       ch,
+                       const PawnHistory*           ph,
                        Move                         cm,
                        const Move*                  killers) :
     pos(p),
@@ -100,6 +101,7 @@ MovePicker::MovePicker(const Position&              p,
     gateHistory(dh),
     captureHistory(cph),
     continuationHistory(ch),
+    pawnHistory(ph),
     ttMove(ttm),
     refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}},
     depth(d) {
@@ -109,7 +111,7 @@ MovePicker::MovePicker(const Position&              p,
     stage = (pos.checkers() ? EVASION_TT : MAIN_TT) + !(ttm && pos.pseudo_legal(ttm));
 }
 
-/// MovePicker constructor for quiescence search
+// Constructor for quiescence search
 MovePicker::MovePicker(const Position&              p,
                        Move                         ttm,
                        Depth                        d,
@@ -117,14 +119,14 @@ MovePicker::MovePicker(const Position&              p,
                        const GateHistory*           dh,
                        const CapturePieceToHistory* cph,
                        const PieceToHistory**       ch,
-                       Square                       rs) :
+                       const PawnHistory*           ph) :
     pos(p),
     mainHistory(mh),
     gateHistory(dh),
     captureHistory(cph),
     continuationHistory(ch),
+    pawnHistory(ph),
     ttMove(ttm),
-    recaptureSquare(rs),
     depth(d) {
 
     assert(d <= 0);
@@ -148,7 +150,7 @@ MovePicker::MovePicker(
           + !(ttm && pos.capture_stage(ttm) && pos.pseudo_legal(ttm) && pos.see_ge(ttm, threshold));
 }
 
-// MovePicker::score() assigns a numerical value to each move in a list, used
+// Assigns a numerical value to each move in a list, used
 // for sorting. Captures are ordered by Most Valuable Victim (MVV), preferring
 // captures with a good history. Quiets moves are ordered using the history tables.
 template<GenType Type>
@@ -201,6 +203,7 @@ void MovePicker::score() {
             // histories
             m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
             m.value += (*gateHistory)[pos.side_to_move()][gating_square(m)];
+            m.value += 2 * (*pawnHistory)[pawn_structure_index(pos)][pc][to];
             m.value += 2 * (*continuationHistory[0])[history_slot(pc)][to];
             m.value += (*continuationHistory[1])[history_slot(pc)][to];
             m.value += (*continuationHistory[2])[history_slot(pc)][to] / 4;
@@ -229,11 +232,12 @@ void MovePicker::score() {
                         - Value(type_of(pos.moved_piece(m))) + (1 << 28);
             else
                 m.value = (*mainHistory)[pos.side_to_move()][from_to(m)]
-                        + (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)];
+                        + (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)]
+                        + (*pawnHistory)[pawn_structure_index(pos)][pos.moved_piece(m)][to_sq(m)];
         }
 }
 
-// MovePicker::select() returns the next move satisfying a predicate function.
+// Returns the next move satisfying a predicate function.
 // It never returns the TT move.
 template<MovePicker::PickType T, typename Pred>
 Move MovePicker::select(Pred filter) {
@@ -251,7 +255,7 @@ Move MovePicker::select(Pred filter) {
     return MOVE_NONE;
 }
 
-// MovePicker::next_move() is the most important method of the MovePicker class. It
+// Most important method of the MovePicker class. It
 // returns a new pseudo-legal move every time it is called until there are no more
 // moves left, picking the move with the highest score from a list of generated moves.
 Move MovePicker::next_move(bool skipQuiets) {
@@ -319,7 +323,7 @@ top:
             endMoves = generate<QUIETS>(pos, cur);
 
             score<QUIETS>();
-            partial_insertion_sort(cur, endMoves, -3000 * depth);
+            partial_insertion_sort(cur, endMoves, -3330 * depth);
         }
 
         ++stage;
@@ -357,8 +361,7 @@ top:
         return select<Next>([&]() { return pos.see_ge(*cur, threshold); });
 
     case QCAPTURE :
-        if (select<Next>(
-              [&]() { return depth > DEPTH_QS_RECAPTURES || to_sq(*cur) == recaptureSquare; }))
+        if (select<Next>([]() { return true; }))
             return *(cur - 1);
 
         // If we did not find any move and we do not try checks, we have finished

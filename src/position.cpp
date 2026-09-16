@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -155,8 +155,7 @@ Move cuckooMove[8192];
 #endif
 
 
-/// Position::init() initializes at startup the various arrays used to compute hash keys
-
+// Initializes at startup the various arrays used to compute hash keys
 void Position::init() {
 
     PRNG rng(1070372);
@@ -573,9 +572,8 @@ Position& Position::set(
 }
 
 
-/// Position::set_castling_right() is a helper function used to set castling
-/// rights given the corresponding color and the rook starting square.
-
+// Helper function used to set castling
+// rights given the corresponding color and the rook starting square.
 void Position::set_castling_right(Color c, Square rfrom) {
 
     assert(st->castlingKingSquare[c] != SQ_NONE);
@@ -595,8 +593,7 @@ void Position::set_castling_right(Color c, Square rfrom) {
 }
 
 
-/// Position::set_check_info() sets king attacks to detect if a move gives check
-
+// Sets king attacks to detect if a move gives check
 void Position::set_check_info() const {
 
     st->blockersForKing[WHITE] = slider_blockers(
@@ -641,10 +638,9 @@ void Position::set_check_info() const {
 }
 
 
-/// Position::set_state() computes the hash keys of the position, and other
-/// data that once computed is updated incrementally as moves are made.
-/// The function is only used when a new position is set up
-
+// Computes the hash keys of the position, and other
+// data that once computed is updated incrementally as moves are made.
+// The function is only used when a new position is set up
 void Position::set_state() const {
 
     st->key = st->materialKey  = 0;
@@ -698,10 +694,8 @@ void Position::set_state() const {
 }
 
 
-/// Position::set() is an overload to initialize the position object with
-/// the given endgame code string like "KBPKN". It is mainly a helper to
-/// get the material key out of an endgame code.
-
+// Overload to initialize the position object with the given endgame code string
+// like "KBPKN". It's mainly a helper to get the material key out of an endgame code.
 Position& Position::set(const string& code, Color c, StateInfo* si) {
 
     string sides[] = {
@@ -1090,8 +1084,7 @@ Bitboard Position::checked_pseudo_royals(Color c) const {
 }
 
 
-/// Position::legal() tests whether a pseudo-legal move is legal
-
+// Tests whether a pseudo-legal move is legal
 bool Position::legal(Move m) const {
 
     assert(is_ok(m));
@@ -1352,10 +1345,9 @@ bool Position::legal(Move m) const {
 }
 
 
-/// Position::pseudo_legal() takes a random move and tests whether the move is
-/// pseudo legal. It is used to validate moves from TT that can be corrupted
-/// due to SMP concurrent access or hash position key aliasing.
-
+// Takes a random move and tests whether the move is
+// pseudo-legal. It is used to validate moves from TT that can be corrupted
+// due to SMP concurrent access or hash position key aliasing.
 bool Position::pseudo_legal(const Move m) const {
 
     Color  us   = sideToMove;
@@ -1484,8 +1476,7 @@ bool Position::pseudo_legal(const Move m) const {
 }
 
 
-/// Position::gives_check() tests whether a pseudo-legal move gives a check
-
+// Tests whether a pseudo-legal move gives a check
 bool Position::gives_check(Move m) const {
 
     assert(is_ok(m));
@@ -1581,10 +1572,9 @@ bool Position::gives_check(Move m) const {
         return attacks_bb(sideToMove, type_of(unpromoted_piece_on(from)), to, pieces() ^ from)
              & square<KING>(~sideToMove);
 
-    // En passant capture with check? We have already handled the case
-    // of direct checks and ordinary discovered check, so the only case we
-    // need to handle is the unusual case of a discovered check through
-    // the captured pawn.
+    // En passant capture with check? We have already handled the case of direct
+    // checks and ordinary discovered check, so the only case we need to handle
+    // is the unusual case of a discovered check through the captured pawn.
     case EN_PASSANT : {
         Square   capsq = capture_square(to);
         Bitboard b     = (pieces() ^ from ^ capsq) | to;
@@ -1618,10 +1608,10 @@ bool Position::gives_check(Move m) const {
     }
 }
 
-/// Position::do_move() makes a move, and saves all information necessary
-/// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
-/// moves should be filtered out before this function is called.
 
+// Makes a move, and saves all information necessary
+// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
+// moves should be filtered out before this function is called.
 void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
     assert(is_ok(m));
@@ -2247,9 +2237,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 }
 
 
-/// Position::undo_move() unmakes a move. When it returns, the position should
-/// be restored to exactly the same state as before the move was made.
-
+// Unmakes a move. When it returns, the position should
+// be restored to exactly the same state as before the move was made.
 void Position::undo_move(Move m) {
 
     assert(is_ok(m));
@@ -2392,8 +2381,8 @@ void Position::undo_move(Move m) {
 }
 
 
-/// Position::do_castling() is a helper used to do/undo a castling move. This
-/// is a bit tricky in Chess960 where from/to squares can overlap.
+// Helper used to do/undo a castling move. This is a bit
+// tricky in Chess960 where from/to squares can overlap.
 template<bool Do>
 void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Square& rto) {
 
@@ -2428,9 +2417,8 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
 }
 
 
-/// Position::do_null_move() is used to do a "null move": it flips
-/// the side to move without executing any move on the board.
-
+// Used to do a "null move": it flips
+// the side to move without executing any move on the board.
 void Position::do_null_move(StateInfo& newSt) {
 
     assert(!checkers());
@@ -2465,8 +2453,7 @@ void Position::do_null_move(StateInfo& newSt) {
 }
 
 
-/// Position::undo_null_move() must be used to undo a "null move"
-
+// Must be used to undo a "null move"
 void Position::undo_null_move() {
 
     assert(!checkers());
@@ -2476,10 +2463,9 @@ void Position::undo_null_move() {
 }
 
 
-/// Position::key_after() computes the new hash key after the given move. Needed
-/// for speculative prefetch. It doesn't recognize special moves like castling,
-/// en passant and promotions.
-
+// Computes the new hash key after the given move. Needed
+// for speculative prefetch. It doesn't recognize special moves like castling,
+// en passant and promotions.
 Key Position::key_after(Move m) const {
 
     Square from     = from_sq(m);
@@ -3291,9 +3277,8 @@ Bitboard Position::chased() const {
     return b;
 }
 
-// Position::has_repeated() tests whether there has been at least one repetition
+// Tests whether there has been at least one repetition
 // of positions since the last capture or pawn move.
-
 bool Position::has_repeated() const {
 
     StateInfo* stc = st;
@@ -3309,9 +3294,8 @@ bool Position::has_repeated() const {
 }
 
 
-/// Position::has_game_cycle() tests if the position has a move which draws by repetition,
-/// or an earlier position has a move that directly reaches the current position.
-
+// Tests if the position has a move which draws by repetition,
+// or an earlier position has a move that directly reaches the current position.
 bool Position::has_game_cycle(int ply) const {
 
     int j;
@@ -3472,10 +3456,9 @@ void Position::flip() {
 }
 
 
-/// Position::pos_is_ok() performs some consistency checks for the
-/// position object and raises an asserts if something wrong is detected.
-/// This is meant to be helpful when debugging.
-
+// Performs some consistency checks for the position object
+// and raise an assert if something wrong is detected.
+// This is meant to be helpful when debugging.
 bool Position::pos_is_ok() const {
 
     constexpr bool Fast = true;  // Quick (default) or full check?

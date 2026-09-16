@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,17 +24,16 @@
 
 namespace Stockfish {
 
-/// TTEntry struct is the 12 bytes transposition table entry, defined as below:
-///
-/// key        16 bit
-/// depth       8 bit
-/// generation  5 bit
-/// pv node     1 bit
-/// bound type  2 bit
-/// move       32 bit (official SF: 16 bit)
-/// value      16 bit
-/// eval value 16 bit
-
+// TTEntry struct is the 10 bytes transposition table entry, defined as below:
+//
+// key        16 bit
+// depth       8 bit
+// generation  5 bit
+// pv node     1 bit
+// bound type  2 bit
+// move       16 bit
+// value      16 bit
+// eval value 16 bit
 struct TTEntry {
 
     Move  move() const { return (Move) move32; }

@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -220,8 +220,7 @@ constexpr Bitboard file_bb(File f) { return FileABB << f; }
 constexpr Bitboard file_bb(Square s) { return file_bb(file_of(s)); }
 
 
-/// shift() moves a bitboard one or two steps as specified by the direction D
-
+// Moves a bitboard one or two steps as specified by the direction D
 template<Direction D>
 constexpr Bitboard shift(Bitboard b) {
     return D == NORTH         ? b << NORTH
@@ -302,14 +301,13 @@ inline Bitboard line_bb(Square s1, Square s2) {
 }
 
 
-/// between_bb(s1, s2) returns a bitboard representing the squares in the semi-open
-/// segment between the squares s1 and s2 (excluding s1 but including s2). If the
-/// given squares are not on a same file/rank/diagonal, it returns s2. For instance,
-/// between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5, E6 and F7, but
-/// between_bb(SQ_E6, SQ_F8) will return a bitboard with the square F8. This trick
-/// allows to generate non-king evasion moves faster: the defending piece must either
-/// interpose itself to cover the check or capture the checking piece.
-
+// Returns a bitboard representing the squares in the semi-open
+// segment between the squares s1 and s2 (excluding s1 but including s2). If the
+// given squares are not on a same file/rank/diagonal, it returns s2. For instance,
+// between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5, E6 and F7, but
+// between_bb(SQ_E6, SQ_F8) will return a bitboard with the square F8. This trick
+// allows to generate non-king evasion moves faster: the defending piece must either
+// interpose itself to cover the check or capture the checking piece.
 inline Bitboard between_bb(Square s1, Square s2) {
 
     assert(is_ok(s1) && is_ok(s2));
@@ -390,14 +388,17 @@ inline bool aligned(Square s1, Square s2, Square s3) { return line_bb(s1, s2) & 
 
 template<typename T1 = Square>
 inline int distance(Square x, Square y);
+
 template<>
 inline int distance<File>(Square x, Square y) {
     return std::abs(file_of(x) - file_of(y));
 }
+
 template<>
 inline int distance<Rank>(Square x, Square y) {
     return std::abs(rank_of(x) - rank_of(y));
 }
+
 template<>
 inline int distance<Square>(Square x, Square y) {
     return SquareDistance[x][y];
@@ -450,10 +451,9 @@ inline Bitboard attacks_bb(Square s) {
 }
 
 
-/// attacks_bb(Square, Bitboard) returns the attacks by the given piece
-/// assuming the board is occupied according to the passed Bitboard.
-/// Sliding piece attacks do not continue passed an occupied square.
-
+// Returns the attacks by the given piece
+// assuming the board is occupied according to the passed Bitboard.
+// Sliding piece attacks do not continue passed an occupied square.
 template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
@@ -568,10 +568,9 @@ inline Square msb(Bitboard b) {
 
 #elif defined(_MSC_VER)  // MSVC
 
+#elif defined(_MSC_VER)
     #ifdef _WIN64  // MSVC, WIN64
 
-inline Square lsb(Bitboard b) {
-    assert(b);
     unsigned long idx;
         #ifdef LARGEBOARDS
     if (uint64_t(b))
@@ -611,9 +610,6 @@ inline Square msb(Bitboard b) {
 }
 
     #else  // MSVC, WIN32
-
-inline Square lsb(Bitboard b) {
-    assert(b);
     unsigned long idx;
 
         #ifdef LARGEBOARDS
@@ -651,8 +647,23 @@ inline Square lsb(Bitboard b) {
         #endif
 }
 
+// Returns the most significant bit in a non-zero bitboard.
 inline Square msb(Bitboard b) {
     assert(b);
+
+#if defined(__GNUC__)  // GCC, Clang, ICX
+
+    return Square(63 ^ __builtin_clzll(b));
+
+#elif defined(_MSC_VER)
+    #ifdef _WIN64  // MSVC, WIN64
+
+    unsigned long idx;
+    _BitScanReverse64(&idx, b);
+    return Square(idx);
+
+    #else  // MSVC, WIN32
+
     unsigned long idx;
 
         #ifdef LARGEBOARDS
@@ -678,6 +689,10 @@ inline Square msb(Bitboard b) {
         _BitScanReverse(&idx, uint32_t(b));
         return Square(idx);
     }
+    #endif
+#else  // Compiler is neither GCC nor MSVC compatible
+    #error "Compiler not supported."
+#endif
 }
 
     #endif
@@ -696,8 +711,7 @@ inline Bitboard least_significant_square_bb(Bitboard b) {
     return b & -b;
 }
 
-/// pop_lsb() finds and clears the least significant bit in a non-zero bitboard
-
+// Finds and clears the least significant bit in a non-zero bitboard.
 inline Square pop_lsb(Bitboard& b) {
     assert(b);
     const Square s = lsb(b);

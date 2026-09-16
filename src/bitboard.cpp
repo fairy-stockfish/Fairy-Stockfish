@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -213,18 +213,16 @@ Bitboard lame_leaper_attack(std::map<Direction, int> directions, Square s, Bitbo
 
 }
 
-/// safe_destination() returns the bitboard of target square for the given step
-/// from the given square. If the step is off the board, returns empty bitboard.
-
+// Returns the bitboard of target square for the given step
+// from the given square. If the step is off the board, returns empty bitboard.
 inline Bitboard safe_destination(Square s, int step) {
     Square to = Square(s + step);
     return is_ok(to) && distance(s, to) <= 3 ? square_bb(to) : Bitboard(0);
 }
 
 
-/// Bitboards::pretty() returns an ASCII representation of a bitboard suitable
-/// to be printed to standard output. Useful for debugging.
-
+// Returns an ASCII representation of a bitboard suitable
+// to be printed to standard output. Useful for debugging.
 std::string Bitboards::pretty(Bitboard b) {
 
     std::string s = "+---+---+---+---+---+---+---+---+---+---+---+---+\n";

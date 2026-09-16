@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdlib>
 #include <deque>
 #include <initializer_list>
@@ -42,9 +43,8 @@ namespace Stockfish {
 ThreadPool Threads;  // Global object
 
 
-// Thread constructor launches the thread and waits until it goes to sleep
+// Constructor launches the thread and waits until it goes to sleep
 // in idle_loop(). Note that 'searching' and 'exit' should be already set.
-
 Thread::Thread(size_t n) :
     idx(n),
     stdThread(&Thread::idle_loop, this) {
@@ -53,9 +53,8 @@ Thread::Thread(size_t n) :
 }
 
 
-// Thread destructor wakes up the thread in idle_loop() and waits
+// Destructor wakes up the thread in idle_loop() and waits
 // for its termination. Thread should be already waiting.
-
 Thread::~Thread() {
 
     assert(!searching);
@@ -66,14 +65,15 @@ Thread::~Thread() {
 }
 
 
-// Thread::clear() reset histories, usually before a new game
-
+// Reset histories, usually before a new game
 void Thread::clear() {
 
     counterMoves.fill(MOVE_NONE);
     mainHistory.fill(0);
     gateHistory.fill(0);
     captureHistory.fill(0);
+    pawnHistory.fill(0);
+    correctionHistory.fill(0);
 
     for (bool inCheck : {false, true})
         for (StatsType c : {NoCaptures, Captures})
@@ -83,8 +83,7 @@ void Thread::clear() {
 }
 
 
-// Thread::start_searching() wakes up the thread that will start the search
-
+// Wakes up the thread that will start the search
 void Thread::start_searching() {
     mutex.lock();
     searching = true;
@@ -93,9 +92,8 @@ void Thread::start_searching() {
 }
 
 
-// Thread::wait_for_search_finished() blocks on the condition variable
+// Blocks on the condition variable
 // until the thread has finished searching.
-
 void Thread::wait_for_search_finished() {
 
     std::unique_lock<std::mutex> lk(mutex);
@@ -103,7 +101,7 @@ void Thread::wait_for_search_finished() {
 }
 
 
-// Thread::idle_loop() is where the thread is parked, blocked on the
+// Thread gets parked here, blocked on the
 // condition variable, when it has no work to do.
 
 void Thread::idle_loop() {
@@ -139,10 +137,9 @@ void Thread::idle_loop() {
     }
 }
 
-// ThreadPool::set() creates/destroys threads to match the requested number.
+// Creates/destroys threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_loop.
 // Upon resizing, threads are recreated to allow for binding if necessary.
-
 void ThreadPool::set(size_t requested) {
 
     if (threads.size() > 0)  // destroy any existing thread(s)
@@ -170,8 +167,7 @@ void ThreadPool::set(size_t requested) {
 }
 
 
-// ThreadPool::clear() sets threadPool data to initial values
-
+// Sets threadPool data to initial values
 void ThreadPool::clear() {
 
     for (Thread* th : threads)
@@ -184,9 +180,8 @@ void ThreadPool::clear() {
 }
 
 
-// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and
+// Wakes up main thread waiting in idle_loop() and
 // returns immediately. Main thread will wake up other threads and start the search.
-
 void ThreadPool::start_thinking(Position&                 pos,
                                 StateListPtr&             states,
                                 const Search::LimitsType& limits,
@@ -272,7 +267,7 @@ Thread* ThreadPool::get_best_thread() const {
         votes[th->rootMoves[0].pv[0]] += thread_value(th);
 
     for (Thread* th : threads)
-        if (abs(bestThread->rootMoves[0].score) >= VALUE_TB_WIN_IN_MAX_PLY)
+        if (std::abs(bestThread->rootMoves[0].score) >= VALUE_TB_WIN_IN_MAX_PLY)
         {
             // Make sure we pick the shortest mate / TB conversion or stave off mate the longest
             if (th->rootMoves[0].score > bestThread->rootMoves[0].score)

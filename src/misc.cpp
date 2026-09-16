@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -199,8 +199,7 @@ string engine_info(bool to_uci, bool to_xboard) {
 }
 
 
-/// compiler_info() returns a string trying to describe the compiler we use
-
+// Returns a string trying to describe the compiler we use
 std::string compiler_info() {
 
 #define make_version_string(major, minor, patch) \
@@ -396,9 +395,8 @@ void dbg_print() {
 }
 
 
-/// Used to serialize access to std::cout to avoid multiple threads writing at
-/// the same time.
-
+// Used to serialize access to std::cout
+// to avoid multiple threads writing at the same time.
 std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 
     static std::mutex m;
@@ -417,9 +415,6 @@ std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 void start_logger(const std::string& fname) { Logger::start(fname); }
 
 
-/// prefetch() preloads the given address in L1/L2 cache. This is a non-blocking
-/// function that doesn't stall the CPU waiting for data to be loaded from memory,
-/// which can be quite slow.
 #ifdef NO_PREFETCH
 
 void prefetch(void*) {}
@@ -444,10 +439,9 @@ void prefetch(void* addr) {
 #endif
 
 
-/// std_aligned_alloc() is our wrapper for systems where the c++17 implementation
-/// does not guarantee the availability of aligned_alloc(). Memory allocated with
-/// std_aligned_alloc() must be freed with std_aligned_free().
-
+// Wrapper for systems where the c++17 implementation
+// does not guarantee the availability of aligned_alloc(). Memory allocated with
+// std_aligned_alloc() must be freed with std_aligned_free().
 void* std_aligned_alloc(size_t alignment, size_t size) {
 
 #if defined(POSIXALIGNEDALLOC)
@@ -572,7 +566,7 @@ void* aligned_large_pages_alloc(size_t allocSize) {
     constexpr size_t alignment = 4096;  // assumed small page size
     #endif
 
-    // round up to multiples of alignment
+    // Round up to multiples of alignment
     size_t size = ((allocSize + alignment - 1) / alignment) * alignment;
     void*  mem  = std_aligned_alloc(alignment, size);
     #if defined(MADV_HUGEPAGE)
@@ -614,10 +608,9 @@ void bindThisThread(size_t) {}
 
 #else
 
-/// best_node() retrieves logical processor information using Windows specific
-/// API and returns the best node id for the thread with index idx. Original
-/// code from Texel by Peter Österlund.
-
+// Retrieves logical processor information using Windows-specific
+// API and returns the best node id for the thread with index idx. Original
+// code from Texel by Peter Österlund.
 static int best_node(size_t idx) {
 
     int   threads      = 0;
@@ -675,8 +668,7 @@ static int best_node(size_t idx) {
             groups.push_back(n);
 
     // In case a core has more than one logical processor (we assume 2) and we
-    // have still threads to allocate, then spread them evenly across available
-    // nodes.
+    // still have threads to allocate, spread them evenly across available nodes.
     for (int t = 0; t < threads - cores; t++)
         groups.push_back(t % nodes);
 
@@ -686,8 +678,7 @@ static int best_node(size_t idx) {
 }
 
 
-/// bindThisThread() set the group affinity of the current thread
-
+// Sets the group affinity of the current thread
 void bindThisThread(size_t idx) {
 
     // Use only local variables to be thread-safe
@@ -747,7 +738,7 @@ string workingDirectory;  // path of the working directory
 void init([[maybe_unused]] int argc, char* argv[]) {
     string pathSeparator;
 
-    // extract the path+name of the executable binary
+    // Extract the path+name of the executable binary
     argv0 = argv[0];
 
 #ifdef _WIN32
@@ -763,14 +754,14 @@ void init([[maybe_unused]] int argc, char* argv[]) {
     pathSeparator = "/";
 #endif
 
-    // extract the working directory
+    // Extract the working directory
     workingDirectory = "";
     char  buff[40000];
     char* cwd = GETCWD(buff, 40000);
     if (cwd)
         workingDirectory = cwd;
 
-    // extract the binary directory path from argv0
+    // Extract the binary directory path from argv0
     binaryDirectory = argv0;
     size_t pos      = binaryDirectory.find_last_of("\\/");
     if (pos == std::string::npos)
@@ -778,7 +769,7 @@ void init([[maybe_unused]] int argc, char* argv[]) {
     else
         binaryDirectory.resize(pos + 1);
 
-    // pattern replacement: "./" at the start of path is replaced by the working directory
+    // Pattern replacement: "./" at the start of path is replaced by the working directory
     if (binaryDirectory.find("." + pathSeparator) == 0)
         binaryDirectory.replace(0, 1, workingDirectory);
 }

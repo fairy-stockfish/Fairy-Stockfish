@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
@@ -28,9 +29,29 @@
 
 #include "movegen.h"
 #include "types.h"
+#include "position.h"
 
 namespace Stockfish {
-class Position;
+
+constexpr int PAWN_HISTORY_SIZE        = 512;    // has to be a power of 2
+constexpr int CORRECTION_HISTORY_SIZE  = 16384;  // has to be a power of 2
+constexpr int CORRECTION_HISTORY_LIMIT = 1024;
+
+static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
+              "PAWN_HISTORY_SIZE has to be a power of 2");
+
+static_assert((CORRECTION_HISTORY_SIZE & (CORRECTION_HISTORY_SIZE - 1)) == 0,
+              "CORRECTION_HISTORY_SIZE has to be a power of 2");
+
+enum PawnHistoryType {
+    Normal,
+    Correction
+};
+
+template<PawnHistoryType T = Normal>
+inline int pawn_structure_index(const Position& pos) {
+    return pos.pawn_key() & ((T == Normal ? PAWN_HISTORY_SIZE : CORRECTION_HISTORY_SIZE) - 1);
+}
 
 // StatsEntry stores the stat table value. It is usually a number but could
 // be a move or even a nested history. We use a class instead of a naked value
@@ -48,12 +69,12 @@ class StatsEntry {
     operator const T&() const { return entry; }
 
     void operator<<(int bonus) {
-        assert(abs(bonus) <= D);  // Ensure range is [-D, D]
+        assert(std::abs(bonus) <= D);  // Ensure range is [-D, D]
         static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
-        entry += (bonus * D - entry * abs(bonus)) / (D * 5 / 4);
+        entry += bonus - entry * std::abs(bonus) / D;
 
-        assert(abs(entry) <= D);
+        assert(std::abs(entry) <= D);
     }
 };
 
@@ -116,6 +137,13 @@ typedef Stats<PieceToHistory, NOT_USED, 2 * PIECE_SLOTS, SQUARE_NB> Continuation
 
 int history_slot(Piece pc);
 
+// PawnHistory is addressed by the pawn structure and a move's [piece][to]
+using PawnHistory = Stats<int16_t, 8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+
+// CorrectionHistory is addressed by color and pawn structure
+using CorrectionHistory =
+  Stats<int16_t, CORRECTION_HISTORY_LIMIT, COLOR_NB, CORRECTION_HISTORY_SIZE>;
+
 // MovePicker class is used to pick one pseudo-legal move at a time from the
 // current position. The most important method is next_move(), which returns a
 // new pseudo-legal move each time it is called, until there are no moves left,
@@ -139,6 +167,7 @@ class MovePicker {
                const GateHistory*,
                const CapturePieceToHistory*,
                const PieceToHistory**,
+               const PawnHistory*,
                Move,
                const Move*);
     MovePicker(const Position&,
@@ -148,7 +177,7 @@ class MovePicker {
                const GateHistory*,
                const CapturePieceToHistory*,
                const PieceToHistory**,
-               Square);
+               const PawnHistory*);
     MovePicker(const Position&, Move, Value, const GateHistory*, const CapturePieceToHistory*);
     Move next_move(bool skipQuiets = false);
 
@@ -165,10 +194,10 @@ class MovePicker {
     const GateHistory*           gateHistory;
     const CapturePieceToHistory* captureHistory;
     const PieceToHistory**       continuationHistory;
+    const PawnHistory*           pawnHistory;
     Move                         ttMove;
     ExtMove                      refutations[3], *cur, *endMoves, *endBadCaptures;
     int                          stage;
-    Square                       recaptureSquare;
     Value                        threshold;
     Depth                        depth;
     ExtMove                      moves[MAX_MOVES];
