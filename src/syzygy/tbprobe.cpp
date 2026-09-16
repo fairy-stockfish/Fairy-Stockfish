@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <array>
 
 #include "../bitboard.h"
 #include "../misc.h"
@@ -587,7 +588,7 @@ int decompress_pairs(PairsData* d, uint64_t idx) {
     //       idx = k * d->span + idx % d->span    (2)
     //
     // So from (1) and (2) we can compute idx - I(K):
-    int diff = idx % d->span - d->span / 2;
+    int diff = int(idx % d->span - d->span / 2);
 
     // Sum the above to offset to find the offset corresponding to our idx
     offset += diff;
@@ -711,15 +712,11 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdl) {
     return value + 1;
 }
 
-// A temporary fix for the compiler bug with AVX-512. (#4450)
-#ifdef USE_AVX512
-    #if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 15
-        #define CLANG_AVX512_BUG_FIX __attribute__((optnone))
-    #endif
-#endif
-
-#ifndef CLANG_AVX512_BUG_FIX
-    #define CLANG_AVX512_BUG_FIX
+// A temporary fix for the compiler bug with vectorization. (#4450)
+#if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 15
+    #define DISABLE_CLANG_LOOP_VEC _Pragma("clang loop vectorize(disable)")
+#else
+    #define DISABLE_CLANG_LOOP_VEC
 #endif
 
 // Compute a unique index out of a position and use it to probe the TB file. To
@@ -729,8 +726,7 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdl) {
 //      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
 //
 template<typename T, typename Ret = typename T::Ret>
-CLANG_AVX512_BUG_FIX Ret
-do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) {
+Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) {
 
     Square     squares[TBPIECES];
     Piece      pieces[TBPIECES];
@@ -814,8 +810,11 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     // Now we map again the squares so that the square of the lead piece is in
     // the triangle A1-D1-D4.
     if (file_of(squares[0]) > FILE_D)
+    {
+        DISABLE_CLANG_LOOP_VEC
         for (int i = 0; i < size; ++i)
             squares[i] = flip_file(squares[i]);
+    }
 
     // Encode leading pawns starting with the one with minimum MapPawns[] and
     // proceeding in ascending order.
@@ -834,19 +833,26 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     // In positions without pawns, we further flip the squares to ensure leading
     // piece is below RANK_5.
     if (rank_of(squares[0]) > RANK_4)
+    {
+        DISABLE_CLANG_LOOP_VEC
         for (int i = 0; i < size; ++i)
             squares[i] = flip_rank(squares[i]);
+    }
 
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
+    DISABLE_CLANG_LOOP_VEC
     for (int i = 0; i < d->groupLen[0]; ++i)
     {
         if (!off_A1H8(squares[i]))
             continue;
 
         if (off_A1H8(squares[i]) > 0)  // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
+        {
+            DISABLE_CLANG_LOOP_VEC
             for (int j = i; j < size; ++j)
                 squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
+        }
         break;
     }
 
@@ -1095,7 +1101,7 @@ uint8_t* set_sizes(PairsData* d, uint8_t* data) {
     // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
     std::vector<bool> visited(d->symlen.size());
 
-    for (std::size_t sym = 0; sym < d->symlen.size(); ++sym)
+    for (Sym sym = 0; sym < d->symlen.size(); ++sym)
         if (!visited[sym])
             d->symlen[sym] = set_symlen(d, sym, visited);
 
@@ -1220,7 +1226,6 @@ template<TBType Type>
 void* mapped(TBTable<Type>& e, const Position& pos) {
 
     static std::mutex mutex;
-
     // Use 'acquire' to avoid a thread reading 'ready' == true while
     // another is still working. (compiler reordering may cause this).
     if (e.ready.load(std::memory_order_acquire))
@@ -1603,10 +1608,11 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
 // Use the DTZ tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool Tablebases::root_probe(Position&          pos,
-                            Search::RootMoves& rootMoves,
-                            bool               rule50,
-                            bool               rankDTZ) {
+bool Tablebases::root_probe(Position&                    pos,
+                            Search::RootMoves&           rootMoves,
+                            bool                         rule50,
+                            bool                         rankDTZ,
+                            const std::function<bool()>& time_abort) {
 
     ProbeState result = OK;
     StateInfo  st;
@@ -1651,7 +1657,7 @@ bool Tablebases::root_probe(Position&          pos,
 
         pos.undo_move(m.pv[0]);
 
-        if (result == FAIL)
+        if (time_abort() || result == FAIL)
             return false;
 
         // Better moves are ranked higher. Certain wins are ranked equally.
@@ -1716,10 +1722,11 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, boo
     return true;
 }
 
-Config Tablebases::rank_root_moves(const OptionsMap&  options,
-                                   Position&          pos,
-                                   Search::RootMoves& rootMoves,
-                                   bool               rankDTZ) {
+Config Tablebases::rank_root_moves(const OptionsMap&            options,
+                                   Position&                    pos,
+                                   Search::RootMoves&           rootMoves,
+                                   bool                         rankDTZ,
+                                   const std::function<bool()>& time_abort) {
     Config config;
 
     if (rootMoves.empty())
@@ -1742,10 +1749,11 @@ Config Tablebases::rank_root_moves(const OptionsMap&  options,
 
     if (config.cardinality >= popcount(pos.pieces()) && !pos.can_castle(ANY_CASTLING))
     {
-        // Rank moves using DTZ tables
-        config.rootInTB = root_probe(pos, rootMoves, options["Syzygy50MoveRule"], rankDTZ);
+        // Rank moves using DTZ tables, bail out if time_abort flags zeitnot
+        config.rootInTB =
+          root_probe(pos, rootMoves, options["Syzygy50MoveRule"], rankDTZ, time_abort);
 
-        if (!config.rootInTB)
+        if (!config.rootInTB && !time_abort())
         {
             // DTZ tables are missing; try to rank moves using WDL tables
             dtz_available   = false;

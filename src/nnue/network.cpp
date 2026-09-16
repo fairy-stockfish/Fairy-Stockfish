@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -172,7 +172,7 @@ template<typename Arch, typename Transformer>
 NetworkOutput
 Network<Arch, Transformer>::evaluate(const Position&                         pos,
                                      AccumulatorStack&                       accumulatorStack,
-                                     AccumulatorCaches::Cache<FTDimensions>* cache) const {
+                                     AccumulatorCaches::Cache<FTDimensions>& cache) const {
 
     constexpr uint64_t alignment = CacheLineSize;
 
@@ -222,7 +222,7 @@ void Network<Arch, Transformer>::verify(std::string                             
     {
         size_t size = sizeof(featureTransformer) + sizeof(Arch) * LayerStacks;
         f("NNUE evaluation using " + evalfilePath + " (" + std::to_string(size / (1024 * 1024))
-          + "MiB, (" + std::to_string(featureTransformer.InputDimensions) + ", "
+          + "MiB, (" + std::to_string(featureTransformer.TotalInputDimensions) + ", "
           + std::to_string(network[0].TransformedFeatureDimensions) + ", "
           + std::to_string(network[0].FC_0_OUTPUTS) + ", " + std::to_string(network[0].FC_1_OUTPUTS)
           + ", 1))");
@@ -234,7 +234,7 @@ template<typename Arch, typename Transformer>
 NnueEvalTrace
 Network<Arch, Transformer>::trace_evaluate(const Position&                         pos,
                                            AccumulatorStack&                       accumulatorStack,
-                                           AccumulatorCaches::Cache<FTDimensions>* cache) const {
+                                           AccumulatorCaches::Cache<FTDimensions>& cache) const {
 
     constexpr uint64_t alignment = CacheLineSize;
 

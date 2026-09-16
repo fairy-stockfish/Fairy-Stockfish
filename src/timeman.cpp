@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ void TimeManagement::init(const Position&     pos,
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000)
-        centiMTG = scaledTime * 5.051;
+        centiMTG = int(scaledTime * 5.051);
 
     // Make sure timeLeft is > 0 since we may use it as a divisor
     TimePoint timeLeft =

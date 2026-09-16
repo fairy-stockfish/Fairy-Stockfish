@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -263,13 +263,12 @@ std::string compiler_info() {
 #if defined(USE_SSE2)
     compiler += " SSE2";
 #endif
-    compiler += (HasPopCnt ? " POPCNT" : "");
-#if defined(USE_MMX)
-    compiler += " MMX";
-#endif
-#if defined(USE_NEON)
+#if defined(USE_NEON_DOTPROD)
+    compiler += " NEON_DOTPROD";
+#elif defined(USE_NEON)
     compiler += " NEON";
 #endif
+    compiler += (HasPopCnt ? " POPCNT" : "");
 
 #if !defined(NDEBUG)
     compiler += " DEBUG";

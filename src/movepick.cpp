@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ MovePicker::MovePicker(const Position&              p,
                        const LowPlyHistory*         lph,
                        const CapturePieceToHistory* cph,
                        const PieceToHistory**       ch,
-                       const PawnHistory*           ph,
+                       const SharedHistories*       sh,
                        int                          pl) :
     pos(p),
     mainHistory(mh),
@@ -101,7 +101,7 @@ MovePicker::MovePicker(const Position&              p,
     lowPlyHistory(lph),
     captureHistory(cph),
     continuationHistory(ch),
-    pawnHistory(ph),
+    sharedHistory(sh),
     ttMove(ttm),
     depth(d),
     ply(pl) {
@@ -186,7 +186,7 @@ void MovePicker::score() {
             // histories
             m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
             m.value += (*gateHistory)[pos.side_to_move()][gating_square(m)];
-            m.value += 2 * (*pawnHistory)[pawn_history_index(pos)][pc][to];
+            m.value += 2 * sharedHistory->pawn_entry(pos)[pc][to];
             m.value += (*continuationHistory[0])[history_slot(pc)][to];
             m.value += (*continuationHistory[1])[history_slot(pc)][to];
             m.value += (*continuationHistory[2])[history_slot(pc)][to];
@@ -198,11 +198,11 @@ void MovePicker::score() {
 
             // penalty for moving to a square threatened by a lesser piece
             // or bonus for escaping an attack by a lesser piece.
-            if (type_of(m) != DROP)
+            if (type_of(m) != DROP && pt != KING)
             {
                 Square from = from_sq(m);
-                int    v    = threatByLesser[pt] & to ? -95 : 100 * bool(threatenedPieces & from);
-                m.value += (pt == KING ? 10000 : int(PieceValue[MG][pt]) / 5) * v;
+                int    v    = threatByLesser[pt] & to ? -19 : 20 * bool(threatenedPieces & from);
+                m.value += int(PieceValue[MG][pt]) * v;
             }
 
             if (ply < LOW_PLY_HISTORY_SIZE)
@@ -214,12 +214,8 @@ void MovePicker::score() {
             if (pos.capture_stage(m))
                 m.value = PieceValue[MG][pos.piece_on(to_sq(m))] + (1 << 28);
             else
-            {
                 m.value = (*mainHistory)[pos.side_to_move()][from_to(m)]
                         + (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)];
-                if (ply < LOW_PLY_HISTORY_SIZE)
-                    m.value += (*lowPlyHistory)[ply][from_to(m)];
-            }
         }
     }
 }

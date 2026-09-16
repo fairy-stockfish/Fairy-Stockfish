@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -31,6 +32,7 @@
 #include "search.h"
 #include "thread.h"
 #include "tt.h"
+#include "history.h"
 #include "numa.h"
 #include "types.h"
 #include "uci.h"
@@ -122,6 +124,8 @@ class Engine {
     OptionsMap&         options;
     ThreadPool&         threads;
     TranspositionTable& tt;
+
+    std::map<NumaIndex, SharedHistories> sharedHistories;
 
     Search::SearchManager::UpdateContext  updateContext;
     std::function<void(std::string_view)> onVerifyNetworks;
