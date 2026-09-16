@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include "engine.h"
 
+#include <algorithm>
 #include <cassert>
 #include <deque>
 #include <iostream>
@@ -47,7 +48,6 @@ Engine::Engine() :
     tt(TT) {
     const Variant* v = variants.find(options["UCI_Variant"])->second;
     pos.set(v, v->startFen, options["UCI_Chess960"], &states->back(), nullptr);
-    capSq      = SQ_NONE;
     mainEngine = this;
 }
 
@@ -62,7 +62,6 @@ std::uint64_t Engine::perft(Depth depth) {
 void Engine::go(Search::LimitsType& limits) {
     assert(limits.perft == 0);
     verify_networks();
-    limits.capSq = capSq;
 
     threads.start_thinking(options, pos, states, limits);
 }
@@ -108,7 +107,6 @@ void Engine::set_position(const std::string&              fen,
     pos.set(variants.find(options["UCI_Variant"])->second, fen, options["UCI_Chess960"],
             &states->back(), threads.main_thread()->worker.get(), sfen);
 
-    capSq = SQ_NONE;
     for (const auto& move : moves)
     {
         std::string moveStr = move;
@@ -119,11 +117,6 @@ void Engine::set_position(const std::string&              fen,
 
         states->emplace_back();
         pos.do_move(m, states->back());
-
-        capSq          = SQ_NONE;
-        DirtyPiece& dp = states->back().dirtyPiece;
-        if (dp.dirty_num > 1 && dp.to[1] == SQ_NONE)
-            capSq = m.to_sq();
     }
 }
 
@@ -262,5 +255,4 @@ std::string Engine::thread_allocation_information_as_string() const {
 
     return ss.str();
 }
-
 }

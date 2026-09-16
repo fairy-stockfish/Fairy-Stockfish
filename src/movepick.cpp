@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,11 +18,11 @@
 
 #include "movepick.h"
 
-#include <algorithm>
 #include <cassert>
-#include <utility>
+#include <limits>
 
 #include "bitboard.h"
+#include "misc.h"
 #include "position.h"
 
 namespace Stockfish {
@@ -177,13 +177,14 @@ void MovePicker::score() {
             Square    to = to_sq(m);
 
             // histories
-            m.value = (*mainHistory)[pos.side_to_move()][from_to(m)];
+            m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
             m.value += (*gateHistory)[pos.side_to_move()][gating_square(m)];
             m.value += 2 * (*pawnHistory)[pawn_structure_index(pos)][pc][to];
-            m.value += 2 * (*continuationHistory[0])[history_slot(pc)][to];
+            m.value += (*continuationHistory[0])[history_slot(pc)][to];
             m.value += (*continuationHistory[1])[history_slot(pc)][to];
-            m.value += (*continuationHistory[2])[history_slot(pc)][to] / 3;
+            m.value += (*continuationHistory[2])[history_slot(pc)][to];
             m.value += (*continuationHistory[3])[history_slot(pc)][to];
+            m.value += (*continuationHistory[4])[history_slot(pc)][to] / 3;
             m.value += (*continuationHistory[5])[history_slot(pc)][to];
 
             // bonus for checks
@@ -207,8 +208,7 @@ void MovePicker::score() {
         else  // Type == EVASIONS
         {
             if (pos.capture_stage(m))
-                m.value = PieceValue[MG][pos.piece_on(to_sq(m))]
-                        - Value(type_of(pos.moved_piece(m))) + (1 << 28);
+                m.value = PieceValue[MG][pos.piece_on(to_sq(m))] + (1 << 28);
             else
                 m.value = (*mainHistory)[pos.side_to_move()][from_to(m)]
                         + (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)]
@@ -218,19 +218,13 @@ void MovePicker::score() {
 
 // Returns the next move satisfying a predicate function.
 // This never returns the TT move, as it was emitted before.
-template<MovePicker::PickType T, typename Pred>
+template<typename Pred>
 Move MovePicker::select(Pred filter) {
 
-    while (cur < endMoves)
-    {
-        if constexpr (T == Best)
-            std::swap(*cur, *std::max_element(cur, endMoves));
-
+    for (; cur < endMoves; ++cur)
         if (*cur != ttMove && filter())
             return *cur++;
 
-        cur++;
-    }
     return Move::none();
 }
 
@@ -266,7 +260,7 @@ top:
         goto top;
 
     case GOOD_CAPTURE :
-        if (select<Next>([&]() {
+        if (select([&]() {
                 // Move losing capture to endBadCaptures to be tried later
                 return pos.see_ge(*cur, -cur->value / 18
                                           - 500 * (pos.captures_to_hand() && pos.gives_check(*cur)))
@@ -295,7 +289,7 @@ top:
         [[fallthrough]];
 
     case GOOD_QUIET :
-        if (!skipQuiets && select<Next>([]() { return true; }))
+        if (!skipQuiets && select([]() { return true; }))
         {
             if ((cur - 1)->value > -8000 || (cur - 1)->value <= quiet_threshold(depth))
                 return *(cur - 1);
@@ -312,7 +306,7 @@ top:
         [[fallthrough]];
 
     case BAD_CAPTURE :
-        if (select<Next>([]() { return true; }))
+        if (select([]() { return true; }))
             return *(cur - 1);
 
         // Prepare the pointers to loop over the bad quiets
@@ -324,7 +318,7 @@ top:
 
     case BAD_QUIET :
         if (!skipQuiets)
-            return select<Next>([]() { return true; });
+            return select([]() { return true; });
 
         return Move::none();
 
@@ -333,17 +327,16 @@ top:
         endMoves = generate<EVASIONS>(pos, cur);
 
         score<EVASIONS>();
+        partial_insertion_sort(cur, endMoves, std::numeric_limits<int>::min());
         ++stage;
         [[fallthrough]];
 
     case EVASION :
-        return select<Best>([]() { return true; });
+    case QCAPTURE :
+        return select([]() { return true; });
 
     case PROBCUT :
-        return select<Next>([&]() { return pos.see_ge(*cur, threshold); });
-
-    case QCAPTURE :
-        return select<Next>([]() { return true; });
+        return select([&]() { return pos.see_ge(*cur, threshold); });
     }
 
     assert(false);

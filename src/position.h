@@ -45,7 +45,6 @@ struct StateInfo {
     // Copied when making a move
     Key        pawnKey;
     Key        materialKey;
-    Key        majorPieceKey;
     Key        minorPieceKey;
     Key        nonPawnKey[COLOR_NB];
     Value      nonPawnMaterial[COLOR_NB];
@@ -335,7 +334,6 @@ class Position {
     Key key_after(Move m) const;
     Key material_key(EndgameEval e = EG_EVAL_CHESS) const;
     Key pawn_key() const;
-    Key major_piece_key() const;
     Key minor_piece_key() const;
     Key non_pawn_key(Color c) const;
 
@@ -351,6 +349,7 @@ class Position {
     bool            is_game_end(Value& result, int ply = 0) const;
     Value           material_counting_result() const;
     bool            is_draw(int ply) const;
+    bool            is_repetition(int ply) const;
     bool            upcoming_repetition(int ply) const;
     bool            has_repeated() const;
     Bitboard        chased() const;
@@ -1398,8 +1397,6 @@ inline Key Position::pawn_key() const { return st->pawnKey; }
 inline Score Position::psq_score() const { return psq; }
 
 inline Value Position::psq_eg_stm() const { return (sideToMove == WHITE ? 1 : -1) * eg_value(psq); }
-
-inline Key Position::major_piece_key() const { return st->majorPieceKey; }
 
 inline Key Position::minor_piece_key() const { return st->minorPieceKey; }
 

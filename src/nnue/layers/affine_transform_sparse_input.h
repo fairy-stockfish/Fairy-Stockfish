@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,17 +38,41 @@
 namespace Stockfish::Eval::NNUE::Layers {
 
 #if (USE_SSSE3 | (USE_NEON >= 8))
-alignas(CacheLineSize) static inline const
-  std::array<std::array<std::uint16_t, 8>, 256> lookup_indices = []() {
-      std::array<std::array<std::uint16_t, 8>, 256> v{};
-      for (unsigned i = 0; i < 256; ++i)
-      {
-          std::uint64_t j = i, k = 0;
-          while (j)
-              v[i][k++] = pop_lsb(j);
-      }
-      return v;
-  }();
+static constexpr int lsb_index64[64] = {
+  0,  47, 1,  56, 48, 27, 2,  60, 57, 49, 41, 37, 28, 16, 3,  61, 54, 58, 35, 52, 50, 42,
+  21, 44, 38, 32, 29, 23, 17, 11, 4,  62, 46, 55, 26, 59, 40, 36, 15, 53, 34, 51, 20, 43,
+  31, 22, 10, 45, 25, 39, 14, 33, 19, 30, 9,  24, 13, 18, 8,  12, 7,  6,  5,  63};
+
+constexpr int constexpr_lsb(uint64_t bb) {
+    assert(bb != 0);
+    constexpr uint64_t debruijn64 = 0x03F79D71B4CB0A89ULL;
+    return lsb_index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
+}
+
+alignas(CacheLineSize) static constexpr struct OffsetIndices {
+
+    #if (USE_SSE41)
+    std::uint8_t offset_indices[256][8];
+    #else
+    std::uint16_t offset_indices[256][8];
+    #endif
+
+    constexpr OffsetIndices() :
+        offset_indices() {
+        for (int i = 0; i < 256; ++i)
+        {
+            std::uint64_t j = i, k = 0;
+            while (j)
+            {
+                offset_indices[i][k++] = constexpr_lsb(j);
+                j &= j - 1;
+            }
+            while (k < 8)
+                offset_indices[i][k++] = 0;
+        }
+    }
+
+} Lookup;
 
 // Find indices of nonzero numbers in an int32_t array
 template<const IndexType InputDimensions>
@@ -74,7 +98,11 @@ void find_nnz(const std::int32_t* input, std::uint16_t* out, IndexType& count_ou
     using vec128_t = __m128i;
         #define vec128_zero _mm_setzero_si128()
         #define vec128_set_16(a) _mm_set1_epi16(a)
-        #define vec128_load(a) _mm_load_si128(a)
+        #if (USE_SSE41)
+            #define vec128_load(a) _mm_cvtepu8_epi16(_mm_loadl_epi64(a))
+        #else
+            #define vec128_load(a) _mm_load_si128(a)
+        #endif
         #define vec128_storeu(a, b) _mm_storeu_si128(a, b)
         #define vec128_add(a, b) _mm_add_epi16(a, b)
     #elif defined(USE_NEON)
@@ -110,9 +138,9 @@ void find_nnz(const std::int32_t* input, std::uint16_t* out, IndexType& count_ou
         }
         for (IndexType j = 0; j < OutputsPerChunk; ++j)
         {
-            const auto lookup = (nnz >> (j * 8)) & 0xFF;
-            const auto offsets =
-              vec128_load(reinterpret_cast<const vec128_t*>(&lookup_indices[lookup]));
+            const unsigned lookup = (nnz >> (j * 8)) & 0xFF;
+            const vec128_t offsets =
+              vec128_load(reinterpret_cast<const vec128_t*>(&Lookup.offset_indices[lookup]));
             vec128_storeu(reinterpret_cast<vec128_t*>(out + count), vec128_add(base, offsets));
             count += popcount(lookup);
             base = vec128_add(base, increment);

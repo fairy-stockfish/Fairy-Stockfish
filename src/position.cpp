@@ -656,14 +656,8 @@ void Position::update_piece_keys(Piece pc, Square s) const {
     Key k = Zobrist::psq[pc][s];
     st->nonPawnKey[color_of(pc)] ^= k;
 
-    if (type_of(pc) == KING)
-    {
-        st->majorPieceKey ^= k;
-        st->minorPieceKey ^= k;
-    }
-    else if (type_of(pc) == QUEEN || type_of(pc) == ROOK || PieceValue[MG][pc] >= RookValueMg)
-        st->majorPieceKey ^= k;
-    else
+    // Minor pieces and the king (pieces worth less than a rook)
+    if (type_of(pc) == KING || PieceValue[MG][pc] < RookValueMg)
         st->minorPieceKey ^= k;
 }
 
@@ -671,7 +665,7 @@ void Position::update_piece_keys(Piece pc, Square s) const {
 void Position::set_state() const {
 
     st->key = st->materialKey = 0;
-    st->majorPieceKey = st->minorPieceKey = 0;
+    st->minorPieceKey         = 0;
     st->nonPawnKey[WHITE] = st->nonPawnKey[BLACK] = 0;
     st->pawnKey                                   = Zobrist::noPawns;
     st->nonPawnMaterial[WHITE] = st->nonPawnMaterial[BLACK] = VALUE_ZERO;
@@ -3330,6 +3324,10 @@ bool Position::has_repeated() const {
 
 // Tests if the position has a move which draws by repetition.
 // This function accurately matches the outcome of is_draw() over all legal moves.
+// Tests whether the position has been repeated during the search
+bool Position::is_repetition(int ply) const { return st->repetition && st->repetition < ply; }
+
+
 bool Position::upcoming_repetition(int ply) const {
 
     int j;

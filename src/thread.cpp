@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -364,13 +364,13 @@ Thread* ThreadPool::get_best_thread() const {
         const auto bestThreadMoveVote = votes[bestThreadPV[0]];
         const auto newThreadMoveVote  = votes[newThreadPV[0]];
 
-        const bool bestThreadInProvenWin = bestThreadScore >= VALUE_TB_WIN_IN_MAX_PLY;
-        const bool newThreadInProvenWin  = newThreadScore >= VALUE_TB_WIN_IN_MAX_PLY;
+        const bool bestThreadInProvenWin = is_win(bestThreadScore);
+        const bool newThreadInProvenWin  = is_win(newThreadScore);
 
         const bool bestThreadInProvenLoss =
-          bestThreadScore != -VALUE_INFINITE && bestThreadScore <= VALUE_TB_LOSS_IN_MAX_PLY;
+          bestThreadScore != -VALUE_INFINITE && is_loss(bestThreadScore);
         const bool newThreadInProvenLoss =
-          newThreadScore != -VALUE_INFINITE && newThreadScore <= VALUE_TB_LOSS_IN_MAX_PLY;
+          newThreadScore != -VALUE_INFINITE && is_loss(newThreadScore);
 
         // We make sure not to pick a thread with truncated principal variation
         const bool betterVotingValue =
@@ -390,7 +390,7 @@ Thread* ThreadPool::get_best_thread() const {
                 bestThread = th.get();
         }
         else if (newThreadInProvenWin || newThreadInProvenLoss
-                 || (newThreadScore > VALUE_TB_LOSS_IN_MAX_PLY
+                 || (!is_loss(newThreadScore)
                      && (newThreadMoveVote > bestThreadMoveVote
                          || (newThreadMoveVote == bestThreadMoveVote && betterVotingValue))))
             bestThread = th.get();

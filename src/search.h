@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2024 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include <string_view>
 #include <vector>
 
+#include "history.h"
 #include "material.h"
 #include "misc.h"
 #include "pawns.h"
@@ -80,6 +81,8 @@ struct Stack {
     bool                        ttPv;
     bool                        ttHit;
     int                         cutoffCnt;
+    int                         reduction;
+    bool                        isTTMove;
 };
 
 
@@ -119,7 +122,6 @@ struct LimitsType {
 
     // Init explicitly due to broken value-initialization of non POD in MSVC
     LimitsType() {
-        capSq       = SQ_NONE;
         time[WHITE] = time[BLACK] = inc[WHITE] = inc[BLACK] = npmsec = movetime = TimePoint(0);
         movestogo = depth = mate = perft = infinite = 0;
         nodes                                       = 0;
@@ -133,7 +135,6 @@ struct LimitsType {
     int               movestogo, depth, mate, perft, infinite;
     uint64_t          nodes;
     bool              ponderMode;
-    Square            capSq;
 };
 
 
@@ -264,9 +265,8 @@ class Worker {
     PawnHistory           pawnHistory;
 
     CorrectionHistory<Pawn>         pawnCorrectionHistory;
-    CorrectionHistory<Major>        majorPieceCorrectionHistory;
     CorrectionHistory<Minor>        minorPieceCorrectionHistory;
-    CorrectionHistory<NonPawn>      nonPawnCorrectionHistory[COLOR_NB];
+    CorrectionHistory<NonPawn>      nonPawnCorrectionHistory;
     CorrectionHistory<Continuation> continuationCorrectionHistory;
 
     // Used by the classical evaluation for lazy evaluation and optimism
@@ -279,6 +279,12 @@ class Worker {
 
    private:
     void iterative_deepening();
+
+    void do_move(Position& pos, const Move move, StateInfo& st);
+    void do_move(Position& pos, const Move move, StateInfo& st, const bool givesCheck);
+    void do_null_move(Position& pos, StateInfo& st);
+    void undo_move(Position& pos, const Move move);
+    void undo_null_move(Position& pos);
 
     // This is the main search function, for both PV and non-PV nodes
     template<NodeType nodeType>
@@ -301,6 +307,8 @@ class Worker {
     std::array<std::array<uint64_t, SQUARE_NB>, SQUARE_NB + 1> effort;
     TimePoint                                                  elapsed() const;
     TimePoint                                                  elapsed_time() const;
+
+    Value evaluate(const Position&);
 
     LimitsType limits;
 
@@ -332,6 +340,11 @@ class Worker {
 
     friend class Stockfish::ThreadPool;
     friend class SearchManager;
+};
+
+struct ConthistBonus {
+    int index;
+    int weight;
 };
 
 
