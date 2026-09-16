@@ -82,7 +82,8 @@ struct Stack {
     bool                        ttHit;
     int                         cutoffCnt;
     int                         reduction;
-    bool                        isTTMove;
+    bool                        isPvNode;
+    int                         quietMoveStreak;
 };
 
 
@@ -276,6 +277,8 @@ class Worker {
     // Per-thread hash tables of the classical evaluation
     Pawns::Table    pawnsTable;
     Material::Table materialTable;
+
+    TTMoveHistory ttMoveHistory;
 
    private:
     void iterative_deepening();

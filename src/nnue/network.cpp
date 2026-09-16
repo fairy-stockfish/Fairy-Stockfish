@@ -212,21 +212,11 @@ NetworkOutput
 Network<Arch, Transformer>::evaluate(const Position&                         pos,
                                      AccumulatorStack&                       accumulatorStack,
                                      AccumulatorCaches::Cache<FTDimensions>* cache) const {
-    // We manually align the arrays on the stack because with gcc < 9.3
-    // overaligning stack variables with alignas() doesn't work correctly.
 
     constexpr uint64_t alignment = CacheLineSize;
 
-#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType
-      transformedFeaturesUnaligned[FeatureTransformer<FTDimensions, nullptr>::BufferSize
-                                   + alignment / sizeof(TransformedFeatureType)];
-
-    auto* transformedFeatures = align_ptr_up<alignment>(&transformedFeaturesUnaligned[0]);
-#else
-    alignas(alignment) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<FTDimensions, nullptr>::BufferSize];
-#endif
+    alignas(alignment)
+      TransformedFeatureType transformedFeatures[FeatureTransformer<FTDimensions>::BufferSize];
 
     ASSERT_ALIGNED(transformedFeatures, alignment);
 
@@ -284,20 +274,11 @@ NnueEvalTrace
 Network<Arch, Transformer>::trace_evaluate(const Position&                         pos,
                                            AccumulatorStack&                       accumulatorStack,
                                            AccumulatorCaches::Cache<FTDimensions>* cache) const {
-    // We manually align the arrays on the stack because with gcc < 9.3
-    // overaligning stack variables with alignas() doesn't work correctly.
+
     constexpr uint64_t alignment = CacheLineSize;
 
-#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType
-      transformedFeaturesUnaligned[FeatureTransformer<FTDimensions, nullptr>::BufferSize
-                                   + alignment / sizeof(TransformedFeatureType)];
-
-    auto* transformedFeatures = align_ptr_up<alignment>(&transformedFeaturesUnaligned[0]);
-#else
-    alignas(alignment) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<FTDimensions, nullptr>::BufferSize];
-#endif
+    alignas(alignment)
+      TransformedFeatureType transformedFeatures[FeatureTransformer<FTDimensions>::BufferSize];
 
     ASSERT_ALIGNED(transformedFeatures, alignment);
 
@@ -452,12 +433,10 @@ bool Network<Arch, Transformer>::write_parameters(std::ostream&      stream,
 
 // Explicit template instantiations
 
-template class Network<
-  NetworkArchitecture<TransformedFeatureDimensionsBig, L2Big, L3Big>,
-  FeatureTransformer<TransformedFeatureDimensionsBig, &AccumulatorState::accumulatorBig>>;
+template class Network<NetworkArchitecture<TransformedFeatureDimensionsBig, L2Big, L3Big>,
+                       FeatureTransformer<TransformedFeatureDimensionsBig>>;
 
-template class Network<
-  NetworkArchitecture<TransformedFeatureDimensionsSmall, L2Small, L3Small>,
-  FeatureTransformer<TransformedFeatureDimensionsSmall, &AccumulatorState::accumulatorSmall>>;
+template class Network<NetworkArchitecture<TransformedFeatureDimensionsSmall, L2Small, L3Small>,
+                       FeatureTransformer<TransformedFeatureDimensionsSmall>>;
 
 }  // namespace Stockfish::Eval::NNUE

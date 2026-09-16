@@ -111,6 +111,8 @@ void TTEntry::save(
         value16   = int16_t(v);
         eval16    = int16_t(ev);
     }
+    else if (depth8 + DEPTH_ENTRY_OFFSET >= 5 && Bound(genBound8 & 0x3) != BOUND_EXACT)
+        depth8--;
 }
 
 
@@ -235,8 +237,8 @@ std::tuple<bool, TTData, TTWriter> TranspositionTable::probe(const Key key) cons
     // Find an entry to be replaced according to the replacement strategy
     TTEntry* replace = tte;
     for (int i = 1; i < ClusterSize; ++i)
-        if (replace->depth8 - replace->relative_age(generation8) * 2
-            > tte[i].depth8 - tte[i].relative_age(generation8) * 2)
+        if (replace->depth8 - replace->relative_age(generation8)
+            > tte[i].depth8 - tte[i].relative_age(generation8))
             replace = &tte[i];
 
     return {false,

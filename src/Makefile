@@ -175,8 +175,8 @@ lsx = no
 lasx = no
 STRIP = strip
 
-ifneq ($(shell which clang-format-18 2> /dev/null),)
-	CLANG-FORMAT = clang-format-18
+ifneq ($(shell which clang-format-20 2> /dev/null),)
+	CLANG-FORMAT = clang-format-20
 else
 	CLANG-FORMAT = clang-format
 endif
@@ -573,14 +573,12 @@ ifeq ($(KERNEL),Darwin)
 	XCRUN = xcrun
 endif
 
-# To cross-compile for Android, NDK version r21 or later is recommended.
-# In earlier NDK versions, you'll need to pass -fno-addrsig if using GNU binutils.
-# Currently we don't know how to make PGO builds with the NDK yet.
+# To cross-compile for Android, use NDK version r27c or later.
 ifeq ($(COMP),ndk)
-	CXXFLAGS += -stdlib=libc++ -fPIE
+	CXXFLAGS += -stdlib=libc++
 	comp=clang
 	ifeq ($(arch),armv7)
-		CXX=armv7a-linux-androideabi16-clang++
+		CXX=armv7a-linux-androideabi29-clang++
 		CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
 		ifneq ($(shell which arm-linux-androideabi-strip 2>/dev/null),)
 			STRIP=arm-linux-androideabi-strip
@@ -589,7 +587,7 @@ ifeq ($(COMP),ndk)
 		endif
 	endif
 	ifeq ($(arch),armv8)
-		CXX=aarch64-linux-android21-clang++
+		CXX=aarch64-linux-android29-clang++
 		ifneq ($(shell which aarch64-linux-android-strip 2>/dev/null),)
 			STRIP=aarch64-linux-android-strip
 		else
@@ -597,14 +595,28 @@ ifeq ($(COMP),ndk)
 		endif
 	endif
 	ifeq ($(arch),x86_64)
-		CXX=x86_64-linux-android21-clang++
+		CXX=x86_64-linux-android29-clang++
 		ifneq ($(shell which x86_64-linux-android-strip 2>/dev/null),)
 			STRIP=x86_64-linux-android-strip
 		else
 			STRIP=llvm-strip
 		endif
 	endif
-	LDFLAGS += -static-libstdc++ -pie -lm -latomic
+	LDFLAGS += -static-libstdc++
+endif
+
+### Allow overwriting CXX from command line
+ifdef COMPCXX
+	CXX=$(COMPCXX)
+endif
+
+# llvm-profdata must be version compatible with the specified CXX (be it clang, or the gcc alias)
+# make -j profile-build CXX=clang++-20 COMP=clang
+# Locate the version in the same directory as the compiler used,
+# with fallback to a generic one if it can't be located
+	LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2> /dev/null)))llvm-profdata
+ifeq ($(wildcard $(LLVM_PROFDATA)),)
+	LLVM_PROFDATA := llvm-profdata
 endif
 
 ifeq ($(comp),icx)
@@ -619,11 +631,6 @@ else
 	ifeq ($(KERNEL),Darwin)
 		EXTRAPROFILEFLAGS = -fvisibility=hidden
 	endif
-endif
-
-### Allow overwriting CXX from command line
-ifdef COMPCXX
-	CXX=$(COMPCXX)
 endif
 
 ### Sometimes gcc is really clang
@@ -1164,7 +1171,7 @@ clang-profile-make:
 	all
 
 clang-profile-use:
-	$(XCRUN) llvm-profdata merge -output=stockfish.profdata *.profraw
+	$(XCRUN) $(LLVM_PROFDATA) merge -output=stockfish.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-use=stockfish.profdata' \
 	EXTRALDFLAGS='-fprofile-use ' \

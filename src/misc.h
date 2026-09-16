@@ -321,6 +321,22 @@ extern std::string binaryDirectory;   // path of the executable directory
 extern std::string workingDirectory;  // path of the working directory
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
+    #if __GNUC__ >= 13
+        #define sf_assume(cond) __attribute__((assume(cond)))
+    #else
+        #define sf_assume(cond) \
+            do \
+            { \
+                if (!(cond)) \
+                    __builtin_unreachable(); \
+            } while (0)
+    #endif
+#else
+    // do nothing for other compilers
+    #define sf_assume(cond)
+#endif
+
 }  // namespace Stockfish
 
 #endif  // #ifndef MISC_H_INCLUDED

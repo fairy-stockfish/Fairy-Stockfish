@@ -107,8 +107,7 @@ typedef int32x4_t psqt_vec_t;
     #define vec_store_psqt(a, b) *(a) = (b)
     #define vec_add_psqt_32(a, b) vaddq_s32(a, b)
     #define vec_sub_psqt_32(a, b) vsubq_s32(a, b)
-    #define vec_zero_psqt() \
-        psqt_vec_t { 0 }
+    #define vec_zero_psqt() psqt_vec_t{0}
     #define NumRegistersSIMD 16
 
 #else
