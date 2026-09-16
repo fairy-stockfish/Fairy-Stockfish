@@ -43,7 +43,7 @@ namespace Stockfish::Eval::NNUE::Features {
   void HalfKAv2::append_active_indices(
     const Position& pos,
     Color perspective,
-    ValueListInserter<IndexType> active
+    IndexList& active
   ) {
     Square ksq = orient(perspective, pos.square<KING>(perspective));
     Bitboard bb = pos.pieces();
@@ -61,8 +61,8 @@ namespace Stockfish::Eval::NNUE::Features {
     Square ksq,
     StateInfo* st,
     Color perspective,
-    ValueListInserter<IndexType> removed,
-    ValueListInserter<IndexType> added
+    IndexList& removed,
+    IndexList& added
   ) {
     const auto& dp = st->dirtyPiece;
     Square oriented_ksq = orient(perspective, ksq);

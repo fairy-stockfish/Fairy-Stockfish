@@ -277,6 +277,7 @@ public:
   Bitboard attackers_to(Square s, Bitboard occupied, Color c, Bitboard janggiCannons) const;
   Bitboard attacks_from(Color c, PieceType pt, Square s) const;
   Bitboard moves_from(Color c, PieceType pt, Square s) const;
+  Bitboard attacks_by(Color c, PieceType pt) const;
   Bitboard slider_blockers(Bitboard sliders, Square s, Bitboard& pinners, Color c) const;
 
   // Properties of moves
@@ -284,7 +285,6 @@ public:
   bool pseudo_legal(const Move m) const;
   bool virtual_drop(Move m) const;
   bool capture(Move m) const;
-  bool capture_or_promotion(Move m) const;
   Square capture_square(Square to) const;
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
@@ -1347,6 +1347,14 @@ inline Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) con
   return attackers_to(s, occupied, c, byTypeBB[JANGGI_CANNON]);
 }
 
+inline Bitboard Position::attacks_by(Color c, PieceType pt) const {
+  Bitboard threats = Bitboard(0);
+  Bitboard attackers = pieces(c, pt);
+  while (attackers)
+      threats |= attacks_from(c, pt, pop_lsb(attackers));
+  return threats;
+}
+
 inline Bitboard Position::checkers() const {
   return st->checkersBB;
 }
@@ -1432,11 +1440,6 @@ inline bool Position::is_promoted(Square s) const {
 
 inline bool Position::is_chess960() const {
   return chess960;
-}
-
-inline bool Position::capture_or_promotion(Move m) const {
-  assert(is_ok(m));
-  return type_of(m) == PROMOTION || type_of(m) == EN_PASSANT || (type_of(m) != CASTLING && !empty(to_sq(m)));
 }
 
 inline bool Position::capture(Move m) const {

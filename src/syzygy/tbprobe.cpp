@@ -1346,7 +1346,7 @@ void Tablebases::init(const std::string& paths) {
     for (int leadPawnsCnt = 1; leadPawnsCnt <= 5; ++leadPawnsCnt)
         for (File f = FILE_A; f <= FILE_D; ++f)
         {
-            // Restart the index at every file because TB table is splitted
+            // Restart the index at every file because TB table is split
             // by file, so we can reuse the same index for different files.
             int idx = 0;
 

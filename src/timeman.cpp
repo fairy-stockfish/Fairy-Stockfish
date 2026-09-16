@@ -81,6 +81,8 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
               timeLeft /= 4;
       }
   }
+  // Use extra time with larger increments
+  double optExtra = std::clamp(1.0 + 12.0 * limits.inc[us] / limits.time[us], 1.0, 1.12);
 
   // A user may scale time usage by setting UCI option "Slow Mover"
   // Default is 100 and changing this value will probably lose elo.
@@ -92,15 +94,16 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
   if (limits.movestogo == 0)
   {
       optScale = std::min(0.0084 + std::pow(ply + 3.0, 0.5) * 0.0042,
-                           0.2 * limits.time[us] / double(timeLeft));
+                           0.2 * limits.time[us] / double(timeLeft))
+                 * optExtra;
       maxScale = std::min(7.0, 4.0 + ply / 12.0);
   }
 
   // x moves in y seconds (+ z increment)
   else
   {
-      optScale = std::min((0.8 + ply / 128.0) / mtg,
-                            0.8 * limits.time[us] / double(timeLeft));
+      optScale = std::min((0.88 + ply / 116.4) / mtg,
+                            0.88 * limits.time[us] / double(timeLeft));
       maxScale = std::min(6.3, 1.5 + 0.11 * mtg);
   }
 

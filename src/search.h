@@ -47,6 +47,7 @@ struct Stack {
   Move excludedMove;
   Move killers[2];
   Value staticEval;
+  Depth depth;
   int statScore;
   int moveCount;
   bool inCheck;
@@ -72,6 +73,7 @@ struct RootMove {
 
   Value score = -VALUE_INFINITE;
   Value previousScore = -VALUE_INFINITE;
+  Value averageScore = -VALUE_INFINITE;
   int selDepth = 0;
   int tbRank = 0;
   Value tbScore;
