@@ -31,6 +31,7 @@
 #include "search.h"
 #include "thread.h"
 #include "tt.h"
+#include "numa.h"
 #include "types.h"
 #include "uci.h"
 
@@ -47,6 +48,13 @@ class Engine {
     using InfoIter  = Search::InfoIteration;
 
     Engine();
+
+    // Can't be movable due to components holding backreferences to fields
+    Engine(const Engine&)            = delete;
+    Engine(Engine&&)                 = delete;
+    Engine& operator=(const Engine&) = delete;
+    Engine& operator=(Engine&&)      = delete;
+
     ~Engine() { wait_for_search_finished(); }
 
     std::uint64_t perft(Depth depth);
@@ -64,6 +72,7 @@ class Engine {
 
     // modifiers
 
+    void set_numa_config_from_option(const std::string& o);
     void resize_threads();
     void set_tt_size(size_t mb);
     void set_ponderhit(bool);
@@ -82,11 +91,13 @@ class Engine {
 
     // utility functions
 
-    void        trace_eval() const;
-    OptionsMap& get_options();
-    std::string fen() const;
-    void        flip();
-    std::string visualize() const;
+    void                                   trace_eval() const;
+    OptionsMap&                            get_options();
+    std::string                            fen() const;
+    void                                   flip();
+    std::string                            visualize() const;
+    std::vector<std::pair<size_t, size_t>> get_bound_thread_count_by_numa_node() const;
+    std::string                            get_numa_config_as_string() const;
 
     // Fairy-Stockfish: direct access to the game state for the XBoard
     // state machine and the bindings
@@ -94,6 +105,8 @@ class Engine {
     StateListPtr& state_list() { return states; }
 
    private:
+    NumaReplicationContext numaContext;
+
     Position     pos;
     StateListPtr states;
     Square       capSq;

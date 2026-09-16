@@ -61,7 +61,15 @@ void init_variant(const Variant* v) {
 static void on_clear_hash(const Option&) { mainEngine->search_clear(); }
 static void on_hash_size(const Option& o) { mainEngine->set_tt_size(size_t(o)); }
 static void on_logger(const Option& o) { start_logger(o); }
-static void on_threads(const Option&) { mainEngine->resize_threads(); }
+static void on_threads(const Option&) {
+    mainEngine->resize_threads();
+    print_thread_binding_information(*mainEngine);
+}
+static void on_numa_policy(const Option& o) {
+    mainEngine->set_numa_config_from_option(o);
+    print_numa_config_information(*mainEngine);
+    print_thread_binding_information(*mainEngine);
+}
 static void on_tb_path(const Option& o) { Tablebases::init(o); }
 static void on_use_NNUE(const Option&) { Eval::NNUE::init(); }
 static void on_eval_file(const Option&) { Eval::NNUE::init(); }
@@ -180,6 +188,7 @@ void init(OptionsMap& o) {
     constexpr int MaxHashMB = Is64Bit ? 33554432 : 2048;
 
     o["Debug Log File"] << Option("", on_logger);
+    o["NumaPolicy"] << Option("auto", on_numa_policy);
     o["Threads"] << Option(1, 1, 1024, on_threads);
     o["Hash"] << Option(16, 1, MaxHashMB, on_hash_size);
     o["Clear Hash"] << Option(on_clear_hash);

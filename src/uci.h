@@ -127,6 +127,9 @@ extern Protocol CurrentProtocol;
 
 class Engine;
 
+void print_numa_config_information(const Engine& engine);
+void print_thread_binding_information(const Engine& engine);
+
 // The UCIEngine class implements the UCI protocol and its dialects (USI, UCCI,
 // UCI-Cyclone) as well as the dispatch to the XBoard state machine on top of an Engine.
 class UCIEngine {
@@ -137,6 +140,7 @@ class UCIEngine {
     void loop();
 
     Engine& get_engine() { return *engine; }
+
 
    private:
     std::unique_ptr<Engine> engine;

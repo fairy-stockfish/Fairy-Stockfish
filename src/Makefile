@@ -61,7 +61,7 @@ SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp engine.cpp evaluate.cp
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
 	nnue/evaluate_nnue.cpp nnue/features/half_ka_v2.cpp \
 	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
-	nnue/features/half_ka_v2_variants.cpp
+	nnue/features/half_ka_v2_variants.cpp memory.cpp
 
 HEADERS = apiutil.h benchmark.h bitboard.h endgame.h engine.h evaluate.h material.h misc.h movegen.h movepick.h \
 		nnue/evaluate_nnue.h nnue/features/half_ka_v2.h nnue/features/half_ka_v2_variants.h \
@@ -70,7 +70,7 @@ HEADERS = apiutil.h benchmark.h bitboard.h endgame.h engine.h evaluate.h materia
 		nnue/layers/sqr_clipped_relu.h nnue/nnue_accumulator.h nnue/nnue_architecture.h \
 		nnue/nnue_common.h nnue/nnue_feature_transformer.h parser.h partner.h pawns.h perft.h piece.h \
 		position.h psqt.h search.h syzygy/tbprobe.h thread.h thread_win32_osx.h timeman.h \
-		tt.h tune.h types.h uci.h variant.h xboard.h
+		tt.h tune.h types.h uci.h variant.h xboard.h numa.h memory.h
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
@@ -166,8 +166,8 @@ dotprod = no
 arm_version = 0
 STRIP = strip
 
-ifneq ($(shell which clang-format-17 2> /dev/null),)
-	CLANG-FORMAT = clang-format-17
+ifneq ($(shell which clang-format-18 2> /dev/null),)
+	CLANG-FORMAT = clang-format-18
 else
 	CLANG-FORMAT = clang-format
 endif
@@ -530,8 +530,8 @@ ifeq ($(COMP),clang)
 endif
 
 ifeq ($(KERNEL),Darwin)
-	CXXFLAGS += -mmacosx-version-min=10.14
-	LDFLAGS += -mmacosx-version-min=10.14
+	CXXFLAGS += -mmacosx-version-min=10.15
+	LDFLAGS += -mmacosx-version-min=10.15
 	ifneq ($(arch),any)
 		CXXFLAGS += -arch $(arch)
 		LDFLAGS += -arch $(arch)
@@ -1089,14 +1089,14 @@ FORCE:
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-generate ' \
-	EXTRALDFLAGS=' -fprofile-instr-generate' \
+	EXTRACXXFLAGS='-fprofile-generate ' \
+	EXTRALDFLAGS=' -fprofile-generate' \
 	all
 
 clang-profile-use:
 	$(XCRUN) llvm-profdata merge -output=stockfish.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-use=stockfish.profdata' \
+	EXTRACXXFLAGS='-fprofile-use=stockfish.profdata' \
 	EXTRALDFLAGS='-fprofile-use ' \
 	all
 

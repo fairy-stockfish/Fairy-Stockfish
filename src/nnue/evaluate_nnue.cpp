@@ -26,6 +26,7 @@
 
 #include "../evaluate.h"
 #include "../position.h"
+#include "../memory.h"
 #include "../misc.h"
 #include "../uci.h"
 #include "../types.h"

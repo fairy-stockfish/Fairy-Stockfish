@@ -45,7 +45,7 @@ class TimeManagement {
               Color               us,
               int                 ply,
               const OptionsMap&   options,
-              int&                originalPly);
+              double&             originalTimeAdjust);
 
     TimePoint optimum() const;
     TimePoint maximum() const;

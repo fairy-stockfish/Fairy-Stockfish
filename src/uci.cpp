@@ -304,6 +304,28 @@ static void load(istringstream& is, bool check = false) {
 // graceful exit if the GUI dies unexpectedly. When called with some command-line arguments,
 // like running 'bench', the function returns immediately after the command is executed.
 // In addition to the UCI ones, some additional debug commands are also supported.
+void print_numa_config_information(const Engine& engine) {
+    auto cfgStr = engine.get_numa_config_as_string();
+    sync_cout << "info string Available Processors: " << cfgStr << sync_endl;
+}
+
+void print_thread_binding_information(const Engine& engine) {
+    auto boundThreadsByNode = engine.get_bound_thread_count_by_numa_node();
+    if (!boundThreadsByNode.empty())
+    {
+        sync_cout << "info string NUMA Node Thread Binding: ";
+        bool isFirst = true;
+        for (auto&& [current, total] : boundThreadsByNode)
+        {
+            if (!isFirst)
+                std::cout << ":";
+            std::cout << current << "/" << total;
+            isFirst = false;
+        }
+        std::cout << sync_endl;
+    }
+}
+
 void UCIEngine::loop() {
 
     Position& pos = engine->position();
@@ -375,9 +397,14 @@ void UCIEngine::loop() {
             std::istringstream ss("startpos");
             position(ss);
             if (is_uci_dialect(CurrentProtocol) && token != "ucicyclone")
-                sync_cout << "id name " << engine_info(true) << "\n"
-                          << Options << "\n"
-                          << token << "ok" << sync_endl;
+            {
+                sync_cout << "id name " << engine_info(true) << "\n" << Options << sync_endl;
+
+                print_numa_config_information(*engine);
+                print_thread_binding_information(*engine);
+
+                sync_cout << token << "ok" << sync_endl;
+            }
             // Allow to enforce protocol at startup
             argc = 1;
         }

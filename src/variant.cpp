@@ -2211,9 +2211,10 @@ void VariantMap::parse_istream(std::istream& file) {
         {
             if (DoCheck)
                 std::cerr << "Parsing variant: " << variant << std::endl;
-            Variant* v = !variant_template.empty() ? VariantParser<DoCheck>(attribs).parse(
-                           (new Variant(*variants.find(variant_template)->second))->init())
-                                                   : VariantParser<DoCheck>(attribs).parse();
+            Variant* v = !variant_template.empty()
+                         ? VariantParser<DoCheck>(attribs).parse(
+                             (new Variant(*variants.find(variant_template)->second))->init())
+                         : VariantParser<DoCheck>(attribs).parse();
             if (v->maxFile <= FILE_MAX && v->maxRank <= RANK_MAX)
             {
                 add(variant, v);

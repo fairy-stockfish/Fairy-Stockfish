@@ -18,6 +18,7 @@
 
 #include "engine.h"
 
+#include <cassert>
 #include <deque>
 #include <iostream>
 #include <sstream>
@@ -39,6 +40,7 @@ namespace Stockfish {
 Engine* mainEngine = nullptr;
 
 Engine::Engine() :
+    numaContext(NumaConfig::from_system()),
     states(new std::deque<StateInfo>(1)),
     options(Options),
     threads(Threads),
@@ -69,7 +71,7 @@ void Engine::stop() { threads.stop = true; }
 void Engine::search_clear() {
     wait_for_search_finished();
 
-    tt.clear(options["Threads"]);
+    tt.clear(threads);
     threads.clear();
 
     // @TODO wont work with multiple instances
@@ -127,13 +129,41 @@ void Engine::set_position(const std::string&              fen,
 
 // modifiers
 
+void Engine::set_numa_config_from_option(const std::string& o) {
+    if (o == "auto" || o == "system")
+    {
+        numaContext.set_numa_config(NumaConfig::from_system());
+    }
+    else if (o == "hardware")
+    {
+        // Don't respect affinity set in the system.
+        numaContext.set_numa_config(NumaConfig::from_system(false));
+    }
+    else if (o == "none")
+    {
+        numaContext.set_numa_config(NumaConfig{});
+    }
+    else
+    {
+        numaContext.set_numa_config(NumaConfig::from_string(o));
+    }
+
+    // Force reallocation of threads in case affinities need to change.
+    resize_threads();
+}
+
 void Engine::resize_threads() {
-    threads.set(Search::SharedState(options, threads, tt), updateContext);
+    threads.wait_for_search_finished();
+    threads.set(numaContext.get_numa_config(), Search::SharedState(options, threads, tt),
+                updateContext);
+
+    // Reallocate the hash with the new threadpool size
+    set_tt_size(options["Hash"]);
 }
 
 void Engine::set_tt_size(size_t mb) {
     wait_for_search_finished();
-    tt.resize(mb, options["Threads"]);
+    tt.resize(mb, threads);
 }
 
 void Engine::set_ponderhit(bool b) { threads.main_manager()->ponder = b; }
@@ -171,6 +201,23 @@ std::string Engine::visualize() const {
     std::stringstream ss;
     ss << pos;
     return ss.str();
+}
+
+std::vector<std::pair<size_t, size_t>> Engine::get_bound_thread_count_by_numa_node() const {
+    auto                                   counts = threads.get_bound_thread_count_by_numa_node();
+    const NumaConfig&                      cfg    = numaContext.get_numa_config();
+    std::vector<std::pair<size_t, size_t>> ratios;
+    NumaIndex                              n = 0;
+    for (; n < counts.size(); ++n)
+        ratios.emplace_back(counts[n], cfg.num_cpus_in_numa_node(n));
+    if (!counts.empty())
+        for (; n < cfg.num_numa_nodes(); ++n)
+            ratios.emplace_back(0, cfg.num_cpus_in_numa_node(n));
+    return ratios;
+}
+
+std::string Engine::get_numa_config_as_string() const {
+    return numaContext.get_numa_config().to_string();
 }
 
 }
