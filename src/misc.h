@@ -69,6 +69,7 @@ std::optional<std::string> read_file_to_string(const std::string& path);
 void dbg_hit_on(bool cond, int slot = 0);
 void dbg_mean_of(int64_t value, int slot = 0);
 void dbg_stdev_of(int64_t value, int slot = 0);
+void dbg_extremes_of(int64_t value, int slot = 0);
 void dbg_correl_of(int64_t value1, int64_t value2, int slot = 0);
 void dbg_print();
 
@@ -103,6 +104,7 @@ inline std::vector<std::string> split(const std::string& s, const std::string& d
 }
 
 void remove_whitespace(std::string& s);
+bool is_whitespace(const std::string& s);
 
 enum SyncCout {
     IO_LOCK,
@@ -121,6 +123,9 @@ struct HashTable {
    private:
     std::vector<Entry> table = std::vector<Entry>(Size);  // Allocate on the heap
 };
+
+void sync_cout_start();
+void sync_cout_end();
 
 // True if and only if the binary is compiled on a little-endian machine
 static inline const union {

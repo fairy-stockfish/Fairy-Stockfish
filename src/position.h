@@ -344,7 +344,7 @@ class Position {
     bool            is_game_end(Value& result, int ply = 0) const;
     Value           material_counting_result() const;
     bool            is_draw(int ply) const;
-    bool            has_game_cycle(int ply) const;
+    bool            upcoming_repetition(int ply) const;
     bool            has_repeated() const;
     Bitboard        chased() const;
     int             count_limit(Color sideToCount) const;
@@ -1438,9 +1438,9 @@ inline bool Position::capture(Move m) const {
         || type_of(m) == EN_PASSANT;
 }
 
-// returns true if a move is generated from the capture stage
-// having also promotions covered, i.e. consistency with the capture stage move generation
-// is needed to avoid the generation of duplicate moves.
+// Returns true if a move is generated from the capture stage, having also
+// queen promotions covered, i.e. consistency with the capture stage move
+// generation is needed to avoid the generation of duplicate moves.
 inline bool Position::capture_stage(Move m) const {
     assert(is_ok(m));
     return capture(m) || type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION

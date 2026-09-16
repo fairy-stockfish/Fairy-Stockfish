@@ -35,8 +35,6 @@ using UCI::Option;
 bool          Tune::update_on_last;
 const Option* LastOption = nullptr;
 OptionsMap*   Tune::options;
-
-
 namespace {
 std::map<std::string, int> TuneResults;
 
@@ -45,9 +43,9 @@ void on_tune(const Option& o) {
     if (!Tune::update_on_last || LastOption == &o)
         Tune::read_options();
 }
+}
 
-
-void make_option(OptionsMap* options, const string& n, int v, const SetRange& r) {
+void Tune::make_option(OptionsMap* opts, const string& n, int v, const SetRange& r) {
 
     // Do not generate option when there is nothing to tune (ie. min = max)
     if (r(v).first == r(v).second)
@@ -56,8 +54,8 @@ void make_option(OptionsMap* options, const string& n, int v, const SetRange& r)
     if (TuneResults.count(n))
         v = TuneResults[n];
 
-    (*options)[n] << Option(v, r(v).first, r(v).second, on_tune);
-    LastOption = &((*options)[n]);
+    (*opts)[n] << Option(v, r(v).first, r(v).second, on_tune);
+    LastOption = &((*opts)[n]);
 
     // Print formatted parameters, ready to be copy-pasted in Fishtest
     std::cout << n << ","                                  //
@@ -66,7 +64,6 @@ void make_option(OptionsMap* options, const string& n, int v, const SetRange& r)
               << r(v).second << ","                        //
               << (r(v).second - r(v).first) / 20.0 << ","  //
               << "0.0020" << std::endl;
-}
 }
 
 string Tune::next(string& names, bool pop) {

@@ -49,7 +49,7 @@ class Engine {
 
     Engine();
 
-    // Can't be movable due to components holding backreferences to fields
+    // Cannot be movable due to components holding backreferences to fields
     Engine(const Engine&)            = delete;
     Engine(Engine&&)                 = delete;
     Engine& operator=(const Engine&) = delete;
@@ -91,13 +91,18 @@ class Engine {
 
     // utility functions
 
-    void                                   trace_eval() const;
-    OptionsMap&                            get_options();
+    void trace_eval() const;
+
+    const OptionsMap& get_options() const;
+    OptionsMap&       get_options();
+
     std::string                            fen() const;
     void                                   flip();
     std::string                            visualize() const;
     std::vector<std::pair<size_t, size_t>> get_bound_thread_count_by_numa_node() const;
     std::string                            get_numa_config_as_string() const;
+    std::string                            numa_config_information_as_string() const;
+    std::string                            thread_binding_information_as_string() const;
 
     // Fairy-Stockfish: direct access to the game state for the XBoard
     // state machine and the bindings

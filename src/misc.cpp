@@ -133,9 +133,10 @@ string engine_info(bool to_uci, bool to_xboard) {
 #ifdef GIT_DATE
         ss << stringify(GIT_DATE);
 #else
-        constexpr string_view months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
-        string                month, day, year;
-        stringstream          date(__DATE__);  // From compiler, format is "Sep 21 2008"
+        constexpr std::string_view months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
+
+        std::string       month, day, year;
+        std::stringstream date(__DATE__);  // From compiler, format is "Sep 21 2008"
 
         date >> month >> day >> year;
         ss << year << setw(2) << setfill('0') << (1 + months.find(month) / 4) << setw(2)
@@ -283,13 +284,21 @@ template<size_t N>
 struct DebugInfo {
     std::atomic<int64_t> data[N] = {0};
 
-    constexpr inline std::atomic<int64_t>& operator[](int index) { return data[index]; }
+    constexpr std::atomic<int64_t>& operator[](int index) { return data[index]; }
 };
 
-DebugInfo<2> hit[MaxDebugSlots];
-DebugInfo<2> mean[MaxDebugSlots];
-DebugInfo<3> stdev[MaxDebugSlots];
-DebugInfo<6> correl[MaxDebugSlots];
+struct DebugExtremes: public DebugInfo<3> {
+    DebugExtremes() {
+        data[1] = std::numeric_limits<int64_t>::min();
+        data[2] = std::numeric_limits<int64_t>::max();
+    }
+};
+
+DebugInfo<2>  hit[MaxDebugSlots];
+DebugInfo<2>  mean[MaxDebugSlots];
+DebugInfo<3>  stdev[MaxDebugSlots];
+DebugInfo<6>  correl[MaxDebugSlots];
+DebugExtremes extremes[MaxDebugSlots];
 
 }  // namespace
 
@@ -311,6 +320,18 @@ void dbg_stdev_of(int64_t value, int slot) {
     ++stdev[slot][0];
     stdev[slot][1] += value;
     stdev[slot][2] += value * value;
+}
+
+void dbg_extremes_of(int64_t value, int slot) {
+    ++extremes[slot][0];
+
+    int64_t current_max = extremes[slot][1].load();
+    while (current_max < value && !extremes[slot][1].compare_exchange_weak(current_max, value))
+    {}
+
+    int64_t current_min = extremes[slot][2].load();
+    while (current_min > value && !extremes[slot][2].compare_exchange_weak(current_min, value))
+    {}
 }
 
 void dbg_correl_of(int64_t value1, int64_t value2, int slot) {
@@ -348,6 +369,13 @@ void dbg_print() {
         }
 
     for (int i = 0; i < MaxDebugSlots; ++i)
+        if ((n = extremes[i][0]))
+        {
+            std::cerr << "Extremity #" << i << ": Total " << n << " Min " << extremes[i][2]
+                      << " Max " << extremes[i][1] << std::endl;
+        }
+
+    for (int i = 0; i < MaxDebugSlots; ++i)
         if ((n = correl[i][0]))
         {
             double r = (E(correl[i][5]) - E(correl[i][1]) * E(correl[i][3]))
@@ -373,6 +401,8 @@ std::ostream& operator<<(std::ostream& os, SyncCout sc) {
     return os;
 }
 
+void sync_cout_start() { std::cout << IO_LOCK; }
+void sync_cout_end() { std::cout << IO_UNLOCK; }
 
 /// Trampoline helper to avoid moving Logger to misc.h
 void start_logger(const std::string& fname) { Logger::start(fname); }
@@ -425,6 +455,10 @@ std::optional<std::string> read_file_to_string(const std::string& path) {
 
 void remove_whitespace(std::string& s) {
     s.erase(std::remove_if(s.begin(), s.end(), [](char c) { return std::isspace(c); }), s.end());
+}
+
+bool is_whitespace(const std::string& s) {
+    return std::all_of(s.begin(), s.end(), [](char c) { return std::isspace(c); });
 }
 
 namespace CommandLine {

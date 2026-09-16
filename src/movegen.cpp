@@ -130,12 +130,10 @@ ExtMove* generate_drops(const Position& pos, ExtMove* moveList, PieceType pt, Bi
         if (pos.drop_promoted() && pos.promoted_piece_type(pt))
         {
             Bitboard b2 = b;
-            if (Type == QUIET_CHECKS)
-                b2 &= pos.check_squares(pos.promoted_piece_type(pt));
             while (b2)
                 *moveList++ = make_drop(pop_lsb(b2), pt, pos.promoted_piece_type(pt));
         }
-        if (Type == QUIET_CHECKS || !pos.can_drop(Us, pt))
+        if (!pos.can_drop(Us, pt))
             b &= pos.check_squares(pt);
         while (b)
             *moveList++ = make_drop(pop_lsb(b), pt, pt);
@@ -190,16 +188,6 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard ta
         blc &= ~standardPromotionZone;
     }
 
-    if (Type == QUIET_CHECKS && pos.count<KING>(Them))
-    {
-        // To make a quiet check, you either make a direct check by pushing a pawn
-        // or push a blocker pawn that is not on the same file as the enemy king.
-        // Discovered check promotion has been already generated amongst the captures.
-        Square   ksq              = pos.square<KING>(Them);
-        Bitboard dcCandidatePawns = pos.blockers_for_king(Them) & ~file_bb(ksq);
-        b1 &= pawn_attacks_bb(Them, ksq) | shift<Up>(dcCandidatePawns);
-        b2 &= pawn_attacks_bb(Them, ksq) | shift<Up + Up>(dcCandidatePawns);
-    }
 
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
@@ -356,15 +344,6 @@ ExtMove* generate_moves(const Position& pos, ExtMove* moveList, PieceType Pt, Bi
             }
         }
 
-        if (Type == QUIET_CHECKS)
-        {
-            b1 &= pos.check_squares(Pt);
-            if (b2)
-                b2 &= pos.check_squares(pos.promoted_piece_type(Pt));
-            if (b3)
-                b3 &= pos.check_squares(type_of(pos.unpromoted_piece_on(from)));
-        }
-
         while (b1)
             moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, from, pop_lsb(b1));
 
@@ -403,9 +382,8 @@ ExtMove* generate_all(const Position& pos, ExtMove* moveList) {
 
     static_assert(Type != LEGAL, "Unsupported type in generate_all()");
 
-    constexpr bool Checks = Type == QUIET_CHECKS;  // Reduce template instantiations
-    const Square   ksq    = pos.count<KING>(Us) ? pos.square<KING>(Us) : SQ_NONE;
-    Bitboard       target;
+    const Square ksq = pos.count<KING>(Us) ? pos.square<KING>(Us) : SQ_NONE;
+    Bitboard     target;
 
     // Skip generating non-king moves when in double check
     if (Type != EVASIONS || !more_than_one(pos.checkers() & ~pos.non_sliding_riders()))
@@ -413,7 +391,7 @@ ExtMove* generate_all(const Position& pos, ExtMove* moveList) {
         target = Type == EVASIONS     ? between_bb(ksq, lsb(pos.checkers()))
                : Type == NON_EVASIONS ? ~pos.pieces(Us)
                : Type == CAPTURES     ? pos.pieces(~Us)
-                                      : ~pos.pieces();  // QUIETS || QUIET_CHECKS
+                                      : ~pos.pieces();  // QUIETS
 
         if (Type == EVASIONS)
         {
@@ -484,7 +462,7 @@ ExtMove* generate_all(const Position& pos, ExtMove* moveList) {
     }
 
     // King moves
-    if (pos.count<KING>(Us) && (!Checks || pos.blockers_for_king(~Us) & ksq))
+    if (pos.count<KING>(Us))
     {
         Bitboard b = ((pos.attacks_from(Us, KING, ksq) & pos.pieces())
                       | (pos.moves_from(Us, KING, ksq) & ~pos.pieces()))
@@ -513,8 +491,6 @@ ExtMove* generate_all(const Position& pos, ExtMove* moveList) {
 // <QUIETS>       Generates all pseudo-legal non-captures and underpromotions
 // <EVASIONS>     Generates all pseudo-legal check evasions
 // <NON_EVASIONS> Generates all pseudo-legal captures and non-captures
-// <QUIET_CHECKS> Generates all pseudo-legal non-captures giving check,
-//                except castling and promotions
 //
 // Returns a pointer to the end of the move list.
 template<GenType Type>
@@ -533,7 +509,6 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
 template ExtMove* generate<CAPTURES>(const Position&, ExtMove*);
 template ExtMove* generate<QUIETS>(const Position&, ExtMove*);
 template ExtMove* generate<EVASIONS>(const Position&, ExtMove*);
-template ExtMove* generate<QUIET_CHECKS>(const Position&, ExtMove*);
 template ExtMove* generate<NON_EVASIONS>(const Position&, ExtMove*);
 
 

@@ -191,7 +191,8 @@ void Engine::trace_eval() const {
     sync_cout << "\n" << Eval::trace(p) << sync_endl;
 }
 
-OptionsMap& Engine::get_options() { return options; }
+const OptionsMap& Engine::get_options() const { return options; }
+OptionsMap&       Engine::get_options() { return options; }
 
 std::string Engine::fen() const { return pos.fen(); }
 
@@ -218,6 +219,36 @@ std::vector<std::pair<size_t, size_t>> Engine::get_bound_thread_count_by_numa_no
 
 std::string Engine::get_numa_config_as_string() const {
     return numaContext.get_numa_config().to_string();
+}
+
+std::string Engine::numa_config_information_as_string() const {
+    auto cfgStr = get_numa_config_as_string();
+    return "Available processors: " + cfgStr;
+}
+
+std::string Engine::thread_binding_information_as_string() const {
+    auto              boundThreadsByNode = get_bound_thread_count_by_numa_node();
+    std::stringstream ss;
+
+    size_t threadsSize = threads.size();
+    ss << "Using " << threadsSize << (threadsSize > 1 ? " threads" : " thread");
+
+    if (boundThreadsByNode.empty())
+        return ss.str();
+
+    ss << " with NUMA node thread binding: ";
+
+    bool isFirst = true;
+
+    for (auto&& [current, total] : boundThreadsByNode)
+    {
+        if (!isFirst)
+            ss << ":";
+        ss << current << "/" << total;
+        isFirst = false;
+    }
+
+    return ss.str();
 }
 
 }
