@@ -16,13 +16,13 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "timeman.h"
+
 #include <algorithm>
-#include <cfloat>
 #include <cmath>
 
 #include "partner.h"
 #include "search.h"
-#include "timeman.h"
 #include "uci.h"
 
 namespace Stockfish {
@@ -30,14 +30,14 @@ namespace Stockfish {
 TimeManagement Time; // Our global time management object
 
 
-/// TimeManagement::init() is called at the beginning of the search and calculates
-/// the bounds of time allowed for the current game ply. We currently support:
+// TimeManagement::init() is called at the beginning of the search and calculates
+// the bounds of time allowed for the current game ply. We currently support:
 //      1) x basetime (+ z increment)
 //      2) x moves in y seconds (+ z increment)
 
 void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color us, int ply) {
 
-  // if we have no time, no need to initialize TM, except for the start time,
+  // If we have no time, no need to initialize TM, except for the start time,
   // which is used by movetime.
   startTime = limits.startTime;
   if (limits.time[us] == 0)
@@ -113,7 +113,7 @@ void TimeManagement::init(const Position& pos, Search::LimitsType& limits, Color
 
   // Never use more than 80% of the available time for this move
   optimumTime = TimePoint(optScale * timeLeft);
-  maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, maxScale * optimumTime));
+  maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, maxScale * optimumTime)) - 10;
 
   if (Options["Ponder"])
       optimumTime += optimumTime / 4;

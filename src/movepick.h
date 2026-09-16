@@ -20,19 +20,22 @@
 #define MOVEPICK_H_INCLUDED
 
 #include <array>
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
 #include <limits>
-#include <type_traits>
+#include <type_traits> // IWYU pragma: keep
 
 #include "movegen.h"
-#include "position.h"
 #include "types.h"
 
 namespace Stockfish {
+class Position;
 
-/// StatsEntry stores the stat table value. It is usually a number but could
-/// be a move or even a nested history. We use a class instead of naked value
-/// to directly call history update operator<<() on the entry so to use stats
-/// tables at caller sites as simple multi-dim arrays.
+// StatsEntry stores the stat table value. It is usually a number but could
+// be a move or even a nested history. We use a class instead of a naked value
+// to directly call history update operator<<() on the entry so to use stats
+// tables at caller sites as simple multi-dim arrays.
 template<typename T, int D>
 class StatsEntry {
 
@@ -48,17 +51,17 @@ public:
     assert(abs(bonus) <= D); // Ensure range is [-D, D]
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
-    entry += bonus - entry * abs(bonus) / D;
+    entry += (bonus * D - entry * abs(bonus)) / (D * 5 / 4);
 
     assert(abs(entry) <= D);
   }
 };
 
-/// Stats is a generic N-dimensional array used to store various statistics.
-/// The first template parameter T is the base type of the array, the second
-/// template parameter D limits the range of updates in [-D, D] when we update
-/// values with the << operator, while the last parameters (Size and Sizes)
-/// encode the dimensions of the array.
+// Stats is a generic N-dimensional array used to store various statistics.
+// The first template parameter T is the base type of the array, and the second
+// template parameter D limits the range of updates in [-D, D] when we update
+// values with the << operator, while the last parameters (Size and Sizes)
+// encode the dimensions of the array.
 template <typename T, int D, int Size, int... Sizes>
 struct Stats : public std::array<Stats<T, D, Sizes...>, Size>
 {
@@ -66,8 +69,8 @@ struct Stats : public std::array<Stats<T, D, Sizes...>, Size>
 
   void fill(const T& v) {
 
-    // For standard-layout 'this' points to first struct member
-    assert(std::is_standard_layout<stats>::value);
+    // For standard-layout 'this' points to the first struct member
+    assert(std::is_standard_layout_v<stats>);
 
     using entry = StatsEntry<T, D>;
     entry* p = reinterpret_cast<entry*>(this);
@@ -91,11 +94,11 @@ typedef Stats<int16_t, 7183, COLOR_NB, int(SQUARE_NB + 1) * int(1 << SQUARE_BITS
 
 typedef Stats<int16_t, 7183, COLOR_NB, SQUARE_NB> GateHistory;
 
-/// CounterMoveHistory stores counter moves indexed by [piece][to] of the previous
-/// move, see www.chessprogramming.org/Countermove_Heuristic
+// CounterMoveHistory stores counter moves indexed by [piece][to] of the previous
+// move, see www.chessprogramming.org/Countermove_Heuristic
 using CounterMoveHistory = Stats<Move, NOT_USED, PIECE_NB, SQUARE_NB>;
 
-/// CapturePieceToHistory is addressed by a move's [piece][to][captured piece type]
+// CapturePieceToHistory is addressed by a move's [piece][to][captured piece type]
 using CapturePieceToHistory = Stats<int16_t, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 
 /// PieceToHistory is like ButterflyHistory but is addressed by a move's [piece][to]
@@ -108,12 +111,12 @@ typedef Stats<PieceToHistory, NOT_USED, 2 * PIECE_SLOTS, SQUARE_NB> Continuation
 
 int history_slot(Piece pc);
 
-/// MovePicker class is used to pick one pseudo-legal move at a time from the
-/// current position. The most important method is next_move(), which returns a
-/// new pseudo-legal move each time it is called, until there are no moves left,
-/// when MOVE_NONE is returned. In order to improve the efficiency of the
-/// alpha-beta algorithm, MovePicker attempts to return the moves which are most
-/// likely to get a cut-off first.
+// MovePicker class is used to pick one pseudo-legal move at a time from the
+// current position. The most important method is next_move(), which returns a
+// new pseudo-legal move each time it is called, until there are no moves left,
+// when MOVE_NONE is returned. In order to improve the efficiency of the
+// alpha-beta algorithm, MovePicker attempts to return the moves which are most
+// likely to get a cut-off first.
 class MovePicker {
 
   enum PickType { Next, Best };

@@ -19,6 +19,8 @@
 #ifndef UCI_H_INCLUDED
 #define UCI_H_INCLUDED
 
+#include <cstddef>
+#include <iosfwd>
 #include <map>
 #include <string>
 #include <vector>
@@ -43,15 +45,15 @@ void init_variant(const Variant* v);
 
 class Option;
 
-/// Define a custom comparator, because the UCI options should be case-insensitive
+// Define a custom comparator, because the UCI options should be case-insensitive
 struct CaseInsensitiveLess {
   bool operator() (const std::string&, const std::string&) const;
 };
 
-/// The options container is defined as a std::map
+// The options container is defined as a std::map
 using OptionsMap = std::map<std::string, Option, CaseInsensitiveLess>;
 
-/// The Option class implements each option as specified by the UCI protocol
+// The Option class implements each option as specified by the UCI protocol
 class Option {
 
   using OnChange = void (*)(const Option&);
@@ -86,6 +88,7 @@ private:
 
 void init(OptionsMap&);
 void loop(int argc, char* argv[]);
+int to_cp(Value v);
 std::string value(Value v);
 std::string square(const Position& pos, Square s);
 std::string dropped_piece(const Position& pos, Move m);

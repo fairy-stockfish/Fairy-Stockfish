@@ -19,14 +19,17 @@
 #ifndef TIMEMAN_H_INCLUDED
 #define TIMEMAN_H_INCLUDED
 
+#include <cstdint>
+
 #include "misc.h"
 #include "search.h"
 #include "thread.h"
+#include "types.h"
 
 namespace Stockfish {
 
-/// The TimeManagement class computes the optimal time to think depending on
-/// the maximum available time, the game move number and other parameters.
+// The TimeManagement class computes the optimal time to think depending on
+// the maximum available time, the game move number, and other parameters.
 
 class TimeManagement {
 public:

@@ -16,10 +16,15 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "movepick.h"
+
+#include <algorithm>
 #include <cassert>
+#include <iterator>
+#include <utility>
 
 #include "bitboard.h"
-#include "movepick.h"
+#include "position.h"
 
 namespace Stockfish {
 
@@ -57,11 +62,11 @@ namespace {
 } // namespace
 
 
-/// Constructors of the MovePicker class. As arguments we pass information
-/// to help it to return the (presumably) good moves first, to decide which
-/// moves to return (in the quiescence search, for instance, we only want to
-/// search captures, promotions, and some checks) and how important good move
-/// ordering is at the current node.
+// Constructors of the MovePicker class. As arguments, we pass information
+// to help it return the (presumably) good moves first, to decide which
+// moves to return (in the quiescence search, for instance, we only want to
+// search captures, promotions, and some checks) and how important a good
+// move ordering is at the current node.
 
 /// MovePicker constructor for the main search
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh, const GateHistory* dh,
@@ -99,9 +104,9 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const GateHistory*
                              && pos.see_ge(ttm, threshold));
 }
 
-/// MovePicker::score() assigns a numerical value to each move in a list, used
-/// for sorting. Captures are ordered by Most Valuable Victim (MVV), preferring
-/// captures with a good history. Quiets moves are ordered using the history tables.
+// MovePicker::score() assigns a numerical value to each move in a list, used
+// for sorting. Captures are ordered by Most Valuable Victim (MVV), preferring
+// captures with a good history. Quiets moves are ordered using the history tables.
 template<GenType Type>
 void MovePicker::score() {
 
@@ -143,18 +148,32 @@ void MovePicker::score() {
 
       else if constexpr (Type == QUIETS)
       {
-          Piece pc = pos.moved_piece(m);
-          m.value =  2 * (*mainHistory)[pos.side_to_move()][from_to(m)]
-                   +     (*gateHistory)[pos.side_to_move()][gating_square(m)]
-                   + 2 * (*continuationHistory[0])[history_slot(pc)][to_sq(m)]
-                   +     (*continuationHistory[1])[history_slot(pc)][to_sq(m)]
-                   +     (*continuationHistory[3])[history_slot(pc)][to_sq(m)]
-                   +     (*continuationHistory[5])[history_slot(pc)][to_sq(m)]
-                   +     bool(pos.check_squares(type_of(pc)) & to_sq(m)) * 16384;
+          Piece     pc   = pos.moved_piece(m);
+          PieceType pt   = type_of(pc);
+          Square    to   = to_sq(m);
 
-          // Bonus for moving a piece threatened by a lesser piece to a safe square
-          if (type_of(m) != DROP && (threatenedPieces & from_sq(m)) && !(threatByLesser[type_of(pc)] & to_sq(m)))
-              m.value += 20 * int(PieceValue[MG][type_of(pc)]);
+          // histories
+          m.value =  2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
+          m.value +=     (*gateHistory)[pos.side_to_move()][gating_square(m)];
+          m.value += 2 * (*continuationHistory[0])[history_slot(pc)][to];
+          m.value +=     (*continuationHistory[1])[history_slot(pc)][to];
+          m.value +=     (*continuationHistory[2])[history_slot(pc)][to] / 4;
+          m.value +=     (*continuationHistory[3])[history_slot(pc)][to];
+          m.value +=     (*continuationHistory[5])[history_slot(pc)][to];
+
+          // bonus for checks
+          m.value += bool(pos.check_squares(pt) & to) * 16384;
+
+          if (type_of(m) != DROP)
+          {
+              Square from = from_sq(m);
+              // bonus for escaping from capture by a lesser piece
+              if ((threatenedPieces & from) && !(threatByLesser[pt] & to))
+                  m.value += 20 * int(PieceValue[MG][pt]);
+              // malus for putting piece en prise to a lesser piece
+              else if (!(threatenedPieces & from) && (threatByLesser[pt] & to))
+                  m.value -= 20 * int(PieceValue[MG][pt]);
+          }
       }
 
       else // Type == EVASIONS
@@ -169,8 +188,8 @@ void MovePicker::score() {
       }
 }
 
-/// MovePicker::select() returns the next move satisfying a predicate function.
-/// It never returns the TT move.
+// MovePicker::select() returns the next move satisfying a predicate function.
+// It never returns the TT move.
 template<MovePicker::PickType T, typename Pred>
 Move MovePicker::select(Pred filter) {
 
@@ -187,9 +206,9 @@ Move MovePicker::select(Pred filter) {
   return MOVE_NONE;
 }
 
-/// MovePicker::next_move() is the most important method of the MovePicker class. It
-/// returns a new pseudo-legal move every time it is called until there are no more
-/// moves left, picking the move with the highest score from a list of generated moves.
+// MovePicker::next_move() is the most important method of the MovePicker class. It
+// returns a new pseudo-legal move every time it is called until there are no more
+// moves left, picking the move with the highest score from a list of generated moves.
 Move MovePicker::next_move(bool skipQuiets) {
 
 top:

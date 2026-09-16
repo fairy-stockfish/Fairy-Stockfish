@@ -21,23 +21,25 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdint>
 #include <mutex>
-#include <thread>
 #include <vector>
 
-#include "material.h"
 #include "movepick.h"
-#include "pawns.h"
 #include "position.h"
 #include "search.h"
 #include "thread_win32_osx.h"
+#include "material.h"
+#include "pawns.h"
+#include "types.h"
 
 namespace Stockfish {
 
-/// Thread class keeps together all the thread-related stuff. We use
-/// per-thread pawn and material hash tables so that once we get a
-/// pointer to an entry its life time is unlimited and we don't have
-/// to care about someone changing the entry under our feet.
+// Thread class keeps together all the thread-related stuff. We use
+// per-thread pawn and material hash tables so that once we get a
+// pointer to an entry its lifetime is unlimited and we don't have
+// to care about someone changing the entry under our feet.
 
 class Thread {
 
@@ -57,8 +59,6 @@ public:
   void wait_for_search_finished();
   size_t id() const { return idx; }
 
-  Pawns::Table pawnsTable;
-  Material::Table materialTable;
   size_t pvIdx, pvLast;
   std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
   int selDepth, nmpMinPly;
@@ -69,6 +69,9 @@ public:
   Search::RootMoves rootMoves;
   Depth rootDepth, completedDepth;
   Value rootDelta;
+  Value rootSimpleEval;
+  Pawns::Table pawnsTable;
+  Material::Table materialTable;
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
   GateHistory gateHistory;
@@ -77,7 +80,7 @@ public:
 };
 
 
-/// MainThread is a derived class specific for main thread
+// MainThread is a derived class specific for main thread
 
 struct MainThread : public Thread {
 
@@ -97,9 +100,9 @@ struct MainThread : public Thread {
 };
 
 
-/// ThreadPool struct handles all the threads-related stuff like init, starting,
-/// parking and, most importantly, launching a thread. All the access to threads
-/// is done through this class.
+// ThreadPool struct handles all the threads-related stuff like init, starting,
+// parking and, most importantly, launching a thread. All the access to threads
+// is done through this class.
 
 struct ThreadPool {
 

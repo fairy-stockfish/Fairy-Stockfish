@@ -1601,43 +1601,56 @@ make_v:
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
 
+Value Eval::simple_eval(const Position& pos, Color c) {
+   return  PawnValueEg * (pos.count<PAWN>(c)       - pos.count<PAWN>(~c))
+           +             (pos.non_pawn_material(c) - pos.non_pawn_material(~c));
+}
+
+
 Value Eval::evaluate(const Position& pos) {
 
   assert(!pos.checkers());
 
   Value v;
-  Value psq = pos.psq_eg_stm();
+  Color stm      = pos.side_to_move();
+  int shuffling  = pos.rule50_count();
+  int simpleEval = simple_eval(pos, stm) + (int(pos.key() & 7) - 3);
 
-  // We use the much less accurate but faster Classical eval when the NNUE
-  // option is set to false. Otherwise we use the NNUE eval unless the
-  // PSQ advantage is decisive. (~4 Elo at STC, 1 Elo at LTC)
-  // The latter is only applied to check counting variants, since NNUE is trusted otherwise.
-  bool useClassical = !useNNUE || !pos.nnue_applicable() || (pos.check_counting() && abs(psq) > 2048);
-
-  if (useClassical)
+  if (!useNNUE || !pos.nnue_applicable())
       v = Evaluation<NO_TRACE>(pos).value();
   else
   {
-      int nnueComplexity;
-      int npm = pos.non_pawn_material() / 64;
+      bool lazy = abs(simpleEval) >=   RookValueMg + KnightValueMg
+                                     + 16 * shuffling * shuffling
+                                     + abs(pos.this_thread()->bestValue)
+                                     + abs(pos.this_thread()->rootSimpleEval);
 
-      Color stm = pos.side_to_move();
-      Value optimism = pos.this_thread()->optimism[stm];
-
-      Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
-
-      // Blend optimism with nnue complexity and (semi)classical complexity
-      optimism += optimism * (nnueComplexity + abs(psq - nnue)) / 512;
-      v = (nnue * (945 + npm) + optimism * (150 + npm)) / 1024;
-
-      if (pos.is_chess960())
-          v += fix_FRC(pos);
-
-      if (pos.check_counting())
+      if (lazy)
+          v = Value(simpleEval);
+      else
       {
-          Color us = pos.side_to_move();
-          v +=  6 * (945 + npm) / (5 * pos.checks_remaining( us))
-              - 6 * (945 + npm) / (5 * pos.checks_remaining(~us));
+          int nnueComplexity;
+          Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
+
+          Value optimism = pos.this_thread()->optimism[stm];
+
+          // Blend optimism and eval with nnue complexity and material imbalance
+          optimism += optimism * (nnueComplexity + abs(simpleEval - nnue)) / 512;
+          nnue     -= nnue     * (nnueComplexity + abs(simpleEval - nnue)) / 32768;
+
+          int npm = pos.non_pawn_material() / 64;
+          v = (  nnue     * (915 + npm + 9 * pos.count<PAWN>())
+               + optimism * (154 + npm                       )) / 1024;
+
+          if (pos.is_chess960())
+              v += fix_FRC(pos);
+
+          if (pos.check_counting())
+          {
+              Color us = pos.side_to_move();
+              v +=  6 * (915 + npm) / (5 * pos.checks_remaining( us))
+                  - 6 * (915 + npm) / (5 * pos.checks_remaining(~us));
+          }
       }
   }
 

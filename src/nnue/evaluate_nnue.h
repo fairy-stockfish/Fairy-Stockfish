@@ -24,6 +24,7 @@
 #include "nnue_feature_transformer.h"
 
 #include <memory>
+#include <optional>
 
 namespace Stockfish::Eval::NNUE {
 
