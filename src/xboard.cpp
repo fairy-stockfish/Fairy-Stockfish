@@ -51,7 +51,8 @@ void StateMachine::go(Search::LimitsType searchLimits, bool ponder) {
 
     searchLimits.startTime = now();  // As early as possible!
 
-    Threads.start_thinking(Options, pos, states, searchLimits, ponder);
+    searchLimits.ponderMode = ponder;
+    Threads.start_thinking(Options, pos, states, searchLimits);
 }
 
 // ponder() starts a ponder search

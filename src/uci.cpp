@@ -198,7 +198,8 @@ void go(Position&                pos,
         return;
     }
 
-    Threads.start_thinking(Options, pos, states, limits, ponderMode);
+    limits.ponderMode = ponderMode;
+    Threads.start_thinking(Options, pos, states, limits);
 }
 
 // bench() is called when engine receives the "bench" command. Firstly

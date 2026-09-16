@@ -24,7 +24,6 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
-#include <array>
 
 #include "misc.h"
 #include "movegen.h"
@@ -66,6 +65,7 @@ Thread::~Thread() {
     stdThread.join();
 }
 
+
 // Wakes up the thread that will start the search
 void Thread::start_searching() {
     mutex.lock();
@@ -95,7 +95,7 @@ void Thread::idle_loop() {
     // just check if running threads are below a threshold, in this case, all this
     // NUMA machinery is not needed.
     if (nthreads > 8)
-        WinProcGroup::bindThisThread(idx);
+        WinProcGroup::bind_this_thread(idx);
 
     while (true)
     {
@@ -119,6 +119,13 @@ void Thread::idle_loop() {
         worker->start_searching();
     }
 }
+
+Search::SearchManager* ThreadPool::main_manager() {
+    return static_cast<Search::SearchManager*>(main_thread()->worker.get()->manager.get());
+}
+
+uint64_t ThreadPool::nodes_searched() const { return accumulate(&Search::Worker::nodes); }
+uint64_t ThreadPool::tb_hits() const { return accumulate(&Search::Worker::tbHits); }
 
 // Creates/destroys threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_loop.
@@ -186,13 +193,12 @@ void ThreadPool::clear() {
 void ThreadPool::start_thinking(const OptionsMap&  options,
                                 Position&          pos,
                                 StateListPtr&      states,
-                                Search::LimitsType limits,
-                                bool               ponderMode) {
+                                Search::LimitsType limits) {
 
     main_thread()->wait_for_search_finished();
 
     main_manager()->stopOnPonderhit = stop = abortedSearch = false;
-    main_manager()->ponder                                 = ponderMode;
+    main_manager()->ponder                                 = limits.ponderMode;
 
     increaseDepth = true;
 
@@ -248,7 +254,6 @@ void ThreadPool::start_thinking(const OptionsMap&  options,
                                 th->worker.get());
         th->worker->rootState = setupStates->back();
         th->worker->tbConfig  = tbConfig;
-        th->worker->effort    = {};
     }
 
     main_thread()->start_searching();

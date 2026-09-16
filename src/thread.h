@@ -82,21 +82,18 @@ class ThreadPool {
         }
     }
 
-    void
-    start_thinking(const OptionsMap&, Position&, StateListPtr&, Search::LimitsType, bool = false);
+    void start_thinking(const OptionsMap&, Position&, StateListPtr&, Search::LimitsType);
     void clear();
     void set(Search::SharedState);
     void destroy();
 
-    Search::SearchManager* main_manager() const {
-        return static_cast<Search::SearchManager*>(main_thread()->worker.get()->manager.get());
-    };
-    Thread*  main_thread() const { return threads.front(); }
-    uint64_t nodes_searched() const { return accumulate(&Search::Worker::nodes); }
-    uint64_t tb_hits() const { return accumulate(&Search::Worker::tbHits); }
-    Thread*  get_best_thread() const;
-    void     start_searching();
-    void     wait_for_search_finished() const;
+    Search::SearchManager* main_manager();
+    Thread*                main_thread() const { return threads.front(); }
+    uint64_t               nodes_searched() const;
+    uint64_t               tb_hits() const;
+    Thread*                get_best_thread() const;
+    void                   start_searching();
+    void                   wait_for_search_finished() const;
 
     std::atomic_bool stop, abortedSearch, increaseDepth;
     std::atomic_bool abort, sit;

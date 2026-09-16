@@ -25,8 +25,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "material.h"
 #include "misc.h"
@@ -38,6 +38,8 @@
 #include "types.h"
 
 namespace Stockfish {
+
+namespace Eval::NNUE {}
 
 // Different node types, used as a template parameter
 enum NodeType {
@@ -93,6 +95,7 @@ struct RootMove {
         return m.score != score ? m.score < score : m.previousScore < previousScore;
     }
 
+    uint64_t          effort          = 0;
     Value             score           = -VALUE_INFINITE;
     Value             previousScore   = -VALUE_INFINITE;
     Value             averageScore    = -VALUE_INFINITE;
@@ -117,6 +120,7 @@ struct LimitsType {
         time[WHITE] = time[BLACK] = inc[WHITE] = inc[BLACK] = npmsec = movetime = TimePoint(0);
         movestogo = depth = mate = perft = infinite = 0;
         nodes                                       = 0;
+        ponderMode                                  = false;
     }
 
     bool use_time_management() const { return time[WHITE] || time[BLACK]; }
@@ -125,6 +129,7 @@ struct LimitsType {
     TimePoint         time[COLOR_NB], inc[COLOR_NB], npmsec, movetime, startTime;
     int               movestogo, depth, mate, perft, infinite;
     uint64_t          nodes;
+    bool              ponderMode;
 };
 
 
@@ -137,6 +142,7 @@ struct SharedState {
         options(optionsMap),
         threads(threadPool),
         tt(transpositionTable) {}
+
 
     const OptionsMap&   options;
     ThreadPool&         threads;
@@ -181,6 +187,7 @@ class NullSearchManager: public ISearchManager {
    public:
     void check_time(Search::Worker&) override {}
 };
+
 
 // Search::Worker is the class that does the actual search.
 // It is instantiated once per thread, and it is responsible for keeping track
