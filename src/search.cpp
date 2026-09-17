@@ -1178,12 +1178,13 @@ Value Search::Worker::search(
 
     // Step 8. Razoring
     // If eval is really low, skip search entirely and return the qsearch value
-    if (!PvNode && eval < alpha - 482 * depth * depth)
+    if (!PvNode && !pos.blast_on_capture() && eval < alpha - 482 * depth * depth)
         return qsearch<NonPV>(pos, ss, alpha, beta);
 
     // Step 9. Futility pruning: child node
     // The depth condition is important for mate finding. It should NOT be tuned.
-    if (!ss->ttPv && depth < (seekMate ? 6 : 19) - 3 * pos.blast_on_capture() && eval >= beta
+    // Blast variants keep the shallow pre-merge depth limit (9 - 3)
+    if (!ss->ttPv && depth < (seekMate || pos.blast_on_capture() ? 6 : 19) && eval >= beta
         && (!ttData.move || ttCapture) && !is_loss(beta) && !is_win(eval))
     {
         Value futilityMargin = futility_margin(depth, !ss->ttHit, improving, opponentWorsening)
@@ -1208,8 +1209,11 @@ Value Search::Worker::search(
         assert((ss - 1)->currentMove != Move::null());
 
         // Null move dynamic reduction based on depth
-        Depth R = 7 + depth / 3 + std::max((ss->staticEval - beta) / 256, 0) - pos.must_capture()
-                - !pos.checking_permitted();
+        Depth R = 7 + depth / 3
+                + (pos.must_capture() || pos.blast_on_capture()
+                     ? 0
+                     : std::max((ss->staticEval - beta) / 256, 0))
+                - pos.must_capture() - !pos.checking_permitted();
         do_null_move(pos, st, ss);
 
         Value nullValue = -search<NonPV>(pos, ss + 1, -beta, -beta + 1, depth - R, false);
@@ -1383,7 +1387,7 @@ moves_loop:  // When in check, search starts here
                 int   captHist = captureHistory[movedPiece][move.to_sq()][type_of(capturedPiece)];
 
                 // Futility pruning for captures
-                if (!givesCheck && lmrDepth < 8)
+                if (!givesCheck && lmrDepth < 8 && !pos.blast_on_capture())
                 {
                     Value futilityValue = ss->staticEval + 234 + 247 * lmrDepth
                                         + PieceValue[MG][capturedPiece] + 134 * captHist / 1024;
