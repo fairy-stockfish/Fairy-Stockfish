@@ -208,6 +208,7 @@ void MovePicker::score() {
 
     // Squares attacked by enemy pieces of lesser value than a given piece type
     [[maybe_unused]] Bitboard threatByLesser[PIECE_TYPE_NB], threatenedPieces = Bitboard(0);
+    [[maybe_unused]] Bitboard attackedByThem = Bitboard(0);
     if constexpr (Type == QUIETS)
     {
         Color    us = pos.side_to_move();
@@ -216,6 +217,7 @@ void MovePicker::score() {
         {
             PieceType pt  = pop_lsb(ps);
             attacksBy[pt] = pos.count(~us, pt) ? pos.attacks_by(~us, pt) : Bitboard(0);
+            attackedByThem |= attacksBy[pt];
         }
         for (PieceSet ps = pos.piece_types(); ps;)
         {
@@ -243,7 +245,7 @@ void MovePicker::score() {
 
         if constexpr (Type == CAPTURES)
             m.value =
-              7 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
+              7 * int(PieceValue[MG][pos.piece_on(to_sq(m))]) * !pos.must_capture()
               + (*gateHistory)[pos.side_to_move()][gating_square(m)]
               + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
@@ -268,7 +270,11 @@ void MovePicker::score() {
 
             // penalty for moving to a square threatened by a lesser piece
             // or bonus for escaping an attack by a lesser piece.
-            if (type_of(m) != DROP && pt != KING)
+            // With mandatory captures, moving to an attacked square forces a capture
+            if (pos.must_capture())
+                m.value += 16384 * bool(attackedByThem & to);
+
+            else if (type_of(m) != DROP && pt != KING)
             {
                 Square from = from_sq(m);
                 int    v    = 20 * (bool(threatenedPieces & from) - bool(threatByLesser[pt] & to));
