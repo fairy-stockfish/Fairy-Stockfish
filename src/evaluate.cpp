@@ -1704,7 +1704,11 @@ Value Eval::evaluate(const Position& pos, int optimism) {
 
     Value v;
 
-    if (!useNNUE || !pos.nnue_applicable())
+    // Check counting variants switch to the classical eval in case of a PSQ imbalance
+    if (!useNNUE || !pos.nnue_applicable()
+        || (pos.check_counting()
+            && std::abs(eg_value(pos.psq_score())) * 5
+                 > (750 + pos.non_pawn_material() / 64) * (5 + pos.rule50_count())))
         v = Evaluation<NO_TRACE>(pos).value();
     else
     {
