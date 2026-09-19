@@ -242,6 +242,8 @@ void Search::Worker::start_searching() {
 
     Eval::NNUE::verify();
 
+    bool uciPvSent = false;
+
     if (rootMoves.empty() || (CurrentProtocol == XBOARD && rootPos.is_optional_game_end()))
     {
         rootMoves.emplace_back(Move::none());
@@ -264,10 +266,12 @@ void Search::Worker::start_searching() {
         else
             main_manager()->updates.onUpdateNoMoves({0, result});
     }
-
-    // Main thread starts non-main threads, and begins own search
-    threads.start_searching();
-    bool uciPvSent = iterative_deepening();
+    else
+    {
+        // Main thread starts non-main threads, and begins own search
+        threads.start_searching();
+        uciPvSent = iterative_deepening();
+    }
 
     // Sit in bughouse variants if partner requested it or we are dead
     if (rootPos.two_boards() && !threads.abort && CurrentProtocol == XBOARD)
@@ -303,7 +307,7 @@ void Search::Worker::start_searching() {
     Skill   skill =
       Skill(options["Skill Level"], options["UCI_LimitStrength"] ? int(options["UCI_Elo"]) : 0);
 
-    if (!limits.depth && !skill.enabled())
+    if (!limits.depth && !skill.enabled() && rootMoves[0].pv[0] != Move::none())
         bestThread = threads.get_best_thread()->worker.get();
 
     main_manager()->bestPreviousScore        = bestThread->rootMoves[0].score;
@@ -359,7 +363,7 @@ void Search::Worker::start_searching() {
     }
 
     // Send PV info if it has changed since last output in iterative_deepening().
-    if (!uciPvSent || bestThread != this)
+    if ((!uciPvSent || bestThread != this) && rootMoves[0].pv[0] != Move::none())
         main_manager()->output_pv(*bestThread, threads, tt, bestThread->rootDepth);
 
     // In rare cases, output_pv() may change the ponder move through syzygy_extend_pv()
@@ -2593,8 +2597,6 @@ void SearchManager::output_pv(Search::Worker&           worker,
 // We try hard to have a ponder move to return to the GUI, otherwise
 // in case of 'ponder on' we have nothing to think about.
 bool RootMove::extract_ponder_from_tt(const TranspositionTable& tt, Position& pos) {
-
-    assert(pv.size() == 1 && pv[0] != Move::none());
 
     StateInfo st;
 
