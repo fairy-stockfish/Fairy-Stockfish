@@ -184,7 +184,7 @@ cat << EOF > syzygy.exp
  spawn $exeprefix ./stockfish
  send "uci\n"
  send "setoption name SyzygyPath value ../tests/syzygy/\n"
- expect "info string Found 35 tablebases" {} timeout {exit 1}
+ expect "info string Found 35 WDL and 35 DTZ tablebase files" {} timeout {exit 1}
  send "bench 128 1 8 default depth\n"
  send "ucinewgame\n"
  send "position fen 4k3/PP6/8/8/8/8/8/4K3 w - - 0 1\n"
