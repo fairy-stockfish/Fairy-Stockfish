@@ -264,9 +264,9 @@ bool VariantParser<DoCheck>::parse_attribute(const std::string& key,
     const auto& it = config.find(key);
     if (it != config.end())
     {
-        target = T();
-        char              token;
-        size_t            idx = std::string::npos;
+        target                  = T();
+        char              token = 0;
+        size_t            idx   = std::string::npos;
         std::stringstream ss(it->second);
         while (ss >> token
                && (idx = token == '*' ? size_t(ALL_PIECES) : pieceToChar.find(toupper(token)))
@@ -357,8 +357,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         const auto&       pv         = config.find(optionName);
         if (pv != config.end())
         {
-            char              token;
-            size_t            idx = 0;
+            char              token = 0;
+            size_t            idx   = 0;
             std::stringstream ss(pv->second);
             while (!ss.eof() && ss >> token
                    && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
@@ -439,8 +439,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     const auto& it_prom_limit = config.find("promotionLimit");
     if (it_prom_limit != config.end())
     {
-        char              token;
-        size_t            idx = 0;
+        char              token = 0;
+        size_t            idx   = 0;
         std::stringstream ss(it_prom_limit->second);
         while (!ss.eof() && ss >> token
                && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos && ss >> token
@@ -456,7 +456,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     const auto& it_prom_pt = config.find("promotedPieceType");
     if (it_prom_pt != config.end())
     {
-        char              token;
+        char              token = 0;
         size_t            idx = 0, idx2 = 0;
         std::stringstream ss(it_prom_pt->second);
         while (ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
@@ -642,7 +642,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         {
             const std::string fenBoard = v->startFen.substr(0, v->startFen.find(' '));
             std::stringstream ss(v->pieceToCharTable);
-            char              token;
+            char              token = 0;
             while (ss >> token)
                 if (isalpha(token) && v->pieceToChar.find(toupper(token)) == std::string::npos)
                     std::cerr << "pieceToCharTable - Invalid piece type: " << token << std::endl;

@@ -71,7 +71,8 @@ namespace Stockfish {
 // must be freed with std_aligned_free().
 
 void* std_aligned_alloc(size_t alignment, size_t size) {
-#if defined(_ISOC11_SOURCE)
+#if defined(_ISOC11_SOURCE) || defined(__EMSCRIPTEN__)
+    // Old versions of emscripten only provide the C function
     return aligned_alloc(alignment, size);
 #elif defined(POSIXALIGNEDALLOC)
     void* mem = nullptr;

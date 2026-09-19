@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "../evaluate.h"
+#define INCBIN_SILENCE_BITCODE_WARNING
 #include "../incbin/incbin.h"
 #include "../misc.h"
 #include "../position.h"
@@ -47,9 +48,9 @@
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
 INCBIN(EmbeddedNNUE, EvalFileDefaultName);
 #else
-const unsigned char        gEmbeddedNNUEData[1] = {0x0};
-const unsigned char* const gEmbeddedNNUEEnd     = &gEmbeddedNNUEData[1];
-const unsigned int         gEmbeddedNNUESize    = 1;
+const unsigned char                         gEmbeddedNNUEData[1] = {0x0};
+[[maybe_unused]] const unsigned char* const gEmbeddedNNUEEnd     = &gEmbeddedNNUEData[1];
+const unsigned int                          gEmbeddedNNUESize    = 1;
 #endif
 
 namespace Stockfish::Eval::NNUE {
