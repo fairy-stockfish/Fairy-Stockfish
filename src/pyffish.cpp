@@ -37,7 +37,7 @@ void buildPosition(Position&     pos,
     UCI::init_variant(v);
     if (strcmp(fen, "startpos") == 0)
         fen = v->startFen.c_str();
-    pos.set(v, std::string(fen), chess960, &states->back(), Threads.main_thread()->worker.get());
+    pos.set(v, std::string(fen), chess960, &states->back(), nullptr);
 
     // parse move list
     int numMoves = PyList_Size(moveList);

@@ -12,7 +12,7 @@ if platform.python_compiler().startswith("MSC"):
 else:
     args = ["-std=c++17", "-flto", "-Wno-date-time"]
 
-args.extend(["-DLARGEBOARDS", "-DALLVARS", "-DPRECOMPUTED_MAGICS", "-DNNUE_EMBEDDING_OFF"])
+args.extend(["-DLARGEBOARDS", "-DALLVARS", "-DPRECOMPUTED_MAGICS", "-DNNUE_EMBEDDING_OFF", "-DNO_THREADS"])
 
 if "64bit" in platform.architecture():
     args.append("-DIS_64BIT")

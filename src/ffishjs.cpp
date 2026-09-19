@@ -85,7 +85,6 @@ class Board {
     const Variant*    v;
     StateListPtr      states;
     Position          pos;
-    Thread*           thread;
     std::vector<Move> moveStack;
     // UCI notation of the moves in moveStack, recorded at the time the move is made,
     // since conversion of a move to UCI notation can depend on the position, e.g., for castling.
@@ -181,7 +180,7 @@ class Board {
         resetStates();
         moveStack.clear();
         uciMoveStack.clear();
-        pos.set(v, fen, is960, &states->back(), thread);
+        pos.set(v, fen, is960, &states->back(), nullptr);
     }
 
     // note: const identifier for pos not possible due to SAN::move_to_san()
@@ -437,7 +436,7 @@ class Board {
         this->resetStates();
         if (fen == "")
             fen = v->startFen;
-        this->pos.set(this->v, fen, is960, &this->states->back(), this->thread);
+        this->pos.set(this->v, fen, is960, &this->states->back(), nullptr);
         this->is960 = is960;
     }
 };
