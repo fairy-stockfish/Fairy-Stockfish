@@ -54,10 +54,7 @@ class HalfKAv2Variants {
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t HashValue = 0x5f234cb8u;
 
-    // Number of feature dimensions
-    static constexpr IndexType Dimensions =
-      static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(SQUARE_NB) * 19;
-
+    // Number of feature dimensions, which depends on the variant
     static IndexType get_dimensions() { return currentNnueVariant->nnueDimensions; }
 
     // Maximum number of simultaneously active features.
