@@ -330,7 +330,8 @@ class Worker {
     CorrectionHistory<Continuation> continuationCorrectionHistory;
 
     // Used by the classical evaluation for lazy evaluation and optimism
-    Value bestValue = VALUE_ZERO;
+    // Best value of the last root search, used by the lazy classical evaluation
+    Value lastBestValue = VALUE_ZERO;
     Value optimism[COLOR_NB];
 
     // Per-thread hash tables of the classical evaluation

@@ -22,6 +22,7 @@
 #include <cassert>
 #include <deque>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <utility>
 
@@ -46,7 +47,10 @@ Engine::Engine() :
     options(Options),
     threads(Threads),
     tt(TT),
-    networks(numaContext, Eval::NNUE::Network({EvalFileDefaultName, "None", ""})) {
+    // The network is large, so it is created on the heap instead of the stack
+    networks(numaContext,
+             std::move(*std::make_unique<Eval::NNUE::Network>(
+               Eval::NNUE::EvalFile{EvalFileDefaultName, "None", ""}))) {
     const Variant* v = variants.find(options["UCI_Variant"])->second;
     pos.set(v, v->startFen, options["UCI_Chess960"], &states->back(), nullptr);
     mainEngine = this;

@@ -510,9 +510,9 @@ bool Search::Worker::iterative_deepening() {
                 // effective increment for every four searchAgain steps (see issue #2717).
                 Depth adjustedDepth =
                   std::max(1, rootDepth - failedHighCnt - 3 * (searchAgainCounter + 1) / 4);
-                rootDelta       = beta - alpha;
-                bestValue       = search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
-                this->bestValue = bestValue;
+                rootDelta     = beta - alpha;
+                bestValue     = search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
+                lastBestValue = bestValue;
 
                 // Bring the best move to the front. It is critical that sorting
                 // is done with a stable algorithm because all the values but the

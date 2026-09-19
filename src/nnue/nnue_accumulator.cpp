@@ -26,6 +26,14 @@
 
 namespace Stockfish::Eval::NNUE {
 
+#ifdef VECTOR
+using SIMD::psqt_vec_t;
+using SIMD::vec_t;
+
+constexpr int NumRegs     = FeatureTransformer::NumRegs;
+constexpr int NumPsqtRegs = FeatureTransformer::NumPsqtRegs;
+#endif
+
 namespace {
 
 enum IncUpdateDirection {

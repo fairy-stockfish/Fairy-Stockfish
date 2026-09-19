@@ -1463,7 +1463,7 @@ Value Evaluation<T>::value() {
     // Early exit if score is high
     auto lazy_skip = [&](Value lazyThreshold) {
         return abs(mg_value(score) + eg_value(score))
-             > lazyThreshold + std::abs(pos.this_thread()->bestValue) * 5 / 4
+             > lazyThreshold + std::abs(pos.this_thread()->lastBestValue) * 5 / 4
                  + pos.non_pawn_material() / 32;
     };
 
@@ -1651,7 +1651,7 @@ std::string Eval::trace(Position& pos, const NNUE::Network& network) {
     std::memset(scores, 0, sizeof(scores));
 
     // Reset any global variable used in eval
-    pos.this_thread()->bestValue       = VALUE_ZERO;
+    pos.this_thread()->lastBestValue   = VALUE_ZERO;
     pos.this_thread()->optimism[WHITE] = VALUE_ZERO;
     pos.this_thread()->optimism[BLACK] = VALUE_ZERO;
 

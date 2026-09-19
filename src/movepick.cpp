@@ -237,11 +237,9 @@ void MovePicker::score() {
 
     for (auto& m : *this)
     {
-        const Square    from          = m.from_sq();
-        const Square    to            = m.to_sq();
-        const Piece     pc            = pos.moved_piece(m);
-        const PieceType pt            = type_of(pc);
-        const Piece     capturedPiece = pos.piece_on(to);
+        const Square    to = m.to_sq();
+        const Piece     pc = pos.moved_piece(m);
+        const PieceType pt = type_of(pc);
 
         if constexpr (Type == CAPTURES)
             m.value =
@@ -251,10 +249,6 @@ void MovePicker::score() {
 
         else if constexpr (Type == QUIETS)
         {
-            Piece     pc = pos.moved_piece(m);
-            PieceType pt = type_of(pc);
-            Square    to = to_sq(m);
-
             // histories
             m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
             m.value += (*gateHistory)[pos.side_to_move()][gating_square(m)];

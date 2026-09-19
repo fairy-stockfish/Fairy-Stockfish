@@ -329,9 +329,6 @@ void UCIEngine::loop() {
 
     Position& pos = engine->position();
     string    token, cmd;
-    int       argc = this->argc;
-    char**    argv = this->argv;
-
     for (int i = 1; i < argc; ++i)
         cmd += std::string(argv[i]) + " ";
 
