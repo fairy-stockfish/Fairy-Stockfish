@@ -74,12 +74,17 @@ bool set(const std::string& value, bool& target) {
     return value == "true" || value == "false";
 }
 
+// Value is an alias of int, so game result values need a distinct type for parsing
+struct GameValue {
+    Value& value;
+};
+
 template<>
-bool set(const std::string& value, Value& target) {
-    target = value == "win"  ? VALUE_MATE
-           : value == "loss" ? -VALUE_MATE
-           : value == "draw" ? VALUE_DRAW
-                             : VALUE_NONE;
+bool set(const std::string& value, GameValue& target) {
+    target.value = value == "win"  ? VALUE_MATE
+                 : value == "loss" ? -VALUE_MATE
+                 : value == "draw" ? VALUE_DRAW
+                                   : VALUE_NONE;
     return value == "win" || value == "loss" || value == "draw" || value == "none";
 }
 
@@ -234,7 +239,7 @@ bool VariantParser<DoCheck>::parse_attribute(const std::string& key, T& target) 
                                  : std::is_same<T, Rank>()             ? "Rank"
                                  : std::is_same<T, File>()             ? "File"
                                  : std::is_same<T, bool>()             ? "bool"
-                                 : std::is_same<T, Value>()            ? "Value"
+                                 : std::is_same<T, GameValue>()        ? "Value"
                                  : std::is_same<T, MaterialCounting>() ? "MaterialCounting"
                                  : std::is_same<T, CountingRule>()     ? "CountingRule"
                                  : std::is_same<T, ChasingRule>()      ? "ChasingRule"
@@ -544,24 +549,28 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("soldierPromotionRank", v->soldierPromotionRank);
     parse_attribute("flipEnclosedPieces", v->flipEnclosedPieces);
     // game end
+    auto parse_value = [this](const std::string& key, Value& target) {
+        GameValue gameValue{target};
+        parse_attribute(key, gameValue);
+    };
     parse_attribute("nMoveRuleTypes", v->nMoveRuleTypes[WHITE], v->pieceToChar);
     parse_attribute("nMoveRuleTypes", v->nMoveRuleTypes[BLACK], v->pieceToChar);
     parse_attribute("nMoveRuleTypesWhite", v->nMoveRuleTypes[WHITE], v->pieceToChar);
     parse_attribute("nMoveRuleTypesBlack", v->nMoveRuleTypes[BLACK], v->pieceToChar);
     parse_attribute("nMoveRule", v->nMoveRule);
     parse_attribute("nFoldRule", v->nFoldRule);
-    parse_attribute("nFoldValue", v->nFoldValue);
+    parse_value("nFoldValue", v->nFoldValue);
     parse_attribute("nFoldValueAbsolute", v->nFoldValueAbsolute);
     parse_attribute("perpetualCheckIllegal", v->perpetualCheckIllegal);
     parse_attribute("moveRepetitionIllegal", v->moveRepetitionIllegal);
     parse_attribute("chasingRule", v->chasingRule);
-    parse_attribute("stalemateValue", v->stalemateValue);
+    parse_value("stalemateValue", v->stalemateValue);
     parse_attribute("stalematePieceCount", v->stalematePieceCount);
-    parse_attribute("checkmateValue", v->checkmateValue);
+    parse_value("checkmateValue", v->checkmateValue);
     parse_attribute("shogiPawnDropMateIllegal", v->shogiPawnDropMateIllegal);
     parse_attribute("shatarMateRule", v->shatarMateRule);
     parse_attribute("bikjangRule", v->bikjangRule);
-    parse_attribute("extinctionValue", v->extinctionValue);
+    parse_value("extinctionValue", v->extinctionValue);
     parse_attribute("extinctionClaim", v->extinctionClaim);
     parse_attribute("extinctionPseudoRoyal", v->extinctionPseudoRoyal);
     parse_attribute("dupleCheck", v->dupleCheck);
@@ -593,7 +602,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectRegion2Black", v->connectRegion2[BLACK]);
     parse_attribute("connectNxN", v->connectNxN);
     parse_attribute("collinearN", v->collinearN);
-    parse_attribute("connectValue", v->connectValue);
+    parse_value("connectValue", v->connectValue);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("adjudicateFullBoard", v->adjudicateFullBoard);
     parse_attribute("countingRule", v->countingRule);
