@@ -2403,7 +2403,7 @@ void syzygy_extend_pv(const OptionsMap&         options,
                       const Search::LimitsType& limits,
                       Position&                 pos,
                       RootMove&                 rootMove,
-                      Value&                    v,
+                      [[maybe_unused]] Value&   v,
                       const usize               multiPV) {
 
     auto t_start      = std::chrono::steady_clock::now();
@@ -2465,6 +2465,7 @@ void syzygy_extend_pv(const OptionsMap&         options,
 
     // Resize the PV to the correct part
     rootMove.pv.resize(ply);
+    const usize validatedSize = rootMove.pv.size();
 
     // Step 2, now extend the PV to mate, as if the user explored syzygy-tables.info
     // using top ranked moves (minimal DTZ), which gives optimal mates only for simple
@@ -2522,12 +2523,17 @@ void syzygy_extend_pv(const OptionsMap&         options,
     // We adjust the score to match the found PV. Note that a TB loss score can be
     // displayed if the engine did not find a drawing move yet, but eventually search
     // will figure it out (e.g. 1kq5/q2r4/5K2/8/8/8/8/7Q w - - 96 1 )
-    if (pos.is_draw(0))
-        v = VALUE_DRAW;
+    // In Fairy-Stockfish the DTZ values do not always decrease along the extension,
+    // so it can end in a repetition or a draw by the 50 move rule. Such an extension
+    // says nothing about the score, so it is discarded instead of adjusting the score.
+    const bool drawn = pos.is_draw(0);
 
     // Undo the PV moves
     for (usize i = rootMove.pv.size(); i > 0; --i)
         pos.undo_move(rootMove.pv[i - 1]);
+
+    if (drawn)
+        rootMove.pv.resize(validatedSize);
 
     // Inform if we couldn't get a full extension in time
     if (time_abort())
