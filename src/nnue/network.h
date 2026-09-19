@@ -58,10 +58,14 @@ class Network {
     void load(const std::string& rootDirectory, std::string evalfilePath);
     bool save(const std::optional<std::string>& filename) const;
 
-    NetworkOutput evaluate(const Position& pos, AccumulatorStack& accumulatorStack) const;
+    NetworkOutput evaluate(const Position&    pos,
+                           AccumulatorStack&  accumulatorStack,
+                           AccumulatorCaches& cache) const;
 
     void verify(std::string evalfilePath, const std::function<void(std::string_view)>&) const;
-    NnueEvalTrace trace_evaluate(const Position& pos, AccumulatorStack& accumulatorStack) const;
+    NnueEvalTrace trace_evaluate(const Position&    pos,
+                                 AccumulatorStack&  accumulatorStack,
+                                 AccumulatorCaches& cache) const;
 
     const EvalFile& eval_file() const { return evalFile; }
 
@@ -91,6 +95,8 @@ class Network {
     // Hash value of evaluation function structure
     static constexpr std::uint32_t hash =
       FeatureTransformer::get_hash_value() ^ NetworkArchitecture::get_hash_value();
+
+    friend struct AccumulatorCaches;
 };
 
 }  // namespace Stockfish::Eval::NNUE

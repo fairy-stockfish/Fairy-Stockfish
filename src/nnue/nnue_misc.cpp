@@ -123,7 +123,7 @@ void format_cp_aligned_dot(Value v, char* buffer) {
 // trace() returns a string with the value of each piece on a board,
 // and a table for (PSQT, Layers) values bucket by bucket.
 
-std::string trace(Position& pos, const Network& network) {
+std::string trace(Position& pos, const Network& network, AccumulatorCaches& caches) {
 
     std::stringstream ss;
 
@@ -153,7 +153,7 @@ std::string trace(Position& pos, const Network& network) {
 
     // Unscaled evaluation of the network
     auto evaluate = [&]() {
-        auto [psqt, positional] = network.evaluate(pos, *accumulatorStack);
+        auto [psqt, positional] = network.evaluate(pos, *accumulatorStack, caches);
         return static_cast<Value>((psqt + positional) / OutputScale);
     };
 
@@ -190,7 +190,7 @@ std::string trace(Position& pos, const Network& network) {
     ss << '\n';
 
     accumulatorStack->reset();
-    auto t = network.trace_evaluate(pos, *accumulatorStack);
+    auto t = network.trace_evaluate(pos, *accumulatorStack, caches);
 
     ss << " NNUE network contributions "
        << (pos.side_to_move() == WHITE ? "(White to move)" : "(Black to move)") << std::endl

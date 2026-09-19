@@ -49,10 +49,11 @@ void update_accumulator_incremental(Color                     perspective,
                                     AccumulatorState&         target_state,
                                     const AccumulatorState&   computed);
 
-void update_accumulator_refresh(Color                     perspective,
-                                const FeatureTransformer& featureTransformer,
-                                const Position&           pos,
-                                AccumulatorState&         accumulatorState);
+void update_accumulator_refresh_cache(Color                     perspective,
+                                      const FeatureTransformer& featureTransformer,
+                                      const Position&           pos,
+                                      AccumulatorState&         accumulatorState,
+                                      AccumulatorCaches&        cache);
 
 }
 
@@ -79,14 +80,16 @@ void AccumulatorStack::pop() noexcept {
 }
 
 void AccumulatorStack::evaluate(const Position&           pos,
-                                const FeatureTransformer& featureTransformer) noexcept {
-    evaluate_side(WHITE, pos, featureTransformer);
-    evaluate_side(BLACK, pos, featureTransformer);
+                                const FeatureTransformer& featureTransformer,
+                                AccumulatorCaches&        cache) noexcept {
+    evaluate_side(WHITE, pos, featureTransformer, cache);
+    evaluate_side(BLACK, pos, featureTransformer, cache);
 }
 
 void AccumulatorStack::evaluate_side(Color                     perspective,
                                      const Position&           pos,
-                                     const FeatureTransformer& featureTransformer) noexcept {
+                                     const FeatureTransformer& featureTransformer,
+                                     AccumulatorCaches&        cache) noexcept {
 
     const auto last_usable_accum = find_last_usable_accumulator(perspective, pos);
 
@@ -95,7 +98,7 @@ void AccumulatorStack::evaluate_side(Color                     perspective,
 
     else
     {
-        update_accumulator_refresh(perspective, featureTransformer, pos, mut_latest());
+        update_accumulator_refresh_cache(perspective, featureTransformer, pos, mut_latest(), cache);
         backward_update_incremental(perspective, pos, featureTransformer, last_usable_accum);
     }
 }
@@ -154,25 +157,15 @@ void AccumulatorStack::backward_update_incremental(Color                     per
 
 namespace {
 
-void update_accumulator_incremental(Color                     perspective,
-                                    IncUpdateDirection        direction,
-                                    const FeatureTransformer& featureTransformer,
-                                    const Square              ksq,
-                                    const Position&           pos,
-                                    AccumulatorState&         target_state,
-                                    const AccumulatorState&   computed) {
-
-    assert(computed.computed[perspective]);
-    assert(!target_state.computed[perspective]);
-
-    // The board changes of the move between both states are stored in the later one
-    FeatureSet::IndexList removed, added;
-    if (direction == FORWARD)
-        FeatureSet::append_changed_indices(ksq, target_state.dirtyPiece, perspective, removed,
-                                           added, pos);
-    else
-        FeatureSet::append_changed_indices(ksq, computed.dirtyPiece, perspective, added, removed,
-                                           pos);
+// Applies the removed and added features to an accumulation. The
+// input and the output accumulation may be the same.
+void apply_feature_updates(const FeatureTransformer&    featureTransformer,
+                           const FeatureSet::IndexList& removed,
+                           const FeatureSet::IndexList& added,
+                           const BiasType*              accIn,
+                           const PSQTWeightType*        psqtIn,
+                           BiasType*                    accOut,
+                           PSQTWeightType*              psqtOut) {
 
     constexpr IndexType HalfDimensions = FeatureTransformer::HalfDimensions;
 
@@ -188,8 +181,7 @@ void update_accumulator_incremental(Color                     perspective,
     for (IndexType j = 0; j < HalfDimensions / TileHeight; ++j)
     {
         // Load accumulator
-        auto accTileIn =
-          reinterpret_cast<const vec_t*>(&computed.accumulation[perspective][j * TileHeight]);
+        auto accTileIn = reinterpret_cast<const vec_t*>(&accIn[j * TileHeight]);
         for (IndexType k = 0; k < NumRegs; ++k)
             acc[k] = vec_load(&accTileIn[k]);
 
@@ -212,8 +204,7 @@ void update_accumulator_incremental(Color                     perspective,
         }
 
         // Store accumulator
-        auto accTileOut =
-          reinterpret_cast<vec_t*>(&target_state.accumulation[perspective][j * TileHeight]);
+        auto accTileOut = reinterpret_cast<vec_t*>(&accOut[j * TileHeight]);
         for (IndexType k = 0; k < NumRegs; ++k)
             vec_store(&accTileOut[k], acc[k]);
     }
@@ -221,8 +212,7 @@ void update_accumulator_incremental(Color                     perspective,
     for (IndexType j = 0; j < PSQTBuckets / PsqtTileHeight; ++j)
     {
         // Load accumulator
-        auto accTilePsqtIn = reinterpret_cast<const psqt_vec_t*>(
-          &computed.psqtAccumulation[perspective][j * PsqtTileHeight]);
+        auto accTilePsqtIn = reinterpret_cast<const psqt_vec_t*>(&psqtIn[j * PsqtTileHeight]);
         for (std::size_t k = 0; k < NumPsqtRegs; ++k)
             psqt[k] = vec_load_psqt(&accTilePsqtIn[k]);
 
@@ -247,18 +237,17 @@ void update_accumulator_incremental(Color                     perspective,
         }
 
         // Store accumulator
-        auto accTilePsqtOut = reinterpret_cast<psqt_vec_t*>(
-          &target_state.psqtAccumulation[perspective][j * PsqtTileHeight]);
+        auto accTilePsqtOut = reinterpret_cast<psqt_vec_t*>(&psqtOut[j * PsqtTileHeight]);
         for (std::size_t k = 0; k < NumPsqtRegs; ++k)
             vec_store_psqt(&accTilePsqtOut[k], psqt[k]);
     }
 
 #else
-    std::memcpy(target_state.accumulation[perspective], computed.accumulation[perspective],
-                HalfDimensions * sizeof(BiasType));
+    if (accOut != accIn)
+        std::memcpy(accOut, accIn, HalfDimensions * sizeof(BiasType));
 
     for (std::size_t k = 0; k < PSQTBuckets; ++k)
-        target_state.psqtAccumulation[perspective][k] = computed.psqtAccumulation[perspective][k];
+        psqtOut[k] = psqtIn[k];
 
     // Difference calculation for the deactivated features
     for (const auto index : removed)
@@ -266,11 +255,10 @@ void update_accumulator_incremental(Color                     perspective,
         const IndexType offset = HalfDimensions * index;
 
         for (IndexType j = 0; j < HalfDimensions; ++j)
-            target_state.accumulation[perspective][j] -= featureTransformer.weights[offset + j];
+            accOut[j] -= featureTransformer.weights[offset + j];
 
         for (std::size_t k = 0; k < PSQTBuckets; ++k)
-            target_state.psqtAccumulation[perspective][k] -=
-              featureTransformer.psqtWeights[index * PSQTBuckets + k];
+            psqtOut[k] -= featureTransformer.psqtWeights[index * PSQTBuckets + k];
     }
 
     // Difference calculation for the activated features
@@ -279,104 +267,67 @@ void update_accumulator_incremental(Color                     perspective,
         const IndexType offset = HalfDimensions * index;
 
         for (IndexType j = 0; j < HalfDimensions; ++j)
-            target_state.accumulation[perspective][j] += featureTransformer.weights[offset + j];
+            accOut[j] += featureTransformer.weights[offset + j];
 
         for (std::size_t k = 0; k < PSQTBuckets; ++k)
-            target_state.psqtAccumulation[perspective][k] +=
-              featureTransformer.psqtWeights[index * PSQTBuckets + k];
+            psqtOut[k] += featureTransformer.psqtWeights[index * PSQTBuckets + k];
     }
 #endif
 
 #if defined(USE_MMX)
     _mm_empty();
 #endif
+}
+
+
+void update_accumulator_incremental(Color                     perspective,
+                                    IncUpdateDirection        direction,
+                                    const FeatureTransformer& featureTransformer,
+                                    const Square              ksq,
+                                    const Position&           pos,
+                                    AccumulatorState&         target_state,
+                                    const AccumulatorState&   computed) {
+
+    assert(computed.computed[perspective]);
+    assert(!target_state.computed[perspective]);
+
+    // The board changes of the move between both states are stored in the later one
+    FeatureSet::IndexList removed, added;
+    if (direction == FORWARD)
+        FeatureSet::append_changed_indices(ksq, target_state.dirtyPiece, perspective, removed,
+                                           added, pos);
+    else
+        FeatureSet::append_changed_indices(ksq, computed.dirtyPiece, perspective, added, removed,
+                                           pos);
+
+    apply_feature_updates(featureTransformer, removed, added, computed.accumulation[perspective],
+                          computed.psqtAccumulation[perspective],
+                          target_state.accumulation[perspective],
+                          target_state.psqtAccumulation[perspective]);
 
     target_state.computed[perspective] = true;
 }
 
-void update_accumulator_refresh(Color                     perspective,
-                                const FeatureTransformer& featureTransformer,
-                                const Position&           pos,
-                                AccumulatorState&         accumulatorState) {
+void update_accumulator_refresh_cache(Color                     perspective,
+                                      const FeatureTransformer& featureTransformer,
+                                      const Position&           pos,
+                                      AccumulatorState&         accumulatorState,
+                                      AccumulatorCaches&        cache) {
 
-    constexpr IndexType HalfDimensions = FeatureTransformer::HalfDimensions;
+    auto& entry = cache[pos.nnue_king_square(perspective)][perspective];
 
-    FeatureSet::IndexList active;
-    FeatureSet::append_active_indices(pos, perspective, active);
+    // Bring the cached accumulation of this king square up to date
+    FeatureSet::IndexList removed, added;
+    FeatureSet::append_changed_indices(pos, perspective, entry.pieceState, removed, added);
 
-#ifdef VECTOR
-    constexpr IndexType TileHeight     = FeatureTransformer::TileHeight;
-    constexpr IndexType PsqtTileHeight = FeatureTransformer::PsqtTileHeight;
+    if (removed.size() || added.size())
+        apply_feature_updates(featureTransformer, removed, added, entry.accumulation,
+                              entry.psqtAccumulation, entry.accumulation, entry.psqtAccumulation);
 
-    vec_t      acc[NumRegs];
-    psqt_vec_t psqt[NumPsqtRegs];
-
-    for (IndexType j = 0; j < HalfDimensions / TileHeight; ++j)
-    {
-        auto biasesTile =
-          reinterpret_cast<const vec_t*>(&featureTransformer.biases[j * TileHeight]);
-        for (IndexType k = 0; k < NumRegs; ++k)
-            acc[k] = biasesTile[k];
-
-        for (const auto index : active)
-        {
-            const IndexType offset = HalfDimensions * index + j * TileHeight;
-            auto column = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offset]);
-
-            for (unsigned k = 0; k < NumRegs; ++k)
-                acc[k] = vec_add_16(acc[k], column[k]);
-        }
-
-        auto accTile =
-          reinterpret_cast<vec_t*>(&accumulatorState.accumulation[perspective][j * TileHeight]);
-        for (unsigned k = 0; k < NumRegs; k++)
-            vec_store(&accTile[k], acc[k]);
-    }
-
-    for (IndexType j = 0; j < PSQTBuckets / PsqtTileHeight; ++j)
-    {
-        for (std::size_t k = 0; k < NumPsqtRegs; ++k)
-            psqt[k] = vec_zero_psqt();
-
-        for (const auto index : active)
-        {
-            const IndexType offset = PSQTBuckets * index + j * PsqtTileHeight;
-            auto            columnPsqt =
-              reinterpret_cast<const psqt_vec_t*>(&featureTransformer.psqtWeights[offset]);
-
-            for (std::size_t k = 0; k < NumPsqtRegs; ++k)
-                psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
-        }
-
-        auto accTilePsqt = reinterpret_cast<psqt_vec_t*>(
-          &accumulatorState.psqtAccumulation[perspective][j * PsqtTileHeight]);
-        for (std::size_t k = 0; k < NumPsqtRegs; ++k)
-            vec_store_psqt(&accTilePsqt[k], psqt[k]);
-    }
-
-#else
-    std::memcpy(accumulatorState.accumulation[perspective], featureTransformer.biases,
-                HalfDimensions * sizeof(BiasType));
-
-    for (std::size_t k = 0; k < PSQTBuckets; ++k)
-        accumulatorState.psqtAccumulation[perspective][k] = 0;
-
-    for (const auto index : active)
-    {
-        const IndexType offset = HalfDimensions * index;
-
-        for (IndexType j = 0; j < HalfDimensions; ++j)
-            accumulatorState.accumulation[perspective][j] += featureTransformer.weights[offset + j];
-
-        for (std::size_t k = 0; k < PSQTBuckets; ++k)
-            accumulatorState.psqtAccumulation[perspective][k] +=
-              featureTransformer.psqtWeights[index * PSQTBuckets + k];
-    }
-#endif
-
-#if defined(USE_MMX)
-    _mm_empty();
-#endif
+    std::memcpy(accumulatorState.accumulation[perspective], entry.accumulation,
+                sizeof(entry.accumulation));
+    std::memcpy(accumulatorState.psqtAccumulation[perspective], entry.psqtAccumulation,
+                sizeof(entry.psqtAccumulation));
 
     accumulatorState.computed[perspective] = true;
 }

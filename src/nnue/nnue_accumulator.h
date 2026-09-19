@@ -24,6 +24,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include "../types.h"
 #include "nnue_architecture.h"
@@ -42,6 +43,46 @@ struct alignas(CacheLineSize) Accumulator {
     std::int16_t accumulation[COLOR_NB][TransformedFeatureDimensions];
     std::int32_t psqtAccumulation[COLOR_NB][PSQTBuckets];
     bool         computed[COLOR_NB] = {};
+};
+
+// AccumulatorCaches struct provides per-thread accumulator caches, where each
+// cache contains multiple entries for each of the possible king squares.
+// When the accumulator needs to be refreshed, the cached entry is used to more
+// efficiently update the accumulator, instead of rebuilding it from scratch.
+// This idea, was first described by Luecx (author of Koivisto) and
+// is commonly referred to as "Finny Tables".
+struct AccumulatorCaches {
+
+    template<typename Network>
+    AccumulatorCaches(const Network& network) {
+        clear(network);
+    }
+
+    struct alignas(CacheLineSize) Entry {
+        BiasType               accumulation[TransformedFeatureDimensions];
+        PSQTWeightType         psqtAccumulation[PSQTBuckets];
+        FeatureSet::PieceState pieceState;
+
+        // To initialize a refresh entry, we set all its pieces empty,
+        // so we put the biases in the accumulation, without any weights on top
+        void clear(const BiasType* biases) {
+            std::memcpy(accumulation, biases, sizeof(accumulation));
+            std::memset(psqtAccumulation, 0, sizeof(psqtAccumulation));
+            std::memset(&pieceState, 0, sizeof(pieceState));
+        }
+    };
+
+    template<typename Network>
+    void clear(const Network& network) {
+        for (auto& entries1D : entries)
+            for (auto& entry : entries1D)
+                entry.clear(network.featureTransformer.biases);
+    }
+
+    // Variants without a king use the entry of the first square
+    std::array<Entry, COLOR_NB>& operator[](Square sq) { return entries[sq == SQ_NONE ? 0 : sq]; }
+
+    std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
 };
 
 // An accumulator together with the board changes of the move leading to it
@@ -63,14 +104,17 @@ class AccumulatorStack {
     DirtyPiece& push() noexcept;
     void        pop() noexcept;
 
-    void evaluate(const Position& pos, const FeatureTransformer& featureTransformer) noexcept;
+    void evaluate(const Position&           pos,
+                  const FeatureTransformer& featureTransformer,
+                  AccumulatorCaches&        cache) noexcept;
 
    private:
     [[nodiscard]] AccumulatorState& mut_latest() noexcept;
 
     void evaluate_side(Color                     perspective,
                        const Position&           pos,
-                       const FeatureTransformer& featureTransformer) noexcept;
+                       const FeatureTransformer& featureTransformer,
+                       AccumulatorCaches&        cache) noexcept;
 
     [[nodiscard]] std::size_t find_last_usable_accumulator(Color           perspective,
                                                            const Position& pos) const noexcept;

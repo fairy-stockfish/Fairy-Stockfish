@@ -133,7 +133,9 @@ std::size_t Network::bucket(const Position& pos) {
     return std::min((pos.count<ALL_PIECES>() - 1) * 8 / currentNnueVariant->nnueMaxPieces, 7);
 }
 
-NetworkOutput Network::evaluate(const Position& pos, AccumulatorStack& accumulatorStack) const {
+NetworkOutput Network::evaluate(const Position&    pos,
+                                AccumulatorStack&  accumulatorStack,
+                                AccumulatorCaches& cache) const {
     // We manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 
@@ -152,7 +154,8 @@ NetworkOutput Network::evaluate(const Position& pos, AccumulatorStack& accumulat
     ASSERT_ALIGNED(transformedFeatures, alignment);
 
     const std::size_t b = bucket(pos);
-    const auto psqt = featureTransformer.transform(pos, accumulatorStack, transformedFeatures, b);
+    const auto        psqt =
+      featureTransformer.transform(pos, accumulatorStack, cache, transformedFeatures, b);
     const auto positional = network[b].propagate(transformedFeatures);
 
     return {psqt, positional};
@@ -190,8 +193,9 @@ void Network::verify(std::string                                  evalfilePath,
         f("NNUE evaluation using " + evalFile.current + " enabled");
 }
 
-NnueEvalTrace Network::trace_evaluate(const Position&   pos,
-                                      AccumulatorStack& accumulatorStack) const {
+NnueEvalTrace Network::trace_evaluate(const Position&    pos,
+                                      AccumulatorStack&  accumulatorStack,
+                                      AccumulatorCaches& cache) const {
     // We manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 
@@ -214,7 +218,7 @@ NnueEvalTrace Network::trace_evaluate(const Position&   pos,
     for (std::size_t b = 0; b < LayerStacks; ++b)
     {
         const auto materialist =
-          featureTransformer.transform(pos, accumulatorStack, transformedFeatures, b);
+          featureTransformer.transform(pos, accumulatorStack, cache, transformedFeatures, b);
         const auto positional = network[b].propagate(transformedFeatures);
 
         t.psqt[b]       = static_cast<Value>(materialist / OutputScale);

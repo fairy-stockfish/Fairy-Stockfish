@@ -218,6 +218,7 @@ Search::Worker::Worker(SharedState&                    sharedState,
     numaTotal(numaTotalThreads),
     numaAccessToken(token),
     networks(sharedState.networks),
+    refreshTable(networks[token]),
     manager(std::move(sm)),
     options(sharedState.options),
     threads(sharedState.threads),
@@ -910,6 +911,8 @@ void Search::Worker::clear() {
 
     for (size_t i = 1; i < reductions.size(); ++i)
         reductions[i] = int(2872 / 128.0 * std::log(i));
+
+    refreshTable.clear(networks[numaAccessToken]);
 }
 
 
@@ -2145,7 +2148,7 @@ TimePoint Search::Worker::elapsed() const {
 // Evaluate the current position of the game tree, from the point of view of
 // the side to move.
 Value Search::Worker::evaluate(const Position& pos) {
-    return Eval::evaluate(networks[numaAccessToken], pos, accumulatorStack,
+    return Eval::evaluate(networks[numaAccessToken], pos, accumulatorStack, refreshTable,
                           optimism[pos.side_to_move()]);
 }
 

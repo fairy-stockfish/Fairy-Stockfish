@@ -62,6 +62,13 @@ class HalfKAv2Variants {
 
     using IndexList = ValueList<IndexType, MaxActiveDimensions>;
 
+    // The pieces on the board and in hand an accumulator was computed for
+    struct PieceState {
+        Piece        pieces[SQUARE_NB];
+        Bitboard     pieceBB;
+        std::int16_t handCount[COLOR_NB][PIECE_TYPE_NB];
+    };
+
     // Get a list of indices for active features
     static void append_active_indices(const Position& pos, Color perspective, IndexList& active);
 
@@ -72,6 +79,14 @@ class HalfKAv2Variants {
                                        IndexList&        removed,
                                        IndexList&        added,
                                        const Position&   pos);
+
+    // Get the lists of indices that differ between a piece state
+    // and the position, and update the piece state to the position
+    static void append_changed_indices(const Position& pos,
+                                       Color           perspective,
+                                       PieceState&     state,
+                                       IndexList&      removed,
+                                       IndexList&      added);
 
     // Returns whether the change stored in this DirtyPiece means
     // that a full accumulator refresh is required.

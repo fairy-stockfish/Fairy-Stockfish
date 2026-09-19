@@ -235,6 +235,9 @@ void Engine::load_networks() {
     networks.modify_and_replicate(
       [&](Eval::NNUE::Network& network) { network.load(CommandLine::binaryDirectory, eval_file); });
     threads.ensure_network_replicated();
+
+    // The accumulator caches of the workers depend on the network
+    threads.clear();
 }
 
 void Engine::save_network(const std::optional<std::string>& filename) { networks->save(filename); }

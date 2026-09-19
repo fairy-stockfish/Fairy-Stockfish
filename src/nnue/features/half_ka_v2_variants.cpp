@@ -103,6 +103,48 @@ void HalfKAv2Variants::append_changed_indices(Square            ksq,
     }
 }
 
+// Get the lists of indices that differ between a piece state
+// and the position, and update the piece state to the position
+void HalfKAv2Variants::append_changed_indices(
+  const Position& pos, Color perspective, PieceState& state, IndexList& removed, IndexList& added) {
+    Square   oriented_ksq = orient(perspective, pos.nnue_king_square(perspective), pos);
+    Bitboard occupied     = pos.pieces(WHITE) | pos.pieces(BLACK);
+
+    for (Bitboard bb = state.pieceBB | occupied; bb;)
+    {
+        Square s      = pop_lsb(bb);
+        Piece  before = state.pieces[s];
+        Piece  after  = pos.piece_on(s);
+        if (before == after)
+            continue;
+
+        if (before != NO_PIECE)
+            removed.push_back(make_index(perspective, s, before, oriented_ksq, pos));
+        if (after != NO_PIECE)
+            added.push_back(make_index(perspective, s, after, oriented_ksq, pos));
+        state.pieces[s] = after;
+    }
+    state.pieceBB = occupied;
+
+    // Indices for pieces in hand
+    if (pos.nnue_use_pockets())
+        for (Color c : {WHITE, BLACK})
+            for (PieceSet ps = pos.piece_types(); ps;)
+            {
+                PieceType pt     = pop_lsb(ps);
+                int       before = state.handCount[c][pt];
+                int       after  = std::max(pos.count_in_hand(c, pt), 0);
+
+                for (int i = after; i < before; i++)
+                    removed.push_back(
+                      make_index(perspective, i, make_piece(c, pt), oriented_ksq, pos));
+                for (int i = before; i < after; i++)
+                    added.push_back(
+                      make_index(perspective, i, make_piece(c, pt), oriented_ksq, pos));
+                state.handCount[c][pt] = std::int16_t(after);
+            }
+}
+
 bool HalfKAv2Variants::requires_refresh(const DirtyPiece& dp,
                                         Color             perspective,
                                         const Position&   pos) {

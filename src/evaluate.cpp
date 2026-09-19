@@ -1567,17 +1567,25 @@ Value Eval::simple_eval(const Position& pos, Color c) {
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
-Value Eval::evaluate(const NNUE::Network&    network,
-                     const Position&         pos,
-                     NNUE::AccumulatorStack& accumulators,
-                     int                     optimism) {
+// Returns whether the position can be evaluated with the loaded network.
+// The network only matches positions of the variant it was loaded for, which
+// may differ if the variant was changed without setting up a new position.
+static bool use_nnue(const Position& pos) {
+    return Eval::useNNUE && pos.variant() == currentNnueVariant && pos.nnue_applicable();
+}
+
+Value Eval::evaluate(const NNUE::Network&     network,
+                     const Position&          pos,
+                     NNUE::AccumulatorStack&  accumulators,
+                     NNUE::AccumulatorCaches& caches,
+                     int                      optimism) {
 
     assert(!pos.checkers());
 
     Value v;
 
     // Check counting variants switch to the classical eval in case of a PSQ imbalance
-    if (!useNNUE || !pos.nnue_applicable()
+    if (!use_nnue(pos)
         || (pos.check_counting()
             && std::abs(eg_value(pos.psq_score())) * 5
                  > (750 + pos.non_pawn_material() / 64) * (5 + pos.rule50_count())))
@@ -1586,7 +1594,7 @@ Value Eval::evaluate(const NNUE::Network&    network,
     {
         int simpleEval = simple_eval(pos, pos.side_to_move());
 
-        auto [psqt, positional] = network.evaluate(pos, accumulators);
+        auto [psqt, positional] = network.evaluate(pos, accumulators, caches);
 
         // Give more value to the positional evaluation
         int   delta          = 24 - pos.non_pawn_material() / 9560;
@@ -1674,27 +1682,28 @@ std::string Eval::trace(Position& pos, const NNUE::Network& network) {
        << "|      Total | " << Term(TOTAL)
        << "+------------+-------------+-------------+-------------+\n";
 
-    if (Eval::useNNUE && pos.nnue_applicable())
-        ss << '\n' << NNUE::trace(pos, network) << '\n';
+    auto accumulators = std::make_unique<NNUE::AccumulatorStack>();
+    auto caches       = std::make_unique<NNUE::AccumulatorCaches>(network);
+
+    if (use_nnue(pos))
+        ss << '\n' << NNUE::trace(pos, network, *caches) << '\n';
 
     ss << std::showpoint << std::showpos << std::fixed << std::setprecision(2) << std::setw(15);
 
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "\nClassical evaluation   " << to_cp(v) << " (white side)\n";
-    auto accumulators = std::make_unique<NNUE::AccumulatorStack>();
-
-    if (Eval::useNNUE && pos.nnue_applicable())
+    if (use_nnue(pos))
     {
-        auto [psqt, positional] = network.evaluate(pos, *accumulators);
+        auto [psqt, positional] = network.evaluate(pos, *accumulators, *caches);
         v                       = static_cast<Value>((psqt + positional) / NNUE::OutputScale);
         v                       = pos.side_to_move() == WHITE ? v : -v;
         ss << "NNUE evaluation        " << to_cp(v) << " (white side)\n";
     }
 
-    v = evaluate(network, pos, *accumulators, VALUE_ZERO);
+    v = evaluate(network, pos, *accumulators, *caches, VALUE_ZERO);
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "Final evaluation       " << to_cp(v) << " (white side)";
-    if (Eval::useNNUE && pos.nnue_applicable())
+    if (use_nnue(pos))
         ss << " [with scaled NNUE, ...]";
     ss << "\n";
 

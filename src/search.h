@@ -398,6 +398,7 @@ class Worker {
     // Used by NNUE
     const LazyNumaReplicated<Eval::NNUE::Network>& networks;
     Eval::NNUE::AccumulatorStack                   accumulatorStack;
+    Eval::NNUE::AccumulatorCaches                  refreshTable;
 
     // Reductions lookup table initialized at startup
     std::array<int, MAX_MOVES> reductions;  // [depth or moveNumber]

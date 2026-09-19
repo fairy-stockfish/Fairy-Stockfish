@@ -119,12 +119,13 @@ class FeatureTransformer {
     }
 
     // Convert input features
-    std::int32_t transform(const Position&   pos,
-                           AccumulatorStack& accumulatorStack,
-                           OutputType*       output,
-                           int               bucket) const {
+    std::int32_t transform(const Position&    pos,
+                           AccumulatorStack&  accumulatorStack,
+                           AccumulatorCaches& cache,
+                           OutputType*        output,
+                           int                bucket) const {
 
-        accumulatorStack.evaluate(pos, *this);
+        accumulatorStack.evaluate(pos, *this, cache);
 
         const Color perspectives[2]  = {pos.side_to_move(), ~pos.side_to_move()};
         const auto& accumulation     = accumulatorStack.latest().accumulation;

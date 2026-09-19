@@ -33,6 +33,7 @@ class Position;
 namespace Eval::NNUE {
 class AccumulatorStack;
 class Network;
+struct AccumulatorCaches;
 }
 
 namespace UCI {
@@ -44,10 +45,11 @@ namespace Eval {
 
 std::string trace(Position& pos, const NNUE::Network& network);
 Value       simple_eval(const Position& pos, Color c);
-Value       evaluate(const NNUE::Network&    network,
-                     const Position&         pos,
-                     NNUE::AccumulatorStack& accumulators,
-                     int                     optimism);
+Value       evaluate(const NNUE::Network&     network,
+                     const Position&          pos,
+                     NNUE::AccumulatorStack&  accumulators,
+                     NNUE::AccumulatorCaches& caches,
+                     int                      optimism);
 
 extern bool useNNUE;
 
