@@ -20,7 +20,9 @@
 
 #include <cassert>
 #include <limits>
+#include <memory>
 #include <utility>
+#include <vector>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -147,8 +149,28 @@ void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
         }
 }
 
+// Per-thread LIFO pool of move buffers. MovePicker instances have strictly
+// nested lifetimes within a search thread, so buffers can be handed out and
+// returned stack-wise. This keeps the large MAX_MOVES array off the machine
+// stack, whose 8MB limit deep searches can otherwise exceed (see issue #957).
+thread_local std::vector<std::unique_ptr<ExtMove[]>> moveBuffers;
+thread_local size_t                                  usedMoveBuffers = 0;
+
+ExtMove* acquire_move_buffer() {
+    if (usedMoveBuffers == moveBuffers.size())
+        moveBuffers.emplace_back(new ExtMove[MAX_MOVES]);
+    return moveBuffers[usedMoveBuffers++].get();
+}
+
+void release_move_buffer() {
+    assert(usedMoveBuffers > 0);
+    --usedMoveBuffers;
+}
+
 }  // namespace
 
+
+MovePicker::~MovePicker() { release_move_buffer(); }
 
 // Constructors of the MovePicker class. As arguments, we pass information
 // to decide which class of moves to emit, to help sorting the (presumably)
@@ -174,7 +196,8 @@ MovePicker::MovePicker(const Position&              p,
     sharedHistory(sh),
     ttMove(ttm),
     depth(d),
-    ply(pl) {
+    ply(pl),
+    moves(acquire_move_buffer()) {
 
     if (pos.checkers())
         stage = EVASION_TT + !(ttm && pos.pseudo_legal(ttm));
@@ -191,7 +214,8 @@ MovePicker::MovePicker(
     gateHistory(dh),
     captureHistory(cph),
     ttMove(ttm),
-    threshold(th) {
+    threshold(th),
+    moves(acquire_move_buffer()) {
 
     assert(!pos.checkers());
 

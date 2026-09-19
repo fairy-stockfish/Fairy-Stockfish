@@ -659,11 +659,7 @@ ifeq ($(COMP),gcc)
 		profile_make = clang-profile-make
 		profile_use = clang-profile-use
 	else
-		CXXFLAGS += -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
-		# The limit of upstream does not fit the move lists of builds with all variants
-		ifneq ($(all),yes)
-			CXXFLAGS += -Wstack-usage=128000
-		endif
+		CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
 	endif
 endif
 
