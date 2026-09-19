@@ -40,6 +40,7 @@
     #include <cctype>
     #include <cstddef>
     #include <cstdint>
+    #include <type_traits>
     #include <cstdlib>
     #include <algorithm>
 
@@ -1278,6 +1279,14 @@ constexpr Move make_gating(Square from, Square to, PieceType pt, Square gate) {
 }
 
 constexpr Move reverse_move(Move m) { return Move(m.to_sq(), m.from_sq()); }
+
+template<typename T, typename... Ts>
+struct is_all_same {
+    static constexpr bool value = (std::is_same_v<T, Ts> && ...);
+};
+
+template<typename... Ts>
+constexpr auto is_all_same_v = is_all_same<Ts...>::value;
 
 }  // namespace Stockfish
 

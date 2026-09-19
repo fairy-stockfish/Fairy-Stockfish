@@ -141,23 +141,19 @@ NetworkOutput Network::evaluate(const Position& pos, AccumulatorStack& accumulat
 
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType
-         transformedFeaturesUnaligned[FeatureTransformer::BufferSize
+      transformedFeaturesUnaligned[FeatureTransformer::BufferSize
                                    + alignment / sizeof(TransformedFeatureType)];
-    char bufferUnaligned[NetworkArchitecture::BufferSize + alignment];
 
     auto* transformedFeatures = align_ptr_up<alignment>(&transformedFeaturesUnaligned[0]);
-    auto* buffer              = align_ptr_up<alignment>(&bufferUnaligned[0]);
 #else
     alignas(alignment) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
-    alignas(alignment) char                   buffer[NetworkArchitecture::BufferSize];
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, alignment);
-    ASSERT_ALIGNED(buffer, alignment);
 
     const std::size_t b = bucket(pos);
     const auto psqt = featureTransformer.transform(pos, accumulatorStack, transformedFeatures, b);
-    const auto positional = network[b].propagate(transformedFeatures, buffer)[0];
+    const auto positional = network[b].propagate(transformedFeatures);
 
     return {psqt, positional};
 }
@@ -203,19 +199,15 @@ NnueEvalTrace Network::trace_evaluate(const Position&   pos,
 
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType
-         transformedFeaturesUnaligned[FeatureTransformer::BufferSize
+      transformedFeaturesUnaligned[FeatureTransformer::BufferSize
                                    + alignment / sizeof(TransformedFeatureType)];
-    char bufferUnaligned[NetworkArchitecture::BufferSize + alignment];
 
     auto* transformedFeatures = align_ptr_up<alignment>(&transformedFeaturesUnaligned[0]);
-    auto* buffer              = align_ptr_up<alignment>(&bufferUnaligned[0]);
 #else
     alignas(alignment) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
-    alignas(alignment) char                   buffer[NetworkArchitecture::BufferSize];
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, alignment);
-    ASSERT_ALIGNED(buffer, alignment);
 
     NnueEvalTrace t{};
     t.correctBucket = bucket(pos);
@@ -223,7 +215,7 @@ NnueEvalTrace Network::trace_evaluate(const Position&   pos,
     {
         const auto materialist =
           featureTransformer.transform(pos, accumulatorStack, transformedFeatures, b);
-        const auto positional = network[b].propagate(transformedFeatures, buffer)[0];
+        const auto positional = network[b].propagate(transformedFeatures);
 
         t.psqt[b]       = static_cast<Value>(materialist / OutputScale);
         t.positional[b] = static_cast<Value>(positional / OutputScale);

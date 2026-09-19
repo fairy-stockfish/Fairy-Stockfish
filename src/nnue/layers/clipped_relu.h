@@ -21,90 +21,87 @@
 #ifndef NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
 #define NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
 
+#include <algorithm>
+#include <cstdint>
+#include <iosfwd>
+
 #include "../nnue_common.h"
 
 namespace Stockfish::Eval::NNUE::Layers {
 
 // Clipped ReLU
-template<typename PreviousLayer>
+template<IndexType InDims>
 class ClippedReLU {
    public:
     // Input/output type
-    using InputType  = typename PreviousLayer::OutputType;
+    using InputType  = std::int32_t;
     using OutputType = std::uint8_t;
-    static_assert(std::is_same<InputType, std::int32_t>::value, "");
 
     // Number of input/output dimensions
-    static constexpr IndexType InputDimensions  = PreviousLayer::OutputDimensions;
+    static constexpr IndexType InputDimensions  = InDims;
     static constexpr IndexType OutputDimensions = InputDimensions;
+    static constexpr IndexType PaddedOutputDimensions =
+      ceil_to_multiple<IndexType>(OutputDimensions, 32);
 
-    // Size of forward propagation buffer used in this layer
-    static constexpr std::size_t SelfBufferSize =
-      ceil_to_multiple(OutputDimensions * sizeof(OutputType), CacheLineSize);
-
-    // Size of the forward propagation buffer used from the input layer to this layer
-    static constexpr std::size_t BufferSize = PreviousLayer::BufferSize + SelfBufferSize;
+    using OutputBuffer = OutputType[PaddedOutputDimensions];
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t get_hash_value() {
+    static constexpr std::uint32_t get_hash_value(std::uint32_t prevHash) {
         std::uint32_t hashValue = 0x538D24C7u;
-        hashValue += PreviousLayer::get_hash_value();
+        hashValue += prevHash;
         return hashValue;
     }
 
     // Read network parameters
-    bool read_parameters(std::istream& stream) { return previousLayer.read_parameters(stream); }
+    bool read_parameters(std::istream&) { return true; }
 
     // Write network parameters
-    bool write_parameters(std::ostream& stream) const {
-        return previousLayer.write_parameters(stream);
+    bool write_parameters(std::ostream&) const { return true; }
+
+    std::size_t get_content_hash() const {
+        std::size_t h = 0;
+        hash_combine(h, get_hash_value(0));
+        return h;
     }
 
     // Forward propagation
-    const OutputType* propagate(const TransformedFeatureType* transformedFeatures,
-                                char*                         buffer) const {
-        const auto input  = previousLayer.propagate(transformedFeatures, buffer + SelfBufferSize);
-        const auto output = reinterpret_cast<OutputType*>(buffer);
+    void propagate(const InputType* input, OutputType* output) const {
 
 #if defined(USE_AVX2)
         if constexpr (InputDimensions % SimdWidth == 0)
         {
             constexpr IndexType NumChunks = InputDimensions / SimdWidth;
-            const __m256i       Zero      = _mm256_setzero_si256();
             const __m256i       Offsets   = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
             const auto          in        = reinterpret_cast<const __m256i*>(input);
             const auto          out       = reinterpret_cast<__m256i*>(output);
             for (IndexType i = 0; i < NumChunks; ++i)
             {
                 const __m256i words0 =
-                  _mm256_srai_epi16(_mm256_packs_epi32(_mm256_load_si256(&in[i * 4 + 0]),
-                                                       _mm256_load_si256(&in[i * 4 + 1])),
+                  _mm256_srli_epi16(_mm256_packus_epi32(_mm256_load_si256(&in[i * 4 + 0]),
+                                                        _mm256_load_si256(&in[i * 4 + 1])),
                                     WeightScaleBits);
                 const __m256i words1 =
-                  _mm256_srai_epi16(_mm256_packs_epi32(_mm256_load_si256(&in[i * 4 + 2]),
-                                                       _mm256_load_si256(&in[i * 4 + 3])),
+                  _mm256_srli_epi16(_mm256_packus_epi32(_mm256_load_si256(&in[i * 4 + 2]),
+                                                        _mm256_load_si256(&in[i * 4 + 3])),
                                     WeightScaleBits);
-                _mm256_store_si256(
-                  &out[i], _mm256_permutevar8x32_epi32(
-                             _mm256_max_epi8(_mm256_packs_epi16(words0, words1), Zero), Offsets));
+                _mm256_store_si256(&out[i], _mm256_permutevar8x32_epi32(
+                                              _mm256_packs_epi16(words0, words1), Offsets));
             }
         }
         else
         {
             constexpr IndexType NumChunks = InputDimensions / (SimdWidth / 2);
-            const __m128i       Zero      = _mm_setzero_si128();
             const auto          in        = reinterpret_cast<const __m128i*>(input);
             const auto          out       = reinterpret_cast<__m128i*>(output);
             for (IndexType i = 0; i < NumChunks; ++i)
             {
-                const __m128i words0 = _mm_srai_epi16(
-                  _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1])),
+                const __m128i words0 = _mm_srli_epi16(
+                  _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1])),
                   WeightScaleBits);
-                const __m128i words1 = _mm_srai_epi16(
-                  _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])),
+                const __m128i words1 = _mm_srli_epi16(
+                  _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])),
                   WeightScaleBits);
-                const __m128i packedbytes = _mm_packs_epi16(words0, words1);
-                _mm_store_si128(&out[i], _mm_max_epi8(packedbytes, Zero));
+                _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
             }
         }
         constexpr IndexType Start = InputDimensions % SimdWidth == 0
@@ -114,9 +111,7 @@ class ClippedReLU {
 #elif defined(USE_SSE2)
         constexpr IndexType NumChunks = InputDimensions / SimdWidth;
 
-    #ifdef USE_SSE41
-        const __m128i Zero = _mm_setzero_si128();
-    #else
+    #ifndef USE_SSE41
         const __m128i k0x80s = _mm_set1_epi8(-128);
     #endif
 
@@ -124,6 +119,15 @@ class ClippedReLU {
         const auto out = reinterpret_cast<__m128i*>(output);
         for (IndexType i = 0; i < NumChunks; ++i)
         {
+    #if defined(USE_SSE41)
+            const __m128i words0 = _mm_srli_epi16(
+              _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1])),
+              WeightScaleBits);
+            const __m128i words1 = _mm_srli_epi16(
+              _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])),
+              WeightScaleBits);
+            _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
+    #else
             const __m128i words0 = _mm_srai_epi16(
               _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1])),
               WeightScaleBits);
@@ -131,40 +135,16 @@ class ClippedReLU {
               _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])),
               WeightScaleBits);
             const __m128i packedbytes = _mm_packs_epi16(words0, words1);
-            _mm_store_si128(&out[i],
-
-    #ifdef USE_SSE41
-                            _mm_max_epi8(packedbytes, Zero)
-    #else
-                            _mm_subs_epi8(_mm_adds_epi8(packedbytes, k0x80s), k0x80s)
+            _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packedbytes, k0x80s), k0x80s));
     #endif
-
-            );
         }
-        constexpr IndexType Start = NumChunks * SimdWidth;
-
-#elif defined(USE_MMX)
-        constexpr IndexType NumChunks = InputDimensions / SimdWidth;
-        const __m64         k0x80s    = _mm_set1_pi8(-128);
-        const auto          in        = reinterpret_cast<const __m64*>(input);
-        const auto          out       = reinterpret_cast<__m64*>(output);
-        for (IndexType i = 0; i < NumChunks; ++i)
-        {
-            const __m64 words0 =
-              _mm_srai_pi16(_mm_packs_pi32(in[i * 4 + 0], in[i * 4 + 1]), WeightScaleBits);
-            const __m64 words1 =
-              _mm_srai_pi16(_mm_packs_pi32(in[i * 4 + 2], in[i * 4 + 3]), WeightScaleBits);
-            const __m64 packedbytes = _mm_packs_pi16(words0, words1);
-            out[i]                  = _mm_subs_pi8(_mm_adds_pi8(packedbytes, k0x80s), k0x80s);
-        }
-        _mm_empty();
         constexpr IndexType Start = NumChunks * SimdWidth;
 
 #elif defined(USE_NEON)
-        constexpr IndexType    NumChunks = InputDimensions / (SimdWidth / 2);
-        const SIMD::vec_i8x8_t Zero      = {0};
-        const auto             in        = reinterpret_cast<const SIMD::vec_i32x4_t*>(input);
-        const auto             out       = reinterpret_cast<SIMD::vec_i8x8_t*>(output);
+        constexpr IndexType NumChunks = InputDimensions / (SimdWidth / 2);
+        const int8x8_t      Zero      = {0};
+        const auto          in        = reinterpret_cast<const int32x4_t*>(input);
+        const auto          out       = reinterpret_cast<int8x8_t*>(output);
         for (IndexType i = 0; i < NumChunks; ++i)
         {
             int16x8_t  shifted;
@@ -180,14 +160,9 @@ class ClippedReLU {
 
         for (IndexType i = Start; i < InputDimensions; ++i)
         {
-            output[i] =
-              static_cast<OutputType>(std::max(0, std::min(127, input[i] >> WeightScaleBits)));
+            output[i] = static_cast<OutputType>(std::clamp(input[i] >> WeightScaleBits, 0, 127));
         }
-        return output;
     }
-
-   private:
-    PreviousLayer previousLayer;
 };
 
 }  // namespace Stockfish::Eval::NNUE::Layers

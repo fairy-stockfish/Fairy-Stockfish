@@ -77,8 +77,8 @@ SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp engine.cpp evaluate.cp
 HEADERS = apiutil.h benchmark.h bitboard.h endgame.h engine.h evaluate.h history.h material.h misc.h movegen.h movepick.h \
 		nnue/network.h nnue/nnue_misc.h nnue/features/half_ka_v2_variants.h \
 		nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
-		nnue/layers/clipped_relu.h nnue/layers/input_slice.h nnue/layers/simd.h \
-		nnue/layers/sqr_clipped_relu.h nnue/nnue_accumulator.h nnue/nnue_architecture.h \
+		nnue/layers/clipped_relu.h nnue/simd.h \
+		nnue/nnue_accumulator.h nnue/nnue_architecture.h \
 		nnue/nnue_common.h nnue/nnue_feature_transformer.h parser.h partner.h pawns.h perft.h piece.h \
 		position.h psqt.h search.h syzygy/tbprobe.h thread.h thread_native.h timeman.h \
 		tt.h tune.h types.h uci.h variant.h xboard.h numa.h memory.h

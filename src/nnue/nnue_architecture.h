@@ -25,9 +25,11 @@
 
 #include "features/half_ka_v2_variants.h"
 
-#include "layers/input_slice.h"
 #include "layers/affine_transform.h"
+#include "layers/affine_transform_sparse_input.h"
 #include "layers/clipped_relu.h"
+
+#include <cstring>
 
 namespace Stockfish::Eval::NNUE {
 
@@ -39,21 +41,77 @@ constexpr IndexType TransformedFeatureDimensions = 512;
 constexpr IndexType PSQTBuckets                  = 8;
 constexpr IndexType LayerStacks                  = 8;
 
-namespace Layers {
+// The architecture of the variant networks: 512x2-16-32-1
+struct NetworkArchitecture {
+    static constexpr int FC_0_OUTPUTS = 16;
+    static constexpr int FC_1_OUTPUTS = 32;
 
-// Define network structure
-using InputLayer   = InputSlice<TransformedFeatureDimensions * 2>;
-using HiddenLayer1 = ClippedReLU<AffineTransform<InputLayer, 16>>;
-using HiddenLayer2 = ClippedReLU<AffineTransform<HiddenLayer1, 32>>;
-using OutputLayer  = AffineTransform<HiddenLayer2, 1>;
+    Layers::AffineTransformSparseInput<TransformedFeatureDimensions * 2, FC_0_OUTPUTS> fc_0;
+    Layers::ClippedReLU<FC_0_OUTPUTS>                                                  ac_0;
+    Layers::AffineTransform<FC_0_OUTPUTS, FC_1_OUTPUTS>                                fc_1;
+    Layers::ClippedReLU<FC_1_OUTPUTS>                                                  ac_1;
+    Layers::AffineTransform<FC_1_OUTPUTS, 1>                                           fc_2;
 
-}  // namespace Layers
+    // Hash value embedded in the evaluation file
+    static constexpr std::uint32_t get_hash_value() {
+        // input slice hash
+        std::uint32_t hashValue = 0xEC42E90Du;
+        hashValue ^= TransformedFeatureDimensions * 2;
 
-using NetworkArchitecture = Layers::OutputLayer;
+        hashValue = decltype(fc_0)::get_hash_value(hashValue);
+        hashValue = decltype(ac_0)::get_hash_value(hashValue);
+        hashValue = decltype(fc_1)::get_hash_value(hashValue);
+        hashValue = decltype(ac_1)::get_hash_value(hashValue);
+        hashValue = decltype(fc_2)::get_hash_value(hashValue);
+
+        return hashValue;
+    }
+
+    // Read network parameters
+    bool read_parameters(std::istream& stream) {
+        return fc_0.read_parameters(stream) && ac_0.read_parameters(stream)
+            && fc_1.read_parameters(stream) && ac_1.read_parameters(stream)
+            && fc_2.read_parameters(stream);
+    }
+
+    // Write network parameters
+    bool write_parameters(std::ostream& stream) const {
+        return fc_0.write_parameters(stream) && ac_0.write_parameters(stream)
+            && fc_1.write_parameters(stream) && ac_1.write_parameters(stream)
+            && fc_2.write_parameters(stream);
+    }
+
+    std::int32_t propagate(const TransformedFeatureType* transformedFeatures) const {
+        struct alignas(CacheLineSize) Buffer {
+            alignas(CacheLineSize) typename decltype(fc_0)::OutputBuffer fc_0_out;
+            alignas(CacheLineSize) typename decltype(ac_0)::OutputBuffer ac_0_out;
+            alignas(CacheLineSize) typename decltype(fc_1)::OutputBuffer fc_1_out;
+            alignas(CacheLineSize) typename decltype(ac_1)::OutputBuffer ac_1_out;
+            alignas(CacheLineSize) typename decltype(fc_2)::OutputBuffer fc_2_out;
+
+            Buffer() { std::memset(this, 0, sizeof(*this)); }
+        };
+
+#if defined(__clang__) && (__APPLE__)
+        // workaround for a bug reported with xcode 12
+        static thread_local auto tlsBuffer = std::make_unique<Buffer>();
+        // Access TLS only once, cache result.
+        Buffer& buffer = *tlsBuffer;
+#else
+        alignas(CacheLineSize) static thread_local Buffer buffer;
+#endif
+
+        fc_0.propagate(transformedFeatures, buffer.fc_0_out);
+        ac_0.propagate(buffer.fc_0_out, buffer.ac_0_out);
+        fc_1.propagate(buffer.ac_0_out, buffer.fc_1_out);
+        ac_1.propagate(buffer.fc_1_out, buffer.ac_1_out);
+        fc_2.propagate(buffer.ac_1_out, buffer.fc_2_out);
+
+        return buffer.fc_2_out[0];
+    }
+};
 
 static_assert(TransformedFeatureDimensions % MaxSimdWidth == 0, "");
-static_assert(NetworkArchitecture::OutputDimensions == 1, "");
-static_assert(std::is_same<NetworkArchitecture::OutputType, std::int32_t>::value, "");
 
 }  // namespace Stockfish::Eval::NNUE
 
