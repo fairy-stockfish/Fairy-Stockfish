@@ -81,6 +81,7 @@ class FeatureTransformer {
         if (this == &other)
             return *this;
 
+        featureLayout = other.featureLayout;
         std::memcpy(biases, other.biases, sizeof(biases));
         allocate(other.inputDimensions);
         if (inputDimensions)
@@ -99,7 +100,8 @@ class FeatureTransformer {
     // Read network parameters
     bool read_parameters(std::istream& stream) {
 
-        allocate(FeatureSet::get_dimensions());
+        assert(featureLayout);
+        allocate(featureLayout->dimensions);
 
         read_little_endian<BiasType>(stream, biases, HalfDimensions);
         read_little_endian<WeightType>(stream, weights, HalfDimensions * inputDimensions);
@@ -275,6 +277,10 @@ class FeatureTransformer {
     }  // end of function transform()
 
 
+    // The feature layout of the variant the parameters are for
+    void              set_layout(const NnueLayout* l) { featureLayout = l; }
+    const NnueLayout& layout() const { return *featureLayout; }
+
     alignas(CacheLineSize) BiasType biases[HalfDimensions] = {};
 
     // The weights are sized by the input dimensions of the variant
@@ -308,6 +314,8 @@ class FeatureTransformer {
             psqtWeights = reinterpret_cast<PSQTWeightType*>(psqtWeightMemory.get());
         }
     }
+
+    const NnueLayout* featureLayout = nullptr;
 
     LargePagePtr<Block[]> weightMemory;
     LargePagePtr<Block[]> psqtWeightMemory;

@@ -91,7 +91,8 @@ void AccumulatorStack::evaluate_side(Color                     perspective,
                                      const FeatureTransformer& featureTransformer,
                                      AccumulatorCaches&        cache) noexcept {
 
-    const auto last_usable_accum = find_last_usable_accumulator(perspective, pos);
+    const auto last_usable_accum =
+      find_last_usable_accumulator(perspective, pos, featureTransformer);
 
     if (accumulators[last_usable_accum].computed[perspective])
         forward_update_incremental(perspective, pos, featureTransformer, last_usable_accum);
@@ -105,15 +106,18 @@ void AccumulatorStack::evaluate_side(Color                     perspective,
 
 // Find the earliest usable accumulator, this can either be a computed accumulator or the
 // accumulator state just before a change that requires full refresh.
-std::size_t AccumulatorStack::find_last_usable_accumulator(Color           perspective,
-                                                           const Position& pos) const noexcept {
+std::size_t AccumulatorStack::find_last_usable_accumulator(
+  Color                     perspective,
+  const Position&           pos,
+  const FeatureTransformer& featureTransformer) const noexcept {
 
     for (std::size_t curr_idx = size - 1; curr_idx > 0; curr_idx--)
     {
         if (accumulators[curr_idx].computed[perspective])
             return curr_idx;
 
-        if (FeatureSet::requires_refresh(accumulators[curr_idx].dirtyPiece, perspective, pos))
+        if (FeatureSet::requires_refresh(featureTransformer.layout(),
+                                         accumulators[curr_idx].dirtyPiece, perspective, pos))
             return curr_idx;
     }
 
@@ -128,7 +132,7 @@ void AccumulatorStack::forward_update_incremental(Color                     pers
     assert(begin < accumulators.size());
     assert(accumulators[begin].computed[perspective]);
 
-    const Square ksq = pos.nnue_king_square(perspective);
+    const Square ksq = FeatureSet::king_square(pos, featureTransformer.layout(), perspective);
 
     for (std::size_t next = begin + 1; next < size; next++)
         update_accumulator_incremental(perspective, FORWARD, featureTransformer, ksq, pos,
@@ -146,7 +150,7 @@ void AccumulatorStack::backward_update_incremental(Color                     per
     assert(end < size);
     assert(latest().computed[perspective]);
 
-    const Square ksq = pos.nnue_king_square(perspective);
+    const Square ksq = FeatureSet::king_square(pos, featureTransformer.layout(), perspective);
 
     for (std::int64_t next = std::int64_t(size) - 2; next >= std::int64_t(end); next--)
         update_accumulator_incremental(perspective, BACKWARDS, featureTransformer, ksq, pos,
@@ -294,11 +298,12 @@ void update_accumulator_incremental(Color                     perspective,
     // The board changes of the move between both states are stored in the later one
     FeatureSet::IndexList removed, added;
     if (direction == FORWARD)
-        FeatureSet::append_changed_indices(ksq, target_state.dirtyPiece, perspective, removed,
-                                           added, pos);
-    else
-        FeatureSet::append_changed_indices(ksq, computed.dirtyPiece, perspective, added, removed,
+        FeatureSet::append_changed_indices(featureTransformer.layout(), ksq,
+                                           target_state.dirtyPiece, perspective, removed, added,
                                            pos);
+    else
+        FeatureSet::append_changed_indices(featureTransformer.layout(), ksq, computed.dirtyPiece,
+                                           perspective, added, removed, pos);
 
     apply_feature_updates(featureTransformer, removed, added, computed.accumulation[perspective],
                           computed.psqtAccumulation[perspective],
@@ -314,11 +319,13 @@ void update_accumulator_refresh_cache(Color                     perspective,
                                       AccumulatorState&         accumulatorState,
                                       AccumulatorCaches&        cache) {
 
-    auto& entry = cache[pos.nnue_king_square(perspective)][perspective];
+    const NnueLayout& layout = featureTransformer.layout();
+
+    auto& entry = cache[FeatureSet::king_square(pos, layout, perspective)][perspective];
 
     // Bring the cached accumulation of this king square up to date
     FeatureSet::IndexList removed, added;
-    FeatureSet::append_changed_indices(pos, perspective, entry.pieceState, removed, added);
+    FeatureSet::append_changed_indices(pos, layout, perspective, entry.pieceState, removed, added);
 
     if (removed.size() || added.size())
         apply_feature_updates(featureTransformer, removed, added, entry.accumulation,

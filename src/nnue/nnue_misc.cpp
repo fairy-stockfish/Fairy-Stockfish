@@ -169,7 +169,7 @@ std::string trace(Position& pos, const Network& network, AccumulatorCaches& cach
             bool   isPromoted   = pos.is_promoted(sq);
             Value  v            = VALUE_NONE;
 
-            if (pc != NO_PIECE && type_of(pc) != pos.nnue_king())
+            if (pc != NO_PIECE && type_of(pc) != network.layout().king)
             {
                 pos.remove_piece(sq);
 

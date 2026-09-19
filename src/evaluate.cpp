@@ -42,8 +42,6 @@
 
 namespace Stockfish {
 
-const Variant* currentNnueVariant;
-
 namespace Eval {
 
 bool useNNUE;
@@ -1570,8 +1568,9 @@ Value Eval::simple_eval(const Position& pos, Color c) {
 // Returns whether the position can be evaluated with the loaded network.
 // The network only matches positions of the variant it was loaded for, which
 // may differ if the variant was changed without setting up a new position.
-static bool use_nnue(const Position& pos) {
-    return Eval::useNNUE && pos.variant() == currentNnueVariant && pos.nnue_applicable();
+static bool use_nnue(const Position& pos, const Eval::NNUE::Network& network) {
+    return Eval::useNNUE && pos.variant() == network.variant() && pos.nnue_applicable()
+        && Eval::NNUE::FeatureSet::applicable(pos, network.layout());
 }
 
 Value Eval::evaluate(const NNUE::Network&     network,
@@ -1585,7 +1584,7 @@ Value Eval::evaluate(const NNUE::Network&     network,
     Value v;
 
     // Check counting variants switch to the classical eval in case of a PSQ imbalance
-    if (!use_nnue(pos)
+    if (!use_nnue(pos, network)
         || (pos.check_counting()
             && std::abs(eg_value(pos.psq_score())) * 5
                  > (750 + pos.non_pawn_material() / 64) * (5 + pos.rule50_count())))
@@ -1685,14 +1684,14 @@ std::string Eval::trace(Position& pos, const NNUE::Network& network) {
     auto accumulators = std::make_unique<NNUE::AccumulatorStack>();
     auto caches       = std::make_unique<NNUE::AccumulatorCaches>(network);
 
-    if (use_nnue(pos))
+    if (use_nnue(pos, network))
         ss << '\n' << NNUE::trace(pos, network, *caches) << '\n';
 
     ss << std::showpoint << std::showpos << std::fixed << std::setprecision(2) << std::setw(15);
 
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "\nClassical evaluation   " << to_cp(v) << " (white side)\n";
-    if (use_nnue(pos))
+    if (use_nnue(pos, network))
     {
         auto [psqt, positional] = network.evaluate(pos, *accumulators, *caches);
         v                       = static_cast<Value>((psqt + positional) / NNUE::OutputScale);
@@ -1703,7 +1702,7 @@ std::string Eval::trace(Position& pos, const NNUE::Network& network) {
     v = evaluate(network, pos, *accumulators, *caches, VALUE_ZERO);
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "Final evaluation       " << to_cp(v) << " (white side)";
-    if (use_nnue(pos))
+    if (use_nnue(pos, network))
         ss << " [with scaled NNUE, ...]";
     ss << "\n";
 

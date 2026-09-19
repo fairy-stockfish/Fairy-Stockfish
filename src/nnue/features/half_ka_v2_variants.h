@@ -25,6 +25,7 @@
 
 #include "../../evaluate.h"
 #include "../../misc.h"
+#include "../../variant.h"
 
 namespace Stockfish {
 class Position;
@@ -40,12 +41,20 @@ class HalfKAv2Variants {
     static Square orient(Color perspective, Square s, const Position& pos);
 
     // Index of a feature for a given king position and another piece on some square
-    static IndexType
-    make_index(Color perspective, Square s, Piece pc, Square ksq, const Position& pos);
+    static IndexType make_index(const NnueLayout& layout,
+                                Color             perspective,
+                                Square            s,
+                                Piece             pc,
+                                Square            ksq,
+                                const Position&   pos);
 
     // Index of a feature for a given king position and another piece in hand
-    static IndexType
-    make_index(Color perspective, int handCount, Piece pc, Square ksq, const Position& pos);
+    static IndexType make_index(const NnueLayout& layout,
+                                Color             perspective,
+                                int               handCount,
+                                Piece             pc,
+                                Square            ksq,
+                                const Position&   pos);
 
    public:
     // Feature name
@@ -54,8 +63,11 @@ class HalfKAv2Variants {
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t HashValue = 0x5f234cb8u;
 
-    // Number of feature dimensions, which depends on the variant
-    static IndexType get_dimensions() { return currentNnueVariant->nnueDimensions; }
+    // The square of the king of the layout, if any
+    static Square king_square(const Position& pos, const NnueLayout& layout, Color c);
+
+    // Returns whether the position has the kings required by the layout
+    static bool applicable(const Position& pos, const NnueLayout& layout);
 
     // Maximum number of simultaneously active features.
     static constexpr IndexType MaxActiveDimensions = 128;
@@ -70,10 +82,14 @@ class HalfKAv2Variants {
     };
 
     // Get a list of indices for active features
-    static void append_active_indices(const Position& pos, Color perspective, IndexList& active);
+    static void append_active_indices(const Position&   pos,
+                                      const NnueLayout& layout,
+                                      Color             perspective,
+                                      IndexList&        active);
 
     // Get a list of indices for recently changed features
-    static void append_changed_indices(Square            ksq,
+    static void append_changed_indices(const NnueLayout& layout,
+                                       Square            ksq,
                                        const DirtyPiece& dp,
                                        Color             perspective,
                                        IndexList&        removed,
@@ -82,15 +98,19 @@ class HalfKAv2Variants {
 
     // Get the lists of indices that differ between a piece state
     // and the position, and update the piece state to the position
-    static void append_changed_indices(const Position& pos,
-                                       Color           perspective,
-                                       PieceState&     state,
-                                       IndexList&      removed,
-                                       IndexList&      added);
+    static void append_changed_indices(const Position&   pos,
+                                       const NnueLayout& layout,
+                                       Color             perspective,
+                                       PieceState&       state,
+                                       IndexList&        removed,
+                                       IndexList&        added);
 
     // Returns whether the change stored in this DirtyPiece means
     // that a full accumulator refresh is required.
-    static bool requires_refresh(const DirtyPiece& dp, Color perspective, const Position& pos);
+    static bool requires_refresh(const NnueLayout& layout,
+                                 const DirtyPiece& dp,
+                                 Color             perspective,
+                                 const Position&   pos);
 };
 
 }  // namespace Stockfish::Eval::NNUE::Features

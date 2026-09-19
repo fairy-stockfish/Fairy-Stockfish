@@ -116,8 +116,10 @@ class AccumulatorStack {
                        const FeatureTransformer& featureTransformer,
                        AccumulatorCaches&        cache) noexcept;
 
-    [[nodiscard]] std::size_t find_last_usable_accumulator(Color           perspective,
-                                                           const Position& pos) const noexcept;
+    [[nodiscard]] std::size_t
+    find_last_usable_accumulator(Color                     perspective,
+                                 const Position&           pos,
+                                 const FeatureTransformer& featureTransformer) const noexcept;
 
     void forward_update_incremental(Color                     perspective,
                                     const Position&           pos,

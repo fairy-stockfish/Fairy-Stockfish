@@ -165,13 +165,8 @@ class Position {
     PieceType          castling_king_piece(Color c) const;
     PieceSet           castling_rook_pieces(Color c) const;
     PieceType          king_type() const;
-    PieceType          nnue_king() const;
-    Square             nnue_king_square(Color c) const;
     bool               nnue_use_pockets() const;
     bool               nnue_applicable() const;
-    int                nnue_piece_square_index(Color perspective, Piece pc) const;
-    int                nnue_piece_hand_index(Color perspective, Piece pc) const;
-    int                nnue_king_square_index(Square ksq) const;
     bool               free_drops() const;
     bool               fast_attacks() const;
     bool               fast_attacks2() const;
@@ -610,15 +605,6 @@ inline PieceType Position::king_type() const {
     return var->kingType;
 }
 
-inline PieceType Position::nnue_king() const {
-    assert(var != nullptr);
-    return var->nnueKing;
-}
-
-inline Square Position::nnue_king_square(Color c) const {
-    return nnue_king() ? square(c, nnue_king()) : SQ_NONE;
-}
-
 inline bool Position::nnue_use_pockets() const {
     assert(var != nullptr);
     return var->nnueUsePockets;
@@ -626,23 +612,7 @@ inline bool Position::nnue_use_pockets() const {
 
 inline bool Position::nnue_applicable() const {
     // Do not use NNUE during setup phases (placement, sittuyin)
-    return (!count_in_hand(ALL_PIECES) || nnue_use_pockets() || !must_drop()) && !virtualPieces
-        && (!nnue_king() || (count(WHITE, nnue_king()) == 1 && count(BLACK, nnue_king()) == 1));
-}
-
-inline int Position::nnue_piece_square_index(Color perspective, Piece pc) const {
-    assert(var != nullptr);
-    return var->pieceSquareIndex[perspective][pc];
-}
-
-inline int Position::nnue_piece_hand_index(Color perspective, Piece pc) const {
-    assert(var != nullptr);
-    return var->pieceHandIndex[perspective][pc];
-}
-
-inline int Position::nnue_king_square_index(Square ksq) const {
-    assert(var != nullptr);
-    return var->kingSquareIndex[ksq];
+    return (!count_in_hand(ALL_PIECES) || nnue_use_pockets() || !must_drop()) && !virtualPieces;
 }
 
 inline bool Position::checking_permitted() const {

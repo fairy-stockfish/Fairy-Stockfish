@@ -61,8 +61,6 @@ extern bool useNNUE;
 
 }  // namespace Eval
 
-extern const Variant* currentNnueVariant;
-
 }  // namespace Stockfish
 
 #endif  // #ifndef EVALUATE_H_INCLUDED

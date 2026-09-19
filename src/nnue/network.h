@@ -28,6 +28,7 @@
 #include <tuple>
 
 #include "../types.h"
+#include "../variant.h"
 #include "nnue_accumulator.h"
 #include "nnue_architecture.h"
 #include "nnue_feature_transformer.h"
@@ -55,7 +56,9 @@ class Network {
     Network& operator=(const Network& other) = default;
     Network& operator=(Network&& other)      = default;
 
-    void load(const std::string& rootDirectory, std::string evalfilePath);
+    // Loads a network for a variant. The network may use any
+    // of the feature layouts of the variant.
+    void load(const std::string& rootDirectory, std::string evalfilePath, const Variant* v);
     bool save(const std::optional<std::string>& filename) const;
 
     NetworkOutput evaluate(const Position&    pos,
@@ -69,20 +72,24 @@ class Network {
 
     const EvalFile& eval_file() const { return evalFile; }
 
+    // The variant and the feature layout the network was loaded for
+    const Variant*    variant() const { return var; }
+    const NnueLayout& layout() const { return featureTransformer.layout(); }
+
    private:
-    void load_user_net(const std::string&, const std::string&);
-    void load_internal();
+    void load_user_net(const std::string&, const std::string&, const Variant*);
+    void load_internal(const Variant*);
 
     bool save(std::ostream&, const std::string&, const std::string&) const;
-    bool load(std::istream&, const std::string&);
+    bool load(std::istream&, std::size_t, const Variant*);
 
     bool read_header(std::istream&, std::uint32_t*, std::string*) const;
     bool write_header(std::ostream&, std::uint32_t, const std::string&) const;
 
-    bool read_parameters(std::istream&, std::string&);
+    bool read_parameters(std::istream&, std::size_t, const Variant*, std::string&);
     bool write_parameters(std::ostream&, const std::string&) const;
 
-    static std::size_t bucket(const Position& pos);
+    std::size_t bucket(const Position& pos) const;
 
     // Input feature converter
     FeatureTransformer featureTransformer;
@@ -91,6 +98,8 @@ class Network {
     NetworkArchitecture network[LayerStacks];
 
     EvalFile evalFile;
+
+    const Variant* var = nullptr;
 
     // Hash value of evaluation function structure
     static constexpr std::uint32_t hash =

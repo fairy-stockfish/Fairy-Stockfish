@@ -35,6 +35,23 @@ namespace Stockfish {
 
 /// Variant struct stores information needed to determine the rules of a variant.
 
+// Indices of the NNUE input features of a variant. With a king piece the
+// features are relative to the square of the own king (HalfKA), without
+// there is only one set of piece features (A).
+enum NnueLayoutType {
+    NNUE_LAYOUT_KING,
+    NNUE_LAYOUT_NO_KING,
+    NNUE_LAYOUT_NB
+};
+
+struct NnueLayout {
+    PieceType king       = NO_PIECE_TYPE;
+    int       dimensions = 0;
+    int       pieceSquareIndex[COLOR_NB][PIECE_NB];
+    int       pieceHandIndex[COLOR_NB][PIECE_NB];
+    int       kingSquareIndex[SQUARE_NB];
+};
+
 struct Variant {
     std::string variantTemplate                     = "fairy";
     std::string pieceToCharTable                    = "-";
@@ -168,15 +185,13 @@ struct Variant {
     CastlingRights   castlingWins                 = NO_CASTLING;
 
     // Derived properties
-    bool                   fastAttacks  = true;
-    bool                   fastAttacks2 = true;
-    std::string            nnueAlias    = "";
-    PieceType              nnueKing     = KING;
-    int                    nnueDimensions;
+    bool        fastAttacks  = true;
+    bool        fastAttacks2 = true;
+    std::string nnueAlias    = "";
+    // NNUE feature layouts: with king buckets (HalfKA) if the variant has a
+    // piece that is always present exactly once, and without (A)
+    NnueLayout             nnueLayouts[NNUE_LAYOUT_NB];
     bool                   nnueUsePockets;
-    int                    pieceSquareIndex[COLOR_NB][PIECE_NB];
-    int                    pieceHandIndex[COLOR_NB][PIECE_NB];
-    int                    kingSquareIndex[SQUARE_NB];
     int                    nnueMaxPieces;
     EndgameEval            endgameEval          = EG_EVAL_CHESS;
     bool                   shogiStylePromotions = false;

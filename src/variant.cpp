@@ -2029,9 +2029,10 @@ Variant* Variant::conclude() {
                 && !restrictedMobility && !cambodianMoves && !diagonalLines;
 
     // Initialize calculated NNUE properties
-    nnueKing = pieceTypes & KING                                              ? KING
-             : extinctionPieceCount == 0 && (extinctionPieceTypes & COMMONER) ? COMMONER
-                                                                              : NO_PIECE_TYPE;
+    PieceType nnueKing = pieceTypes & KING ? KING
+                       : extinctionPieceCount == 0 && (extinctionPieceTypes & COMMONER)
+                         ? COMMONER
+                         : NO_PIECE_TYPE;
     // The nnueKing has to present exactly once and must not change in count
     if (nnueKing != NO_PIECE_TYPE)
     {
@@ -2059,51 +2060,64 @@ Variant* Variant::conclude() {
       (pieceDrops && (capturesToHand || (!mustDrop && std::bitset<64>(pieceTypes).count() != 1)))
       || seirawanGating;
     int nnuePockets = nnueUsePockets ? 2 * int(maxFile + 1) : 0;
-    int nnueNonDropPieceIndices =
-      (2 * std::bitset<64>(pieceTypes).count() - (nnueKing != NO_PIECE_TYPE)) * nnueSquares;
-    int nnuePieceIndices =
-      nnueNonDropPieceIndices
-      + 2 * (std::bitset<64>(pieceTypes).count() - (nnueKing != NO_PIECE_TYPE)) * nnuePockets;
-    int i = 0;
-    for (PieceSet ps = pieceTypes; ps;)
+
+    // Networks may use the king relative layout if the variant has
+    // a king, and the layout without king buckets for any variant.
+    for (NnueLayoutType layoutType : {NNUE_LAYOUT_KING, NNUE_LAYOUT_NO_KING})
     {
-        // Make sure that the nnueKing type gets the last index, since the NNUE architecture relies on that
-        PieceType pt = lsb(ps != piece_set(nnueKing) ? ps & ~piece_set(nnueKing) : ps);
-        ps ^= pt;
-        assert(pt != nnueKing || !ps);
+        NnueLayout& layout = nnueLayouts[layoutType];
+        layout             = NnueLayout();
+        layout.king        = layoutType == NNUE_LAYOUT_KING ? nnueKing : NO_PIECE_TYPE;
 
-        for (Color c : {WHITE, BLACK})
+        int nnueNonDropPieceIndices =
+          (2 * std::bitset<64>(pieceTypes).count() - (layout.king != NO_PIECE_TYPE)) * nnueSquares;
+        int nnuePieceIndices =
+          nnueNonDropPieceIndices
+          + 2 * (std::bitset<64>(pieceTypes).count() - (layout.king != NO_PIECE_TYPE))
+              * nnuePockets;
+        int i = 0;
+        for (PieceSet ps = pieceTypes; ps;)
         {
-            pieceSquareIndex[c][make_piece(c, pt)]  = 2 * i * nnueSquares;
-            pieceSquareIndex[c][make_piece(~c, pt)] = (2 * i + (pt != nnueKing)) * nnueSquares;
-            pieceHandIndex[c][make_piece(c, pt)]    = 2 * i * nnuePockets + nnueNonDropPieceIndices;
-            pieceHandIndex[c][make_piece(~c, pt)] =
-              (2 * i + 1) * nnuePockets + nnueNonDropPieceIndices;
-        }
-        i++;
-    }
+            // Make sure that the king type gets the last index, since the NNUE architecture relies on that
+            PieceType pt = lsb(ps != piece_set(layout.king) ? ps & ~piece_set(layout.king) : ps);
+            ps ^= pt;
+            assert(pt != layout.king || !ps);
 
-    // Map king squares to enumeration of actually available squares.
-    // E.g., for xiangqi map from 0-89 to 0-8.
-    // Variants might be initialized before bitboards, so do not rely on precomputed bitboards (like SquareBB).
-    // Furthermore conclude() might be called on invalid configuration during validation,
-    // therefore skip proper initialization in case of invalid board size.
-    int nnueKingSquare = 0;
-    if (nnueKing && nnueSquares <= SQUARE_NB)
-        for (Square s = SQ_A1; s < nnueSquares; ++s)
-        {
-            Square bitboardSquare = Square(s + s / (maxFile + 1) * (FILE_MAX - maxFile));
-            if (!mobilityRegion[WHITE][nnueKing] || !mobilityRegion[BLACK][nnueKing]
-                || (mobilityRegion[WHITE][nnueKing] & make_bitboard(bitboardSquare))
-                || (mobilityRegion[BLACK][nnueKing]
-                    & make_bitboard(relative_square(BLACK, bitboardSquare, maxRank))))
+            for (Color c : {WHITE, BLACK})
             {
-                kingSquareIndex[s] = nnueKingSquare++ * nnuePieceIndices;
+                layout.pieceSquareIndex[c][make_piece(c, pt)] = 2 * i * nnueSquares;
+                layout.pieceSquareIndex[c][make_piece(~c, pt)] =
+                  (2 * i + (pt != layout.king)) * nnueSquares;
+                layout.pieceHandIndex[c][make_piece(c, pt)] =
+                  2 * i * nnuePockets + nnueNonDropPieceIndices;
+                layout.pieceHandIndex[c][make_piece(~c, pt)] =
+                  (2 * i + 1) * nnuePockets + nnueNonDropPieceIndices;
             }
+            i++;
         }
-    else
-        kingSquareIndex[SQ_A1] = nnueKingSquare++ * nnuePieceIndices;
-    nnueDimensions = nnueKingSquare * nnuePieceIndices;
+
+        // Map king squares to enumeration of actually available squares.
+        // E.g., for xiangqi map from 0-89 to 0-8.
+        // Variants might be initialized before bitboards, so do not rely on precomputed bitboards (like SquareBB).
+        // Furthermore conclude() might be called on invalid configuration during validation,
+        // therefore skip proper initialization in case of invalid board size.
+        int nnueKingSquare = 0;
+        if (layout.king && nnueSquares <= SQUARE_NB)
+            for (Square s = SQ_A1; s < nnueSquares; ++s)
+            {
+                Square bitboardSquare = Square(s + s / (maxFile + 1) * (FILE_MAX - maxFile));
+                if (!mobilityRegion[WHITE][layout.king] || !mobilityRegion[BLACK][layout.king]
+                    || (mobilityRegion[WHITE][layout.king] & make_bitboard(bitboardSquare))
+                    || (mobilityRegion[BLACK][layout.king]
+                        & make_bitboard(relative_square(BLACK, bitboardSquare, maxRank))))
+                {
+                    layout.kingSquareIndex[s] = nnueKingSquare++ * nnuePieceIndices;
+                }
+            }
+        else
+            layout.kingSquareIndex[SQ_A1] = nnueKingSquare++ * nnuePieceIndices;
+        layout.dimensions = nnueKingSquare * nnuePieceIndices;
+    }
 
     // Determine maximum piece count
     std::istringstream ss(startFen);

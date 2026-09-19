@@ -19,10 +19,12 @@
 #include "network.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <vector>
 
 #include "../evaluate.h"
@@ -75,7 +77,7 @@ bool write_parameters(std::ostream& stream, const T& reference) {
 
 }  // namespace Detail
 
-void Network::load(const std::string& rootDirectory, std::string evalfilePath) {
+void Network::load(const std::string& rootDirectory, std::string evalfilePath, const Variant* v) {
 #if defined(DEFAULT_NNUE_DIRECTORY)
     std::vector<std::string> dirs = {"<internal>", "", rootDirectory,
                                      stringify(DEFAULT_NNUE_DIRECTORY)};
@@ -88,13 +90,14 @@ void Network::load(const std::string& rootDirectory, std::string evalfilePath) {
 
     for (const auto& directory : dirs)
     {
-        if (evalFile.current != evalfilePath)
+        // A network is specific to the variant it was loaded for
+        if (evalFile.current != evalfilePath || var != v)
         {
             if (directory != "<internal>")
-                load_user_net(directory, evalfilePath);
+                load_user_net(directory, evalfilePath, v);
 
             if (directory == "<internal>" && evalfilePath == evalFile.defaultName)
-                load_internal();
+                load_internal(v);
         }
     }
 }
@@ -129,8 +132,8 @@ bool Network::save(const std::optional<std::string>& filename) const {
 }
 
 // The layer stack is selected by the piece count relative to the variant
-std::size_t Network::bucket(const Position& pos) {
-    return std::min((pos.count<ALL_PIECES>() - 1) * 8 / currentNnueVariant->nnueMaxPieces, 7);
+std::size_t Network::bucket(const Position& pos) const {
+    return std::min((pos.count<ALL_PIECES>() - 1) * 8 / var->nnueMaxPieces, 7);
 }
 
 NetworkOutput Network::evaluate(const Position&    pos,
@@ -228,14 +231,22 @@ NnueEvalTrace Network::trace_evaluate(const Position&    pos,
     return t;
 }
 
-void Network::load_user_net(const std::string& dir, const std::string& evalfilePath) {
+void Network::load_user_net(const std::string& dir,
+                            const std::string& evalfilePath,
+                            const Variant*     v) {
     std::ifstream stream(dir + evalfilePath, std::ios::binary);
+    if (!stream)
+        return;
 
-    if (load(stream, evalfilePath))
+    stream.seekg(0, std::ios::end);
+    const std::size_t size = std::size_t(stream.tellg());
+    stream.seekg(0, std::ios::beg);
+
+    if (load(stream, size, v))
         evalFile.current = evalfilePath;
 }
 
-void Network::load_internal() {
+void Network::load_internal(const Variant* v) {
     // C++ way to prepare a buffer for a memory stream
     class MemoryBuffer: public std::basic_streambuf<char> {
        public:
@@ -250,7 +261,7 @@ void Network::load_internal() {
 
     std::istream stream(&buffer);
 
-    if (load(stream, evalFile.defaultName))
+    if (load(stream, size_t(gEmbeddedNNUESize), v))
         evalFile.current = evalFile.defaultName;
 }
 
@@ -263,12 +274,17 @@ bool Network::save(std::ostream&      stream,
     return write_parameters(stream, netDescription);
 }
 
-bool Network::load(std::istream& stream, const std::string&) {
+bool Network::load(std::istream& stream, std::size_t size, const Variant* v) {
     std::string description;
 
-    if (!read_parameters(stream, description))
+    // A failed attempt leaves the network without valid parameters
+    evalFile.current = "None";
+    var              = nullptr;
+
+    if (!read_parameters(stream, size, v, description))
         return false;
 
+    var                     = v;
     evalFile.netDescription = description;
     return true;
 }
@@ -299,12 +315,47 @@ bool Network::write_header(std::ostream&      stream,
 }
 
 // Read network parameters
-bool Network::read_parameters(std::istream& stream, std::string& netDescription) {
+bool Network::read_parameters(std::istream&  stream,
+                              std::size_t    size,
+                              const Variant* v,
+                              std::string&   netDescription) {
     std::uint32_t hashValue;
     if (!read_header(stream, &hashValue, &netDescription))
         return false;
     if (hashValue != Network::hash)
         return false;
+
+    // The number of input dimensions is not stored in the file, so derive it from
+    // the file size to find out which feature layout of the variant the network uses
+    static const std::size_t layerStackBytes = [] {
+        auto architecture = std::make_unique<NetworkArchitecture>();
+        std::memset(static_cast<void*>(architecture.get()), 0, sizeof(NetworkArchitecture));
+        std::ostringstream os;
+        architecture->write_parameters(os);
+        return os.str().size();
+    }();
+
+    constexpr std::size_t HalfDimensions = FeatureTransformer::HalfDimensions;
+    const std::size_t     headerBytes    = 3 * sizeof(std::uint32_t) + netDescription.size();
+    const std::size_t     fixedBytes     = sizeof(std::uint32_t) + HalfDimensions * sizeof(BiasType)
+                                 + LayerStacks * (sizeof(std::uint32_t) + layerStackBytes);
+    constexpr std::size_t bytesPerDimension =
+      HalfDimensions * sizeof(WeightType) + PSQTBuckets * sizeof(PSQTWeightType);
+
+    if (size < headerBytes + fixedBytes || (size - headerBytes - fixedBytes) % bytesPerDimension)
+        return false;
+
+    const std::size_t dimensions = (size - headerBytes - fixedBytes) / bytesPerDimension;
+
+    const NnueLayout* layout = nullptr;
+    for (const NnueLayout& l : v->nnueLayouts)
+        if (!layout && std::size_t(l.dimensions) == dimensions)
+            layout = &l;
+
+    if (!layout)
+        return false;
+
+    featureTransformer.set_layout(layout);
     if (!Detail::read_parameters(stream, featureTransformer))
         return false;
     for (std::size_t i = 0; i < LayerStacks; ++i)

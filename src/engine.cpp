@@ -229,11 +229,12 @@ void Engine::load_networks() {
     // The network must not be modified while a search is using it
     wait_for_search_finished();
 
-    // The input dimensions of the network depend on the variant
-    currentNnueVariant = variants.find(variant)->second;
+    // The feature layout of the network depends on the variant
+    const Variant* v = variants.find(variant)->second;
 
-    networks.modify_and_replicate(
-      [&](Eval::NNUE::Network& network) { network.load(CommandLine::binaryDirectory, eval_file); });
+    networks.modify_and_replicate([&](Eval::NNUE::Network& network) {
+        network.load(CommandLine::binaryDirectory, eval_file, v);
+    });
     threads.ensure_network_replicated();
 
     // The accumulator caches of the workers depend on the network
