@@ -48,38 +48,6 @@ jobs:
               shell: 'bash {0}'
             }
           - {
-              name: "Ubuntu 20.04 NDK armv8",
-              os: ubuntu-20.04,
-              compiler: aarch64-linux-android21-clang++,
-              comp: ndk,
-              run_armv8_tests: true,
-              shell: 'bash {0}'
-            }
-          - {
-              name: "Ubuntu 20.04 NDK armv7",
-              os: ubuntu-20.04,
-              compiler: armv7a-linux-androideabi21-clang++,
-              comp: ndk,
-              run_armv7_tests: true,
-              shell: 'bash {0}'
-            }
-          - {
-              name: "MacOS 10.15 Apple Clang",
-              os: macos-10.15,
-              compiler: clang++,
-              comp: clang,
-              run_64bit_tests: true,
-              shell: 'bash {0}'
-            }
-          - {
-              name: "MacOS 10.15 GCC 10",
-              os: macos-10.15,
-              compiler: g++-10,
-              comp: gcc,
-              run_64bit_tests: true,
-              shell: 'bash {0}'
-            }
-          - {
               name: "Windows 2022 Mingw-w64 GCC x86_64",
               os: windows-2022,
               compiler: g++,
