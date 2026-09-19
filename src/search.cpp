@@ -2236,7 +2236,11 @@ void update_all_stats(const Position& pos,
         for (Move move : quietsSearched)
         {
             actualMalus = actualMalus * 921 / 1024;
-            update_quiet_histories(pos, ss, workerThread, move, -actualMalus);
+            // The same move with another wall placement shares the histories of the best move
+            if (pos.walling() && from_to(move) == from_to(bestMove))
+                workerThread.gateHistory[pos.side_to_move()][gating_square(move)] << -actualMalus;
+            else
+                update_quiet_histories(pos, ss, workerThread, move, -actualMalus);
         }
     }
     else
