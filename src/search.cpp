@@ -382,6 +382,8 @@ bool Search::Worker::iterative_deepening() {
 
     SearchManager* mainThread = (is_mainthread() ? main_manager() : nullptr);
 
+    accumulatorStack.reset();
+
     PVMoves pv;
 
     RootPVMoves lastBestMovePV;
@@ -849,7 +851,8 @@ void Search::Worker::do_move(
         prefetch(&(*(ss - 3)->continuationCorrectionHistory)[pc][to]);
     }
 
-    pos.do_move(move, st, givesCheck);
+    DirtyPiece& dp = accumulatorStack.push();
+    pos.do_move(move, st, givesCheck, dp);
 
     if (ss != nullptr)
     {
@@ -868,7 +871,10 @@ void Search::Worker::do_null_move(Position& pos, StateInfo& st, Stack* const ss)
     ss->continuationCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][0];
 }
 
-void Search::Worker::undo_move(Position& pos, const Move move) { pos.undo_move(move); }
+void Search::Worker::undo_move(Position& pos, const Move move) {
+    pos.undo_move(move);
+    accumulatorStack.pop();
+}
 
 void Search::Worker::undo_null_move(Position& pos) { pos.undo_null_move(); }
 
@@ -2134,7 +2140,7 @@ TimePoint Search::Worker::elapsed() const {
 // Evaluate the current position of the game tree, from the point of view of
 // the side to move.
 Value Search::Worker::evaluate(const Position& pos) {
-    return Eval::evaluate(pos, optimism[pos.side_to_move()]);
+    return Eval::evaluate(pos, accumulatorStack, optimism[pos.side_to_move()]);
 }
 
 namespace {

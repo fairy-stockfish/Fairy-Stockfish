@@ -32,7 +32,6 @@
 #include "variant.h"
 #include "movegen.h"
 
-#include "nnue/nnue_accumulator.h"
 
 namespace Stockfish {
 
@@ -86,10 +85,6 @@ struct StateInfo {
     bool       pass;
     Move       move;
     int        repetition;
-
-    // Used by NNUE
-    Eval::NNUE::Accumulator accumulator;
-    DirtyPiece              dirtyPiece;
 };
 
 
@@ -320,6 +315,7 @@ class Position {
     // Doing and undoing moves
     void do_move(Move m, StateInfo& newSt);
     void do_move(Move m, StateInfo& newSt, bool givesCheck);
+    void do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp);
     void undo_move(Move m);
     void do_null_move(StateInfo& newSt, TranspositionTable& tt);
     void undo_null_move();
@@ -386,7 +382,12 @@ class Position {
     // Other helpers
     void move_piece(Square from, Square to);
     template<bool Do>
-    void do_castling(Color us, Square from, Square& to, Square& rfrom, Square& rto);
+    void do_castling(Color             us,
+                     Square            from,
+                     Square&           to,
+                     Square&           rfrom,
+                     Square&           rto,
+                     DirtyPiece* const dp = nullptr);
     template<bool AfterMove>
     Key adjust_key50(Key k) const;
 

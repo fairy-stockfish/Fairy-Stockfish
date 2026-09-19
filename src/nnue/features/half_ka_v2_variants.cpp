@@ -80,14 +80,13 @@ void HalfKAv2Variants::append_active_indices(const Position& pos,
 
 // append_changed_indices() : get a list of indices for recently changed features
 
-void HalfKAv2Variants::append_changed_indices(Square          ksq,
-                                              StateInfo*      st,
-                                              Color           perspective,
-                                              IndexList&      removed,
-                                              IndexList&      added,
-                                              const Position& pos) {
-    const auto& dp           = st->dirtyPiece;
-    Square      oriented_ksq = orient(perspective, ksq, pos);
+void HalfKAv2Variants::append_changed_indices(Square            ksq,
+                                              const DirtyPiece& dp,
+                                              Color             perspective,
+                                              IndexList&        removed,
+                                              IndexList&        added,
+                                              const Position&   pos) {
+    Square oriented_ksq = orient(perspective, ksq, pos);
     for (int i = 0; i < dp.dirty_num; ++i)
     {
         Piece pc = dp.piece[i];
@@ -104,13 +103,10 @@ void HalfKAv2Variants::append_changed_indices(Square          ksq,
     }
 }
 
-int HalfKAv2Variants::update_cost(StateInfo* st) { return st->dirtyPiece.dirty_num; }
-
-int HalfKAv2Variants::refresh_cost(const Position& pos) { return pos.count<ALL_PIECES>(); }
-
-bool HalfKAv2Variants::requires_refresh(StateInfo* st, Color perspective, const Position& pos) {
-    return st->dirtyPiece.piece[0] == make_piece(perspective, pos.nnue_king())
-        || pos.flip_enclosed_pieces();
+bool HalfKAv2Variants::requires_refresh(const DirtyPiece& dp,
+                                        Color             perspective,
+                                        const Position&   pos) {
+    return dp.piece[0] == make_piece(perspective, pos.nnue_king()) || pos.flip_enclosed_pieces();
 }
 
 }  // namespace Stockfish::Eval::NNUE::Features

@@ -117,7 +117,6 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
         && Options["UCI_Variant"] == "chess" && !pos.can_castle(ANY_CASTLING))
     {
         StateInfo st;
-        ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 
         Position p;
         p.set(pos.variant(), pos.fen(), pos.is_chess960(), &st, pos.this_thread());
@@ -1641,6 +1640,11 @@ bool Position::gives_check(Move m) const {
 // to a StateInfo object. The move is assumed to be legal. Pseudo-legal
 // moves should be filtered out before this function is called.
 void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
+    DirtyPiece dp;
+    do_move(m, newSt, givesCheck, dp);
+}
+
+void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp) {
 
     assert(m.is_ok());
     assert(&newSt != st);
@@ -1665,10 +1669,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
         ++st->countingPly;
 
     // Used by NNUE
-    st->accumulator.computed[WHITE] = false;
-    st->accumulator.computed[BLACK] = false;
-    auto& dp                        = st->dirtyPiece;
-    dp.dirty_num                    = 1;
+    dp.dirty_num = 1;
 
     Color  us       = sideToMove;
     Color  them     = ~us;
@@ -1700,7 +1701,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
         assert(castling_rook_pieces(us) & type_of(captured));
 
         Square rfrom, rto;
-        do_castling<true>(us, from, to, rfrom, rto);
+        do_castling<true>(us, from, to, rfrom, rto, &dp);
 
         k ^= Zobrist::psq[captured][rfrom] ^ Zobrist::psq[captured][rto];
         captured = NO_PIECE;
@@ -2411,7 +2412,8 @@ void Position::undo_move(Move m) {
 // Helper used to do/undo a castling move. This is a bit
 // tricky in Chess960 where from/to squares can overlap.
 template<bool Do>
-void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Square& rto) {
+void Position::do_castling(
+  Color us, Square from, Square& to, Square& rfrom, Square& rto, DirtyPiece* const dp) {
 
     bool kingSide = to > from;
     rfrom         = to;  // Castling is encoded as "king captures friendly rook"
@@ -2424,14 +2426,14 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
 
     if (Do && Eval::useNNUE)
     {
-        auto& dp     = st->dirtyPiece;
-        dp.piece[0]  = castlingKingPiece;
-        dp.from[0]   = from;
-        dp.to[0]     = to;
-        dp.piece[1]  = castlingRookPiece;
-        dp.from[1]   = rfrom;
-        dp.to[1]     = rto;
-        dp.dirty_num = 2;
+        assert(dp);
+        dp->piece[0]  = castlingKingPiece;
+        dp->from[0]   = from;
+        dp->to[0]     = to;
+        dp->piece[1]  = castlingRookPiece;
+        dp->from[1]   = rfrom;
+        dp->to[1]     = rto;
+        dp->dirty_num = 2;
     }
 
     // Remove both pieces first since squares could overlap in Chess960
@@ -2451,16 +2453,11 @@ void Position::do_null_move(StateInfo& newSt, TranspositionTable& tt) {
     assert(!checkers());
     assert(&newSt != st);
 
-    std::memcpy(&newSt, st, offsetof(StateInfo, accumulator));
+    std::memcpy(&newSt, st, sizeof(StateInfo));
 
     newSt.previous = st;
     st->next       = &newSt;
     st             = &newSt;
-
-    st->dirtyPiece.dirty_num        = 0;
-    st->dirtyPiece.piece[0]         = NO_PIECE;  // Avoid checks in UpdateAccumulator()
-    st->accumulator.computed[WHITE] = false;
-    st->accumulator.computed[BLACK] = false;
 
     while (st->epSquares)
         st->key ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];

@@ -26,10 +26,8 @@
 #include "../../evaluate.h"
 #include "../../misc.h"
 
-#include "half_ka_v2.h"
-
 namespace Stockfish {
-struct StateInfo;
+class Position;
 }
 
 namespace Stockfish::Eval::NNUE::Features {
@@ -71,21 +69,16 @@ class HalfKAv2Variants {
     static void append_active_indices(const Position& pos, Color perspective, IndexList& active);
 
     // Get a list of indices for recently changed features
-    static void append_changed_indices(Square          ksq,
-                                       StateInfo*      st,
-                                       Color           perspective,
-                                       IndexList&      removed,
-                                       IndexList&      added,
-                                       const Position& pos);
+    static void append_changed_indices(Square            ksq,
+                                       const DirtyPiece& dp,
+                                       Color             perspective,
+                                       IndexList&        removed,
+                                       IndexList&        added,
+                                       const Position&   pos);
 
-    // Returns the cost of updating one perspective, the most costly one.
-    // Assumes no refresh needed.
-    static int update_cost(StateInfo* st);
-    static int refresh_cost(const Position& pos);
-
-    // Returns whether the change stored in this StateInfo means that
-    // a full accumulator refresh is required.
-    static bool requires_refresh(StateInfo* st, Color perspective, const Position& pos);
+    // Returns whether the change stored in this DirtyPiece means
+    // that a full accumulator refresh is required.
+    static bool requires_refresh(const DirtyPiece& dp, Color perspective, const Position& pos);
 };
 
 }  // namespace Stockfish::Eval::NNUE::Features

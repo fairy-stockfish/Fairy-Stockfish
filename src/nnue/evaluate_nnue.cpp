@@ -146,12 +146,10 @@ bool write_parameters(std::ostream& stream) {
 }
 
 // Evaluation function. Perform differential calculation.
-// Hint that the position will be evaluated soon (used by upstream to
-// precompute accumulators along the parent path). Not yet ported to
-// Fairy-Stockfish's accumulator update logic, so this is a no-op for now.
-void hint_common_parent_position(const Position& pos) { (void) pos; }
-
-Value evaluate(const Position& pos, bool adjusted, int* complexity) {
+Value evaluate(const Position&   pos,
+               AccumulatorStack& accumulatorStack,
+               bool              adjusted,
+               int*              complexity) {
 
     // We manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
@@ -177,7 +175,8 @@ Value evaluate(const Position& pos, bool adjusted, int* complexity) {
 
     const std::size_t bucket =
       std::min((pos.count<ALL_PIECES>() - 1) * 8 / currentNnueVariant->nnueMaxPieces, 7);
-    const auto psqt       = featureTransformer->transform(pos, transformedFeatures, bucket);
+    const auto psqt =
+      featureTransformer->transform(pos, accumulatorStack, transformedFeatures, bucket);
     const auto positional = network[bucket]->propagate(transformedFeatures, buffer)[0];
 
     if (complexity)
@@ -199,7 +198,7 @@ struct NnueEvalTrace {
     std::size_t correctBucket;
 };
 
-static NnueEvalTrace trace_evaluate(const Position& pos) {
+static NnueEvalTrace trace_evaluate(const Position& pos, AccumulatorStack& accumulatorStack) {
 
     // We manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
@@ -227,7 +226,8 @@ static NnueEvalTrace trace_evaluate(const Position& pos) {
       std::min((pos.count<ALL_PIECES>() - 1) * 8 / currentNnueVariant->nnueMaxPieces, 7);
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        const auto psqt   = featureTransformer->transform(pos, transformedFeatures, bucket);
+        const auto psqt =
+          featureTransformer->transform(pos, accumulatorStack, transformedFeatures, bucket);
         const auto output = network[bucket]->propagate(transformedFeatures, buffer);
 
         int materialist = psqt;
@@ -351,7 +351,9 @@ std::string trace(Position& pos) {
 
     // We estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    Value base = evaluate(pos);
+    auto accumulatorStack = std::make_unique<AccumulatorStack>();
+
+    Value base = evaluate(pos, *accumulatorStack);
     base       = pos.side_to_move() == WHITE ? base : -base;
 
     for (File f = FILE_A; f <= pos.max_file(); ++f)
@@ -365,19 +367,14 @@ std::string trace(Position& pos) {
 
             if (pc != NO_PIECE && type_of(pc) != pos.nnue_king())
             {
-                auto st = pos.state();
-
                 pos.remove_piece(sq);
-                st->accumulator.computed[WHITE] = false;
-                st->accumulator.computed[BLACK] = false;
 
-                Value eval = evaluate(pos);
+                accumulatorStack->reset();
+                Value eval = evaluate(pos, *accumulatorStack);
                 eval       = pos.side_to_move() == WHITE ? eval : -eval;
                 v          = base - eval;
 
                 pos.put_piece(pc, sq, isPromoted, unpromotedPc);
-                st->accumulator.computed[WHITE] = false;
-                st->accumulator.computed[BLACK] = false;
             }
 
             writeSquare(f, r, pc, v);
@@ -388,7 +385,8 @@ std::string trace(Position& pos) {
         ss << board[row] << '\n';
     ss << '\n';
 
-    auto t = trace_evaluate(pos);
+    accumulatorStack->reset();
+    auto t = trace_evaluate(pos, *accumulatorStack);
 
     ss << " NNUE network contributions "
        << (pos.side_to_move() == WHITE ? "(White to move)" : "(Black to move)") << std::endl

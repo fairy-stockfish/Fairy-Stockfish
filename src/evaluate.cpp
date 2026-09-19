@@ -1698,7 +1698,7 @@ Value Eval::simple_eval(const Position& pos, Color c) {
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
-Value Eval::evaluate(const Position& pos, int optimism) {
+Value Eval::evaluate(const Position& pos, NNUE::AccumulatorStack& accumulators, int optimism) {
 
     assert(!pos.checkers());
 
@@ -1715,7 +1715,7 @@ Value Eval::evaluate(const Position& pos, int optimism) {
         int simpleEval = simple_eval(pos, pos.side_to_move());
 
         int   nnueComplexity;
-        Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
+        Value nnue = NNUE::evaluate(pos, accumulators, true, &nnueComplexity);
 
         // Blend optimism and eval with nnue complexity and material imbalance
         optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
@@ -1804,18 +1804,20 @@ std::string Eval::trace(Position& pos) {
 
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "\nClassical evaluation   " << to_cp(v) << " (white side)\n";
+    auto accumulators = std::make_unique<NNUE::AccumulatorStack>();
+
     if (Eval::useNNUE && pos.nnue_applicable())
     {
-        v = NNUE::evaluate(pos, false);
+        v = NNUE::evaluate(pos, *accumulators, false);
         v = pos.side_to_move() == WHITE ? v : -v;
         ss << "NNUE evaluation        " << to_cp(v) << " (white side)\n";
     }
 
-    v = evaluate(pos, VALUE_ZERO);
+    v = evaluate(pos, *accumulators, VALUE_ZERO);
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "Final evaluation       " << to_cp(v) << " (white side)";
     if (Eval::useNNUE && pos.nnue_applicable())
-        ss << " [with scaled NNUE, hybrid, ...]";
+        ss << " [with scaled NNUE, ...]";
     ss << "\n";
 
     return ss.str();
