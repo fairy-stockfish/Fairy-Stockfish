@@ -58,14 +58,25 @@ void init_variant(const Variant* v) {
 }
 
 /// 'On change' actions, triggered by an option's value change
-static void on_clear_hash(const Option&) { mainEngine->search_clear(); }
-static void on_hash_size(const Option& o) { mainEngine->set_tt_size(size_t(o)); }
+// The bindings (pyffish, ffish.js) use the options without an engine
+static void on_clear_hash(const Option&) {
+    if (mainEngine)
+        mainEngine->search_clear();
+}
+static void on_hash_size(const Option& o) {
+    if (mainEngine)
+        mainEngine->set_tt_size(size_t(o));
+}
 static void on_logger(const Option& o) { start_logger(o); }
 static void on_threads(const Option&) {
+    if (!mainEngine)
+        return;
     mainEngine->resize_threads();
     print_thread_binding_information(*mainEngine);
 }
 static void on_numa_policy(const Option& o) {
+    if (!mainEngine)
+        return;
     mainEngine->set_numa_config_from_option(o);
     print_numa_config_information(*mainEngine);
     print_thread_binding_information(*mainEngine);
