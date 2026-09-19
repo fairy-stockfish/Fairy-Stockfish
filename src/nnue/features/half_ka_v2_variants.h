@@ -69,17 +69,24 @@ class HalfKAv2Variants {
     // Returns whether the position has the kings required by the layout
     static bool applicable(const Position& pos, const NnueLayout& layout);
 
-    // Maximum number of simultaneously active features.
-    static constexpr IndexType MaxActiveDimensions = 128;
+    // The feature indices depend on the layout of the variant
+    using Layout = NnueLayout;
 
-    using IndexList = ValueList<IndexType, MaxActiveDimensions>;
+    static IndexType dimensions(const Layout& layout) { return IndexType(layout.dimensions); }
 
-    // The pieces on the board and in hand an accumulator was computed for
-    struct PieceState {
-        Piece        pieces[SQUARE_NB];
-        Bitboard     pieceBB;
-        std::int16_t handCount[COLOR_NB][PIECE_TYPE_NB];
-    };
+    // The piece type the features are relative to, if any
+    static PieceType king(const Layout& layout) { return layout.king; }
+
+    // Returns the layout of the variant with the given number of dimensions, if any
+    static const Layout* find_layout(const Variant* v, std::size_t dimensions) {
+        for (const Layout& layout : v->nnueLayouts)
+            if (std::size_t(layout.dimensions) == dimensions)
+                return &layout;
+        return nullptr;
+    }
+
+    using IndexList  = FeatureIndexList;
+    using PieceState = NNUE::PieceState;
 
     // Get a list of indices for active features
     static void append_active_indices(const Position&   pos,

@@ -36,12 +36,16 @@ class Position;
 
 namespace Stockfish::Eval::NNUE {
 
+template<typename Arch>
 class FeatureTransformer;
 
-// Class that holds the result of affine transformation of input features
+class Network;
+
+// Class that holds the result of affine transformation of input features.
+// It is sized for the largest supported architecture.
 struct alignas(CacheLineSize) Accumulator {
-    std::int16_t accumulation[COLOR_NB][TransformedFeatureDimensions];
-    std::int32_t psqtAccumulation[COLOR_NB][PSQTBuckets];
+    std::int16_t accumulation[COLOR_NB][MaxTransformedFeatureDimensions];
+    std::int32_t psqtAccumulation[COLOR_NB][MaxPSQTBuckets];
     bool         computed[COLOR_NB] = {};
 };
 
@@ -53,30 +57,28 @@ struct alignas(CacheLineSize) Accumulator {
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCaches {
 
-    template<typename Network>
-    AccumulatorCaches(const Network& network) {
-        clear(network);
-    }
+    AccumulatorCaches(const Network& network) { clear(network); }
 
     struct alignas(CacheLineSize) Entry {
-        BiasType               accumulation[TransformedFeatureDimensions];
-        PSQTWeightType         psqtAccumulation[PSQTBuckets];
-        FeatureSet::PieceState pieceState;
+        BiasType       accumulation[MaxTransformedFeatureDimensions];
+        PSQTWeightType psqtAccumulation[MaxPSQTBuckets];
+        PieceState     pieceState;
 
         // To initialize a refresh entry, we set all its pieces empty,
         // so we put the biases in the accumulation, without any weights on top
-        void clear(const BiasType* biases) {
-            std::memcpy(accumulation, biases, sizeof(accumulation));
+        void clear(const BiasType* biases, IndexType dimensions) {
+            std::memcpy(accumulation, biases, dimensions * sizeof(BiasType));
             std::memset(psqtAccumulation, 0, sizeof(psqtAccumulation));
             std::memset(&pieceState, 0, sizeof(pieceState));
         }
     };
 
-    template<typename Network>
-    void clear(const Network& network) {
+    void clear(const Network& network);
+
+    void clear(const BiasType* biases, IndexType dimensions) {
         for (auto& entries1D : entries)
             for (auto& entry : entries1D)
-                entry.clear(network.featureTransformer.biases);
+                entry.clear(biases, dimensions);
     }
 
     // Variants without a king use the entry of the first square
@@ -104,32 +106,37 @@ class AccumulatorStack {
     DirtyPiece& push() noexcept;
     void        pop() noexcept;
 
-    void evaluate(const Position&           pos,
-                  const FeatureTransformer& featureTransformer,
-                  AccumulatorCaches&        cache) noexcept;
+    template<typename Arch>
+    void evaluate(const Position&                 pos,
+                  const FeatureTransformer<Arch>& featureTransformer,
+                  AccumulatorCaches&              cache) noexcept;
 
    private:
     [[nodiscard]] AccumulatorState& mut_latest() noexcept;
 
-    void evaluate_side(Color                     perspective,
-                       const Position&           pos,
-                       const FeatureTransformer& featureTransformer,
-                       AccumulatorCaches&        cache) noexcept;
+    template<typename Arch>
+    void evaluate_side(Color                           perspective,
+                       const Position&                 pos,
+                       const FeatureTransformer<Arch>& featureTransformer,
+                       AccumulatorCaches&              cache) noexcept;
 
+    template<typename Arch>
     [[nodiscard]] std::size_t
-    find_last_usable_accumulator(Color                     perspective,
-                                 const Position&           pos,
-                                 const FeatureTransformer& featureTransformer) const noexcept;
+    find_last_usable_accumulator(Color                           perspective,
+                                 const Position&                 pos,
+                                 const FeatureTransformer<Arch>& featureTransformer) const noexcept;
 
-    void forward_update_incremental(Color                     perspective,
-                                    const Position&           pos,
-                                    const FeatureTransformer& featureTransformer,
-                                    const std::size_t         begin) noexcept;
+    template<typename Arch>
+    void forward_update_incremental(Color                           perspective,
+                                    const Position&                 pos,
+                                    const FeatureTransformer<Arch>& featureTransformer,
+                                    const std::size_t               begin) noexcept;
 
-    void backward_update_incremental(Color                     perspective,
-                                     const Position&           pos,
-                                     const FeatureTransformer& featureTransformer,
-                                     const std::size_t         end) noexcept;
+    template<typename Arch>
+    void backward_update_incremental(Color                           perspective,
+                                     const Position&                 pos,
+                                     const FeatureTransformer<Arch>& featureTransformer,
+                                     const std::size_t               end) noexcept;
 
     std::array<AccumulatorState, MaxSize> accumulators;
     std::size_t                           size = 1;

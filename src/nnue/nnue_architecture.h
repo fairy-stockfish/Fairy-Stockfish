@@ -33,30 +33,23 @@
 
 namespace Stockfish::Eval::NNUE {
 
-// Input features used in evaluation function
-using FeatureSet = Features::HalfKAv2Variants;
+// A stack of fully connected layers on top of the transformed features
+template<IndexType InputDimensions, int L2, int L3>
+struct LayerStack {
+    static constexpr int FC_0_OUTPUTS = L2;
+    static constexpr int FC_1_OUTPUTS = L3;
 
-// Number of input feature dimensions after conversion
-constexpr IndexType TransformedFeatureDimensions = 512;
-constexpr IndexType PSQTBuckets                  = 8;
-constexpr IndexType LayerStacks                  = 8;
-
-// The architecture of the variant networks: 512x2-16-32-1
-struct NetworkArchitecture {
-    static constexpr int FC_0_OUTPUTS = 16;
-    static constexpr int FC_1_OUTPUTS = 32;
-
-    Layers::AffineTransformSparseInput<TransformedFeatureDimensions * 2, FC_0_OUTPUTS> fc_0;
-    Layers::ClippedReLU<FC_0_OUTPUTS>                                                  ac_0;
-    Layers::AffineTransform<FC_0_OUTPUTS, FC_1_OUTPUTS>                                fc_1;
-    Layers::ClippedReLU<FC_1_OUTPUTS>                                                  ac_1;
-    Layers::AffineTransform<FC_1_OUTPUTS, 1>                                           fc_2;
+    Layers::AffineTransformSparseInput<InputDimensions, FC_0_OUTPUTS> fc_0;
+    Layers::ClippedReLU<FC_0_OUTPUTS>                                 ac_0;
+    Layers::AffineTransform<FC_0_OUTPUTS, FC_1_OUTPUTS>               fc_1;
+    Layers::ClippedReLU<FC_1_OUTPUTS>                                 ac_1;
+    Layers::AffineTransform<FC_1_OUTPUTS, 1>                          fc_2;
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t get_hash_value() {
         // input slice hash
         std::uint32_t hashValue = 0xEC42E90Du;
-        hashValue ^= TransformedFeatureDimensions * 2;
+        hashValue ^= InputDimensions;
 
         hashValue = decltype(fc_0)::get_hash_value(hashValue);
         hashValue = decltype(ac_0)::get_hash_value(hashValue);
@@ -111,7 +104,20 @@ struct NetworkArchitecture {
     }
 };
 
-static_assert(TransformedFeatureDimensions % MaxSimdWidth == 0, "");
+// The architecture of the variant networks: HalfKAv2 features with a layout
+// depending on the variant, 512x2-16-32-1 with 8 layer stacks and PSQT buckets
+struct VariantArchitecture {
+    using FeatureSet = Features::HalfKAv2Variants;
+
+    static constexpr IndexType     TransformedFeatureDimensions = 512;
+    static constexpr IndexType     PSQTBuckets                  = 8;
+    static constexpr IndexType     LayerStacks                  = 8;
+    static constexpr std::uint32_t Version                      = 0x7AF32F20u;
+
+    using LayerStackType = LayerStack<TransformedFeatureDimensions * 2, 16, 32>;
+};
+
+static_assert(VariantArchitecture::TransformedFeatureDimensions <= MaxTransformedFeatureDimensions);
 
 }  // namespace Stockfish::Eval::NNUE
 

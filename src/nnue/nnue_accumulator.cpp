@@ -22,6 +22,7 @@
 #include <cstring>
 
 #include "../position.h"
+#include "network.h"
 #include "nnue_feature_transformer.h"
 
 namespace Stockfish::Eval::NNUE {
@@ -29,9 +30,6 @@ namespace Stockfish::Eval::NNUE {
 #ifdef VECTOR
 using SIMD::psqt_vec_t;
 using SIMD::vec_t;
-
-constexpr int NumRegs     = FeatureTransformer::NumRegs;
-constexpr int NumPsqtRegs = FeatureTransformer::NumPsqtRegs;
 #endif
 
 namespace {
@@ -41,19 +39,21 @@ enum IncUpdateDirection {
     BACKWARDS
 };
 
-void update_accumulator_incremental(Color                     perspective,
-                                    IncUpdateDirection        direction,
-                                    const FeatureTransformer& featureTransformer,
-                                    const Square              ksq,
-                                    const Position&           pos,
-                                    AccumulatorState&         target_state,
-                                    const AccumulatorState&   computed);
+template<typename Arch>
+void update_accumulator_incremental(Color                           perspective,
+                                    IncUpdateDirection              direction,
+                                    const FeatureTransformer<Arch>& featureTransformer,
+                                    const Square                    ksq,
+                                    const Position&                 pos,
+                                    AccumulatorState&               target_state,
+                                    const AccumulatorState&         computed);
 
-void update_accumulator_refresh_cache(Color                     perspective,
-                                      const FeatureTransformer& featureTransformer,
-                                      const Position&           pos,
-                                      AccumulatorState&         accumulatorState,
-                                      AccumulatorCaches&        cache);
+template<typename Arch>
+void update_accumulator_refresh_cache(Color                           perspective,
+                                      const FeatureTransformer<Arch>& featureTransformer,
+                                      const Position&                 pos,
+                                      AccumulatorState&               accumulatorState,
+                                      AccumulatorCaches&              cache);
 
 }
 
@@ -79,17 +79,19 @@ void AccumulatorStack::pop() noexcept {
     size--;
 }
 
-void AccumulatorStack::evaluate(const Position&           pos,
-                                const FeatureTransformer& featureTransformer,
-                                AccumulatorCaches&        cache) noexcept {
+template<typename Arch>
+void AccumulatorStack::evaluate(const Position&                 pos,
+                                const FeatureTransformer<Arch>& featureTransformer,
+                                AccumulatorCaches&              cache) noexcept {
     evaluate_side(WHITE, pos, featureTransformer, cache);
     evaluate_side(BLACK, pos, featureTransformer, cache);
 }
 
-void AccumulatorStack::evaluate_side(Color                     perspective,
-                                     const Position&           pos,
-                                     const FeatureTransformer& featureTransformer,
-                                     AccumulatorCaches&        cache) noexcept {
+template<typename Arch>
+void AccumulatorStack::evaluate_side(Color                           perspective,
+                                     const Position&                 pos,
+                                     const FeatureTransformer<Arch>& featureTransformer,
+                                     AccumulatorCaches&              cache) noexcept {
 
     const auto last_usable_accum =
       find_last_usable_accumulator(perspective, pos, featureTransformer);
@@ -106,33 +108,36 @@ void AccumulatorStack::evaluate_side(Color                     perspective,
 
 // Find the earliest usable accumulator, this can either be a computed accumulator or the
 // accumulator state just before a change that requires full refresh.
+template<typename Arch>
 std::size_t AccumulatorStack::find_last_usable_accumulator(
-  Color                     perspective,
-  const Position&           pos,
-  const FeatureTransformer& featureTransformer) const noexcept {
+  Color                           perspective,
+  const Position&                 pos,
+  const FeatureTransformer<Arch>& featureTransformer) const noexcept {
 
     for (std::size_t curr_idx = size - 1; curr_idx > 0; curr_idx--)
     {
         if (accumulators[curr_idx].computed[perspective])
             return curr_idx;
 
-        if (FeatureSet::requires_refresh(featureTransformer.layout(),
-                                         accumulators[curr_idx].dirtyPiece, perspective, pos))
+        if (Arch::FeatureSet::requires_refresh(featureTransformer.layout(),
+                                               accumulators[curr_idx].dirtyPiece, perspective, pos))
             return curr_idx;
     }
 
     return 0;
 }
 
-void AccumulatorStack::forward_update_incremental(Color                     perspective,
-                                                  const Position&           pos,
-                                                  const FeatureTransformer& featureTransformer,
-                                                  const std::size_t         begin) noexcept {
+template<typename Arch>
+void AccumulatorStack::forward_update_incremental(
+  Color                           perspective,
+  const Position&                 pos,
+  const FeatureTransformer<Arch>& featureTransformer,
+  const std::size_t               begin) noexcept {
 
     assert(begin < accumulators.size());
     assert(accumulators[begin].computed[perspective]);
 
-    const Square ksq = FeatureSet::king_square(pos, featureTransformer.layout(), perspective);
+    const Square ksq = Arch::FeatureSet::king_square(pos, featureTransformer.layout(), perspective);
 
     for (std::size_t next = begin + 1; next < size; next++)
         update_accumulator_incremental(perspective, FORWARD, featureTransformer, ksq, pos,
@@ -141,16 +146,18 @@ void AccumulatorStack::forward_update_incremental(Color                     pers
     assert(latest().computed[perspective]);
 }
 
-void AccumulatorStack::backward_update_incremental(Color                     perspective,
-                                                   const Position&           pos,
-                                                   const FeatureTransformer& featureTransformer,
-                                                   const std::size_t         end) noexcept {
+template<typename Arch>
+void AccumulatorStack::backward_update_incremental(
+  Color                           perspective,
+  const Position&                 pos,
+  const FeatureTransformer<Arch>& featureTransformer,
+  const std::size_t               end) noexcept {
 
     assert(end < accumulators.size());
     assert(end < size);
     assert(latest().computed[perspective]);
 
-    const Square ksq = FeatureSet::king_square(pos, featureTransformer.layout(), perspective);
+    const Square ksq = Arch::FeatureSet::king_square(pos, featureTransformer.layout(), perspective);
 
     for (std::int64_t next = std::int64_t(size) - 2; next >= std::int64_t(end); next--)
         update_accumulator_incremental(perspective, BACKWARDS, featureTransformer, ksq, pos,
@@ -163,19 +170,23 @@ namespace {
 
 // Applies the removed and added features to an accumulation. The
 // input and the output accumulation may be the same.
-void apply_feature_updates(const FeatureTransformer&    featureTransformer,
-                           const FeatureSet::IndexList& removed,
-                           const FeatureSet::IndexList& added,
-                           const BiasType*              accIn,
-                           const PSQTWeightType*        psqtIn,
-                           BiasType*                    accOut,
-                           PSQTWeightType*              psqtOut) {
+template<typename Arch>
+void apply_feature_updates(const FeatureTransformer<Arch>&             featureTransformer,
+                           const typename Arch::FeatureSet::IndexList& removed,
+                           const typename Arch::FeatureSet::IndexList& added,
+                           const BiasType*                             accIn,
+                           const PSQTWeightType*                       psqtIn,
+                           BiasType*                                   accOut,
+                           PSQTWeightType*                             psqtOut) {
 
-    constexpr IndexType HalfDimensions = FeatureTransformer::HalfDimensions;
+    constexpr IndexType HalfDimensions = FeatureTransformer<Arch>::HalfDimensions;
+    constexpr IndexType PSQTBuckets    = Arch::PSQTBuckets;
 
 #ifdef VECTOR
-    constexpr IndexType TileHeight     = FeatureTransformer::TileHeight;
-    constexpr IndexType PsqtTileHeight = FeatureTransformer::PsqtTileHeight;
+    constexpr int       NumRegs        = FeatureTransformer<Arch>::NumRegs;
+    constexpr int       NumPsqtRegs    = FeatureTransformer<Arch>::NumPsqtRegs;
+    constexpr IndexType TileHeight     = FeatureTransformer<Arch>::TileHeight;
+    constexpr IndexType PsqtTileHeight = FeatureTransformer<Arch>::PsqtTileHeight;
 
     // Gcc-10.2 unnecessarily spills AVX2 registers if this array
     // is defined in the VECTOR code below, once in each branch
@@ -284,26 +295,27 @@ void apply_feature_updates(const FeatureTransformer&    featureTransformer,
 }
 
 
-void update_accumulator_incremental(Color                     perspective,
-                                    IncUpdateDirection        direction,
-                                    const FeatureTransformer& featureTransformer,
-                                    const Square              ksq,
-                                    const Position&           pos,
-                                    AccumulatorState&         target_state,
-                                    const AccumulatorState&   computed) {
+template<typename Arch>
+void update_accumulator_incremental(Color                           perspective,
+                                    IncUpdateDirection              direction,
+                                    const FeatureTransformer<Arch>& featureTransformer,
+                                    const Square                    ksq,
+                                    const Position&                 pos,
+                                    AccumulatorState&               target_state,
+                                    const AccumulatorState&         computed) {
 
     assert(computed.computed[perspective]);
     assert(!target_state.computed[perspective]);
 
     // The board changes of the move between both states are stored in the later one
-    FeatureSet::IndexList removed, added;
+    typename Arch::FeatureSet::IndexList removed, added;
     if (direction == FORWARD)
-        FeatureSet::append_changed_indices(featureTransformer.layout(), ksq,
-                                           target_state.dirtyPiece, perspective, removed, added,
-                                           pos);
+        Arch::FeatureSet::append_changed_indices(featureTransformer.layout(), ksq,
+                                                 target_state.dirtyPiece, perspective, removed,
+                                                 added, pos);
     else
-        FeatureSet::append_changed_indices(featureTransformer.layout(), ksq, computed.dirtyPiece,
-                                           perspective, added, removed, pos);
+        Arch::FeatureSet::append_changed_indices(
+          featureTransformer.layout(), ksq, computed.dirtyPiece, perspective, added, removed, pos);
 
     apply_feature_updates(featureTransformer, removed, added, computed.accumulation[perspective],
                           computed.psqtAccumulation[perspective],
@@ -313,26 +325,28 @@ void update_accumulator_incremental(Color                     perspective,
     target_state.computed[perspective] = true;
 }
 
-void update_accumulator_refresh_cache(Color                     perspective,
-                                      const FeatureTransformer& featureTransformer,
-                                      const Position&           pos,
-                                      AccumulatorState&         accumulatorState,
-                                      AccumulatorCaches&        cache) {
+template<typename Arch>
+void update_accumulator_refresh_cache(Color                           perspective,
+                                      const FeatureTransformer<Arch>& featureTransformer,
+                                      const Position&                 pos,
+                                      AccumulatorState&               accumulatorState,
+                                      AccumulatorCaches&              cache) {
 
-    const NnueLayout& layout = featureTransformer.layout();
+    const auto& layout = featureTransformer.layout();
 
-    auto& entry = cache[FeatureSet::king_square(pos, layout, perspective)][perspective];
+    auto& entry = cache[Arch::FeatureSet::king_square(pos, layout, perspective)][perspective];
 
     // Bring the cached accumulation of this king square up to date
-    FeatureSet::IndexList removed, added;
-    FeatureSet::append_changed_indices(pos, layout, perspective, entry.pieceState, removed, added);
+    typename Arch::FeatureSet::IndexList removed, added;
+    Arch::FeatureSet::append_changed_indices(pos, layout, perspective, entry.pieceState, removed,
+                                             added);
 
     if (removed.size() || added.size())
         apply_feature_updates(featureTransformer, removed, added, entry.accumulation,
                               entry.psqtAccumulation, entry.accumulation, entry.psqtAccumulation);
 
     std::memcpy(accumulatorState.accumulation[perspective], entry.accumulation,
-                sizeof(entry.accumulation));
+                FeatureTransformer<Arch>::HalfDimensions * sizeof(BiasType));
     std::memcpy(accumulatorState.psqtAccumulation[perspective], entry.psqtAccumulation,
                 sizeof(entry.psqtAccumulation));
 
@@ -340,5 +354,13 @@ void update_accumulator_refresh_cache(Color                     perspective,
 }
 
 }
+
+// Explicit template instantiations
+template void AccumulatorStack::evaluate<VariantArchitecture>(
+  const Position&                                pos,
+  const FeatureTransformer<VariantArchitecture>& featureTransformer,
+  AccumulatorCaches&                             cache) noexcept;
+
+void AccumulatorCaches::clear(const Network& network) { network.clear(*this); }
 
 }  // namespace Stockfish::Eval::NNUE

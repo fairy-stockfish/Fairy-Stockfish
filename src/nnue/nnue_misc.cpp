@@ -169,7 +169,7 @@ std::string trace(Position& pos, const Network& network, AccumulatorCaches& cach
             bool   isPromoted   = pos.is_promoted(sq);
             Value  v            = VALUE_NONE;
 
-            if (pc != NO_PIECE && type_of(pc) != network.layout().king)
+            if (pc != NO_PIECE && type_of(pc) != network.king())
             {
                 pos.remove_piece(sq);
 
@@ -199,7 +199,7 @@ std::string trace(Position& pos, const Network& network, AccumulatorCaches& cach
        << "|            |   (PSQT)   |  (Layers)  |            |\n"
        << "+------------+------------+------------+------------+\n";
 
-    for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
+    for (std::size_t bucket = 0; bucket < t.layerStacks; ++bucket)
     {
         char buffer[3][8];
         std::memset(buffer, '\0', sizeof(buffer));

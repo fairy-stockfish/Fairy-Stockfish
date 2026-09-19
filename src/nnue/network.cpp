@@ -75,7 +75,189 @@ bool write_parameters(std::ostream& stream, const T& reference) {
     return reference.write_parameters(stream);
 }
 
+// Creates a network of the architecture matching the header of a network file
+std::unique_ptr<NetworkBase> create_network(std::uint32_t version, std::uint32_t hash) {
+
+    if (version == VariantArchitecture::Version && hash == NetworkImpl<VariantArchitecture>::hash)
+        return std::make_unique<NetworkImpl<VariantArchitecture>>();
+
+    return nullptr;
+}
+
 }  // namespace Detail
+
+
+// NetworkImpl
+
+template<typename Arch>
+std::unique_ptr<NetworkBase> NetworkImpl<Arch>::clone() const {
+    return std::make_unique<NetworkImpl<Arch>>(*this);
+}
+
+// The layer stack is selected by the piece count relative to the variant
+template<typename Arch>
+std::size_t NetworkImpl<Arch>::bucket(const Position& pos) const {
+    if constexpr (Arch::LayerStacks == 1)
+        return 0;
+    else
+        return std::min((pos.count<ALL_PIECES>() - 1) * 8 / var->nnueMaxPieces, 7);
+}
+
+template<typename Arch>
+NetworkOutput NetworkImpl<Arch>::evaluate(const Position&    pos,
+                                          AccumulatorStack&  accumulatorStack,
+                                          AccumulatorCaches& cache) const {
+    // We manually align the arrays on the stack because with gcc < 9.3
+    // overaligning stack variables with alignas() doesn't work correctly.
+
+    constexpr uint64_t alignment = CacheLineSize;
+
+#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
+    TransformedFeatureType
+      transformedFeaturesUnaligned[Transformer::BufferSize
+                                   + alignment / sizeof(TransformedFeatureType)];
+
+    auto* transformedFeatures = align_ptr_up<alignment>(&transformedFeaturesUnaligned[0]);
+#else
+    alignas(alignment) TransformedFeatureType transformedFeatures[Transformer::BufferSize];
+#endif
+
+    ASSERT_ALIGNED(transformedFeatures, alignment);
+
+    const std::size_t b = bucket(pos);
+    const auto        psqt =
+      featureTransformer.transform(pos, accumulatorStack, cache, transformedFeatures, b);
+    const auto positional = network[b].propagate(transformedFeatures);
+
+    return {psqt, positional};
+}
+
+template<typename Arch>
+NnueEvalTrace NetworkImpl<Arch>::trace_evaluate(const Position&    pos,
+                                                AccumulatorStack&  accumulatorStack,
+                                                AccumulatorCaches& cache) const {
+    // We manually align the arrays on the stack because with gcc < 9.3
+    // overaligning stack variables with alignas() doesn't work correctly.
+
+    constexpr uint64_t alignment = CacheLineSize;
+
+#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
+    TransformedFeatureType
+      transformedFeaturesUnaligned[Transformer::BufferSize
+                                   + alignment / sizeof(TransformedFeatureType)];
+
+    auto* transformedFeatures = align_ptr_up<alignment>(&transformedFeaturesUnaligned[0]);
+#else
+    alignas(alignment) TransformedFeatureType transformedFeatures[Transformer::BufferSize];
+#endif
+
+    ASSERT_ALIGNED(transformedFeatures, alignment);
+
+    NnueEvalTrace t{};
+    t.layerStacks   = Arch::LayerStacks;
+    t.correctBucket = bucket(pos);
+    for (std::size_t b = 0; b < Arch::LayerStacks; ++b)
+    {
+        const auto materialist =
+          featureTransformer.transform(pos, accumulatorStack, cache, transformedFeatures, b);
+        const auto positional = network[b].propagate(transformedFeatures);
+
+        t.psqt[b]       = static_cast<Value>(materialist / OutputScale);
+        t.positional[b] = static_cast<Value>(positional / OutputScale);
+    }
+
+    return t;
+}
+
+template<typename Arch>
+void NetworkImpl<Arch>::clear(AccumulatorCaches& cache) const {
+    cache.clear(featureTransformer.biases, Transformer::HalfDimensions);
+}
+
+template<typename Arch>
+bool NetworkImpl<Arch>::applicable(const Position& pos) const {
+    return Arch::FeatureSet::applicable(pos, featureTransformer.layout());
+}
+
+template<typename Arch>
+PieceType NetworkImpl<Arch>::king() const {
+    return Arch::FeatureSet::king(featureTransformer.layout());
+}
+
+// Read network parameters
+template<typename Arch>
+bool NetworkImpl<Arch>::read_parameters(std::istream&  stream,
+                                        std::size_t    size,
+                                        std::size_t    headerSize,
+                                        const Variant* v) {
+
+    // The number of input dimensions is not stored in the file, so derive it from
+    // the file size to find out which feature layout of the variant the network uses
+    static const std::size_t layerStackBytes = [] {
+        auto layerStack = std::make_unique<LayerStackType>();
+        std::memset(static_cast<void*>(layerStack.get()), 0, sizeof(LayerStackType));
+        std::ostringstream os;
+        layerStack->write_parameters(os);
+        return os.str().size();
+    }();
+
+    constexpr std::size_t HalfDimensions = Transformer::HalfDimensions;
+    const std::size_t     fixedBytes     = sizeof(std::uint32_t) + HalfDimensions * sizeof(BiasType)
+                                 + Arch::LayerStacks * (sizeof(std::uint32_t) + layerStackBytes);
+    constexpr std::size_t bytesPerDimension =
+      HalfDimensions * sizeof(WeightType) + Arch::PSQTBuckets * sizeof(PSQTWeightType);
+
+    if (size < headerSize + fixedBytes || (size - headerSize - fixedBytes) % bytesPerDimension)
+        return false;
+
+    const auto* layout =
+      Arch::FeatureSet::find_layout(v, (size - headerSize - fixedBytes) / bytesPerDimension);
+
+    if (!layout)
+        return false;
+
+    var = v;
+    featureTransformer.set_layout(layout);
+
+    if (!Detail::read_parameters(stream, featureTransformer))
+        return false;
+    for (std::size_t i = 0; i < Arch::LayerStacks; ++i)
+        if (!Detail::read_parameters(stream, network[i]))
+            return false;
+    return stream && stream.peek() == std::ios::traits_type::eof();
+}
+
+// Write network parameters
+template<typename Arch>
+bool NetworkImpl<Arch>::write_parameters(std::ostream& stream) const {
+    if (!Detail::write_parameters(stream, featureTransformer))
+        return false;
+    for (std::size_t i = 0; i < Arch::LayerStacks; ++i)
+        if (!Detail::write_parameters(stream, network[i]))
+            return false;
+    return bool(stream);
+}
+
+template class NetworkImpl<VariantArchitecture>;
+
+
+// Network
+
+Network::Network(const Network& other) :
+    impl(other.impl ? other.impl->clone() : nullptr),
+    version(other.version),
+    hash(other.hash),
+    evalFile(other.evalFile),
+    var(other.var) {}
+
+Network& Network::operator=(const Network& other) {
+    impl     = other.impl ? other.impl->clone() : nullptr;
+    version  = other.version;
+    hash     = other.hash;
+    evalFile = other.evalFile;
+    var      = other.var;
+    return *this;
+}
 
 void Network::load(const std::string& rootDirectory, std::string evalfilePath, const Variant* v) {
 #if defined(DEFAULT_NNUE_DIRECTORY)
@@ -131,37 +313,9 @@ bool Network::save(const std::optional<std::string>& filename) const {
     return saved;
 }
 
-// The layer stack is selected by the piece count relative to the variant
-std::size_t Network::bucket(const Position& pos) const {
-    return std::min((pos.count<ALL_PIECES>() - 1) * 8 / var->nnueMaxPieces, 7);
-}
-
-NetworkOutput Network::evaluate(const Position&    pos,
-                                AccumulatorStack&  accumulatorStack,
-                                AccumulatorCaches& cache) const {
-    // We manually align the arrays on the stack because with gcc < 9.3
-    // overaligning stack variables with alignas() doesn't work correctly.
-
-    constexpr uint64_t alignment = CacheLineSize;
-
-#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType
-      transformedFeaturesUnaligned[FeatureTransformer::BufferSize
-                                   + alignment / sizeof(TransformedFeatureType)];
-
-    auto* transformedFeatures = align_ptr_up<alignment>(&transformedFeaturesUnaligned[0]);
-#else
-    alignas(alignment) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
-#endif
-
-    ASSERT_ALIGNED(transformedFeatures, alignment);
-
-    const std::size_t b = bucket(pos);
-    const auto        psqt =
-      featureTransformer.transform(pos, accumulatorStack, cache, transformedFeatures, b);
-    const auto positional = network[b].propagate(transformedFeatures);
-
-    return {psqt, positional};
+void Network::clear(AccumulatorCaches& cache) const {
+    if (impl)
+        impl->clear(cache);
 }
 
 void Network::verify(std::string                                  evalfilePath,
@@ -194,41 +348,6 @@ void Network::verify(std::string                                  evalfilePath,
 
     if (f)
         f("NNUE evaluation using " + evalFile.current + " enabled");
-}
-
-NnueEvalTrace Network::trace_evaluate(const Position&    pos,
-                                      AccumulatorStack&  accumulatorStack,
-                                      AccumulatorCaches& cache) const {
-    // We manually align the arrays on the stack because with gcc < 9.3
-    // overaligning stack variables with alignas() doesn't work correctly.
-
-    constexpr uint64_t alignment = CacheLineSize;
-
-#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType
-      transformedFeaturesUnaligned[FeatureTransformer::BufferSize
-                                   + alignment / sizeof(TransformedFeatureType)];
-
-    auto* transformedFeatures = align_ptr_up<alignment>(&transformedFeaturesUnaligned[0]);
-#else
-    alignas(alignment) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
-#endif
-
-    ASSERT_ALIGNED(transformedFeatures, alignment);
-
-    NnueEvalTrace t{};
-    t.correctBucket = bucket(pos);
-    for (std::size_t b = 0; b < LayerStacks; ++b)
-    {
-        const auto materialist =
-          featureTransformer.transform(pos, accumulatorStack, cache, transformedFeatures, b);
-        const auto positional = network[b].propagate(transformedFeatures);
-
-        t.psqt[b]       = static_cast<Value>(materialist / OutputScale);
-        t.positional[b] = static_cast<Value>(positional / OutputScale);
-    }
-
-    return t;
 }
 
 void Network::load_user_net(const std::string& dir,
@@ -268,10 +387,10 @@ void Network::load_internal(const Variant* v) {
 bool Network::save(std::ostream&      stream,
                    const std::string& name,
                    const std::string& netDescription) const {
-    if (name.empty() || name == "None")
+    if (name.empty() || name == "None" || !impl)
         return false;
 
-    return write_parameters(stream, netDescription);
+    return write_header(stream, version, hash, netDescription) && impl->write_parameters(stream);
 }
 
 bool Network::load(std::istream& stream, std::size_t size, const Variant* v) {
@@ -280,9 +399,21 @@ bool Network::load(std::istream& stream, std::size_t size, const Variant* v) {
     // A failed attempt leaves the network without valid parameters
     evalFile.current = "None";
     var              = nullptr;
+    impl.reset();
 
-    if (!read_parameters(stream, size, v, description))
+    if (!read_header(stream, &version, &hash, &description))
         return false;
+
+    // The architecture is determined by the header
+    impl = Detail::create_network(version, hash);
+
+    const std::size_t headerSize = 3 * sizeof(std::uint32_t) + description.size();
+
+    if (!impl || !impl->read_parameters(stream, size, headerSize, v))
+    {
+        impl.reset();
+        return false;
+    }
 
     var                     = v;
     evalFile.netDescription = description;
@@ -290,13 +421,16 @@ bool Network::load(std::istream& stream, std::size_t size, const Variant* v) {
 }
 
 // Read network header
-bool Network::read_header(std::istream& stream, std::uint32_t* hashValue, std::string* desc) const {
-    std::uint32_t version, size;
+bool Network::read_header(std::istream&  stream,
+                          std::uint32_t* fileVersion,
+                          std::uint32_t* hashValue,
+                          std::string*   desc) const {
+    std::uint32_t size;
 
-    version    = read_little_endian<std::uint32_t>(stream);
-    *hashValue = read_little_endian<std::uint32_t>(stream);
-    size       = read_little_endian<std::uint32_t>(stream);
-    if (!stream || version != Version)
+    *fileVersion = read_little_endian<std::uint32_t>(stream);
+    *hashValue   = read_little_endian<std::uint32_t>(stream);
+    size         = read_little_endian<std::uint32_t>(stream);
+    if (!stream)
         return false;
     desc->resize(size);
     stream.read(&(*desc)[0], size);
@@ -305,75 +439,14 @@ bool Network::read_header(std::istream& stream, std::uint32_t* hashValue, std::s
 
 // Write network header
 bool Network::write_header(std::ostream&      stream,
+                           std::uint32_t      fileVersion,
                            std::uint32_t      hashValue,
                            const std::string& desc) const {
-    write_little_endian<std::uint32_t>(stream, Version);
+    write_little_endian<std::uint32_t>(stream, fileVersion);
     write_little_endian<std::uint32_t>(stream, hashValue);
     write_little_endian<std::uint32_t>(stream, std::uint32_t(desc.size()));
     stream.write(&desc[0], desc.size());
     return !stream.fail();
-}
-
-// Read network parameters
-bool Network::read_parameters(std::istream&  stream,
-                              std::size_t    size,
-                              const Variant* v,
-                              std::string&   netDescription) {
-    std::uint32_t hashValue;
-    if (!read_header(stream, &hashValue, &netDescription))
-        return false;
-    if (hashValue != Network::hash)
-        return false;
-
-    // The number of input dimensions is not stored in the file, so derive it from
-    // the file size to find out which feature layout of the variant the network uses
-    static const std::size_t layerStackBytes = [] {
-        auto architecture = std::make_unique<NetworkArchitecture>();
-        std::memset(static_cast<void*>(architecture.get()), 0, sizeof(NetworkArchitecture));
-        std::ostringstream os;
-        architecture->write_parameters(os);
-        return os.str().size();
-    }();
-
-    constexpr std::size_t HalfDimensions = FeatureTransformer::HalfDimensions;
-    const std::size_t     headerBytes    = 3 * sizeof(std::uint32_t) + netDescription.size();
-    const std::size_t     fixedBytes     = sizeof(std::uint32_t) + HalfDimensions * sizeof(BiasType)
-                                 + LayerStacks * (sizeof(std::uint32_t) + layerStackBytes);
-    constexpr std::size_t bytesPerDimension =
-      HalfDimensions * sizeof(WeightType) + PSQTBuckets * sizeof(PSQTWeightType);
-
-    if (size < headerBytes + fixedBytes || (size - headerBytes - fixedBytes) % bytesPerDimension)
-        return false;
-
-    const std::size_t dimensions = (size - headerBytes - fixedBytes) / bytesPerDimension;
-
-    const NnueLayout* layout = nullptr;
-    for (const NnueLayout& l : v->nnueLayouts)
-        if (!layout && std::size_t(l.dimensions) == dimensions)
-            layout = &l;
-
-    if (!layout)
-        return false;
-
-    featureTransformer.set_layout(layout);
-    if (!Detail::read_parameters(stream, featureTransformer))
-        return false;
-    for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!Detail::read_parameters(stream, network[i]))
-            return false;
-    return stream && stream.peek() == std::ios::traits_type::eof();
-}
-
-// Write network parameters
-bool Network::write_parameters(std::ostream& stream, const std::string& netDescription) const {
-    if (!write_header(stream, Network::hash, netDescription))
-        return false;
-    if (!Detail::write_parameters(stream, featureTransformer))
-        return false;
-    for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!Detail::write_parameters(stream, network[i]))
-            return false;
-    return bool(stream);
 }
 
 }  // namespace Stockfish::Eval::NNUE

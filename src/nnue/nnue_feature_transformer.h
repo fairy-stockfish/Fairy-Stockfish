@@ -36,21 +36,28 @@ using BiasType       = std::int16_t;
 using WeightType     = std::int16_t;
 using PSQTWeightType = std::int32_t;
 
-static_assert(PSQTBuckets % 8 == 0,
-              "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
-
 // Input feature converter
+template<typename Arch>
 class FeatureTransformer {
 
    public:
+    using FeatureSet = typename Arch::FeatureSet;
+
     // Number of output dimensions for one side
-    static constexpr IndexType HalfDimensions = TransformedFeatureDimensions;
+    static constexpr IndexType HalfDimensions = Arch::TransformedFeatureDimensions;
+    static constexpr IndexType PSQTBuckets    = Arch::PSQTBuckets;
+
+    static_assert(PSQTBuckets % 8 == 0,
+                  "Per feature PSQT values cannot be processed at granularity lower than 8 at a "
+                  "time.");
 
 #ifdef VECTOR
     // If vector instructions are enabled, we update and refresh the
     // accumulator tile by tile such that each tile fits in the CPU's
     // vector registers.
-    using Tiling = SIMD::SIMDTiling<HalfDimensions, HalfDimensions, PSQTBuckets>;
+    // Architectures without PSQT never enter the PSQT loops
+    using Tiling =
+      SIMD::SIMDTiling<HalfDimensions, HalfDimensions, (PSQTBuckets ? PSQTBuckets : 8)>;
 
     static constexpr int       NumRegs        = Tiling::NumRegs;
     static constexpr int       NumPsqtRegs    = Tiling::NumPsqtRegs;
@@ -101,7 +108,7 @@ class FeatureTransformer {
     bool read_parameters(std::istream& stream) {
 
         assert(featureLayout);
-        allocate(featureLayout->dimensions);
+        allocate(FeatureSet::dimensions(*featureLayout));
 
         read_little_endian<BiasType>(stream, biases, HalfDimensions);
         read_little_endian<WeightType>(stream, weights, HalfDimensions * inputDimensions);
@@ -133,9 +140,10 @@ class FeatureTransformer {
         const auto& accumulation     = accumulatorStack.latest().accumulation;
         const auto& psqtAccumulation = accumulatorStack.latest().psqtAccumulation;
 
-        const auto psqt =
-          (psqtAccumulation[perspectives[0]][bucket] - psqtAccumulation[perspectives[1]][bucket])
-          / 2;
+        const std::int32_t psqt = PSQTBuckets ? (psqtAccumulation[perspectives[0]][bucket]
+                                                 - psqtAccumulation[perspectives[1]][bucket])
+                                                  / 2
+                                              : 0;
 
 
 #if defined(USE_AVX512)
@@ -278,8 +286,10 @@ class FeatureTransformer {
 
 
     // The feature layout of the variant the parameters are for
-    void              set_layout(const NnueLayout* l) { featureLayout = l; }
-    const NnueLayout& layout() const { return *featureLayout; }
+    using Layout = typename FeatureSet::Layout;
+
+    void          set_layout(const Layout* l) { featureLayout = l; }
+    const Layout& layout() const { return *featureLayout; }
 
     alignas(CacheLineSize) BiasType biases[HalfDimensions] = {};
 
@@ -315,7 +325,7 @@ class FeatureTransformer {
         }
     }
 
-    const NnueLayout* featureLayout = nullptr;
+    const Layout* featureLayout = nullptr;
 
     LargePagePtr<Block[]> weightMemory;
     LargePagePtr<Block[]> psqtWeightMemory;

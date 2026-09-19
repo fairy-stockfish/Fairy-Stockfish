@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -41,20 +42,87 @@ class Position;
 namespace Stockfish::Eval::NNUE {
 
 // Material (PSQT) and positional output of the network,
-// both not yet divided by OutputScale
+// both not yet divided by the output scale
 using NetworkOutput = std::tuple<std::int32_t, std::int32_t>;
 
-// A network of the variant architecture. The input dimensions of the
-// feature transformer depend on the variant the network was loaded for.
+// Interface of a network of one of the supported architectures
+class NetworkBase {
+   public:
+    virtual ~NetworkBase() = default;
+
+    virtual std::unique_ptr<NetworkBase> clone() const = 0;
+
+    // Reads the parameters following the file header. The size is the total file size.
+    virtual bool read_parameters(std::istream&  stream,
+                                 std::size_t    size,
+                                 std::size_t    headerSize,
+                                 const Variant* v)            = 0;
+    virtual bool write_parameters(std::ostream& stream) const = 0;
+
+    virtual NetworkOutput evaluate(const Position&    pos,
+                                   AccumulatorStack&  accumulatorStack,
+                                   AccumulatorCaches& cache) const = 0;
+
+    virtual NnueEvalTrace trace_evaluate(const Position&    pos,
+                                         AccumulatorStack&  accumulatorStack,
+                                         AccumulatorCaches& cache) const = 0;
+
+    virtual void clear(AccumulatorCaches& cache) const = 0;
+
+    // Returns whether the position has the pieces required by the features
+    virtual bool applicable(const Position& pos) const = 0;
+
+    // The piece type the features are relative to, if any
+    virtual PieceType king() const = 0;
+};
+
+// A network of a given architecture
+template<typename Arch>
+class NetworkImpl final: public NetworkBase {
+   public:
+    using Transformer    = FeatureTransformer<Arch>;
+    using LayerStackType = typename Arch::LayerStackType;
+
+    std::unique_ptr<NetworkBase> clone() const override;
+
+    bool read_parameters(std::istream&, std::size_t, std::size_t, const Variant*) override;
+    bool write_parameters(std::ostream&) const override;
+
+    NetworkOutput evaluate(const Position&, AccumulatorStack&, AccumulatorCaches&) const override;
+    NnueEvalTrace
+    trace_evaluate(const Position&, AccumulatorStack&, AccumulatorCaches&) const override;
+
+    void      clear(AccumulatorCaches& cache) const override;
+    bool      applicable(const Position& pos) const override;
+    PieceType king() const override;
+
+    // Hash value of evaluation function structure
+    static constexpr std::uint32_t hash =
+      Transformer::get_hash_value() ^ LayerStackType::get_hash_value();
+
+   private:
+    std::size_t bucket(const Position& pos) const;
+
+    // Input feature converter
+    Transformer featureTransformer;
+
+    // Evaluation function
+    LayerStackType network[Arch::LayerStacks];
+
+    const Variant* var = nullptr;
+};
+
+// The network used for evaluation. The architecture
+// is determined by the header of the network file.
 class Network {
    public:
     Network(EvalFile file) :
         evalFile(file) {}
 
-    Network(const Network& other)            = default;
-    Network(Network&& other)                 = default;
-    Network& operator=(const Network& other) = default;
-    Network& operator=(Network&& other)      = default;
+    Network(const Network& other);
+    Network(Network&& other) = default;
+    Network& operator=(const Network& other);
+    Network& operator=(Network&& other) = default;
 
     // Loads a network for a variant. The network may use any
     // of the feature layouts of the variant.
@@ -63,18 +131,26 @@ class Network {
 
     NetworkOutput evaluate(const Position&    pos,
                            AccumulatorStack&  accumulatorStack,
-                           AccumulatorCaches& cache) const;
+                           AccumulatorCaches& cache) const {
+        return impl->evaluate(pos, accumulatorStack, cache);
+    }
 
     void verify(std::string evalfilePath, const std::function<void(std::string_view)>&) const;
     NnueEvalTrace trace_evaluate(const Position&    pos,
                                  AccumulatorStack&  accumulatorStack,
-                                 AccumulatorCaches& cache) const;
+                                 AccumulatorCaches& cache) const {
+        return impl->trace_evaluate(pos, accumulatorStack, cache);
+    }
+
+    void clear(AccumulatorCaches& cache) const;
 
     const EvalFile& eval_file() const { return evalFile; }
 
-    // The variant and the feature layout the network was loaded for
-    const Variant*    variant() const { return var; }
-    const NnueLayout& layout() const { return featureTransformer.layout(); }
+    // The variant the network was loaded for
+    const Variant* variant() const { return var; }
+
+    bool      applicable(const Position& pos) const { return impl && impl->applicable(pos); }
+    PieceType king() const { return impl ? impl->king() : NO_PIECE_TYPE; }
 
    private:
     void load_user_net(const std::string&, const std::string&, const Variant*);
@@ -83,29 +159,18 @@ class Network {
     bool save(std::ostream&, const std::string&, const std::string&) const;
     bool load(std::istream&, std::size_t, const Variant*);
 
-    bool read_header(std::istream&, std::uint32_t*, std::string*) const;
-    bool write_header(std::ostream&, std::uint32_t, const std::string&) const;
+    bool read_header(std::istream&, std::uint32_t*, std::uint32_t*, std::string*) const;
+    bool write_header(std::ostream&, std::uint32_t, std::uint32_t, const std::string&) const;
 
-    bool read_parameters(std::istream&, std::size_t, const Variant*, std::string&);
-    bool write_parameters(std::ostream&, const std::string&) const;
+    std::unique_ptr<NetworkBase> impl;
 
-    std::size_t bucket(const Position& pos) const;
-
-    // Input feature converter
-    FeatureTransformer featureTransformer;
-
-    // Evaluation function
-    NetworkArchitecture network[LayerStacks];
+    // Version and hash of the loaded network
+    std::uint32_t version = 0;
+    std::uint32_t hash    = 0;
 
     EvalFile evalFile;
 
     const Variant* var = nullptr;
-
-    // Hash value of evaluation function structure
-    static constexpr std::uint32_t hash =
-      FeatureTransformer::get_hash_value() ^ NetworkArchitecture::get_hash_value();
-
-    friend struct AccumulatorCaches;
 };
 
 }  // namespace Stockfish::Eval::NNUE

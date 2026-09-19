@@ -1570,7 +1570,7 @@ Value Eval::simple_eval(const Position& pos, Color c) {
 // may differ if the variant was changed without setting up a new position.
 static bool use_nnue(const Position& pos, const Eval::NNUE::Network& network) {
     return Eval::useNNUE && pos.variant() == network.variant() && pos.nnue_applicable()
-        && Eval::NNUE::FeatureSet::applicable(pos, network.layout());
+        && network.applicable(pos);
 }
 
 Value Eval::evaluate(const NNUE::Network&     network,

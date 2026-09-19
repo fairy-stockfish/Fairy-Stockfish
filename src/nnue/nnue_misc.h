@@ -42,10 +42,9 @@ struct EvalFile {
 };
 
 struct NnueEvalTrace {
-    static_assert(LayerStacks == PSQTBuckets);
-
-    Value       psqt[LayerStacks];
-    Value       positional[LayerStacks];
+    Value       psqt[MaxLayerStacks];
+    Value       positional[MaxLayerStacks];
+    std::size_t layerStacks;
     std::size_t correctBucket;
 };
 

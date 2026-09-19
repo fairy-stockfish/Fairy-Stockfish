@@ -25,6 +25,7 @@
 #include <iostream>
 
 #include "../misc.h"  // for IsLittleEndian
+#include "../types.h"
 
 #if defined(USE_AVX2)
     #include <immintrin.h>
@@ -83,6 +84,22 @@ constexpr std::size_t MaxSimdWidth = 32;
 
 // Type of input feature after conversion
 using TransformedFeatureType = std::uint8_t;
+
+// The largest accumulator of the supported network architectures
+constexpr IndexType MaxTransformedFeatureDimensions = 768;
+constexpr IndexType MaxPSQTBuckets                  = 8;
+constexpr IndexType MaxLayerStacks                  = 8;
+
+// Maximum number of simultaneously active features
+constexpr IndexType MaxActiveFeatures = 128;
+using FeatureIndexList                = ValueList<IndexType, MaxActiveFeatures>;
+
+// The pieces on the board and in hand an accumulator was computed for
+struct PieceState {
+    Piece        pieces[SQUARE_NB];
+    Bitboard     pieceBB;
+    std::int16_t handCount[COLOR_NB][PIECE_TYPE_NB];
+};
 
 // Round n up to be a multiple of base
 template<typename IntType>
