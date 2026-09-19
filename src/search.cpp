@@ -1176,7 +1176,8 @@ Value Search::Worker::search(
         mainHistory[~us][from_to((ss - 1)->currentMove)] << evalDiff * 11;
         if (!ttHit && type_of(pos.piece_on(prevSq)) != PAWN
             && ((ss - 1)->currentMove).type_of() != PROMOTION)
-            sharedHistory.pawn_entry(pos)[pos.piece_on(prevSq)][prevSq] << evalDiff * 13;
+            sharedHistory.pawn_entry(pos)[history_slot(pos.piece_on(prevSq))][prevSq]
+              << evalDiff * 13;
     }
 
 
@@ -1413,7 +1414,7 @@ moves_loop:  // When in check, search starts here
                 int dIndex  = std::min(int(depth), int(lmrDivisor.size())) - 1;
                 int history = (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
                             + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
-                            + sharedHistory.pawn_entry(pos)[movedPiece][to_sq(move)];
+                            + sharedHistory.pawn_entry(pos)[history_slot(movedPiece)][to_sq(move)];
 
                 // Continuation history based pruning
                 if (history < -4136 * depth)
@@ -1829,7 +1830,8 @@ moves_loop:  // When in check, search starts here
         mainHistory[~us][from_to((ss - 1)->currentMove)] << scaledBonus * 215 / 32768;
 
         if (type_of(pos.piece_on(prevSq)) != PAWN && ((ss - 1)->currentMove).type_of() != PROMOTION)
-            sharedHistory.pawn_entry(pos)[pos.piece_on(prevSq)][prevSq] << scaledBonus * 324 / 8192;
+            sharedHistory.pawn_entry(pos)[history_slot(pos.piece_on(prevSq))][prevSq]
+              << scaledBonus * 324 / 8192;
     }
 
     // Bonus for prior capture countermove that caused the fail low
@@ -2292,7 +2294,7 @@ void update_quiet_histories(
 
     update_continuation_histories(ss, pos.moved_piece(move), move.to_sq(), bonus * 750 / 1024);
 
-    workerThread.sharedHistory.pawn_entry(pos)[pos.moved_piece(move)][move.to_sq()]
+    workerThread.sharedHistory.pawn_entry(pos)[history_slot(pos.moved_piece(move))][move.to_sq()]
       << bonus * (bonus > -4 ? 1104 : 459) / 1024;
 }
 }

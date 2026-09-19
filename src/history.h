@@ -153,7 +153,8 @@ using PieceToHistory = AtomicStats<std::int16_t, 30000, 2 * PIECE_SLOTS, SQUARE_
 using ContinuationHistory = MultiArray<PieceToHistory, 2 * PIECE_SLOTS, SQUARE_NB>;
 
 // PawnHistory is addressed by the pawn structure and a move's [piece][to]
-using PawnHistory = DynStats<AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>, PAWN_HISTORY_BASE_SIZE>;
+using PawnHistory =
+  DynStats<AtomicStats<i16, 8192, 2 * PIECE_SLOTS, SQUARE_NB>, PAWN_HISTORY_BASE_SIZE>;
 
 // Correction histories record differences between the static evaluation of
 // positions and their search score. It is used to improve the static evaluation
