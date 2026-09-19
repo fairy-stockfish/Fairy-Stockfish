@@ -86,9 +86,13 @@ constexpr std::size_t MaxSimdWidth = 32;
 using TransformedFeatureType = std::uint8_t;
 
 // The largest accumulator of the supported network architectures
+#ifdef LARGEBOARDS
 constexpr IndexType MaxTransformedFeatureDimensions = 768;
-constexpr IndexType MaxPSQTBuckets                  = 8;
-constexpr IndexType MaxLayerStacks                  = 8;
+#else
+constexpr IndexType MaxTransformedFeatureDimensions = 512;
+#endif
+constexpr IndexType MaxPSQTBuckets = 8;
+constexpr IndexType MaxLayerStacks = 8;
 
 // Maximum number of simultaneously active features
 constexpr IndexType MaxActiveFeatures = 128;

@@ -154,7 +154,7 @@ std::string trace(Position& pos, const Network& network, AccumulatorCaches& cach
     // Unscaled evaluation of the network
     auto evaluate = [&]() {
         auto [psqt, positional] = network.evaluate(pos, *accumulatorStack, caches);
-        return static_cast<Value>((psqt + positional) / OutputScale);
+        return static_cast<Value>((psqt + positional) / network.output_scale());
     };
 
     Value base = evaluate();

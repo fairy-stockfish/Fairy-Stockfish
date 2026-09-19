@@ -360,6 +360,16 @@ template void AccumulatorStack::evaluate<VariantArchitecture>(
   const Position&                                pos,
   const FeatureTransformer<VariantArchitecture>& featureTransformer,
   AccumulatorCaches&                             cache) noexcept;
+#ifdef LARGEBOARDS
+template void AccumulatorStack::evaluate<ShogiArchitecture256>(
+  const Position&                                 pos,
+  const FeatureTransformer<ShogiArchitecture256>& featureTransformer,
+  AccumulatorCaches&                              cache) noexcept;
+template void AccumulatorStack::evaluate<ShogiArchitecture768>(
+  const Position&                                 pos,
+  const FeatureTransformer<ShogiArchitecture768>& featureTransformer,
+  AccumulatorCaches&                              cache) noexcept;
+#endif
 
 void AccumulatorCaches::clear(const Network& network) { network.clear(*this); }
 

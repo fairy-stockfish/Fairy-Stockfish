@@ -81,6 +81,14 @@ std::unique_ptr<NetworkBase> create_network(std::uint32_t version, std::uint32_t
     if (version == VariantArchitecture::Version && hash == NetworkImpl<VariantArchitecture>::hash)
         return std::make_unique<NetworkImpl<VariantArchitecture>>();
 
+#ifdef LARGEBOARDS
+    if (version == ShogiArchitecture256::Version && hash == NetworkImpl<ShogiArchitecture256>::hash)
+        return std::make_unique<NetworkImpl<ShogiArchitecture256>>();
+
+    if (version == ShogiArchitecture768::Version && hash == NetworkImpl<ShogiArchitecture768>::hash)
+        return std::make_unique<NetworkImpl<ShogiArchitecture768>>();
+#endif
+
     return nullptr;
 }
 
@@ -162,8 +170,9 @@ NnueEvalTrace NetworkImpl<Arch>::trace_evaluate(const Position&    pos,
           featureTransformer.transform(pos, accumulatorStack, cache, transformedFeatures, b);
         const auto positional = network[b].propagate(transformedFeatures);
 
-        t.psqt[b]       = static_cast<Value>(materialist / OutputScale);
-        t.positional[b] = static_cast<Value>(positional / OutputScale);
+        // Not yet divided by the output scale
+        t.psqt[b]       = static_cast<Value>(materialist);
+        t.positional[b] = static_cast<Value>(positional);
     }
 
     return t;
@@ -239,6 +248,10 @@ bool NetworkImpl<Arch>::write_parameters(std::ostream& stream) const {
 }
 
 template class NetworkImpl<VariantArchitecture>;
+#ifdef LARGEBOARDS
+template class NetworkImpl<ShogiArchitecture256>;
+template class NetworkImpl<ShogiArchitecture768>;
+#endif
 
 
 // Network

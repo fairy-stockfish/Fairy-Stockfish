@@ -24,6 +24,7 @@
 #include "nnue_common.h"
 
 #include "features/half_ka_v2_variants.h"
+#include "features/half_kp_shogi.h"
 
 #include "layers/affine_transform.h"
 #include "layers/affine_transform_sparse_input.h"
@@ -115,9 +116,43 @@ struct VariantArchitecture {
     static constexpr std::uint32_t Version                      = 0x7AF32F20u;
 
     using LayerStackType = LayerStack<TransformedFeatureDimensions * 2, 16, 32>;
+
+    // The output is scaled like the networks of Stockfish
+    static constexpr bool StockfishScaling = true;
+    static constexpr int  OutputScale      = NNUE::OutputScale;
 };
 
+#ifdef LARGEBOARDS
+
+// The architectures of the networks of USI shogi engines in the format of YaneuraOu:
+// HalfKP features, L1x2-L2-L3-1 without layer stacks and PSQT. The divisor of the
+// output (FV_SCALE in YaneuraOu) is fixed per architecture.
+template<IndexType L1, int L2, int L3, int Scale>
+struct ShogiArchitecture {
+    using FeatureSet = Features::HalfKPShogi;
+
+    static constexpr IndexType     TransformedFeatureDimensions = L1;
+    static constexpr IndexType     PSQTBuckets                  = 0;
+    static constexpr IndexType     LayerStacks                  = 1;
+    static constexpr std::uint32_t Version                      = 0x7AF32F16u;
+
+    using LayerStackType = LayerStack<TransformedFeatureDimensions * 2, L2, L3>;
+
+    static constexpr bool StockfishScaling = false;
+    static constexpr int  OutputScale      = Scale;
+};
+
+// The standard architecture, e.g. Suisho5 (FV_SCALE 24), Hao and Li (20)
+using ShogiArchitecture256 = ShogiArchitecture<256, 32, 32, 24>;
+// E.g. AobaNNUE (FV_SCALE 40)
+using ShogiArchitecture768 = ShogiArchitecture<768, 16, 64, 40>;
+
+static_assert(ShogiArchitecture768::TransformedFeatureDimensions
+              <= MaxTransformedFeatureDimensions);
+
 static_assert(VariantArchitecture::TransformedFeatureDimensions <= MaxTransformedFeatureDimensions);
+
+#endif  // LARGEBOARDS
 
 }  // namespace Stockfish::Eval::NNUE
 

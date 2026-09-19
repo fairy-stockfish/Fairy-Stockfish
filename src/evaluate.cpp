@@ -1589,6 +1589,13 @@ Value Eval::evaluate(const NNUE::Network&     network,
             && std::abs(eg_value(pos.psq_score())) * 5
                  > (750 + pos.non_pawn_material() / 64) * (5 + pos.rule50_count())))
         v = Evaluation<NO_TRACE>(pos).value();
+    else if (!network.stockfish_scaling())
+    {
+        // The networks of USI shogi engines only divide the output by a scale factor
+        auto [psqt, positional] = network.evaluate(pos, accumulators, caches);
+
+        v = static_cast<Value>((psqt + positional) / network.output_scale());
+    }
     else
     {
         int simpleEval = simple_eval(pos, pos.side_to_move());
@@ -1694,7 +1701,7 @@ std::string Eval::trace(Position& pos, const NNUE::Network& network) {
     if (use_nnue(pos, network))
     {
         auto [psqt, positional] = network.evaluate(pos, *accumulators, *caches);
-        v                       = static_cast<Value>((psqt + positional) / NNUE::OutputScale);
+        v                       = static_cast<Value>((psqt + positional) / network.output_scale());
         v                       = pos.side_to_move() == WHITE ? v : -v;
         ss << "NNUE evaluation        " << to_cp(v) << " (white side)\n";
     }

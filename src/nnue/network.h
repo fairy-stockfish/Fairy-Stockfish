@@ -74,6 +74,11 @@ class NetworkBase {
 
     // The piece type the features are relative to, if any
     virtual PieceType king() const = 0;
+
+    // Returns whether the output is blended and scaled like the networks of Stockfish,
+    // or just divided by an output scale like in USI shogi engines
+    virtual bool stockfish_scaling() const = 0;
+    virtual int  output_scale() const      = 0;
 };
 
 // A network of a given architecture
@@ -95,6 +100,9 @@ class NetworkImpl final: public NetworkBase {
     void      clear(AccumulatorCaches& cache) const override;
     bool      applicable(const Position& pos) const override;
     PieceType king() const override;
+
+    bool stockfish_scaling() const override { return Arch::StockfishScaling; }
+    int  output_scale() const override { return Arch::OutputScale; }
 
     // Hash value of evaluation function structure
     static constexpr std::uint32_t hash =
@@ -139,7 +147,13 @@ class Network {
     NnueEvalTrace trace_evaluate(const Position&    pos,
                                  AccumulatorStack&  accumulatorStack,
                                  AccumulatorCaches& cache) const {
-        return impl->trace_evaluate(pos, accumulatorStack, cache);
+        NnueEvalTrace t = impl->trace_evaluate(pos, accumulatorStack, cache);
+        for (std::size_t b = 0; b < t.layerStacks; ++b)
+        {
+            t.psqt[b] /= output_scale();
+            t.positional[b] /= output_scale();
+        }
+        return t;
     }
 
     void clear(AccumulatorCaches& cache) const;
@@ -148,6 +162,10 @@ class Network {
 
     // The variant the network was loaded for
     const Variant* variant() const { return var; }
+
+    // The divisor of the network output, which is fixed per architecture
+    int  output_scale() const { return impl->output_scale(); }
+    bool stockfish_scaling() const { return impl->stockfish_scaling(); }
 
     bool      applicable(const Position& pos) const { return impl && impl->applicable(pos); }
     PieceType king() const { return impl ? impl->king() : NO_PIECE_TYPE; }

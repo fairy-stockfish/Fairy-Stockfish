@@ -72,10 +72,10 @@ SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp engine.cpp evaluate.cp
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
 	nnue/network.cpp nnue/nnue_accumulator.cpp nnue/nnue_misc.cpp \
 	partner.cpp parser.cpp piece.cpp variant.cpp xboard.cpp \
-	nnue/features/half_ka_v2_variants.cpp memory.cpp
+	nnue/features/half_ka_v2_variants.cpp nnue/features/half_kp_shogi.cpp memory.cpp
 
 HEADERS = apiutil.h benchmark.h bitboard.h endgame.h engine.h evaluate.h history.h material.h misc.h movegen.h movepick.h \
-		nnue/network.h nnue/nnue_misc.h nnue/features/half_ka_v2_variants.h \
+		nnue/network.h nnue/nnue_misc.h nnue/features/half_ka_v2_variants.h nnue/features/half_kp_shogi.h \
 		nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
 		nnue/layers/clipped_relu.h nnue/simd.h \
 		nnue/nnue_accumulator.h nnue/nnue_architecture.h \
