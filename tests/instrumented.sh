@@ -53,6 +53,11 @@ race:Stockfish::TTEntry::save
 race:Stockfish::TTEntry::value
 race:Stockfish::TTEntry::eval
 race:Stockfish::TTEntry::is_pv
+race:Stockfish::TTEntry::read
+race:Stockfish::TTEntry::is_occupied
+race:Stockfish::TTEntry::relative_age
+race:Stockfish::TTWriter::write
+race:Stockfish::TTWriter::penalize
 
 race:Stockfish::TranspositionTable::probe
 race:Stockfish::TranspositionTable::hashfull
@@ -106,8 +111,13 @@ done
 
 # verify the generated net equals the base net
 network=`./stockfish uci | grep 'option name EvalFile type string default' | awk '{print $NF}'`
-echo "Comparing $network to the written verify.nnue"
-diff $network verify.nnue
+if [ -f "$network" ]; then
+   echo "Comparing $network to the written verify.nnue"
+   diff $network verify.nnue
+else
+   # Without an embedded network there is no default network to export
+   echo "No default network, skipping the comparison of the written verify.nnue"
+fi
 
 # more general testing, following an uci protocol exchange
 cat << EOF > game.exp
