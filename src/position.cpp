@@ -1769,7 +1769,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
         k ^= Zobrist::psq[captured][capsq];
         st->materialKey ^= Zobrist::psq[captured][pieceCount[captured]];
 #ifndef NO_THREADS
-        prefetch(thisThread->materialTable[material_key(var->endgameEval)]);
+        // Positions outside of the search, e.g. for perft, may have no worker
+        if (thisThread)
+            prefetch(thisThread->materialTable[material_key(var->endgameEval)]);
 #endif
         // Reset rule 50 counter
         st->rule50 = 0;

@@ -80,6 +80,10 @@ void UCIEngine::position(istringstream& is) {
 
 static void setoption(istringstream& is) {
 
+    // Options must not be modified while a search is reading them
+    if (mainEngine)
+        mainEngine->wait_for_search_finished();
+
     string token, name, value;
 
     is >> token;  // Consume the "name" token
