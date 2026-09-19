@@ -201,6 +201,9 @@ void Engine::verify_networks() const {
 // variable to have the engine search in a special directory in their distro.
 void Engine::load_networks() {
 
+    // The evaluation settings must not be modified while a search is using them
+    wait_for_search_finished();
+
     Eval::useNNUE = options["Use NNUE"];
     if (!Eval::useNNUE)
         return;
@@ -225,9 +228,6 @@ void Engine::load_networks() {
     }
     if (!Eval::useNNUE)
         return;
-
-    // The network must not be modified while a search is using it
-    wait_for_search_finished();
 
     // The feature layout of the network depends on the variant
     const Variant* v = variants.find(variant)->second;
