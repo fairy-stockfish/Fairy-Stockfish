@@ -206,6 +206,7 @@ jobs:
           ../tests/signature.sh $benchref
 
       - name: Test debug x86-64-modern profile build (Optimization on, All features)
+        if: ${{ matrix.config.run_64bit_tests }}
         run: |
           export CXXFLAGS=""
           make clean
