@@ -36,6 +36,7 @@
 #include "misc.h"
 #include "pawns.h"
 #include "movepick.h"
+#include "nnue/network.h"
 #include "nnue/nnue_accumulator.h"
 #include "numa.h"
 #include "position.h"
@@ -195,19 +196,22 @@ struct LimitsType {
 // The UCI stores the uci options, thread pool, and transposition table.
 // This struct is used to easily forward data to the Search::Worker class.
 struct SharedState {
-    SharedState(const OptionsMap&                     optionsMap,
-                ThreadPool&                           threadPool,
-                TranspositionTable&                   transpositionTable,
-                std::map<NumaIndex, SharedHistories>& sharedHists) :
+    SharedState(const OptionsMap&                              optionsMap,
+                ThreadPool&                                    threadPool,
+                TranspositionTable&                            transpositionTable,
+                std::map<NumaIndex, SharedHistories>&          sharedHists,
+                const LazyNumaReplicated<Eval::NNUE::Network>& nets) :
         options(optionsMap),
         threads(threadPool),
         tt(transpositionTable),
-        sharedHistories(sharedHists) {}
+        sharedHistories(sharedHists),
+        networks(nets) {}
 
-    const OptionsMap&                     options;
-    ThreadPool&                           threads;
-    TranspositionTable&                   tt;
-    std::map<NumaIndex, SharedHistories>& sharedHistories;
+    const OptionsMap&                              options;
+    ThreadPool&                                    threads;
+    TranspositionTable&                            tt;
+    std::map<NumaIndex, SharedHistories>&          sharedHistories;
+    const LazyNumaReplicated<Eval::NNUE::Network>& networks;
 };
 
 class Worker;
@@ -308,6 +312,8 @@ class Worker {
     // Reset histories, usually before a new game.
     void clear();
 
+    void ensure_network_replicated();
+
     // Called when the program receives the UCI 'go' command.
     // It searches from the root position and outputs the "bestmove".
     void start_searching();
@@ -389,7 +395,8 @@ class Worker {
     NumaReplicatedAccessToken numaAccessToken;
 
     // Used by NNUE
-    Eval::NNUE::AccumulatorStack accumulatorStack;
+    const LazyNumaReplicated<Eval::NNUE::Network>& networks;
+    Eval::NNUE::AccumulatorStack                   accumulatorStack;
 
     // Reductions lookup table initialized at startup
     std::array<int, MAX_MOVES> reductions;  // [depth or moveNumber]

@@ -50,7 +50,7 @@
 #include "uci.h"
 #include "xboard.h"
 #include "syzygy/tbprobe.h"
-#include "nnue/evaluate_nnue.h"
+#include "nnue/network.h"
 
 namespace Stockfish {
 
@@ -217,11 +217,18 @@ Search::Worker::Worker(SharedState&                    sharedState,
     numaThreadIdx(numaThreadId),
     numaTotal(numaTotalThreads),
     numaAccessToken(token),
+    networks(sharedState.networks),
     manager(std::move(sm)),
     options(sharedState.options),
     threads(sharedState.threads),
     tt(sharedState.tt) {
     clear();
+}
+
+void Search::Worker::ensure_network_replicated() {
+    // Access once to force lazy initialization.
+    // We do this because we want to avoid initialization during search.
+    (void) (networks[numaAccessToken]);
 }
 
 void Search::Worker::start_searching() {
@@ -239,8 +246,6 @@ void Search::Worker::start_searching() {
                             main_manager()->originalTimeAdjust);
     tt.new_search();
     main_manager()->updates.onStart();
-
-    Eval::NNUE::verify();
 
     bool uciPvSent = false;
 
@@ -2140,7 +2145,8 @@ TimePoint Search::Worker::elapsed() const {
 // Evaluate the current position of the game tree, from the point of view of
 // the side to move.
 Value Search::Worker::evaluate(const Position& pos) {
-    return Eval::evaluate(pos, accumulatorStack, optimism[pos.side_to_move()]);
+    return Eval::evaluate(networks[numaAccessToken], pos, accumulatorStack,
+                          optimism[pos.side_to_move()]);
 }
 
 namespace {

@@ -71,8 +71,13 @@ static void on_numa_policy(const Option& o) {
     print_thread_binding_information(*mainEngine);
 }
 static void on_tb_path(const Option& o) { Tablebases::init(o); }
-static void on_use_NNUE(const Option&) { Eval::NNUE::init(); }
-static void on_eval_file(const Option&) { Eval::NNUE::init(); }
+// The bindings use the options without an engine instance
+static void load_networks() {
+    if (mainEngine)
+        mainEngine->load_networks();
+}
+static void on_use_NNUE(const Option&) { load_networks(); }
+static void on_eval_file(const Option&) { load_networks(); }
 
 void on_variant_path(const Option& o) {
     std::stringstream ss((std::string) o);
@@ -85,7 +90,7 @@ void on_variant_path(const Option& o) {
 }
 void on_variant_set(const Option& o) {
     // Re-initialize NNUE
-    Eval::NNUE::init();
+    load_networks();
 
     const Variant* v = variants.find(o)->second;
     init_variant(v);

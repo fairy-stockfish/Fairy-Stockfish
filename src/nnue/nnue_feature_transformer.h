@@ -24,6 +24,7 @@
 #include "nnue_accumulator.h"
 #include "nnue_architecture.h"
 #include "nnue_common.h"
+#include "../memory.h"
 #include "../position.h"
 
 #include <cstring>  // std::memset()
@@ -179,8 +180,8 @@ class FeatureTransformer {
     // Output type
     using OutputType = TransformedFeatureType;
 
-    // Number of input/output dimensions
-    static constexpr IndexType InputDimensions  = FeatureSet::Dimensions;
+    // Number of output dimensions. The number of input dimensions
+    // depends on the variant the network is loaded for.
     static constexpr IndexType OutputDimensions = HalfDimensions * 2;
 
     // Size of forward propagation buffer
@@ -191,14 +192,37 @@ class FeatureTransformer {
         return FeatureSet::HashValue ^ OutputDimensions;
     }
 
+    FeatureTransformer() = default;
+
+    FeatureTransformer(const FeatureTransformer& other) { *this = other; }
+
+    FeatureTransformer& operator=(const FeatureTransformer& other) {
+        if (this == &other)
+            return *this;
+
+        std::memcpy(biases, other.biases, sizeof(biases));
+        allocate(other.inputDimensions);
+        if (inputDimensions)
+        {
+            std::memcpy(weights, other.weights,
+                        sizeof(WeightType) * HalfDimensions * inputDimensions);
+            std::memcpy(psqtWeights, other.psqtWeights,
+                        sizeof(PSQTWeightType) * PSQTBuckets * inputDimensions);
+        }
+        return *this;
+    }
+
+    FeatureTransformer(FeatureTransformer&&)            = default;
+    FeatureTransformer& operator=(FeatureTransformer&&) = default;
+
     // Read network parameters
     bool read_parameters(std::istream& stream) {
 
+        allocate(FeatureSet::get_dimensions());
+
         read_little_endian<BiasType>(stream, biases, HalfDimensions);
-        read_little_endian<WeightType>(stream, weights,
-                                       HalfDimensions * FeatureSet::get_dimensions());
-        read_little_endian<PSQTWeightType>(stream, psqtWeights,
-                                           PSQTBuckets * FeatureSet::get_dimensions());
+        read_little_endian<WeightType>(stream, weights, HalfDimensions * inputDimensions);
+        read_little_endian<PSQTWeightType>(stream, psqtWeights, PSQTBuckets * inputDimensions);
 
         return !stream.fail();
     }
@@ -207,10 +231,8 @@ class FeatureTransformer {
     bool write_parameters(std::ostream& stream) const {
 
         write_little_endian<BiasType>(stream, biases, HalfDimensions);
-        write_little_endian<WeightType>(stream, weights,
-                                        HalfDimensions * FeatureSet::get_dimensions());
-        write_little_endian<PSQTWeightType>(stream, psqtWeights,
-                                            PSQTBuckets * FeatureSet::get_dimensions());
+        write_little_endian<WeightType>(stream, weights, HalfDimensions * inputDimensions);
+        write_little_endian<PSQTWeightType>(stream, psqtWeights, PSQTBuckets * inputDimensions);
 
         return !stream.fail();
     }
@@ -371,9 +393,42 @@ class FeatureTransformer {
     }  // end of function transform()
 
 
-    alignas(CacheLineSize) BiasType biases[HalfDimensions];
-    alignas(CacheLineSize) WeightType weights[HalfDimensions * InputDimensions];
-    alignas(CacheLineSize) PSQTWeightType psqtWeights[InputDimensions * PSQTBuckets];
+    alignas(CacheLineSize) BiasType biases[HalfDimensions] = {};
+
+    // The weights are sized by the input dimensions of the variant
+    WeightType*     weights         = nullptr;
+    PSQTWeightType* psqtWeights     = nullptr;
+    IndexType       inputDimensions = 0;
+
+   private:
+    // Cache line sized blocks keep the weights aligned for SIMD access
+    struct alignas(CacheLineSize) Block {
+        char data[CacheLineSize];
+    };
+
+    static std::size_t blocks(std::size_t bytes) {
+        return (bytes + CacheLineSize - 1) / CacheLineSize;
+    }
+
+    void allocate(IndexType dimensions) {
+        inputDimensions = dimensions;
+        weights         = nullptr;
+        psqtWeights     = nullptr;
+        weightMemory.reset();
+        psqtWeightMemory.reset();
+        if (dimensions)
+        {
+            weightMemory = make_unique_large_page<Block[]>(
+              blocks(sizeof(WeightType) * HalfDimensions * dimensions));
+            psqtWeightMemory = make_unique_large_page<Block[]>(
+              blocks(sizeof(PSQTWeightType) * PSQTBuckets * dimensions));
+            weights     = reinterpret_cast<WeightType*>(weightMemory.get());
+            psqtWeights = reinterpret_cast<PSQTWeightType*>(psqtWeightMemory.get());
+        }
+    }
+
+    LargePagePtr<Block[]> weightMemory;
+    LargePagePtr<Block[]> psqtWeightMemory;
 };
 
 }  // namespace Stockfish::Eval::NNUE

@@ -85,6 +85,7 @@ class Thread {
     void idle_loop();
     void start_searching();
     void clear_worker();
+    void ensure_network_replicated();
     void run_custom_job(std::function<void()> f);
 
 
@@ -137,6 +138,7 @@ class ThreadPool {
     void   wait_on_thread(size_t threadId);
     size_t num_threads() const;
     void   clear();
+    void   ensure_network_replicated();
     void   destroy();
     void   set(const NumaConfig& numaConfig,
                Search::SharedState,

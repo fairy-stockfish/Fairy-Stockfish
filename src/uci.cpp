@@ -37,7 +37,6 @@
 #include "uci.h"
 #include "xboard.h"
 #include "syzygy/tbprobe.h"
-#include "nnue/evaluate_nnue.h"
 
 using namespace std;
 

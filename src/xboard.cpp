@@ -19,6 +19,7 @@
 #include <iostream>
 #include <string>
 
+#include "engine.h"
 #include "evaluate.h"
 #include "misc.h"
 #include "partner.h"
@@ -52,6 +53,7 @@ void StateMachine::go(Search::LimitsType searchLimits, bool ponder) {
     searchLimits.startTime = now();  // As early as possible!
 
     searchLimits.ponderMode = ponder;
+    mainEngine->verify_networks();
     Threads.start_thinking(Options, pos, states, searchLimits);
 }
 
@@ -461,7 +463,7 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
     else if (token == "d")
         sync_cout << pos << sync_endl;
     else if (token == "eval")
-        sync_cout << Eval::trace(pos) << sync_endl;
+        mainEngine->trace_eval();
     // Move strings and unknown commands
     else
     {

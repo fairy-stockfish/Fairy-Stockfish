@@ -49,11 +49,11 @@ using OutputLayer  = AffineTransform<HiddenLayer2, 1>;
 
 }  // namespace Layers
 
-using Network = Layers::OutputLayer;
+using NetworkArchitecture = Layers::OutputLayer;
 
 static_assert(TransformedFeatureDimensions % MaxSimdWidth == 0, "");
-static_assert(Network::OutputDimensions == 1, "");
-static_assert(std::is_same<Network::OutputType, std::int32_t>::value, "");
+static_assert(NetworkArchitecture::OutputDimensions == 1, "");
+static_assert(std::is_same<NetworkArchitecture::OutputType, std::int32_t>::value, "");
 
 }  // namespace Stockfish::Eval::NNUE
 

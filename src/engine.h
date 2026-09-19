@@ -33,6 +33,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "history.h"
+#include "nnue/network.h"
 #include "numa.h"
 #include "types.h"
 #include "uci.h"
@@ -127,6 +128,8 @@ class Engine {
     TranspositionTable& tt;
 
     std::map<NumaIndex, SharedHistories> sharedHistories;
+
+    LazyNumaReplicated<Eval::NNUE::Network> networks;
 
     Search::SearchManager::UpdateContext  updateContext;
     std::function<void(std::string_view)> onVerifyNetworks;

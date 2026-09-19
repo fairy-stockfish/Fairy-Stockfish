@@ -36,26 +36,9 @@
 #include "thread.h"
 #include "timeman.h"
 #include "uci.h"
-#include "incbin/incbin.h"
-#include "nnue/evaluate_nnue.h"
-
-// Macro to embed the default efficiently updatable neural network (NNUE) file
-// data in the engine binary (using incbin.h, by Dale Weiler).
-// This macro invocation will declare the following three variables
-//     const unsigned char        gEmbeddedNNUEData[];  // a pointer to the embedded data
-//     const unsigned char *const gEmbeddedNNUEEnd;     // a marker to the end
-//     const unsigned int         gEmbeddedNNUESize;    // the size of the embedded file
-// Note that this does not work in Microsoft Visual Studio.
-#if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
-INCBIN(EmbeddedNNUE, EvalFileDefaultName);
-#else
-const unsigned char                         gEmbeddedNNUEData[1] = {0x0};
-[[maybe_unused]] const unsigned char* const gEmbeddedNNUEEnd     = &gEmbeddedNNUEData[1];
-const unsigned int                          gEmbeddedNNUESize    = 1;
-#endif
-
-
-using namespace std;
+#include "nnue/network.h"
+#include "nnue/nnue_accumulator.h"
+#include "nnue/nnue_misc.h"
 
 namespace Stockfish {
 
@@ -63,122 +46,8 @@ const Variant* currentNnueVariant;
 
 namespace Eval {
 
-bool   useNNUE;
-string currentEvalFileName = "None";
+bool useNNUE;
 
-// Tries to load a NNUE network at startup time, or when the engine
-// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
-// The name of the NNUE network is always retrieved from the EvalFile option.
-// We search the given network in three locations: internally (the default
-// network may be embedded in the binary), in the active working directory and
-// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY
-// variable to have the engine search in a special directory in their distro.
-void NNUE::init() {
-
-    useNNUE = Options["Use NNUE"];
-    if (!useNNUE)
-        return;
-
-    string eval_file = string(Options["EvalFile"]);
-
-    // Restrict NNUE usage to corresponding variant
-    // Support multiple variant networks separated by semicolon(Windows)/colon(Unix)
-    stringstream ss(eval_file);
-    string       variant = string(Options["UCI_Variant"]);
-    useNNUE              = false;
-    while (getline(ss, eval_file, UCI::SepChar))
-    {
-        string basename  = eval_file.substr(eval_file.find_last_of("\\/") + 1);
-        string nnueAlias = variants.find(variant)->second->nnueAlias;
-        if (basename.rfind(variant, 0) != string::npos
-            || (!nnueAlias.empty() && basename.rfind(nnueAlias, 0) != string::npos))
-        {
-            useNNUE = true;
-            break;
-        }
-    }
-    if (!useNNUE)
-        return;
-
-    currentNnueVariant = variants.find(variant)->second;
-
-#if defined(DEFAULT_NNUE_DIRECTORY)
-    vector<string> dirs = {"<internal>", "", CommandLine::binaryDirectory,
-                           stringify(DEFAULT_NNUE_DIRECTORY)};
-#else
-    vector<string> dirs = {"<internal>", "", CommandLine::binaryDirectory};
-#endif
-
-    for (const string& directory : dirs)
-        if (currentEvalFileName != eval_file)
-        {
-            if (directory != "<internal>")
-            {
-                ifstream stream(directory + eval_file, ios::binary);
-                if (NNUE::load_eval(eval_file, stream))
-                    currentEvalFileName = eval_file;
-            }
-
-            if (directory == "<internal>" && eval_file == EvalFileDefaultName)
-            {
-                // C++ way to prepare a buffer for a memory stream
-                class MemoryBuffer: public basic_streambuf<char> {
-                   public:
-                    MemoryBuffer(char* p, size_t n) {
-                        setg(p, p, p + n);
-                        setp(p, p + n);
-                    }
-                };
-
-                MemoryBuffer buffer(
-                  const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
-                  size_t(gEmbeddedNNUESize));
-
-                istream stream(&buffer);
-                if (NNUE::load_eval(eval_file, stream))
-                    currentEvalFileName = eval_file;
-            }
-        }
-}
-
-// Verifies that the last net used was loaded successfully
-void NNUE::verify() {
-
-    string eval_file = string(Options["EvalFile"]);
-    if (eval_file.empty())
-        eval_file = EvalFileDefaultName;
-
-    if (useNNUE && eval_file.find(currentEvalFileName) == string::npos)
-    {
-
-        std::string msg1 =
-          "Network evaluation parameters compatible with the engine must be available.";
-        std::string msg2 = "The network file " + eval_file + " was not loaded successfully.";
-        std::string msg3 = "The UCI option EvalFile might need to specify the full path, "
-                           "including the directory name, to the network file.";
-        std::string msg4 = "The default net can be downloaded from: "
-                           "https://tests.stockfishchess.org/api/nn/"
-                         + std::string(EvalFileDefaultName);
-        std::string msg5 = "The engine will be terminated now.";
-
-        sync_cout << "info string ERROR: " << msg1 << sync_endl;
-        sync_cout << "info string ERROR: " << msg2 << sync_endl;
-        sync_cout << "info string ERROR: " << msg3 << sync_endl;
-        sync_cout << "info string ERROR: " << msg4 << sync_endl;
-        sync_cout << "info string ERROR: " << msg5 << sync_endl;
-
-        exit(EXIT_FAILURE);
-    }
-
-    if (CurrentProtocol != XBOARD)
-    {
-        if (useNNUE)
-            sync_cout << "info string NNUE evaluation using " << currentEvalFileName << " enabled"
-                      << sync_endl;
-        else
-            sync_cout << "info string classical evaluation enabled" << sync_endl;
-    }
-}
 }
 
 namespace Trace {
@@ -1698,7 +1567,10 @@ Value Eval::simple_eval(const Position& pos, Color c) {
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
-Value Eval::evaluate(const Position& pos, NNUE::AccumulatorStack& accumulators, int optimism) {
+Value Eval::evaluate(const NNUE::Network&    network,
+                     const Position&         pos,
+                     NNUE::AccumulatorStack& accumulators,
+                     int                     optimism) {
 
     assert(!pos.checkers());
 
@@ -1714,8 +1586,13 @@ Value Eval::evaluate(const Position& pos, NNUE::AccumulatorStack& accumulators, 
     {
         int simpleEval = simple_eval(pos, pos.side_to_move());
 
-        int   nnueComplexity;
-        Value nnue = NNUE::evaluate(pos, accumulators, true, &nnueComplexity);
+        auto [psqt, positional] = network.evaluate(pos, accumulators);
+
+        // Give more value to the positional evaluation
+        int   delta          = 24 - pos.non_pawn_material() / 9560;
+        int   nnueComplexity = std::abs(psqt - positional) / NNUE::OutputScale;
+        Value nnue = static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional)
+                                        / (1024 * NNUE::OutputScale));
 
         // Blend optimism and eval with nnue complexity and material imbalance
         optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
@@ -1758,7 +1635,7 @@ Value Eval::evaluate(const Position& pos, NNUE::AccumulatorStack& accumulators, 
 // a string (suitable for outputting to stdout) that contains the detailed
 // descriptions and values of each evaluation term. Useful for debugging.
 // Trace scores are from white's point of view
-std::string Eval::trace(Position& pos) {
+std::string Eval::trace(Position& pos, const NNUE::Network& network) {
 
     if (pos.checkers())
         return "Final evaluation: none (in check)";
@@ -1798,7 +1675,7 @@ std::string Eval::trace(Position& pos) {
        << "+------------+-------------+-------------+-------------+\n";
 
     if (Eval::useNNUE && pos.nnue_applicable())
-        ss << '\n' << NNUE::trace(pos) << '\n';
+        ss << '\n' << NNUE::trace(pos, network) << '\n';
 
     ss << std::showpoint << std::showpos << std::fixed << std::setprecision(2) << std::setw(15);
 
@@ -1808,12 +1685,13 @@ std::string Eval::trace(Position& pos) {
 
     if (Eval::useNNUE && pos.nnue_applicable())
     {
-        v = NNUE::evaluate(pos, *accumulators, false);
-        v = pos.side_to_move() == WHITE ? v : -v;
+        auto [psqt, positional] = network.evaluate(pos, *accumulators);
+        v                       = static_cast<Value>((psqt + positional) / NNUE::OutputScale);
+        v                       = pos.side_to_move() == WHITE ? v : -v;
         ss << "NNUE evaluation        " << to_cp(v) << " (white side)\n";
     }
 
-    v = evaluate(pos, *accumulators, VALUE_ZERO);
+    v = evaluate(network, pos, *accumulators, VALUE_ZERO);
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "Final evaluation       " << to_cp(v) << " (white side)";
     if (Eval::useNNUE && pos.nnue_applicable())

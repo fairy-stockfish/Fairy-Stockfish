@@ -34,7 +34,7 @@
 #include "types.h"
 #include "uci.h"
 #include "variant.h"
-#include "nnue/evaluate_nnue.h"
+#include "nnue/network.h"
 
 namespace Stockfish {
 
@@ -45,7 +45,8 @@ Engine::Engine() :
     states(new std::deque<StateInfo>(1)),
     options(Options),
     threads(Threads),
-    tt(TT) {
+    tt(TT),
+    networks(numaContext, Eval::NNUE::Network({EvalFileDefaultName, "None", ""})) {
     const Variant* v = variants.find(options["UCI_Variant"])->second;
     pos.set(v, v->startFen, options["UCI_Chess960"], &states->back(), nullptr);
     mainEngine = this;
@@ -153,7 +154,9 @@ void Engine::set_numa_config_from_option(const std::string& o) {
 void Engine::resize_threads() {
     threads.wait_for_search_finished();
     threads.set(numaContext.get_numa_config(),
-                Search::SharedState(options, threads, tt, sharedHistories), updateContext);
+                Search::SharedState(options, threads, tt, sharedHistories, networks),
+                updateContext);
+    threads.ensure_network_replicated();
 
     // Reallocate the hash with the new threadpool size
     set_tt_size(options["Hash"]);
@@ -168,13 +171,69 @@ void Engine::set_ponderhit(bool b) { threads.main_manager()->ponder = b; }
 
 // network related
 
-void Engine::verify_networks() const { Eval::NNUE::verify(); }
+void Engine::verify_networks() const {
+    auto print = [](std::string_view msg) {
+        if (CurrentProtocol != XBOARD)
+        {
+            // Every line of a message is sent as an info string
+            std::stringstream ss{std::string(msg)};
+            for (std::string line; std::getline(ss, line);)
+                sync_cout << "info string " << line << sync_endl;
+        }
+    };
 
-void Engine::load_networks() { Eval::NNUE::init(); }
-
-void Engine::save_network(const std::optional<std::string>& filename) {
-    Eval::NNUE::save_eval(filename);
+    if (Eval::useNNUE)
+        networks->verify(std::string(options["EvalFile"]), print);
+    else
+        print("classical evaluation enabled");
 }
+
+// Tries to load a NNUE network at startup time, or when the engine
+// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
+// The name of the NNUE network is always retrieved from the EvalFile option.
+// We search the given network in three locations: internally (the default
+// network may be embedded in the binary), in the active working directory and
+// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY
+// variable to have the engine search in a special directory in their distro.
+void Engine::load_networks() {
+
+    Eval::useNNUE = options["Use NNUE"];
+    if (!Eval::useNNUE)
+        return;
+
+    std::string eval_file = std::string(options["EvalFile"]);
+
+    // Restrict NNUE usage to corresponding variant
+    // Support multiple variant networks separated by semicolon(Windows)/colon(Unix)
+    std::stringstream ss(eval_file);
+    std::string       variant = std::string(options["UCI_Variant"]);
+    Eval::useNNUE             = false;
+    while (std::getline(ss, eval_file, UCI::SepChar))
+    {
+        std::string basename  = eval_file.substr(eval_file.find_last_of("\\/") + 1);
+        std::string nnueAlias = variants.find(variant)->second->nnueAlias;
+        if (basename.rfind(variant, 0) != std::string::npos
+            || (!nnueAlias.empty() && basename.rfind(nnueAlias, 0) != std::string::npos))
+        {
+            Eval::useNNUE = true;
+            break;
+        }
+    }
+    if (!Eval::useNNUE)
+        return;
+
+    // The network must not be modified while a search is using it
+    wait_for_search_finished();
+
+    // The input dimensions of the network depend on the variant
+    currentNnueVariant = variants.find(variant)->second;
+
+    networks.modify_and_replicate(
+      [&](Eval::NNUE::Network& network) { network.load(CommandLine::binaryDirectory, eval_file); });
+    threads.ensure_network_replicated();
+}
+
+void Engine::save_network(const std::optional<std::string>& filename) { networks->save(filename); }
 
 // utility functions
 
@@ -186,7 +245,7 @@ void Engine::trace_eval() const {
 
     verify_networks();
 
-    sync_cout << "\n" << Eval::trace(p) << sync_endl;
+    sync_cout << "\n" << Eval::trace(p, *networks) << sync_endl;
 }
 
 const OptionsMap& Engine::get_options() const { return options; }

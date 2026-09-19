@@ -32,6 +32,7 @@ class Position;
 
 namespace Eval::NNUE {
 class AccumulatorStack;
+class Network;
 }
 
 namespace UCI {
@@ -41,35 +42,20 @@ using UCI::OptionsMap;
 
 namespace Eval {
 
-std::string trace(Position& pos);
+std::string trace(Position& pos, const NNUE::Network& network);
 Value       simple_eval(const Position& pos, Color c);
-Value       evaluate(const Position& pos, NNUE::AccumulatorStack& accumulators, int optimism);
+Value       evaluate(const NNUE::Network&    network,
+                     const Position&         pos,
+                     NNUE::AccumulatorStack& accumulators,
+                     int                     optimism);
 
-extern bool        useNNUE;
-extern std::string currentEvalFileName;
+extern bool useNNUE;
 
 // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
 // for the build process (profile-build and fishtest) to work. Do not change the
 // name of the macro, as it is used in the Makefile.
 #define EvalFileDefaultName "nn-5af11540bbfe.nnue"
 
-struct EvalFile {
-    // UCI option name
-    std::string optionName;
-    // Default net name, will use one of the macros above
-    std::string defaultName;
-    // Selected net name, either via uci option or default
-    std::string current;
-    // Net description extracted from the net file
-    std::string netDescription;
-};
-
-namespace NNUE {
-
-void init();
-void verify();
-
-}  // namespace NNUE
 
 }  // namespace Eval
 
