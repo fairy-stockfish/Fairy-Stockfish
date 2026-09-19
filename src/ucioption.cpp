@@ -79,7 +79,7 @@ static void load_networks() {
 static void on_use_NNUE(const Option&) { load_networks(); }
 static void on_eval_file(const Option&) { load_networks(); }
 
-void on_variant_path(const Option& o) {
+static void on_variant_path(const Option& o) {
     std::stringstream ss((std::string) o);
     std::string       path;
 
@@ -88,7 +88,7 @@ void on_variant_path(const Option& o) {
 
     Options["UCI_Variant"].set_combo(variants.get_keys());
 }
-void on_variant_set(const Option& o) {
+static void on_variant_set(const Option& o) {
     // Re-initialize NNUE
     load_networks();
 
@@ -96,7 +96,7 @@ void on_variant_set(const Option& o) {
     init_variant(v);
     PSQT::init(v);
 }
-void on_variant_change(const Option& o) {
+static void on_variant_change(const Option& o) {
     // Variant initialization
     on_variant_set(o);
 

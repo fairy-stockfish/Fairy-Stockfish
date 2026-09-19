@@ -76,7 +76,7 @@ bool write_parameters(std::ostream& stream, const T& reference) {
 }
 
 // Creates a network of the architecture matching the header of a network file
-std::unique_ptr<NetworkBase> create_network(std::uint32_t version, std::uint32_t hash) {
+static std::unique_ptr<NetworkBase> create_network(std::uint32_t version, std::uint32_t hash) {
 
     if (version == VariantArchitecture::Version && hash == NetworkImpl<VariantArchitecture>::hash)
         return std::make_unique<NetworkImpl<VariantArchitecture>>();
