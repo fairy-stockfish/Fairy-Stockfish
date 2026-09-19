@@ -1179,8 +1179,10 @@ void set(T& e, uint8_t* data) {
         for (int k = 0; k < e.pieceCount; ++k, ++data)
             for (int i = 0; i < sides; i++)
             {
-                int p                  = i ? *data >> 4 : *data & 0xF;
-                e.get(i, f)->pieces[k] = make_piece(Color(p >> 3), PieceType(p & 7));
+                int p = i ? *data >> 4 : *data & 0xF;
+                // Tablebase files encode the king as piece type 6
+                PieceType pt           = (p & 7) == 6 ? KING : PieceType(p & 7);
+                e.get(i, f)->pieces[k] = make_piece(Color(p >> 3), pt);
             }
 
         for (int i = 0; i < sides; ++i)
