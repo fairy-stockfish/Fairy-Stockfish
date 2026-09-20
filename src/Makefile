@@ -25,6 +25,13 @@ ifeq ($(KERNEL),Linux)
 	OS := $(shell uname -o)
 endif
 
+### Target operating system (may differ from KERNEL when cross-compiling)
+TARGET_KERNEL := $(KERNEL)
+ifeq ($(COMP),ndk)
+	TARGET_KERNEL := Linux
+	OS := Android
+endif
+
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
@@ -507,7 +514,7 @@ ifeq ($(COMP),gcc)
 		LDFLAGS += -latomic
 	endif
 
-	ifneq ($(KERNEL),Darwin)
+	ifneq ($(TARGET_KERNEL),Darwin)
 	   LDFLAGS += -Wl,--no-as-needed
 	endif
 endif
@@ -552,7 +559,7 @@ ifeq ($(COMP),clang)
 	CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes \
 	            -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
 
-	ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
+	ifeq ($(filter $(TARGET_KERNEL),Darwin OpenBSD FreeBSD),)
 	ifeq ($(target_windows),)
 	ifneq ($(RTLIB),compiler-rt)
 		LDFLAGS += -latomic
@@ -576,7 +583,7 @@ ifeq ($(COMP),clang)
 	endif
 endif
 
-ifeq ($(KERNEL),Darwin)
+ifeq ($(TARGET_KERNEL),Darwin)
 	CXXFLAGS += -mmacosx-version-min=10.15
 	LDFLAGS += -mmacosx-version-min=10.15
 	ifneq ($(arch),any)
@@ -645,7 +652,7 @@ else ifeq ($(comp),clang)
 else
 	profile_make = gcc-profile-make
 	profile_use = gcc-profile-use
-	ifeq ($(KERNEL),Darwin)
+	ifeq ($(TARGET_KERNEL),Darwin)
 		EXTRAPROFILEFLAGS = -fvisibility=hidden
 	endif
 endif
@@ -674,7 +681,7 @@ ifneq ($(OS),Android)
 				add_lrt = no
 			endif
 
-			ifeq ($(KERNEL),Darwin)
+			ifeq ($(TARGET_KERNEL),Darwin)
 				add_lrt = no
 			endif
 
@@ -710,7 +717,7 @@ ifeq ($(optimize),yes)
 		endif
 	endif
 
-	ifeq ($(KERNEL),Darwin)
+	ifeq ($(TARGET_KERNEL),Darwin)
 		ifeq ($(comp),$(filter $(comp),clang icx))
 			CXXFLAGS += -mdynamic-no-pic
 		endif
@@ -832,7 +839,7 @@ endif
 
 ifeq ($(neon),yes)
 	CXXFLAGS += -DUSE_NEON=$(arm_version)
-	ifeq ($(KERNEL),Linux)
+	ifeq ($(TARGET_KERNEL),Linux)
 	ifneq ($(COMP),ndk)
 	ifneq ($(arch),armv8)
 		CXXFLAGS += -mfpu=neon
@@ -899,7 +906,7 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
 ifeq ($(debug),no)
-	ifneq ($(KERNEL),Darwin)
+	ifneq ($(TARGET_KERNEL),Darwin)
 		LLD_BIN := $(shell command -v ld.lld 2>/dev/null)
 		ifeq ($(LLD_BIN),)
 			LLD_BIN := $(shell command -v lld 2>/dev/null)
@@ -1083,39 +1090,7 @@ clean: objclean profileclean
 
 # evaluation network (nnue)
 net:
-	$(eval nnuenet := $(shell grep EvalFileDefaultName evaluate.h | grep define | sed 's/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/'))
-	@echo "Default net: $(nnuenet)"
-	$(eval nnuedownloadurl1 := https://tests.stockfishchess.org/api/nn/$(nnuenet))
-	$(eval nnuedownloadurl2 := https://github.com/official-stockfish/networks/raw/master/$(nnuenet))
-	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
-	@if [ "x$(curl_or_wget)" = "x" ]; then \
-	    echo "Neither curl nor wget is installed. Install one of these tools unless the net has been downloaded manually"; \
-        fi
-	$(eval shasum_command := $(shell if hash shasum 2>/dev/null; then echo "shasum -a 256 "; elif hash sha256sum 2>/dev/null; then echo "sha256sum "; fi))
-	@if [ "x$(shasum_command)" = "x" ]; then \
-            echo "shasum / sha256sum not found, skipping net validation"; \
-        fi
-	@for nnuedownloadurl in "$(nnuedownloadurl1)" "$(nnuedownloadurl2)"; do \
-	   if test -f "$(nnuenet)"; then \
-	      echo "$(nnuenet) available."; \
-	   else \
-	      if [ "x$(curl_or_wget)" != "x" ]; then \
-                 echo "Downloading $${nnuedownloadurl}"; $(curl_or_wget) $${nnuedownloadurl} > $(nnuenet);\
-              else \
-                 echo "No net found and download not possible"; exit 1;\
-	      fi; \
-	   fi; \
-	   if [ "x$(shasum_command)" != "x" ]; then \
-	      if [ "$(nnuenet)" != "nn-"`$(shasum_command) $(nnuenet) | cut -c1-12`".nnue" ]; then \
-	         echo "Removing failed download"; rm -f $(nnuenet); \
-	      else \
-	         echo "Network validated"; break; \
-	      fi; \
-	   fi; \
-	done
-	@if ! test -f "$(nnuenet)"; then \
-	    echo "Failed to download $(nnuenet)."; \
-	fi
+	@$(SHELL) ../scripts/net.sh
 
 # clean binaries and objects
 objclean:
