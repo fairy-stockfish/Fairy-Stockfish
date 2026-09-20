@@ -400,9 +400,6 @@ void UCIEngine::loop() {
             {
                 sync_cout << "id name " << engine_info(true) << "\n" << Options << sync_endl;
 
-                print_numa_config_information(*engine);
-                print_thread_binding_information(*engine);
-
                 sync_cout << token << "ok" << sync_endl;
             }
             // Allow to enforce protocol at startup
@@ -419,7 +416,12 @@ void UCIEngine::loop() {
             while (is >> token)
                 banmoves.push_back(UCI::to_move(pos, token));
         else if (token == "go")
+        {
+            // send info strings after the go command is sent for old GUIs and python-chess
+            print_numa_config_information(*engine);
+            print_thread_binding_information(*engine);
             go(is, banmoves);
+        }
         else if (token == "position")
             position(is), banmoves.clear();
         else if (token == "ucinewgame" || token == "usinewgame" || token == "uccinewgame")
@@ -467,6 +469,16 @@ void UCIEngine::loop() {
             is.seekg(0);
             position(is);
         }
+        else if (token == "--help" || token == "help" || token == "--license" || token == "license")
+            sync_cout
+              << "\nFairy-Stockfish is a powerful chess variant engine for playing and analyzing."
+                 "\nIt is released as free software licensed under the GNU GPLv3 License."
+                 "\nFairy-Stockfish is normally used with a graphical user interface (GUI) and implements"
+                 "\nthe Universal Chess Interface (UCI) protocol and related protocols to communicate"
+                 "\nwith a GUI, an API, etc."
+                 "\nFor any further information, visit https://github.com/fairy-stockfish/Fairy-Stockfish#readme"
+                 "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n"
+              << sync_endl;
         else if (!token.empty() && token[0] != '#')
             sync_cout << "Unknown command: '" << cmd << "'. Type help for more information."
                       << sync_endl;
@@ -517,11 +529,11 @@ void UCIEngine::on_update_full(const Search::InfoFull& info) {
            << " multipv " << info.multiPV           //
            << " score " << UCI::value(info.score);  //
 
-        if (!info.wdl.empty())
-            ss << info.wdl;
-
         if (!info.bound.empty())
             ss << " " << info.bound;
+
+        if (!info.wdl.empty())
+            ss << info.wdl;
 
         ss << " nodes " << info.nodes        //
            << " nps " << info.nps            //
