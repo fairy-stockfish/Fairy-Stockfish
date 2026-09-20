@@ -38,6 +38,7 @@
 #include <vector>
 #include <cstring>
 
+#include "memory.h"
 #include "misc.h"
 
 // We support linux very well, but we explicitly do NOT support Android,

@@ -130,8 +130,16 @@ void* aligned_large_pages_alloc_with_hint(usize allocSize, bool) {
 #else
 
     #if defined(__linux__) && !defined(__ANDROID__)
-static std::map<void*, usize> large_page_sizes;
-static std::mutex             large_page_sizes_mtx;
+// The global transposition table and thread pool of Fairy-Stockfish are freed
+// during static destruction, so these objects must never be destroyed.
+static std::map<void*, usize>& large_page_sizes_map() {
+    static auto* sizes = new std::map<void*, usize>;
+    return *sizes;
+}
+static std::mutex& large_page_sizes_mutex() {
+    static auto* mtx = new std::mutex;
+    return *mtx;
+}
     #endif
 
     #if defined(__linux__) && defined(MAP_HUGE_SHIFT) && defined(__x86_64__)
@@ -145,8 +153,8 @@ static void* try_huge_pages_alloc(usize allocSize) {
     if (mem == MAP_FAILED)
         return nullptr;
 
-    std::lock_guard lg(large_page_sizes_mtx);
-    large_page_sizes[mem] = size;
+    std::lock_guard lg(large_page_sizes_mutex());
+    large_page_sizes_map()[mem] = size;
     return mem;
 }
     #endif  // defined(__linux__) && defined(MAP_HUGE_SHIFT) && defined(__x86_64__)
@@ -172,8 +180,8 @@ void* aligned_large_pages_alloc_with_hint(usize allocSize, [[maybe_unused]] bool
         #if defined(MADV_HUGEPAGE)
         madvise(mem, size, MADV_HUGEPAGE);
         #endif
-        std::lock_guard lg(large_page_sizes_mtx);
-        large_page_sizes[mem] = size;
+        std::lock_guard lg(large_page_sizes_mutex());
+        large_page_sizes_map()[mem] = size;
     }
     else
     {
@@ -254,15 +262,16 @@ void aligned_large_pages_free(void* mem) {
 
     #if defined(__linux__) && !defined(__ANDROID__)
     {
-        std::lock_guard lg(large_page_sizes_mtx);
-        if (auto it = large_page_sizes.find(mem); it != large_page_sizes.end())
+        std::lock_guard lg(large_page_sizes_mutex());
+        auto&           sizes = large_page_sizes_map();
+        if (auto it = sizes.find(mem); it != sizes.end())
         {
             if (munmap(mem, it->second) != 0)
             {
                 std::cerr << "munmap failed: " << strerror(errno) << std::endl;
                 exit(EXIT_FAILURE);
             }
-            large_page_sizes.erase(it);
+            sizes.erase(it);
             return;
         }
     }
