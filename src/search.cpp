@@ -2399,7 +2399,7 @@ void SearchManager::check_time(Search::Worker& worker) {
       && ((worker.limits.use_time_management() && (elapsed > tm.maximum() || stopOnPonderhit))
           || (worker.limits.movetime && elapsed >= worker.limits.movetime)
           || (worker.limits.nodes && worker.threads.nodes_searched() >= worker.limits.nodes)))
-        worker.threads.stop = worker.threads.abortedSearch = true;
+        worker.threads.stop = true;
 }
 
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.

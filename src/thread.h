@@ -155,7 +155,7 @@ class ThreadPool {
     std::vector<size_t> get_bound_thread_count_by_numa_node() const;
 
 
-    std::atomic_bool stop, abortedSearch, increaseDepth;
+    std::atomic_bool stop, increaseDepth;
     std::atomic_bool abort, sit;
 
     auto cbegin() const noexcept { return threads.cbegin(); }
