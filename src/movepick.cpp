@@ -275,7 +275,8 @@ void MovePicker::score() {
         {
             // histories
             m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
-            m.value += (*gateHistory)[pos.side_to_move()][gating_square(m)];
+            // The gate history is only filled by walling variants
+            m.value += 4 * (*gateHistory)[pos.side_to_move()][gating_square(m)];
             m.value += 2 * sharedHistory->pawn_entry(pos)[history_slot(pc)][to];
             m.value += (*continuationHistory[0])[history_slot(pc)][to];
             m.value += (*continuationHistory[1])[history_slot(pc)][to];
