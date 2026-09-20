@@ -1197,7 +1197,8 @@ Value Search::Worker::search(
 
     // Step 8. Razoring
     // If eval is really low, skip search entirely and return the qsearch value
-    if (!PvNode && !pos.blast_on_capture() && eval < alpha - 482 * depth * depth)
+    if (!PvNode && !pos.blast_on_capture() && pos.walling_rule() != DUCK
+        && eval < alpha - 482 * depth * depth)
         return qsearch<NonPV>(pos, ss, alpha, beta);
 
     // Step 9. Futility pruning: child node
@@ -1406,7 +1407,8 @@ moves_loop:  // When in check, search starts here
                 int   captHist = captureHistory[movedPiece][move.to_sq()][type_of(capturedPiece)];
 
                 // Futility pruning for captures
-                if (!givesCheck && lmrDepth < 8 && !pos.blast_on_capture())
+                if (!givesCheck && lmrDepth < 8 && !pos.blast_on_capture()
+                    && pos.walling_rule() != DUCK)
                 {
                     Value futilityValue = ss->staticEval + 234 + 247 * lmrDepth
                                         + PieceValue[MG][capturedPiece] + 134 * captHist / 1024;
