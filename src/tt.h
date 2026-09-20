@@ -19,10 +19,9 @@
 #ifndef TT_H_INCLUDED
 #define TT_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <tuple>
 
+#include "misc.h"
 #include "memory.h"
 #include "types.h"
 
@@ -71,7 +70,7 @@ struct TTData {
 // important than the old.
 struct TTWriter {
    public:
-    void write(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8);
+    void write(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, u8 generation8);
     void penalize(int penalty);  // decrement stored depth by the penalty
 
    private:
@@ -115,10 +114,10 @@ class TranspositionTable {
    private:
     friend struct TTEntry;
 
-    size_t   clusterCount;
+    usize    clusterCount;
     Cluster* table = nullptr;
 
-    uint8_t generation8 = 0;
+    u8 generation8 = 0;
 };
 
 extern TranspositionTable TT;

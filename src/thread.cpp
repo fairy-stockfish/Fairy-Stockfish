@@ -28,6 +28,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include "bitboard.h"
@@ -72,8 +73,8 @@ Thread::Thread(Search::SharedState&                    sharedState,
         // the Worker allocation. Ideally we would also allocate the SearchManager
         // here, but that's minor.
         this->numaAccessToken = binder();
-        this->worker = std::make_unique<Search::Worker>(sharedState, std::move(sm), n, idxInNuma,
-                                                        totalNuma, this->numaAccessToken);
+        this->worker          = make_unique_large_page<Search::Worker>(
+          sharedState, std::move(sm), n, idxInNuma, totalNuma, this->numaAccessToken);
     });
 
     wait_for_search_finished();
@@ -281,6 +282,13 @@ void ThreadPool::destroy() {
 }
 
 
+size_t ThreadPool::numa_nodes() const {
+    std::unordered_set<size_t> seen;
+    for (NumaIndex n : boundThreadToNumaNode)
+        seen.insert(n);
+    return std::max(seen.size(), size_t(1));
+}
+
 void ThreadPool::ensure_network_replicated() {
     for (auto&& th : threads)
         th->ensure_network_replicated();
@@ -466,6 +474,10 @@ void ThreadPool::wait_for_search_finished() const {
     for (auto&& th : threads)
         if (th != threads.front())
             th->wait_for_search_finished();
+}
+
+std::vector<size_t> ThreadPool::get_bound_thread_to_numa_node() const {
+    return boundThreadToNumaNode;
 }
 
 std::vector<size_t> ThreadPool::get_bound_thread_count_by_numa_node() const {

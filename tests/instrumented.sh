@@ -46,18 +46,6 @@ case $1 in
     threads="2"
 
 cat << EOF > tsan.supp
-race:Stockfish::TTEntry::move
-race:Stockfish::TTEntry::depth
-race:Stockfish::TTEntry::bound
-race:Stockfish::TTEntry::save
-race:Stockfish::TTEntry::value
-race:Stockfish::TTEntry::eval
-race:Stockfish::TTEntry::is_pv
-race:Stockfish::TTEntry::read
-race:Stockfish::TTEntry::is_occupied
-race:Stockfish::TTEntry::relative_age
-race:Stockfish::TTWriter::write
-race:Stockfish::TTWriter::penalize
 
 race:Stockfish::TranspositionTable::probe
 race:Stockfish::TranspositionTable::hashfull

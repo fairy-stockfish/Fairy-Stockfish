@@ -28,6 +28,7 @@
 #include <mutex>
 #include <vector>
 
+#include "memory.h"
 #include "numa.h"
 #include "position.h"
 #include "search.h"
@@ -97,8 +98,8 @@ class Thread {
     void   wait_for_search_finished();
     size_t id() const { return idx; }
 
-    std::unique_ptr<Search::Worker> worker;
-    std::function<void()>           jobFunc;
+    LargePagePtr<Search::Worker> worker;
+    std::function<void()>        jobFunc;
 
    private:
     std::mutex                mutex;
@@ -152,7 +153,9 @@ class ThreadPool {
     void                   start_searching();
     void                   wait_for_search_finished() const;
 
+    std::vector<size_t> get_bound_thread_to_numa_node() const;
     std::vector<size_t> get_bound_thread_count_by_numa_node() const;
+    size_t              numa_nodes() const;
 
 
     std::atomic_bool stop, increaseDepth;

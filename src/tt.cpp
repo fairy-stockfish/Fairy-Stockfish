@@ -20,10 +20,11 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <numeric>
+#include <vector>
 
 #include "memory.h"
 #include "misc.h"
@@ -33,6 +34,7 @@
 namespace Stockfish {
 
 TranspositionTable TT;  // Our global transposition table
+
 
 // TTEntry struct is the 10 bytes transposition table entry, defined as:
 //
@@ -86,12 +88,12 @@ struct TTEntry {
     friend class TranspositionTable;
     friend struct TTWriter;
 
-    uint16_t key16;
-    uint8_t  depth8;
-    uint8_t  genBound8;
-    Move     move32;
-    int16_t  value16;
-    int16_t  eval16;
+    RelaxedAtomic<u16>  key16;
+    RelaxedAtomic<u8>   depth8;
+    RelaxedAtomic<u8>   genBound8;
+    RelaxedAtomic<Move> move32;
+    RelaxedAtomic<i16>  value16;
+    RelaxedAtomic<i16>  eval16;
 };
 
 
@@ -99,14 +101,14 @@ struct TTEntry {
 // position. The update is non-atomic and can be racy. We convert external
 // types to internal bitfields.
 void TTEntry::save(
-  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t curr_generation) {
+  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, u8 curr_generation) {
 
     // Preserve the old ttmove if we don't have a new one
-    if (m || uint16_t(k) != key16)
+    if (m || u16(k) != key16)
         move32 = m;
 
     // Overwrite less valuable entries (cheapest checks first)
-    if (b == BOUND_EXACT || uint16_t(k) != key16 || d - DEPTH_NONE + 2 * pv > depth8 - 4
+    if (b == BOUND_EXACT || u16(k) != key16 || d - DEPTH_NONE + 2 * pv > depth8 - 4
         || relative_age(curr_generation))
     {
         assert(d > DEPTH_NONE);
@@ -148,7 +150,7 @@ TTWriter::TTWriter(TTEntry* tte) :
 
 // Wrapper around TTEntry::save()
 void TTWriter::write(
-  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t curr_generation) {
+  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, u8 curr_generation) {
     entry->save(k, v, pv, b, d, m, ev, curr_generation);
 }
 
@@ -181,9 +183,14 @@ static_assert(sizeof(Cluster) == 64, "Suboptimal Cluster size");
 void TranspositionTable::resize(usize mbSize, ThreadPool& threads) {
     aligned_large_pages_free(table);
 
-    clusterCount = mbSize * 1024 * 1024 / sizeof(Cluster);
+    clusterCount  = mbSize * 1024 * 1024 / sizeof(Cluster);
+    usize ttBytes = clusterCount * sizeof(Cluster);
 
-    table = static_cast<Cluster*>(aligned_large_pages_alloc(clusterCount * sizeof(Cluster)));
+    // Request 1GB pages if we'd get at least eight per NUMA node, to avoid
+    // memory oversubscription
+    bool hugePageHint = ttBytes >= threads.numa_nodes() * HugePageSize * 8;
+
+    table = static_cast<Cluster*>(aligned_large_pages_alloc_with_hint(ttBytes, hugePageHint));
 
     if (!table)
     {
@@ -197,22 +204,36 @@ void TranspositionTable::resize(usize mbSize, ThreadPool& threads) {
 
 // Initializes the entire transposition table to zero, in a multi-threaded way
 void TranspositionTable::clear(ThreadPool& threads) {
-    generation8              = 0;
-    const size_t threadCount = threads.num_threads();
+    generation8             = 0;
+    const usize threadCount = threads.num_threads();
 
-    for (size_t i = 0; i < threadCount; ++i)
+    std::vector<usize> threadToNuma = threads.get_bound_thread_to_numa_node();
+
+    std::vector<usize> order(threadCount);
+    std::iota(order.begin(), order.end(), 0);
+
+    // To promote good NUMA distribution (esp. with huge pages), we permute
+    // threads so that all threads in a NUMA node clear a contiguous region.
+    if (threadToNuma.size() == threadCount)
     {
-        threads.run_on_thread(i, [this, i, threadCount]() {
-            // Each thread will zero its part of the hash table
-            const size_t stride = clusterCount / threadCount;
-            const size_t start  = stride * i;
-            const size_t len    = i + 1 != threadCount ? stride : clusterCount - start;
-
-            std::memset(&table[start], 0, len * sizeof(Cluster));
+        std::stable_sort(order.begin(), order.end(), [&threadToNuma](usize t1, usize t2) {
+            return threadToNuma.at(t1) < threadToNuma.at(t2);
         });
     }
 
-    for (size_t i = 0; i < threadCount; ++i)
+    for (usize i = 0; i < threadCount; ++i)
+    {
+        threads.run_on_thread(order[i], [this, i, threadCount]() {
+            // Each thread will zero its part of the hash table
+            const usize stride = clusterCount / threadCount;
+            const usize start  = stride * i;
+            const usize len    = i + 1 != threadCount ? stride : clusterCount - start;
+
+            std::memset(static_cast<void*>(&table[start]), 0, len * sizeof(Cluster));
+        });
+    }
+
+    for (usize i = 0; i < threadCount; ++i)
         threads.wait_on_thread(i);
 }
 
@@ -251,7 +272,7 @@ u8 TranspositionTable::generation() const { return generation8; }
 std::tuple<bool, TTData, TTWriter> TranspositionTable::probe(const Key key) const {
 
     TTEntry* const tte   = first_entry(key);
-    const uint16_t key16 = uint16_t(key);  // Use the low 16 bits as key inside the cluster
+    const u16      key16 = u16(key);  // Use the low 16 bits as key inside the cluster
 
     for (int i = 0; i < ClusterSize; ++i)
         if (tte[i].key16 == key16)
