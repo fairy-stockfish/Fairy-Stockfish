@@ -483,7 +483,7 @@ endif
 ifeq ($(COMP),gcc)
 	comp=gcc
 	CXX=g++
-	CXXFLAGS += -Wextra -Wshadow
+	CXXFLAGS += -Wextra -Wshadow -Wmissing-declarations
 	ifeq ($(largeboards),no)
 		CXXFLAGS += -pedantic
 	endif
