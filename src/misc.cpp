@@ -178,21 +178,19 @@ std::string compiler_info() {
     /// Predefined macros hell:
     ///
     /// __GNUC__           Compiler is gcc, Clang or Intel on Linux
-    /// __INTEL_COMPILER   Compiler is Intel
+    /// __INTEL_LLVM_COMPILER   Compiler is ICX
     /// _MSC_VER           Compiler is MSVC or Intel on Windows
     /// _WIN32             Building on Windows (any)
     /// _WIN64             Building on Windows 64 bit
 
     std::string compiler = "\nCompiled by                : ";
 
-#ifdef __clang__
+#if defined(__INTEL_LLVM_COMPILER)
+    compiler += "ICX ";
+    compiler += stringify(__INTEL_LLVM_COMPILER);
+#elif defined(__clang__)
     compiler += "clang++ ";
     compiler += make_version_string(__clang_major__, __clang_minor__, __clang_patchlevel__);
-#elif __INTEL_COMPILER
-    compiler += "Intel compiler ";
-    compiler += "(version ";
-    compiler += stringify(__INTEL_COMPILER) " update " stringify(__INTEL_COMPILER_UPDATE);
-    compiler += ")";
 #elif _MSC_VER
     compiler += "MSVC ";
     compiler += "(version ";
@@ -394,7 +392,7 @@ void dbg_print() {
     for (int i = 0; i < MaxDebugSlots; ++i)
         if ((n = stdev[i][0]))
         {
-            double r = sqrtl(E(stdev[i][2]) - sqr(E(stdev[i][1])));
+            double r = sqrt(E(stdev[i][2]) - sqr(E(stdev[i][1])));
             std::cerr << "Stdev #" << i << ": Total " << n << " Stdev " << r << std::endl;
         }
 
@@ -409,8 +407,8 @@ void dbg_print() {
         if ((n = correl[i][0]))
         {
             double r = (E(correl[i][5]) - E(correl[i][1]) * E(correl[i][3]))
-                     / (sqrtl(E(correl[i][2]) - sqr(E(correl[i][1])))
-                        * sqrtl(E(correl[i][4]) - sqr(E(correl[i][3]))));
+                     / (sqrt(E(correl[i][2]) - sqr(E(correl[i][1])))
+                        * sqrt(E(correl[i][4]) - sqr(E(correl[i][3]))));
             std::cerr << "Correl. #" << i << ": Total " << n << " Coefficient " << r << std::endl;
         }
 }
@@ -496,11 +494,12 @@ std::optional<std::string> read_file_to_string(const std::string& path) {
 }
 
 void remove_whitespace(std::string& s) {
-    s.erase(std::remove_if(s.begin(), s.end(), [](char c) { return std::isspace(c); }), s.end());
+    s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c) { return std::isspace(c); }),
+            s.end());
 }
 
 bool is_whitespace(std::string_view s) {
-    return std::all_of(s.begin(), s.end(), [](char c) { return std::isspace(c); });
+    return std::all_of(s.begin(), s.end(), [](unsigned char c) { return std::isspace(c); });
 }
 
 namespace CommandLine {

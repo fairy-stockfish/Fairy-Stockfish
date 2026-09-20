@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2025 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -178,19 +178,6 @@ void start_logger(const std::string& fname);
 
 std::optional<usize> str_to_size_t(const std::string& s);
 
-#if defined(__linux__)
-
-struct PipeDeleter {
-    void operator()(FILE* file) const {
-        if (file != nullptr)
-        {
-            pclose(file);
-        }
-    }
-};
-
-#endif
-
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
 std::optional<std::string> read_file_to_string(const std::string& path);
@@ -273,10 +260,13 @@ class ValueList {
 
    public:
     std::size_t size() const { return size_; }
-    void        push_back(const T& value) { values_[size_++] = value; }
-    const T*    begin() const { return values_; }
-    const T*    end() const { return values_ + size_; }
-    const T&    operator[](int index) const { return values_[index]; }
+    void        push_back(const T& value) {
+        assert(size_ < MaxSize);
+        values_[size_++] = value;
+    }
+    const T* begin() const { return values_; }
+    const T* end() const { return values_ + size_; }
+    const T& operator[](int index) const { return values_[index]; }
 
    private:
     T           values_[MaxSize];
@@ -326,11 +316,17 @@ class MultiArray {
     using reverse_iterator       = typename ArrayType::reverse_iterator;
     using const_reverse_iterator = typename ArrayType::const_reverse_iterator;
 
-    constexpr auto&       at(size_type index) noexcept { return data_.at(index); }
-    constexpr const auto& at(size_type index) const noexcept { return data_.at(index); }
+    constexpr auto&       at(size_type index) { return data_.at(index); }
+    constexpr const auto& at(size_type index) const { return data_.at(index); }
 
-    constexpr auto&       operator[](size_type index) noexcept { return data_[index]; }
-    constexpr const auto& operator[](size_type index) const noexcept { return data_[index]; }
+    constexpr auto& operator[](size_type index) noexcept {
+        assert(index < Size);
+        return data_[index];
+    }
+    constexpr const auto& operator[](size_type index) const noexcept {
+        assert(index < Size);
+        return data_[index];
+    }
 
     constexpr auto&       front() noexcept { return data_.front(); }
     constexpr const auto& front() const noexcept { return data_.front(); }
@@ -450,6 +446,10 @@ void move_to_front(std::vector<T>& vec, Predicate pred) {
 namespace CommandLine {
 void init(int argc, char* argv[]);
 
+extern std::string binaryDirectory;   // path of the executable directory
+extern std::string workingDirectory;  // path of the working directory
+}
+
 #ifndef __has_builtin
     #define __has_builtin(x) 0
 #endif
@@ -459,14 +459,13 @@ void init(int argc, char* argv[]);
 #elif defined(_MSC_VER)
     #define sf_always_inline __forceinline
 #else
+    // plain inline for other compilers
     #define sf_always_inline inline
 #endif
 
-extern std::string binaryDirectory;   // path of the executable directory
-extern std::string workingDirectory;  // path of the working directory
-}
-
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__clang__)
+    #define sf_assume(cond) __builtin_assume(cond)
+#elif defined(__GNUC__)
     #if __GNUC__ >= 13
         #define sf_assume(cond) __attribute__((assume(cond)))
     #else
@@ -477,6 +476,8 @@ extern std::string workingDirectory;  // path of the working directory
                     __builtin_unreachable(); \
             } while (0)
     #endif
+#elif defined(_MSC_VER)
+    #define sf_assume(cond) __assume(cond)
 #else
     // do nothing for other compilers
     #define sf_assume(cond)
