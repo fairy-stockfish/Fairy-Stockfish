@@ -41,8 +41,10 @@ namespace Stockfish {
 
 Engine* mainEngine = nullptr;
 
+constexpr NumaAutoPolicy DefaultNumaPolicy = BundledL3Policy{32};
+
 Engine::Engine() :
-    numaContext(NumaConfig::from_system()),
+    numaContext(NumaConfig::from_system(DefaultNumaPolicy)),
     states(new std::deque<StateInfo>(1)),
     options(Options),
     threads(Threads),
@@ -132,15 +134,15 @@ void Engine::set_position(const std::string&              fen,
 
 // modifiers
 
-void Engine::set_numa_config_from_option(const std::string& o) {
+bool Engine::set_numa_config_from_option(const std::string& o) {
     if (o == "auto" || o == "system")
     {
-        numaContext.set_numa_config(NumaConfig::from_system());
+        numaContext.set_numa_config(NumaConfig::from_system(DefaultNumaPolicy));
     }
     else if (o == "hardware")
     {
         // Don't respect affinity set in the system.
-        numaContext.set_numa_config(NumaConfig::from_system(false));
+        numaContext.set_numa_config(NumaConfig::from_system(DefaultNumaPolicy, false));
     }
     else if (o == "none")
     {
@@ -148,11 +150,15 @@ void Engine::set_numa_config_from_option(const std::string& o) {
     }
     else
     {
-        numaContext.set_numa_config(NumaConfig::from_string(o));
+        auto parsed = NumaConfig::from_string(o);
+        if (!parsed.has_value())
+            return false;
+        numaContext.set_numa_config(std::move(*parsed));
     }
 
     // Force reallocation of threads in case affinities need to change.
     resize_threads();
+    return true;
 }
 
 void Engine::resize_threads() {

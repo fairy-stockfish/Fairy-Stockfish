@@ -79,7 +79,12 @@ static void on_threads(const Option&) {
 static void on_numa_policy(const Option& o) {
     if (!mainEngine)
         return;
-    mainEngine->set_numa_config_from_option(o);
+    if (!mainEngine->set_numa_config_from_option(o))
+    {
+        sync_cout << "info string NumaPolicy: invalid value '" << std::string(o)
+                  << "', keeping previous config." << sync_endl;
+        return;
+    }
     print_numa_config_information(*mainEngine);
     print_thread_binding_information(*mainEngine);
 }

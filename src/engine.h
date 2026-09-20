@@ -75,7 +75,7 @@ class Engine {
 
     // modifiers
 
-    void set_numa_config_from_option(const std::string& o);
+    bool set_numa_config_from_option(const std::string& o);
     void resize_threads();
     void set_tt_size(size_t mb);
     void set_ponderhit(bool);
