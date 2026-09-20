@@ -41,7 +41,7 @@ namespace Stockfish {
 namespace {
 
 /// Version number or dev.
-const string version = "";
+const string version = "dev";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -129,7 +129,7 @@ string engine_info(bool to_uci, bool to_xboard) {
     stringstream ss;
     ss << "Fairy-Stockfish " << version << setfill('0');
 
-    if (version.empty())
+    if (version == "dev")
     {
         ss << "-";
 #ifdef GIT_DATE
@@ -179,7 +179,7 @@ std::string compiler_info() {
     /// _WIN32             Building on Windows (any)
     /// _WIN64             Building on Windows 64 bit
 
-    std::string compiler = "\nCompiled by ";
+    std::string compiler = "\nCompiled by                : ";
 
 #ifdef __clang__
     compiler += "clang++ ";
@@ -280,7 +280,7 @@ std::string compiler_info() {
     compiler += " DEBUG";
 #endif
 
-    compiler += "\n__VERSION__ macro expands to: ";
+    compiler += "\nCompiler __VERSION__ macro : ";
 #ifdef __VERSION__
     compiler += __VERSION__;
 #else

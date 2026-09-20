@@ -139,8 +139,7 @@ nnue = no
 load_net = $(if $(filter $(nnue),yes),net)
 
 ifeq ($(ARCH),)
-   ARCH = x86-64-modern
-   help_skip_sanity = yes
+   ARCH = native
 endif
 
 ifeq ($(ARCH), native)
@@ -1035,7 +1034,7 @@ help:
 	@echo "make -j build ARCH=x86-64-ssse3 COMP=clang"
 	@echo ""
 	@echo "-------------------------------"
-ifeq ($(SUPPORTED_ARCH)$(help_skip_sanity), true)
+ifeq ($(SUPPORTED_ARCH), true)
 	@echo "The selected architecture $(ARCH) will enable the following configuration: "
 	@$(MAKE) ARCH=$(ARCH) COMP=$(COMP) config-sanity
 else
