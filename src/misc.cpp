@@ -145,6 +145,10 @@ string engine_info(bool to_uci, bool to_xboard) {
            << setfill('0') << day;
 #endif
 
+#ifdef GIT_DIFFINDEX
+        ss << "-m";
+#endif
+
         ss << "-";
 
 #ifdef GIT_SHA

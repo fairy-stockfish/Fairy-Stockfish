@@ -662,28 +662,24 @@ ifeq ($(COMP),gcc)
 	endif
 endif
 
-### On mingw use Windows threads, otherwise POSIX
-ifneq ($(comp),mingw)
-	CXXFLAGS += -DUSE_PTHREADS
-	# On Android Bionic's C library comes with its own pthread implementation bundled in
-	ifneq ($(OS),Android)
-		# Haiku has pthreads in its libroot, so only link it in on other platforms
-		ifneq ($(KERNEL),Haiku)
-			ifneq ($(COMP),ndk)
-				LDFLAGS += -lpthread
+# On Android Bionic's C library comes with its own pthread implementation bundled in
+ifneq ($(OS),Android)
+	# Haiku has pthreads in its libroot, so only link it in on other platforms
+	ifneq ($(KERNEL),Haiku)
+		ifneq ($(COMP),ndk)
+			LDFLAGS += -lpthread
 
-				add_lrt = yes
-				ifeq ($(target_windows),yes)
-					add_lrt = no
-				endif
+			add_lrt = yes
+			ifeq ($(target_windows),yes)
+				add_lrt = no
+			endif
 
-				ifeq ($(KERNEL),Darwin)
-					add_lrt = no
-				endif
+			ifeq ($(KERNEL),Darwin)
+				add_lrt = no
+			endif
 
-				ifeq ($(add_lrt),yes)
-					LDFLAGS += -lrt
-				endif
+			ifeq ($(add_lrt),yes)
+				LDFLAGS += -lrt
 			endif
 		endif
 	endif
@@ -706,7 +702,7 @@ endif
 ### 3.3 Optimization
 ifeq ($(optimize),yes)
 
-	CXXFLAGS += -O3 -fno-strict-aliasing
+	CXXFLAGS += -O3 -funroll-loops -fno-strict-aliasing
 
 	ifeq ($(comp),gcc)
 		ifeq ($(OS), Android)
@@ -865,15 +861,17 @@ endif
 ifeq ($(pext),yes)
 	CXXFLAGS += -DUSE_PEXT
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw icx))
-		CXXFLAGS += -mbmi2 -DUSE_COMPTIME_ATTACKS
+		CXXFLAGS += -mbmi2
 	endif
 endif
 
 ### 3.8.1 Try to include git info for versioning and avoid recompiles if nothing changes
 BUILD_SHA_FILE  := .build_sha.txt
 BUILD_DATE_FILE := .build_date.txt
+BUILD_DIFFINDEX_FILE := .build_diffindex.txt
 GIT_SHA         := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
 GIT_DATE        := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
+GIT_DIFFINDEX   := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false  diff-index --quiet HEAD -- 2>/dev/null; [ $$? -eq 1 ] && echo 1 || true)
 COMPILER_DATE   := $(shell date +%Y%m%d 2>/dev/null)
 
 BUILD_DATE      := $(if $(GIT_DATE),$(GIT_DATE),$(COMPILER_DATE))
@@ -888,12 +886,7 @@ endef
 ifneq ($(filter $(MAKECMDGOALS),help strip install clean net objclean profileclean format config-sanity),$(MAKECMDGOALS))
 _ := $(call cache_file_contents,$(BUILD_SHA_FILE),$(GIT_SHA))
 _ := $(call cache_file_contents,$(BUILD_DATE_FILE),$(BUILD_DATE))
-endif
-
-### 3.8.2 Try to include git commit date for versioning
-GIT_DATE := $(shell git show -s --date=format:'%Y%m%d' --format=%cd HEAD 2>/dev/null)
-ifneq ($(GIT_DATE), )
-	CXXFLAGS += -DGIT_DATE=$(GIT_DATE)
+_ := $(call cache_file_contents,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
 ### 3.8.3 Try to include architecture
@@ -969,90 +962,83 @@ endif
 
 
 help:
+	@echo "" && \
+	echo "To compile stockfish, type: " && \
+	echo "" && \
+	echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]" && \
+	echo "" && \
+	echo "Supported targets:" && \
+	echo "" && \
+	echo "help                    > Display architecture details" && \
+	echo "profile-build           > standard build with profile-guided optimization" && \
+	echo "build                   > skip profile-guided optimization" && \
+	echo "net                     > Download the default nnue nets" && \
+	echo "strip                   > Strip executable" && \
+	echo "install                 > Install executable" && \
+	echo "clean                   > Clean up" && \
+	echo "" && \
+	echo "Supported archs:" && \
+	echo "" && \
+	echo "native                  > select the best architecture for the host processor (default)" && \
+	echo "x86-64-avx512icl        > x86 64-bit with minimum avx512 support of Intel Ice Lake or AMD Zen 4" && \
+	echo "x86-64-vnni512          > x86 64-bit with vnni 512bit support" && \
+	echo "x86-64-avx512           > x86 64-bit with avx512 support" && \
+	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
+	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
+	echo "x86-64-avx2             > x86 64-bit with avx2 support" && \
+	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support" && \
+	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt" && \
+	echo "x86-64-ssse3            > x86 64-bit with ssse3 support" && \
+	echo "x86-64-sse3-popcnt      > x86 64-bit with sse3 compile and popcnt support" && \
+	echo "x86-64                  > x86 64-bit generic (with sse2 support)" && \
+	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
+	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
+	echo "x86-32                  > x86 32-bit generic (with mmx compile support)" && \
+	echo "ppc-64                  > PPC 64-bit" && \
+	echo "ppc-64-altivec          > PPC 64-bit with altivec support" && \
+	echo "ppc-64-vsx              > PPC 64-bit with vsx support" && \
+	echo "ppc-32                  > PPC 32-bit" && \
+	echo "armv7                   > ARMv7 32-bit" && \
+	echo "armv7-neon              > ARMv7 32-bit with popcnt and neon" && \
+	echo "armv8                   > ARMv8 64-bit with popcnt and neon" && \
+	echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support" && \
+	echo "e2k                     > Elbrus 2000" && \
+	echo "apple-silicon           > Apple silicon ARM64" && \
+	echo "general-64              > unspecified 64-bit" && \
+	echo "general-32              > unspecified 32-bit" && \
+	echo "riscv64                 > RISC-V 64-bit" && \
+	echo "loongarch64             > LoongArch 64-bit" && \
+	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension" && \
+	echo "loongarch64-lasx        > LoongArch 64-bit with Advanced SIMD eXtension" && \
+	echo "" && \
+	echo "Supported compilers:" && \
+	echo "" && \
+	echo "gcc                     > GNU compiler (default)" && \
+	echo "mingw                   > GNU compiler with MinGW under Windows" && \
+	echo "clang                   > LLVM Clang compiler" && \
+	echo "icx                     > Intel oneAPI DPC++/C++ Compiler" && \
+	echo "ndk                     > Google NDK to cross-compile for Android" && \
+	echo "" && \
+	echo "Simple examples. If you don't know what to do, you likely want to run one of: " && \
+	echo "" && \
+	echo "make -j profile-build ARCH=native         # a fast compile for local use" && \
+	echo "make -j profile-build ARCH=x86-64-avx2    # A portable compile for most x86-64 systems " && \
+	echo "make -j profile-build ARCH=x86-64         # A portable compile for x86-64 systems " && \
+	echo "" && \
+	echo "Advanced examples, for experienced users: " && \
+	echo "" && \
+	echo "make -j profile-build ARCH=x86-64-avxvnni" && \
+	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc CXX=g++-12.0" && \
+	echo "make -j build ARCH=x86-64-ssse3 COMP=clang" && \
+	echo ""
+	@echo "Fairy-Stockfish specific options:"
 	@echo ""
-	@echo "To compile stockfish, type: "
+	@echo "make -j build largeboards=yes             # Version for large boards"
+	@echo "make -j build largeboards=yes all=yes     # Include all variants (adds Game of the Amazons)"
+	@echo "make -j build nnue=yes                    # Embed and enable NNUE by default"
 	@echo ""
-	@echo "make target ARCH=arch [COMP=compiler] [COMPCXX=cxx]"
-	@echo ""
-	@echo "Supported targets:"
-	@echo ""
-	@echo "help                    > Display architecture details"
-	@echo "profile-build           > standard build with profile-guided optimization"
-	@echo "build                   > skip profile-guided optimization"
-	@echo "net                     > Download the default nnue nets"
-	@echo "strip                   > Strip executable"
-	@echo "install                 > Install executable"
-	@echo "clean                   > Clean up"
-	@echo ""
-	@echo "Supported archs:"
-	@echo ""
-	@echo "x86-64-vnni512          > x86 64-bit with vnni 512bit support"
-	@echo "x86-64-vnni256          > x86 64-bit with vnni 512bit support, limit operands to 256bit wide"
-	@echo "x86-64-avx512           > x86 64-bit with avx512 support"
-	@echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support"
-	@echo "x86-64-bmi2             > x86 64-bit with bmi2 support"
-	@echo "x86-64-avx2             > x86 64-bit with avx2 support"
-	@echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support"
-	@echo "x86-64-modern           > common modern CPU, currently x86-64-sse41-popcnt"
-	@echo "x86-64-ssse3            > x86 64-bit with ssse3 support"
-	@echo "x86-64-sse3-popcnt      > x86 64-bit with sse3 and popcnt support"
-	@echo "x86-64                  > x86 64-bit generic (with sse2 support)"
-	@echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support"
-	@echo "x86-32-sse2             > x86 32-bit with sse2 support"
-	@echo "x86-32                  > x86 32-bit generic (with mmx and sse support)"
-	@echo "ppc-64                  > PPC 64-bit"
-	@echo "ppc-32                  > PPC 32-bit"
-	@echo "armv7                   > ARMv7 32-bit"
-	@echo "armv7-neon              > ARMv7 32-bit with popcnt and neon"
-	@echo "armv8                   > ARMv8 64-bit with popcnt and neon"
-	@echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support"
-	@echo "e2k                     > Elbrus 2000"
-	@echo "apple-silicon           > Apple silicon ARM64"
-	@echo "general-64              > unspecified 64-bit"
-	@echo "general-32              > unspecified 32-bit"
-	@echo "riscv64                 > RISC-V 64-bit"
-	@echo "loongarch64             > LoongArch 64-bit"
-	@echo ""
-	@echo "Supported compilers:"
-	@echo ""
-	@echo "gcc                     > Gnu compiler (default)"
-	@echo "mingw                   > Gnu compiler with MinGW under Windows"
-	@echo "clang                   > LLVM Clang compiler"
-	@echo "icx                     > Intel oneAPI DPC++/C++ Compiler"
-	@echo "ndk                     > Google NDK to cross-compile for Android"
-	@echo ""
-	@echo "Simple examples. If you don't know what to do, you likely want to run one of: "
-	@echo ""
-	@echo "make -j profile-build ARCH=x86-64-avx2    # typically a fast compile for common systems "
-	@echo "make -j profile-build ARCH=x86-64-modern  # A more portable compile for 64-bit systems "
-	@echo "make -j profile-build ARCH=x86-64         # A portable compile for 64-bit systems "
-	@echo ""
-	@echo "Advanced examples, for experienced users: "
-	@echo ""
-	@echo "make -j profile-build ARCH=x86-64-bmi2"
-	@echo "make -j profile-build ARCH=x86-64-bmi2 COMP=gcc COMPCXX=g++-9.0"
-	@echo "make -j build ARCH=x86-64-ssse3 COMP=clang"
-	@echo ""
-	@echo "-------------------------------"
-ifeq ($(SUPPORTED_ARCH), true)
-	@echo "The selected architecture $(ARCH) will enable the following configuration: "
-	@$(MAKE) ARCH=$(ARCH) COMP=$(COMP) config-sanity
-else
+ifneq ($(SUPPORTED_ARCH), true)
 	@echo "Specify a supported architecture with the ARCH option for more details"
-	@echo ""
-	@echo "-------------------------------"
-	@echo "Embed and enable NNUE by default: "
-	@echo ""
-	@echo "make build ARCH=x86-64 nnue=yes"
-	@echo ""
-	@echo "-------------------------------"
-	@echo "Version for large boards: "
-	@echo ""
-	@echo "make build ARCH=x86-64 COMP=gcc largeboards=yes"
-	@echo ""
-	@echo "Include all variants (adds Game of the Amazons): "
-	@echo ""
-	@echo "make build ARCH=x86-64 largeboards=yes all=yes"
 	@echo ""
 endif
 
@@ -1062,7 +1048,7 @@ endif
 	icx-profile-use icx-profile-make \
 	gcc-profile-use gcc-profile-make \
 	clang-profile-use clang-profile-make FORCE \
-	format analyze
+	format
 
 build: $(load_net) config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
@@ -1073,7 +1059,8 @@ profile-build: $(load_net) config-sanity objclean profileclean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
-	$(PGOBENCH) 2>&1 | tail -n 4
+	$(PGOBENCH) > PGOBENCH.out 2>&1
+	tail -n 4 PGOBENCH.out
 	@echo ""
 	@echo "Step 3/4. Building optimized executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
@@ -1132,12 +1119,12 @@ net:
 
 # clean binaries and objects
 objclean:
-	@rm -f stockfish stockfish.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o $(BUILD_SHA_FILE) $(BUILD_DATE_FILE)
+	@rm -f stockfish stockfish.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o $(BUILD_SHA_FILE) $(BUILD_DATE_FILE) $(BUILD_DIFFINDEX_FILE)
 
 # clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s
+	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
 	@rm -f stockfish.profdata *.profraw
 	@rm -f stockfish.*args*
 	@rm -f stockfish.*lt*
@@ -1146,9 +1133,6 @@ profileclean:
 
 format:
 	$(CLANG-FORMAT) -i $(SRCS) $(HEADERS) -style=file
-
-default:
-	help
 
 ### ==========================================================================
 ### Section 5. Private Targets
@@ -1236,8 +1220,8 @@ $(EXE): $(OBJS)
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
 
-misc.o: misc.cpp $(BUILD_SHA_FILE) $(BUILD_DATE_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA)) $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE))) -c -o $@ $<
+misc.o: misc.cpp $(BUILD_SHA_FILE) $(BUILD_DATE_FILE) $(BUILD_DIFFINDEX_FILE)
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA)) $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE))) $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX)) -c -o $@ $<
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
