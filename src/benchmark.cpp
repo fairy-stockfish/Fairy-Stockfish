@@ -19,9 +19,13 @@
 #include "benchmark.h"
 #include "numa.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <istream>
+#include <limits>
+#include <string>
 #include <vector>
 
 #include "position.h"
@@ -465,6 +469,91 @@ vector<string> setup_bench(const Position& current, istream& is) {
     list.emplace_back("setoption name Use NNUE value true");
 
     return list;
+}
+
+BenchmarkSetup setup_benchmark(std::istream& is) {
+    // TT_SIZE_PER_THREAD is chosen such that roughly half of the hash is used all positions
+    // for the current sequence have been searched.
+    static constexpr int TT_SIZE_PER_THREAD = 128;
+
+    static constexpr int DEFAULT_DURATION_S = 150;
+
+    static constexpr int MaxDurationS = std::numeric_limits<int>::max() / 1000;
+
+    // Limits of the options Threads and Hash
+    const int     MaxThreads = std::max(1024, 4 * int(get_hardware_concurrency()));
+    constexpr int MaxHashMB  = Is64Bit ? 33554432 : 2048;
+
+    BenchmarkSetup setup{};
+
+    auto clamped = [](const char* what, int64_t value, int64_t lo, int64_t hi) {
+        const int64_t fixed = std::clamp(value, lo, hi);
+        if (fixed != value)
+            std::cerr << "info string speedtest: " << what << ' ' << value << " is outside [" << lo
+                      << ", " << hi << "]; using " << fixed << std::endl;
+        return int(fixed);
+    };
+
+    // Assign default values to missing arguments
+    int64_t desiredTimeS;
+    int64_t requested;
+
+    if (!(is >> requested))
+        setup.threads = int(get_hardware_concurrency());
+    else
+    {
+        setup.threads = clamped("threads", requested, 1, MaxThreads);
+        setup.originalInvocation += std::to_string(setup.threads);
+    }
+
+    if (!(is >> requested))
+        setup.ttSize = clamped("hash", int64_t(TT_SIZE_PER_THREAD) * setup.threads, 1, MaxHashMB);
+    else
+    {
+        setup.ttSize = clamped("hash", requested, 1, MaxHashMB);
+        setup.originalInvocation += " " + std::to_string(setup.ttSize);
+    }
+
+    if (!(is >> desiredTimeS))
+        desiredTimeS = DEFAULT_DURATION_S;
+    else
+    {
+        desiredTimeS = clamped("seconds", desiredTimeS, 1, MaxDurationS);
+        setup.originalInvocation += " " + std::to_string(desiredTimeS);
+    }
+
+    setup.filledInvocation += std::to_string(setup.threads) + " " + std::to_string(setup.ttSize)
+                            + " " + std::to_string(desiredTimeS);
+
+    auto getCorrectedTime = [&](int ply) {
+        // time per move is fit roughly based on LTC games
+        // seconds = 50/{ply+15}
+        // ms = 50000/{ply+15}
+        // with this fit 10th move gets 2000ms
+        // adjust for desired 10th move time
+        return 50000.0 / (static_cast<double>(ply) + 15.0);
+    };
+
+    float totalTime = 0;
+    for (const auto& game : BenchmarkPositions)
+        for (size_t i = 0; i < game.size(); ++i)
+            totalTime += float(getCorrectedTime(int(i + 1)));
+
+    float timeScaleFactor = static_cast<float>(desiredTimeS * 1000) / totalTime;
+
+    for (const auto& game : BenchmarkPositions)
+    {
+        setup.commands.emplace_back("ucinewgame");
+        int ply = 1;
+        for (const std::string& fen : game)
+        {
+            setup.commands.emplace_back("position fen " + fen);
+            const int correctedTime = static_cast<int>(getCorrectedTime(ply++) * timeScaleFactor);
+            setup.commands.emplace_back("go movetime " + std::to_string(correctedTime));
+        }
+    }
+
+    return setup;
 }
 
 }  // namespace Stockfish

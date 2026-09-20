@@ -181,9 +181,15 @@ void Engine::set_ponderhit(bool b) { threads.main_manager()->ponder = b; }
 
 // network related
 
+void Engine::set_on_verify_networks(std::function<void(std::string_view)>&& f) {
+    onVerifyNetworks = std::move(f);
+}
+
 void Engine::verify_networks() const {
-    auto print = [](std::string_view msg) {
-        if (CurrentProtocol != XBOARD)
+    auto print = [this](std::string_view msg) {
+        if (onVerifyNetworks)
+            onVerifyNetworks(msg);
+        else if (CurrentProtocol != XBOARD)
         {
             // Every line of a message is sent as an info string
             std::stringstream ss{std::string(msg)};

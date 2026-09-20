@@ -18,7 +18,10 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <iterator>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -41,6 +44,8 @@
 using namespace std;
 
 namespace Stockfish {
+
+constexpr auto BenchmarkCommand = "speedtest";
 
 // position() is called when engine receives the "position" UCI command.
 // The function sets up the position described in the given FEN string ("fen")
@@ -236,6 +241,176 @@ void UCIEngine::bench(istream& args) {
     cerr << "\n==========================="
          << "\nTotal time (ms) : " << elapsed << "\nNodes searched  : " << nodes
          << "\nNodes/second    : " << 1000 * nodes / elapsed << endl;
+}
+
+// Runs the "speedtest" command: a fixed set of chess games is searched with time
+// limits, all threads and a large hash table to measure the speed in a realistic way.
+void UCIEngine::benchmark(std::istream& args) {
+    // Probably not very important for a test this long, but include for completeness and sanity.
+    static constexpr int NUM_WARMUP_POSITIONS = 3;
+
+    std::string token;
+    uint64_t    cnt = 1;
+
+    engine->set_on_update_full([](const auto&) {});
+    engine->set_on_iter([](const auto&) {});
+    engine->set_on_update_no_moves([](const auto&) {});
+    engine->set_on_bestmove([](const auto&, const auto&) {});
+    engine->set_on_verify_networks([](const auto&) {});
+
+    const std::string previousVariant = Options["UCI_Variant"];
+
+    BenchmarkSetup setup = setup_benchmark(args);
+
+    const auto numGoCommands = count_if(setup.commands.begin(), setup.commands.end(),
+                                        [](const std::string& c) { return c.find("go ") == 0; });
+
+    // Set options once at the start. The positions are chess positions.
+    auto ss = std::istringstream("name Threads value " + std::to_string(setup.threads));
+    setoption(ss);
+    ss = std::istringstream("name Hash value " + std::to_string(setup.ttSize));
+    setoption(ss);
+    ss = std::istringstream("name UCI_Variant value chess");
+    setoption(ss);
+    ss = std::istringstream("name UCI_Chess960 value false");
+    setoption(ss);
+
+    // Warmup
+    for (const auto& cmd : setup.commands)
+    {
+        std::istringstream is(cmd);
+        is >> token;
+
+        if (token == "go")
+        {
+            // One new line is produced by the search, so omit it here
+            std::cerr << "\rWarmup position " << cnt++ << '/' << NUM_WARMUP_POSITIONS;
+
+            go(is);
+            engine->wait_for_search_finished();
+        }
+        else if (token == "position")
+            position(is);
+        else if (token == "ucinewgame")
+        {
+            engine->search_clear();  // search_clear may take a while
+        }
+
+        if (cnt > NUM_WARMUP_POSITIONS)
+            break;
+    }
+
+    std::cerr << "\n";
+
+    cnt = 1;
+
+    int           numHashfullReadings = 0;
+    constexpr int hashfullAges[]      = {0, 999};  // Only normal hashfull and touched hash.
+    constexpr int hashfullAgeCount    = std::size(hashfullAges);
+    int           totalHashfull[hashfullAgeCount] = {0};
+    int           maxHashfull[hashfullAgeCount]   = {0};
+
+    auto updateHashfullReadings = [&]() {
+        numHashfullReadings += 1;
+
+        for (int i = 0; i < hashfullAgeCount; ++i)
+        {
+            const int hashfull = engine->get_hashfull(hashfullAges[i]);
+            maxHashfull[i]     = std::max(maxHashfull[i], hashfull);
+            totalHashfull[i] += hashfull;
+        }
+    };
+
+    engine->search_clear();  // search_clear may take a while
+
+    using Clock = std::chrono::steady_clock;
+    Clock::time_point elapsed;
+    Clock::duration   totalTime(0);
+
+    uint64_t nodes = 0, nodesSearched = 0;
+
+    engine->set_on_update_full([&](const Search::InfoFull& i) { nodesSearched = i.nodes; });
+
+    engine->set_on_start([&elapsed, &nodesSearched]() {
+        elapsed       = Clock::now();
+        nodesSearched = 0;
+    });
+
+    engine->set_on_bestmove(
+      [&totalTime, &elapsed, &nodes, &nodesSearched](const auto&, const auto&) {
+          totalTime += Clock::now() - elapsed;
+          nodes += nodesSearched;
+      });
+
+    for (const auto& cmd : setup.commands)
+    {
+        std::istringstream is(cmd);
+        is >> token;
+
+        if (token == "go")
+        {
+            // One new line is produced by the search, so omit it here
+            std::cerr << "\rPosition " << cnt++ << '/' << numGoCommands;
+
+            go(is);
+            engine->wait_for_search_finished();
+
+            updateHashfullReadings();
+        }
+        else if (token == "position")
+            position(is);
+        else if (token == "ucinewgame")
+        {
+            engine->search_clear();  // search_clear may take a while
+        }
+    }
+
+    // Ensure positivity to avoid a 'divide by zero'
+    const auto totalTimeMs = std::max<int64_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(totalTime).count(), 1LL);
+
+    dbg_print();
+
+    std::cerr << "\n";
+
+    static_assert(
+      std::size(hashfullAges) == 2 && hashfullAges[0] == 0 && hashfullAges[1] == 999,
+      "Hardcoded for display. Would complicate the code needlessly in the current state.");
+
+    std::string threadBinding = engine->thread_binding_information_as_string();
+    if (threadBinding.empty())
+        threadBinding = "none";
+
+    // clang-format off
+
+    std::cerr << "==========================="
+              << "\nVersion                    : "
+              << engine_info(false, true)
+              // "\nCompiled by                : "
+              << compiler_info()
+              << "Large pages                : " << (has_large_pages() ? "yes" : "no")
+              << "\nUser invocation            : " << BenchmarkCommand << " "
+              << setup.originalInvocation << "\nFilled invocation          : " << BenchmarkCommand
+              << " " << setup.filledInvocation
+              << "\nAvailable processors       : " << engine->get_numa_config_as_string()
+              << "\nThread count               : " << setup.threads
+              << "\nThread binding             : " << threadBinding
+              << "\nTT size [MiB]              : " << setup.ttSize
+              << "\nHash max, avg [per mille]  : "
+              << "\n    single search          : " << maxHashfull[0] << ", "
+              << totalHashfull[0] / numHashfullReadings
+              << "\n    single game            : " << maxHashfull[1] << ", "
+              << totalHashfull[1] / numHashfullReadings
+              << "\nTotal nodes searched       : " << nodes
+              << "\nTotal search time [s]      : " << totalTimeMs / 1000.0
+              << "\nNodes/second               : " << 1000 * nodes / totalTimeMs << std::endl;
+
+    // clang-format on
+
+    ss = std::istringstream("name UCI_Variant value " + previousVariant);
+    setoption(ss);
+
+    init_search_update_listeners();
 }
 
 // The win rate model returns the probability of winning (in per mille units) given an
@@ -435,6 +610,8 @@ void UCIEngine::loop() {
             engine->flip();
         else if (token == "bench")
             bench(is);
+        else if (token == BenchmarkCommand)
+            benchmark(is);
         else if (token == "d")
             sync_cout << engine->visualize() << sync_endl;
         else if (token == "eval")
@@ -487,16 +664,21 @@ void UCIEngine::loop() {
 }
 
 
-UCIEngine::UCIEngine(int argc_, char** argv_) :
-    engine(std::make_unique<Engine>()),
-    argc(argc_),
-    argv(argv_) {
-
+void UCIEngine::init_search_update_listeners() {
     engine->set_on_iter([this](const auto& i) { on_iter(i); });
     engine->set_on_update_no_moves([this](const auto& i) { on_update_no_moves(i); });
     engine->set_on_update_full([this](const auto& i) { on_update_full(i); });
     engine->set_on_start([]() {});
     engine->set_on_bestmove([this](const auto& bm, const auto& p) { on_bestmove(bm, p); });
+    engine->set_on_verify_networks({});
+}
+
+UCIEngine::UCIEngine(int argc_, char** argv_) :
+    engine(std::make_unique<Engine>()),
+    argc(argc_),
+    argv(argv_) {
+
+    init_search_update_listeners();
 
     engine->load_networks();
     engine->resize_threads();

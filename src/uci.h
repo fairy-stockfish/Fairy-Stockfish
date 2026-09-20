@@ -149,6 +149,8 @@ class UCIEngine {
 
     void go(std::istringstream& is, const std::vector<Move>& banmoves = {});
     void bench(std::istream& args);
+    void benchmark(std::istream& args);
+    void init_search_update_listeners();
     void position(std::istringstream& is);
 
     void on_update_no_moves(const Search::InfoShort& info);
