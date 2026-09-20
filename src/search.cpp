@@ -1590,7 +1590,8 @@ moves_loop:  // When in check, search starts here
                           + captureHistory[movedPiece][to_sq(move)][type_of(pos.captured_piece())];
         else
             ss->statScore =
-              (2252 * mainHistory[us][from_to(move)] + 2252 * gateHistory[us][gating_square(move)]
+              (2252 * mainHistory[us][from_to(move)]
+               + (pos.walling_rule() == DUCK ? 0 : 2252) * gateHistory[us][gating_square(move)]
                + 1126 * (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
                + 1093 * (*contHist[1])[history_slot(movedPiece)][to_sq(move)])
               / 1024;
