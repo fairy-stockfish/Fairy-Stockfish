@@ -18,6 +18,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cerrno>
+#include <cstdlib>
 #include <ostream>
 #include <sstream>
 #include <iostream>
@@ -219,7 +221,7 @@ void init(OptionsMap& o) {
     o["UCI_LimitStrength"] << Option(false);
     o["UCI_Elo"] << Option(1350, 500, 2850);
     o["UCI_ShowWDL"] << Option(false);
-    o["SyzygyPath"] << Option("<empty>", on_tb_path);
+    o["SyzygyPath"] << Option("", on_tb_path);
     o["SyzygyProbeDepth"] << Option(1, 1, 100);
     o["Syzygy50MoveRule"] << Option(true);
     o["SyzygyProbeLimit"] << Option(7, 0, 7);
@@ -227,10 +229,10 @@ void init(OptionsMap& o) {
 #ifndef NNUE_EMBEDDING_OFF
     o["EvalFile"] << Option(EvalFileDefaultName, on_eval_file);
 #else
-    o["EvalFile"] << Option("<empty>", on_eval_file);
+    o["EvalFile"] << Option("", on_eval_file);
 #endif
     o["TsumeMode"] << Option(false);
-    o["VariantPath"] << Option("<empty>", on_variant_path);
+    o["VariantPath"] << Option("", on_variant_path);
     o["usemillisec"] << Option(true);  // time unit for UCCI
 }
 
@@ -249,8 +251,10 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
                     const Option& o = it.second;
                     os << "\nfeature option=\"" << it.first << " -" << o.type;
 
-                    if (o.type == "string" || o.type == "combo")
+                    if (o.type == "combo")
                         os << " " << o.defaultValue;
+                    else if (o.type == "string")
+                        os << " " << (o.defaultValue.empty() ? "<empty>" : o.defaultValue);
                     else if (o.type == "check")
                         os << " " << int(o.defaultValue == "true");
 
@@ -285,8 +289,11 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
                     else
                         os << "\noption name " << it.first << " type " << o.type;
 
-                    if (o.type == "string" || o.type == "check" || o.type == "combo")
+                    if (o.type == "check" || o.type == "combo")
                         os << " default " << o.defaultValue;
+
+                    else if (o.type == "string")
+                        os << " default " << (o.defaultValue.empty() ? "<empty>" : o.defaultValue);
 
                     if (o.type == "combo")
                         for (string value : o.comboValues)
@@ -384,6 +391,18 @@ void Option::operator<<(const Option& o) {
 }
 
 
+// Spin options of Fairy-Stockfish may have fractional values
+static bool value_in_range(const std::string& v, int min, int max) {
+    if (v.empty())
+        return false;
+    errno               = 0;
+    char*        end    = nullptr;
+    const double result = std::strtod(v.c_str(), &end);
+    if (errno == ERANGE || *end != '\0')
+        return false;
+    return result >= min && result <= max;
+}
+
 // Updates currentValue and triggers on_change() action. It's up to
 // the GUI to check for option's limits, but we could receive the new value
 // from the user by console window, so let's check the bounds anyway.
@@ -395,7 +414,7 @@ Option& Option::operator=(const string& v) {
         || (type == "check" && v != "true" && v != "false")
         || (type == "combo"
             && (std::find(comboValues.begin(), comboValues.end(), v) == comboValues.end()))
-        || (type == "spin" && (stof(v) < min || stof(v) > max)))
+        || (type == "spin" && !value_in_range(v, min, max)))
         return *this;
 
     if (type == "combo")
@@ -407,7 +426,9 @@ Option& Option::operator=(const string& v) {
             return *this;
     }
 
-    if (type != "button")
+    if (type == "string")
+        currentValue = v == "<empty>" ? "" : v;
+    else if (type != "button")
         currentValue = v;
 
     if (on_change)
