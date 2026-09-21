@@ -669,51 +669,65 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             std::cerr << "Inconsistent settings: castlingQueensideFile > castlingKingsideFile."
                       << std::endl;
 
-        // Check for limitations
-        if (v->pieceDrops && v->wallingRule)
-            std::cerr << "pieceDrops and any walling are incompatible." << std::endl;
-
-        // Options incompatible with royal kings
-        if (v->pieceTypes & KING)
+        // We can not fully check support for custom king movements at this point,
+        // since custom pieces are only initialized on loading of the variant.
+        // We will assume this is valid, but it might cause problems later if it's not.
+        if ((v->pieceTypes & KING) && !is_custom(v->kingType))
         {
-            if (v->blastOnCapture)
-                std::cerr << "Can not use kings with blastOnCapture." << std::endl;
-            if (v->flipEnclosedPieces)
-                std::cerr << "Can not use kings with flipEnclosedPieces." << std::endl;
-            if (v->wallingRule == DUCK)
-                std::cerr << "Can not use kings with wallingRule = duck." << std::endl;
-            // We can not fully check support for custom king movements at this point,
-            // since custom pieces are only initialized on loading of the variant.
-            // We will assume this is valid, but it might cause problems later if it's not.
-            if (!is_custom(v->kingType))
-            {
-                const PieceInfo* pi = pieceMap.find(v->kingType)->second;
-                if (pi->hopper[0][MODALITY_QUIET].size() || pi->hopper[0][MODALITY_CAPTURE].size()
-                    || std::any_of(
-                      pi->steps[0][MODALITY_CAPTURE].begin(), pi->steps[0][MODALITY_CAPTURE].end(),
-                      [](const std::pair<const Direction, int>& d) { return d.second; }))
-                    std::cerr << piece_name(v->kingType) << " is not supported as kingType."
-                              << std::endl;
-            }
-        }
-        // Options incompatible with royal kings OR pseudo-royal kings. Possible in theory though:
-        // 1. In blast variants, moving a (pseudo-)royal blastImmuneType into another piece is legal.
-        // 2. In blast variants, capturing a piece next to a (pseudo-)royal blastImmuneType is legal.
-        // 3. Moving a (pseudo-)royal mutuallyImmuneType into a square threatened by the same type is legal.
-        if ((v->extinctionPseudoRoyal) || (v->pieceTypes & KING))
-        {
-            if (v->blastImmuneTypes)
-                std::cerr << "Can not use kings or pseudo-royal with blastImmuneTypes."
-                          << std::endl;
-            if (v->mutuallyImmuneTypes)
-                std::cerr << "Can not use kings or pseudo-royal with mutuallyImmuneTypes."
+            const PieceInfo* pi = pieceMap.find(v->kingType)->second;
+            if (pi->hopper[0][MODALITY_QUIET].size() || pi->hopper[0][MODALITY_CAPTURE].size()
+                || std::any_of(pi->steps[0][MODALITY_CAPTURE].begin(),
+                               pi->steps[0][MODALITY_CAPTURE].end(),
+                               [](const std::pair<const Direction, int>& d) { return d.second; }))
+                std::cerr << piece_name(v->kingType) << " is not supported as kingType."
                           << std::endl;
         }
-        if (v->flagPieceSafe && v->blastOnCapture)
-            std::cerr
-              << "Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast)."
-              << std::endl;
     }
+
+    // Check for limitations. These combinations of options are not supported
+    // and would lead to crashes or incorrect move generation/game results,
+    // so the variant is rejected (see VariantMap::parse_istream).
+
+    // Drops are generated without a gating square, but walling would still
+    // place a wall on the square decoded from the drop move.
+    if (v->pieceDrops && v->wallingRule)
+        errors.push_back("pieceDrops and any walling are incompatible.");
+
+    // Options incompatible with royal kings
+    if (v->pieceTypes & KING)
+    {
+        if (v->blastOnCapture)
+            errors.push_back("Can not use kings with blastOnCapture.");
+        if (v->flipEnclosedPieces)
+            errors.push_back("Can not use kings with flipEnclosedPieces.");
+        if (v->wallingRule == DUCK)
+            errors.push_back("Can not use kings with wallingRule = duck.");
+    }
+    // Options incompatible with royal kings OR pseudo-royal kings. Possible in theory though:
+    // 1. In blast variants, moving a (pseudo-)royal blastImmuneType into another piece is legal.
+    // 2. In blast variants, capturing a piece next to a (pseudo-)royal blastImmuneType is legal.
+    // 3. Moving a (pseudo-)royal mutuallyImmuneType into a square threatened by the same type is legal.
+    if ((v->extinctionPseudoRoyal) || (v->pieceTypes & KING))
+    {
+        if (v->blastImmuneTypes)
+            errors.push_back("Can not use kings or pseudo-royal with blastImmuneTypes.");
+        if (v->mutuallyImmuneTypes)
+            errors.push_back("Can not use kings or pseudo-royal with mutuallyImmuneTypes.");
+    }
+    if (v->flagPieceSafe && v->blastOnCapture)
+        errors.push_back(
+          "Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast).");
+    // Flipping does not update castling rights, so castling could be done
+    // with flipped (i.e., the opponent's) castling king or rook pieces.
+    if (v->flipEnclosedPieces && v->castling
+        && (v->pieceTypes & (piece_set(v->castlingKingPiece[WHITE]) | v->castlingKingPiece[BLACK])))
+        errors.push_back("flipEnclosedPieces and castling are incompatible.");
+    // Duck walling resets the wall squares of the previous move,
+    // so squares petrified by the current move would get out of sync.
+    if (v->wallingRule == DUCK
+        && (v->petrifyOnCaptureTypes || (v->blastOnCapture && v->petrifyBlastPieces)))
+        errors.push_back("Can not use petrification with wallingRule = duck.");
+
     return v;
 }
 
