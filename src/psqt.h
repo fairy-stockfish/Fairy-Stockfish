@@ -29,6 +29,12 @@ namespace Stockfish::PSQT {
 
 extern Score psq[PIECE_NB][SQUARE_NB + 1];
 
+// Classes of piece types for the keys of the history tables: the numerous pieces of
+// low value that define the structure of a position like pawns, and the pieces of
+// medium value. They generalize the pawns and minor pieces of chess to all variants.
+extern PieceSet lowPieceTypes;
+extern PieceSet mediumPieceTypes;
+
 // Fill psqt array from a set of internally linked parameters
 extern void init(const Variant*);
 

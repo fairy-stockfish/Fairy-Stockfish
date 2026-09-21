@@ -44,6 +44,7 @@ struct StateInfo {
     // Copied when making a move
     Key        pawnKey;
     Key        materialKey;
+    Key        lowPieceKey;
     Key        minorPieceKey;
     Key        nonPawnKey[COLOR_NB];
     Value      nonPawnMaterial[COLOR_NB];
@@ -325,6 +326,7 @@ class Position {
     Key key_after(Move m) const;
     Key material_key(EndgameEval e = EG_EVAL_CHESS) const;
     Key pawn_key() const;
+    Key history_pawn_key() const;
     Key minor_piece_key() const;
     Key non_pawn_key(Color c) const;
 
@@ -1364,6 +1366,9 @@ inline Key Position::adjust_key50(Key k) const {
 }
 
 inline Key Position::pawn_key() const { return st->pawnKey; }
+
+// The key of the pawns and of the other pieces of low value, see PSQT::lowPieceTypes
+inline Key Position::history_pawn_key() const { return st->pawnKey ^ st->lowPieceKey; }
 
 inline Score Position::psq_score() const { return psq; }
 

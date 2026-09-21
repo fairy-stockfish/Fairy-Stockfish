@@ -229,17 +229,17 @@ struct SharedHistories {
     usize get_size() const { return sizeMinus1 + 1; }
 
     auto& pawn_entry(const Position& pos) {
-        return pawnHistory[pos.pawn_key() & pawnHistSizeMinus1];
+        return pawnHistory[pos.history_pawn_key() & pawnHistSizeMinus1];
     }
     const auto& pawn_entry(const Position& pos) const {
-        return pawnHistory[pos.pawn_key() & pawnHistSizeMinus1];
+        return pawnHistory[pos.history_pawn_key() & pawnHistSizeMinus1];
     }
 
     auto& pawn_correction_entry(const Position& pos) {
-        return correctionHistory[pos.pawn_key() & sizeMinus1];
+        return correctionHistory[pos.history_pawn_key() & sizeMinus1];
     }
     const auto& pawn_correction_entry(const Position& pos) const {
-        return correctionHistory[pos.pawn_key() & sizeMinus1];
+        return correctionHistory[pos.history_pawn_key() & sizeMinus1];
     }
 
     auto& minor_piece_correction_entry(const Position& pos) {

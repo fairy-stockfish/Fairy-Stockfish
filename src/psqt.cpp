@@ -412,6 +412,52 @@ namespace PSQT {
 
 Score psq[PIECE_NB][SQUARE_NB + 1];
 
+PieceSet lowPieceTypes;
+PieceSet mediumPieceTypes;
+
+namespace {
+
+// Pieces below this value count as pawns for the history keys
+constexpr Value LowPieceValue = Value(300);
+
+// Classifies the piece types of a variant by their value. The king is never a low
+// piece. At least the least valuable type is low, and the most valuable type is
+// not medium as long as another medium type remains.
+void init_piece_classes(const Variant* v) {
+
+    PieceSet types = v->pieceTypes & ~piece_set(KING);
+
+    Value minValue = VALUE_INFINITE, maxValue = VALUE_ZERO;
+    for (PieceSet ps = types; ps;)
+    {
+        Value value = PieceValue[MG][pop_lsb(ps)];
+        minValue    = std::min(minValue, value);
+        maxValue    = std::max(maxValue, value);
+    }
+
+    lowPieceTypes = mediumPieceTypes = NO_PIECE_SET;
+    PieceSet mediumWithoutStrongest  = NO_PIECE_SET;
+    for (PieceSet ps = types; ps;)
+    {
+        PieceType pt    = pop_lsb(ps);
+        Value     value = PieceValue[MG][pt];
+
+        if (value < LowPieceValue || value == minValue)
+            lowPieceTypes |= pt;
+        else if (value < RookValueMg)
+        {
+            mediumPieceTypes |= pt;
+            if (value < maxValue)
+                mediumWithoutStrongest |= pt;
+        }
+    }
+
+    if (mediumWithoutStrongest)
+        mediumPieceTypes = mediumWithoutStrongest;
+}
+
+}  // namespace
+
 // PSQT::init() initializes piece-square tables: the white halves of the tables are
 // copied from Bonus[] and PBonus[], adding the piece value, then the black halves of
 // the tables are initialized by flipping and changing the sign of the white scores.
@@ -432,6 +478,8 @@ void init(const Variant* v) {
         if (PieceValue[MG][pt] > PieceValue[MG][strongestPiece])
             strongestPiece = pt;
     }
+
+    init_piece_classes(v);
 
     Value maxPromotion = VALUE_ZERO;
     for (PieceSet ps = v->promotionPieceTypes[WHITE]; ps;)

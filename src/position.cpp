@@ -649,14 +649,23 @@ void Position::set_check_info() const {
 // the keys stay consistent for all variant-specific move types as well.
 void Position::update_piece_keys(Piece pc, Square s) const {
 
+    // The pawn key is maintained separately, as the evaluation uses it
     if (type_of(pc) == PAWN)
         return;
 
     Key k = Zobrist::psq[pc][s];
+
+    // Pieces of low value count as pawns
+    if (PSQT::lowPieceTypes & type_of(pc))
+    {
+        st->lowPieceKey ^= k;
+        return;
+    }
+
     st->nonPawnKey[color_of(pc)] ^= k;
 
-    // Minor pieces and the king (pieces worth less than a rook)
-    if (type_of(pc) == KING || PieceValue[MG][pc] < RookValueMg)
+    // Minor pieces and the king
+    if (type_of(pc) == KING || (PSQT::mediumPieceTypes & type_of(pc)))
         st->minorPieceKey ^= k;
 }
 
@@ -664,6 +673,7 @@ void Position::update_piece_keys(Piece pc, Square s) const {
 void Position::set_state() const {
 
     st->key = st->materialKey = 0;
+    st->lowPieceKey           = 0;
     st->minorPieceKey         = 0;
     st->nonPawnKey[WHITE] = st->nonPawnKey[BLACK] = 0;
     st->pawnKey                                   = Zobrist::noPawns;
