@@ -659,6 +659,12 @@ void Position::update_piece_keys(Piece pc, Square s) const {
     if (PSQT::lowPieceTypes & type_of(pc))
     {
         st->lowPieceKey ^= k;
+
+        // Without other pieces the keys by colour would be constant. Use them for the
+        // low pieces, as the key of both colours is close to the key of the position.
+        if (PSQT::lowPiecesOnly)
+            st->nonPawnKey[color_of(pc)] ^= k;
+
         return;
     }
 

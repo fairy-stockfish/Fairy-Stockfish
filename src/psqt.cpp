@@ -414,6 +414,7 @@ Score psq[PIECE_NB][SQUARE_NB + 1];
 
 PieceSet lowPieceTypes;
 PieceSet mediumPieceTypes;
+bool     lowPiecesOnly;
 
 namespace {
 
@@ -454,6 +455,8 @@ void init_piece_classes(const Variant* v) {
 
     if (mediumWithoutStrongest)
         mediumPieceTypes = mediumWithoutStrongest;
+
+    lowPiecesOnly = !(types & ~lowPieceTypes);
 }
 
 }  // namespace

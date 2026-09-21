@@ -35,6 +35,9 @@ extern Score psq[PIECE_NB][SQUARE_NB + 1];
 extern PieceSet lowPieceTypes;
 extern PieceSet mediumPieceTypes;
 
+// Variants with a single class of pieces, like the games with one piece type
+extern bool lowPiecesOnly;
+
 // Fill psqt array from a set of internally linked parameters
 extern void init(const Variant*);
 
