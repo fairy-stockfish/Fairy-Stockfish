@@ -78,6 +78,31 @@ pass = true
 [royalduck:duck]
 extinctionPseudoRoyal = true
 
+[atomicduck:atomic]
+wallingRule = duck
+stalemateValue = win
+
+[atlantis:chess]
+wallingRule = edge
+wallOrMove = true
+
+[alapo:chess]
+pieceToCharTable = ..BRQ.........FW.....K..brq.........fw.....k
+maxRank = 6
+maxFile = f
+wazir = w
+fers = f
+king = -
+commoner = k
+startFen = rbqqbr/wfkkfw/6/6/WFKKFW/RBQQBR
+flagRegionWhite = *6
+flagRegionBlack = *1
+flagPieceSafe = true
+flagMove = true
+stalemateValue = loss
+nMoveRule = 0
+nFoldRule = 0
+
 [makhouse:makruk]
 startFen = rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR[] w - - 0 1
 pieceDrops = true
@@ -469,6 +494,28 @@ class TestPyffish(unittest.TestCase):
         self.assertIn("f2h2", result)
         result = sf.legal_moves("shako", "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/RR3K4/10 w Qkq - 0 1", [])
         self.assertIn("f2d2", result)
+
+    def test_atomic_duck_blast_walls(self):
+        fen = "7k/8/8/2Ppq3/*7/8/8/K2R4 w - - 0 1"
+        moves = sf.legal_moves("atomicduck", fen, [])
+        for square in ("d1", "d5", "e5"):
+            self.assertIn(f"d1d5,d5{square}", moves)
+        self.assertNotIn("d1d5,d5c5", moves)
+
+        result = sf.get_fen("atomicduck", fen, ["d1d5,d5e5"])
+        self.assertEqual(result, "7k/8/8/2P1*3/8/8/8/K7 b - - 0 1")
+
+        moves = sf.legal_moves("atomicduck", "4r2k/8/8/3pq3/*7/8/8/3RK3 w - - 0 1", [])
+        self.assertIn("d1d5,d5e5", moves)
+        self.assertNotIn("d1d5,d5d5", moves)
+
+        moves = sf.legal_moves("atomicduck", "7k/8/8/3pq3/*3K3/8/8/3R4 w - - 0 1", [])
+        self.assertFalse(any(move.startswith("d1d5,") for move in moves))
+
+    def test_wall_only_evasions(self):
+        moves = sf.legal_moves("atlantis", "7k/8/8/8/8/8/8/K6r w - - 0 1", [])
+        for square in ("b1", "c1", "d1", "e1", "f1", "g1"):
+            self.assertIn(f"a1a1,a1{square}", moves)
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
@@ -1129,6 +1176,12 @@ class TestPyffish(unittest.TestCase):
     def test_is_immediate_game_end(self):
         self._check_immediate_game_end("capablanca", CAPA, [], False)
 
+        # Alapo requires enough safe flag pieces, even when extra pieces reached the goal
+        self._check_immediate_game_end("alapo", "RR4/6/6/rr4/6/6 b - - 0 1", [], False)
+        self._check_immediate_game_end(
+            "alapo", "RR4/6/6/r5/6/6 b - - 0 1", [], True, -sf.VALUE_MATE
+        )
+
         # bikjang (facing kings)
         moves = "e2e3 e9f9 h3d3 e7f7 i1i3 h10i8 i3h3 c10e7 h3h8 i10i9 h8b8 i9g9 d3f3 f9e9 f3f10 e7c10 f10c10 b10c8 c10g10 g9f9 b8c8 a10b10 b3f3 f9h9 a1a2 h9f9 a2d2 b10b9 d2d10 e9d10 c8c10 d10d9 f3f9 i8g9 f9b9 a7a6 g10g7 f7f6 e4e5 c7d7 g1e4 i7i6 e4b6 d9d8 c10c8 d8d9 b9g9 d7d6 b6e8 i6h6 e5e6 f6e6 c1e4 a6b6 e4b6 d6d5 c4c5 d9d10 e3d3 h6i6 c5c6 d5c5"
         self._check_immediate_game_end("janggi", JANGGI, moves.split(), False)
@@ -1156,6 +1209,11 @@ class TestPyffish(unittest.TestCase):
 
     def test_is_optional_game_end(self):
         self._check_optional_game_end("capablanca", CAPA, [], False)
+
+        # A pseudo-royal checkmate takes precedence over the n-move draw
+        self._check_optional_game_end(
+            "petrified", "1r6/8/8/8/8/2k5/r7/K7 w - - 100 1", [], False
+        )
 
         # sittuyin stalemate due to optional promotion
         self._check_optional_game_end("sittuyin", "1k4PK/3r4/8/8/8/8/8/8[] w - - 0 1", [], True, sf.VALUE_DRAW)
