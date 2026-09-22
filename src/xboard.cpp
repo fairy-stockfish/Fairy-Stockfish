@@ -286,10 +286,15 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
                 num = std::stoi(token) * 60;
             limits.time[WHITE] = num * 1000;
             limits.time[BLACK] = num * 1000;
-            // increment
-            is >> num;
-            limits.inc[WHITE] = num * 1000;
-            limits.inc[BLACK] = num * 1000;
+            // Increment, read as a real number of seconds. The protocol only
+            // documents whole seconds here, but the clocks themselves are
+            // exchanged in centiseconds via time/otim, so the increment is the
+            // only part of a time control such as 10+0.1 that could not be
+            // expressed. Whole-second increments parse exactly as before.
+            double inc;
+            is >> inc;
+            limits.inc[WHITE] = TimePoint(inc * 1000);
+            limits.inc[BLACK] = TimePoint(inc * 1000);
         }
         else if (token == "sd")
             is >> limits.depth;
