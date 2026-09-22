@@ -1926,6 +1926,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     // Move the piece. The tricky Chess960 castling is handled earlier
     if (type_of(m) == DROP)
     {
+        int castlingRights = st->castlingRights;
+
         if (Eval::useNNUE)
         {
             // Add drop piece
@@ -1967,6 +1969,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
                 }
             }
         }
+
+        if (castlingRights != st->castlingRights)
+            k ^= Zobrist::castling[castlingRights] ^ Zobrist::castling[st->castlingRights];
     }
     else if (type_of(m) != CASTLING)
     {

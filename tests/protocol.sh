@@ -88,6 +88,16 @@ cat << EOF > variant_state_hash.exp
        if {\$gating_key != \$expect_out(1,string)} { exit 1 }
    }
 
+   send "setoption name UCI_Variant value placement\n"
+   send "position startpos moves R@a1 R@a8 K@e1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set placement_key \$expect_out(1,string) }
+   send "position fen r7/pppppppp/8/8/8/8/PPPPPPPP/R3K3\\[QRBBNNkqrbbnn\\] b Q - 0 2\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$placement_key != \$expect_out(1,string)} { exit 1 }
+   }
+
    send "quit\n"
    expect eof
 EOF
