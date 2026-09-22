@@ -1387,6 +1387,8 @@ bool Position::legal(Move m) const {
     }
 
     Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+    if (walling() && (!var->wallOrMove || from == to))
+        occupied |= gating_square(m);
 
     // Flying general rule and bikjang
     // In case of bikjang passing is always allowed, even when in check

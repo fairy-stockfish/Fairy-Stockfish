@@ -82,6 +82,10 @@ extinctionPseudoRoyal = true
 wallingRule = duck
 stalemateValue = win
 
+[atlantis:chess]
+wallingRule = edge
+wallOrMove = true
+
 [makhouse:makruk]
 startFen = rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR[] w - - 0 1
 pieceDrops = true
@@ -490,6 +494,11 @@ class TestPyffish(unittest.TestCase):
 
         moves = sf.legal_moves("atomicduck", "7k/8/8/3pq3/*3K3/8/8/3R4 w - - 0 1", [])
         self.assertFalse(any(move.startswith("d1d5,") for move in moves))
+
+    def test_wall_only_evasions(self):
+        moves = sf.legal_moves("atlantis", "7k/8/8/8/8/8/8/K6r w - - 0 1", [])
+        for square in ("b1", "c1", "d1", "e1", "f1", "g1"):
+            self.assertIn(f"a1a1,a1{square}", moves)
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
