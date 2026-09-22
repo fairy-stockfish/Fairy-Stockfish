@@ -2134,8 +2134,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
         remove_from_hand(gating_piece);
 
         st->gatesBB[us] ^= gate;
-        k ^= Zobrist::psq[gating_piece][gate];
-        st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece]];
+        k ^= Zobrist::psq[gating_piece][gate]
+           ^ Zobrist::inHand[gating_piece][pieceCountInHand[us][gating_type(m)] + 1]
+           ^ Zobrist::inHand[gating_piece][pieceCountInHand[us][gating_type(m)]];
+        st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece] - 1];
         st->nonPawnMaterial[us] += PieceValue[MG][gating_piece];
     }
 

@@ -75,6 +75,23 @@ cat << EOF > ep_hash.exp
    expect eof
 EOF
 
+cat << EOF > variant_state_hash.exp
+   spawn ./stockfish
+
+   send "setoption name UCI_Variant value seirawan\n"
+   send "position startpos moves b1c3e\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set gating_key \$expect_out(1,string) }
+   send "position fen rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/REBQKBNR\\[Heh\\] b KQCDFGkqbcdfg - 1 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$gating_key != \$expect_out(1,string)} { exit 1 }
+   }
+
+   send "quit\n"
+   expect eof
+EOF
+
 cat << EOF > pseudo_royal_search.exp
    spawn ./stockfish
    send "setoption name UCI_Variant value petrified\n"
@@ -102,7 +119,7 @@ cat << EOF > xboard.exp
 EOF
 
 for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp ep_hash.exp \
-  pseudo_royal_search.exp xboard.exp
+  variant_state_hash.exp pseudo_royal_search.exp xboard.exp
 do
   echo "Testing $exp"
   timeout 5 expect $exp > /dev/null
