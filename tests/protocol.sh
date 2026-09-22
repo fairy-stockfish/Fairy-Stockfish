@@ -75,6 +75,17 @@ cat << EOF > ep_hash.exp
    expect eof
 EOF
 
+cat << EOF > pseudo_royal_search.exp
+   spawn ./stockfish
+   send "setoption name UCI_Variant value petrified\n"
+   send "position fen 1r6/8/8/8/8/r1k5/8/K7 b - - 0 1\n"
+   send "go depth 1\n"
+   expect "score mate 1"
+   expect "bestmove"
+   send "quit\n"
+   expect eof
+EOF
+
 cat << EOF > xboard.exp
    spawn ./stockfish load variants.ini
    send "xboard\\n"
@@ -90,7 +101,8 @@ cat << EOF > xboard.exp
    expect eof
 EOF
 
-for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp ep_hash.exp xboard.exp
+for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp ep_hash.exp \
+  pseudo_royal_search.exp xboard.exp
 do
   echo "Testing $exp"
   timeout 5 expect $exp > /dev/null

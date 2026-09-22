@@ -2830,9 +2830,12 @@ bool Position::see_ge(Move m, Value threshold) const {
 
 bool Position::is_optional_game_end(Value& result, int ply, int countStarted) const {
 
+    bool inCheck = checkers()
+                || (extinction_pseudo_royal() && checked_pseudo_royals(sideToMove));
+
     // n-move rule
     if (n_move_rule() && st->rule50 > (2 * n_move_rule() - 1)
-        && (!checkers() || MoveList<LEGAL>(*this).size()))
+        && (!inCheck || MoveList<LEGAL>(*this).size()))
     {
         int offset = 0;
         if (var->chasingRule == AXF_CHASING && st->pliesFromNull >= 20)
@@ -2952,7 +2955,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
     // counting rules
     if (counting_rule() && st->countingLimit
         && counting_ply(countStarted) > counting_limit(countStarted)
-        && (!checkers() || MoveList<LEGAL>(*this).size()))
+        && (!inCheck || MoveList<LEGAL>(*this).size()))
     {
         result = VALUE_DRAW;
         return true;

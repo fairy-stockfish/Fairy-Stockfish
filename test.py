@@ -1210,6 +1210,11 @@ class TestPyffish(unittest.TestCase):
     def test_is_optional_game_end(self):
         self._check_optional_game_end("capablanca", CAPA, [], False)
 
+        # A pseudo-royal checkmate takes precedence over the n-move draw
+        self._check_optional_game_end(
+            "petrified", "1r6/8/8/8/8/2k5/r7/K7 w - - 100 1", [], False
+        )
+
         # sittuyin stalemate due to optional promotion
         self._check_optional_game_end("sittuyin", "1k4PK/3r4/8/8/8/8/8/8[] w - - 0 1", [], True, sf.VALUE_DRAW)
 

@@ -962,7 +962,9 @@ Value Search::Worker::search(
     SearchedList quietsSearched;
 
     // Step 1. Initialize node
-    ss->inCheck   = pos.checkers();
+    ss->inCheck = pos.checkers()
+               || (pos.extinction_pseudo_royal()
+                   && pos.checked_pseudo_royals(pos.side_to_move()));
     priorCapture  = pos.captured_piece();
     Color us      = pos.side_to_move();
     ss->moveCount = 0;
@@ -1933,8 +1935,10 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
         ss->pv->clear();
     }
 
-    bestMove    = Move::none();
-    ss->inCheck = pos.checkers();
+    bestMove = Move::none();
+    bool pseudoRoyalCheck = pos.extinction_pseudo_royal()
+                         && pos.checked_pseudo_royals(pos.side_to_move());
+    ss->inCheck = pos.checkers() || pseudoRoyalCheck;
     moveCount   = 0;
 
     // Used to send selDepth info to GUI (selDepth counts from 1, ply from 0)
@@ -2018,14 +2022,17 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
         futilityBase = ss->staticEval + 306;
     }
 
-    const PieceToHistory* contHist[] = {(ss - 1)->continuationHistory};
+    const PieceToHistory* contHist[] = {
+      (ss - 1)->continuationHistory, (ss - 2)->continuationHistory, (ss - 3)->continuationHistory,
+      (ss - 4)->continuationHistory, (ss - 5)->continuationHistory, (ss - 6)->continuationHistory};
 
     Square prevSq = is_ok((ss - 1)->currentMove) ? to_sq((ss - 1)->currentMove) : SQ_NONE;
 
     // Initialize a MovePicker object for the current position, and prepare to search
     // the moves. We presently use two stages of move generator in quiescence search:
     // captures, or evasions only when in check.
-    MovePicker mp(pos, ttData.move, DEPTH_QS, &mainHistory, &gateHistory, &lowPlyHistory,
+    MovePicker mp(pos, ttData.move, pseudoRoyalCheck ? Depth(1) : DEPTH_QS, &mainHistory,
+                  &gateHistory, &lowPlyHistory,
                   &captureHistory, contHist, &sharedHistory, ss->ply);
 
     // Step 5. Loop through all pseudo-legal moves until no moves remain
