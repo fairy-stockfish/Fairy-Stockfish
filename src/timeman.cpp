@@ -109,7 +109,7 @@ void TimeManagement::init(const Position&     pos,
     if (pos.two_boards())
     {
         if (Partner.partnerDead && Partner.opptime)
-            timeLeft -= Partner.opptime;
+            timeLeft = std::max(TimePoint(1), timeLeft - Partner.opptime);
         else
         {
             timeLeft = std::min(timeLeft, 5000
