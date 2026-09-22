@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -34,59 +34,59 @@ namespace Stockfish {
 
 enum EndgameCode {
 
-  EVALUATION_FUNCTIONS,
-  KNNK,  // KNN vs K
-  KNNKP, // KNN vs KP
-  KXK,   // Generic "mate lone king" eval
-  KBNK,  // KBN vs K
-  KPK,   // KP vs K
-  KRKP,  // KR vs KP
-  KRKB,  // KR vs KB
-  KRKN,  // KR vs KN
-  KQKP,  // KQ vs KP
-  KQKR,  // KQ vs KR
+    EVALUATION_FUNCTIONS,
+    KNNK,   // KNN vs K
+    KNNKP,  // KNN vs KP
+    KXK,    // Generic "mate lone king" eval
+    KBNK,   // KBN vs K
+    KPK,    // KP vs K
+    KRKP,   // KR vs KP
+    KRKB,   // KR vs KB
+    KRKN,   // KR vs KN
+    KQKP,   // KQ vs KP
+    KQKR,   // KQ vs KR
 
-  // Fairy piece endgames
-  KFsPsK, // KFsPsK vs K
-  KNSK,  // KNS vs K
-  KNFK,  // KNF vs K
-  KNSFKR,  // KNSFKR vs K
-  KSFK,  // KSF vs K
-  KSFKF,  // KSF vs KF
-  KRKS,  // KR vs KS
-  KCKR,  // KC vs KR
-  KAKR,  // KA vs KR
+    // Fairy piece endgames
+    KFsPsK,  // KFsPsK vs K
+    KNSK,    // KNS vs K
+    KNFK,    // KNF vs K
+    KNSFKR,  // KNSFKR vs K
+    KSFK,    // KSF vs K
+    KSFKF,   // KSF vs KF
+    KRKS,    // KR vs KS
+    KCKR,    // KC vs KR
+    KAKR,    // KA vs KR
 
-  // Special
-  KXKX,
-  RK,
-  KN,
-  NN,
-  KQK,
-  KRK,
-  KBK,
-  KNK,
-  KK,
+    // Special
+    KXKX,
+    RK,
+    KN,
+    NN,
+    KQK,
+    KRK,
+    KBK,
+    KNK,
+    KK,
 
-  SCALING_FUNCTIONS,
-  KBPsK,   // KB and pawns vs K
-  KQKRPs,  // KQ vs KR and pawns
-  KRPKR,   // KRP vs KR
-  KRPKB,   // KRP vs KB
-  KRPPKRP, // KRPP vs KRP
-  KPsK,    // K and pawns vs K
-  KBPKB,   // KBP vs KB
-  KBPPKB,  // KBPP vs KB
-  KBPKN,   // KBP vs KN
-  KPKP     // KP vs KP
+    SCALING_FUNCTIONS,
+    KBPsK,    // KB and pawns vs K
+    KQKRPs,   // KQ vs KR and pawns
+    KRPKR,    // KRP vs KR
+    KRPKB,    // KRP vs KB
+    KRPPKRP,  // KRPP vs KRP
+    KPsK,     // K and pawns vs K
+    KBPKB,    // KBP vs KB
+    KBPPKB,   // KBPP vs KB
+    KBPKN,    // KBP vs KN
+    KPKP      // KP vs KP
 };
 
 
 /// Endgame functions can be of two types depending on whether they return a
 /// Value or a ScaleFactor.
 
-template<EndgameCode E, EndgameEval V = EG_EVAL_CHESS> using
-eg_type = typename std::conditional<(E < SCALING_FUNCTIONS), Value, ScaleFactor>::type;
+template<EndgameCode E, EndgameEval V = EG_EVAL_CHESS>
+using eg_type = typename std::conditional<(E < SCALING_FUNCTIONS), Value, ScaleFactor>::type;
 
 
 /// Base and derived functors for endgame evaluation and scaling functions
@@ -94,19 +94,22 @@ eg_type = typename std::conditional<(E < SCALING_FUNCTIONS), Value, ScaleFactor>
 template<typename T>
 struct EndgameBase {
 
-  explicit EndgameBase(Color c) : strongSide(c), weakSide(~c) {}
-  virtual ~EndgameBase() = default;
-  virtual T operator()(const Position&) const = 0;
+    explicit EndgameBase(Color c) :
+        strongSide(c),
+        weakSide(~c) {}
+    virtual ~EndgameBase()                      = default;
+    virtual T operator()(const Position&) const = 0;
 
-  const Color strongSide, weakSide;
+    const Color strongSide, weakSide;
 };
 
 
 template<EndgameCode E, EndgameEval V = EG_EVAL_CHESS, typename T = eg_type<E, V>>
-struct Endgame : public EndgameBase<T> {
+struct Endgame: public EndgameBase<T> {
 
-  explicit Endgame(Color c) : EndgameBase<T>(c) {}
-  T operator()(const Position&) const override;
+    explicit Endgame(Color c) :
+        EndgameBase<T>(c) {}
+    T operator()(const Position&) const override;
 };
 
 
@@ -116,33 +119,35 @@ struct Endgame : public EndgameBase<T> {
 
 namespace Endgames {
 
-  template<typename T> using Ptr = std::unique_ptr<EndgameBase<T>>;
-  template<typename T> using Map = std::unordered_map<Key, Ptr<T>>;
+template<typename T>
+using Ptr = std::unique_ptr<EndgameBase<T>>;
+template<typename T>
+using Map = std::unordered_map<Key, Ptr<T>>;
 
-  extern std::pair<Map<Value>, Map<ScaleFactor>> maps;
+extern std::pair<Map<Value>, Map<ScaleFactor>> maps;
 
-  void init();
+void init();
 
-  template<typename T>
-  Map<T>& map() {
+template<typename T>
+Map<T>& map() {
     return std::get<std::is_same<T, ScaleFactor>::value>(maps);
-  }
+}
 
-  template<EndgameCode E, EndgameEval V = EG_EVAL_CHESS, typename T = eg_type<E, V>>
-  void add(const std::string& code) {
+template<EndgameCode E, EndgameEval V = EG_EVAL_CHESS, typename T = eg_type<E, V>>
+void add(const std::string& code) {
 
     StateInfo st;
     map<T>()[Position().set(code, WHITE, &st).material_key(V)] = Ptr<T>(new Endgame<E, V>(WHITE));
     map<T>()[Position().set(code, BLACK, &st).material_key(V)] = Ptr<T>(new Endgame<E, V>(BLACK));
-  }
-
-  template<typename T>
-  const EndgameBase<T>* probe(Key key) {
-    auto it = map<T>().find(key);
-    return it != map<T>().end() ? it->second.get() : nullptr;
-  }
 }
 
-} // namespace Stockfish
+template<typename T>
+const EndgameBase<T>* probe(Key key) {
+    auto it = map<T>().find(key);
+    return it != map<T>().end() ? it->second.get() : nullptr;
+}
+}
 
-#endif // #ifndef ENDGAME_H_INCLUDED
+}  // namespace Stockfish
+
+#endif  // #ifndef ENDGAME_H_INCLUDED

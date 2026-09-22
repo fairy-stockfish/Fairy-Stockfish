@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,89 +24,157 @@
 
 namespace Stockfish::Eval::NNUE::Features {
 
-  // Map square to numbering on variant board
-  inline Square to_variant_square(Square s, const Position& pos) {
+// Map square to numbering on variant board
+inline Square to_variant_square(Square s, const Position& pos) {
     return Square(s - rank_of(s) * (FILE_MAX - pos.max_file()));
-  }
+}
 
-  // Orient a square according to perspective (rotates by 180 for black)
-  // Missing kings map to index 0 (SQ_A1)
-  inline Square HalfKAv2Variants::orient(Color perspective, Square s, const Position& pos) {
-    return s != SQ_NONE ? to_variant_square(  perspective == WHITE || (pos.flag_region(BLACK) & Rank8BB) ? s
-                                            : flip_rank(s, pos.max_rank()), pos) : SQ_A1;
-  }
+// Orient a square according to perspective (rotates by 180 for black)
+// Missing kings map to index 0 (SQ_A1)
+inline Square HalfKAv2Variants::orient(Color perspective, Square s, const Position& pos) {
+    return s != SQ_NONE
+           ? to_variant_square(perspective == WHITE || (pos.flag_region(BLACK) & Rank8BB)
+                                 ? s
+                                 : flip_rank(s, pos.max_rank()),
+                               pos)
+           : SQ_A1;
+}
 
-  // Index of a feature for a given king position and another piece on some square
-  inline IndexType HalfKAv2Variants::make_index(Color perspective, Square s, Piece pc, Square ksq, const Position& pos) {
-    return IndexType(orient(perspective, s, pos) + pos.nnue_piece_square_index(perspective, pc) + pos.nnue_king_square_index(ksq));
-  }
+// Index of a feature for a given king position and another piece on some square
+inline IndexType HalfKAv2Variants::make_index(const NnueLayout& layout,
+                                              Color             perspective,
+                                              Square            s,
+                                              Piece             pc,
+                                              Square            ksq,
+                                              const Position&   pos) {
+    return IndexType(orient(perspective, s, pos) + layout.pieceSquareIndex[perspective][pc]
+                     + layout.kingSquareIndex[ksq]);
+}
 
-  // Index of a feature for a given king position and another piece on some square
-  inline IndexType HalfKAv2Variants::make_index(Color perspective, int handCount, Piece pc, Square ksq, const Position& pos) {
-    return IndexType(handCount + pos.nnue_piece_hand_index(perspective, pc) + pos.nnue_king_square_index(ksq));
-  }
+// Index of a feature for a given king position and another piece in hand
+inline IndexType HalfKAv2Variants::make_index(const NnueLayout& layout,
+                                              Color             perspective,
+                                              int               handCount,
+                                              Piece             pc,
+                                              Square            ksq,
+                                              const Position&) {
+    return IndexType(handCount + layout.pieceHandIndex[perspective][pc]
+                     + layout.kingSquareIndex[ksq]);
+}
 
-  // Get a list of indices for active features
-  void HalfKAv2Variants::append_active_indices(
-    const Position& pos,
-    Color perspective,
-    ValueListInserter<IndexType> active
-  ) {
-    Square oriented_ksq = orient(perspective, pos.nnue_king_square(perspective), pos);
-    Bitboard bb = pos.pieces(WHITE) | pos.pieces(BLACK);
+// The square of the king of the layout, if any
+Square HalfKAv2Variants::king_square(const Position& pos, const NnueLayout& layout, Color c) {
+    return layout.king ? pos.square(c, layout.king) : SQ_NONE;
+}
+
+// Returns whether the position has the kings required by the layout
+bool HalfKAv2Variants::applicable(const Position& pos, const NnueLayout& layout) {
+    return !layout.king
+        || (pos.count(WHITE, layout.king) == 1 && pos.count(BLACK, layout.king) == 1);
+}
+
+// Get a list of indices for active features
+void HalfKAv2Variants::append_active_indices(const Position&   pos,
+                                             const NnueLayout& layout,
+                                             Color             perspective,
+                                             IndexList&        active) {
+    Square   oriented_ksq = orient(perspective, king_square(pos, layout, perspective), pos);
+    Bitboard bb           = pos.pieces(WHITE) | pos.pieces(BLACK);
     while (bb)
     {
-      Square s = pop_lsb(bb);
-      active.push_back(make_index(perspective, s, pos.piece_on(s), oriented_ksq, pos));
+        Square s = pop_lsb(bb);
+        active.push_back(make_index(layout, perspective, s, pos.piece_on(s), oriented_ksq, pos));
     }
 
     // Indices for pieces in hand
     if (pos.nnue_use_pockets())
-      for (Color c : {WHITE, BLACK})
-          for (PieceSet ps = pos.piece_types(); ps;)
-          {
-              PieceType pt = pop_lsb(ps);
-              for (int i = 0; i < pos.count_in_hand(c, pt); i++)
-                  active.push_back(make_index(perspective, i, make_piece(c, pt), oriented_ksq, pos));
-          }
+        for (Color c : {WHITE, BLACK})
+            for (PieceSet ps = pos.piece_types(); ps;)
+            {
+                PieceType pt = pop_lsb(ps);
+                for (int i = 0; i < pos.count_in_hand(c, pt); i++)
+                    active.push_back(
+                      make_index(layout, perspective, i, make_piece(c, pt), oriented_ksq, pos));
+            }
+}
 
-  }
-
-  // append_changed_indices() : get a list of indices for recently changed features
-
-  void HalfKAv2Variants::append_changed_indices(
-    Square ksq,
-    StateInfo* st,
-    Color perspective,
-    ValueListInserter<IndexType> removed,
-    ValueListInserter<IndexType> added,
-    const Position& pos
-  ) {
-    const auto& dp = st->dirtyPiece;
+// append_changed_indices() : get a list of indices for recently changed features
+void HalfKAv2Variants::append_changed_indices(const NnueLayout& layout,
+                                              Square            ksq,
+                                              const DirtyPiece& dp,
+                                              Color             perspective,
+                                              IndexList&        removed,
+                                              IndexList&        added,
+                                              const Position&   pos) {
     Square oriented_ksq = orient(perspective, ksq, pos);
-    for (int i = 0; i < dp.dirty_num; ++i) {
-      Piece pc = dp.piece[i];
-      if (dp.from[i] != SQ_NONE)
-        removed.push_back(make_index(perspective, dp.from[i], pc, oriented_ksq, pos));
-      else if (dp.handPiece[i] != NO_PIECE)
-        removed.push_back(make_index(perspective, dp.handCount[i] - 1, dp.handPiece[i], oriented_ksq, pos));
-      if (dp.to[i] != SQ_NONE)
-        added.push_back(make_index(perspective, dp.to[i], pc, oriented_ksq, pos));
-      else if (dp.handPiece[i] != NO_PIECE)
-        added.push_back(make_index(perspective, dp.handCount[i] - 1, dp.handPiece[i], oriented_ksq, pos));
+    for (int i = 0; i < dp.dirty_num; ++i)
+    {
+        Piece pc = dp.piece[i];
+        if (dp.from[i] != SQ_NONE)
+            removed.push_back(make_index(layout, perspective, dp.from[i], pc, oriented_ksq, pos));
+        else if (dp.handPiece[i] != NO_PIECE)
+            removed.push_back(make_index(layout, perspective, dp.handCount[i] - 1, dp.handPiece[i],
+                                         oriented_ksq, pos));
+        if (dp.to[i] != SQ_NONE)
+            added.push_back(make_index(layout, perspective, dp.to[i], pc, oriented_ksq, pos));
+        else if (dp.handPiece[i] != NO_PIECE)
+            added.push_back(make_index(layout, perspective, dp.handCount[i] - 1, dp.handPiece[i],
+                                       oriented_ksq, pos));
     }
-  }
+}
 
-  int HalfKAv2Variants::update_cost(StateInfo* st) {
-    return st->dirtyPiece.dirty_num;
-  }
+// Get the lists of indices that differ between a piece state
+// and the position, and update the piece state to the position
+void HalfKAv2Variants::append_changed_indices(const Position&   pos,
+                                              const NnueLayout& layout,
+                                              Color             perspective,
+                                              PieceState&       state,
+                                              IndexList&        removed,
+                                              IndexList&        added) {
+    Square   oriented_ksq = orient(perspective, king_square(pos, layout, perspective), pos);
+    Bitboard occupied     = pos.pieces(WHITE) | pos.pieces(BLACK);
 
-  int HalfKAv2Variants::refresh_cost(const Position& pos) {
-    return pos.count<ALL_PIECES>();
-  }
+    for (Bitboard bb = state.pieceBB | occupied; bb;)
+    {
+        Square s      = pop_lsb(bb);
+        Piece  before = state.pieces[s];
+        Piece  after  = pos.piece_on(s);
+        if (before == after)
+            continue;
 
-  bool HalfKAv2Variants::requires_refresh(StateInfo* st, Color perspective, const Position& pos) {
-    return st->dirtyPiece.piece[0] == make_piece(perspective, pos.nnue_king()) || pos.flip_enclosed_pieces();
-  }
+        if (before != NO_PIECE)
+            removed.push_back(make_index(layout, perspective, s, before, oriented_ksq, pos));
+        if (after != NO_PIECE)
+            added.push_back(make_index(layout, perspective, s, after, oriented_ksq, pos));
+        state.pieces[s] = after;
+    }
+    state.pieceBB = occupied;
+
+    // Indices for pieces in hand
+    if (pos.nnue_use_pockets())
+        for (Color c : {WHITE, BLACK})
+            for (PieceSet ps = pos.piece_types(); ps;)
+            {
+                PieceType pt     = pop_lsb(ps);
+                int       before = state.handCount[c][pt];
+                int       after  = std::max(pos.count_in_hand(c, pt), 0);
+
+                for (int i = after; i < before; i++)
+                    removed.push_back(
+                      make_index(layout, perspective, i, make_piece(c, pt), oriented_ksq, pos));
+                for (int i = before; i < after; i++)
+                    added.push_back(
+                      make_index(layout, perspective, i, make_piece(c, pt), oriented_ksq, pos));
+                state.handCount[c][pt] = std::int16_t(after);
+            }
+}
+
+bool HalfKAv2Variants::requires_refresh(const NnueLayout& layout,
+                                        const DirtyPiece& dp,
+                                        Color             perspective,
+                                        const Position&   pos) {
+    return (layout.king && dp.piece[0] == make_piece(perspective, layout.king))
+        || pos.flip_enclosed_pieces();
+}
 
 }  // namespace Stockfish::Eval::NNUE::Features

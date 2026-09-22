@@ -39,9 +39,9 @@ enum Notation {
     NOTATION_SAN,
     NOTATION_LAN,
     // https://en.wikipedia.org/wiki/Shogi_notation#Western_notation
-    NOTATION_SHOGI_HOSKING, // Examples: P76, S’34
-    NOTATION_SHOGI_HODGES, // Examples: P-7f, S*3d
-    NOTATION_SHOGI_HODGES_NUMBER, // Examples: P-76, S*34
+    NOTATION_SHOGI_HOSKING,        // Examples: P76, S’34
+    NOTATION_SHOGI_HODGES,         // Examples: P-7f, S*3d
+    NOTATION_SHOGI_HODGES_NUMBER,  // Examples: P-76, S*34
     // http://www.janggi.pl/janggi-notation/
     NOTATION_JANGGI,
     // https://en.wikipedia.org/wiki/Xiangqi#Notation
@@ -67,8 +67,10 @@ enum Termination {
     VARIANT_END,
 };
 
-const std::array<std::string, 12> THAI_FILES = {"ก", "ข", "ค", "ง", "จ", "ฉ", "ช", "ญ", "ต", "ถ", "ธ", "น"};
-const std::array<std::string, 12> THAI_RANKS = {"๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙", "๑๐", "๑๑", "๑๒"};
+const std::array<std::string, 12> THAI_FILES = {"ก", "ข", "ค", "ง", "จ", "ฉ",
+                                                "ช", "ญ", "ต", "ถ", "ธ", "น"};
+const std::array<std::string, 12> THAI_RANKS = {"๑", "๒", "๓", "๔",  "๕",  "๖",
+                                                "๗", "๘", "๙", "๑๐", "๑๑", "๑๒"};
 
 namespace SAN {
 
@@ -80,12 +82,11 @@ enum Disambiguation {
 };
 
 inline bool is_shogi(Notation n) {
-    return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES || n == NOTATION_SHOGI_HODGES_NUMBER;
+    return n == NOTATION_SHOGI_HOSKING || n == NOTATION_SHOGI_HODGES
+        || n == NOTATION_SHOGI_HODGES_NUMBER;
 }
 
-inline bool is_thai(Notation n) {
-    return n == NOTATION_THAI_SAN || n == NOTATION_THAI_LAN;
-}
+inline bool is_thai(Notation n) { return n == NOTATION_THAI_SAN || n == NOTATION_THAI_LAN; }
 
 // is there more than one file with a pair of pieces?
 inline bool multi_tandem(Bitboard b) {
@@ -97,36 +98,40 @@ inline bool multi_tandem(Bitboard b) {
 }
 
 inline std::string piece_to_thai_char(Piece pc, bool promoted) {
-    switch(type_of(pc)) {
-        case KING:
-            return "ข";
-        case KHON:
-            return "ค";
-        case FERS:
-            return promoted ? "ง" : "ม็";
-        case KNIGHT:
-            return "ม";
-        case ROOK:
-            return "ร";
-        case PAWN:
-            return "บ";
-        case AIWOK:
-            return "ว";
-        default:
-            return "X";
+    switch (type_of(pc))
+    {
+    case KING :
+        return "ข";
+    case KHON :
+        return "ค";
+    case FERS :
+        return promoted ? "ง" : "ม็";
+    case KNIGHT :
+        return "ม";
+    case ROOK :
+        return "ร";
+    case PAWN :
+        return "บ";
+    case AIWOK :
+        return "ว";
+    default :
+        return "X";
     }
 }
 
 inline std::string piece(const Position& pos, Move m, Notation n) {
-    Color us = pos.side_to_move();
-    Square from = from_sq(m);
-    Piece pc = pos.moved_piece(m);
-    PieceType pt = type_of(pc);
+    Color     us   = pos.side_to_move();
+    Square    from = from_sq(m);
+    Piece     pc   = pos.moved_piece(m);
+    PieceType pt   = type_of(pc);
     // Quiet pawn moves
-    if ((n == NOTATION_SAN || n == NOTATION_LAN || n == NOTATION_THAI_SAN) && type_of(pc) == PAWN && type_of(m) != DROP)
+    if ((n == NOTATION_SAN || n == NOTATION_LAN || n == NOTATION_THAI_SAN) && type_of(pc) == PAWN
+        && type_of(m) != DROP)
         return "";
     // Tandem pawns
-    else if (n == NOTATION_XIANGQI_WXF && popcount(pos.pieces(us, pt) & file_bb(from)) >= 3 - multi_tandem(pos.pieces(us, pt)))
+    else if (n == NOTATION_XIANGQI_WXF
+             && popcount(pos.pieces(us, pt) & file_bb(from))
+                  >= 3 - multi_tandem(pos.pieces(us, pt)))
         return std::to_string(popcount(forward_file_bb(us, from) & pos.pieces(us, pt)) + 1);
     // Moves of promoted pieces
     else if (is_shogi(n) && type_of(m) != DROP && pos.unpromoted_piece_on(from))
@@ -145,18 +150,19 @@ inline std::string piece(const Position& pos, Move m, Notation n) {
 inline std::string file(const Position& pos, Square s, Notation n) {
     switch (n)
     {
-    case NOTATION_SHOGI_HOSKING:
-    case NOTATION_SHOGI_HODGES:
-    case NOTATION_SHOGI_HODGES_NUMBER:
+    case NOTATION_SHOGI_HOSKING :
+    case NOTATION_SHOGI_HODGES :
+    case NOTATION_SHOGI_HODGES_NUMBER :
         return std::to_string(pos.max_file() - file_of(s) + 1);
-    case NOTATION_JANGGI:
+    case NOTATION_JANGGI :
         return std::to_string(file_of(s) + 1);
-    case NOTATION_XIANGQI_WXF:
-        return std::to_string((pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s)) + 1);
-    case NOTATION_THAI_SAN:
-    case NOTATION_THAI_LAN:
+    case NOTATION_XIANGQI_WXF :
+        return std::to_string(
+          (pos.side_to_move() == WHITE ? pos.max_file() - file_of(s) : file_of(s)) + 1);
+    case NOTATION_THAI_SAN :
+    case NOTATION_THAI_LAN :
         return THAI_FILES[file_of(s)];
-    default:
+    default :
         return std::string(1, char('a' + file_of(s)));
     }
 }
@@ -164,27 +170,27 @@ inline std::string file(const Position& pos, Square s, Notation n) {
 inline std::string rank(const Position& pos, Square s, Notation n) {
     switch (n)
     {
-    case NOTATION_SHOGI_HOSKING:
-    case NOTATION_SHOGI_HODGES_NUMBER:
+    case NOTATION_SHOGI_HOSKING :
+    case NOTATION_SHOGI_HODGES_NUMBER :
         return std::to_string(pos.max_rank() - rank_of(s) + 1);
-    case NOTATION_SHOGI_HODGES:
+    case NOTATION_SHOGI_HODGES :
         return std::string(1, char('a' + pos.max_rank() - rank_of(s)));
-    case NOTATION_JANGGI:
+    case NOTATION_JANGGI :
         return std::to_string((pos.max_rank() - rank_of(s) + 1) % 10);
-    case NOTATION_XIANGQI_WXF:
-    {
+    case NOTATION_XIANGQI_WXF : {
         if (pos.empty(s))
             // Handle piece drops
             return std::to_string(relative_rank(pos.side_to_move(), s, pos.max_rank()) + 1);
-        else if (pos.pieces(pos.side_to_move(), type_of(pos.piece_on(s))) & forward_file_bb(pos.side_to_move(), s))
+        else if (pos.pieces(pos.side_to_move(), type_of(pos.piece_on(s)))
+                 & forward_file_bb(pos.side_to_move(), s))
             return "-";
         else
             return "+";
     }
-    case NOTATION_THAI_SAN:
-    case NOTATION_THAI_LAN:
+    case NOTATION_THAI_SAN :
+    case NOTATION_THAI_LAN :
         return THAI_RANKS[rank_of(s)];
-    default:
+    default :
         return std::to_string(rank_of(s) + 1);
     }
 }
@@ -192,9 +198,9 @@ inline std::string rank(const Position& pos, Square s, Notation n) {
 inline std::string square(const Position& pos, Square s, Notation n) {
     switch (n)
     {
-    case NOTATION_JANGGI:
+    case NOTATION_JANGGI :
         return rank(pos, s, n) + file(pos, s, n);
-    default:
+    default :
         return file(pos, s, n) + rank(pos, s, n);
     }
 }
@@ -208,11 +214,11 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
     if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || n == NOTATION_JANGGI)
         return SQUARE_DISAMBIGUATION;
 
-    Color us = pos.side_to_move();
-    Square from = from_sq(m);
-    Square to = to_sq(m);
-    Piece pc = pos.moved_piece(m);
-    PieceType pt = type_of(pc);
+    Color     us   = pos.side_to_move();
+    Square    from = from_sq(m);
+    Square    to   = to_sq(m);
+    Piece     pc   = pos.moved_piece(m);
+    PieceType pt   = type_of(pc);
 
     // Xiangqi uses either file disambiguation or +/- if two pieces on file
     if (n == NOTATION_XIANGQI_WXF)
@@ -221,7 +227,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
         if (popcount(pos.pieces(us, pt) & file_bb(from)) == 2 && !multi_tandem(pos.pieces(us, pt)))
         {
             Square otherFrom = lsb((pos.pieces(us, pt) & file_bb(from)) ^ from);
-            Square otherTo = otherFrom + Direction(to) - Direction(from);
+            Square otherTo   = otherFrom + Direction(to) - Direction(from);
             if (is_ok(otherTo) && (pos.board_bb(us, pt) & otherTo))
                 return RANK_DISAMBIGUATION;
         }
@@ -239,7 +245,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
 
     // A disambiguation occurs if we have more than one piece of type 'pt'
     // that can reach 'to' with a legal move.
-    Bitboard b = pos.pieces(us, pt) ^ from;
+    Bitboard b      = pos.pieces(us, pt) ^ from;
     Bitboard others = 0;
 
     while (b)
@@ -247,10 +253,9 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
         Square s = pop_lsb(b);
         // Construct a potential move with identical special move flags
         // and only a different "from" square.
-        Move testMove = Move(m ^ make_move(from, to) ^ make_move(s, to));
-        if (      pos.pseudo_legal(testMove)
-               && pos.legal(testMove)
-               && !(is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
+        Move testMove = Move(m.raw() ^ make_move(from, to).raw() ^ make_move(s, to).raw());
+        if (pos.pseudo_legal(testMove) && pos.legal(testMove)
+            && !(is_shogi(n) && pos.unpromoted_piece_on(s) != pos.unpromoted_piece_on(from)))
             others |= s;
     }
 
@@ -269,23 +274,23 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
 inline std::string disambiguation(const Position& pos, Square s, Notation n, Disambiguation d) {
     switch (d)
     {
-    case FILE_DISAMBIGUATION:
+    case FILE_DISAMBIGUATION :
         return file(pos, s, n);
-    case RANK_DISAMBIGUATION:
+    case RANK_DISAMBIGUATION :
         return rank(pos, s, n);
-    case SQUARE_DISAMBIGUATION:
+    case SQUARE_DISAMBIGUATION :
         return square(pos, s, n);
-    default:
+    default :
         assert(d == NO_DISAMBIGUATION);
         return "";
     }
 }
 
 inline const std::string move_to_san(Position& pos, Move m, Notation n) {
-    std::string san = "";
-    Color us = pos.side_to_move();
-    Square from = from_sq(m);
-    Square to = to_sq(m);
+    std::string san  = "";
+    Color       us   = pos.side_to_move();
+    Square      from = from_sq(m);
+    Square      to   = to_sq(m);
 
     if (type_of(m) == CASTLING)
     {
@@ -293,7 +298,8 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
 
         if (is_gating(m))
         {
-            san += std::string("/") + (char)toupper(pos.piece_to_char()[make_piece(us, gating_type(m))]);
+            san += std::string("/")
+                 + (char) toupper(pos.piece_to_char()[make_piece(us, gating_type(m))]);
             san += square(pos, gating_square(m), n);
         }
     }
@@ -316,33 +322,49 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         {
             if (rank_of(from) == rank_of(to))
                 san += '=';
-            else if (relative_rank(us, to, pos.max_rank()) > relative_rank(us, from, pos.max_rank()))
+            else if (relative_rank(us, to, pos.max_rank())
+                     > relative_rank(us, from, pos.max_rank()))
                 san += '+';
             else
                 san += '-';
         }
         else if (pos.capture(m))
             san += 'x';
-        else if (n == NOTATION_LAN || n == NOTATION_THAI_LAN || (is_shogi(n) && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION)) || n == NOTATION_JANGGI || (n == NOTATION_THAI_SAN && type_of(pos.moved_piece(m)) != PAWN))
+        else if (n == NOTATION_LAN || n == NOTATION_THAI_LAN
+                 || (is_shogi(n) && (n != NOTATION_SHOGI_HOSKING || d == SQUARE_DISAMBIGUATION))
+                 || n == NOTATION_JANGGI
+                 || (n == NOTATION_THAI_SAN && type_of(pos.moved_piece(m)) != PAWN))
             san += '-';
 
         // Destination square
         if (n == NOTATION_XIANGQI_WXF && type_of(m) != DROP)
-            san += file_of(to) == file_of(from) ? std::to_string(std::abs(rank_of(to) - rank_of(from))) : file(pos, to, n);
+            san += file_of(to) == file_of(from)
+                   ? std::to_string(std::abs(rank_of(to) - rank_of(from)))
+                   : file(pos, to, n);
         else
             san += square(pos, to, n);
 
         // Suffix
         if (type_of(m) == PROMOTION)
-            san += std::string("=") + (char)toupper(pos.piece_to_char()[make_piece(us, promotion_type(m))]);
+            san += std::string("=")
+                 + (char) toupper(pos.piece_to_char()[make_piece(us, promotion_type(m))]);
         else if (type_of(m) == PIECE_PROMOTION)
-            san += is_shogi(n) ? std::string("+") : std::string("=") + (char)toupper(pos.piece_to_char()[make_piece(us, pos.promoted_piece_type(type_of(pos.moved_piece(m))))]);
+            san += is_shogi(n) ? std::string("+")
+                               : std::string("=")
+                                   + (char) toupper(pos.piece_to_char()[make_piece(
+                                     us, pos.promoted_piece_type(type_of(pos.moved_piece(m))))]);
         else if (type_of(m) == PIECE_DEMOTION)
-            san += is_shogi(n) ? std::string("-") : std::string("=") + std::string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
-        else if (type_of(m) == NORMAL && is_shogi(n) && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
+            san +=
+              is_shogi(n)
+                ? std::string("-")
+                : std::string("=")
+                    + std::string(1, toupper(pos.piece_to_char()[pos.unpromoted_piece_on(from)]));
+        else if (type_of(m) == NORMAL && is_shogi(n)
+                 && pos.pseudo_legal(make<PIECE_PROMOTION>(from, to)))
             san += std::string("=");
         if (is_gating(m))
-            san += std::string("/") + (char)toupper(pos.piece_to_char()[make_piece(us, gating_type(m))]);
+            san += std::string("/")
+                 + (char) toupper(pos.piece_to_char()[make_piece(us, gating_type(m))]);
     }
 
     // Wall square
@@ -361,13 +383,12 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
     return san;
 }
 
-} // namespace SAN
+}  // namespace SAN
 
 inline bool has_insufficient_material(Color c, const Position& pos) {
 
     // Other win rules
-    if (   pos.captures_to_hand()
-        || pos.count_in_hand(c, ALL_PIECES)
+    if (pos.captures_to_hand() || pos.count_in_hand(c, ALL_PIECES)
         || (pos.extinction_value() != VALUE_NONE && !pos.extinction_pseudo_royal())
         || (pos.variant()->nFoldRule && pos.variant()->nFoldValue != VALUE_DRAW)
         || (pos.flag_region(c) && pos.count(c, pos.flag_piece(c))))
@@ -375,7 +396,7 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
 
     // Precalculate if any promotion pawn types have pieces
     bool hasPromotingPawn = false;
-    for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes; )
+    for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes;)
     {
         PieceType pawnType = pop_lsb(pawnTypes);
         if (pos.count(c, pawnType) > 0)
@@ -386,17 +407,19 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     }
 
     // Determine checkmating potential of present pieces
-    constexpr PieceSet MAJOR_PIECES = piece_set(ROOK) | QUEEN | ARCHBISHOP | CHANCELLOR
-                                     | SILVER | GOLD | COMMONER | CENTAUR | AMAZON | BERS;
+    constexpr PieceSet MAJOR_PIECES = piece_set(ROOK) | QUEEN | ARCHBISHOP | CHANCELLOR | SILVER
+                                    | GOLD | COMMONER | CENTAUR | AMAZON | BERS;
     constexpr PieceSet COLORBOUND_PIECES = piece_set(BISHOP) | FERS | FERS_ALFIL | ALFIL | ELEPHANT;
-    Bitboard restricted = pos.pieces(KING);
-    Bitboard colorbound = 0;
+    Bitboard           restricted        = pos.pieces(KING);
+    Bitboard           colorbound        = 0;
     for (PieceSet ps = pos.piece_types(); ps;)
     {
         PieceType pt = pop_lsb(ps);
 
         // Constrained pieces
-        if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)) || (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & pt)))
+        if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING))
+            || (pos.extinction_pseudo_royal() && pos.blast_on_capture()
+                && (pos.extinction_piece_types() & pt)))
             restricted |= pos.pieces(c, pt);
 
         // If piece is a major piece or a custom piece we consider it sufficient for mate.
@@ -420,16 +443,20 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     Bitboard unbound = pos.pieces() ^ restricted ^ colorbound;
 
     // Color-bound pieces
-    if ((colorbound & pos.pieces(c)) && (((DarkSquares & colorbound) && (~DarkSquares & colorbound)) || unbound || pos.stalemate_value() != VALUE_DRAW || pos.check_counting() || pos.makpong()))
+    if ((colorbound & pos.pieces(c))
+        && (((DarkSquares & colorbound) && (~DarkSquares & colorbound)) || unbound
+            || pos.stalemate_value() != VALUE_DRAW || pos.check_counting() || pos.makpong()))
         return false;
 
     // Unbound pieces require one helper piece of either color
-    if ((pos.pieces(c) & unbound) && (popcount(pos.pieces() ^ restricted) >= 2 || pos.stalemate_value() != VALUE_DRAW || pos.check_counting() || pos.makpong()))
+    if ((pos.pieces(c) & unbound)
+        && (popcount(pos.pieces() ^ restricted) >= 2 || pos.stalemate_value() != VALUE_DRAW
+            || pos.check_counting() || pos.makpong()))
         return false;
 
     // Non-draw stalemate with lone custom king
-    if (   pos.stalemate_value() != VALUE_DRAW && pos.king_type() != KING
-        && pos.pieces(c, KING) && (pos.board_bb(c, KING) & pos.board_bb(~c, KING)))
+    if (pos.stalemate_value() != VALUE_DRAW && pos.king_type() != KING && pos.pieces(c, KING)
+        && (pos.board_bb(c, KING) & pos.board_bb(~c, KING)))
         return false;
 
     return true;
@@ -437,28 +464,29 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
 
 inline Bitboard checked(const Position& pos) {
     return (pos.checkers() ? square_bb(pos.square<KING>(pos.side_to_move())) : Bitboard(0))
-        | (pos.extinction_pseudo_royal() ? pos.checked_pseudo_royals(pos.side_to_move()) : Bitboard(0));
+         | (pos.extinction_pseudo_royal() ? pos.checked_pseudo_royals(pos.side_to_move())
+                                          : Bitboard(0));
 }
 
 namespace FEN {
 
 enum FenValidation : int {
-    FEN_INVALID_COUNTING_RULE = -14,
-    FEN_INVALID_CHECK_COUNT = -13,
-    FEN_INVALID_PROMOTED_PIECE = -12,
-    FEN_INVALID_NB_PARTS = -11,
-    FEN_INVALID_CHAR = -10,
-    FEN_TOUCHING_KINGS = -9,
-    FEN_INVALID_BOARD_GEOMETRY = -8,
-    FEN_INVALID_POCKET_INFO = -7,
-    FEN_INVALID_SIDE_TO_MOVE = -6,
-    FEN_INVALID_CASTLING_INFO = -5,
-    FEN_INVALID_EN_PASSANT_SQ = -4,
-    FEN_INVALID_NUMBER_OF_KINGS = -3,
+    FEN_INVALID_COUNTING_RULE     = -14,
+    FEN_INVALID_CHECK_COUNT       = -13,
+    FEN_INVALID_PROMOTED_PIECE    = -12,
+    FEN_INVALID_NB_PARTS          = -11,
+    FEN_INVALID_CHAR              = -10,
+    FEN_TOUCHING_KINGS            = -9,
+    FEN_INVALID_BOARD_GEOMETRY    = -8,
+    FEN_INVALID_POCKET_INFO       = -7,
+    FEN_INVALID_SIDE_TO_MOVE      = -6,
+    FEN_INVALID_CASTLING_INFO     = -5,
+    FEN_INVALID_EN_PASSANT_SQ     = -4,
+    FEN_INVALID_NUMBER_OF_KINGS   = -3,
     FEN_INVALID_HALF_MOVE_COUNTER = -2,
-    FEN_INVALID_MOVE_COUNTER = -1,
-    FEN_EMPTY = 0,
-    FEN_OK = 1
+    FEN_INVALID_MOVE_COUNTER      = -1,
+    FEN_EMPTY                     = 0,
+    FEN_OK                        = 1
 };
 enum Validation : int {
     NOK,
@@ -468,44 +496,40 @@ enum Validation : int {
 struct CharSquare {
     int rowIdx;
     int fileIdx;
-    CharSquare() : rowIdx(-1), fileIdx(-1) {}
-    CharSquare(int row, int file) : rowIdx(row), fileIdx(file) {}
+    CharSquare() :
+        rowIdx(-1),
+        fileIdx(-1) {}
+    CharSquare(int row, int file) :
+        rowIdx(row),
+        fileIdx(file) {}
 };
 
 inline bool operator==(const CharSquare& s1, const CharSquare& s2) {
     return s1.rowIdx == s2.rowIdx && s1.fileIdx == s2.fileIdx;
 }
 
-inline bool operator!=(const CharSquare& s1, const CharSquare& s2) {
-    return !(s1 == s2);
-}
+inline bool operator!=(const CharSquare& s1, const CharSquare& s2) { return !(s1 == s2); }
 
 inline int non_root_euclidian_distance(const CharSquare& s1, const CharSquare& s2) {
     return pow(s1.rowIdx - s2.rowIdx, 2) + pow(s1.fileIdx - s2.fileIdx, 2);
 }
 
 class CharBoard {
-private:
-    int nbRanks;
-    int nbFiles;
+   private:
+    int               nbRanks;
+    int               nbFiles;
     std::vector<char> board;  // fill an array where the pieces are for later geometry checks
-public:
-    CharBoard(int ranks, int files) : nbRanks(ranks), nbFiles(files) {
+   public:
+    CharBoard(int ranks, int files) :
+        nbRanks(ranks),
+        nbFiles(files) {
         assert(nbFiles > 0 && nbRanks > 0);
         board = std::vector<char>(nbRanks * nbFiles, ' ');
     }
-    void set_piece(int rankIdx, int fileIdx, char c) {
-        board[rankIdx * nbFiles + fileIdx] = c;
-    }
-    char get_piece(int rowIdx, int fileIdx) const {
-        return board[rowIdx * nbFiles + fileIdx];
-    }
-    int get_nb_ranks() const {
-        return nbRanks;
-    }
-    int get_nb_files() const {
-        return nbFiles;
-    }
+    void set_piece(int rankIdx, int fileIdx, char c) { board[rankIdx * nbFiles + fileIdx] = c; }
+    char get_piece(int rowIdx, int fileIdx) const { return board[rowIdx * nbFiles + fileIdx]; }
+    int  get_nb_ranks() const { return nbRanks; }
+    int  get_nb_files() const { return nbFiles; }
     /// Returns the square of a given character
     CharSquare get_square_for_piece(char piece) const {
         CharSquare s;
@@ -515,7 +539,7 @@ public:
             {
                 if (get_piece(r, c) == piece)
                 {
-                    s.rowIdx = r;
+                    s.rowIdx  = r;
                     s.fileIdx = c;
                     return s;
                 }
@@ -524,12 +548,14 @@ public:
         return s;
     }
     /// Returns all square positions for a given piece
-    std::vector<CharSquare> get_squares_for_pieces(Color color, PieceSet ps, const std::string& pieceChars) const {
+    std::vector<CharSquare>
+    get_squares_for_pieces(Color color, PieceSet ps, const std::string& pieceChars) const {
         std::vector<CharSquare> squares;
-        size_t pcIdx;
+        size_t                  pcIdx;
         for (int r = 0; r < nbRanks; ++r)
             for (int c = 0; c < nbFiles; ++c)
-                if ((pcIdx = pieceChars.find(get_piece(r, c))) != std::string::npos && (ps & type_of(Piece(pcIdx))) && color_of(Piece(pcIdx)) == color)
+                if ((pcIdx = pieceChars.find(get_piece(r, c))) != std::string::npos
+                    && (ps & type_of(Piece(pcIdx))) && color_of(Piece(pcIdx)) == color)
                     squares.emplace_back(CharSquare(r, c));
         return squares;
     }
@@ -546,9 +572,7 @@ inline std::ostream& operator<<(std::ostream& os, const CharBoard& board) {
     return os;
 }
 
-inline bool contains(const std::string& str, char c) {
-    return str.find(c) != std::string::npos;
-}
+inline bool contains(const std::string& str, char c) { return str.find(c) != std::string::npos; }
 
 inline bool in_any(const std::vector<std::string>& vec, char c) {
     for (std::string str : vec)
@@ -557,10 +581,14 @@ inline bool in_any(const std::vector<std::string>& vec, char c) {
     return false;
 }
 
-inline Validation check_for_valid_characters(const std::string& firstFenPart, const std::string& validSpecialCharactersFirstField, const Variant* v) {
+inline Validation check_for_valid_characters(const std::string& firstFenPart,
+                                             const std::string& validSpecialCharactersFirstField,
+                                             const Variant*     v) {
     for (char c : firstFenPart)
     {
-        if (!isdigit(c) && !in_any({v->pieceToChar, v->pieceToCharSynonyms, validSpecialCharactersFirstField}, c))
+        if (!isdigit(c)
+            && !in_any({v->pieceToChar, v->pieceToCharSynonyms, validSpecialCharactersFirstField},
+                       c))
         {
             std::cerr << "Invalid piece character: '" << c << "'." << std::endl;
             return NOK;
@@ -573,36 +601,41 @@ inline Validation check_promoted_pieces(const std::string& firstFenPart, const V
     // Only check promoted pieces if the variant supports shogi-style promotions
     if (!v || !v->shogiStylePromotions)
         return OK;
-    
-    for (size_t i = 0; i < firstFenPart.length() - 1; ++i) {
+
+    for (size_t i = 0; i < firstFenPart.length() - 1; ++i)
+    {
         // Look for promoted pieces ('+' followed by piece character)
-        if (firstFenPart[i] == '+') {
+        if (firstFenPart[i] == '+')
+        {
             char pieceChar = firstFenPart[i + 1];
-            
+
             // Skip if next character is not a piece character or is a special character
             if (isdigit(pieceChar) || pieceChar == '/' || pieceChar == ' ' || pieceChar == '[')
                 continue;
-                
+
             // Find the piece type corresponding to this character
             size_t idx = v->pieceToChar.find(pieceChar);
-            if (idx == std::string::npos) {
+            if (idx == std::string::npos)
+            {
                 // Try synonyms
                 idx = v->pieceToCharSynonyms.find(pieceChar);
                 if (idx == std::string::npos)
-                    continue; // Character validation will catch this
+                    continue;  // Character validation will catch this
             }
-            
+
             // Ensure idx is within valid range for piece types
             if (idx >= PIECE_TYPE_NB)
                 continue;
-                
+
             // Get the piece type directly from the index
             PieceType pt = PieceType(idx);
-            
+
             // Check if this piece type has a promoted form
-            if (pt != NO_PIECE_TYPE && pt < PIECE_TYPE_NB && v->promotedPieceType[pt] == NO_PIECE_TYPE) {
-                std::cerr << "Invalid promoted piece: '+' followed by '" << pieceChar 
-                         << "'. This piece cannot be promoted in variant." << std::endl;
+            if (pt != NO_PIECE_TYPE && pt < PIECE_TYPE_NB
+                && v->promotedPieceType[pt] == NO_PIECE_TYPE)
+            {
+                std::cerr << "Invalid promoted piece: '+' followed by '" << pieceChar
+                          << "'. This piece cannot be promoted in variant." << std::endl;
                 return NOK;
             }
         }
@@ -612,15 +645,18 @@ inline Validation check_promoted_pieces(const std::string& firstFenPart, const V
 
 inline std::vector<std::string> get_fen_parts(const std::string& fullFen, char delim) {
     std::vector<std::string> fenParts;
-    std::string curPart;
-    std::stringstream ss(fullFen);
+    std::string              curPart;
+    std::stringstream        ss(fullFen);
     while (std::getline(ss, curPart, delim))
         fenParts.emplace_back(curPart);
     return fenParts;
 }
 
 /// fills the character board according to a given FEN string
-inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard, const std::string& validSpecialCharactersFirstField, const Variant* v) {
+inline Validation fill_char_board(CharBoard&         board,
+                                  const std::string& fenBoard,
+                                  const std::string& validSpecialCharactersFirstField,
+                                  const Variant*     v) {
     int rankIdx = 0;
     int fileIdx = 0;
 
@@ -643,7 +679,8 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
             ++rankIdx;
             if (fileIdx != board.get_nb_files())
             {
-                std::cerr << "curRankWidth != nbFiles: " << fileIdx << " != " << board.get_nb_files() << std::endl;
+                std::cerr << "curRankWidth != nbFiles: " << fileIdx
+                          << " != " << board.get_nb_files() << std::endl;
                 return NOK;
             }
             if (rankIdx == board.get_nb_ranks())
@@ -654,35 +691,42 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
         {  // normal piece
             if (fileIdx == board.get_nb_files())
             {
-                std::cerr << "File index: " << fileIdx << " for piece '" << c << "' exceeds maximum of allowed number of files: " << board.get_nb_files() << "." << std::endl;
+                std::cerr << "File index: " << fileIdx << " for piece '" << c
+                          << "' exceeds maximum of allowed number of files: "
+                          << board.get_nb_files() << "." << std::endl;
                 return NOK;
             }
-            board.set_piece(v->maxRank-rankIdx, fileIdx, c);  // we mirror the rank index because the black pieces are given first in the FEN
+            board.set_piece(
+              v->maxRank - rankIdx, fileIdx,
+              c);  // we mirror the rank index because the black pieces are given first in the FEN
             ++fileIdx;
         }
         prevChar = c;
     }
 
     if (v->pieceDrops)
-    { // pockets can either be defined by [] or /
-        if (rankIdx+1 != board.get_nb_ranks() && rankIdx != board.get_nb_ranks())
+    {  // pockets can either be defined by [] or /
+        if (rankIdx + 1 != board.get_nb_ranks() && rankIdx != board.get_nb_ranks())
         {
-            std::cerr << "Invalid number of ranks. Expected: " << board.get_nb_ranks() << " Actual: " << rankIdx+1 << std::endl;
+            std::cerr << "Invalid number of ranks. Expected: " << board.get_nb_ranks()
+                      << " Actual: " << rankIdx + 1 << std::endl;
             return NOK;
         }
     }
     else
     {
-        if (rankIdx+1 != board.get_nb_ranks())
+        if (rankIdx + 1 != board.get_nb_ranks())
         {
-            std::cerr << "Invalid number of ranks. Expected: " << board.get_nb_ranks() << " Actual: " << rankIdx+1 << std::endl;
+            std::cerr << "Invalid number of ranks. Expected: " << board.get_nb_ranks()
+                      << " Actual: " << rankIdx + 1 << std::endl;
             return NOK;
         }
     }
     return OK;
 }
 
-inline Validation check_touching_kings(const CharBoard& board, const std::array<CharSquare, 2>& kingPositions) {
+inline Validation check_touching_kings(const CharBoard&                 board,
+                                       const std::array<CharSquare, 2>& kingPositions) {
     if (non_root_euclidian_distance(kingPositions[WHITE], kingPositions[BLACK]) <= 2)
     {
         std::cerr << "King pieces are next to each other." << std::endl;
@@ -692,7 +736,8 @@ inline Validation check_touching_kings(const CharBoard& board, const std::array<
     return OK;
 }
 
-inline Validation fill_castling_info_splitted(const std::string& castlingInfo, std::array<std::string, 2>& castlingInfoSplitted) {
+inline Validation fill_castling_info_splitted(const std::string&          castlingInfo,
+                                              std::array<std::string, 2>& castlingInfoSplitted) {
     for (char c : castlingInfo)
     {
         if (c != '-')
@@ -714,13 +759,13 @@ inline Validation fill_castling_info_splitted(const std::string& castlingInfo, s
 inline std::string color_to_string(Color c) {
     switch (c)
     {
-    case WHITE:
+    case WHITE :
         return "WHITE";
-    case BLACK:
+    case BLACK :
         return "BLACK";
-    case COLOR_NB:
+    case COLOR_NB :
         return "COLOR_NB";
-    default:
+    default :
         return "INVALID_COLOR";
     }
 }
@@ -728,33 +773,35 @@ inline std::string color_to_string(Color c) {
 inline std::string castling_rights_to_string(CastlingRights castlingRights) {
     switch (castlingRights)
     {
-    case KING_SIDE:
+    case KING_SIDE :
         return "KING_SIDE";
-    case QUEEN_SIDE:
+    case QUEEN_SIDE :
         return "QUEENS_SIDE";
-    case WHITE_OO:
+    case WHITE_OO :
         return "WHITE_OO";
-    case WHITE_OOO:
+    case WHITE_OOO :
         return "WHITE_OOO";
-    case BLACK_OO:
+    case BLACK_OO :
         return "BLACK_OO";
-    case BLACK_OOO:
+    case BLACK_OOO :
         return "BLACK_OOO";
-    case WHITE_CASTLING:
+    case WHITE_CASTLING :
         return "WHITE_CASTLING";
-    case BLACK_CASTLING:
+    case BLACK_CASTLING :
         return "BLACK_CASTLING";
-    case ANY_CASTLING:
+    case ANY_CASTLING :
         return "ANY_CASTLING";
-    case CASTLING_RIGHT_NB:
+    case CASTLING_RIGHT_NB :
         return "CASTLING_RIGHT_NB";
-    default:
+    default :
         return "INVALID_CASTLING_RIGHTS";
     }
 }
 
-inline Validation check_castling_rank(const std::array<std::string, 2>& castlingInfoSplitted, const CharBoard& board,
-                            const std::array<CharSquare, 2>& kingPositions, const Variant* v) {
+inline Validation check_castling_rank(const std::array<std::string, 2>& castlingInfoSplitted,
+                                      const CharBoard&                  board,
+                                      const std::array<CharSquare, 2>&  kingPositions,
+                                      const Variant*                    v) {
 
     for (Color c : {WHITE, BLACK})
     {
@@ -765,14 +812,18 @@ inline Validation check_castling_rank(const std::array<std::string, 2>& castling
             {
                 if (kingPositions[c].rowIdx != castlingRank)
                 {
-                    std::cerr << "The " << color_to_string(c) << " king must be on rank " << castlingRank << " if castling is enabled for " << color_to_string(c) << "." << std::endl;
+                    std::cerr << "The " << color_to_string(c) << " king must be on rank "
+                              << castlingRank << " if castling is enabled for "
+                              << color_to_string(c) << "." << std::endl;
                     return NOK;
                 }
-                bool kingside = tolower(castlingFlag) == 'k';
-                bool castlingRook = false;
+                bool   kingside     = tolower(castlingFlag) == 'k';
+                bool   castlingRook = false;
                 size_t pcIdx;
-                for (int f = kingside ? board.get_nb_files() - 1 : 0; f != kingPositions[c].fileIdx; kingside ? f-- : f++)
-                    if (   (pcIdx = v->pieceToChar.find(board.get_piece(castlingRank, f))) != std::string::npos
+                for (int f = kingside ? board.get_nb_files() - 1 : 0; f != kingPositions[c].fileIdx;
+                     kingside ? f-- : f++)
+                    if ((pcIdx = v->pieceToChar.find(board.get_piece(castlingRank, f)))
+                          != std::string::npos
                         && (v->castlingRookPieces[c] & type_of(Piece(pcIdx)))
                         && color_of(Piece(pcIdx)) == c)
                     {
@@ -795,9 +846,13 @@ inline Validation check_castling_rank(const std::array<std::string, 2>& castling
     return OK;
 }
 
-inline Validation check_standard_castling(std::array<std::string, 2>& castlingInfoSplitted, const CharBoard& board,
-                             const std::array<CharSquare, 2>& kingPositions, const std::array<CharSquare, 2>& kingPositionsStart,
-                             const std::array<std::vector<CharSquare>, 2>& rookPositionsStart, const Variant* v) {
+inline Validation
+check_standard_castling(std::array<std::string, 2>&                   castlingInfoSplitted,
+                        const CharBoard&                              board,
+                        const std::array<CharSquare, 2>&              kingPositions,
+                        const std::array<CharSquare, 2>&              kingPositionsStart,
+                        const std::array<std::vector<CharSquare>, 2>& rookPositionsStart,
+                        const Variant*                                v) {
 
     for (Color c : {WHITE, BLACK})
     {
@@ -805,36 +860,44 @@ inline Validation check_standard_castling(std::array<std::string, 2>& castlingIn
             continue;
         if (kingPositions[c] != kingPositionsStart[c])
         {
-            std::cerr << "The " << color_to_string(c) << " KING has moved. Castling is no longer valid for " << color_to_string(c) << "." << std::endl;
+            std::cerr << "The " << color_to_string(c)
+                      << " KING has moved. Castling is no longer valid for " << color_to_string(c)
+                      << "." << std::endl;
             return NOK;
         }
 
-        for (CastlingRights castling: {KING_SIDE, QUEEN_SIDE})
+        for (CastlingRights castling : {KING_SIDE, QUEEN_SIDE})
         {
-            CharSquare rookStartingSquare = castling == QUEEN_SIDE ? rookPositionsStart[c][0] : rookPositionsStart[c][1];
-            char targetChar = castling == QUEEN_SIDE ? 'q' : 'k';
+            CharSquare rookStartingSquare =
+              castling == QUEEN_SIDE ? rookPositionsStart[c][0] : rookPositionsStart[c][1];
+            char   targetChar = castling == QUEEN_SIDE ? 'q' : 'k';
             size_t pcIdx;
             if (castlingInfoSplitted[c].find(targetChar) != std::string::npos)
             {
-                if (   (pcIdx = v->pieceToChar.find(board.get_piece(rookStartingSquare.rowIdx, rookStartingSquare.fileIdx))) == std::string::npos
+                if ((pcIdx = v->pieceToChar.find(
+                       board.get_piece(rookStartingSquare.rowIdx, rookStartingSquare.fileIdx)))
+                      == std::string::npos
                     || !(v->castlingRookPieces[c] & type_of(Piece(pcIdx)))
                     || color_of(Piece(pcIdx)) != c)
                 {
-                    std::cerr << "The " << color_to_string(c) << " ROOK on the "<<  castling_rights_to_string(castling) << " has moved. "
-                              << castling_rights_to_string(castling) << " castling is no longer valid for " << color_to_string(c) << "." << std::endl;
+                    std::cerr << "The " << color_to_string(c) << " ROOK on the "
+                              << castling_rights_to_string(castling) << " has moved. "
+                              << castling_rights_to_string(castling)
+                              << " castling is no longer valid for " << color_to_string(c) << "."
+                              << std::endl;
                     return NOK;
                 }
             }
-
         }
     }
     return OK;
 }
 
-inline Validation check_pocket_info(const std::string& fenBoard, int nbRanks, const Variant* v, std::string& pocket) {
+inline Validation
+check_pocket_info(const std::string& fenBoard, int nbRanks, const Variant* v, std::string& pocket) {
 
     char stopChar;
-    int offset = 0;
+    int  offset = 0;
     if (std::count(fenBoard.begin(), fenBoard.end(), '/') == nbRanks)
     {
         // look for last '/'
@@ -844,8 +907,8 @@ inline Validation check_pocket_info(const std::string& fenBoard, int nbRanks, co
     {
         // pocket is defined as [ and ]
         stopChar = '[';
-        offset = 1;
-        if (*(fenBoard.end()-1) != ']')
+        offset   = 1;
+        if (*(fenBoard.end() - 1) != ']')
         {
             std::cerr << "Pocket specification does not end with ']'." << std::endl;
             return NOK;
@@ -856,7 +919,7 @@ inline Validation check_pocket_info(const std::string& fenBoard, int nbRanks, co
         return OK;
 
     // look for last '/'
-    for (auto it = fenBoard.rbegin()+offset; it != fenBoard.rend(); ++it)
+    for (auto it = fenBoard.rbegin() + offset; it != fenBoard.rend(); ++it)
     {
         const char c = *it;
         if (c == stopChar)
@@ -880,30 +943,36 @@ inline int piece_count(const std::string& fenBoard, Color c, PieceType pt, const
     return std::count(fenBoard.begin(), fenBoard.end(), v->pieceToChar[make_piece(c, pt)]);
 }
 
-inline Validation check_number_of_kings(const std::string& fenBoard, const std::string& startFenBoard, const Variant* v) {
-    int nbWhiteKings = piece_count(fenBoard, WHITE, KING, v);
-    int nbBlackKings = piece_count(fenBoard, BLACK, KING, v);
+inline Validation check_number_of_kings(const std::string& fenBoard,
+                                        const std::string& startFenBoard,
+                                        const Variant*     v) {
+    int nbWhiteKings      = piece_count(fenBoard, WHITE, KING, v);
+    int nbBlackKings      = piece_count(fenBoard, BLACK, KING, v);
     int nbWhiteKingsStart = piece_count(startFenBoard, WHITE, KING, v);
     int nbBlackKingsStart = piece_count(startFenBoard, BLACK, KING, v);
 
     if (nbWhiteKings > 1)
     {
-        std::cerr << "Invalid number of white kings. Maximum: 1. Given: " << nbWhiteKings << std::endl;
+        std::cerr << "Invalid number of white kings. Maximum: 1. Given: " << nbWhiteKings
+                  << std::endl;
         return NOK;
     }
     if (nbBlackKings > 1)
     {
-        std::cerr << "Invalid number of black kings. Maximum: 1. Given: " << nbBlackKings << std::endl;
+        std::cerr << "Invalid number of black kings. Maximum: 1. Given: " << nbBlackKings
+                  << std::endl;
         return NOK;
     }
     if (nbWhiteKings != nbWhiteKingsStart)
     {
-        std::cerr << "Invalid number of white kings. Expected: " << nbWhiteKingsStart << ". Given: " << nbWhiteKings << std::endl;
+        std::cerr << "Invalid number of white kings. Expected: " << nbWhiteKingsStart
+                  << ". Given: " << nbWhiteKings << std::endl;
         return NOK;
     }
     if (nbBlackKings != nbBlackKingsStart)
     {
-        std::cerr << "Invalid number of black kings. Expected: " << nbBlackKingsStart << ". Given: " << nbBlackKings << std::endl;
+        std::cerr << "Invalid number of black kings. Expected: " << nbBlackKingsStart
+                  << ". Given: " << nbBlackKings << std::endl;
         return NOK;
     }
     return OK;
@@ -915,17 +984,21 @@ inline Validation check_en_passant_square(const std::string& enPassantInfo) {
     {
         if (enPassantInfo.size() != 2)
         {
-            std::cerr << "Invalid en-passant square '" << enPassantInfo << "'. Expects 2 characters. Actual: " << enPassantInfo.size() << " character(s)." << std::endl;
+            std::cerr << "Invalid en-passant square '" << enPassantInfo
+                      << "'. Expects 2 characters. Actual: " << enPassantInfo.size()
+                      << " character(s)." << std::endl;
             return NOK;
         }
         if (!isalpha(enPassantInfo[0]))
         {
-            std::cerr << "Invalid en-passant square '" << enPassantInfo << "'. Expects 1st character to be a letter." << std::endl;
+            std::cerr << "Invalid en-passant square '" << enPassantInfo
+                      << "'. Expects 1st character to be a letter." << std::endl;
             return NOK;
         }
         if (!isdigit(enPassantInfo[1]))
         {
-            std::cerr << "Invalid en-passant square '" << enPassantInfo << "'. Expects 2nd character to be a digit." << std::endl;
+            std::cerr << "Invalid en-passant square '" << enPassantInfo
+                      << "'. Expects 2nd character to be a digit." << std::endl;
             return NOK;
         }
     }
@@ -936,16 +1009,21 @@ inline Validation check_en_passant_square(const std::string& enPassantInfo) {
 inline Validation check_check_count(const std::string& checkCountInfo) {
     if (checkCountInfo.size() != 3)
     {
-        std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 3 characters. Actual: " << checkCountInfo.size() << " character(s)." << std::endl;
+        std::cerr << "Invalid check count '" << checkCountInfo
+                  << "'. Expects 3 characters. Actual: " << checkCountInfo.size()
+                  << " character(s)." << std::endl;
         return NOK;
     }
     if (!isdigit(checkCountInfo[0]))
     {
-        std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 1st character to be a digit." << std::endl;
+        std::cerr << "Invalid check count '" << checkCountInfo
+                  << "'. Expects 1st character to be a digit." << std::endl;
         return NOK;
     }
-    if (!isdigit(checkCountInfo[2])) {
-        std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 3rd character to be a digit." << std::endl;
+    if (!isdigit(checkCountInfo[2]))
+    {
+        std::cerr << "Invalid check count '" << checkCountInfo
+                  << "'. Expects 3rd character to be a digit." << std::endl;
         return NOK;
     }
     return OK;
@@ -954,16 +1032,21 @@ inline Validation check_check_count(const std::string& checkCountInfo) {
 inline Validation check_lichess_check_count(const std::string& checkCountInfo) {
     if (checkCountInfo.size() != 4)
     {
-        std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 4 characters. Actual: " << checkCountInfo.size() << " character(s)." << std::endl;
+        std::cerr << "Invalid check count '" << checkCountInfo
+                  << "'. Expects 4 characters. Actual: " << checkCountInfo.size()
+                  << " character(s)." << std::endl;
         return NOK;
     }
     if (!isdigit(checkCountInfo[1]) || checkCountInfo[1] - '0' > 3)
     {
-        std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 2nd character to be a digit up to 3." << std::endl;
+        std::cerr << "Invalid check count '" << checkCountInfo
+                  << "'. Expects 2nd character to be a digit up to 3." << std::endl;
         return NOK;
     }
-    if (!isdigit(checkCountInfo[3]) || checkCountInfo[3] - '0' > 3) {
-        std::cerr << "Invalid check count '" << checkCountInfo << "'. Expects 4th character to be a digit up to 3." << std::endl;
+    if (!isdigit(checkCountInfo[3]) || checkCountInfo[3] - '0' > 3)
+    {
+        std::cerr << "Invalid check count '" << checkCountInfo
+                  << "'. Expects 4th character to be a digit up to 3." << std::endl;
         return NOK;
     }
     return OK;
@@ -1001,7 +1084,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
         return FEN_EMPTY;
     }
 
-    std::vector<std::string> fenParts = get_fen_parts(fen, ' ');
+    std::vector<std::string> fenParts      = get_fen_parts(fen, ' ');
     std::vector<std::string> startFenParts = get_fen_parts(v->startFen, ' ');
 
     // check for number of parts
@@ -1049,13 +1132,15 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
             return FEN_INVALID_NUMBER_OF_KINGS;
 
         // check for touching kings if there are exactly two royal kings on the board (excluding pocket)
-        if (   v->kingType == KING
+        if (v->kingType == KING
             && piece_count(fenParts[0], WHITE, KING, v) - piece_count(pocket, WHITE, KING, v) == 1
             && piece_count(fenParts[0], BLACK, KING, v) - piece_count(pocket, BLACK, KING, v) == 1)
         {
             std::array<CharSquare, 2> kingPositions;
-            kingPositions[WHITE] = board.get_square_for_piece(v->pieceToChar[make_piece(WHITE, KING)]);
-            kingPositions[BLACK] = board.get_square_for_piece(v->pieceToChar[make_piece(BLACK, KING)]);
+            kingPositions[WHITE] =
+              board.get_square_for_piece(v->pieceToChar[make_piece(WHITE, KING)]);
+            kingPositions[BLACK] =
+              board.get_square_for_piece(v->pieceToChar[make_piece(BLACK, KING)]);
             if (check_touching_kings(board, kingPositions) == NOK)
                 return FEN_TOUCHING_KINGS;
         }
@@ -1070,7 +1155,8 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     }
 
     // Castling and en passant can be skipped
-    bool skipCastlingAndEp = fenParts.size() >= 4 && fenParts.size() <= 5 && isdigit(fenParts[2][0]);
+    bool skipCastlingAndEp =
+      fenParts.size() >= 4 && fenParts.size() <= 5 && isdigit(fenParts[2][0]);
 
     // 3) Part
     // check castling rights
@@ -1083,8 +1169,10 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
         if (castlingInfoSplitted[WHITE].size() != 0 || castlingInfoSplitted[BLACK].size() != 0)
         {
             std::array<CharSquare, 2> kingPositions;
-            kingPositions[WHITE] = board.get_square_for_piece(toupper(v->pieceToChar[v->castlingKingPiece[WHITE]]));
-            kingPositions[BLACK] = board.get_square_for_piece(tolower(v->pieceToChar[v->castlingKingPiece[BLACK]]));
+            kingPositions[WHITE] =
+              board.get_square_for_piece(toupper(v->pieceToChar[v->castlingKingPiece[WHITE]]));
+            kingPositions[BLACK] =
+              board.get_square_for_piece(tolower(v->pieceToChar[v->castlingKingPiece[BLACK]]));
 
             CharBoard startBoard(board.get_nb_ranks(), board.get_nb_files());
             fill_char_board(startBoard, v->startFen, validSpecialCharactersFirstField, v);
@@ -1097,13 +1185,19 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
             if (!v->chess960 && !v->castlingDroppedPiece && !chess960)
             {
                 std::array<CharSquare, 2> kingPositionsStart;
-                kingPositionsStart[WHITE] = startBoard.get_square_for_piece(v->pieceToChar[make_piece(WHITE, v->castlingKingPiece[WHITE])]);
-                kingPositionsStart[BLACK] = startBoard.get_square_for_piece(v->pieceToChar[make_piece(BLACK, v->castlingKingPiece[BLACK])]);
+                kingPositionsStart[WHITE] = startBoard.get_square_for_piece(
+                  v->pieceToChar[make_piece(WHITE, v->castlingKingPiece[WHITE])]);
+                kingPositionsStart[BLACK] = startBoard.get_square_for_piece(
+                  v->pieceToChar[make_piece(BLACK, v->castlingKingPiece[BLACK])]);
                 std::array<std::vector<CharSquare>, 2> rookPositionsStart;
-                rookPositionsStart[WHITE] = startBoard.get_squares_for_pieces(WHITE, v->castlingRookPieces[WHITE], v->pieceToChar);
-                rookPositionsStart[BLACK] = startBoard.get_squares_for_pieces(BLACK, v->castlingRookPieces[BLACK], v->pieceToChar);
+                rookPositionsStart[WHITE] = startBoard.get_squares_for_pieces(
+                  WHITE, v->castlingRookPieces[WHITE], v->pieceToChar);
+                rookPositionsStart[BLACK] = startBoard.get_squares_for_pieces(
+                  BLACK, v->castlingRookPieces[BLACK], v->pieceToChar);
 
-                if (check_standard_castling(castlingInfoSplitted, board, kingPositions, kingPositionsStart, rookPositionsStart, v) == NOK)
+                if (check_standard_castling(castlingInfoSplitted, board, kingPositions,
+                                            kingPositionsStart, rookPositionsStart, v)
+                    == NOK)
                     return FEN_INVALID_CASTLING_INFO;
             }
         }
@@ -1125,13 +1219,14 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     // 5) Part
     // check check count
     unsigned int optionalInbetweenFields = 2 * !skipCastlingAndEp;
-    unsigned int optionalTrailingFields = 0;
+    unsigned int optionalTrailingFields  = 0;
     if (fenParts.size() >= 3 + optionalInbetweenFields && v->checkCounting && fenParts.size() % 2)
     {
         if (check_check_count(fenParts[2 + optionalInbetweenFields]) == NOK)
         {
             // allow valid lichess style check as alternative
-            if (fenParts.size() < 5 + optionalInbetweenFields || check_lichess_check_count(fenParts[fenParts.size() - 1]) == NOK)
+            if (fenParts.size() < 5 + optionalInbetweenFields
+                || check_lichess_check_count(fenParts[fenParts.size() - 1]) == NOK)
                 return FEN_INVALID_CHECK_COUNT;
             else
                 optionalTrailingFields++;
@@ -1142,24 +1237,28 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
 
     // 6) Part
     // check half move counter
-    if (fenParts.size() >= 3 + optionalInbetweenFields && !check_digit_field(fenParts[fenParts.size() - 2 - optionalTrailingFields]))
+    if (fenParts.size() >= 3 + optionalInbetweenFields
+        && !check_digit_field(fenParts[fenParts.size() - 2 - optionalTrailingFields]))
     {
-        std::cerr << "Invalid half move counter: '" << fenParts[fenParts.size()-2] << "'." << std::endl;
+        std::cerr << "Invalid half move counter: '" << fenParts[fenParts.size() - 2] << "'."
+                  << std::endl;
         return FEN_INVALID_HALF_MOVE_COUNTER;
     }
 
     // 7) Part
     // check move counter
-    if (fenParts.size() >= 4 + optionalInbetweenFields && !check_digit_field(fenParts[fenParts.size() - 1 - optionalTrailingFields]))
+    if (fenParts.size() >= 4 + optionalInbetweenFields
+        && !check_digit_field(fenParts[fenParts.size() - 1 - optionalTrailingFields]))
     {
-        std::cerr << "Invalid move counter: '" << fenParts[fenParts.size()-1] << "'." << std::endl;
+        std::cerr << "Invalid move counter: '" << fenParts[fenParts.size() - 1] << "'."
+                  << std::endl;
         return FEN_INVALID_MOVE_COUNTER;
     }
 
     return FEN_OK;
 }
-} // namespace FEN
+}  // namespace FEN
 
-} // namespace Stockfish
+}  // namespace Stockfish
 
-#endif // #ifndef APIUTIL_H_INCLUDED
+#endif  // #ifndef APIUTIL_H_INCLUDED

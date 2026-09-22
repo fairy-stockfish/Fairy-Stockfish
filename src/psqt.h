@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,15 +25,23 @@
 
 #include "variant.h"
 
-namespace Stockfish::PSQT
-{
+namespace Stockfish::PSQT {
 
 extern Score psq[PIECE_NB][SQUARE_NB + 1];
+
+// Classes of piece types for the keys of the history tables: the numerous pieces of
+// low value that define the structure of a position like pawns, and the pieces of
+// medium value. They generalize the pawns and minor pieces of chess to all variants.
+extern PieceSet lowPieceTypes;
+extern PieceSet mediumPieceTypes;
+
+// Variants with a single class of pieces, like the games with one piece type
+extern bool lowPiecesOnly;
 
 // Fill psqt array from a set of internally linked parameters
 extern void init(const Variant*);
 
-} // namespace Stockfish::PSQT
+}  // namespace Stockfish::PSQT
 
 
-#endif // PSQT_H_INCLUDED
+#endif  // PSQT_H_INCLUDED
