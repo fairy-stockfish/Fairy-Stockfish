@@ -375,6 +375,7 @@ class Position {
     void set_castling_right(Color c, Square rfrom);
     void set_state() const;
     void set_check_info() const;
+    Key  variant_state_key() const;
 
     // Other helpers
     void move_piece(Square from, Square to);

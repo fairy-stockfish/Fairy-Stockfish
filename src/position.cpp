@@ -48,6 +48,9 @@ Key inHand[PIECE_NB][SQUARE_NB];
 Key checks[COLOR_NB][CHECKS_NB];
 Key wall[SQUARE_NB];
 Key endgame[EG_EVAL_NB];
+Key gate[COLOR_NB][SQUARE_NB];
+Key promoted[PIECE_NB][SQUARE_NB];
+Key pass;
 }
 
 namespace {
@@ -198,6 +201,15 @@ void Position::init() {
     for (Square s = SQ_A1; s <= SQ_MAX; ++s)
         Zobrist::enpassantSquare[s] = enPassantRng.rand<Key>();
 
+    PRNG variantStateRng(1070374);
+    for (Color c : {WHITE, BLACK})
+        for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+            Zobrist::gate[c][s] = variantStateRng.rand<Key>();
+    for (Piece pc = NO_PIECE; pc < PIECE_NB; ++pc)
+        for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+            Zobrist::promoted[pc][s] = variantStateRng.rand<Key>();
+    Zobrist::pass = variantStateRng.rand<Key>();
+
     for (int cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
         Zobrist::castling[cr] = rng.rand<Key>();
 
@@ -254,6 +266,31 @@ void Position::init() {
 }
 
 Key Position::material_key(EndgameEval e) const { return st->materialKey ^ Zobrist::endgame[e]; }
+
+Key Position::variant_state_key() const {
+
+    Key key = (pass(WHITE) || pass(BLACK)) && st->pass ? Zobrist::pass : 0;
+
+    if (gating())
+        for (Color c : {WHITE, BLACK})
+        {
+            Bitboard gates = st->gatesBB[c];
+            while (gates)
+            {
+                Square s = pop_lsb(gates);
+                key ^= Zobrist::gate[c][s];
+            }
+        }
+
+    if (captures_to_hand() || piece_demotion())
+        for (Bitboard pieces = promotedPieces; pieces;)
+        {
+            Square s = pop_lsb(pieces);
+            key ^= Zobrist::promoted[unpromotedBoard[s]][s];
+        }
+
+    return key;
+}
 
 
 /// Position::set() initializes the position object with the given FEN string.
@@ -764,6 +801,8 @@ void Position::set_state() const {
     if (check_counting())
         for (Color c : {WHITE, BLACK})
             st->key ^= Zobrist::checks[c][st->checksRemaining[c]];
+
+    st->key ^= variant_state_key();
 }
 
 
@@ -1702,7 +1741,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     assert(m.is_ok());
     assert(&newSt != st);
 
-    Key k = st->key ^ Zobrist::side;
+    Key k = st->key ^ Zobrist::side ^ variant_state_key();
 
     // Copy some fields of the old state to our new StateInfo object except the
     // ones which are going to be recalculated from scratch anyway and then switch
@@ -2276,7 +2315,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     }
 
     // Update the key with the final value
-    st->key = k;
+    st->key = k ^ variant_state_key();
     // Calculate checkers bitboard (if move gives check)
     st->checkersBB = givesCheck ? attackers_to(square<KING>(them), us) & pieces(us) : Bitboard(0);
     assert(givesCheck == bool(st->checkersBB));

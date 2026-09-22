@@ -78,6 +78,16 @@ EOF
 cat << EOF > variant_state_hash.exp
    spawn ./stockfish
 
+   send "setoption name UCI_Variant value crazyhouse\n"
+   send "position fen 4k3/8/8/8/8/4Q~3/8/4K3[] w - - 0 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set promoted_key \$expect_out(1,string) }
+   send "position fen 4k3/8/8/8/8/4Q3/8/4K3[] w - - 0 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$promoted_key == \$expect_out(1,string)} { exit 1 }
+   }
+
    send "setoption name UCI_Variant value seirawan\n"
    send "position startpos moves b1c3e\n"
    send "d\n"
@@ -88,6 +98,15 @@ cat << EOF > variant_state_hash.exp
        if {\$gating_key != \$expect_out(1,string)} { exit 1 }
    }
 
+   send "position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\\[EHeh\\] w KQBCDFGkqbcdfg - 0 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set gates_key \$expect_out(1,string) }
+   send "position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\\[EHeh\\] w KQkq - 0 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$gates_key == \$expect_out(1,string)} { exit 1 }
+   }
+
    send "setoption name UCI_Variant value placement\n"
    send "position startpos moves R@a1 R@a8 K@e1\n"
    send "d\n"
@@ -96,6 +115,16 @@ cat << EOF > variant_state_hash.exp
    send "d\n"
    expect -re {Key: ([0-9A-F]+)} {
        if {\$placement_key != \$expect_out(1,string)} { exit 1 }
+   }
+
+   send "setoption name UCI_Variant value janggi\n"
+   send "position startpos moves e2e2\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set pass_key \$expect_out(1,string) }
+   send "position fen rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR b - - 1 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$pass_key == \$expect_out(1,string)} { exit 1 }
    }
 
    send "quit\n"
