@@ -1731,7 +1731,7 @@ Config Tablebases::rank_root_moves(const OptionsMap&            options,
                                    const std::function<bool()>& time_abort) {
     Config config;
 
-    if (rootMoves.empty())
+    if (options["UCI_Variant"] != "chess" || rootMoves.empty())
         return config;
 
     config.rootInTB    = false;
