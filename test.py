@@ -78,6 +78,10 @@ pass = true
 [royalduck:duck]
 extinctionPseudoRoyal = true
 
+[atomicduck:atomic]
+wallingRule = duck
+stalemateValue = win
+
 [makhouse:makruk]
 startFen = rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR[] w - - 0 1
 pieceDrops = true
@@ -469,6 +473,23 @@ class TestPyffish(unittest.TestCase):
         self.assertIn("f2h2", result)
         result = sf.legal_moves("shako", "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/RR3K4/10 w Qkq - 0 1", [])
         self.assertIn("f2d2", result)
+
+    def test_atomic_duck_blast_walls(self):
+        fen = "7k/8/8/2Ppq3/*7/8/8/K2R4 w - - 0 1"
+        moves = sf.legal_moves("atomicduck", fen, [])
+        for square in ("d1", "d5", "e5"):
+            self.assertIn(f"d1d5,d5{square}", moves)
+        self.assertNotIn("d1d5,d5c5", moves)
+
+        result = sf.get_fen("atomicduck", fen, ["d1d5,d5e5"])
+        self.assertEqual(result, "7k/8/8/2P1*3/8/8/8/K7 b - - 0 1")
+
+        moves = sf.legal_moves("atomicduck", "4r2k/8/8/3pq3/*7/8/8/3RK3 w - - 0 1", [])
+        self.assertIn("d1d5,d5e5", moves)
+        self.assertNotIn("d1d5,d5d5", moves)
+
+        moves = sf.legal_moves("atomicduck", "7k/8/8/3pq3/*3K3/8/8/3R4 w - - 0 1", [])
+        self.assertFalse(any(move.startswith("d1d5,") for move in moves))
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
