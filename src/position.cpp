@@ -1834,9 +1834,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     if (type_of(m) == DROP)
     {
         Piece pc_hand = make_piece(us, in_hand_piece_type(m));
-        k ^= Zobrist::psq[pc][to]
-           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
-           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
+        k ^= Zobrist::psq[pc][to];
+        if (!free_drops())
+            k ^=
+              Zobrist::inHand[pc_hand]
+                             [pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
+              ^ Zobrist::inHand[pc_hand]
+                               [pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
 
         // Reset rule 50 counter for irreversible drops
         st->rule50 = 0;
@@ -2571,9 +2575,13 @@ Key Position::key_after(Move m) const {
     if (type_of(m) == DROP)
     {
         Piece pc_hand = make_piece(sideToMove, in_hand_piece_type(m));
-        return k ^ Zobrist::psq[pc][to]
-             ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]]
-             ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1];
+        k ^= Zobrist::psq[pc][to];
+        if (!free_drops())
+            k ^= Zobrist::inHand[pc_hand]
+                                [pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]]
+               ^ Zobrist::inHand[pc_hand]
+                                [pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1];
+        return k;
     }
 
     k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
