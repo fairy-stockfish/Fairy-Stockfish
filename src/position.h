@@ -284,6 +284,9 @@ public:
   bool pseudo_legal(const Move m) const;
   bool virtual_drop(Move m) const;
   bool capture(Move m) const;
+  bool can_capture(PieceType attacker, PieceType target) const;
+  bool has_capture_target_types(PieceType attacker) const;
+  PieceSet capture_target_types(PieceType attacker) const;
   bool capture_or_promotion(Move m) const;
   Square capture_square(Square to) const;
   bool gives_check(Move m) const;
@@ -1443,6 +1446,21 @@ inline bool Position::capture(Move m) const {
   assert(is_ok(m));
   // Castling is encoded as "king captures rook"
   return (!empty(to_sq(m)) && type_of(m) != CASTLING && from_sq(m) != to_sq(m)) || type_of(m) == EN_PASSANT;
+}
+
+inline bool Position::can_capture(PieceType attacker, PieceType target) const {
+  assert(var != nullptr);
+  return !var->captureTargetTypesDefined[attacker] || (var->captureTargetTypes[attacker] & piece_set(target));
+}
+
+inline bool Position::has_capture_target_types(PieceType attacker) const {
+  assert(var != nullptr);
+  return var->captureTargetTypesDefined[attacker];
+}
+
+inline PieceSet Position::capture_target_types(PieceType attacker) const {
+  assert(var != nullptr);
+  return var->captureTargetTypes[attacker];
 }
 
 inline Square Position::capture_square(Square to) const {

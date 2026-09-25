@@ -56,6 +56,7 @@ private:
     std::vector<std::string> errors = {};
     template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target);
     template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target, std::string pieceToChar);
+    template <bool Current = true> bool parse_attribute(const std::string& key, PieceSet (&targetTypes)[PIECE_TYPE_NB], bool (&defined)[PIECE_TYPE_NB], std::string pieceToChar);
 };
 
 } // namespace Stockfish
