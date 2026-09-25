@@ -57,7 +57,8 @@ Magic GrasshopperMagicsD[SQUARE_NB];
 
 Magic* magics[] = {BishopMagics, RookMagicsH, RookMagicsV, CannonMagicsH, CannonMagicsV,
                    LameDabbabaMagics, HorseMagics, ElephantMagics, JanggiElephantMagics, CannonDiagMagics, NightriderMagics,
-                   GrasshopperMagicsH, GrasshopperMagicsV, GrasshopperMagicsD};
+                   GrasshopperMagicsH, GrasshopperMagicsV, GrasshopperMagicsD,
+                   LameDabbabaMagics, ElephantMagics};
 
 namespace {
 
@@ -275,6 +276,13 @@ void Bitboards::init_pieces() {
                       riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_V : RIDER_CANNON_V;
                   if (BishopDirections.find(d) != BishopDirections.end())
                       riderTypes |= limit == 1 ? RIDER_GRASSHOPPER_D : RIDER_CANNON_DIAG;
+                  // A hopper on a distance-2 leaper (dabbaba or alfil) is a
+                  // jumper: it can only move when the square it leaps over is
+                  // occupied
+                  if (LameDabbabaDirections.find(d) != LameDabbabaDirections.end())
+                      riderTypes |= RIDER_JUMPER_DABBABA;
+                  if (ElephantDirections.find(d) != ElephantDirections.end())
+                      riderTypes |= RIDER_JUMPER_ALFIL;
               }
           }
       }
@@ -302,7 +310,17 @@ void Bitboards::init_pieces() {
                               leaper |= safe_destination(s, c == WHITE ? d : -d);
                       }
                       pseudo |= sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
-                      pseudo |= sliding_attack<HOPPER_RANGE>(pi->hopper[initial][modality], s, 0, c);
+                      // A jumper's target is the square it lands on, so it
+                      // contributes a step rather than a sliding attack; the
+                      // occupancy condition is handled by its rider type.
+                      std::map<Direction, int> hoppers;
+                      for (auto const& [d, limit] : pi->hopper[initial][modality])
+                          if (   LameDabbabaDirections.find(d) != LameDabbabaDirections.end()
+                              || ElephantDirections.find(d) != ElephantDirections.end())
+                              pseudo |= safe_destination(s, c == WHITE ? d : -d);
+                          else
+                              hoppers[d] = limit;
+                      pseudo |= sliding_attack<HOPPER_RANGE>(hoppers, s, 0, c);
                   }
               }
           }
