@@ -111,7 +111,6 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
       os << UCI::square(pos, pop_lsb(b)) << " ";
 
   if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
-      && Options["UCI_Variant"] == "chess"
       && !pos.can_castle(ANY_CASTLING))
   {
       StateInfo st;
