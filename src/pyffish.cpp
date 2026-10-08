@@ -38,6 +38,8 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
     for (int i = 0; i < numMoves ; i++)
     {
         PyObject *MoveStr = PyUnicode_AsEncodedString( PyList_GetItem(moveList, i), "UTF-8", "strict");
+        if (!MoveStr)
+            return;
         std::string moveStr(PyBytes_AS_STRING(MoveStr));
         Py_XDECREF(MoveStr);
         Move m;
@@ -54,7 +56,7 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
 }
 
 extern "C" PyObject* pyffish_version(PyObject* self) {
-    return Py_BuildValue("(iii)", 0, 0, 90);
+    return Py_BuildValue("(iii)", 0, 0, 91);
 }
 
 extern "C" PyObject* pyffish_info(PyObject* self) {
@@ -200,7 +202,7 @@ extern "C" PyObject* pyffish_getSANmoves(PyObject* self, PyObject *args) {
             return NULL;
         }
     }
-    PyObject *Result = Py_BuildValue("O", sanMoves);  
+    PyObject *Result = Py_BuildValue("O", sanMoves);
     Py_XDECREF(sanMoves);
     return Result;
 }
@@ -226,7 +228,7 @@ extern "C" PyObject* pyffish_legalMoves(PyObject* self, PyObject *args) {
         Py_XDECREF(moveStr);
     }
 
-    PyObject *Result = Py_BuildValue("O", legalMoves);  
+    PyObject *Result = Py_BuildValue("O", legalMoves);
     Py_XDECREF(legalMoves);
     return Result;
 }
@@ -245,6 +247,79 @@ extern "C" PyObject* pyffish_getFEN(PyObject* self, PyObject *args) {
     StateListPtr states(new std::deque<StateInfo>(1));
     buildPosition(pos, states, variant, fen, moveList, chess960);
     return Py_BuildValue("s", pos.fen(sfen, showPromoted, countStarted).c_str());
+}
+
+// INPUT variant, fen, move list, move
+extern "C" PyObject* pyffish_applyMove(PyObject* self, PyObject *args) {
+    PyObject *moveList;
+    Position pos;
+    const char *fen, *variant, *move;
+    int chess960 = false, sfen = false, showPromoted = false, countStarted = 0, includeLegalMoves = false;
+    Notation notation = NOTATION_DEFAULT;
+    if (!PyArg_ParseTuple(args, "ssO!s|pippip", &variant, &fen, &PyList_Type, &moveList, &move,
+                         &chess960, &notation, &sfen, &showPromoted, &countStarted, &includeLegalMoves))
+        return NULL;
+
+    if (notation == NOTATION_DEFAULT)
+        notation = default_notation(variants.find(std::string(variant))->second);
+    StateListPtr states(new std::deque<StateInfo>(1));
+    buildPosition(pos, states, variant, fen, moveList, chess960);
+    if (PyErr_Occurred())
+        return NULL;
+    std::string moveStr = move;
+    Move m = UCI::to_move(pos, moveStr);
+    if (m == MOVE_NONE)
+    {
+        PyErr_SetString(PyExc_ValueError, (std::string("Invalid move '") + moveStr + "'").c_str());
+        return NULL;
+    }
+    std::string san = SAN::move_to_san(pos, m, notation);
+    states->emplace_back();
+    pos.do_move(m, states->back());
+    std::string resultFen = pos.fen(sfen, showPromoted, countStarted);
+    const MoveList<LEGAL> legalMoves(pos);
+    Value immediateResult = VALUE_DRAW, optionalResult = VALUE_DRAW;
+    bool immediateEnd = pos.is_immediate_game_end(immediateResult);
+    bool optionalEnd = pos.is_optional_game_end(optionalResult, 0, countStarted);
+    Value gameResultValue = immediateResult;
+    if (!legalMoves.size() && !immediateEnd)
+        gameResultValue = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
+
+    PyObject* moveStrings = NULL;
+    if (includeLegalMoves)
+    {
+        moveStrings = PyList_New(0);
+        if (!moveStrings)
+            return NULL;
+        for (const auto& legalMove : legalMoves)
+        {
+            PyObject* text = Py_BuildValue("s", UCI::move(pos, legalMove).c_str());
+            if (!text || PyList_Append(moveStrings, text) < 0)
+            {
+                Py_XDECREF(text);
+                Py_DECREF(moveStrings);
+                return NULL;
+            }
+            Py_DECREF(text);
+        }
+    }
+    PyObject* gameResult = legalMoves.size() ? Py_BuildValue("O", Py_None) : Py_BuildValue("i", gameResultValue);
+    if (!gameResult)
+    {
+        Py_XDECREF(moveStrings);
+        return NULL;
+    }
+    PyObject* result = Py_BuildValue("(ssOOO(OO)(Oi)(Oi)O)",
+        san.c_str(), resultFen.c_str(), checked(pos) ? Py_True : Py_False,
+        legalMoves.size() ? Py_True : Py_False, moveStrings ? moveStrings : Py_None,
+        has_insufficient_material(WHITE, pos) ? Py_True : Py_False,
+        has_insufficient_material(BLACK, pos) ? Py_True : Py_False,
+        immediateEnd ? Py_True : Py_False, immediateEnd ? immediateResult : VALUE_DRAW,
+        optionalEnd ? Py_True : Py_False, optionalEnd ? optionalResult : VALUE_DRAW,
+        gameResult);
+    Py_XDECREF(moveStrings);
+    Py_DECREF(gameResult);
+    return result;
 }
 
 // INPUT variant, fen, move list
@@ -413,6 +488,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"get_san_moves", (PyCFunction)pyffish_getSANmoves, METH_VARARGS, "Get SAN movelist from given FEN and UCI movelist."},
     {"legal_moves", (PyCFunction)pyffish_legalMoves, METH_VARARGS, "Get legal moves from given FEN and movelist."},
     {"get_fen", (PyCFunction)pyffish_getFEN, METH_VARARGS, "Get resulting FEN from given FEN and movelist."},
+    {"apply_move", (PyCFunction)pyffish_applyMove, METH_VARARGS, "Validate/apply one move and return SAN, FEN, and post-move facts."},
     {"gives_check", (PyCFunction)pyffish_givesCheck, METH_VARARGS, "Get check status from given FEN and movelist."},
     {"is_capture", (PyCFunction)pyffish_isCapture, METH_VARARGS, "Get whether given move is a capture from given FEN and movelist."},
     {"piece_to_partner", (PyCFunction)pyffish_pieceToPartner, METH_VARARGS, "Get unpromoted captured piece from given FEN and movelist."},

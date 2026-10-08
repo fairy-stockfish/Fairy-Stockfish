@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import faulthandler
+import gc
 import os
+import sys
+import tracemalloc
 import unittest
 import pyffish as sf
 
@@ -1312,6 +1315,155 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_fog_fen(fen, "fogofwar")
         self.assertEqual(result, "********/********/2******/Pp*p***1/4P3/4*3/1PPP1PPP/RNBQKBNR w KQkq b6 0 1")
         
+
+class TestApplyMove(unittest.TestCase):
+    def check_move(self, variant, fen, history, move, **options):
+        chess960 = options.get("chess960", False)
+        notation = options.get("notation", sf.NOTATION_DEFAULT)
+        count_started = options.get("count_started", 0)
+        moves = history + [move]
+        original = list(history)
+        args = (variant, fen, history, move, chess960, notation,
+                options.get("sfen", False), options.get("show_promoted", False), count_started)
+        result = sf.apply_move(*args, True)
+        self.assertIsInstance(result, tuple)
+        san, result_fen, check, has_legal_moves, result_moves, insufficient, immediate, optional, game_result = result
+        self.assertEqual(history, original)
+        self.assertEqual(san, sf.get_san_moves(variant, fen, moves, chess960, notation)[-1])
+        self.assertEqual(result_fen, sf.get_fen(variant, fen, moves, chess960,
+                         options.get("sfen", False), options.get("show_promoted", False), count_started))
+        legal_moves = sf.legal_moves(variant, fen, moves, chess960)
+        self.assertEqual(result_moves, legal_moves)
+        self.assertEqual(has_legal_moves, bool(legal_moves))
+        self.assertEqual(check, sf.gives_check(variant, fen, moves, chess960))
+        self.assertEqual(insufficient,
+                         sf.has_insufficient_material(variant, fen, moves, chess960))
+        for actual, expected in (
+            (immediate, sf.is_immediate_game_end(variant, fen, moves, chess960)),
+            (optional, sf.is_optional_game_end(variant, fen, moves, chess960, count_started)),
+        ):
+            self.assertEqual(actual, (expected[0], expected[1] if expected[0] else sf.VALUE_DRAW))
+        self.assertEqual(game_result,
+                         sf.game_result(variant, fen, moves, chess960) if not legal_moves else None)
+        compact = sf.apply_move(*args)
+        self.assertEqual(compact, result[:4] + (None,) + result[5:])
+        return result
+
+    def test_start_positions(self):
+        # Includes built-ins and the custom Betza/drop variants above. Replay three
+        # consecutive plies so the comparison covers both sides and history input.
+        for variant in sf.variants():
+            history = []
+            for ply in range(3):
+                moves = sf.legal_moves(variant, "startpos", history)
+                if not moves:
+                    break
+                with self.subTest(variant=variant, ply=ply):
+                    self.check_move(variant, "startpos", history, moves[0])
+                history.append(moves[0])
+
+    def test_special_moves_and_endings(self):
+        cases = [
+            ("chess", CHESS, ["e2e4", "a7a6", "e4e5", "d7d5"], "e5d6"),
+            ("chess", "7k/P7/8/8/8/8/8/7K w - - 0 1", [], "a7a8Q"),
+            ("chess", CHESS, ["f2f3", "e7e5", "g2g4"], "d8h4"),
+            ("chess", "7k/5K2/4Q3/8/8/8/8/8 w - - 0 1", [], "e6g6"),
+            ("chess", "7k/8/8/n7/8/2B5/8/K7 w - - 0 1", [], "c3a5"),
+            ("crazyhouse", "7k/8/8/8/8/8/8/K7[N] w - - 0 1", [], "N@f7"),
+            ("crazyhouse", "7k/8/8/8/8/2q~5/1B6/K7[] w - - 0 1", [], "b2c3"),
+            ("seirawan", SEIRAWAN, [], "b1c3h"),
+            ("kingofthehill", "7k/8/8/8/8/2K5/8/8 w - - 0 1", [], "c3d4"),
+            ("atomic", "7k/6p1/8/8/8/8/8/K5R1 w - - 0 1", [], "g1g7"),
+            ("dobutsu", "1L1/1g1/1G1/1l1[] w - - 0 1", [], "b2a2"),
+            ("chess", CHESS, ["g1f3", "g8f6", "f3g1", "f6g8"] * 2, "g1f3"),
+            ("chess", "7k/8/8/8/8/8/8/KR6 w - - 99 50", [], "b1b2"),
+            ("xiangqi", "2bakabnr/9/r1n1c4/2p1p1p1p/PP7/9/4P1P1P/2C3NC1/9/1NBAKAB1R w - - 0 1",
+             ["c3a3", "a8b8", "a3b3", "b8a8", "b3a3", "a8b8", "a3b3", "b8a8"], "b3a3"),
+        ]
+        for variant, fen, history, move in cases:
+            with self.subTest(variant=variant, move=move, fen=fen):
+                self.check_move(variant, fen, history, move, show_promoted=True)
+
+    def test_chess960_and_notations(self):
+        self.check_move("chess", "4k3/8/8/8/8/8/8/R1K4R w HA - 0 1", [], "c1h1", chess960=True)
+        for notation in (sf.NOTATION_SAN, sf.NOTATION_LAN, sf.NOTATION_SHOGI_HOSKING,
+                         sf.NOTATION_SHOGI_HODGES, sf.NOTATION_SHOGI_HODGES_NUMBER):
+            self.check_move("shogi", SHOGI, [], "c3c4", notation=notation, sfen=True)
+        self.check_move("xiangqi", XIANGQI, [], "h3e3", notation=sf.NOTATION_XIANGQI_WXF)
+        self.check_move("janggi", JANGGI, [], "e2e2", notation=sf.NOTATION_JANGGI)
+        for notation in (sf.NOTATION_THAI_SAN, sf.NOTATION_THAI_LAN):
+            self.check_move("makruk", MAKRUK, [], "d3d4", notation=notation)
+
+    def test_counting(self):
+        cases = [
+            ("makruk", "8/3k4/8/2K1S1P1/8/8/8/8 w - - 0 1", "g5g6m"),
+            ("makruk", "3k4/2m5/5M~2/4M3/3KS3/8/8/8 w - 128 7 33", "d4d5"),
+            ("cambodian", "8/2K3k1/5m2/4S1S1/8/8/8/8 w - 126 101 80", "e5f6"),
+            ("cambodian", "8/8/4k3/5P2/8/2RMK3/8/8 b - 126 42 50", "e6f5"),
+            ("asean", "4k3/3r4/2K5/8/3R4/8/8/8 w - - 0 1", "d4d7"),
+        ]
+        for variant, fen, move in cases:
+            for count_started in (-1, 0, 58):
+                with self.subTest(variant=variant, fen=fen, count_started=count_started):
+                    self.check_move(variant, fen, [], move, count_started=count_started, show_promoted=True)
+
+    def test_janggi_history_and_long_repetition(self):
+        moves = "e2e3 e9f9 h3d3 e7f7 i1i3 h10i8 i3h3 c10e7 h3h8 i10i9 h8b8 i9g9 d3f3 f9e9 f3f10 e7c10 f10c10 b10c8 c10g10 g9f9 b8c8 a10b10 b3f3 f9h9 a1a2 h9f9 a2d2 b10b9 d2d10 e9d10 c8c10 d10d9 f3f9 i8g9 f9b9 a7a6 g10g7 f7f6 e4e5 c7d7 g1e4 i7i6 e4b6 d9d8 c10c8 d8d9 b9g9 d7d6 b6e8 i6h6 e5e6 f6e6 c1e4 a6b6 e4b6 d6d5 c4c5 d9d10 e3d3 h6i6 c5c6 d5c5 d3d3".split()
+        *_, immediate, optional, game_result = self.check_move("janggi", JANGGI, moves[:-1], moves[-1])
+        self.assertEqual(immediate, (True, -sf.VALUE_MATE))
+        *_, immediate, optional, game_result = self.check_move("chess", CHESS, ["g1f3", "g8f6", "f3g1", "f6g8"] * 100, "g1f3")
+        self.assertEqual(optional, (True, sf.VALUE_DRAW))
+
+    def test_errors_leave_arguments_unchanged(self):
+        cases = [
+            (("chess", CHESS, [], "e2e5"), ValueError),
+            (("chess", CHESS, ["e2e4", "e7e4"], "g1f3"), ValueError),
+            (("chess", CHESS, [None], "e2e4"), TypeError),
+            (("chess", CHESS, ["\ud800"], "e2e4"), UnicodeError),
+            (("chess", CHESS, [], "\ud800"), UnicodeError),
+            (("chess", CHESS, (), "e2e4"), TypeError),
+            ((), TypeError),
+        ]
+        for args, exception in cases:
+            with self.subTest(args=args):
+                before = list(args[2]) if len(args) >= 3 else None
+                with self.assertRaises(exception):
+                    sf.apply_move(*args)
+                if before is not None:
+                    self.assertEqual(list(args[2]), before)
+
+    def test_references_and_python_allocations(self):
+        history = ["".join(["e2", "e4"])]
+        args = ("".join(["ch", "ess"]), "".join([CHESS, ""]), history, "".join(["e7", "e5"]))
+        bad_args = (args[0], args[1], history + ["invalid-move"], args[3])
+        objects = (*args, history[0], bad_args[2], bad_args[2][-1])
+        references = [sys.getrefcount(value) for value in objects]
+
+        def exercise():
+            for _ in range(250):
+                sf.apply_move(*args)
+                sf.apply_move(*args, False, sf.NOTATION_DEFAULT, False, False, 0, True)
+                try:
+                    sf.apply_move(*bad_args, False, sf.NOTATION_DEFAULT, False, False, 0, True)
+                except ValueError:
+                    pass
+
+        exercise() # Warm UTF-8 caches, allocator pools and native tables first.
+        tracemalloc.start()
+        try:
+            exercise()
+            gc.collect()
+            before = tracemalloc.get_traced_memory()[0]
+            exercise()
+            gc.collect()
+            after = tracemalloc.get_traced_memory()[0]
+            # A leaked result/list/string on each call grows well beyond this margin.
+            self.assertLess(after - before, 16_384)
+        finally:
+            tracemalloc.stop()
+        self.assertEqual([sys.getrefcount(value) for value in objects], references)
+
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
