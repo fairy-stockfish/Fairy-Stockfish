@@ -103,7 +103,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
      << std::setfill('0') << std::setw(16) << pos.key()
      << std::setfill(' ') << std::dec << "\nCheckers: ";
 
-  for (Bitboard b = pos.checkers(); b; )
+  for (Bitboard b = pos.all_checkers(); b; )
       os << UCI::square(pos, pop_lsb(b)) << " ";
 
   os << "\nChased: ";
@@ -593,7 +593,6 @@ void Position::set_check_info(StateInfo* si) const {
       if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
   }
-  si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
   si->chased = var->chasingRule ? chased() : Bitboard(0);
   si->legalCapture = NO_VALUE;
@@ -611,6 +610,10 @@ void Position::set_check_info(StateInfo* si) const {
               si->pseudoRoyals |= pieces(~sideToMove, pt);
       }
   }
+  si->allCheckersBB = si->checkersBB;
+  if (var->extinctionPseudoRoyal)
+      checked_pseudo_royals(sideToMove, &si->allCheckersBB);
+  si->shak = si->allCheckersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
 }
 
 
@@ -1009,8 +1012,9 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 }
 
 /// Position::checked_pseudo_royals computes a bitboard of
-/// all pseudo-royal pieces of a particular color that are in check
-Bitboard Position::checked_pseudo_royals(Color c) const {
+/// all pseudo-royal pieces of a particular color that are in check.
+/// If checkers is given, the pieces giving these checks are added to it.
+Bitboard Position::checked_pseudo_royals(Color c, Bitboard* checkers) const {
   assert(extinction_pseudo_royal());
   Bitboard checked = 0;
   Bitboard pseudoRoyals = st->pseudoRoyals & pieces(c);
@@ -1019,26 +1023,35 @@ Bitboard Position::checked_pseudo_royals(Color c) const {
   {
       Square sr = pop_lsb(pseudoRoyals);
       // skip if capturing this piece would blast any of the attacker's pseudo-royal pieces
-      if (!(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
-          && attackers_to(sr, ~c))
+      if (blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+          continue;
+      if (Bitboard attackers = attackers_to(sr, ~c))
+      {
           checked |= sr;
+          if (checkers)
+              *checkers |= attackers;
+      }
   }
   // Look for duple check
   if (var->dupleCheck)
   {
       Bitboard allAttacked = 0;
+      Bitboard allAttackers = 0;
       Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(c);
       while (pseudoRoyalCandidates)
       {
           Square sr = pop_lsb(pseudoRoyalCandidates);
-          if (!(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
-              && attackers_to(sr, ~c))
-              allAttacked |= sr;
-          else
-              // If at least one isn't attacked, it is not a duple check
+          Bitboard attackers =  blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)) ? Bitboard(0)
+                              : attackers_to(sr, ~c);
+          // If at least one isn't attacked, it is not a duple check
+          if (!attackers)
               return checked;
+          allAttacked |= sr;
+          allAttackers |= attackers;
       }
       checked |= allAttacked;
+      if (checkers)
+          *checkers |= allAttackers;
   }
   return checked;
 }
@@ -2625,20 +2638,20 @@ bool Position::see_ge(Move m, Value threshold) const {
 bool Position::is_optional_game_end(Value& result, int ply, int countStarted) const {
 
   // n-move rule
-  if (n_move_rule() && st->rule50 > (2 * n_move_rule() - 1) && (!checkers() || MoveList<LEGAL>(*this).size()))
+  if (n_move_rule() && st->rule50 > (2 * n_move_rule() - 1) && (!all_checkers() || MoveList<LEGAL>(*this).size()))
   {
       int offset = 0;
       if (var->chasingRule == AXF_CHASING && st->pliesFromNull >= 20)
       {
           int end = std::min(st->rule50, st->pliesFromNull);
           StateInfo* stp = st;
-          int checkThem = bool(stp->checkersBB);
-          int checkUs = bool(stp->previous->checkersBB);
+          int checkThem = bool(stp->allCheckersBB);
+          int checkUs = bool(stp->previous->allCheckersBB);
           for (int i = 2; i < end; i += 2)
           {
               stp = stp->previous->previous;
-              checkThem += bool(stp->checkersBB);
-              checkUs += bool(stp->previous->checkersBB);
+              checkThem += bool(stp->allCheckersBB);
+              checkUs += bool(stp->previous->allCheckersBB);
           }
           offset = 2 * std::max(std::max(checkThem, checkUs) - 10, 0) + 20 * (CurrentProtocol == UCCI || CurrentProtocol == UCI_CYCLONE);
       }
@@ -2658,13 +2671,13 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
       {
           StateInfo* stp = st->previous->previous;
           int cnt = 0;
-          bool perpetualThem = var->perpetualCheckIllegal && st->checkersBB && stp->checkersBB;
-          bool perpetualUs = var->perpetualCheckIllegal && st->previous->checkersBB && stp->previous->checkersBB;
+          bool perpetualThem = var->perpetualCheckIllegal && st->allCheckersBB && stp->allCheckersBB;
+          bool perpetualUs = var->perpetualCheckIllegal && st->previous->allCheckersBB && stp->previous->allCheckersBB;
           Bitboard chaseThem = undo_move_board(st->chased, st->previous->move) & stp->chased;
           Bitboard chaseUs = undo_move_board(st->previous->chased, stp->move) & stp->previous->chased;
           int moveRepetition = var->moveRepetitionIllegal
                                && type_of(st->move) == NORMAL
-                               && !st->previous->checkersBB && !stp->previous->checkersBB
+                               && !st->previous->allCheckersBB && !stp->previous->allCheckersBB
                                && (board_bb(~side_to_move(), type_of(piece_on(to_sq(st->move)))) & board_bb(side_to_move(), KING))
                                ? (stp->move == reverse_move(st->move) ? 2 : is_pass(stp->move) ? 1 : 0) : 0;
 
@@ -2673,7 +2686,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
               // Janggi repetition rule
               if (moveRepetition > 0)
               {
-                  if (i + 1 <= end && stp->previous->previous->previous->checkersBB)
+                  if (i + 1 <= end && stp->previous->previous->previous->allCheckersBB)
                       moveRepetition = 0;
                   else if (moveRepetition < 4)
                   {
@@ -2698,7 +2711,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
               if (i != st->pliesFromNull)
                   chaseThem = undo_move_board(chaseThem, stp->previous->move) & stp->previous->previous->chased;
               stp = stp->previous->previous;
-              perpetualThem &= bool(stp->checkersBB);
+              perpetualThem &= bool(stp->allCheckersBB);
 
               // Return a draw score if a position repeats once earlier but strictly
               // after the root, or repeats twice before or at the root.
@@ -2716,7 +2729,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 
               if (i + 1 <= end)
               {
-                  perpetualUs &= bool(stp->previous->checkersBB);
+                  perpetualUs &= bool(stp->previous->allCheckersBB);
                   chaseUs = undo_move_board(chaseUs, stp->move) & stp->previous->chased;
               }
           }
@@ -2727,7 +2740,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
   if (   counting_rule()
       && st->countingLimit
       && counting_ply(countStarted) > counting_limit(countStarted)
-      && (!checkers() || MoveList<LEGAL>(*this).size()))
+      && (!all_checkers() || MoveList<LEGAL>(*this).size()))
   {
       result = VALUE_DRAW;
       return true;
@@ -2737,7 +2750,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
   if (   sittuyin_promotion()
       && count<ALL_PIECES>(sideToMove) == 2
       && count<PAWN>(sideToMove) == 1
-      && !checkers())
+      && !all_checkers())
   {
       bool promotionsOnly = true;
       for (const auto& m : MoveList<LEGAL>(*this))
@@ -2956,7 +2969,7 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
   }
 
   // Failing to checkmate with virtual pieces is a loss
-  if (two_boards() && !checkers())
+  if (two_boards() && !all_checkers())
   {
       int virtualCount = 0;
       for (PieceSet ps = piece_types(); ps;)

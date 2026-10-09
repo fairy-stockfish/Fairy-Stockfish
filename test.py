@@ -135,6 +135,15 @@ pawnTypes = ps
 
 [repetitionloss:chess]
 nFoldValue = loss
+
+[perpetualpseudoroyal:chess]
+king = -
+commoner = k
+castlingKingPiece = k
+extinctionValue = loss
+extinctionPieceTypes = k
+extinctionPseudoRoyal = true
+perpetualCheckIllegal = true
 """
 
 sf.load_variant_config(ini_text)
@@ -967,6 +976,15 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("seirawan", fen, "b1d2")
         self.assertEqual(result, "Nbd2")
 
+        # Checks and checkmates of pseudo-royal pieces
+        fen = "8/8/8/8/5R2/8/6R1/3Kn2k w - - 0 1"
+        result = sf.get_san("atomic", fen, "f4f1")
+        self.assertEqual(result, "Rf1#")
+        result = sf.get_san("atomic", fen, "g2g1")
+        self.assertEqual(result, "Rg1+")
+        result = sf.get_san("coregal", "k7/5R2/8/8/5R2/6K1/6PP/7q w - - 0 1", "f4f1")
+        self.assertEqual(result, "Rf1#")
+
     def test_get_san_moves(self):
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
         SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]
@@ -1156,6 +1174,14 @@ class TestPyffish(unittest.TestCase):
 
     def test_is_optional_game_end(self):
         self._check_optional_game_end("capablanca", CAPA, [], False)
+
+        # n-move rule does not apply to checkmates of pseudo-royal pieces
+        self._check_optional_game_end("atomic", "8/8/8/8/5R2/8/6R1/3Kn2k w - - 99 50", ["f4f1"], False)
+        self._check_optional_game_end("atomic", "8/8/8/8/5R2/8/6R1/3Kn2k w - - 99 50", ["g2g1"], True, sf.VALUE_DRAW)
+        self._check_optional_game_end("coregal", "k7/5R2/8/8/5R2/6K1/6PP/7q w - - 99 80", ["f4f1"], False)
+
+        # perpetual check of pseudo-royal pieces
+        self._check_optional_game_end("perpetualpseudoroyal", "4k3/8/8/8/8/8/8/K2R4 w - - 0 1", 2 * ["d1e1", "e8d8", "e1d1", "d8e8"], True, -sf.VALUE_MATE)
 
         # sittuyin stalemate due to optional promotion
         self._check_optional_game_end("sittuyin", "1k4PK/3r4/8/8/8/8/8/8[] w - - 0 1", [], True, sf.VALUE_DRAW)

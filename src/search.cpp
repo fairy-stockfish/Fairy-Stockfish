@@ -195,7 +195,7 @@ void MainThread::search() {
       rootMoves.emplace_back(MOVE_NONE);
       Value variantResult;
       Value result =  rootPos.is_game_end(variantResult) ? variantResult
-                    : rootPos.checkers()                 ? rootPos.checkmate_value()
+                    : rootPos.all_checkers()             ? rootPos.checkmate_value()
                                                          : rootPos.stalemate_value();
       if (CurrentProtocol == XBOARD)
       {
@@ -1472,8 +1472,8 @@ moves_loop: // When in check, search starts from here
 
     if (!moveCount)
         bestValue = excludedMove ? alpha :
-                    ss->inCheck  ? pos.checkmate_value(ss->ply)
-                                 : pos.stalemate_value(ss->ply);
+                    pos.all_checkers() ? pos.checkmate_value(ss->ply)
+                                       : pos.stalemate_value(ss->ply);
 
     // If there is a move which produces search value greater than alpha we update stats of searched moves
     else if (bestMove)
