@@ -144,6 +144,21 @@ extinctionValue = loss
 extinctionPieceTypes = k
 extinctionPseudoRoyal = true
 perpetualCheckIllegal = true
+
+[checkcountingpseudoroyal:atomic]
+checkCounting = true
+startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1
+
+[checkcountingduplecheck]
+knight = n
+queen = q
+castling = false
+extinctionValue = loss
+extinctionPieceTypes = *
+extinctionPseudoRoyal = true
+dupleCheck = true
+checkCounting = true
+startFen = 4n3/8/8/8/7n/8/8/3Q4 w - - 9+9 0 1
 """
 
 sf.load_variant_config(ini_text)
@@ -482,6 +497,14 @@ class TestPyffish(unittest.TestCase):
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
         self.assertEqual(result, CHESS)
+
+        # check counting of pseudo-royal pieces
+        result = sf.get_fen("checkcountingpseudoroyal", sf.start_fen("checkcountingpseudoroyal"), ["e2e4", "f7f6", "d1h5"])
+        self.assertEqual(result, "rnbqkbnr/ppppp1pp/5p2/7Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 2+3 1 2")
+        result = sf.get_fen("checkcountingduplecheck", sf.start_fen("checkcountingduplecheck"), ["d1e1"])
+        self.assertEqual(result, "4n3/8/8/8/7n/8/8/4Q3 b - - 8+9 1 1")
+        result = sf.get_fen("checkcountingduplecheck", sf.start_fen("checkcountingduplecheck"), ["d1d7"])
+        self.assertEqual(result, "4n3/3Q4/8/8/7n/8/8/8 b - - 9+9 1 1")
 
         # incomplete FENs
         result = sf.get_fen("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", [])
