@@ -1076,6 +1076,38 @@ bool Position::legal(Move m) const {
   if ((!checking_permitted() || (sittuyin_promotion() && type_of(m) == PROMOTION) || (!drop_checks() && type_of(m) == DROP)) && gives_check(m))
       return false;
 
+  // Illegal drop checks of pseudo-royal pieces, which are not detected by gives_check().
+  // Drops can not give discovered checks, so only consider the attacks of the dropped piece.
+  if (!drop_checks() && type_of(m) == DROP && var->extinctionPseudoRoyal)
+  {
+      Bitboard occupied = pieces() | to;
+      Bitboard dropAttacks = attacks_bb(us, type_of(moved_piece(m)), to, occupied);
+      Bitboard pseudoRoyalsOurs = st->pseudoRoyals & pieces(us);
+      if (extinction_piece_types() & type_of(moved_piece(m)))
+          pseudoRoyalsOurs |= to;
+      // Touching pseudo-royal pieces are immune
+      Bitboard immune = 0;
+      if (blast_on_capture())
+          for (Bitboard b = pseudoRoyalsOurs; b; )
+              immune |= attacks_bb<KING>(pop_lsb(b));
+      if (dropAttacks & st->pseudoRoyals & pieces(~us) & ~immune)
+          return false;
+      // Look for duple check
+      if (var->dupleCheck)
+      {
+          Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(~us);
+          bool allCheck = bool(pseudoRoyalCandidates);
+          while (allCheck && pseudoRoyalCandidates)
+          {
+              Square sr = pop_lsb(pseudoRoyalCandidates);
+              if ((immune & sr) || !((dropAttacks & sr) || attackers_to(sr, occupied, us)))
+                  allCheck = false;
+          }
+          if (allCheck)
+              return false;
+      }
+  }
+
   // Illegal quiet moves (mandatory drops take precedence over mandatory captures)
   if (   must_capture() && !capture(m)
       && !(must_drop() && type_of(m) == DROP && count_in_hand(us, var->mustDropType) > 0)

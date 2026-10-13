@@ -149,6 +149,12 @@ perpetualCheckIllegal = true
 checkCounting = true
 startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1
 
+[atomicnodropchecks:atomic]
+dropChecks = false
+pieceDrops = true
+capturesToHand = true
+castling = false
+
 [checkcountingduplecheck]
 knight = n
 queen = q
@@ -382,6 +388,15 @@ class TestPyffish(unittest.TestCase):
 
         result = sf.legal_moves("grand", GRAND, ["a3a5"])
         self.assertIn("a10b10", result)
+
+        # drop checks of pseudo-royal pieces
+        result = sf.legal_moves("atomicnodropchecks", "4k3/8/8/8/8/8/8/4K3[R] w - - 0 1", [])
+        self.assertNotIn("R@e2", result)
+        self.assertNotIn("R@a8", result)
+        self.assertIn("R@a1", result)
+        # no check when the kings are touching
+        result = sf.legal_moves("atomicnodropchecks", "8/8/8/8/8/8/4k3/4K3[R] w - - 0 1", [])
+        self.assertIn("R@e8", result)
 
         result = sf.legal_moves("xiangqi", XIANGQI, ["h3h10"])
         self.assertIn("i10h10", result)
