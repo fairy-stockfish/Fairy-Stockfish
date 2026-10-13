@@ -135,6 +135,36 @@ pawnTypes = ps
 
 [repetitionloss:chess]
 nFoldValue = loss
+
+[perpetualpseudoroyal:chess]
+king = -
+commoner = k
+castlingKingPiece = k
+extinctionValue = loss
+extinctionPieceTypes = k
+extinctionPseudoRoyal = true
+perpetualCheckIllegal = true
+
+[checkcountingpseudoroyal:atomic]
+checkCounting = true
+startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1
+
+[atomicnodropchecks:atomic]
+dropChecks = false
+pieceDrops = true
+capturesToHand = true
+castling = false
+
+[checkcountingduplecheck]
+knight = n
+queen = q
+castling = false
+extinctionValue = loss
+extinctionPieceTypes = *
+extinctionPseudoRoyal = true
+dupleCheck = true
+checkCounting = true
+startFen = 4n3/8/8/8/7n/8/8/3Q4 w - - 9+9 0 1
 """
 
 sf.load_variant_config(ini_text)
@@ -359,6 +389,15 @@ class TestPyffish(unittest.TestCase):
         result = sf.legal_moves("grand", GRAND, ["a3a5"])
         self.assertIn("a10b10", result)
 
+        # drop checks of pseudo-royal pieces
+        result = sf.legal_moves("atomicnodropchecks", "4k3/8/8/8/8/8/8/4K3[R] w - - 0 1", [])
+        self.assertNotIn("R@e2", result)
+        self.assertNotIn("R@a8", result)
+        self.assertIn("R@a1", result)
+        # no check when the kings are touching
+        result = sf.legal_moves("atomicnodropchecks", "8/8/8/8/8/8/4k3/4K3[R] w - - 0 1", [])
+        self.assertIn("R@e8", result)
+
         result = sf.legal_moves("xiangqi", XIANGQI, ["h3h10"])
         self.assertIn("i10h10", result)
 
@@ -473,6 +512,14 @@ class TestPyffish(unittest.TestCase):
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
         self.assertEqual(result, CHESS)
+
+        # check counting of pseudo-royal pieces
+        result = sf.get_fen("checkcountingpseudoroyal", sf.start_fen("checkcountingpseudoroyal"), ["e2e4", "f7f6", "d1h5"])
+        self.assertEqual(result, "rnbqkbnr/ppppp1pp/5p2/7Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 2+3 1 2")
+        result = sf.get_fen("checkcountingduplecheck", sf.start_fen("checkcountingduplecheck"), ["d1e1"])
+        self.assertEqual(result, "4n3/8/8/8/7n/8/8/4Q3 b - - 8+9 1 1")
+        result = sf.get_fen("checkcountingduplecheck", sf.start_fen("checkcountingduplecheck"), ["d1d7"])
+        self.assertEqual(result, "4n3/3Q4/8/8/7n/8/8/8 b - - 9+9 1 1")
 
         # incomplete FENs
         result = sf.get_fen("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", [])
@@ -967,6 +1014,15 @@ class TestPyffish(unittest.TestCase):
         result = sf.get_san("seirawan", fen, "b1d2")
         self.assertEqual(result, "Nbd2")
 
+        # Checks and checkmates of pseudo-royal pieces
+        fen = "8/8/8/8/5R2/8/6R1/3Kn2k w - - 0 1"
+        result = sf.get_san("atomic", fen, "f4f1")
+        self.assertEqual(result, "Rf1#")
+        result = sf.get_san("atomic", fen, "g2g1")
+        self.assertEqual(result, "Rg1+")
+        result = sf.get_san("coregal", "k7/5R2/8/8/5R2/6K1/6PP/7q w - - 0 1", "f4f1")
+        self.assertEqual(result, "Rf1#")
+
     def test_get_san_moves(self):
         UCI_moves = ["e2e4", "e7e5", "g1f3", "b8c6h", "f1c4", "f8c5e"]
         SAN_moves = ["e4", "e5", "Nf3", "Nc6/H", "Bc4", "Bc5/E"]
@@ -1156,6 +1212,14 @@ class TestPyffish(unittest.TestCase):
 
     def test_is_optional_game_end(self):
         self._check_optional_game_end("capablanca", CAPA, [], False)
+
+        # n-move rule does not apply to checkmates of pseudo-royal pieces
+        self._check_optional_game_end("atomic", "8/8/8/8/5R2/8/6R1/3Kn2k w - - 99 50", ["f4f1"], False)
+        self._check_optional_game_end("atomic", "8/8/8/8/5R2/8/6R1/3Kn2k w - - 99 50", ["g2g1"], True, sf.VALUE_DRAW)
+        self._check_optional_game_end("coregal", "k7/5R2/8/8/5R2/6K1/6PP/7q w - - 99 80", ["f4f1"], False)
+
+        # perpetual check of pseudo-royal pieces
+        self._check_optional_game_end("perpetualpseudoroyal", "4k3/8/8/8/8/8/8/K2R4 w - - 0 1", 2 * ["d1e1", "e8d8", "e1d1", "d8e8"], True, -sf.VALUE_MATE)
 
         # sittuyin stalemate due to optional promotion
         self._check_optional_game_end("sittuyin", "1k4PK/3r4/8/8/8/8/8/8[] w - - 0 1", [], True, sf.VALUE_DRAW)

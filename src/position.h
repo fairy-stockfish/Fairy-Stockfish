@@ -60,6 +60,7 @@ struct StateInfo {
   // Not copied when making a move (will be recomputed anyhow)
   Key        key;
   Bitboard   checkersBB;
+  Bitboard   allCheckersBB; // checkers of royal and pseudo-royal pieces
   Piece      unpromotedCapturedPiece;
   Piece      unpromotedBycatch[SQUARE_NB];
   Bitboard   promotedBycatch;
@@ -264,10 +265,11 @@ public:
 
   // Checking
   Bitboard checkers() const;
+  Bitboard all_checkers() const;
   Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
   Bitboard pinners(Color c) const;
-  Bitboard checked_pseudo_royals(Color c) const;
+  Bitboard checked_pseudo_royals(Color c, Bitboard* checkers = nullptr) const;
 
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
@@ -915,35 +917,6 @@ inline EnclosingRule Position::flip_enclosed_pieces() const {
 
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
-  // Check for checkmate of pseudo-royal pieces
-  if (var->extinctionPseudoRoyal)
-  {
-      Bitboard pseudoRoyals = st->pseudoRoyals & pieces(sideToMove);
-      Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
-      while (pseudoRoyals)
-      {
-          Square sr = pop_lsb(pseudoRoyals);
-          if (  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
-              && attackers_to(sr, ~sideToMove))
-              return convert_mate_value(var->checkmateValue, ply);
-      }
-      // Look for duple check
-      if (var->dupleCheck)
-      {
-          Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(sideToMove);
-          bool allCheck = bool(pseudoRoyalCandidates);
-          while (allCheck && pseudoRoyalCandidates)
-          {
-              Square sr = pop_lsb(pseudoRoyalCandidates);
-              // Touching pseudo-royal pieces are immune
-              if (!(  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
-                    && attackers_to(sr, ~sideToMove)))
-                  allCheck = false;
-          }
-          if (allCheck)
-              return convert_mate_value(var->checkmateValue, ply);
-      }
-  }
   Value result = var->stalemateValue;
   // Is piece count used to determine stalemate result?
   if (var->stalematePieceCount)
@@ -961,7 +934,7 @@ inline Value Position::checkmate_value(int ply) const {
   assert(var != nullptr);
   // Check for illegal mate by shogi pawn drop
   if (    var->shogiPawnDropMateIllegal
-      && !(checkers() & ~pieces(SHOGI_PAWN))
+      && !(all_checkers() & ~pieces(SHOGI_PAWN))
       && !st->capturedPiece
       &&  st->pliesFromNull > 0
       && (st->materialKey != st->previous->materialKey))
@@ -972,11 +945,11 @@ inline Value Position::checkmate_value(int ply) const {
   if (var->shatarMateRule)
   {
       // Mate by knight is illegal
-      if (!(checkers() & ~pieces(KNIGHT)))
+      if (!(all_checkers() & ~pieces(KNIGHT)))
           return mate_in(ply);
 
       StateInfo* stp = st;
-      while (stp->checkersBB)
+      while (stp->allCheckersBB)
       {
           // Return mate score if there is at least one shak in series of checks
           if (stp->shak)
@@ -1349,6 +1322,10 @@ inline Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c) con
 
 inline Bitboard Position::checkers() const {
   return st->checkersBB;
+}
+
+inline Bitboard Position::all_checkers() const {
+  return st->allCheckersBB;
 }
 
 inline Bitboard Position::blockers_for_king(Color c) const {
