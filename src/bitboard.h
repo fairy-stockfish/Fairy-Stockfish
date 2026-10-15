@@ -161,6 +161,33 @@ extern Magic GrasshopperMagicsD[SQUARE_NB];
 
 extern Magic* magics[];
 
+// The eight queen directions, in rotational order: rotating by 45 degrees is
+// a +/-1 step in this array. Diagonals sit at the odd indices.
+constexpr Direction QueenDirections[8] = { NORTH, NORTH_EAST, EAST, SOUTH_EAST,
+                                           SOUTH, SOUTH_WEST, WEST, NORTH_WEST };
+
+// RayBB[d][s] holds every square from s to the board edge in direction
+// QueenDirections[d], excluding s. Used to keep only the half of a rook attack
+// set that points away from a bent rider's origin square.
+extern Bitboard RayBB[8][SQUARE_NB];
+
+/// BentRider is a bent rider's shape, flattened out of PieceInfo::bent so that
+/// the attack path needs no map lookup: for each first leg, the index of its
+/// direction in QueenDirections, and the mask of continuations it takes
+/// (1 for 45 degrees clockwise, 2 for counter-clockwise, 3 for both).
+
+struct BentRider {
+  int count = 0;
+  int dir[8] = {};   // index into QueenDirections
+  int len[8] = {};   // squares covered by the first leg, jumped over if > 1
+  int cont[8] = {};
+};
+
+extern BentRider BentAttacks[COLOR_NB][PIECE_TYPE_NB];
+extern BentRider BentMoves[2][COLOR_NB][PIECE_TYPE_NB];
+
+Bitboard bent_path_bb(PieceType pt, Square from, Square to);
+
 constexpr Bitboard make_bitboard() { return 0; }
 
 template<typename ...Squares>
@@ -326,6 +353,10 @@ inline Bitboard between_bb(Square s1, Square s2, PieceType pt) {
   else if (pt == JANGGI_ELEPHANT)
       return  (PseudoAttacks[WHITE][WAZIR][s2] & PseudoAttacks[WHITE][ALFIL][s1])
             | (PseudoAttacks[WHITE][KNIGHT][s2] & PseudoAttacks[WHITE][FERS][s1]);
+  else if (AttackRiderTypes[pt] & BENT_RIDERS)
+      // The path of a bent rider depends on which end it starts from, so it
+      // has to be traced from the piece (s2) towards the target (s1).
+      return bent_path_bb(pt, s2, s1);
   else
       return between_bb(s1, s2);
 }
@@ -461,6 +492,44 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
   }
 }
 
+/// bent_attacks_bb() returns the riding part of a bent rider: one leg onto a
+/// corner square, which has to be empty for the move to continue, then an
+/// unlimited ride 45 degrees off that leg, away from the origin. The corner
+/// square itself is not included here, it is covered by the ordinary step or
+/// leap the parser records alongside every bent leg.
+/// Both continuations of a diagonal leg are orthogonal and both continuations
+/// of an orthogonal leg are diagonal, so one rook or bishop lookup covers a
+/// whole corner; RayBB then discards everything pointing back at the origin.
+
+inline Bitboard bent_attacks_bb(const BentRider& br, Square s, Bitboard occupied) {
+
+  Bitboard b = 0;
+  for (int k = 0; k < br.count; k++)
+  {
+      int i = br.dir[k];
+      // A first leg of more than one square is a leap: only where it lands
+      // matters, never what it passes over. distance() catches the wrap of a
+      // leg that ran off the side of the board.
+      Square t = Square(s + br.len[k] * QueenDirections[i]);
+      if (!is_ok(t) || distance(s, t) != br.len[k] || (occupied & t))
+          continue;
+      Bitboard rays = 0;
+      if (br.cont[k] & 1)
+          rays |= RayBB[(i + 1) & 7][t];
+      if (br.cont[k] & 2)
+          rays |= RayBB[(i + 7) & 7][t];
+      if (br.cont[k] & 4)
+          rays |= RayBB[i][t];
+      // Every continuation of a leg belongs to the same family, so one lookup
+      // covers them all; which family it is depends on the continuation, not
+      // on the leg, since a ride carrying straight on stays in the leg's own.
+      int j = br.cont[k] & 4 ? i : br.cont[k] & 1 ? (i + 1) & 7 : (i + 7) & 7;
+      b |= ((j & 1) ? attacks_bb<BISHOP>(t, occupied) : attacks_bb<ROOK>(t, occupied)) & rays;
+  }
+  return b;
+}
+
+
 /// pop_rider() finds and clears a rider in a (hybrid) rider type
 
 inline RiderType pop_rider(RiderType* r) {
@@ -473,6 +542,9 @@ inline RiderType pop_rider(RiderType* r) {
 inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperAttacks[c][pt][s];
   RiderType r = AttackRiderTypes[pt];
+  if (r & RIDER_BENT)
+      b |= bent_attacks_bb(BentAttacks[c][pt], s, occupied);
+  r &= MAGIC_RIDERS;
   while (r)
       b |= rider_attacks_bb(pop_rider(&r), s, occupied);
   return b & PseudoAttacks[c][pt][s];
@@ -483,6 +555,9 @@ template <bool Initial=false>
 inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperMoves[Initial][c][pt][s];
   RiderType r = MoveRiderTypes[Initial][pt];
+  if (r & RIDER_BENT)
+      b |= bent_attacks_bb(BentMoves[Initial][c][pt], s, occupied);
+  r &= MAGIC_RIDERS;
   while (r)
       b |= rider_attacks_bb(pop_rider(&r), s, occupied);
   return b & PseudoMoves[Initial][c][pt][s];
