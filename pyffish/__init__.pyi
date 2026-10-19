@@ -1,6 +1,7 @@
 from typing import Any
 
 FEN_OK: int
+FEN_INVALID_PROMOTED_PIECE: int
 NOTATION_DEFAULT: int
 NOTATION_JANGGI: int
 NOTATION_LAN: int

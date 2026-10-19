@@ -915,11 +915,6 @@ inline EnclosingRule Position::flip_enclosed_pieces() const {
 
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
-  if (var->stalematePieceCount)
-  {
-      int c = count<ALL_PIECES>(sideToMove) - count<ALL_PIECES>(~sideToMove);
-      return c == 0 ? VALUE_DRAW : convert_mate_value(c < 0 ? var->stalemateValue : -var->stalemateValue, ply);
-  }
   // Check for checkmate of pseudo-royal pieces
   if (var->extinctionPseudoRoyal)
   {
@@ -949,7 +944,17 @@ inline Value Position::stalemate_value(int ply) const {
               return convert_mate_value(var->checkmateValue, ply);
       }
   }
-  return convert_mate_value(var->stalemateValue, ply);
+  Value result = var->stalemateValue;
+  // Is piece count used to determine stalemate result?
+  if (var->stalematePieceCount)
+  {
+      int c = count<ALL_PIECES>(sideToMove) - count<ALL_PIECES>(~sideToMove);
+      result = c == 0 ? VALUE_DRAW : c < 0 ? var->stalemateValue : -var->stalemateValue;
+  }
+  // Apply material counting
+  if (result == VALUE_DRAW && var->materialCounting)
+      result = material_counting_result();
+  return convert_mate_value(result, ply);
 }
 
 inline Value Position::checkmate_value(int ply) const {
@@ -1059,34 +1064,20 @@ inline bool Position::flag_reached(Color c) const {
         (flag_region(c) & pieces(c, flag_piece(c)))
         && (   popcount(flag_region(c) & pieces(c, flag_piece(c))) >= var->flagPieceCount
             || (var->flagPieceBlockedWin && !(flag_region(c) & ~pieces())));
-      
-  if (simpleResult&&var->flagPieceSafe)
+
+  // When flagPieceSafe and flagMove are combined, it means that only unsafe pieces cause an extra move
+  if (simpleResult && var->flagPieceSafe && (!flag_move() || c == ~sideToMove))
   {
       Bitboard piecesInFlagZone = flag_region(c) & pieces(c, flag_piece(c));
-      int potentialPieces = (popcount(piecesInFlagZone));
-      /*
-      There isn't a variant that uses it, but in the hypothetical game where the rules say I need 3
-      pieces in the flag zone and they need to be safe: If I have 3 pieces there, but one is under
-      threat, I don't think I can declare victory. If I have 4 there, but one is under threat, I
-      think that's victory.
-      */      
-      while (piecesInFlagZone)
+      int potentialPieces = popcount(piecesInFlagZone);
+      // If we are exactly at the required piece count, all pieces in the flag zone need to be safe
+      while (piecesInFlagZone && potentialPieces == var->flagPieceCount)
       {
           Square sr = pop_lsb(piecesInFlagZone);
           Bitboard flagAttackers = attackers_to(sr, ~c);
-
-          if ((potentialPieces < var->flagPieceCount) || (potentialPieces >= var->flagPieceCount + 1)) break;
-          while (flagAttackers)
-          {
-              Square currentAttack = pop_lsb(flagAttackers);
-              if (legal(make_move(currentAttack, sr)))
-              {
-                  potentialPieces--;
-                  break;
-              }
-          }
+          if (flagAttackers)
+              return false;
       }
-      return potentialPieces >= var->flagPieceCount;
   }
   return simpleResult;
 }

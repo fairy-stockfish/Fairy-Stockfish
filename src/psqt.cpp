@@ -199,8 +199,8 @@ void init(const Variant* v) {
       PieceType pt = pop_lsb(ps);
       if (is_custom(pt))
       {
-          PieceValue[MG][pt] = piece_value(MG, pt);
-          PieceValue[EG][pt] = piece_value(EG, pt);
+          PieceValue[MG][make_piece(WHITE, pt)] = PieceValue[MG][make_piece(BLACK, pt)] = piece_value(MG, pt);
+          PieceValue[EG][make_piece(WHITE, pt)] = PieceValue[EG][make_piece(BLACK, pt)] = piece_value(EG, pt);
       }
 
       if (PieceValue[MG][pt] > PieceValue[MG][strongestPiece])
