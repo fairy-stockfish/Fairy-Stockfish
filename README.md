@@ -22,7 +22,7 @@ For the regional variants Xiangqi, Janggi, and Makruk [dedicated releases with b
 
 ## Contributing
 
-If you like this project, please support its development via [patreon](https://www.patreon.com/ianfab), [paypal](https://paypal.me/FairyStockfish), or [github](https://github.com/sponsors/ianfab), or by [contributing to the code](https://github.com/fairy-stockfish/Fairy-Stockfish/wiki/Contributing) or documentation. An [introduction to the code base](https://github.com/fairy-stockfish/Fairy-Stockfish/wiki/Understanding-the-code) can be found in the wiki.
+If you like this project, you can support its development via [github sponsors](https://github.com/sponsors/ianfab), or by [contributing to the code](https://github.com/fairy-stockfish/Fairy-Stockfish/wiki/Contributing) or documentation. An [introduction to the code base](https://github.com/fairy-stockfish/Fairy-Stockfish/wiki/Understanding-the-code) can be found in the wiki.
 
 ## Supported games
 

@@ -20,6 +20,8 @@
 #define PARSER_H_INCLUDED
 
 #include <iostream>
+#include <string>
+#include <vector>
 
 #include "variant.h"
 
@@ -47,9 +49,11 @@ public:
     VariantParser(const Config& c) : config (c) {};
     Variant* parse();
     Variant* parse(Variant* v);
+    const std::vector<std::string>& get_errors() const { return errors; }
 
 private:
     Config config;
+    std::vector<std::string> errors = {};
     template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target);
     template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target, std::string pieceToChar);
 };

@@ -54,7 +54,7 @@ void buildPosition(Position& pos, StateListPtr& states, const char *variant, con
 }
 
 extern "C" PyObject* pyffish_version(PyObject* self) {
-    return Py_BuildValue("(iii)", 0, 0, 88);
+    return Py_BuildValue("(iii)", 0, 0, 90);
 }
 
 extern "C" PyObject* pyffish_info(PyObject* self) {
@@ -427,13 +427,13 @@ static PyMethodDef PyFFishMethods[] = {
 
 static PyModuleDef pyffishmodule = {
     PyModuleDef_HEAD_INIT,
-    "pyffish",
+    "_pyffish",
     "Fairy-Stockfish extension module.",
     -1,
     PyFFishMethods,
 };
 
-PyMODINIT_FUNC PyInit_pyffish() {
+PyMODINIT_FUNC PyInit__pyffish() {
     PyObject* module;
 
     module = PyModule_Create(&pyffishmodule);

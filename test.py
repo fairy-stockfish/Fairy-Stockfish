@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import faulthandler
+import os
 import unittest
 import pyffish as sf
 
@@ -131,6 +132,9 @@ cannon = c
 [multipawn:chess]
 soldier = s
 pawnTypes = ps
+
+[repetitionloss:chess]
+nFoldValue = loss
 """
 
 sf.load_variant_config(ini_text)
@@ -251,6 +255,9 @@ variant_positions = {
         "k7/p7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KP
         "k7/s7/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KS
     },
+    "repetitionloss": {
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (False, False),  # K vs K
+    },
 }
 
 invalid_variant_positions = {
@@ -299,6 +306,11 @@ invalid_variant_positions = {
 
 
 class TestPyffish(unittest.TestCase):
+    def test_typing_metadata(self):
+        package_dir = os.path.dirname(sf.__file__)
+        self.assertTrue(os.path.isfile(os.path.join(package_dir, "__init__.pyi")))
+        self.assertTrue(os.path.isfile(os.path.join(package_dir, "py.typed")))
+
     def test_version(self):
         result = sf.version()
         self.assertEqual(len(result), 3)
@@ -1082,6 +1094,17 @@ class TestPyffish(unittest.TestCase):
         result = sf.game_result("suicide", "8/8/8/7p/7P/8/8/n7 w - - 0 1", [])
         self.assertEqual(result, sf.VALUE_MATE)
 
+        # armageddon
+        # black gets stalemated
+        result = sf.game_result("armageddon", "k7/P7/K7/8/8/8/8/8 b - - 0 1", [])
+        self.assertEqual(result, sf.VALUE_MATE)
+        # white gets stalemated
+        result = sf.game_result("armageddon", "8/8/8/8/8/k7/p7/K7 w - - 0 1", [])
+        self.assertEqual(result, -sf.VALUE_MATE)
+        # 50 move rule
+        result = sf.game_result("armageddon", "3n4/8/8/3k4/8/3K4/8/3BB3 w - - 100 80", [])
+        self.assertEqual(result, -sf.VALUE_MATE)
+
         # atomic check- and stalemate
         # checkmate
         result = sf.game_result("atomic", "BQ6/Rk6/8/8/8/8/8/4K3 b - - 0 1", [])
@@ -1117,6 +1140,12 @@ class TestPyffish(unittest.TestCase):
         self._check_immediate_game_end("flipello", "pppppppp/pppppppp/pppPpppp/pPpPpppp/pppppppp/pPpPPPPP/ppPpPPpp/pppppppp[PPpp] b - - 63 32", [], True, sf.VALUE_MATE)
         self._check_immediate_game_end("ataxx", "PPPpppp/pppPPPp/pPPPPPP/PPPPPPp/ppPPPpp/pPPPPpP/pPPPPPP b - - 99 50", [], True, -sf.VALUE_MATE)
         self._check_immediate_game_end("ataxx", "PPPpppp/pppPPPp/pPP*PPP/PP*P*Pp/ppP*Ppp/pPPPPpP/pPPPPPP b - - 99 50", [], True, -sf.VALUE_MATE)
+
+        # dobutsu flag rules
+        self._check_immediate_game_end("dobutsu", "1L1/1g1/1G1/1l1[] w - - 0 1", ["b2a2"], True, sf.VALUE_MATE)
+        self._check_immediate_game_end("dobutsu", "1L1/1g1/1G1/1l1[] w - - 0 1", ["b4a4"], True, -sf.VALUE_MATE)
+        self._check_immediate_game_end("dobutsu", "1L1/1g1/1G1/1l1[] w - - 0 1", ["b2b3"], True, sf.VALUE_DRAW)
+        self._check_immediate_game_end("dobutsu", "1L1/1g1/1G1/1l1[] w - - 0 1", ["b4b3"], False)
 
     def _check_optional_game_end(self, variant, fen, moves, game_end, game_result=None):
         with self.subTest(variant=variant, fen=fen, game_end=game_end, game_result=game_result):

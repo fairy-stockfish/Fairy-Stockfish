@@ -84,6 +84,9 @@ private:
   Position pos;
   Thread* thread;
   std::vector<Move> moveStack;
+  // UCI notation of the moves in moveStack, recorded at the time the move is made,
+  // since conversion of a move to UCI notation can depend on the position, e.g., for castling.
+  std::vector<std::string> uciMoveStack;
   bool is960;
 
 public:
@@ -160,6 +163,7 @@ public:
   void pop() {
     pos.undo_move(this->moveStack.back());
     moveStack.pop_back();
+    uciMoveStack.pop_back();
     states->pop_back();
   }
 
@@ -186,6 +190,7 @@ public:
   void set_fen(std::string fen) {
     resetStates();
     moveStack.clear();
+    uciMoveStack.clear();
     pos.set(v, fen, is960, &states->back(), thread);
   }
 
@@ -313,13 +318,8 @@ public:
 
     if (!gameEnd)
       return "*";
-    if (result == 0) {
-      if (pos.material_counting())
-        result = pos.material_counting_result();
-
-      if (result == 0)
-        return "1/2-1/2";
-    }
+    if (result == 0)
+      return "1/2-1/2";
     if (pos.side_to_move() == BLACK)
       result = -result;
     if (result > 0)
@@ -354,8 +354,8 @@ public:
 
   std::string move_stack() const {
     std::string moves;
-    for(auto it = std::begin(moveStack); it != std::end(moveStack); ++it) {
-      moves += UCI::move(pos, *it);
+    for(auto it = std::begin(uciMoveStack); it != std::end(uciMoveStack); ++it) {
+      moves += *it;
       moves += DELIM;
     }
     save_pop_back(moves);
@@ -436,6 +436,7 @@ private:
   }
 
   void do_move(Move move) {
+    this->uciMoveStack.emplace_back(UCI::move(pos, move));
     states->emplace_back();
     this->pos.do_move(move, states->back());
     this->moveStack.emplace_back(move);

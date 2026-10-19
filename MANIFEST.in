@@ -1,2 +1,3 @@
 include AUTHORS Copying.txt Readme.md test.py
 recursive-include src *.h *.cpp
+include pyffish/__init__.pyi pyffish/py.typed
