@@ -1190,6 +1190,20 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
       result += (push_close(strongKing, s) + push_close(weakKing, s)) / 2;
   }
 
+  // With only pawns left the weak side can only mate with a pawn check,
+  // so bring the strong king in front of a weak pawn on an adjacent file
+  if (pos.count<ALL_PIECES>(weakSide) == pos.count<PAWN>(weakSide) + 1)
+  {
+      int spanBonus = 0;
+      for (Bitboard b = pos.pieces(weakSide, PAWN); b;)
+      {
+          Square s = pop_lsb(b);
+          if (pawn_attack_span(weakSide, s) & strongKing)
+              spanBonus = std::max(spanBonus, 100 + 2 * push_close(strongKing, s));
+      }
+      result += spanBonus;
+  }
+
   // Restrict the weak side: penalize its king flight squares and pawn pushes
   int weakMobility = 0;
   for (Bitboard b = PseudoAttacks[weakSide][KING][weakKing] & ~pos.pieces(weakSide); b;)
