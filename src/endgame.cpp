@@ -1208,10 +1208,9 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
       strongMobility += !pos.attackers_to(pop_lsb(b), pos.pieces() ^ strongKing, weakSide);
   result -= 68 * strongMobility;
 
-  if (!pos.count<PAWN>(weakSide))
+  // A bare king can never give mate
+  if (pos.count<ALL_PIECES>(weakSide) == 1)
       result = VALUE_DRAW;
-  else if (pos.count<PAWN>(weakSide) == 1)
-      result = result / 2;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }

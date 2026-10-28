@@ -294,6 +294,15 @@ Entry* probe(const Position& pos) {
               e->evaluationFunction = &EvaluateKXKXMisere[c];
               return e;
           }
+
+      // Forcing a selfmate requires plenty of own material, so scale down
+      // with decreasing material. A bare king can never give mate.
+      for (Color c : { WHITE, BLACK })
+      {
+          int material = pos.non_pawn_material(c) + pos.count<PAWN>(c) * PawnValueEg;
+          e->factor[c] = uint8_t(pos.count<ALL_PIECES>(~c) == 1 ? SCALE_FACTOR_DRAW
+                                : std::min(int(SCALE_FACTOR_NORMAL), int(SCALE_FACTOR_NORMAL) * material / (QueenValueMg + 2 * RookValueMg + 2 * BishopValueMg + 2 * KnightValueMg)));
+      }
       break;
   case EG_EVAL_RK:
       break;
