@@ -1190,6 +1190,24 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
       result += (push_close(strongKing, s) + push_close(weakKing, s)) / 2;
   }
 
+  // Restrict the weak side: penalize its king flight squares and pawn pushes
+  int weakMobility = 0;
+  for (Bitboard b = PseudoAttacks[weakSide][KING][weakKing] & ~pos.pieces(weakSide); b;)
+      weakMobility += !pos.attackers_to(pop_lsb(b), pos.pieces() ^ weakKing, strongSide);
+  Bitboard weakPawns = pos.pieces(weakSide, PAWN);
+  weakMobility += popcount((weakSide == WHITE ? shift<NORTH>(weakPawns) : shift<SOUTH>(weakPawns)) & ~pos.pieces());
+  result -= 49 * weakMobility;
+
+  // Advanced weak pawns have fewer spare tempi and are closer to promotion
+  for (Bitboard b = weakPawns; b;)
+      result += 32 * relative_rank(weakSide, pop_lsb(b), pos.max_rank());
+
+  // The strong king should be boxed in by its own pieces
+  int strongMobility = 0;
+  for (Bitboard b = PseudoAttacks[strongSide][KING][strongKing] & ~pos.pieces(strongSide); b;)
+      strongMobility += !pos.attackers_to(pop_lsb(b), pos.pieces() ^ strongKing, weakSide);
+  result -= 68 * strongMobility;
+
   if (!pos.count<PAWN>(weakSide))
       result = VALUE_DRAW;
   else if (pos.count<PAWN>(weakSide) == 1)
