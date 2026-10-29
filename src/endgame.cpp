@@ -1222,6 +1222,12 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
       strongMobility += !pos.attackers_to(pop_lsb(b), pos.pieces() ^ strongKing, weakSide);
   result -= 68 * strongMobility;
 
+  // A lone pawn about to promote can no longer give mate itself, and the weak
+  // side chooses the promotion piece, so a selfmate can hardly be forced
+  if (   pos.count<ALL_PIECES>(weakSide) == 2 && weakPawns
+      && relative_rank(weakSide, lsb(weakPawns), pos.max_rank()) == RANK_7)
+      result /= 16;
+
   // A bare king can never give mate
   if (pos.count<ALL_PIECES>(weakSide) == 1)
       result = VALUE_DRAW;
