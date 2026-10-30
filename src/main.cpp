@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
+#include "tune.h"
 
 #include "piece.h"
 #include "variant.h"
@@ -35,29 +36,37 @@
 
 using namespace Stockfish;
 
+#ifdef UNIVERSAL_BINARY
+namespace Stockfish {
+
+int main(int argc, char* argv[]);
+#endif
+
 int main(int argc, char* argv[]) {
 
-  std::cout << engine_info() << std::endl;
+    std::cout << engine_info() << std::endl;
 
-  pieceMap.init();
-  variants.init();
-  CommandLine::init(argc, argv);
-  UCI::init(Options);
-  Tune::init();
-  PSQT::init(variants.find(Options["UCI_Variant"])->second);
-  Bitboards::init();
-  Position::init();
-  Bitbases::init();
-  Endgames::init();
-  Threads.set(size_t(Options["Threads"]));
-  Search::clear(); // After threads are up
-  Eval::NNUE::init();
+    pieceMap.init();
+    variants.init();
+    CommandLine::init(argc, argv);
+    UCI::init(Options);
+    Tune::init(Options);
+    PSQT::init(variants.find(Options["UCI_Variant"])->second);
+    Bitboards::init();
+    Position::init();
+    Bitbases::init();
+    Endgames::init();
+    UCIEngine uci(argc, argv);
 
-  UCI::loop(argc, argv);
+    uci.loop();
 
-  Threads.set(0);
-  variants.clear_all();
-  pieceMap.clear_all();
-  delete XBoard::stateMachine;
-  return 0;
+    Threads.destroy();
+    variants.clear_all();
+    pieceMap.clear_all();
+    delete XBoard::stateMachine;
+    return 0;
 }
+
+#ifdef UNIVERSAL_BINARY
+}
+#endif

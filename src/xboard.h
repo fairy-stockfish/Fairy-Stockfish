@@ -34,38 +34,40 @@ namespace XBoard {
 /// StateMachine class maintains the states required by XBoard protocol
 
 class StateMachine {
-public:
-  StateMachine(Position& uciPos, StateListPtr& uciPosStates) : pos(uciPos), states(uciPosStates) {
-    moveList = std::deque<Move>();
-    moveAfterSearch = false;
-    playColor = COLOR_NB;
-    ponderMove = MOVE_NONE;
-    ponderHighlight = "";
-  }
-  void go(Search::LimitsType searchLimits, bool ponder = false);
-  void ponder();
-  void stop(bool abort = true);
-  void setboard(std::string fen = "");
-  void do_move(Move m);
-  void undo_move();
-  std::string highlight(std::string square);
-  void process_command(std::string token, std::istringstream& is);
-  bool moveAfterSearch;
-  Move ponderMove;
+   public:
+    StateMachine(Position& uciPos, StateListPtr& uciPosStates) :
+        pos(uciPos),
+        states(uciPosStates) {
+        moveList        = std::deque<Move>();
+        moveAfterSearch = false;
+        playColor       = COLOR_NB;
+        ponderMove      = MOVE_NONE;
+        ponderHighlight = "";
+    }
+    void        go(Search::LimitsType searchLimits, bool ponder = false);
+    void        ponder();
+    void        stop(bool abort = true);
+    void        setboard(std::string fen = "");
+    void        do_move(Move m);
+    void        undo_move();
+    std::string highlight(std::string square);
+    void        process_command(std::string token, std::istringstream& is);
+    bool        moveAfterSearch;
+    Move        ponderMove;
 
-private:
-  Position& pos;
-  StateListPtr& states;
-  std::deque<Move> moveList;
-  Search::LimitsType limits;
-  Color playColor;
-  std::string ponderHighlight;
+   private:
+    Position&          pos;
+    StateListPtr&      states;
+    std::deque<Move>   moveList;
+    Search::LimitsType limits;
+    Color              playColor;
+    std::string        ponderHighlight;
 };
 
 extern StateMachine* stateMachine;
 
-} // namespace XBoard
+}  // namespace XBoard
 
-} // namespace Stockfish
+}  // namespace Stockfish
 
-#endif // #ifndef XBOARD_H_INCLUDED
+#endif  // #ifndef XBOARD_H_INCLUDED

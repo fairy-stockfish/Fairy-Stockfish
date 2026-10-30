@@ -7,6 +7,10 @@
 **/*.o
 **/*.s
 src/.depend
+src/.build_sha.txt
+src/.build_date.txt
+src/.build_diffindex.txt
+src/PGOBENCH.out
 
 # Built binary
 src/stockfish*

@@ -26,14 +26,14 @@
 
 namespace Stockfish {
 
-PartnerHandler Partner; // Global object
+PartnerHandler Partner;  // Global object
 
 void PartnerHandler::reset() {
     fast = sitRequested = partnerDead = weDead = weWin = weVirtualWin = weVirtualLoss = false;
     time = opptime = 0;
 }
 
-template <PartnerType p>
+template<PartnerType p>
 void PartnerHandler::ptell(const std::string& message) {
     if (p == ALL_PARTNERS || (p == FAIRY && isFairy) || (p == HUMAN && !isFairy))
         sync_cout << "tellics ptell " << message << sync_endl;
@@ -61,7 +61,8 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
     {
         if (!(is >> token))
         {
-            ptell<HUMAN>("I listen to the commands help, sit, go, move, fast, slow, dead, x, time, and otim.");
+            ptell<HUMAN>(
+              "I listen to the commands help, sit, go, move, fast, slow, dead, x, time, and otim.");
             ptell<HUMAN>("Tell 'help sit', etc. for details.");
         }
         else if (token == "sit")
@@ -70,7 +71,7 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
             ptell<HUMAN>("After receiving 'go', I will no longer sit.");
         else if (token == "move")
         {
-            ptell<HUMAN>("After receiving 'move', I will move immediately." );
+            ptell<HUMAN>("After receiving 'move', I will move immediately.");
             ptell<HUMAN>("If you specify a valid move, e.g., 'move e2e4', I will play it.");
         }
         else if (token == "fast")
@@ -83,11 +84,13 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
             ptell<HUMAN>("After receiving 'x', I assume I can play normally again.");
         else if (token == "time")
         {
-            ptell<HUMAN>("'time' together with your time in centiseconds allows me to consider your time.");
+            ptell<HUMAN>(
+              "'time' together with your time in centiseconds allows me to consider your time.");
             ptell<HUMAN>("E.g., 'time 1000' for 10 seconds.");
         }
         else if (token == "otim")
-            ptell<HUMAN>("'otim' together with your opponent's time in centiseconds allows me to consider his time.");
+            ptell<HUMAN>(
+              "'otim' together with your opponent's time in centiseconds allows me to consider his time.");
     }
     else if (!pos.two_boards())
         return;
@@ -135,7 +138,7 @@ void PartnerHandler::parse_ptell(std::istringstream& is, const Position& pos) {
     }
     else if (token == "x")
     {
-        partnerDead = false;
+        partnerDead  = false;
         sitRequested = false;
         ptell<HUMAN>("I play normally again");
     }
@@ -155,4 +158,4 @@ template void PartnerHandler::ptell<HUMAN>(const std::string&);
 template void PartnerHandler::ptell<FAIRY>(const std::string&);
 template void PartnerHandler::ptell<ALL_PARTNERS>(const std::string&);
 
-} // namespace Stockfish
+}  // namespace Stockfish
