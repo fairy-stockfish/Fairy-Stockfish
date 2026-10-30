@@ -1415,6 +1415,26 @@ namespace {
     Color strongSide = eg > VALUE_DRAW ? WHITE : BLACK;
     int sf = me->scale_factor(pos, strongSide);
 
+    if (pos.variant()->endgameEval == EG_EVAL_MISERE)
+    {
+        // Forcing a selfmate requires plenty of own material, so scale down
+        // with decreasing material. A bare king can never give mate.
+        int material = pos.non_pawn_material(strongSide) + pos.count<PAWN>(strongSide) * PawnValueEg;
+        sf = pos.count<ALL_PIECES>(~strongSide) == 1 ? int(SCALE_FACTOR_DRAW)
+           : std::min(int(SCALE_FACTOR_NORMAL), int(SCALE_FACTOR_NORMAL) * material / (MidgameLimit / 2));
+
+        // Pawns about to promote can no longer give mate themselves, and the weak
+        // side chooses the promotion pieces, so a selfmate can hardly be forced.
+        // Other pieces of the weak side can still give mate, so scale less then.
+        Bitboard matingPawns = pos.pieces(~strongSide, PAWN) & ~rank_bb(relative_rank(~strongSide, RANK_7, pos.max_rank()));
+        if (!matingPawns || (!more_than_one(matingPawns) && !pos.pieces(strongSide, BISHOP, KNIGHT, PAWN)))
+            sf = std::min(sf, int(SCALE_FACTOR_NORMAL) / (pos.count<ALL_PIECES>(~strongSide) == pos.count<PAWN>(~strongSide) + 1 ? 16 : 4));
+
+        // In misere the scale factor judges whether a selfmate can be forced at all,
+        // which matters in every game phase
+        mg = mg * ScaleFactor(sf) / SCALE_FACTOR_NORMAL;
+    }
+
     // If scale factor is not already specific, scale up/down via general heuristics
     if (sf == SCALE_FACTOR_NORMAL && !pos.captures_to_hand() && !pos.material_counting())
     {

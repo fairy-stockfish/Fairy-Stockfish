@@ -1172,65 +1172,86 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
   assert(!pos.checkers()); // Eval is never called when in check
 
   // Stalemate detection with lone king
-  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
+  if ((pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size()) || pos.count<ALL_PIECES>(weakSide) == 1)
       return VALUE_DRAW;
 
   Square strongKing = pos.square<KING>(strongSide);
   Square weakKing   = pos.square<KING>(weakSide);
 
-  Value result =  pos.non_pawn_material(strongSide) * int(VALUE_KNOWN_WIN) / int(VALUE_KNOWN_WIN + pos.non_pawn_material(strongSide))
+  // Count pawns as queens already, only give a small incentive (pawn value) to promote
+  Value maxValue = pos.non_pawn_material(strongSide) + pos.count<PAWN>(strongSide) * QueenValueMg;
+  Value result = (maxValue - pos.count<PAWN>(strongSide) * PawnValueMg) * int(VALUE_KNOWN_WIN) / int(VALUE_KNOWN_WIN + maxValue)
                 - pos.non_pawn_material(weakSide)
-                + pos.count<PAWN>(weakSide) * PawnValueEg
-                + push_to_opposing_edge(relative_square(weakSide, strongKing, pos.max_rank()), pos) * 2
-                + push_close(strongKing, weakKing) * 2;
-
-  for (Bitboard b = pos.pieces(PAWN); b;)
-  {
-      Square s = pop_lsb(b);
-      result += (push_close(strongKing, s) + push_close(weakKing, s)) / 2;
-  }
-
-  // With only pawns left the weak side can only mate with a pawn check,
-  // so bring the strong king in front of a weak pawn on an adjacent file
-  if (pos.count<ALL_PIECES>(weakSide) == pos.count<PAWN>(weakSide) + 1)
-  {
-      int spanBonus = 0;
-      for (Bitboard b = pos.pieces(weakSide, PAWN); b;)
-      {
-          Square s = pop_lsb(b);
-          if (pawn_attack_span(weakSide, s) & strongKing)
-              spanBonus = std::max(spanBonus, 100 + 2 * push_close(strongKing, s));
-      }
-      result += spanBonus;
-  }
+                + push_to_edge(strongKing, pos)
+                + push_close(strongKing, weakKing) * 5;
+  
+  // The strong king should be boxed in by its own pieces
+  int strongMobility = popcount(PseudoAttacks[strongSide][KING][strongKing] & ~pos.pieces(strongSide) & ~PseudoAttacks[weakSide][KING][weakKing]);
+  result -= 20 * strongMobility;
 
   // Restrict the weak side: penalize its king flight squares and pawn pushes
   int weakMobility = 0;
-  for (Bitboard b = PseudoAttacks[weakSide][KING][weakKing] & ~pos.pieces(weakSide); b;)
+  for (Bitboard b = PseudoAttacks[weakSide][KING][weakKing] & ~pos.pieces(weakSide) & ~PseudoAttacks[strongSide][KING][strongKing]; b;)
       weakMobility += !pos.attackers_to(pop_lsb(b), pos.pieces() ^ weakKing, strongSide);
-  Bitboard weakPawns = pos.pieces(weakSide, PAWN);
-  weakMobility += popcount((weakSide == WHITE ? shift<NORTH>(weakPawns) : shift<SOUTH>(weakPawns)) & ~pos.pieces());
-  result -= 49 * weakMobility;
+  result -= 20 * weakMobility;
 
-  // Advanced weak pawns have fewer spare tempi and are closer to promotion
-  for (Bitboard b = weakPawns; b;)
-      result += 32 * relative_rank(weakSide, pop_lsb(b), pos.max_rank());
+  Bitboard matingPawns = pos.pieces(weakSide, PAWN) & ~rank_bb(relative_rank(weakSide, RANK_7, pos.max_rank()));
+  if (matingPawns)
+  {
+    Bitboard blocked = matingPawns & (weakSide == WHITE ? shift<SOUTH>(pos.pieces(PAWN)) : shift<NORTH>(pos.pieces(PAWN)));
+    Bitboard pushes = weakSide == WHITE ? shift<NORTH>(matingPawns ^ blocked) : shift<SOUTH>(matingPawns ^ blocked);
+    Bitboard captures = weakSide == WHITE ? pawn_attacks_bb<WHITE>(matingPawns) : pawn_attacks_bb<BLACK>(matingPawns);
+    Bitboard pawnTo7 = (pushes | captures) & rank_bb(relative_rank(weakSide, RANK_7, pos.max_rank()));
+    // Reward mate patterns
+    for (Bitboard pawnSquares = pawnTo7; pawnSquares;)
+    {
+        Square pawnSquare = pop_lsb(pawnSquares);
+        for (Direction d : {EAST, WEST})
+        {
+            if ((file_of(pawnSquare) == FILE_A && d == WEST) || (file_of(pawnSquare) == FILE_H && d == EAST))
+                continue;
+            Square kingSquare = pawnSquare + pawn_push(weakSide) + d;
+            Square blockerSquare = pawnSquare + pawn_push(weakSide);
+            Square advanceSquare = pawnSquare + d;
+            int bonus = 0;
+            bonus += kingSquare == strongKing;
+            bonus += bool(PseudoAttacks[weakSide][KING][weakKing] & pawnSquare);
+            bonus += bool(pos.pieces(strongSide, BISHOP) & blockerSquare);
+            bonus += bool(pos.pieces(strongSide, KNIGHT, PAWN) & advanceSquare);
+            if ((file_of(pawnSquare) > FILE_B && d == WEST) || (file_of(pawnSquare) < FILE_G && d == EAST))
+            {
+                Square sideSquare = kingSquare + d;
+                Square sideAdvanceSquare = advanceSquare + d;
+                bonus += bool(pos.pieces(strongSide, ROOK) & sideSquare);
+                bonus += bool(pos.pieces(strongSide, BISHOP, PAWN) & sideAdvanceSquare);
+            }
+            bonus -= strongMobility;
+            if (bonus > 0)
+                result += bonus * bonus * 50;
+        }
+    }
 
-  // The strong king should be boxed in by its own pieces
-  int strongMobility = 0;
-  for (Bitboard b = PseudoAttacks[strongSide][KING][strongKing] & ~pos.pieces(strongSide); b;)
-      strongMobility += !pos.attackers_to(pop_lsb(b), pos.pieces() ^ strongKing, weakSide);
-  result -= 68 * strongMobility;
+    // Draw the kings and the mating pawn close
+    for (Bitboard b = matingPawns; b;)
+    {
+        Square s = pop_lsb(b);
+        // A pawn can only mate by capturing, so the strong king belongs in front of it
+        Square pawnTargetSquare = s + pawn_push(weakSide);
+        Square kingTargetSquare = pawnTargetSquare + pawn_push(weakSide);
+        result -= 50 * distance(strongKing, kingTargetSquare) + 50 * distance(weakKing, pawnTargetSquare);
+        // Advanced weak pawns have fewer spare tempi and are closer to mate
+        result += 20 * relative_rank(weakSide, s, pos.max_rank());
+    }
+  }
 
-  // A lone pawn about to promote can no longer give mate itself, and the weak
-  // side chooses the promotion piece, so a selfmate can hardly be forced
-  if (   pos.count<ALL_PIECES>(weakSide) == 2 && weakPawns
-      && relative_rank(weakSide, lsb(weakPawns), pos.max_rank()) == RANK_7)
-      result /= 16;
-
-  // A bare king can never give mate
-  if (pos.count<ALL_PIECES>(weakSide) == 1)
-      result = VALUE_DRAW;
+  // Pawns about to promote can no longer give mate themselves, and the weak
+  // side chooses the promotion pieces, so a selfmate can hardly be forced.
+  // With a single pawn we also need a minor piece or pawn to block an espcape square.
+  // Other pieces of the weak side can still give mate, so scale less then.
+  if (!matingPawns || (!more_than_one(matingPawns) && !pos.pieces(strongSide, BISHOP, KNIGHT, PAWN)))
+      result /= pos.count<ALL_PIECES>(weakSide) == pos.count<PAWN>(weakSide) + 1 ? 16 : 4;
+  else if (pos.pieces(strongSide, BISHOP, KNIGHT) && (pos.count<QUEEN>(strongSide) + pos.count<ROOK>(strongSide)) >= 2)
+      result += VALUE_KNOWN_WIN;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
