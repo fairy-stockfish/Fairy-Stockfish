@@ -1183,7 +1183,7 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
   Value result = (maxValue - pos.count<PAWN>(strongSide) * PawnValueMg) * int(VALUE_KNOWN_WIN) / int(VALUE_KNOWN_WIN + maxValue)
                 - pos.non_pawn_material(weakSide)
                 + push_to_edge(strongKing, pos)
-                + push_close(strongKing, weakKing) * 5;
+                + push_close(strongKing, weakKing);
   
   // The strong king should be boxed in by its own pieces
   int strongMobility = popcount(PseudoAttacks[strongSide][KING][strongKing] & ~pos.pieces(strongSide) & ~PseudoAttacks[weakSide][KING][weakKing]);
