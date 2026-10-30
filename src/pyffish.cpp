@@ -312,7 +312,7 @@ extern "C" PyObject* pyffish_gameResult(PyObject* self, PyObject *args) {
     assert(!MoveList<LEGAL>(pos).size());
     gameEnd = pos.is_immediate_game_end(result);
     if (!gameEnd)
-        result = pos.checkers() ? pos.checkmate_value() : pos.stalemate_value();
+        result = pos.all_checkers() ? pos.checkmate_value() : pos.stalemate_value();
 
     return Py_BuildValue("i", result);
 }

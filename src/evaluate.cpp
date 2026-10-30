@@ -1671,7 +1671,7 @@ Value Eval::evaluate(const Position& pos) {
 
 std::string Eval::trace(Position& pos) {
 
-  if (pos.checkers())
+  if (pos.all_checkers())
       return "Final evaluation: none (in check)";
 
   if (pos.is_immediate_game_end())
