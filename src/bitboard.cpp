@@ -38,6 +38,7 @@ Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperMoves[2][COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard BoardSizeBB[FILE_NB][RANK_NB];
 RiderType AttackRiderTypes[PIECE_TYPE_NB];
+PieceSet PinUnsafeTypes;
 RiderType MoveRiderTypes[2][PIECE_TYPE_NB];
 
 Magic RookMagicsH[SQUARE_NB];
@@ -231,6 +232,8 @@ std::string Bitboards::pretty(Bitboard b) {
 
 void Bitboards::init_pieces() {
 
+  PinUnsafeTypes = NO_PIECE_SET;
+
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
       const PieceInfo* pi = pieceMap.find(pt)->second;
@@ -279,6 +282,10 @@ void Bitboards::init_pieces() {
           }
       }
 
+      // Pieces whose attacks are not fully covered by slider_blockers()
+      if (AttackRiderTypes[pt] & NON_SLIDING_RIDERS)
+          PinUnsafeTypes |= pt;
+
       // Initialize move/attack bitboards
       for (Color c : { WHITE, BLACK })
       {
@@ -301,7 +308,13 @@ void Bitboards::init_pieces() {
                           if (!limit)
                               leaper |= safe_destination(s, c == WHITE ? d : -d);
                       }
-                      pseudo |= sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
+                      Bitboard sliding = sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
+                      // Leaps overlapping slides beyond adjacent squares hide pins from slider_blockers()
+                      if (modality == MODALITY_CAPTURE)
+                          for (Bitboard overlap = sliding & leaper; overlap; )
+                              if (distance(s, pop_lsb(overlap)) > 1)
+                                  PinUnsafeTypes |= pt;
+                      pseudo |= sliding;
                       pseudo |= sliding_attack<HOPPER_RANGE>(pi->hopper[initial][modality], s, 0, c);
                   }
               }

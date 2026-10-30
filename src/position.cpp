@@ -1287,6 +1287,14 @@ bool Position::legal(Move m) const {
   if (!count<KING>(us))
       return true;
 
+  // When not in check and all pins are known, only a pinned piece can expose the king.
+  // Pinned pieces still need the full test, since leapers can jump over the pinner.
+  if (   var->fastLegal
+      && !checkers()
+      && !(piece_types() & PinUnsafeTypes)
+      && (type_of(m) == DROP || !(blockers_for_king(us) & from)))
+      return true;
+
   Bitboard janggiCannons = pieces(JANGGI_CANNON);
   if (type_of(moved_piece(m)) == JANGGI_CANNON)
       janggiCannons = (type_of(m) == DROP ? janggiCannons : janggiCannons ^ from) | to;
