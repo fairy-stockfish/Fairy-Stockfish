@@ -1216,18 +1216,24 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
             int bonus = 0;
             bonus += kingSquare == strongKing;
             bonus += bool(PseudoAttacks[weakSide][KING][weakKing] & pawnSquare);
+            bonus += bonus / 2;
             bonus += bool(pos.pieces(strongSide, BISHOP) & blockerSquare);
+            bonus -= bool(pos.pieces(strongSide, ROOK, QUEEN) & blockerSquare);
             bonus += bool(pos.pieces(strongSide, KNIGHT, PAWN) & advanceSquare);
+            bonus -= bool(pos.pieces(strongSide, ROOK, QUEEN) & advanceSquare);
             if ((file_of(pawnSquare) > FILE_B && d == WEST) || (file_of(pawnSquare) < FILE_G && d == EAST))
             {
                 Square sideSquare = kingSquare + d;
                 Square sideAdvanceSquare = advanceSquare + d;
                 bonus += bool(pos.pieces(strongSide, ROOK) & sideSquare);
+                bonus -= bool(pos.pieces(strongSide, KNIGHT) & sideSquare);
                 bonus += bool(pos.pieces(strongSide, BISHOP, PAWN) & sideAdvanceSquare);
+                bonus -= bool((pos.pieces(strongSide, ROOK, QUEEN) & sideAdvanceSquare) && !(pos.pieces(strongSide) & advanceSquare));
+                bonus -= 2 * bool(captures & sideAdvanceSquare); // makes it hard to block the square
             }
-            bonus -= strongMobility;
+            bonus -= bool(PseudoAttacks[weakSide][KING][weakKing] & kingSquare);
             if (bonus > 0)
-                result += bonus * bonus * 50;
+                result += bonus * bonus * 100 / (1 + distance(kingSquare, strongKing) + strongMobility);
         }
     }
 
@@ -1241,6 +1247,29 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
         result -= 50 * distance(strongKing, kingTargetSquare) + 50 * distance(weakKing, pawnTargetSquare);
         // Advanced weak pawns have fewer spare tempi and are closer to mate
         result += 20 * relative_rank(weakSide, s, pos.max_rank());
+    }
+  }
+  else
+  {
+    // handle non-pawn mating material
+    for (Bitboard pieceSquares = pos.pieces(weakSide) ^ pos.pieces(weakSide, PAWN, KING); pieceSquares;)
+    {
+        Square s = pop_lsb(pieceSquares);
+        PieceType pt = type_of(pos.piece_on(s));
+        Bitboard checkSquares = pos.attacks_from(strongSide, pt, strongKing);
+        Bitboard safeChecks = checkSquares & (~PseudoAttacks[strongSide][KING][strongKing] | PseudoAttacks[weakSide][KING][weakKing]);
+        Bitboard candidateSafeChecks = pos.attacks_from(weakSide, pt, s) & safeChecks;
+        for (Bitboard b = safeChecks; b;)
+        {
+            Square checkSq = pop_lsb(b);
+            int bonus = 0;
+            bonus += !(pos.attackers_to(checkSq, strongSide) & ~square_bb(strongKing));
+            bonus += bool(pt == KNIGHT || (PseudoAttacks[strongSide][KING][strongKing] & checkSq));
+            bonus += bool(candidateSafeChecks & checkSq);
+            bonus += bool(pos.pinners(strongSide) & checkSq);
+            if (bonus > 0)
+                result += bonus * bonus * 100 / (1 + strongMobility + weakMobility);
+        }
     }
   }
 
