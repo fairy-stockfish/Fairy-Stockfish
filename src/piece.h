@@ -37,6 +37,16 @@ struct PieceInfo {
   std::map<Direction, int> steps[2][MOVE_MODALITY_NB] = {};
   std::map<Direction, int> slider[2][MOVE_MODALITY_NB] = {};
   std::map<Direction, int> hopper[2][MOVE_MODALITY_NB] = {};
+  // Bent riders. The key is the direction of the *first* leg. The value is a
+  // mask of which continuations are taken: 1 for the direction 45 degrees
+  // clockwise from the first leg, 2 for 45 degrees counter-clockwise, 3 for
+  // both. So {NE:3, SE:3, SW:3, NW:3} is a Griffon, {N:3, E:3, S:3, W:3} a
+  // Rhino, {N:3, S:3} the half-Rhino known as the Snake, and the four
+  // diagonals each keeping only their file-parallel continuation the
+  // half-Griffon known as the Ship.
+  // The corner square is not a destination here; the parser records it as an
+  // ordinary step alongside, so a Griffon is "F" plus the four bent legs.
+  std::map<Direction, int> bent[2][MOVE_MODALITY_NB] = {};
 };
 
 struct PieceMap : public std::map<PieceType, const PieceInfo*> {
