@@ -89,23 +89,28 @@ struct TBVariant {
     bool connectedKings;           // Kings can be adjacent, which changes the encoding
     bool capturesCompulsory;       // Tables are generated for antichess rules
     bool bareKing;                 // A bare king loses unless it can bare the opponent
+    bool kingRace;                 // Racing kings: no color symmetry, only the left-right
+                                   // symmetry is used and KvK is not stored
 };
 
 const TBVariant TBChess    = { { ".rtbw", ".rtbz" }, { 0x5d23e871, 0xa50c66d7 }, { "", "" }, { 0, 0 },
                                { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING },
-                               100, true, false, false, false };
+                               100, true, false, false, false, false };
 const TBVariant TBAtomic   = { { ".atbw", ".atbz" }, { 0x49a48d55, 0xeb5ea991 }, { "", "" }, { 0, 0 },
                                { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, COMMONER },
-                               100, true, true, false, false };
+                               100, true, true, false, false, false };
 const TBVariant TBGiveaway = { { ".gtbw", ".gtbz" }, { 0x21bc55bc, 0x501bf5d6 }, { ".stbw", ".stbz" }, { 0x1593f67b, 0x23e7cfe4 },
                                { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, COMMONER },
-                               100, false, true, true, false };
+                               100, false, true, true, false, false };
 const TBVariant TBSuicide  = { { ".stbw", ".stbz" }, { 0x1593f67b, 0x23e7cfe4 }, { ".gtbw", ".gtbz" }, { 0x21bc55bc, 0x501bf5d6 },
                                { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, COMMONER },
-                               100, false, true, true, false };
+                               100, false, true, true, false, false };
 const TBVariant TBShatranj = { { ".jtbw", ".jtbz" }, { 0xb4e9b3b7, 0x87c126fc }, { "", "" }, { 0, 0 },
                                { NO_PIECE_TYPE, PAWN, KNIGHT, ALFIL, ROOK, FERS, KING },
-                               140, true, false, false, true };
+                               140, true, false, false, true, false };
+const TBVariant TBRacing   = { { ".ktbw", ".ktbz" }, { 0x6b4f2ad9, 0x3c91e75b }, { "", "" }, { 0, 0 },
+                               { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING },
+                               100, true, false, false, false, true };
 
 const TBVariant* TBVar = &TBChess;        // Rules of the tables of the current variant
 const Variant* TBVariantPtr = nullptr;    // Current variant, if it has tablebases
@@ -125,6 +130,11 @@ int LeadPawnsSize[6][4];       // [leadPawnsCnt][FILE_A..FILE_D]
 // are encoded with MapPP[] and three or more with MapMult[] based on MTwist[].
 int MapMult[5][10];  // [leadPiecesCnt - 1][MapA1D1D4]
 int MultSize[5];     // [leadPiecesCnt - 1]
+
+// KvK is not stored in the racing kings tables, its values are computed at init time.
+// KvKDTZ[] is the number of plies until the race is decided.
+int8_t KvKWDL[COLOR_NB][SQUARE_NB][SQUARE_NB]; // [sideToMove][whiteKing][blackKing]
+int8_t KvKDTZ[COLOR_NB][SQUARE_NB][SQUARE_NB];
 
 constexpr int MTwist[SQUARE_NB] = {
     15, 63, 55, 47, 40, 48, 56, 12,
@@ -516,6 +526,10 @@ TBTable<WDL>::TBTable(const std::string& code) : TBTable() {
         }
     encType = uniquePieces >= 3 ? 0 : uniquePieces == 2 ? 2 : 1 + minGroup;
 
+    // Racing kings tables have a leading group of a single piece
+    if (TBVar->kingRace)
+        encType = 1;
+
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with less pawns because this leads to better compression.
     bool lead =   !count[BLACK][TB_PAWN]
@@ -611,6 +625,11 @@ public:
 
 TBTables TBTables;
 
+// Whether only one color is stored because both sides have the same pieces, which
+// does not apply to racing kings, where the colors are not interchangeable.
+template<TBType Type>
+bool symmetric(const TBTable<Type>& e) { return e.key == e.key2 && !TBVar->kingRace; }
+
 // Open the file of a table, pawnless tables may be shared with a related variant
 bool open_file(TBFile& file, const std::string& code, TBType type, uint32_t* magic = nullptr) {
 
@@ -658,7 +677,8 @@ void TBTables::add_table(const std::string& code) {
 
     // Insert into the hash keys for both colors: KRvK with KR white and black
     insert(wdlTable.back().key , &wdlTable.back(), &dtzTable.back());
-    insert(wdlTable.back().key2, &wdlTable.back(), &dtzTable.back());
+    if (!TBVar->kingRace)
+        insert(wdlTable.back().key2, &wdlTable.back(), &dtzTable.back());
 }
 
 // TB tables are compressed with canonical Huffman code. The compressed data is divided into
@@ -795,7 +815,7 @@ bool check_dtz_stm(TBTable<DTZ>* entry, int stm, File f) {
 
     auto flags = entry->get(stm, f)->flags;
     return   (flags & TBFlag::STM) == stm
-          || ((entry->key == entry->key2) && !entry->hasPawns);
+          || (symmetric(*entry) && !entry->hasPawns);
 }
 
 // DTZ scores are sorted by frequency of occurrence and then assigned the
@@ -896,7 +916,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
     // If both sides have the same pieces keys are equal. In this case TB tables
     // only store the 'white to move' case, so if the position to lookup has black
     // to move, we need to switch the color and flip the squares before to lookup.
-    bool symmetricBlackToMove = (entry->key == entry->key2 && pos.side_to_move());
+    bool symmetricBlackToMove = (symmetric(*entry) && pos.side_to_move());
 
     // TB files are calculated for white as stronger side. For instance we have
     // KRvK, not KvKR. A position where stronger side is white will have its
@@ -975,6 +995,13 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
     if (file_of(squares[0]) > FILE_D)
         for (int i = 0; i < size; ++i)
             squares[i] = flip_file(squares[i]);
+
+    // Racing kings tables only use the left-right symmetry, so the leading piece
+    // is encoded by its square on files a-d.
+    if (TBVar->kingRace) {
+        idx = rank_of(squares[0]) * 4 + file_of(squares[0]);
+        goto encode_remaining;
+    }
 
     // Encode leading pawns starting with the one with minimum MapPawns[] and
     // proceeding in ascending order.
@@ -1171,6 +1198,7 @@ void set_groups(T& e, PairsData* d, int order[], File f) {
         {
             d->groupIdx[0] = idx;
             idx *=  e.hasPawns             ? LeadPawnsSize[d->groupLen[0]][f]
+                  : TBVar->kingRace        ? 32
                   : e.encType == 0         ? 31332
                   : e.encType >= 3         ? (e.encType == 3 ? 278 : MultSize[e.encType - 2])
                   : TBVar->connectedKings  ? 518 : 462;
@@ -1315,11 +1343,11 @@ void set(T& e, uint8_t* data) {
     enum { Split = 1, HasPawns = 2 };
 
     assert(e.hasPawns        == bool(*data & HasPawns));
-    assert((e.key != e.key2) == bool(*data & Split));
+    assert(!symmetric(e) == bool(*data & Split));
 
     data++; // First byte stores flags
 
-    const int sides = T::Sides == 2 && (e.key != e.key2) ? 2 : 1;
+    const int sides = T::Sides == 2 && !symmetric(e) ? 2 : 1;
     const File maxFile = e.hasPawns ? FILE_D : FILE_A;
 
     bool pp = e.hasPawns && e.pawnCount[1]; // Pawns on both sides
@@ -1435,7 +1463,14 @@ template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
 Ret probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
 
     if (TBVar->oneKing && pos.count<ALL_PIECES>() == 2) // KvK
-        return Ret(WDLDraw);
+    {
+        if (!TBVar->kingRace)
+            return Ret(WDLDraw);
+
+        Color stm = pos.side_to_move();
+        Square wksq = pos.square<KING>(WHITE), bksq = pos.square<KING>(BLACK);
+        return Ret(Type == WDL ? KvKWDL[stm][wksq][bksq] : KvKDTZ[stm][wksq][bksq]);
+    }
 
     TBTable<Type>* entry = TBTables.get<Type>(pos.material_key());
 
@@ -1736,6 +1771,86 @@ int anti_probe_dtz(Position& pos, ProbeState* result) {
     return best;
 }
 
+// Compute the values of KvK in racing kings by retrograde analysis of the king race.
+// Like in the tables, the values of positions with a king on the 8th rank are the
+// results of the race from the point of view of the side to move.
+void init_kvk_race() {
+
+    bool known[COLOR_NB][SQUARE_NB][SQUARE_NB], prev[COLOR_NB][SQUARE_NB][SQUARE_NB];
+    int dtz[COLOR_NB][SQUARE_NB][SQUARE_NB];
+
+    for (Color stm : { WHITE, BLACK })
+        for (Square wk = SQ_A1; wk <= SQ_H8; ++wk)
+            for (Square bk = SQ_A1; bk <= SQ_H8; ++bk)
+            {
+                bool legal = !((PseudoAttacks[WHITE][KING][wk] | wk) & bk);
+                bool w8 = Rank8BB & wk, b8 = Rank8BB & bk;
+                int wdl = WDLDraw;
+
+                // Black draws if it can reach the 8th rank right after white
+                if (legal && b8 != w8)
+                    wdl =  stm == WHITE ? (b8 ? WDLLoss : WDLWin)
+                         : b8 ? WDLWin
+                         : (PseudoAttacks[WHITE][KING][bk] & Rank8BB & ~PseudoAttacks[WHITE][KING][wk]) ? WDLDraw : WDLLoss;
+
+                KvKWDL[stm][wk][bk] = int8_t(wdl);
+                known[stm][wk][bk] = !legal || w8 || b8;
+                dtz[stm][wk][bk] = 0;
+            }
+
+    // Each pass only uses the results of the previous passes to get the
+    // distances to the end of the race right.
+    bool changed;
+    do {
+        changed = false;
+        std::memcpy(prev, known, sizeof(known));
+
+        for (Color stm : { WHITE, BLACK })
+            for (Square wk = SQ_A1; wk <= SQ_H8; ++wk)
+                for (Square bk = SQ_A1; bk <= SQ_H8; ++bk)
+                {
+                    if (prev[stm][wk][bk])
+                        continue;
+
+                    Square own = stm == WHITE ? wk : bk, opp = stm == WHITE ? bk : wk;
+                    Bitboard b = PseudoAttacks[WHITE][KING][own] & ~PseudoAttacks[WHITE][KING][opp];
+                    int moves = 0, lost = 0, win = 0, loss = 0;
+
+                    while (b)
+                    {
+                        Square to = pop_lsb(b);
+                        Square w = stm == WHITE ? to : wk, k = stm == WHITE ? bk : to;
+                        moves++;
+
+                        if (!prev[~stm][w][k])
+                            continue;
+
+                        if (KvKWDL[~stm][w][k] == WDLLoss)
+                            win = win ? std::min(win, 1 - dtz[~stm][w][k]) : 1 - dtz[~stm][w][k];
+                        else if (KvKWDL[~stm][w][k] == WDLWin)
+                            lost++, loss = std::max(loss, dtz[~stm][w][k] + 1);
+                    }
+
+                    if (win)
+                        KvKWDL[stm][wk][bk] = WDLWin, dtz[stm][wk][bk] = win;
+
+                    // All moves lose, without moves it is stalemate
+                    else if (moves == lost)
+                        KvKWDL[stm][wk][bk] = int8_t(moves ? WDLLoss : WDLDraw), dtz[stm][wk][bk] = -loss;
+
+                    else
+                        continue;
+
+                    known[stm][wk][bk] = changed = true;
+                }
+    } while (changed);
+
+    for (Color stm : { WHITE, BLACK })
+        for (Square wk = SQ_A1; wk <= SQ_H8; ++wk)
+            for (Square bk = SQ_A1; bk <= SQ_H8; ++bk)
+                KvKDTZ[stm][wk][bk] = int8_t(std::abs(dtz[stm][wk][bk]));
+}
+
 } // namespace
 
 
@@ -1760,7 +1875,8 @@ void Tablebases::init(const std::string& paths) {
     // Tables are only available for a few variants
     const std::map<std::string, const TBVariant*> tbVariants = {
         { "chess", &TBChess }, { "atomic", &TBAtomic }, { "antichess", &TBGiveaway },
-        { "giveaway", &TBGiveaway }, { "suicide", &TBSuicide }, { "shatranj", &TBShatranj } };
+        { "giveaway", &TBGiveaway }, { "suicide", &TBSuicide }, { "shatranj", &TBShatranj },
+        { "racingkings", &TBRacing } };
 
     std::string variant = Options["UCI_Variant"];
     auto tbVariant = tbVariants.find(variant);
@@ -1890,8 +2006,31 @@ void Tablebases::init(const std::string& paths) {
             LeadPawnsSize[leadPawnsCnt][f] = idx;
         }
 
+    if (TBVar->kingRace)
+        init_kvk_race();
+
     // Add entries in TB tables if the corresponding WDL file exists
-    if (!TBVar->oneKing)
+    if (TBVar->kingRace)
+    {
+        // The colors are not interchangeable, so there are tables for all combinations
+        // of white and black pieces, like KRvK and KvKR. Racing kings has no pawns.
+        std::vector<std::string> sides[TBPIECES];
+        std::function<void(std::string, int)> addSides = [&](std::string side, int maxCode) {
+            sides[side.size()].push_back(side);
+            if (side.size() < TBPIECES - 1)
+                for (int p = maxCode; p >= TB_KNIGHT; --p)
+                    addSides(side + TBPieceChar[p], p);
+        };
+        addSides("K", TB_QUEEN);
+
+        for (int n1 = 1; n1 < TBPIECES; ++n1)
+            for (int n2 = 1; n1 + n2 <= TBPIECES; ++n2)
+                if (n1 + n2 > 2)
+                    for (const auto& w : sides[n1])
+                        for (const auto& b : sides[n2])
+                            TBTables.add_table(w + "v" + b);
+    }
+    else if (!TBVar->oneKing)
     {
         // Without kings, all combinations of pieces are possible. The table names
         // have the side with more pieces first, or else the one with stronger pieces.
