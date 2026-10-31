@@ -1208,6 +1208,7 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
 
       // Reward mate patterns where a pawn arriving on the seventh rank checks the strong king
       // diagonally in front of it, and the strong side's own units take away its flight squares.
+      int approachBonus = 0;
       for (Bitboard pawnSquares = pawnTo7; pawnSquares;)
       {
           Square pawnSquare = pop_lsb(pawnSquares);
@@ -1218,6 +1219,11 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
               Square kingSquare = pawnSquare + pawn_push(weakSide) + d;  // strong king checked by the pawn
               Square blockerSquare = pawnSquare + pawn_push(weakSide);   // in front of the pawn, next to the king
               Square advanceSquare = pawnSquare + d;                     // next to the pawn, in front of the king
+              // Guide the kings towards the pattern: the weak king next to the pawn on the
+              // side of the mating square, the strong king onto the mating square
+              Square weakKingSquare = advanceSquare - pawn_push(weakSide);
+              approachBonus = std::max(approachBonus, 1000 * (7 - distance(weakKing, weakKingSquare))
+                                                           / (1 + 3 * distance(kingSquare, strongKing)));
               int bonus = 0;
               // Both kings in place count most
               bonus += kingSquare == strongKing;
@@ -1245,6 +1251,8 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
                   result += bonus * bonus * 100 / (1 + distance(kingSquare, strongKing) + strongMobility);
           }
       }
+
+      result += approachBonus;
 
       // Bring both kings close to the mating pawns
       for (Bitboard b = matingPawns; b;)
