@@ -1198,6 +1198,7 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
   // Weak pawns on their seventh rank promote with their next move and the weak
   // side picks the promotion piece, so only less advanced pawns can be forced to mate.
   Bitboard matingPawns = pos.pieces(weakSide, PAWN) & ~rank_bb(relative_rank(weakSide, RANK_7, pos.max_rank()));
+  int approachBonus = 0;
   if (matingPawns)
   {
       // Squares on the seventh rank that a mating pawn can reach with its next move
@@ -1208,7 +1209,6 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
 
       // Reward mate patterns where a pawn arriving on the seventh rank checks the strong king
       // diagonally in front of it, and the strong side's own units take away its flight squares.
-      int approachBonus = 0;
       for (Bitboard pawnSquares = pawnTo7; pawnSquares;)
       {
           Square pawnSquare = pop_lsb(pawnSquares);
@@ -1251,8 +1251,6 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
                   result += bonus * bonus * 100 / (1 + distance(kingSquare, strongKing) + strongMobility);
           }
       }
-
-      result += approachBonus;
 
       // Bring both kings close to the mating pawns
       for (Bitboard b = matingPawns; b;)
@@ -1304,7 +1302,7 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
   if (!matingPawns || (!more_than_one(matingPawns) && !pos.pieces(strongSide, BISHOP, KNIGHT, PAWN)))
       result /= pos.count<ALL_PIECES>(weakSide) == pos.count<PAWN>(weakSide) + 1 ? 16 : 4;
   else if (pos.pieces(strongSide, BISHOP, KNIGHT) && (pos.count<QUEEN>(strongSide) + pos.count<ROOK>(strongSide)) >= 2)
-      result += VALUE_KNOWN_WIN;
+      result += VALUE_KNOWN_WIN + approachBonus;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
