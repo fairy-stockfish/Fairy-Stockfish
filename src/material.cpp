@@ -92,7 +92,9 @@ bool is_KXK_atomic(const Position& pos, Color us) {
 }
 
 bool is_KXKX(const Position& pos, Color us) {
-    return pos.non_pawn_material(us) - pos.non_pawn_material(~us) > QueenValueMg;
+    // Weak side: king, pawns and at most one piece
+    return pos.non_pawn_material(us) - pos.non_pawn_material(~us) > QueenValueMg
+        && pos.count<ALL_PIECES>(~us) - pos.count<PAWN>(~us) <= 2;
 }
 
 bool is_KBPsK(const Position& pos, Color us) {
