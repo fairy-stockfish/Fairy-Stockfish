@@ -83,6 +83,9 @@ void on_variant_set(const Option &o) {
     const Variant* v = variants.find(o)->second;
     init_variant(v);
     PSQT::init(v);
+
+    // Load the tablebases of the variant
+    Tablebases::init(Options["SyzygyPath"]);
 }
 void on_variant_change(const Option &o) {
     // Variant initialization
