@@ -1129,8 +1129,7 @@ Value Search::Worker::search(
 
         if (piecesCount <= tbConfig.cardinality
             && (piecesCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
-            && pos.rule50_count() == 0 && Options["UCI_Variant"] == "chess"
-            && !pos.can_castle(ANY_CASTLING))
+            && pos.rule50_count() == 0 && !pos.can_castle(ANY_CASTLING))
         {
             TB::ProbeState err;
             TB::WDLScore   wdl = TB::probe_wdl(pos, &err);
