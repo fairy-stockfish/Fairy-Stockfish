@@ -1392,17 +1392,13 @@ void set(T& e, uint8_t* data) {
 
     data += (uintptr_t)data & 1; // Word alignment
 
+    // Single-valued DTZ tables store the value 0, which is mapped to the actual
+    // value if needed. Older generator versions did not store this mapping, but
+    // assuming a fixed value instead (like python-chess does for antichess) is
+    // wrong for more tables than it fixes.
     for (File f = FILE_A; f <= maxFile; ++f)
         for (int i = 0; i < sides; i++)
-        {
             data = set_sizes(e.get(i, f), data);
-
-            // The antichess generator does not store the value of single-valued
-            // DTZ tables, which is always 1, see
-            // http://www.talkchess.com/forum/viewtopic.php?p=698093#698093
-            if (T::Sides == 1 && TBVar->capturesCompulsory && (e.get(i, f)->flags & TBFlag::SingleValue))
-                e.get(i, f)->minSymLen = 1;
-        }
 
     data = set_dtz_map(e, data, maxFile);
 
