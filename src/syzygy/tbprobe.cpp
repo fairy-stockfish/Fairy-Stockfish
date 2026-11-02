@@ -70,7 +70,6 @@ enum TBType { WDL, DTZ }; // Used as template parameter
 enum TBFlag { STM = 1, Mapped = 2, WinPlies = 4, LossPlies = 8, Wide = 16, SingleValue = 128 };
 
 inline WDLScore operator-(WDLScore d) { return WDLScore(-int(d)); }
-inline Square operator^(Square s, int i) { return Square(int(s) ^ i); }
 
 // Tablebase files encode the pieces with the codes 1..6 and name them with these letters
 enum TBPiece { TB_NONE, TB_PAWN, TB_KNIGHT, TB_BISHOP, TB_ROOK, TB_QUEEN, TB_KING, TB_PIECE_NB };
@@ -115,14 +114,32 @@ const TBVariant TBRacing   = { { ".ktbw", ".ktbz" }, { 0x6b4f2ad9, 0x3c91e75b },
 const TBVariant* TBVar = &TBChess;        // Rules of the tables of the current variant
 const Variant* TBVariantPtr = nullptr;    // Current variant, if it has tablebases
 
-int MapPawns[SQUARE_NB];
-int MapB1H1H7[SQUARE_NB];
-int MapA1D1D4[SQUARE_NB];
-int MapTriangle[SQUARE_NB]; // MapA1D1D4[] of the square mapped into the A1-D1-D4 triangle
-int MapKK[10][SQUARE_NB]; // [MapA1D1D4][SQUARE_NB]
+// The tables encode the squares of the 8x8 board as rank * 8 + file. This
+// differs from the square encoding of the engine for large boards, so the
+// squares are converted at the boundary and all encoding uses TBSquare.
+typedef int TBSquare;
+constexpr int TB_SQUARE_NB = 64;
 
-int Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
-int LeadPawnIdx[6][SQUARE_NB]; // [leadPawnsCnt][SQUARE_NB]
+constexpr TBSquare tb_make_square(int f, int r) { return r * 8 + f; }
+constexpr TBSquare tb_square(Square s) { return tb_make_square(file_of(s), rank_of(s)); }
+constexpr int tb_file(TBSquare s) { return s & 7; }
+constexpr int tb_rank(TBSquare s) { return s >> 3; }
+constexpr TBSquare tb_flip_file(TBSquare s) { return s ^ 7; }  // Swap A1 <-> H1
+constexpr TBSquare tb_flip_rank(TBSquare s) { return s ^ 56; } // Swap A1 <-> A8
+constexpr TBSquare tb_flip_diag(TBSquare s) { return ((s >> 3) | (s << 3)) & 63; } // Swap A3 <-> C1
+constexpr int tb_edge_distance(int f) { return std::min(f, 7 - f); }
+inline int tb_distance(TBSquare a, TBSquare b) {
+    return std::max(std::abs(tb_file(a) - tb_file(b)), std::abs(tb_rank(a) - tb_rank(b)));
+}
+
+int MapPawns[TB_SQUARE_NB];
+int MapB1H1H7[TB_SQUARE_NB];
+int MapA1D1D4[TB_SQUARE_NB];
+int MapTriangle[TB_SQUARE_NB]; // MapA1D1D4[] of the square mapped into the A1-D1-D4 triangle
+int MapKK[10][TB_SQUARE_NB]; // [MapA1D1D4][TB_SQUARE_NB]
+
+int Binomial[6][TB_SQUARE_NB];    // [k][n] k elements from a set of n elements
+int LeadPawnIdx[6][TB_SQUARE_NB]; // [leadPawnsCnt][TB_SQUARE_NB]
 int LeadPawnsSize[6][4];       // [leadPawnsCnt][FILE_A..FILE_D]
 
 // With connected kings (atomic, antichess) the tables use different encodings for the
@@ -133,10 +150,10 @@ int MultSize[5];     // [leadPiecesCnt - 1]
 
 // KvK is not stored in the racing kings tables, its values are computed at init time.
 // KvKDTZ[] is the number of plies until the race is decided.
-int8_t KvKWDL[COLOR_NB][SQUARE_NB][SQUARE_NB]; // [sideToMove][whiteKing][blackKing]
-int8_t KvKDTZ[COLOR_NB][SQUARE_NB][SQUARE_NB];
+int8_t KvKWDL[COLOR_NB][TB_SQUARE_NB][TB_SQUARE_NB]; // [sideToMove][whiteKing][blackKing]
+int8_t KvKDTZ[COLOR_NB][TB_SQUARE_NB][TB_SQUARE_NB];
 
-constexpr int MTwist[SQUARE_NB] = {
+constexpr int MTwist[TB_SQUARE_NB] = {
     15, 63, 55, 47, 40, 48, 56, 12,
     62, 11, 39, 31, 24, 32,  8, 57,
     54, 38,  7, 23, 16,  4, 33, 49,
@@ -147,7 +164,7 @@ constexpr int MTwist[SQUARE_NB] = {
     14, 60, 52, 44, 43, 51, 59, 13
 };
 
-constexpr int16_t MapPP[10][SQUARE_NB] = {
+constexpr int16_t MapPP[10][TB_SQUARE_NB] = {
   {   0,  -1,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,
      15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,
      31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,
@@ -194,8 +211,8 @@ constexpr int16_t MapPP[10][SQUARE_NB] = {
 constexpr uint64_t Test45 = (1ULL << 32) | (1ULL << 40) | (1ULL << 48) | (1ULL << 33) | (1ULL << 41) | (1ULL << 34);
 
 // Comparison function to sort leading pawns in ascending MapPawns[] order
-bool pawns_comp(Square i, Square j) { return MapPawns[i] < MapPawns[j]; }
-int off_A1H8(Square sq) { return int(rank_of(sq)) - file_of(sq); }
+bool pawns_comp(TBSquare i, TBSquare j) { return MapPawns[i] < MapPawns[j]; }
+int off_A1H8(TBSquare s) { return tb_rank(s) - tb_file(s); }
 
 constexpr Value WDL_to_value[] = {
    -VALUE_MATE + MAX_PLY + 1,
@@ -853,9 +870,8 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdl) {
 // Encode a leading group of leadCnt >= 2 pieces of the same type and color in pawnless
 // tables of variants without unique pieces (antichess). All squares are mapped by
 // the symmetry that normalizes the leading group.
-uint64_t encode_multi(Square* squares, int size, int leadCnt, int encType) {
+uint64_t encode_multi(TBSquare* squares, int size, int leadCnt, int encType) {
 
-    auto flipDiag = [](Square s) { return Square(((s >> 3) | (s << 3)) & 63); };
     auto mapAll = [&](auto f) { for (int i = 0; i < size; ++i) squares[i] = f(squares[i]); };
 
     // The leading piece is the one with the lowest index in the A1-D1-D4 triangle
@@ -863,30 +879,30 @@ uint64_t encode_multi(Square* squares, int size, int leadCnt, int encType) {
         if (MapTriangle[squares[0]] > MapTriangle[squares[i]])
             std::swap(squares[0], squares[i]);
 
-    if (file_of(squares[0]) > FILE_D)
-        mapAll([](Square s) { return flip_file(s); });
+    if (tb_file(squares[0]) > FILE_D)
+        mapAll(tb_flip_file);
 
-    if (rank_of(squares[0]) > RANK_4)
-        mapAll([](Square s) { return flip_rank(s); });
+    if (tb_rank(squares[0]) > RANK_4)
+        mapAll(tb_flip_rank);
 
     if (encType == 3)
     {
         if (off_A1H8(squares[0]) > 0 || (!off_A1H8(squares[0]) && off_A1H8(squares[1]) > 0))
-            mapAll(flipDiag);
+            mapAll(tb_flip_diag);
 
         if ((Test45 & (1ULL << squares[1])) && MapTriangle[squares[0]] == MapTriangle[squares[1]])
         {
             std::swap(squares[0], squares[1]);
-            mapAll([&](Square s) { return flipDiag(Square(s ^ 56)); });
+            mapAll([](TBSquare s) { return tb_flip_diag(tb_flip_rank(s)); });
         }
 
         return MapPP[MapTriangle[squares[0]]][squares[1]];
     }
 
     if (off_A1H8(squares[0]) > 0)
-        mapAll(flipDiag);
+        mapAll(tb_flip_diag);
 
-    std::sort(squares + 1, squares + leadCnt, [](Square a, Square b) { return MTwist[a] < MTwist[b]; });
+    std::sort(squares + 1, squares + leadCnt, [](TBSquare a, TBSquare b) { return MTwist[a] < MTwist[b]; });
 
     uint64_t idx = MapMult[leadCnt - 1][MapTriangle[squares[0]]];
     for (int i = 1; i < leadCnt; ++i)
@@ -904,7 +920,7 @@ uint64_t encode_multi(Square* squares, int size, int leadCnt, int encType) {
 template<typename T, typename Ret = typename T::Ret>
 Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) {
 
-    Square squares[TBPIECES];
+    TBSquare squares[TBPIECES];
     Piece pieces[TBPIECES];
     uint64_t idx;
     int next = 0, size = 0, leadPawnsCnt = 0;
@@ -943,14 +959,14 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
 
         leadPawns = b = pos.pieces(color_of(pc), PAWN);
         do
-            squares[size++] = pop_lsb(b) ^ flipSquares;
+            squares[size++] = tb_square(pop_lsb(b)) ^ flipSquares;
         while (b);
 
         leadPawnsCnt = size;
 
         std::swap(squares[0], *std::max_element(squares, squares + leadPawnsCnt, pawns_comp));
 
-        tbFile = File(edge_distance(file_of(squares[0])));
+        tbFile = File(tb_edge_distance(tb_file(squares[0])));
     }
 
     // DTZ tables are one-sided, i.e. they store positions only for white to
@@ -964,7 +980,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
     b = pos.pieces() ^ leadPawns;
     do {
         Square s = pop_lsb(b);
-        squares[size] = s ^ flipSquares;
+        squares[size] = tb_square(s) ^ flipSquares;
         pieces[size++] = Piece(pos.piece_on(s) ^ flipColor);
     } while (b);
 
@@ -992,14 +1008,14 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
 
     // Now we map again the squares so that the square of the lead piece is in
     // the triangle A1-D1-D4.
-    if (file_of(squares[0]) > FILE_D)
+    if (tb_file(squares[0]) > FILE_D)
         for (int i = 0; i < size; ++i)
-            squares[i] = flip_file(squares[i]);
+            squares[i] = tb_flip_file(squares[i]);
 
     // Racing kings tables only use the left-right symmetry, so the leading piece
     // is encoded by its square on files a-d.
     if (TBVar->kingRace) {
-        idx = rank_of(squares[0]) * 4 + file_of(squares[0]);
+        idx = tb_rank(squares[0]) * 4 + tb_file(squares[0]);
         goto encode_remaining;
     }
 
@@ -1018,9 +1034,9 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
 
     // In positions without pawns, we further flip the squares to ensure leading
     // piece is below RANK_5.
-    if (rank_of(squares[0]) > RANK_4)
+    if (tb_rank(squares[0]) > RANK_4)
         for (int i = 0; i < size; ++i)
-            squares[i] = flip_rank(squares[i]);
+            squares[i] = tb_flip_rank(squares[i]);
 
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
@@ -1030,7 +1046,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
 
         if (off_A1H8(squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
             for (int j = i; j < size; ++j)
-                squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
+                squares[j] = tb_flip_diag(squares[j]);
         break;
     }
 
@@ -1078,23 +1094,23 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
         // 6 to differentiate from the above case, rank_of() maps a1-d4 diagonal
         // to 0...3 and finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
         else if (off_A1H8(squares[1]))
-            idx = (  6 * 63 + rank_of(squares[0]) * 28
+            idx = (  6 * 63 + tb_rank(squares[0]) * 28
                    + MapB1H1H7[squares[1]])       * 62
                    + squares[2] - adjust2;
 
         // First two pieces are on a1-h8 diagonal, third below
         else if (off_A1H8(squares[2]))
             idx =  6 * 63 * 62 + 4 * 28 * 62
-                 +  rank_of(squares[0])        * 7 * 28
-                 + (rank_of(squares[1]) - adjust1) * 28
+                 +  tb_rank(squares[0])        * 7 * 28
+                 + (tb_rank(squares[1]) - adjust1) * 28
                  +  MapB1H1H7[squares[2]];
 
         // All 3 pieces on the diagonal a1-h8
         else
             idx = 6 * 63 * 62 + 4 * 28 * 62 + 4 * 7 * 28
-                 +  rank_of(squares[0])         * 7 * 6
-                 + (rank_of(squares[1]) - adjust1)  * 6
-                 + (rank_of(squares[2]) - adjust2);
+                 +  tb_rank(squares[0])         * 7 * 6
+                 + (tb_rank(squares[1]) - adjust1)  * 6
+                 + (tb_rank(squares[2]) - adjust2);
     } else if (!TBVar->connectedKings)
         // We don't have at least 3 unique pieces, like in KRRvKBB, just map
         // the kings.
@@ -1111,16 +1127,16 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
             idx = MapA1D1D4[squares[0]] * 63 + (squares[1] - adjust1);
 
         else if (off_A1H8(squares[1]))
-            idx = 6 * 63 + rank_of(squares[0]) * 28 + MapB1H1H7[squares[1]];
+            idx = 6 * 63 + tb_rank(squares[0]) * 28 + MapB1H1H7[squares[1]];
 
         else
-            idx =  6 * 63 + 4 * 28 + rank_of(squares[0]) * 7
-                 + (rank_of(squares[1]) - adjust1);
+            idx =  6 * 63 + 4 * 28 + tb_rank(squares[0]) * 7
+                 + (tb_rank(squares[1]) - adjust1);
     }
 
 encode_remaining:
     idx *= d->groupIdx[0];
-    Square* groupSq = squares + d->groupLen[0];
+    TBSquare* groupSq = squares + d->groupLen[0];
 
     // Encode remaining pawns then pieces according to square, in ascending order
     bool remainingPawns = entry->hasPawns && entry->pawnCount[1];
@@ -1134,7 +1150,7 @@ encode_remaining:
         // groups (similar to what done earlier for leading group pieces).
         for (int i = 0; i < d->groupLen[next]; ++i)
         {
-            auto f = [&](Square s) { return groupSq[i] > s; };
+            auto f = [&](TBSquare s) { return groupSq[i] > s; };
             auto adjust = std::count_if(squares, groupSq, f);
             n += Binomial[i + 1][groupSq[i] - adjust - 8 * remainingPawns];
         }
@@ -1468,7 +1484,7 @@ Ret probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw)
             return Ret(WDLDraw);
 
         Color stm = pos.side_to_move();
-        Square wksq = pos.square<KING>(WHITE), bksq = pos.square<KING>(BLACK);
+        TBSquare wksq = tb_square(pos.square<KING>(WHITE)), bksq = tb_square(pos.square<KING>(BLACK));
         return Ret(Type == WDL ? KvKWDL[stm][wksq][bksq] : KvKDTZ[stm][wksq][bksq]);
     }
 
@@ -1776,22 +1792,37 @@ int anti_probe_dtz(Position& pos, ProbeState* result) {
 // results of the race from the point of view of the side to move.
 void init_kvk_race() {
 
-    bool known[COLOR_NB][SQUARE_NB][SQUARE_NB], prev[COLOR_NB][SQUARE_NB][SQUARE_NB];
-    int dtz[COLOR_NB][SQUARE_NB][SQUARE_NB];
+    bool known[COLOR_NB][TB_SQUARE_NB][TB_SQUARE_NB], prev[COLOR_NB][TB_SQUARE_NB][TB_SQUARE_NB];
+    int dtz[COLOR_NB][TB_SQUARE_NB][TB_SQUARE_NB];
+
+    // Squares a king on 'from' can move to without getting adjacent to the other king
+    auto king_moves = [](TBSquare from, TBSquare other) {
+        std::vector<TBSquare> moves;
+        for (TBSquare to = 0; to < TB_SQUARE_NB; ++to)
+            if (tb_distance(from, to) == 1 && tb_distance(other, to) > 1)
+                moves.push_back(to);
+        return moves;
+    };
 
     for (Color stm : { WHITE, BLACK })
-        for (Square wk = SQ_A1; wk <= SQ_H8; ++wk)
-            for (Square bk = SQ_A1; bk <= SQ_H8; ++bk)
+        for (TBSquare wk = 0; wk < TB_SQUARE_NB; ++wk)
+            for (TBSquare bk = 0; bk < TB_SQUARE_NB; ++bk)
             {
-                bool legal = !((PseudoAttacks[WHITE][KING][wk] | wk) & bk);
-                bool w8 = Rank8BB & wk, b8 = Rank8BB & bk;
+                bool legal = tb_distance(wk, bk) > 1;
+                bool w8 = tb_rank(wk) == RANK_8, b8 = tb_rank(bk) == RANK_8;
                 int wdl = WDLDraw;
 
                 // Black draws if it can reach the 8th rank right after white
                 if (legal && b8 != w8)
+                {
+                    bool blackReaches = false;
+                    for (TBSquare to : king_moves(bk, wk))
+                        blackReaches |= tb_rank(to) == RANK_8;
+
                     wdl =  stm == WHITE ? (b8 ? WDLLoss : WDLWin)
                          : b8 ? WDLWin
-                         : (PseudoAttacks[WHITE][KING][bk] & Rank8BB & ~PseudoAttacks[WHITE][KING][wk]) ? WDLDraw : WDLLoss;
+                         : blackReaches ? WDLDraw : WDLLoss;
+                }
 
                 KvKWDL[stm][wk][bk] = int8_t(wdl);
                 known[stm][wk][bk] = !legal || w8 || b8;
@@ -1806,20 +1837,18 @@ void init_kvk_race() {
         std::memcpy(prev, known, sizeof(known));
 
         for (Color stm : { WHITE, BLACK })
-            for (Square wk = SQ_A1; wk <= SQ_H8; ++wk)
-                for (Square bk = SQ_A1; bk <= SQ_H8; ++bk)
+            for (TBSquare wk = 0; wk < TB_SQUARE_NB; ++wk)
+                for (TBSquare bk = 0; bk < TB_SQUARE_NB; ++bk)
                 {
                     if (prev[stm][wk][bk])
                         continue;
 
-                    Square own = stm == WHITE ? wk : bk, opp = stm == WHITE ? bk : wk;
-                    Bitboard b = PseudoAttacks[WHITE][KING][own] & ~PseudoAttacks[WHITE][KING][opp];
+                    TBSquare own = stm == WHITE ? wk : bk, opp = stm == WHITE ? bk : wk;
                     int moves = 0, lost = 0, win = 0, loss = 0;
 
-                    while (b)
+                    for (TBSquare to : king_moves(own, opp))
                     {
-                        Square to = pop_lsb(b);
-                        Square w = stm == WHITE ? to : wk, k = stm == WHITE ? bk : to;
+                        TBSquare w = stm == WHITE ? to : wk, k = stm == WHITE ? bk : to;
                         moves++;
 
                         if (!prev[~stm][w][k])
@@ -1846,8 +1875,8 @@ void init_kvk_race() {
     } while (changed);
 
     for (Color stm : { WHITE, BLACK })
-        for (Square wk = SQ_A1; wk <= SQ_H8; ++wk)
-            for (Square bk = SQ_A1; bk <= SQ_H8; ++bk)
+        for (TBSquare wk = 0; wk < TB_SQUARE_NB; ++wk)
+            for (TBSquare bk = 0; bk < TB_SQUARE_NB; ++bk)
                 KvKDTZ[stm][wk][bk] = int8_t(std::abs(dtz[stm][wk][bk]));
 }
 
@@ -1864,11 +1893,6 @@ void Tablebases::init(const std::string& paths) {
     TBFile::Paths = paths;
     TBVariantPtr = nullptr;
 
-#ifdef LARGEBOARDS
-    // Tablebases are not working for large-board version
-    return;
-#endif
-
     if (paths.empty() || paths == "<empty>")
         return;
 
@@ -1882,7 +1906,9 @@ void Tablebases::init(const std::string& paths) {
     auto tbVariant = tbVariants.find(variant);
     auto var = variants.find(variant);
 
-    if (tbVariant == tbVariants.end() || var == variants.end())
+    // The tables are only defined for the 8x8 board
+    if (   tbVariant == tbVariants.end() || var == variants.end()
+        || var->second->maxFile != FILE_H || var->second->maxRank != RANK_8)
         return;
 
     TBVar = tbVariant->second;
@@ -1890,18 +1916,18 @@ void Tablebases::init(const std::string& paths) {
 
     // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
     int code = 0;
-    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    for (TBSquare s = 0; s < TB_SQUARE_NB; ++s)
         if (off_A1H8(s) < 0)
             MapB1H1H7[s] = code++;
 
     // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
-    std::vector<Square> diagonal;
+    std::vector<TBSquare> diagonal;
     code = 0;
-    for (Square s = SQ_A1; s <= SQ_D4; ++s)
-        if (off_A1H8(s) < 0 && file_of(s) <= FILE_D)
+    for (TBSquare s = 0; s <= tb_make_square(FILE_D, RANK_4); ++s)
+        if (off_A1H8(s) < 0 && tb_file(s) <= FILE_D)
             MapA1D1D4[s] = code++;
 
-        else if (!off_A1H8(s) && file_of(s) <= FILE_D)
+        else if (!off_A1H8(s) && tb_file(s) <= FILE_D)
             diagonal.push_back(s);
 
     // Diagonal squares are encoded as last ones
@@ -1909,25 +1935,25 @@ void Tablebases::init(const std::string& paths) {
         MapA1D1D4[s] = code++;
 
     // MapTriangle[] extends MapA1D1D4[] to all squares by symmetry
-    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    for (TBSquare s = 0; s < TB_SQUARE_NB; ++s)
     {
-        Square t = file_of(s) > FILE_D ? flip_file(s) : s;
-        t = rank_of(t) > RANK_4 ? flip_rank(t) : t;
-        t = off_A1H8(t) > 0 ? Square(((t >> 3) | (t << 3)) & 63) : t;
+        TBSquare t = tb_file(s) > FILE_D ? tb_flip_file(s) : s;
+        t = tb_rank(t) > RANK_4 ? tb_flip_rank(t) : t;
+        t = off_A1H8(t) > 0 ? tb_flip_diag(t) : t;
         MapTriangle[s] = MapA1D1D4[t];
     }
 
     // MapKK[] encodes all the 461 possible legal positions of two kings where
     // the first is in the a1-d1-d4 triangle. If the first king is on the a1-d4
     // diagonal, the other one shall not to be above the a1-h8 diagonal.
-    std::vector<std::pair<int, Square>> bothOnDiagonal;
+    std::vector<std::pair<int, TBSquare>> bothOnDiagonal;
     code = 0;
     for (int idx = 0; idx < 10; idx++)
-        for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1)
-            if (MapA1D1D4[s1] == idx && (idx || s1 == SQ_B1)) // SQ_B1 is mapped to 0
+        for (TBSquare s1 = 0; s1 <= tb_make_square(FILE_D, RANK_4); ++s1)
+            if (MapA1D1D4[s1] == idx && (idx || s1 == tb_make_square(FILE_B, RANK_1))) // SQ_B1 is mapped to 0
             {
-                for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-                    if ((PseudoAttacks[WHITE][KING][s1] | s1) & s2)
+                for (TBSquare s2 = 0; s2 < TB_SQUARE_NB; ++s2)
+                    if (tb_distance(s1, s2) <= 1)
                         continue; // Illegal position
 
                     else if (!off_A1H8(s1) && off_A1H8(s2) > 0)
@@ -1961,8 +1987,8 @@ void Tablebases::init(const std::string& paths) {
         for (int t = 0; t < 10; ++t)
         {
             MapMult[leadCnt - 1][t] = idx;
-            for (Square s = SQ_A1; s <= SQ_D4; ++s)
-                if (MapA1D1D4[s] == t && file_of(s) <= FILE_D && off_A1H8(s) <= 0)
+            for (TBSquare s = 0; s <= tb_make_square(FILE_D, RANK_4); ++s)
+                if (MapA1D1D4[s] == t && tb_file(s) <= FILE_D && off_A1H8(s) <= 0)
                     idx += leadCnt > 1 ? Binomial[leadCnt - 1][MTwist[s]] : 1;
         }
         MultSize[leadCnt - 1] = idx;
@@ -1987,7 +2013,7 @@ void Tablebases::init(const std::string& paths) {
             // the leading pawn on rank 2 and increasing the rank.
             for (Rank r = RANK_2; r <= RANK_7; ++r)
             {
-                Square sq = make_square(f, r);
+                TBSquare sq = tb_make_square(f, r);
 
                 // Compute MapPawns[] at first pass.
                 // If sq is the leading pawn square, any other pawn cannot be
@@ -1997,7 +2023,7 @@ void Tablebases::init(const std::string& paths) {
                 if (leadPawnsCnt == 1)
                 {
                     MapPawns[sq] = availableSquares--;
-                    MapPawns[flip_file(sq)] = availableSquares--;
+                    MapPawns[tb_flip_file(sq)] = availableSquares--;
                 }
                 LeadPawnIdx[leadPawnsCnt][sq] = idx;
                 idx += Binomial[leadPawnsCnt - 1][MapPawns[sq]];
