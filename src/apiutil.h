@@ -388,7 +388,7 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
 inline bool has_insufficient_material(Color c, const Position& pos) {
 
     // Other win rules
-    if (pos.captures_to_hand() || pos.count_in_hand(c, ALL_PIECES)
+    if (pos.captures_to_hand() || pos.free_drops() || pos.count_in_hand(c, ALL_PIECES)
         || (pos.extinction_value() != VALUE_NONE && !pos.extinction_pseudo_royal())
         || (pos.variant()->nFoldRule && pos.variant()->nFoldValue != VALUE_DRAW)
         || (pos.flag_region(c) && pos.count(c, pos.flag_piece(c))))
