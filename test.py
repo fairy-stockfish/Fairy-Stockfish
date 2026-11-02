@@ -135,6 +135,16 @@ pawnTypes = ps
 
 [repetitionloss:chess]
 nFoldValue = loss
+
+[snort:ataxx]
+immobile = p
+startFen = 8/8/8/8/8/8/8/8
+enclosingDrop = snort
+flipEnclosedPieces = none
+maxRank = 8
+maxFile = 8
+passOnStalemate = false
+stalematePieceCount = false
 """
 
 sf.load_variant_config(ini_text)
@@ -257,6 +267,9 @@ variant_positions = {
     },
     "repetitionloss": {
         "k7/8/8/8/8/8/8/K7 w - - 0 1": (False, False),  # K vs K
+    },
+    "snort": {
+        "8/8/8/8/8/8/8/8 w - - 0 1": (False, False),  # startpos, free drops
     },
 }
 
