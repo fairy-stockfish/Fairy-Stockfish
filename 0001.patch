@@ -1,0 +1,151 @@
+From 52bd2fec3e96c5422d9050ddb5018964c83e8ac7 Mon Sep 17 00:00:00 2001
+From: fhoudebert <fhoudebert@gmail.com>
+Date: Tue, 3 Nov 2026 10:23:59 +0000
+Subject: [PATCH] =?UTF-8?q?CI=20macOS=20:=20compile=20le=20dernier=20commi?=
+ =?UTF-8?q?t=20de=20la=20branche,=20d=C3=A9clenchement=20sur=20push=20vers?=
+ =?UTF-8?q?=20mac=20;=20retrait=20d'un=20.patch=20commit=C3=A9=20par=20err?=
+ =?UTF-8?q?eur?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .github/workflows/macos-release.yml           | 30 +++++----
+ ...-en-v7-comme-le-reste-du-d-p-t-entr-.patch | 65 -------------------
+ 2 files changed, 16 insertions(+), 79 deletions(-)
+ delete mode 100644 0001-CI-macOS-actions-en-v7-comme-le-reste-du-d-p-t-entr-.patch
+
+diff --git a/.github/workflows/macos-release.yml b/.github/workflows/macos-release.yml
+index 5296a7f..8d6ad1f 100644
+--- a/.github/workflows/macos-release.yml
++++ b/.github/workflows/macos-release.yml
+@@ -1,29 +1,32 @@
+ name: macOS release binaries
+ 
+-# Compile Fairy-Stockfish pour macOS (Intel + Apple Silicon) à partir d'un tag
+-# et ajoute les binaires à la release GitHub du même nom.
+-# Lancement manuel : onglet Actions > "macOS release binaries" > Run workflow.
+-# Lancement automatique : à la publication d'une release.
++# Compile Fairy-Stockfish pour macOS (Intel + Apple Silicon) à partir du
++# dernier commit de la branche, et ajoute les binaires à une release GitHub.
++#
++# - Automatique : à chaque push sur la branche mac qui touche src/ ou ce fichier
++#   (fonctionne même si ce fichier n'est pas sur master).
++# - Manuel : onglet Actions > "macOS release binaries" > Run workflow
++#   (ce bouton n'apparaît que si ce fichier est AUSSI sur master ;
++#   choisir alors la branche à compiler dans « Use workflow from »).
+ 
+ on:
++  push:
++    branches: [ mac ]
++    paths:
++      - "src/**"
++      - ".github/workflows/macos-release.yml"
+   workflow_dispatch:
+     inputs:
+       tag:
+-        description: "Tag de la release à compléter"
++        description: "Release (tag existant) qui reçoit les binaires"
+         required: true
+         default: "1035"
+-      ref:
+-        description: "Sources à compiler (branche, tag ou commit) ; vide = le tag"
+-        required: false
+-        default: ""
+-  release:
+-    types: [published]
+ 
+ permissions:
+   contents: write
+ 
+ env:
+-  TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
++  TAG: ${{ github.event.inputs.tag || '1035' }}
+ 
+ jobs:
+   build:
+@@ -40,9 +43,8 @@ jobs:
+     runs-on: ${{ matrix.os }}
+ 
+     steps:
++      # Sans "ref" : le commit qui a déclenché le workflow (dernier de la branche)
+       - uses: actions/checkout@v7
+-        with:
+-          ref: ${{ github.event.inputs.ref || format('refs/tags/{0}', env.TAG) }}
+ 
+       - name: Version compilée
+         run: git log -1 --format='%H %s'
+diff --git a/0001-CI-macOS-actions-en-v7-comme-le-reste-du-d-p-t-entr-.patch b/0001-CI-macOS-actions-en-v7-comme-le-reste-du-d-p-t-entr-.patch
+deleted file mode 100644
+index 4ba6085..0000000
+--- a/0001-CI-macOS-actions-en-v7-comme-le-reste-du-d-p-t-entr-.patch
++++ /dev/null
+@@ -1,65 +0,0 @@
+-From 5a702b2c8d1b4413b814e87e7e81e4797ad0f48e Mon Sep 17 00:00:00 2001
+-From: fhoudebert <fhoudebert@gmail.com>
+-Date: Tue, 3 Nov 2026 10:17:33 +0000
+-Subject: [PATCH] =?UTF-8?q?CI=20macOS=20:=20actions=20en=20v7=20comme=20le?=
+- =?UTF-8?q?=20reste=20du=20d=C3=A9p=C3=B4t,=20entr=C3=A9e=20ref=20pour=20c?=
+- =?UTF-8?q?ompiler=20une=20autre=20version=20que=20le=20tag?=
+-MIME-Version: 1.0
+-Content-Type: text/plain; charset=UTF-8
+-Content-Transfer-Encoding: 8bit
+-
+----
+- .github/workflows/macos-release.yml | 15 +++++++++++----
+- 1 file changed, 11 insertions(+), 4 deletions(-)
+-
+-diff --git a/.github/workflows/macos-release.yml b/.github/workflows/macos-release.yml
+-index 0913be9..5296a7f 100644
+---- a/.github/workflows/macos-release.yml
+-+++ b/.github/workflows/macos-release.yml
+-@@ -12,6 +12,10 @@ on:
+-         description: "Tag de la release à compléter"
+-         required: true
+-         default: "1035"
+-+      ref:
+-+        description: "Sources à compiler (branche, tag ou commit) ; vide = le tag"
+-+        required: false
+-+        default: ""
+-   release:
+-     types: [published]
+- 
+-@@ -36,9 +40,12 @@ jobs:
+-     runs-on: ${{ matrix.os }}
+- 
+-     steps:
+--      - uses: actions/checkout@v4
+-+      - uses: actions/checkout@v7
+-         with:
+--          ref: refs/tags/${{ env.TAG }}
+-+          ref: ${{ github.event.inputs.ref || format('refs/tags/{0}', env.TAG) }}
+-+
+-+      - name: Version compilée
+-+        run: git log -1 --format='%H %s'
+- 
+-       - name: Compilation (standard, largeboards, all)
+-         working-directory: src
+-@@ -60,7 +67,7 @@ jobs:
+-           build fairy-stockfish-all_${{ matrix.suffix }} largeboards=yes all=yes
+-           ls -l ../dist && file ../dist/*
+- 
+--      - uses: actions/upload-artifact@v4
+-+      - uses: actions/upload-artifact@v7
+-         with:
+-           name: fairy-stockfish-${{ matrix.suffix }}
+-           path: dist/*
+-@@ -70,7 +77,7 @@ jobs:
+-     needs: build
+-     runs-on: ubuntu-latest
+-     steps:
+--      - uses: actions/download-artifact@v4
+-+      - uses: actions/download-artifact@v7
+-         with:
+-           path: dist
+-           merge-multiple: true
+--- 
+-2.43.0
+-
+-- 
+2.43.0
+
