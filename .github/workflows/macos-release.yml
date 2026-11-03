@@ -1,29 +1,32 @@
 name: macOS release binaries
 
-# Compile Fairy-Stockfish pour macOS (Intel + Apple Silicon) à partir d'un tag
-# et ajoute les binaires à la release GitHub du même nom.
-# Lancement manuel : onglet Actions > "macOS release binaries" > Run workflow.
-# Lancement automatique : à la publication d'une release.
+# Compile Fairy-Stockfish pour macOS (Intel + Apple Silicon) à partir du
+# dernier commit de la branche, et ajoute les binaires à une release GitHub.
+#
+# - Automatique : à chaque push sur la branche mac qui touche src/ ou ce fichier
+#   (fonctionne même si ce fichier n'est pas sur master).
+# - Manuel : onglet Actions > "macOS release binaries" > Run workflow
+#   (ce bouton n'apparaît que si ce fichier est AUSSI sur master ;
+#   choisir alors la branche à compiler dans « Use workflow from »).
 
 on:
+  push:
+    branches: [ mac ]
+    paths:
+      - "src/**"
+      - ".github/workflows/macos-release.yml"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag de la release à compléter"
+        description: "Release (tag existant) qui reçoit les binaires"
         required: true
         default: "1035"
-      ref:
-        description: "Sources à compiler (branche, tag ou commit) ; vide = le tag"
-        required: false
-        default: ""
-  release:
-    types: [published]
 
 permissions:
   contents: write
 
 env:
-  TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+  TAG: ${{ github.event.inputs.tag || '1035' }}
 
 jobs:
   build:
@@ -40,9 +43,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      # Sans "ref" : le commit qui a déclenché le workflow (dernier de la branche)
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.inputs.ref || format('refs/tags/{0}', env.TAG) }}
 
       - name: Version compilée
         run: git log -1 --format='%H %s'
