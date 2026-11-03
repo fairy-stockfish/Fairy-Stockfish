@@ -1,11 +1,12 @@
-name: macOS release binaries
+name: Release binaries (macOS, Linux, Windows)
 
-# Compile Fairy-Stockfish pour macOS (Intel + Apple Silicon) à partir du
-# dernier commit de la branche, et ajoute les binaires à une release GitHub.
+# Compile Fairy-Stockfish à partir du dernier commit de la branche, pour
+# macOS (Intel + Apple Silicon), Linux (x64 + arm64) et Windows (x64),
+# et ajoute les binaires à une release GitHub.
 #
 # - Automatique : à chaque push sur la branche mac qui touche src/ ou ce fichier
 #   (fonctionne même si ce fichier n'est pas sur master).
-# - Manuel : onglet Actions > "macOS release binaries" > Run workflow
+# - Manuel : onglet Actions > ce workflow > Run workflow
 #   (ce bouton n'apparaît que si ce fichier est AUSSI sur master ;
 #   choisir alors la branche à compiler dans « Use workflow from »).
 
@@ -34,15 +35,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch: x86-64
-            os: macos-15-intel
-            suffix: macos-x86-64
-          - arch: apple-silicon
-            os: macos-15
-            suffix: macos-apple-silicon
+          - { os: macos-15-intel,   arch: x86-64,        comp: clang, suffix: macos-x86-64 }
+          - { os: macos-15,         arch: apple-silicon, comp: clang, suffix: macos-apple-silicon }
+          - { os: ubuntu-24.04,     arch: x86-64,        comp: gcc,   suffix: linux-x86-64 }
+          - { os: ubuntu-24.04-arm, arch: armv8,         comp: gcc,   suffix: linux-arm64 }
+          - { os: windows-2022,     arch: x86-64,        comp: mingw, suffix: windows-x86-64, ext: .exe }
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
 
     steps:
+      # La compilation LTO des 3 variantes manque de mémoire sans fichier d'échange
+      - if: runner.os == 'Windows'
+        uses: al-cheb/configure-pagefile-action@v1.5
+        with:
+          minimum-size: 16GB
+          maximum-size: 16GB
+          disk-root: "C:"
+
       # Sans "ref" : le commit qui a déclenché le workflow (dernier de la branche)
       - uses: actions/checkout@v7
 
@@ -51,15 +62,22 @@ jobs:
 
       - name: Compilation (standard, largeboards, all)
         working-directory: src
+        env:
+          # Linux : édition de liens statique, le binaire tourne sur toute
+          # distribution quelle que soit sa glibc (Windows est déjà statique)
+          LDFLAGS: ${{ runner.os == 'Linux' && '-static' || '' }}
         run: |
           set -e
+          jobs=$(nproc 2>/dev/null || sysctl -n hw.ncpu)
           build() {
-            exe="$1"; shift
+            exe="$1${{ matrix.ext }}"; shift
             make clean
-            make -j"$(sysctl -n hw.ncpu)" build COMP=clang ARCH=${{ matrix.arch }} EXE="$exe" "$@"
+            make -j"$jobs" build COMP=${{ matrix.comp }} ARCH=${{ matrix.arch }} EXE="$exe" "$@"
             strip "$exe"
-            # strip invalide la signature ad hoc : obligatoire sur Apple Silicon
-            codesign --force --sign - "$exe"
+            if [ "$RUNNER_OS" = macOS ]; then
+              # strip invalide la signature ad hoc : obligatoire sur Apple Silicon
+              codesign --force --sign - "$exe"
+            fi
             printf 'uci\nquit\n' | ./"$exe" | grep -q uciok
             mv "$exe" ../dist/
           }
@@ -67,7 +85,8 @@ jobs:
           build fairy-stockfish_${{ matrix.suffix }}
           build fairy-stockfish-largeboards_${{ matrix.suffix }} largeboards=yes
           build fairy-stockfish-all_${{ matrix.suffix }} largeboards=yes all=yes
-          ls -l ../dist && file ../dist/*
+          ls -l ../dist
+          file ../dist/* || true
 
       - uses: actions/upload-artifact@v7
         with:
@@ -77,6 +96,8 @@ jobs:
 
   publish:
     needs: build
+    # Publie ce qui a compilé, même si une plateforme a échoué
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v7
