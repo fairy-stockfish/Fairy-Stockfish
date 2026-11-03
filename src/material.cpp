@@ -89,7 +89,8 @@ namespace {
   }
 
   bool is_KXKX(const Position& pos, Color us) {
-    return  pos.non_pawn_material(us) - pos.non_pawn_material(~us) > QueenValueMg;
+    return    pos.non_pawn_material(us) - pos.non_pawn_material(~us) > QueenValueMg
+          && pos.count<ALL_PIECES>(~us) - pos.count<PAWN>(~us) <= 2; // weak side: king, pawns and at most one piece
   }
 
   bool is_KBPsK(const Position& pos, Color us) {
