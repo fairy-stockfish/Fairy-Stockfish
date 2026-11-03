@@ -1,0 +1,65 @@
+From 5a702b2c8d1b4413b814e87e7e81e4797ad0f48e Mon Sep 17 00:00:00 2001
+From: fhoudebert <fhoudebert@gmail.com>
+Date: Tue, 3 Nov 2026 10:17:33 +0000
+Subject: [PATCH] =?UTF-8?q?CI=20macOS=20:=20actions=20en=20v7=20comme=20le?=
+ =?UTF-8?q?=20reste=20du=20d=C3=A9p=C3=B4t,=20entr=C3=A9e=20ref=20pour=20c?=
+ =?UTF-8?q?ompiler=20une=20autre=20version=20que=20le=20tag?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .github/workflows/macos-release.yml | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/.github/workflows/macos-release.yml b/.github/workflows/macos-release.yml
+index 0913be9..5296a7f 100644
+--- a/.github/workflows/macos-release.yml
++++ b/.github/workflows/macos-release.yml
+@@ -12,6 +12,10 @@ on:
+         description: "Tag de la release à compléter"
+         required: true
+         default: "1035"
++      ref:
++        description: "Sources à compiler (branche, tag ou commit) ; vide = le tag"
++        required: false
++        default: ""
+   release:
+     types: [published]
+ 
+@@ -36,9 +40,12 @@ jobs:
+     runs-on: ${{ matrix.os }}
+ 
+     steps:
+-      - uses: actions/checkout@v4
++      - uses: actions/checkout@v7
+         with:
+-          ref: refs/tags/${{ env.TAG }}
++          ref: ${{ github.event.inputs.ref || format('refs/tags/{0}', env.TAG) }}
++
++      - name: Version compilée
++        run: git log -1 --format='%H %s'
+ 
+       - name: Compilation (standard, largeboards, all)
+         working-directory: src
+@@ -60,7 +67,7 @@ jobs:
+           build fairy-stockfish-all_${{ matrix.suffix }} largeboards=yes all=yes
+           ls -l ../dist && file ../dist/*
+ 
+-      - uses: actions/upload-artifact@v4
++      - uses: actions/upload-artifact@v7
+         with:
+           name: fairy-stockfish-${{ matrix.suffix }}
+           path: dist/*
+@@ -70,7 +77,7 @@ jobs:
+     needs: build
+     runs-on: ubuntu-latest
+     steps:
+-      - uses: actions/download-artifact@v4
++      - uses: actions/download-artifact@v7
+         with:
+           path: dist
+           merge-multiple: true
+-- 
+2.43.0
+
