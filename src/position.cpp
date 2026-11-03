@@ -2649,7 +2649,9 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
   }
 
   // n-fold repetition
-  if (n_fold_rule())
+  // Without a previous occurrence of the current position (see st->repetition)
+  // only the Janggi move repetition rule can end the game.
+  if (n_fold_rule() && (st->repetition || var->moveRepetitionIllegal))
   {
       int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
