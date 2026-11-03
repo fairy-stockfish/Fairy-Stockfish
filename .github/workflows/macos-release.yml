@@ -1,0 +1,83 @@
+name: macOS release binaries
+
+# Compile Fairy-Stockfish pour macOS (Intel + Apple Silicon) à partir d'un tag
+# et ajoute les binaires à la release GitHub du même nom.
+# Lancement manuel : onglet Actions > "macOS release binaries" > Run workflow.
+# Lancement automatique : à la publication d'une release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de la release à compléter"
+        required: true
+        default: "1035"
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86-64
+            os: macos-15-intel
+            suffix: macos-x86-64
+          - arch: apple-silicon
+            os: macos-15
+            suffix: macos-apple-silicon
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Compilation (standard, largeboards, all)
+        working-directory: src
+        run: |
+          set -e
+          build() {
+            exe="$1"; shift
+            make clean
+            make -j"$(sysctl -n hw.ncpu)" build COMP=clang ARCH=${{ matrix.arch }} EXE="$exe" "$@"
+            strip "$exe"
+            # strip invalide la signature ad hoc : obligatoire sur Apple Silicon
+            codesign --force --sign - "$exe"
+            printf 'uci\nquit\n' | ./"$exe" | grep -q uciok
+            mv "$exe" ../dist/
+          }
+          mkdir -p ../dist
+          build fairy-stockfish_${{ matrix.suffix }}
+          build fairy-stockfish-largeboards_${{ matrix.suffix }} largeboards=yes
+          build fairy-stockfish-all_${{ matrix.suffix }} largeboards=yes all=yes
+          ls -l ../dist && file ../dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fairy-stockfish-${{ matrix.suffix }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Ajout à la release ${{ env.TAG }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -l dist
+          gh release upload "$TAG" dist/* --clobber --repo "${{ github.repository }}"
