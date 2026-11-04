@@ -874,7 +874,8 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   }
   else
   {
-      for (PieceSet ps = piece_types(); ps;)
+      // Only piece types with blockable attacks can be snipers
+      for (PieceSet ps = piece_types() & SniperTypes; ps;)
       {
           PieceType pt = pop_lsb(ps);
           Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
