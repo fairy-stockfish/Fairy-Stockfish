@@ -473,8 +473,13 @@ inline RiderType pop_rider(RiderType* r) {
 inline Bitboard attacks_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperAttacks[c][pt][s];
   RiderType r = AttackRiderTypes[pt];
-  while (r)
+  // Leaper attacks are a subset of the pseudo attacks
+  assert(!(b & ~PseudoAttacks[c][pt][s]));
+  if (!r)
+      return b;
+  do
       b |= rider_attacks_bb(pop_rider(&r), s, occupied);
+  while (r);
   return b & PseudoAttacks[c][pt][s];
 }
 
@@ -483,8 +488,13 @@ template <bool Initial=false>
 inline Bitboard moves_bb(Color c, PieceType pt, Square s, Bitboard occupied) {
   Bitboard b = LeaperMoves[Initial][c][pt][s];
   RiderType r = MoveRiderTypes[Initial][pt];
-  while (r)
+  // Leaper moves are a subset of the pseudo moves
+  assert(!(b & ~PseudoMoves[Initial][c][pt][s]));
+  if (!r)
+      return b;
+  do
       b |= rider_attacks_bb(pop_rider(&r), s, occupied);
+  while (r);
   return b & PseudoMoves[Initial][c][pt][s];
 }
 
