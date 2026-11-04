@@ -111,7 +111,20 @@ typedef Stats<int16_t, 29952, 2 * PIECE_SLOTS, SQUARE_NB> PieceToHistory;
 /// PieceToHistory instead of ButterflyBoards.
 typedef Stats<PieceToHistory, NOT_USED, 2 * PIECE_SLOTS, SQUARE_NB> ContinuationHistory;
 
-int history_slot(Piece pc);
+/// Since continuation history grows quadratically with the number of piece types,
+/// we need to reserve a limited number of slots and map piece types to these slots
+/// in order to reduce memory consumption to a reasonable level.
+constexpr auto HistorySlots = [] {
+    std::array<uint8_t, PIECE_NB> slots{};
+    for (int pc = 1; pc < PIECE_NB; ++pc)
+    {
+        int pt = pc % PIECE_TYPE_NB;
+        slots[pc] = (pt == KING ? PIECE_SLOTS - 1 : pt % (PIECE_SLOTS - 1)) + pc / PIECE_TYPE_NB * PIECE_SLOTS;
+    }
+    return slots;
+}();
+
+inline int history_slot(Piece pc) { return HistorySlots[pc]; }
 
 /// MovePicker class is used to pick one pseudo-legal move at a time from the
 /// current position. The most important method is next_move(), which returns a
