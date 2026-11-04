@@ -417,8 +417,13 @@ inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
                   : R == RIDER_GRASSHOPPER_H ? GrasshopperMagicsH[s]
                   : R == RIDER_GRASSHOPPER_V ? GrasshopperMagicsV[s]
                   : R == RIDER_GRASSHOPPER_D ? GrasshopperMagicsD[s]
+                  : R == RIDER_JUMPER_DABBABA ? LameDabbabaMagics[s]
+                  : R == RIDER_JUMPER_ALFIL ? ElephantMagics[s]
                   : BishopMagics[s];
-  return m.attacks[m.index(occupied)];
+  // A jumper is the complement of a lame leaper: it may only move when the
+  // squares it leaps over are occupied, which is the lame leaper condition
+  // evaluated on the inverted occupancy.
+  return m.attacks[m.index(R & JUMPERS ? ~occupied : occupied)];
 }
 
 inline Square lsb(Bitboard b);
@@ -427,7 +432,7 @@ inline Bitboard rider_attacks_bb(RiderType R, Square s, Bitboard occupied) {
 
   assert(R != NO_RIDER && !(R & (R - 1))); // exactly one bit
   const Magic& m = magics[lsb(R)][s]; // re-use Bitboard lsb for riders
-  return m.attacks[m.index(occupied)];
+  return m.attacks[m.index(R & JUMPERS ? ~occupied : occupied)];
 }
 
 
