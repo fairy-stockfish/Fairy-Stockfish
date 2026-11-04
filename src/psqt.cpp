@@ -163,6 +163,20 @@ int slider_fraction(std::map<Direction, int> slider) {
 }
 
 
+// Bent rays are shorter on average than straight ones, so each continuation
+// counts as three quarters of a slider direction. On 8x8 that puts the Griffon
+// (four legs, both continuations) slightly below the queen, matching its
+// average mobility on an empty board: 21.4 squares against 22.75. Weighting by
+// the continuation mask rather than by leg count keeps the half-versions -
+// Ship, Snake - correctly valued at about half of the full piece.
+int bent_fraction(std::map<Direction, int> bent) {
+    int s = 0;
+    for (auto const& [_, shape] : bent)
+        s += 75 * ((shape & 1) + ((shape >> 1) & 1) + ((shape >> 2) & 1));
+    return s;
+}
+
+
 // Estimate piece value
 Value piece_value(Phase phase, PieceType pt)
 {
@@ -171,6 +185,8 @@ Value piece_value(Phase phase, PieceType pt)
             + (phase == MG ?  30 :  40) * pi->steps[0][MODALITY_QUIET].size()
             + (phase == MG ? 185 : 185) * slider_fraction(pi->slider[0][MODALITY_CAPTURE]) / 100
             + (phase == MG ?  55 :  45) * slider_fraction(pi->slider[0][MODALITY_QUIET]) / 100
+            + (phase == MG ? 185 : 185) * bent_fraction(pi->bent[0][MODALITY_CAPTURE]) / 100
+            + (phase == MG ?  55 :  45) * bent_fraction(pi->bent[0][MODALITY_QUIET]) / 100
             // Hoppers are more useful with more pieces on the board
             + (phase == MG ? 100 :  80) * pi->hopper[0][MODALITY_CAPTURE].size()
             + (phase == MG ?  85 :  60) * pi->hopper[0][MODALITY_QUIET].size()
@@ -226,7 +242,8 @@ void init(const Variant* v) {
       }
       
       const PieceInfo* pi = pieceMap.find(pt)->second;
-      bool isSlider = pi->slider[0][MODALITY_QUIET].size() || pi->slider[0][MODALITY_CAPTURE].size() || pi->hopper[0][MODALITY_QUIET].size() || pi->hopper[0][MODALITY_CAPTURE].size();
+      bool isSlider = pi->slider[0][MODALITY_QUIET].size() || pi->slider[0][MODALITY_CAPTURE].size() || pi->hopper[0][MODALITY_QUIET].size() || pi->hopper[0][MODALITY_CAPTURE].size()
+                   || pi->bent[0][MODALITY_QUIET].size() || pi->bent[0][MODALITY_CAPTURE].size();
       bool isPawn = !isSlider && pi->steps[0][MODALITY_QUIET].size() && !std::any_of(pi->steps[0][MODALITY_QUIET].begin(), pi->steps[0][MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return d.first < SOUTH / 2; });
       bool isSlowLeaper = !isSlider && !std::any_of(pi->steps[0][MODALITY_QUIET].begin(), pi->steps[0][MODALITY_QUIET].end(), [](const std::pair<const Direction, int>& d) { return dist(d.first) > 1; });
 
@@ -238,7 +255,8 @@ void init(const Variant* v) {
           constexpr int r0 = rm + RANK_8;
           int r1 = rm + (v->maxRank + v->maxFile - 2 * v->capturesToHand) / 2;
           int leaper = pi->steps[0][MODALITY_QUIET].size() + pi->steps[0][MODALITY_CAPTURE].size();
-          int slider = pi->slider[0][MODALITY_QUIET].size() + pi->slider[0][MODALITY_CAPTURE].size() + pi->hopper[0][MODALITY_QUIET].size() + pi->hopper[0][MODALITY_CAPTURE].size();
+          int slider = pi->slider[0][MODALITY_QUIET].size() + pi->slider[0][MODALITY_CAPTURE].size() + pi->hopper[0][MODALITY_QUIET].size() + pi->hopper[0][MODALITY_CAPTURE].size()
+                     + bent_fraction(pi->bent[0][MODALITY_QUIET]) / 100 + bent_fraction(pi->bent[0][MODALITY_CAPTURE]) / 100;
           score = make_score(mg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider),
                              eg_value(score) * (lc * leaper + r1 * slider) / (lc * leaper + r0 * slider));
       }

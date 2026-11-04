@@ -432,6 +432,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("enPassantRegionBlack", v->enPassantRegion[BLACK]);
     parse_attribute("enPassantTypes", v->enPassantTypes[WHITE], v->pieceToChar);
     parse_attribute("enPassantTypes", v->enPassantTypes[BLACK], v->pieceToChar);
+    parse_attribute("enPassantTargetTypes", v->enPassantTargetTypes, v->pieceToChar);
     parse_attribute("enPassantTypesWhite", v->enPassantTypes[WHITE], v->pieceToChar);
     parse_attribute("enPassantTypesBlack", v->enPassantTypes[BLACK], v->pieceToChar);
     parse_attribute("castling", v->castling);
