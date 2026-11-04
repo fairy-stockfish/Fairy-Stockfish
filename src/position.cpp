@@ -868,6 +868,8 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
       snipers = (  (attacks_bb<  ROOK>(s) & (  pieces(c, ROOK, QUEEN, DRAGON)
                                              | (pieces(c, LANCE) & PseudoAttacks[~c][LANCE][s])))
                  | (attacks_bb<BISHOP>(s) & pieces(c, BISHOP, QUEEN, DRAGON_HORSE))) & sliders;
+      // Like the generic path, skip sliders that already attack 's' directly
+      snipers &= ~(attacks_bb<ROOK>(s, pieces()) | attacks_bb<BISHOP>(s, pieces()));
       slidingSnipers = snipers;
   }
   else
