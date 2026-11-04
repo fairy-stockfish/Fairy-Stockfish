@@ -142,7 +142,22 @@ using CapturePieceToHistory = Stats<i16, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_
 // PieceToHistory is like ButterflyHistory but is addressed by a move's [piece][to]
 // Fairy-Stockfish: piece-indexed tables use history_slot(piece) to bound their size
 constexpr int PIECE_SLOTS = 8;
-int           history_slot(Piece pc);
+
+// Since continuation history grows quadratically with the number of piece types,
+// we need to reserve a limited number of slots and map piece types to these slots
+// in order to reduce memory consumption to a reasonable level.
+constexpr auto HistorySlots = [] {
+    std::array<std::uint8_t, PIECE_NB> slots{};
+    for (int pc = 1; pc < PIECE_NB; ++pc)
+    {
+        int pt    = pc % PIECE_TYPE_NB;
+        slots[pc] = (pt == KING ? PIECE_SLOTS - 1 : pt % (PIECE_SLOTS - 1))
+                  + pc / PIECE_TYPE_NB * PIECE_SLOTS;
+    }
+    return slots;
+}();
+
+inline int history_slot(Piece pc) { return HistorySlots[pc]; }
 
 using PieceToHistory = AtomicStats<std::int16_t, 30000, 2 * PIECE_SLOTS, SQUARE_NB>;
 
