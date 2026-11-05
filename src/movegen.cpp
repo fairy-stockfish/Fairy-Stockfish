@@ -43,6 +43,23 @@ namespace {
         if (T == EN_PASSANT)
             b ^= pos.capture_square(to);
 
+        if (pos.blast_on_capture() && pos.capture(make<T>(from, to, pt)))
+        {
+            // The wall is placed after the explosion, including on squares
+            // vacated by bycatch and by the capturing piece itself.
+            Bitboard blast = attacks_bb<KING>(to) & (pos.pieces(WHITE) | pos.pieces(BLACK))
+                             & ~pos.pieces(PAWN) & ~square_bb(from);
+            for (PieceSet ps = pos.blast_immune_types(); ps;)
+                blast &= ~pos.pieces(pop_lsb(ps));
+            PieceType movedType = T == PROMOTION ? pt
+                               : T == PIECE_PROMOTION ? pos.promoted_piece_type(type_of(pos.piece_on(from)))
+                               : T == PIECE_DEMOTION ? type_of(pos.unpromoted_piece_on(from))
+                               : type_of(pos.piece_on(from));
+            if (!(pos.blast_immune_types() & movedType))
+                blast |= to;
+            b |= blast;
+        }
+
         if (pos.walling_rule() == ARROW)
             b &= moves_bb(us, type_of(pos.piece_on(from)), to, pos.pieces() ^ from);
 
