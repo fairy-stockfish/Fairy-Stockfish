@@ -166,6 +166,7 @@ struct Variant {
   // Derived properties
   bool fastAttacks = true;
   bool fastAttacks2 = true;
+  bool fastLegal = true;
   std::string nnueAlias = "";
   PieceType nnueKing = KING;
   int nnueDimensions;
