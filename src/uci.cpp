@@ -534,6 +534,9 @@ string UCI::move(const Position& pos, Move m) {
   string move = (type_of(m) == DROP ? UCI::dropped_piece(pos, m) + (CurrentProtocol == USI ? '*' : '@')
                                     : UCI::square(pos, from)) + UCI::square(pos, to);
 
+  if (CurrentProtocol == XBOARD && pos.is_chess960() && type_of(m) == CASTLING)
+      move = to > from ? "O-O" : "O-O-O";
+
   // Wall square
   if (pos.walling() && CurrentProtocol == XBOARD)
       move += "," + UCI::square(pos, to) + UCI::square(pos, gating_square(m));
@@ -569,7 +572,7 @@ Move UCI::to_move(const Position& pos, string& str) {
       if (str[4] == '=')
           // shogi moves refraining from promotion might use equals sign
           str.pop_back();
-      else
+      else if (str != "O-O-O")
           // Junior could send promotion piece in uppercase
           str[4] = char(tolower(str[4]));
   }
