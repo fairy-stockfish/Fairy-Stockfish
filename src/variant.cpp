@@ -1284,7 +1284,7 @@ namespace {
         v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(COMMONER);
-        v->extinctionPseudoRoyal = true;
+        v->extinctionPseudoRoyal = false;
         v->extinctionPieceCount = 0;
         return v;
     }
