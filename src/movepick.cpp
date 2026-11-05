@@ -227,6 +227,8 @@ top:
       {
           cur = endBadCaptures;
           endMoves = generate<QUIETS>(pos, cur);
+          // Quiets are appended to the captures in the same MAX_MOVES buffer
+          assert(endMoves - moves <= MAX_MOVES);
 
           score<QUIETS>();
           partial_insertion_sort(cur, endMoves, -3000 * depth);

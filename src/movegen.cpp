@@ -25,6 +25,12 @@ namespace Stockfish {
 
 namespace {
 
+#ifndef NDEBUG
+  // End of the move list being filled by generate(), to detect overflows of the
+  // move list before they happen, e.g., due to the many moves of walling variants.
+  thread_local const ExtMove* moveListEnd = nullptr;
+#endif
+
   template<MoveType T>
   ExtMove* make_move_and_gating(const Position& pos, ExtMove* moveList, Color us, Square from, Square to, PieceType pt = NO_PIECE_TYPE) {
 
@@ -59,6 +65,7 @@ namespace {
                ( shift<NORTH     >(wallsquares) | shift<SOUTH     >(wallsquares)
                | shift<EAST      >(wallsquares) | shift<WEST      >(wallsquares));
         }
+        assert(moveList + popcount(b) <= moveListEnd);
         while (b)
             *moveList++ = make_gating<T>(from, to, pt, pop_lsb(b));
         return moveList;
@@ -492,8 +499,17 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
 
   Color us = pos.side_to_move();
 
-  return us == WHITE ? generate_all<WHITE, Type>(pos, moveList)
-                     : generate_all<BLACK, Type>(pos, moveList);
+#ifndef NDEBUG
+  moveListEnd = moveList + MAX_MOVES;
+#endif
+
+  ExtMove* end = us == WHITE ? generate_all<WHITE, Type>(pos, moveList)
+                             : generate_all<BLACK, Type>(pos, moveList);
+
+  // Move lists hold at most MAX_MOVES entries, a larger count means an overflow
+  assert(end - moveList <= MAX_MOVES);
+
+  return end;
 }
 
 // Explicit template instantiations

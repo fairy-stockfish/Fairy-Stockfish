@@ -230,19 +230,22 @@ constexpr int SQUARE_BITS = 6;
 //When defined, move list will be stored in heap. Delete this if you want to use stack to store move list. Using stack can cause overflow (Segmentation Fault) when the search is too deep.
 #define USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
 
-#ifdef ALLVARS
-constexpr int MAX_MOVES = 8192;
+// Maximum number of pseudo-legal moves in a position. Walling variants (e.g., duck
+// chess, configurable in any build via wallingRule) multiply every move by the number
+// of possible wall squares, so the list must hold roughly 256 base moves times the
+// number of board squares (e.g., >9800 duck moves in the 218-move chess position).
+// Move buffers are heap allocated and only touched as far as they are filled.
+#ifdef LARGEBOARDS
+constexpr int MAX_MOVES = 32768;
+#else
+constexpr int MAX_MOVES = 16384;
+#endif
+
 #ifdef USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
 constexpr int MAX_PLY = 246;
 #else
 constexpr int MAX_PLY = 60;
 #endif
-/// endif USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
-#else
-constexpr int MAX_MOVES = 1024;
-constexpr int MAX_PLY = 246;
-#endif
-/// endif ALLVARS
 
 /// A move needs 16 bits to be stored
 ///
