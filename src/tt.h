@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,89 +19,109 @@
 #ifndef TT_H_INCLUDED
 #define TT_H_INCLUDED
 
+#include <tuple>
+
 #include "misc.h"
+#include "memory.h"
 #include "types.h"
 
 namespace Stockfish {
 
-/// TTEntry struct is the 12 bytes transposition table entry, defined as below:
-///
-/// key        16 bit
-/// depth       8 bit
-/// generation  5 bit
-/// pv node     1 bit
-/// bound type  2 bit
-/// move       32 bit (official SF: 16 bit)
-/// value      16 bit
-/// eval value 16 bit
+class ThreadPool;
+struct TTEntry;
+struct Cluster;
 
-struct TTEntry {
+// There is only one global hash table for the engine and all its threads.
+// For chess in particular, we even allow racy updates between threads to and
+// from the TT, as taking the time to synchronize access would cost thinking
+// time and thus Elo. As a hash table, collisions are possible and may cause
+// chess playing issues (bizarre blunders, faulty mate reports, etc). Fixing
+// these also loses Elo; however such risk decreases with larger TT size.
+//
+// We clearly separate TTData, a local copy of an entry, from TTWriter, which
+// writes to the global table.
 
-  Move  move()  const { return (Move )move32; }
-  Value value() const { return (Value)value16; }
-  Value eval()  const { return (Value)eval16; }
-  Depth depth() const { return (Depth)depth8 + DEPTH_OFFSET; }
-  bool is_pv()  const { return (bool)(genBound8 & 0x4); }
-  Bound bound() const { return (Bound)(genBound8 & 0x3); }
-  void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev);
 
-private:
-  friend class TranspositionTable;
+// A copy of the data already in an entry (possibly collided). Probes and reads
+// are racy and non-atomic, possibly resulting in inconsistent data.
+struct TTData {
+    Move  move;
+    Value value, eval;
+    Depth depth;
+    Bound bound;
+    bool  is_pv;
 
-  uint16_t key16;
-  uint8_t  depth8;
-  uint8_t  genBound8;
-  uint32_t move32;
-  int16_t  value16;
-  int16_t  eval16;
+    TTData() = delete;
+
+    // clang-format off
+    TTData(Move m, Value v, Value ev, Depth d, Bound b, bool pv) :
+        move(m),
+        value(v),
+        eval(ev),
+        depth(d),
+        bound(b),
+        is_pv(pv) {};
+    // clang-format on
 };
 
 
-/// A TranspositionTable is an array of Cluster, of size clusterCount. Each
-/// cluster consists of ClusterSize number of TTEntry. Each non-empty TTEntry
-/// contains information on exactly one position. The size of a Cluster should
-/// divide the size of a cache line for best performance, as the cacheline is
-/// prefetched when possible.
+// This is used to make racy, non-atomic writes to the global TT. Writes are
+// not "guaranteed": for chess reasons, we may decide the new data is less
+// important than the old.
+struct TTWriter {
+   public:
+    void write(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, u8 generation8);
+    void penalize(int penalty);  // decrement stored depth by the penalty
+
+   private:
+    friend class TranspositionTable;
+    TTEntry* entry;
+    TTWriter(TTEntry* tte);
+};
+
 
 class TranspositionTable {
 
-  static constexpr int ClusterSize = 5;
+   public:
+    ~TranspositionTable() { aligned_large_pages_free(table); }
 
-  struct Cluster {
-    TTEntry entry[ClusterSize];
-    char padding[4]; // Pad to 64 bytes
-  };
+    // Set TT size in MiB
+    void resize(usize mbSize, ThreadPool& threads);
 
-  static_assert(sizeof(Cluster) == 64, "Unexpected Cluster size");
+    // Re-initialize memory, multithreaded
+    void clear(ThreadPool& threads);
 
-  // Constants used to refresh the hash table periodically
-  static constexpr unsigned GENERATION_BITS  = 3;                                // nb of bits reserved for other things
-  static constexpr int      GENERATION_DELTA = (1 << GENERATION_BITS);           // increment for generation field
-  static constexpr int      GENERATION_CYCLE = 255 + (1 << GENERATION_BITS);     // cycle length
-  static constexpr int      GENERATION_MASK  = (0xFF << GENERATION_BITS) & 0xFF; // mask to pull out generation number
+    // Must be called at the beginning of each root search to track entry aging
+    void new_search();
 
-public:
- ~TranspositionTable() { aligned_large_pages_free(table); }
-  void new_search() { generation8 += GENERATION_DELTA; } // Lower bits are used for other things
-  TTEntry* probe(const Key key, bool& found) const;
-  int hashfull() const;
-  void resize(size_t mbSize);
-  void clear();
+    // The current age, used when writing new data to the TT
+    u8 generation() const;
 
-  TTEntry* first_entry(const Key key) const {
-    return &table[mul_hi64(key, clusterCount)].entry[0];
-  }
+    // Approximate what fraction of entries (permille) have been written to
+    // during this root search.
+    int hashfull(int maxAge = 0) const;
 
-private:
-  friend struct TTEntry;
+    // `probe(key)` is the primary method: given a board position, we lookup
+    //  its entry in the table, and return a tuple of:
+    //   1) whether the entry already had data on this position
+    //   2) a copy of the prior data, if any (may be self-inconsistent due to races)
+    //   3) a writer object to the entry
+    std::tuple<bool, TTData, TTWriter> probe(const Key key) const;
 
-  size_t clusterCount;
-  Cluster* table;
-  uint8_t generation8; // Size must be not bigger than TTEntry::genBound8
+    // The hash function; its only external use is memory prefetching
+    TTEntry* first_entry(const Key key) const;
+
+   private:
+    friend struct TTEntry;
+
+    usize    clusterCount;
+    Cluster* table = nullptr;
+
+    u8 generation8 = 0;
 };
 
 extern TranspositionTable TT;
 
-} // namespace Stockfish
+}  // namespace Stockfish
 
-#endif // #ifndef TT_H_INCLUDED
+#endif  // #ifndef TT_H_INCLUDED

@@ -27,31 +27,35 @@
 
 namespace Stockfish {
 
-enum MoveModality {MODALITY_QUIET, MODALITY_CAPTURE, MOVE_MODALITY_NB};
+enum MoveModality {
+    MODALITY_QUIET,
+    MODALITY_CAPTURE,
+    MOVE_MODALITY_NB
+};
 
 /// PieceInfo struct stores information about the piece movements.
 
 struct PieceInfo {
-  std::string name = "";
-  std::string betza = "";
-  std::map<Direction, int> steps[2][MOVE_MODALITY_NB] = {};
-  std::map<Direction, int> slider[2][MOVE_MODALITY_NB] = {};
-  std::map<Direction, int> hopper[2][MOVE_MODALITY_NB] = {};
+    std::string              name                        = "";
+    std::string              betza                       = "";
+    std::map<Direction, int> steps[2][MOVE_MODALITY_NB]  = {};
+    std::map<Direction, int> slider[2][MOVE_MODALITY_NB] = {};
+    std::map<Direction, int> hopper[2][MOVE_MODALITY_NB] = {};
 };
 
-struct PieceMap : public std::map<PieceType, const PieceInfo*> {
-  void init(const Variant* v = nullptr);
-  void add(PieceType pt, const PieceInfo* v);
-  void clear_all();
+struct PieceMap: public std::map<PieceType, const PieceInfo*> {
+    void init(const Variant* v = nullptr);
+    void add(PieceType pt, const PieceInfo* v);
+    void clear_all();
 };
 
 extern PieceMap pieceMap;
 
 inline std::string piece_name(PieceType pt) {
-  return is_custom(pt) ? "customPiece" + std::to_string(pt - CUSTOM_PIECES + 1)
-                       : pieceMap.find(pt)->second->name;
+    return is_custom(pt) ? "customPiece" + std::to_string(pt - CUSTOM_PIECES + 1)
+                         : pieceMap.find(pt)->second->name;
 }
 
-} // namespace Stockfish
+}  // namespace Stockfish
 
-#endif // #ifndef PIECE_H_INCLUDED
+#endif  // #ifndef PIECE_H_INCLUDED
