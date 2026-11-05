@@ -60,6 +60,21 @@ cat << EOF > ucicyclone2.exp
    expect eof
 EOF
 
+cat << EOF > ep_hash.exp
+   spawn ./stockfish
+   send "setoption name UCI_Variant value berolina\\n"
+   send "position fen 4k3/8/8/8/4p3/8/8/4K3 w - e3e4 0 1\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} { set ep_key \$expect_out(1,string) }
+   send "position fen 4k3/8/8/8/4p3/8/8/4K3 w - - 0 1\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$ep_key == \$expect_out(1,string)} { exit 1 }
+   }
+   send "quit\\n"
+   expect eof
+EOF
+
 cat << EOF > xboard.exp
    spawn ./stockfish load variants.ini
    send "xboard\\n"
@@ -75,7 +90,7 @@ cat << EOF > xboard.exp
    expect eof
 EOF
 
-for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp xboard.exp
+for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp ep_hash.exp xboard.exp
 do
   echo "Testing $exp"
   timeout 5 expect $exp > /dev/null
