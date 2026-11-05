@@ -96,7 +96,7 @@ void StateMachine::setboard(std::string fen) {
     states = StateListPtr(new std::deque<StateInfo>(1));  // Drop old and create a new one
     moveList.clear();
     pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"],
-            &states->back(), Threads.main_thread()->worker.get());
+            &states->back(), nullptr);
 }
 
 // do_move() is called when engine needs to apply a move when using XBoard protocol.

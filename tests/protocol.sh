@@ -60,6 +60,88 @@ cat << EOF > ucicyclone2.exp
    expect eof
 EOF
 
+cat << EOF > ep_hash.exp
+   spawn ./stockfish
+   send "setoption name UCI_Variant value berolina\\n"
+   send "position fen 4k3/8/8/8/4p3/8/8/4K3 w - e3e4 0 1\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} { set ep_key \$expect_out(1,string) }
+   send "position fen 4k3/8/8/8/4p3/8/8/4K3 w - - 0 1\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$ep_key == \$expect_out(1,string)} { exit 1 }
+   }
+   send "quit\\n"
+   expect eof
+EOF
+
+cat << EOF > variant_state_hash.exp
+   spawn ./stockfish
+
+   send "setoption name UCI_Variant value crazyhouse\n"
+   send "position fen 4k3/8/8/8/8/4Q~3/8/4K3[] w - - 0 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set promoted_key \$expect_out(1,string) }
+   send "position fen 4k3/8/8/8/8/4Q3/8/4K3[] w - - 0 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$promoted_key == \$expect_out(1,string)} { exit 1 }
+   }
+
+   send "setoption name UCI_Variant value seirawan\n"
+   send "position startpos moves b1c3e\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set gating_key \$expect_out(1,string) }
+   send "position fen rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/REBQKBNR\\[Heh\\] b KQCDFGkqbcdfg - 1 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$gating_key != \$expect_out(1,string)} { exit 1 }
+   }
+
+   send "position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\\[EHeh\\] w KQBCDFGkqbcdfg - 0 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set gates_key \$expect_out(1,string) }
+   send "position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\\[EHeh\\] w KQkq - 0 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$gates_key == \$expect_out(1,string)} { exit 1 }
+   }
+
+   send "setoption name UCI_Variant value placement\n"
+   send "position startpos moves R@a1 R@a8 K@e1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set placement_key \$expect_out(1,string) }
+   send "position fen r7/pppppppp/8/8/8/8/PPPPPPPP/R3K3\\[QRBBNNkqrbbnn\\] b Q - 0 2\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$placement_key != \$expect_out(1,string)} { exit 1 }
+   }
+
+   send "setoption name UCI_Variant value janggi\n"
+   send "position startpos moves e2e2\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} { set pass_key \$expect_out(1,string) }
+   send "position fen rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR b - - 1 1\n"
+   send "d\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$pass_key == \$expect_out(1,string)} { exit 1 }
+   }
+
+   send "quit\n"
+   expect eof
+EOF
+
+cat << EOF > pseudo_royal_search.exp
+   spawn ./stockfish
+   send "setoption name UCI_Variant value petrified\n"
+   send "position fen 1r6/8/8/8/8/r1k5/8/K7 b - - 0 1\n"
+   send "go depth 1\n"
+   expect "score mate 1"
+   expect "bestmove"
+   send "quit\n"
+   expect eof
+EOF
+
 cat << EOF > xboard.exp
    spawn ./stockfish load variants.ini
    send "xboard\\n"
@@ -75,7 +157,8 @@ cat << EOF > xboard.exp
    expect eof
 EOF
 
-for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp xboard.exp
+for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp ep_hash.exp \
+  variant_state_hash.exp pseudo_royal_search.exp xboard.exp
 do
   echo "Testing $exp"
   timeout 5 expect $exp > /dev/null
