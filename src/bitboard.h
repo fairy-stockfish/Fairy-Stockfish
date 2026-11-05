@@ -112,6 +112,7 @@ extern Bitboard  SquareBB[SQUARE_NB];
 extern Bitboard  BoardSizeBB[FILE_NB][RANK_NB];
 extern RiderType AttackRiderTypes[PIECE_TYPE_NB];
 extern PieceSet PinUnsafeTypes;
+extern PieceSet SniperTypes;
 extern RiderType MoveRiderTypes[2][PIECE_TYPE_NB];
 
 #ifdef LARGEBOARDS

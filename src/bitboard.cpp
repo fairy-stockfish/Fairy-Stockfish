@@ -39,6 +39,7 @@ Bitboard  SquareBB[SQUARE_NB];
 Bitboard  BoardSizeBB[FILE_NB][RANK_NB];
 RiderType AttackRiderTypes[PIECE_TYPE_NB];
 PieceSet  PinUnsafeTypes;
+PieceSet  SniperTypes;
 RiderType MoveRiderTypes[2][PIECE_TYPE_NB];
 
 Magic RookMagicsH[SQUARE_NB];
@@ -243,6 +244,7 @@ std::string Bitboards::pretty(Bitboard b) {
 void Bitboards::init_pieces() {
 
     PinUnsafeTypes = NO_PIECE_SET;
+    SniperTypes    = NO_PIECE_SET;
 
     for (PieceType pt = PAWN; pt <= KING; ++pt)
     {
@@ -336,6 +338,9 @@ void Bitboards::init_pieces() {
                           sliding_attack<HOPPER_RANGE>(pi->hopper[initial][modality], s, 0, c);
                     }
                 }
+                // Pieces with attacks that can be blocked
+                if (PseudoAttacks[c][pt][s] != LeaperAttacks[c][pt][s])
+                    SniperTypes |= pt;
             }
         }
     }
