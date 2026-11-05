@@ -46,6 +46,13 @@ namespace Zobrist {
   Key checks[COLOR_NB][CHECKS_NB];
   Key wall[SQUARE_NB];
   Key endgame[EG_EVAL_NB];
+
+  // Key for a given number of pieces in hand. The count can become negative
+  // with virtual drops, so wrap negative counts to the end of the table.
+  inline Key in_hand(Piece pc, int count) {
+    assert(count > -SQUARE_NB && count < SQUARE_NB);
+    return inHand[pc][count >= 0 ? count : SQUARE_NB + count];
+  }
 }
 
 
@@ -661,7 +668,7 @@ void Position::set_state(StateInfo* si) const {
               si->materialKey ^= Zobrist::psq[pc][cnt];
 
           if (piece_drops() || seirawan_gating())
-              si->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
+              si->key ^= Zobrist::in_hand(pc, pieceCountInHand[c][pt]);
       }
 
   if (check_counting())
@@ -1669,8 +1676,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
                              : unpromotedCaptured ? ~unpromotedCaptured
                                                   : make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)));
           add_to_hand(pieceToHand);
-          k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
-              ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
+          if (!free_drops())
+              k ^=  Zobrist::in_hand(pieceToHand, pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1)
+                  ^ Zobrist::in_hand(pieceToHand, pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]);
 
           if (Eval::useNNUE)
           {
@@ -1695,9 +1703,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (type_of(m) == DROP)
   {
       Piece pc_hand = make_piece(us, in_hand_piece_type(m));
-      k ^=  Zobrist::psq[pc][to]
-          ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
-          ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
+      k ^= Zobrist::psq[pc][to];
+      // The hand count is unchanged for free drops
+      if (!free_drops())
+          k ^=  Zobrist::in_hand(pc_hand, pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1)
+              ^ Zobrist::in_hand(pc_hand, pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]);
 
       // Reset rule 50 counter for irreversible drops
       st->rule50 = 0;
@@ -2054,8 +2064,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
                                  : unpromotedCaptured ? ~unpromotedCaptured
                                                       : make_piece(~color_of(bpc), PAWN);
               add_to_hand(pieceToHand);
-              k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
-                  ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
+              if (!free_drops())
+                  k ^=  Zobrist::in_hand(pieceToHand, pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1)
+                      ^ Zobrist::in_hand(pieceToHand, pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]);
 
               if (Eval::useNNUE)
               {
@@ -2392,15 +2403,19 @@ Key Position::key_after(Move m) const {
       if (captures_to_hand())
       {
           Piece removeFromHand = !drop_loop() && is_promoted(to) ? make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured))) : ~captured;
-          k ^= Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)] + 1]
-              ^ Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)]];
+          if (!free_drops())
+              k ^= Zobrist::in_hand(removeFromHand, pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)] + 1)
+                  ^ Zobrist::in_hand(removeFromHand, pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)]);
       }
   }
   if (type_of(m) == DROP)
   {
       Piece pc_hand = make_piece(sideToMove, in_hand_piece_type(m));
-      return k ^ Zobrist::psq[pc][to] ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]]
-            ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1];
+      k ^= Zobrist::psq[pc][to];
+      if (!free_drops())
+          k ^=  Zobrist::in_hand(pc_hand, pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)])
+              ^ Zobrist::in_hand(pc_hand, pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1);
+      return k;
   }
 
   return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
@@ -3043,6 +3058,8 @@ Bitboard Position::chased() const {
   };
 
   // Direct attacks
+  // Drops (e.g., in xiangqi variants with drops) have no origin square
+  bool drop = type_of(st->move) == DROP;
   Square from = from_sq(st->move);
   Square to = to_sq(st->move);
   PieceType movedPiece = type_of(piece_on(to));
@@ -3050,23 +3067,28 @@ Bitboard Position::chased() const {
   {
       Bitboard directAttacks = attacks_from(~sideToMove, movedPiece, to) & pieces(sideToMove);
       // Only new attacks count. This avoids expensive comparison of previous and new attacks.
-      if (movedPiece == ROOK || movedPiece == CANNON)
+      if (!drop && (movedPiece == ROOK || movedPiece == CANNON))
           directAttacks &= ~line_bb(from, to);
       addChased(to, movedPiece, directAttacks);
   }
 
   // Discovered attacks
-  Bitboard discoveryCandidates =  (PseudoAttacks[WHITE][WAZIR][from] & pieces(~sideToMove, HORSE))
-                                | (PseudoAttacks[WHITE][FERS][from] & pieces(~sideToMove, ELEPHANT))
-                                | (PseudoAttacks[WHITE][ROOK][from] & pieces(~sideToMove, CANNON, ROOK))
-                                | (PseudoAttacks[WHITE][ROOK][to] & pieces(~sideToMove, CANNON));
+  Bitboard discoveryCandidates = PseudoAttacks[WHITE][ROOK][to] & pieces(~sideToMove, CANNON);
+  Bitboard previousOccupied = captured_piece() ? pieces() : pieces() ^ to;
+  if (!drop)
+  {
+      discoveryCandidates |=  (PseudoAttacks[WHITE][WAZIR][from] & pieces(~sideToMove, HORSE))
+                            | (PseudoAttacks[WHITE][FERS][from] & pieces(~sideToMove, ELEPHANT))
+                            | (PseudoAttacks[WHITE][ROOK][from] & pieces(~sideToMove, CANNON, ROOK));
+      previousOccupied ^= from;
+  }
   while (discoveryCandidates)
   {
       Square s = pop_lsb(discoveryCandidates);
       PieceType discoveryPiece = type_of(piece_on(s));
       Bitboard discoveries =   pieces(sideToMove)
                             &  attacks_bb(~sideToMove, discoveryPiece, s, pieces())
-                            & ~attacks_bb(~sideToMove, discoveryPiece, s, (captured_piece() ? pieces() : pieces() ^ to) ^ from);
+                            & ~attacks_bb(~sideToMove, discoveryPiece, s, previousOccupied);
       addChased(s, discoveryPiece, discoveries);
   }
 
