@@ -2027,6 +2027,9 @@ Variant* Variant::conclude() {
                && !restrictedMobility && !cambodianMoves && !diagonalLines;
     fastAttacks2 = !(pieceTypes & ~(SHOGI_PIECES | COMMON_STEP_PIECES)) && kingType == KING
                 && !restrictedMobility && !cambodianMoves && !diagonalLines;
+    // Only moving a pinned piece can expose the king to an attack
+    fastLegal = kingType == KING && !restrictedMobility && !cambodianMoves && !diagonalLines
+             && !flyingGeneral && !blastOnCapture && wallingRule == NO_WALLING;
 
     // Initialize calculated NNUE properties
     PieceType nnueKing = pieceTypes & KING ? KING

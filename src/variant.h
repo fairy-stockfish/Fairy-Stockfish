@@ -187,6 +187,7 @@ struct Variant {
     // Derived properties
     bool        fastAttacks  = true;
     bool        fastAttacks2 = true;
+    bool        fastLegal    = true;
     std::string nnueAlias    = "";
     // NNUE feature layouts: with king buckets (HalfKA) if the variant has a
     // piece that is always present exactly once, and without (A)
