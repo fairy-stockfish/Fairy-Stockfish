@@ -33,6 +33,7 @@
 #include "material.h"
 #include "misc.h"
 #include "pawns.h"
+#include "psqt.h"
 #include "thread.h"
 #include "timeman.h"
 #include "uci.h"
@@ -1586,9 +1587,46 @@ Value fix_FRC(const Position& pos) {
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
 
+namespace {
+
+// The material of a side for the blending of the network output. Pieces of low
+// value (see PSQT::lowPieceTypes), e.g., soldiers, count as pawns, and pieces in
+// hand count like the pieces on the board.
+struct BlendMaterial {
+    int   pawns;
+    Value nonPawn;
+};
+
+BlendMaterial blend_material(const Position& pos, Color c) {
+
+    BlendMaterial m{pos.count<PAWN>(c), pos.non_pawn_material(c)};
+
+    for (PieceSet ps = PSQT::lowPieceTypes & ~piece_set(PAWN); ps;)
+    {
+        PieceType pt = pop_lsb(ps);
+        m.pawns += pos.count(c, pt);
+        m.nonPawn -= pos.count(c, pt) * PieceValue[MG][pt];
+    }
+
+    if (pos.piece_drops())
+        for (PieceSet ps = pos.piece_types() & ~piece_set(KING); ps;)
+        {
+            PieceType pt = pop_lsb(ps);
+            int       n  = std::max(pos.count_in_hand(c, pt), 0);
+            if (pt == PAWN || (PSQT::lowPieceTypes & pt))
+                m.pawns += n;
+            else
+                m.nonPawn += n * PieceValue[MG][pt];
+        }
+
+    return m;
+}
+
+}  // namespace
+
 Value Eval::simple_eval(const Position& pos, Color c) {
-    return PawnValueEg * (pos.count<PAWN>(c) - pos.count<PAWN>(~c))
-         + (pos.non_pawn_material(c) - pos.non_pawn_material(~c));
+    BlendMaterial us = blend_material(pos, c), them = blend_material(pos, ~c);
+    return PawnValueEg * (us.pawns - them.pawns) + (us.nonPawn - them.nonPawn);
 }
 
 
@@ -1627,12 +1665,16 @@ Value Eval::evaluate(const NNUE::Network&     network,
     }
     else
     {
-        int simpleEval = simple_eval(pos, pos.side_to_move());
+        BlendMaterial white = blend_material(pos, WHITE), black = blend_material(pos, BLACK);
+        int   pawns    = white.pawns + black.pawns;
+        Value nonPawn  = white.nonPawn + black.nonPawn;
+        int simpleEval = (pos.side_to_move() == WHITE ? 1 : -1)
+                       * (PawnValueEg * (white.pawns - black.pawns) + (white.nonPawn - black.nonPawn));
 
         auto [psqt, positional] = network.evaluate(pos, accumulators, caches);
 
         // Give more value to the positional evaluation
-        int   delta          = 24 - pos.non_pawn_material() / 9560;
+        int   delta          = 24 - nonPawn / 9560;
         int   nnueComplexity = std::abs(psqt - positional) / NNUE::OutputScale;
         Value nnue = static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional)
                                         / (1024 * NNUE::OutputScale));
@@ -1641,8 +1683,8 @@ Value Eval::evaluate(const NNUE::Network&     network,
         optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
         nnue -= nnue * (nnueComplexity + std::abs(simpleEval - nnue)) / 32768;
 
-        int npm = pos.non_pawn_material() / 64;
-        v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
+        int npm = nonPawn / 64;
+        v       = (nnue * (915 + npm + 9 * pawns) + optimism * (154 + npm)) / 1024;
 
         if (pos.is_chess960())
             v += fix_FRC(pos);
