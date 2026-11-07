@@ -1590,8 +1590,8 @@ Value fix_FRC(const Position& pos) {
 namespace {
 
 // The material of a side for the blending of the network output. Pieces of low
-// value (see PSQT::lowPieceTypes), e.g., soldiers, count as pawns, and pieces in
-// hand count like the pieces on the board.
+// value (see PSQT::lowPieceTypes), e.g., soldiers, count as pawns. Pieces in hand
+// are not counted.
 struct BlendMaterial {
     int   pawns;
     Value nonPawn;
