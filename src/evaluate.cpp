@@ -1608,17 +1608,6 @@ BlendMaterial blend_material(const Position& pos, Color c) {
         m.nonPawn -= pos.count(c, pt) * PieceValue[MG][pt];
     }
 
-    if (pos.piece_drops())
-        for (PieceSet ps = pos.piece_types() & ~piece_set(KING); ps;)
-        {
-            PieceType pt = pop_lsb(ps);
-            int       n  = std::max(pos.count_in_hand(c, pt), 0);
-            if (pt == PAWN || (PSQT::lowPieceTypes & pt))
-                m.pawns += n;
-            else
-                m.nonPawn += n * PieceValue[MG][pt];
-        }
-
     return m;
 }
 
