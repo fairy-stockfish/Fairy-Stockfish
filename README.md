@@ -97,6 +97,10 @@ Besides the C++ engine, this project also includes bindings for other programmin
 
 The python binding [pyffish](https://pypi.org/project/pyffish/) contributed by [@gbtami](https://github.com/gbtami) is implemented in [pyffish.cpp](https://github.com/fairy-stockfish/Fairy-Stockfish/blob/master/src/pyffish.cpp). It is e.g. used in the backend for the [pychess server](https://github.com/gbtami/pychess-variants).
 
+### Lua
+
+The Lua bindings provide a powerful interface to the chess variant engine. They require Lua 5.1 for LuaJIT compatibility. See [tests/lua/README.md](tests/lua/README.md) for installation and usage instructions.
+
 ### Javascript
 
 The javascript binding [ffish.js](https://www.npmjs.com/package/ffish) contributed by [@QueensGambit](https://github.com/QueensGambit) is implemented in [ffishjs.cpp](https://github.com/fairy-stockfish/Fairy-Stockfish/blob/master/src/ffishjs.cpp). The compilation/binding to javascript is done using emscripten, see the [readme](https://github.com/fairy-stockfish/Fairy-Stockfish/tree/master/tests/js).
