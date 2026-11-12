@@ -52,9 +52,22 @@ std::set<string> standard_variants = {
     "berolina", "spartan"
 };
 
+// The variant the global piece tables are currently built for. Rebuilding them is
+// expensive, so skip it when the requested variant is already the active one.
+static const Variant* currentVariant = nullptr;
+
 void init_variant(const Variant* v) {
+    if (v == currentVariant)
+        return;
     pieceMap.init(v);
     Bitboards::init_pieces();
+    currentVariant = v;
+}
+
+// Must be called whenever variant definitions are (re)loaded, since a redefined
+// variant may reuse the address of the old one.
+void reset_variant_cache() {
+    currentVariant = nullptr;
 }
 
 /// 'On change' actions, triggered by an option's value change
@@ -74,6 +87,7 @@ void on_variant_path(const Option& o) {
     while (std::getline(ss, path, SepChar))
         variants.parse<false>(path);
 
+    reset_variant_cache();
     Options["UCI_Variant"].set_combo(variants.get_keys());
 }
 void on_variant_set(const Option &o) {
