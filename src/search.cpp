@@ -41,6 +41,7 @@
 #include "movepick.h"
 #include "partner.h"
 #include "position.h"
+#include "psqt.h"
 #include "syzygy/tbprobe.h"
 #include "thread.h"
 #include "timeman.h"
@@ -1428,8 +1429,11 @@ moves_loop:  // When in check, search starts here
             {
                 int dIndex  = std::min(int(depth), int(lmrDivisor.size())) - 1;
                 int history = (*contHist[0])[history_slot(movedPiece)][to_sq(move)]
-                            + (*contHist[1])[history_slot(movedPiece)][to_sq(move)]
-                            + sharedHistory.pawn_entry(pos)[history_slot(movedPiece)][to_sq(move)];
+                            + (*contHist[1])[history_slot(movedPiece)][to_sq(move)];
+
+                // With a single class of pieces the pawn history hardly generalizes
+                if (!PSQT::lowPiecesOnly)
+                    history += sharedHistory.pawn_entry(pos)[history_slot(movedPiece)][to_sq(move)];
 
                 // Continuation history based pruning
                 if (history < -4136 * depth)
