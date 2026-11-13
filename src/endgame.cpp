@@ -1086,7 +1086,7 @@ Value Endgame<KXK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
   // Stalemate/checkmate detection with lone king
   if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
-      return std::min(pos.stalemate_value(), VALUE_MATE_IN_MAX_PLY - 1);
+      return std::min(pos.all_checkers() ? pos.checkmate_value() : pos.stalemate_value(), VALUE_MATE_IN_MAX_PLY - 1);
 
   Square winnerKSq = pos.square<COMMONER>(strongSide);
   Square loserKSq = pos.square<COMMONER>(weakSide);
@@ -1139,7 +1139,7 @@ Value Endgame<KQK, EG_EVAL_ATOMIC>::operator()(const Position& pos) const {
 
   // Stalemate/checkmate detection with lone king
   if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
-      return std::min(pos.stalemate_value(), VALUE_MATE_IN_MAX_PLY - 1);
+      return std::min(pos.all_checkers() ? pos.checkmate_value() : pos.stalemate_value(), VALUE_MATE_IN_MAX_PLY - 1);
 
   Square winnerKSq = pos.square<COMMONER>(strongSide);
   Square loserKSq = pos.square<COMMONER>(weakSide);
