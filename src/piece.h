@@ -47,6 +47,8 @@ struct PieceMap : public std::map<PieceType, const PieceInfo*> {
 
 extern PieceMap pieceMap;
 
+PieceInfo* piece_from_betza(const std::string& betza);
+
 inline std::string piece_name(PieceType pt) {
   return is_custom(pt) ? "customPiece" + std::to_string(pt - CUSTOM_PIECES + 1)
                        : pieceMap.find(pt)->second->name;

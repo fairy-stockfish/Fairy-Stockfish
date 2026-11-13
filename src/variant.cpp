@@ -17,10 +17,14 @@
 */
 
 #include <string>
+#include <vector>
+#include <set>
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 
+#include "bitboard.h"
 #include "parser.h"
 #include "piece.h"
 #include "variant.h"
@@ -2009,6 +2013,138 @@ Variant* Variant::conclude() {
     fastAttacksJanggi =  !(pieceTypes & ~JANGGI_PIECES)
                        && kingType == WAZIR
                        && !cambodianMoves;
+    // Generic fast attackers_to(): every piece type has to decompose into
+    // a leaper part and riders along rook and/or bishop lines.
+    fastAttacksData =  !restrictedMobility
+                     && !diagonalLines
+                     && !(pieceTypes & SOLDIER);
+    attackLeaperCount = attackRookFullCount = attackRookPartialCount = attackBishopFullCount = attackBishopPartialCount = 0;
+    {
+        std::vector<std::pair<PieceType, std::set<Direction>>> leaperPieces;
+        std::vector<std::pair<std::set<Direction>, PieceType>> atoms;
+        auto subset = [](const std::set<Direction>& x, const std::set<Direction>& y) {
+            return std::includes(y.begin(), y.end(), x.begin(), x.end());
+        };
+        // Can 'key' be written exactly as a union of atoms (except atom 'skip')?
+        auto covered = [&](const std::set<Direction>& key, size_t skip) {
+            std::set<Direction> u;
+            for (size_t i = 0; i < atoms.size(); ++i)
+                if (i != skip && subset(atoms[i].first, key))
+                    u.insert(atoms[i].first.begin(), atoms[i].first.end());
+            return u == key;
+        };
+        const std::set<Direction> rookDirs = {NORTH, SOUTH, EAST, WEST};
+        const std::set<Direction> bishopDirs = {NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST};
+        for (PieceSet ps = pieceTypes; fastAttacksData && ps;)
+        {
+            PieceType pt = pop_lsb(ps);
+            PieceType table = pt == KING ? kingType : pt;
+            PieceInfo* custom = is_custom(table) ? piece_from_betza(customPiece[table - CUSTOM_PIECES]) : nullptr;
+            const PieceInfo* pi = custom ? custom : pieceMap.find(table)->second;
+            const auto& steps = pi->steps[0][MODALITY_CAPTURE];
+            const auto& slider = pi->slider[0][MODALITY_CAPTURE];
+            if (!pi->hopper[0][MODALITY_CAPTURE].empty())
+                fastAttacksData = false;
+            // Leaper part
+            std::set<Direction> key;
+            for (auto const& [d, limit] : steps)
+            {
+                if (limit)
+                    fastAttacksData = false; // lame leaper
+                key.insert(d);
+            }
+            if (!key.empty())
+            {
+                leaperPieces.emplace_back(pt, key);
+                if (std::find_if(atoms.begin(), atoms.end(), [&](const auto& x) { return x.first == key; }) == atoms.end())
+                    atoms.emplace_back(key, table);
+            }
+            // Rider part
+            bool rookFull = true, bishopFull = true, rookAny = false, bishopAny = false;
+            for (Direction d : rookDirs)
+                rookFull &= slider.count(d) && slider.at(d) == 0;
+            for (Direction d : bishopDirs)
+                bishopFull &= slider.count(d) && slider.at(d) == 0;
+            for (auto const& [d, limit] : slider)
+            {
+                if (rookDirs.count(d))
+                    rookAny = true;
+                else if (bishopDirs.count(d))
+                    bishopAny = true;
+                else
+                    fastAttacksData = false; // e.g., nightrider
+            }
+            if (fastAttacksData && rookAny)
+            {
+                if (rookFull && attackRookFullCount < 8)
+                    attackRookFull[attackRookFullCount++] = pt;
+                else if (!rookFull && attackRookPartialCount < 8)
+                    attackRookPartial[attackRookPartialCount++] = {pt, table};
+                else
+                    fastAttacksData = false;
+            }
+            if (fastAttacksData && bishopAny)
+            {
+                if (bishopFull && attackBishopFullCount < 8)
+                    attackBishopFull[attackBishopFullCount++] = pt;
+                else if (!bishopFull && attackBishopPartialCount < 8)
+                    attackBishopPartial[attackBishopPartialCount++] = {pt, table};
+                else
+                    fastAttacksData = false;
+            }
+            delete custom;
+        }
+        // Share leaper patterns: drop compound patterns that are unions of others
+        std::stable_sort(atoms.begin(), atoms.end(), [](const auto& x, const auto& y) { return x.first.size() > y.first.size(); });
+        for (size_t i = 0; i < atoms.size();)
+        {
+            bool removable = true;
+            for (const auto& lp : leaperPieces)
+                if (subset(atoms[i].first, lp.second) && !covered(lp.second, i))
+                    removable = false;
+            if (removable)
+                atoms.erase(atoms.begin() + i);
+            else
+                ++i;
+        }
+        if (atoms.size() > 12)
+            fastAttacksData = false;
+        for (size_t i = 0; fastAttacksData && i < atoms.size(); ++i)
+        {
+            attackLeapers[i].table = atoms[i].second;
+            attackLeapers[i].count = 0;
+        }
+        // Assign each piece to a minimal set of atoms covering its pattern (keep larger atoms)
+        for (const auto& lp : leaperPieces)
+        {
+            if (!fastAttacksData)
+                break;
+            std::vector<size_t> used;
+            for (size_t i = 0; i < atoms.size(); ++i)
+                if (subset(atoms[i].first, lp.second))
+                    used.push_back(i);
+            for (size_t k = used.size(); k-- > 0;)
+            {
+                std::set<Direction> u;
+                for (size_t j : used)
+                    if (j != used[k])
+                        u.insert(atoms[j].first.begin(), atoms[j].first.end());
+                if (u == lp.second)
+                    used.erase(used.begin() + k);
+            }
+            for (size_t i : used)
+            {
+                if (attackLeapers[i].count >= 8)
+                    fastAttacksData = false;
+                else
+                    attackLeapers[i].types[attackLeapers[i].count++] = lp.first;
+            }
+        }
+        attackLeaperCount = fastAttacksData ? int(atoms.size()) : 0;
+        for (int i = 0; i < attackLeaperCount; ++i)
+            for (Color c : {WHITE, BLACK})
+                attackLeaperPtr[c][i] = LeaperAttacks[c][attackLeapers[i].table];
+    }
     // Only moving a pinned piece can expose the king to an attack
     fastLegal =  kingType == KING
                && !restrictedMobility
