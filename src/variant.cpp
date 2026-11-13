@@ -2025,8 +2025,8 @@ Variant* Variant::conclude() {
     }
     fastAttacks = !(pieceTypes & ~(CHESS_PIECES | COMMON_FAIRY_PIECES)) && kingType == KING
                && !restrictedMobility && !cambodianMoves && !diagonalLines;
-    fastAttacks2 = !(pieceTypes & ~(SHOGI_PIECES | COMMON_STEP_PIECES)) && kingType == KING
-                && !restrictedMobility && !cambodianMoves && !diagonalLines;
+    fastAttacks2 = !(pieceTypes & ~(CHESS_PIECES | SHOGI_PIECES | COMMON_STEP_PIECES))
+                && kingType == KING && !restrictedMobility && !cambodianMoves && !diagonalLines;
     fastAttacksXiangqi =
       !(pieceTypes & ~XIANGQI_PIECES) && kingType == WAZIR && !cambodianMoves && !diagonalLines;
     // Only moving a pinned piece can expose the king to an attack
