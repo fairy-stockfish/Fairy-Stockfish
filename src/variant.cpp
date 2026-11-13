@@ -1997,7 +1997,7 @@ Variant* Variant::conclude() {
                   && !restrictedMobility
                   && !cambodianMoves
                   && !diagonalLines;
-    fastAttacks2 =  !(pieceTypes & ~(SHOGI_PIECES | COMMON_STEP_PIECES))
+    fastAttacks2 =  !(pieceTypes & ~(CHESS_PIECES | SHOGI_PIECES | COMMON_STEP_PIECES))
                   && kingType == KING
                   && !restrictedMobility
                   && !cambodianMoves
