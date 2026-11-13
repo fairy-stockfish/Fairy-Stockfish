@@ -41,12 +41,42 @@ namespace Zobrist {
 
 Key psq[PIECE_NB][SQUARE_NB];
 Key enpassant[FILE_NB];
+Key enpassantSquare[SQUARE_NB];
 Key castling[CASTLING_RIGHT_NB];
 Key side, noPawns;
 Key inHand[PIECE_NB][SQUARE_NB];
 Key checks[COLOR_NB][CHECKS_NB];
 Key wall[SQUARE_NB];
 Key endgame[EG_EVAL_NB];
+Key gate[COLOR_NB][SQUARE_NB];
+Key promoted[PIECE_NB][SQUARE_NB];
+Key pass;
+}
+
+namespace {
+
+Key en_passant_key(Bitboard epSquares) {
+
+    Key      key   = 0;
+    Bitboard files = 0;
+
+    while (epSquares)
+    {
+        Square   s    = pop_lsb(epSquares);
+        Bitboard file = file_bb(file_of(s));
+
+        if (files & file)
+            key ^= Zobrist::enpassantSquare[s];
+        else
+        {
+            files |= file;
+            key ^= Zobrist::enpassant[file_of(s)];
+        }
+    }
+
+    return key;
+}
+
 }
 
 
@@ -166,6 +196,19 @@ void Position::init() {
     for (File f = FILE_A; f <= FILE_MAX; ++f)
         Zobrist::enpassant[f] = rng.rand<Key>();
 
+    PRNG enPassantRng(1070373);
+    for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+        Zobrist::enpassantSquare[s] = enPassantRng.rand<Key>();
+
+    PRNG variantStateRng(1070374);
+    for (Color c : {WHITE, BLACK})
+        for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+            Zobrist::gate[c][s] = variantStateRng.rand<Key>();
+    for (Piece pc = NO_PIECE; pc < PIECE_NB; ++pc)
+        for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+            Zobrist::promoted[pc][s] = variantStateRng.rand<Key>();
+    Zobrist::pass = variantStateRng.rand<Key>();
+
     for (int cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
         Zobrist::castling[cr] = rng.rand<Key>();
 
@@ -222,6 +265,31 @@ void Position::init() {
 }
 
 Key Position::material_key(EndgameEval e) const { return st->materialKey ^ Zobrist::endgame[e]; }
+
+Key Position::variant_state_key() const {
+
+    Key key = (pass(WHITE) || pass(BLACK)) && st->pass ? Zobrist::pass : 0;
+
+    if (gating())
+        for (Color c : {WHITE, BLACK})
+        {
+            Bitboard gates = st->gatesBB[c];
+            while (gates)
+            {
+                Square s = pop_lsb(gates);
+                key ^= Zobrist::gate[c][s];
+            }
+        }
+
+    if (captures_to_hand() || piece_demotion())
+        for (Bitboard pieces = promotedPieces; pieces;)
+        {
+            Square s = pop_lsb(pieces);
+            key ^= Zobrist::promoted[unpromotedBoard[s]][s];
+        }
+
+    return key;
+}
 
 
 /// Position::set() initializes the position object with the given FEN string.
@@ -710,8 +778,7 @@ void Position::set_state() const {
         }
     }
 
-    for (Bitboard b = st->epSquares; b;)
-        st->key ^= Zobrist::enpassant[file_of(pop_lsb(b))];
+    st->key ^= en_passant_key(st->epSquares);
 
     if (sideToMove == BLACK)
         st->key ^= Zobrist::side;
@@ -733,6 +800,8 @@ void Position::set_state() const {
     if (check_counting())
         for (Color c : {WHITE, BLACK})
             st->key ^= Zobrist::checks[c][st->checksRemaining[c]];
+
+    st->key ^= variant_state_key();
 }
 
 
@@ -1309,8 +1378,11 @@ bool Position::legal(Move m) const {
         Bitboard attackerCandidatesTheirs = occupied & ~square_bb(kto);
         for (PieceSet ps = var->petrifyOnCaptureTypes & extinction_piece_types(); ps;)
             attackerCandidatesTheirs &= ~pieces(~us, pop_lsb(ps));
+        bool extinctsThem = bool(pseudoRoyalsTheirs & ~occupied);
+        if (walling())
+            occupied |= gating_square(m);
         // Check for legality unless we capture a pseudo-royal piece
-        if (!(pseudoRoyalsTheirs & ~occupied))
+        if (!extinctsThem)
             while (pseudoRoyals)
             {
                 Square sr = pop_lsb(pseudoRoyals);
@@ -1393,6 +1465,8 @@ bool Position::legal(Move m) const {
     }
 
     Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+    if (walling() && (!var->wallOrMove || from == to))
+        occupied |= gating_square(m);
 
     // Flying general rule and bikjang
     // In case of bikjang passing is always allowed, even when in check
@@ -1460,7 +1534,7 @@ bool Position::pseudo_legal(const Move m) const {
 
     // Use a slower but simpler function for uncommon cases
     // yet we skip the legality check of MoveList<LEGAL>().
-    if (type_of(m) != NORMAL || is_gating(m))
+    if (type_of(m) != NORMAL || is_gating(m) || (walling() && blast_on_capture() && capture(m)))
         return checkers() ? MoveList<EVASIONS>(*this).contains(m)
                           : MoveList<NON_EVASIONS>(*this).contains(m);
 
@@ -1712,7 +1786,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     assert(m.is_ok());
     assert(&newSt != st);
 
-    Key k = st->key ^ Zobrist::side;
+    Key k = st->key ^ Zobrist::side ^ variant_state_key();
 
     // Copy some fields of the old state to our new StateInfo object except the
     // ones which are going to be recalculated from scratch anyway and then switch
@@ -1844,9 +1918,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     if (type_of(m) == DROP)
     {
         Piece pc_hand = make_piece(us, in_hand_piece_type(m));
-        k ^= Zobrist::psq[pc][to]
-           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
-           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
+        k ^= Zobrist::psq[pc][to];
+        if (!free_drops())
+            k ^=
+              Zobrist::inHand[pc_hand]
+                             [pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
+              ^ Zobrist::inHand[pc_hand]
+                               [pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
 
         // Reset rule 50 counter for irreversible drops
         st->rule50 = 0;
@@ -1865,8 +1943,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     }
 
     // Reset en passant squares
-    while (st->epSquares)
-        k ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];
+    k ^= en_passant_key(st->epSquares);
+    st->epSquares = 0;
 
     // Update castling rights if needed
     if (type_of(m) != DROP && !is_pass(m) && st->castlingRights
@@ -1932,6 +2010,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     // Move the piece. The tricky Chess960 castling is handled earlier
     if (type_of(m) == DROP)
     {
+        int castlingRights = st->castlingRights;
+
         if (Eval::useNNUE)
         {
             // Add drop piece
@@ -1973,6 +2053,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
                 }
             }
         }
+
+        if (castlingRights != st->castlingRights)
+            k ^= Zobrist::castling[castlingRights] ^ Zobrist::castling[st->castlingRights];
     }
     else if (type_of(m) != CASTLING)
     {
@@ -2034,7 +2117,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
                 && !(walling() && gating_square(m) == to - pawn_push(us)))
             {
                 st->epSquares |= to - pawn_push(us);
-                k ^= Zobrist::enpassant[file_of(to)];
             }
             if (std::abs(int(to) - int(from)) == 3 * NORTH
                 && (var->enPassantRegion[them] & (to - 2 * pawn_push(us)))
@@ -2043,8 +2125,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
                 && !(walling() && gating_square(m) == to - 2 * pawn_push(us)))
             {
                 st->epSquares |= to - 2 * pawn_push(us);
-                k ^= Zobrist::enpassant[file_of(to)];
             }
+            k ^= en_passant_key(st->epSquares);
         }
 
         // Update pawn hash key
@@ -2113,8 +2195,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     {
         assert(type_of(pc) != PAWN);
         st->epSquares = between_bb(from, to) & var->enPassantRegion[them];
-        for (Bitboard b = st->epSquares; b;)
-            k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
+        k ^= en_passant_key(st->epSquares);
     }
 
 
@@ -2142,8 +2223,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
         remove_from_hand(gating_piece);
 
         st->gatesBB[us] ^= gate;
-        k ^= Zobrist::psq[gating_piece][gate];
-        st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece]];
+        k ^= Zobrist::psq[gating_piece][gate]
+           ^ Zobrist::inHand[gating_piece][pieceCountInHand[us][gating_type(m)] + 1]
+           ^ Zobrist::inHand[gating_piece][pieceCountInHand[us][gating_type(m)]];
+        st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece] - 1];
         st->nonPawnMaterial[us] += PieceValue[MG][gating_piece];
     }
 
@@ -2277,7 +2360,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     }
 
     // Update the key with the final value
-    st->key = k;
+    st->key = k ^ variant_state_key();
     // Calculate checkers bitboard (if move gives check)
     st->checkersBB = givesCheck ? attackers_to(square<KING>(them), us) & pieces(us) : Bitboard(0);
     assert(givesCheck == bool(st->checkersBB));
@@ -2524,8 +2607,8 @@ void Position::do_null_move(StateInfo& newSt, TranspositionTable& tt) {
     st->next       = &newSt;
     st             = &newSt;
 
-    while (st->epSquares)
-        st->key ^= Zobrist::enpassant[file_of(pop_lsb(st->epSquares))];
+    st->key ^= en_passant_key(st->epSquares);
+    st->epSquares = 0;
 
     st->key ^= Zobrist::side;
     ++st->rule50;
@@ -2583,9 +2666,13 @@ Key Position::key_after(Move m) const {
     if (type_of(m) == DROP)
     {
         Piece pc_hand = make_piece(sideToMove, in_hand_piece_type(m));
-        return k ^ Zobrist::psq[pc][to]
-             ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]]
-             ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1];
+        k ^= Zobrist::psq[pc][to];
+        if (!free_drops())
+            k ^= Zobrist::inHand[pc_hand]
+                                [pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]]
+               ^ Zobrist::inHand[pc_hand]
+                                [pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1];
+        return k;
     }
 
     k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
@@ -2842,9 +2929,12 @@ bool Position::see_ge(Move m, Value threshold) const {
 
 bool Position::is_optional_game_end(Value& result, int ply, int countStarted) const {
 
+    bool inCheck = checkers()
+                || (extinction_pseudo_royal() && checked_pseudo_royals(sideToMove));
+
     // n-move rule
     if (n_move_rule() && st->rule50 > (2 * n_move_rule() - 1)
-        && (!checkers() || MoveList<LEGAL>(*this).size()))
+        && (!inCheck || MoveList<LEGAL>(*this).size()))
     {
         int offset = 0;
         if (var->chasingRule == AXF_CHASING && st->pliesFromNull >= 20)
@@ -2966,7 +3056,7 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
     // counting rules
     if (counting_rule() && st->countingLimit
         && counting_ply(countStarted) > counting_limit(countStarted)
-        && (!checkers() || MoveList<LEGAL>(*this).size()))
+        && (!inCheck || MoveList<LEGAL>(*this).size()))
     {
         result = VALUE_DRAW;
         return true;
