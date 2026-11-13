@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2026 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,29 +28,24 @@ namespace Stockfish {
 class Position;
 
 enum GenType {
-  CAPTURES,
-  QUIETS,
-  QUIET_CHECKS,
-  EVASIONS,
-  NON_EVASIONS,
-  LEGAL
+    CAPTURES,
+    QUIETS,
+    EVASIONS,
+    NON_EVASIONS,
+    LEGAL
 };
 
-struct ExtMove {
-  Move move;
-  int value;
+struct ExtMove: public Move {
+    int value;
 
-  operator Move() const { return move; }
-  void operator=(Move m) { move = m; }
+    void operator=(Move m) { data = m.raw(); }
 
-  // Inhibit unwanted implicit conversions to Move
-  // with an ambiguity that yields to a compile error.
-  operator float() const = delete;
+    // Inhibit unwanted implicit conversions to Move
+    // with an ambiguity that yields to a compile error.
+    operator float() const = delete;
 };
 
-inline bool operator<(const ExtMove& f, const ExtMove& s) {
-  return f.value < s.value;
-}
+inline bool operator<(const ExtMove& f, const ExtMove& s) { return f.value < s.value; }
 
 template<GenType>
 ExtMove* generate(const Position& pos, ExtMove* moveList);
@@ -62,11 +57,10 @@ constexpr size_t moveListSize = sizeof(ExtMove) * MAX_MOVES;
 template<GenType T>
 struct MoveList {
 
-  
+
 #ifdef USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
-    explicit MoveList(const Position& pos)
-    {
-        this->moveList = (ExtMove*)malloc(moveListSize);
+    explicit MoveList(const Position& pos) {
+        this->moveList = (ExtMove*) malloc(moveListSize);
         if (this->moveList == 0)
         {
             printf("Error: Failed to allocate memory in heap.");
@@ -75,25 +69,20 @@ struct MoveList {
         this->last = generate<T>(pos, this->moveList);
     }
 
-    ~MoveList()
-    {
-        free(this->moveList);
-    }
+    ~MoveList() { free(this->moveList); }
 #else
-    explicit MoveList(const Position& pos) : last(generate<T>(pos, moveList))
-    {
+    explicit MoveList(const Position& pos) :
+        last(generate<T>(pos, moveList)) {
         ;
     }
 #endif
-  
-  const ExtMove* begin() const { return moveList; }
-  const ExtMove* end() const { return last; }
-  size_t size() const { return last - moveList; }
-  bool contains(Move move) const {
-    return std::find(begin(), end(), move) != end();
-  }
 
-private:
+    const ExtMove* begin() const { return moveList; }
+    const ExtMove* end() const { return last; }
+    size_t         size() const { return last - moveList; }
+    bool           contains(Move move) const { return std::find(begin(), end(), move) != end(); }
+
+   private:
     ExtMove* last;
 #ifdef USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
     ExtMove* moveList = 0;
@@ -102,6 +91,6 @@ private:
 #endif
 };
 
-} // namespace Stockfish
+}  // namespace Stockfish
 
-#endif // #ifndef MOVEGEN_H_INCLUDED
+#endif  // #ifndef MOVEGEN_H_INCLUDED
