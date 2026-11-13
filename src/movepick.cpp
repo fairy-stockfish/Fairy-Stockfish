@@ -27,6 +27,7 @@
 #include "bitboard.h"
 #include "misc.h"
 #include "position.h"
+#include "psqt.h"
 
 namespace Stockfish {
 
@@ -267,7 +268,10 @@ void MovePicker::score() {
             m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
             // The gate history is only filled by walling variants
             m.value += 4 * (*gateHistory)[pos.side_to_move()][gating_square(m)];
-            m.value += 2 * sharedHistory->pawn_entry(pos)[history_slot(pc)][to];
+            // With a single class of pieces the key of the pawn history is close to the
+            // key of the position, so the pawn history hardly generalizes
+            if (!PSQT::lowPiecesOnly)
+                m.value += 2 * sharedHistory->pawn_entry(pos)[history_slot(pc)][to];
             m.value += (*continuationHistory[0])[history_slot(pc)][to];
             m.value += (*continuationHistory[1])[history_slot(pc)][to];
             m.value += (*continuationHistory[2])[history_slot(pc)][to];
