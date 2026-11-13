@@ -1048,6 +1048,34 @@ Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard janggiCann
              | (LeaperAttacks[~c][SHOGI_PAWN][s] & pieces(c, SHOGI_PAWN, SILVER));
     }
 
+    // Use a faster version for xiangqi pieces
+    if (var->fastAttacksXiangqi)
+    {
+        Bitboard b = (attacks_bb<ROOK>(s, occupied) & pieces(c, ROOK))
+                   | ((rider_attacks_bb<RIDER_CANNON_H>(s, occupied)
+                       | rider_attacks_bb<RIDER_CANNON_V>(s, occupied))
+                      & pieces(c, CANNON))
+                   | (LeaperAttacks[~c][SOLDIER][s] & pieces(c, SOLDIER));
+        if (board_bb(c, KING) & s)
+            b |= LeaperAttacks[~c][WAZIR][s] & pieces(c, KING);
+        if (board_bb(c, FERS) & s)
+            b |= LeaperAttacks[~c][FERS][s] & pieces(c, FERS);
+        if ((board_bb(c, ELEPHANT) & s) && (PseudoAttacks[~c][ELEPHANT][s] & pieces(c, ELEPHANT)))
+            b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied) & pieces(c, ELEPHANT);
+        // The horse is asymmetric, so test each candidate horse from its own square
+        Bitboard horses = PseudoAttacks[~c][HORSE][s] & pieces(c, HORSE);
+        while (horses)
+        {
+            Square s2 = pop_lsb(horses);
+            if (rider_attacks_bb<RIDER_HORSE>(s2, occupied) & s)
+                b |= s2;
+        }
+        // Unpromoted soldiers
+        if (b & pieces(SOLDIER) && relative_rank(c, s, max_rank()) < var->soldierPromotionRank)
+            b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
+        return b;
+    }
+
     Bitboard b = 0;
     for (PieceSet ps = piece_types(); ps;)
     {

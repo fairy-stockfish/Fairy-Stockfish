@@ -61,7 +61,7 @@ void buildPosition(Position&     pos,
     return;
 }
 
-extern "C" PyObject* pyffish_version(PyObject* self) { return Py_BuildValue("(iii)", 0, 0, 90); }
+extern "C" PyObject* pyffish_version(PyObject* self) { return Py_BuildValue("(iii)", 0, 0, 91); }
 
 extern "C" PyObject* pyffish_info(PyObject* self) {
     return Py_BuildValue("s", engine_info().c_str());
