@@ -590,6 +590,9 @@ enum PieceSet : uint64_t {
       (1ULL << COMMONER) | (1ULL << FERS) | (1ULL << WAZIR) | (1ULL << BREAKTHROUGH_PIECE),
     XIANGQI_PIECES = (1ULL << ROOK) | (1ULL << CANNON) | (1ULL << HORSE) | (1ULL << ELEPHANT)
                    | (1ULL << FERS) | (1ULL << SOLDIER) | (1ULL << KING),
+    JANGGI_PIECES = (1ULL << ROOK) | (1ULL << JANGGI_CANNON) | (1ULL << HORSE)
+                  | (1ULL << JANGGI_ELEPHANT) | (1ULL << WAZIR) | (1ULL << SOLDIER)
+                  | (1ULL << KING),
 };
 
 enum RiderType : int {
