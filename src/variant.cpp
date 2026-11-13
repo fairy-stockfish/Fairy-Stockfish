@@ -2006,6 +2006,9 @@ Variant* Variant::conclude() {
                         && kingType == WAZIR
                         && !cambodianMoves
                         && !diagonalLines;
+    fastAttacksJanggi =  !(pieceTypes & ~JANGGI_PIECES)
+                       && kingType == WAZIR
+                       && !cambodianMoves;
     // Only moving a pinned piece can expose the king to an attack
     fastLegal =  kingType == KING
                && !restrictedMobility

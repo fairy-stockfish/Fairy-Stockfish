@@ -991,6 +991,55 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
       return b;
   }
 
+  // Use a faster version for janggi pieces
+  if (var->fastAttacksJanggi)
+  {
+      Bitboard b =  (attacks_bb<ROOK>(s, occupied) & pieces(c, ROOK))
+                  | (LeaperAttacks[~c][SOLDIER][s] & pieces(c, SOLDIER));
+      // Cannons can not jump over or capture cannons
+      if (PseudoAttacks[WHITE][ROOK][s] & pieces(c, JANGGI_CANNON))
+      {
+          Bitboard occupiedNoCannons = occupied & ~janggiCannons;
+          b |=  (  (rider_attacks_bb<RIDER_CANNON_H>(s, occupied) & rider_attacks_bb<RIDER_CANNON_H>(s, occupiedNoCannons))
+                 | (rider_attacks_bb<RIDER_CANNON_V>(s, occupied) & rider_attacks_bb<RIDER_CANNON_V>(s, occupiedNoCannons)))
+              & pieces(c, JANGGI_CANNON);
+      }
+      if (board_bb(c, KING) & s)
+          b |= LeaperAttacks[~c][WAZIR][s] & pieces(c, KING);
+      if (board_bb(c, WAZIR) & s)
+          b |= LeaperAttacks[~c][WAZIR][s] & pieces(c, WAZIR);
+      // Horses and elephants are asymmetric, so test each candidate from its own square
+      Bitboard horses = PseudoAttacks[~c][HORSE][s] & pieces(c, HORSE);
+      while (horses)
+      {
+          Square s2 = pop_lsb(horses);
+          if (rider_attacks_bb<RIDER_HORSE>(s2, occupied) & s)
+              b |= s2;
+      }
+      Bitboard elephants = PseudoAttacks[~c][JANGGI_ELEPHANT][s] & pieces(c, JANGGI_ELEPHANT);
+      while (elephants)
+      {
+          Square s2 = pop_lsb(elephants);
+          if (rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s2, occupied) & s)
+              b |= s2;
+      }
+      // Palace moves
+      if (diagonal_lines() & s)
+      {
+          Bitboard diags =  (attacks_bb(~c, FERS, s, occupied) & pieces(c, KING, WAZIR))
+                          | (attacks_bb(~c, PAWN, s, occupied) & pieces(c, SOLDIER))
+                          | (rider_attacks_bb<RIDER_BISHOP>(s, occupied) & pieces(c, ROOK))
+                          | (  rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied)
+                             & rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied & ~janggiCannons)
+                             & pieces(c, JANGGI_CANNON));
+          b |= diags & diagonal_lines();
+      }
+      // Unpromoted soldiers
+      if (b & pieces(SOLDIER) && relative_rank(c, s, max_rank()) < var->soldierPromotionRank)
+          b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
+      return b;
+  }
+
   Bitboard b = 0;
   for (PieceSet ps = piece_types(); ps;)
   {
