@@ -40,6 +40,7 @@ namespace UCI {
 #endif
 
 void init_variant(const Variant* v);
+void reset_variant_cache();
 
 class Option;
 
