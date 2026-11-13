@@ -176,7 +176,7 @@ struct Skill {
 };
 
 Value value_to_tt(Value v, int ply);
-Value value_from_tt(Value v, int ply, int r50c);
+Value value_from_tt(Value v, int ply, int r50c, int nMoveRule);
 void  update_continuation_histories(Stack* ss, Piece pc, Square to, int bonus);
 void  update_quiet_histories(
    const Position& pos, Stack* ss, Search::Worker& workerThread, Move move, int bonus);
@@ -1021,7 +1021,9 @@ Value Search::Worker::search(
 
     ss->ttHit    = ttHit;
     ttData.move  = rootNode ? rootMoves[pvIdx].pv[0] : ttHit ? ttData.move : Move::none();
-    ttData.value = ttHit ? value_from_tt(ttData.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
+    ttData.value =
+      ttHit ? value_from_tt(ttData.value, ss->ply, pos.rule50_count(), pos.n_move_rule())
+            : VALUE_NONE;
     ss->ttPv     = excludedMove ? ss->ttPv : PvNode || (ttHit && ttData.is_pv);
     ttCapture    = ttData.move && pos.capture_stage(ttData.move);
 
@@ -1093,7 +1095,7 @@ Value Search::Worker::search(
 
         // Partial workaround for the graph history interaction problem.
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < 96)
+        if (!pos.n_move_rule() || pos.rule50_count() < 2 * pos.n_move_rule() - 4)
         {
             if (depth >= 7 && ttData.move && pos.pseudo_legal(ttData.move) && pos.legal(ttData.move)
                 && !is_decisive(ttData.value))
@@ -1960,7 +1962,9 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
 
     ss->ttHit    = ttHit;
     ttData.move  = ttHit ? ttData.move : Move::none();
-    ttData.value = ttHit ? value_from_tt(ttData.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
+    ttData.value =
+      ttHit ? value_from_tt(ttData.value, ss->ply, pos.rule50_count(), pos.n_move_rule())
+            : VALUE_NONE;
     pvHit        = ttHit && ttData.is_pv;
 
     // At non-PV nodes we check for an early TT cutoff
@@ -2167,20 +2171,23 @@ Value value_to_tt(Value v, int ply) { return is_win(v) ? v + ply : is_loss(v) ? 
 // "plies to mate/be mated (TB win/loss) from the root". However, to avoid
 // potentially false mate or TB scores related to the 50 moves rule and the
 // graph history interaction, we return the highest non-TB score instead.
-Value value_from_tt(Value v, int ply, int r50c) {
+Value value_from_tt(Value v, int ply, int r50c, int nMoveRule) {
 
     if (!is_valid(v))
         return VALUE_NONE;
+
+    // Without an n-move rule the game can not be drawn by it
+    const int pliesLeft = nMoveRule ? 2 * nMoveRule - r50c : MAX_PLY + 100;
 
     // Handle TB win or better
     if (is_win(v))
     {
         // Downgrade a potentially false mate score
-        if (is_mate(v) && VALUE_MATE - v > 100 - r50c)
+        if (is_mate(v) && VALUE_MATE - v > pliesLeft)
             return VALUE_TB_WIN_IN_MAX_PLY - 1;
 
         // Downgrade a potentially false TB score
-        if (VALUE_TB - v > 100 - r50c)
+        if (VALUE_TB - v > pliesLeft)
             return VALUE_TB_WIN_IN_MAX_PLY - 1;
 
         return v - ply;
@@ -2190,11 +2197,11 @@ Value value_from_tt(Value v, int ply, int r50c) {
     if (is_loss(v))
     {
         // Downgrade a potentially false mate score
-        if (is_mated(v) && VALUE_MATE + v > 100 - r50c)
+        if (is_mated(v) && VALUE_MATE + v > pliesLeft)
             return VALUE_TB_LOSS_IN_MAX_PLY + 1;
 
         // Downgrade a potentially false TB score
-        if (VALUE_TB + v > 100 - r50c)
+        if (VALUE_TB + v > pliesLeft)
             return VALUE_TB_LOSS_IN_MAX_PLY + 1;
 
         return v + ply;
