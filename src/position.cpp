@@ -965,6 +965,56 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
             | (LeaperAttacks[~c][SHOGI_PAWN][s]   & pieces(c, SHOGI_PAWN, SILVER));
   }
 
+  // Generic fast version for leapers and rook/bishop line riders
+  if (var->fastAttacksData)
+  {
+      auto leaper = [&](int i) {
+          const auto& t = var->attackLeapers[i];
+          Bitboard p = byTypeBB[t.types[0]];
+          for (int j = 1; j < t.count; ++j)
+              p |= byTypeBB[t.types[j]];
+          return var->attackLeaperPtr[~c][i][s] & p;
+      };
+      Bitboard b = 0;
+      switch (var->attackLeaperCount)
+      {
+      case 12: b |= leaper(11); [[fallthrough]];
+      case 11: b |= leaper(10); [[fallthrough]];
+      case 10: b |= leaper(9); [[fallthrough]];
+      case 9: b |= leaper(8); [[fallthrough]];
+      case 8: b |= leaper(7); [[fallthrough]];
+      case 7: b |= leaper(6); [[fallthrough]];
+      case 6: b |= leaper(5); [[fallthrough]];
+      case 5: b |= leaper(4); [[fallthrough]];
+      case 4: b |= leaper(3); [[fallthrough]];
+      case 3: b |= leaper(2); [[fallthrough]];
+      case 2: b |= leaper(1); [[fallthrough]];
+      case 1: b |= leaper(0); [[fallthrough]];
+      default: break;
+      }
+      if (var->attackRookFullCount | var->attackRookPartialCount)
+      {
+          Bitboard p = 0;
+          for (int i = 0; i < var->attackRookFullCount; ++i)
+              p |= byTypeBB[var->attackRookFull[i]];
+          if (var->attackRookPartialCount)
+              for (int i = 0; i < var->attackRookPartialCount; ++i)
+                  p |= byTypeBB[var->attackRookPartial[i].pt] & PseudoAttacks[~c][var->attackRookPartial[i].table][s];
+          b |= attacks_bb<ROOK>(s, occupied) & p;
+      }
+      if (var->attackBishopFullCount | var->attackBishopPartialCount)
+      {
+          Bitboard p = 0;
+          for (int i = 0; i < var->attackBishopFullCount; ++i)
+              p |= byTypeBB[var->attackBishopFull[i]];
+          if (var->attackBishopPartialCount)
+              for (int i = 0; i < var->attackBishopPartialCount; ++i)
+                  p |= byTypeBB[var->attackBishopPartial[i].pt] & PseudoAttacks[~c][var->attackBishopPartial[i].table][s];
+          b |= attacks_bb<BISHOP>(s, occupied) & p;
+      }
+      return b & byColorBB[c];
+  }
+
   // Use a faster version for xiangqi pieces
   if (var->fastAttacksXiangqi)
   {

@@ -167,6 +167,16 @@ struct Variant {
   bool fastAttacks = true;
   bool fastAttacks2 = true;
   bool fastAttacksXiangqi = true;
+  // Data for the generic fast attackers_to(): leaper groups and rook/bishop line riders
+  struct AttackLeaperTerm { PieceType table; int count; PieceType types[8]; };
+  struct AttackRiderEntry { PieceType pt; PieceType table; };
+  bool fastAttacksData = false;
+  int attackLeaperCount = 0;
+  AttackLeaperTerm attackLeapers[12];
+  const Bitboard* attackLeaperPtr[COLOR_NB][12];
+  int attackRookFullCount = 0, attackRookPartialCount = 0, attackBishopFullCount = 0, attackBishopPartialCount = 0;
+  PieceType attackRookFull[8], attackBishopFull[8];
+  AttackRiderEntry attackRookPartial[8], attackBishopPartial[8];
   bool fastAttacksJanggi = true;
   bool fastLegal = true;
   std::string nnueAlias = "";
