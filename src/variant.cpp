@@ -1984,6 +1984,15 @@ Variant* Variant::conclude() {
     if (!doubleStepRegion[WHITE] && !doubleStepRegion[BLACK])
         doubleStep = false;
 
+    // Board mask. Variants might be initialized before bitboards, so do not use BoardSizeBB.
+    boardBB = 0;
+    for (File f = FILE_A; f <= maxFile && f < FILE_NB; ++f)
+        boardBB |= file_bb(f);
+    Bitboard ranks = 0;
+    for (Rank r = RANK_1; r <= maxRank && r < RANK_NB; ++r)
+        ranks |= rank_bb(r);
+    boardBB &= ranks;
+
     // Determine optimizations
     bool restrictedMobility = false;
     for (PieceSet ps = pieceTypes; !restrictedMobility && ps;)

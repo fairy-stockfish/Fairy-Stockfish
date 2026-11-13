@@ -164,6 +164,7 @@ struct Variant {
   CastlingRights castlingWins = NO_CASTLING;
 
   // Derived properties
+  Bitboard boardBB = 0;
   bool fastAttacks = true;
   bool fastAttacks2 = true;
   bool fastAttacksXiangqi = true;
