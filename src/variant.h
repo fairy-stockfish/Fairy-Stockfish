@@ -167,6 +167,7 @@ struct Variant {
   bool fastAttacks = true;
   bool fastAttacks2 = true;
   bool fastAttacksXiangqi = true;
+  bool fastAttacksJanggi = true;
   bool fastLegal = true;
   std::string nnueAlias = "";
   PieceType nnueKing = KING;
