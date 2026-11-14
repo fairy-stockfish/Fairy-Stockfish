@@ -694,7 +694,7 @@ namespace {
     b1 = attacks_bb<ROOK  >(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
     b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
 
-    std::function <Bitboard (Color, PieceType)> get_attacks = [this](Color c, PieceType pt) {
+    auto get_attacks = [this](Color c, PieceType pt) {
         return attackedBy[c][pt] | (pos.piece_drops() && pos.count_in_hand(c, pt) > 0 ? pos.drop_region(c, pt) & ~pos.pieces() : Bitboard(0));
     };
     for (PieceSet ps = pos.piece_types(); ps;)
