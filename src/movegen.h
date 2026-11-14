@@ -55,7 +55,10 @@ inline bool operator<(const ExtMove& f, const ExtMove& s) {
 template<GenType>
 ExtMove* generate(const Position& pos, ExtMove* moveList);
 
-constexpr size_t moveListSize = sizeof(ExtMove) * MAX_MOVES;
+/// acquire_move_buffer() and release_move_buffer() hand out buffers of MAX_MOVES
+/// moves from a per-thread pool. Buffers have to be released in reverse order.
+ExtMove* acquire_move_buffer();
+void release_move_buffer(ExtMove* buffer);
 
 /// The MoveList struct is a simple wrapper around generate(). It sometimes comes
 /// in handy to use this class instead of the low level generate() function.
@@ -66,18 +69,13 @@ struct MoveList {
 #ifdef USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
     explicit MoveList(const Position& pos)
     {
-        this->moveList = (ExtMove*)malloc(moveListSize);
-        if (this->moveList == 0)
-        {
-            printf("Error: Failed to allocate memory in heap.");
-            exit(1);
-        }
+        this->moveList = acquire_move_buffer();
         this->last = generate<T>(pos, this->moveList);
     }
 
     ~MoveList()
     {
-        free(this->moveList);
+        release_move_buffer(this->moveList);
     }
 #else
     explicit MoveList(const Position& pos) : last(generate<T>(pos, moveList))

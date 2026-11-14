@@ -17,6 +17,8 @@
 */
 
 #include <cassert>
+#include <memory>
+#include <vector>
 
 #include "movegen.h"
 #include "position.h"
@@ -523,6 +525,29 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
           ++cur;
 
   return moveList;
+}
+
+namespace {
+
+  // Per-thread LIFO pool of move buffers. MovePicker and MoveList instances have
+  // strictly nested lifetimes within a thread, so buffers can be handed out and
+  // returned stack-wise. This keeps the large MAX_MOVES array off the machine
+  // stack, whose 8MB limit deep searches can otherwise exceed (see issue #957),
+  // and avoids a heap allocation for each MoveList.
+  thread_local std::vector<std::unique_ptr<ExtMove[]>> moveBuffers;
+  thread_local size_t usedMoveBuffers = 0;
+
+} // namespace
+
+ExtMove* acquire_move_buffer() {
+  if (usedMoveBuffers == moveBuffers.size())
+      moveBuffers.emplace_back(new ExtMove[MAX_MOVES]);
+  return moveBuffers[usedMoveBuffers++].get();
+}
+
+void release_move_buffer([[maybe_unused]] ExtMove* buffer) {
+  assert(usedMoveBuffers > 0 && moveBuffers[usedMoveBuffers - 1].get() == buffer);
+  --usedMoveBuffers;
 }
 
 } // namespace Stockfish
