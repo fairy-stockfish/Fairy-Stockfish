@@ -36,6 +36,8 @@ namespace Eval {
   Value evaluate(const Position& pos);
 
   extern bool useNNUE;
+  // Whether UCI_Variant is chess, cached to avoid option lookups in the evaluation
+  extern bool isChessVariant;
   extern std::string eval_file_loaded;
 
   // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
