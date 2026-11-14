@@ -1092,6 +1092,7 @@ moves_loop: // When in check, search starts from here
     value = bestValue;
     singularQuietLMR = moveCountPruning = false;
     bool doubleExtension = false;
+    int availableCaptures = -1; // For the losing chess capture extension, computed on demand
 
     // Indicate PvNodes that will probably fail low if the node was searched
     // at a depth equal or greater than the current depth, and the result of this search was a fail low.
@@ -1257,7 +1258,8 @@ moves_loop: // When in check, search starts from here
       // Losing chess capture extension
       else if (    pos.must_capture()
                &&  pos.capture(move)
-               &&  (ss->inCheck || MoveList<CAPTURES>(pos).size() == 1))
+               &&  (ss->inCheck || (availableCaptures < 0 ? availableCaptures = int(MoveList<CAPTURES>(pos).size())
+                                                          : availableCaptures) == 1))
           extension = 1;
 
       // Add extension to new depth
