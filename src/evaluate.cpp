@@ -45,6 +45,7 @@ namespace Stockfish {
 namespace Eval {
 
 bool useNNUE;
+bool isChessVariant = true;
 
 }
 
@@ -607,7 +608,7 @@ Score Evaluation<T>::king() const {
     b1 = attacks_bb<ROOK>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
     b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
 
-    std::function<Bitboard(Color, PieceType)> get_attacks = [this](Color c, PieceType pt) {
+    auto get_attacks = [this](Color c, PieceType pt) {
         return attackedBy[c][pt]
              | (pos.piece_drops() && pos.count_in_hand(c, pt) > 0
                   ? pos.drop_region(c, pt) & ~pos.pieces()
@@ -1494,7 +1495,7 @@ Value Evaluation<T>::value() {
                  + pos.non_pawn_material() / 32;
     };
 
-    if (lazy_skip(LazyThreshold1) && Options["UCI_Variant"] == "chess")
+    if (lazy_skip(LazyThreshold1) && Eval::isChessVariant)
         goto make_v;
 
     // Main evaluation begins here
@@ -1526,7 +1527,7 @@ Value Evaluation<T>::value() {
     score += king<WHITE>() - king<BLACK>() + passed<WHITE>() - passed<BLACK>() + variant<WHITE>()
            - variant<BLACK>();
 
-    if (lazy_skip(LazyThreshold2) && Options["UCI_Variant"] == "chess")
+    if (lazy_skip(LazyThreshold2) && Eval::isChessVariant)
         goto make_v;
 
     score += threats<WHITE>() - threats<BLACK>() + space<WHITE>() - space<BLACK>();

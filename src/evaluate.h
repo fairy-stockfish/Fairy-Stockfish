@@ -52,6 +52,8 @@ Value       evaluate(const NNUE::Network&     network,
                      int                      optimism);
 
 extern bool useNNUE;
+// Whether UCI_Variant is chess, cached to avoid option lookups in the evaluation
+extern bool isChessVariant;
 
 // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
 // for the build process (profile-build and fishtest) to work. Do not change the

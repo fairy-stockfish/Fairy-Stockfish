@@ -1335,7 +1335,8 @@ moves_loop:  // When in check, search starts here
 
     value = bestValue;
 
-    int moveCount = 0;
+    int moveCount         = 0;
+    int availableCaptures = -1;  // For the losing chess capture extension, computed on demand
 
     // Step 14. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1544,7 +1545,11 @@ moves_loop:  // When in check, search starts here
 
         // Losing chess capture extension
         else if (pos.must_capture() && pos.capture(move)
-                 && (ss->inCheck || MoveList<CAPTURES>(pos).size() == 1))
+                 && (ss->inCheck
+                     || (availableCaptures < 0
+                           ? availableCaptures = int(MoveList<CAPTURES>(pos).size())
+                           : availableCaptures)
+                          == 1))
             extension = 1;
 
         uint64_t nodeCount = rootNode ? uint64_t(nodes) : 0;
