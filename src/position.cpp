@@ -1642,7 +1642,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   assert(&newSt != st);
 
 #ifndef NO_THREADS
-  thisThread->nodes.fetch_add(1, std::memory_order_relaxed);
+  // Positions outside of the search, e.g. of the protocols, have no thread
+  if (thisThread)
+      thisThread->nodes.fetch_add(1, std::memory_order_relaxed);
 #endif
   Key k = st->key ^ Zobrist::side;
 
@@ -1760,7 +1762,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^= Zobrist::psq[captured][capsq];
       st->materialKey ^= Zobrist::psq[captured][pieceCount[captured]];
 #ifndef NO_THREADS
-      prefetch(thisThread->materialTable[material_key(var->endgameEval)]);
+      if (thisThread)
+          prefetch(thisThread->materialTable[material_key(var->endgameEval)]);
 #endif
       // Reset rule 50 counter
       st->rule50 = 0;
