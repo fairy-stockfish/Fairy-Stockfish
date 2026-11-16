@@ -216,9 +216,20 @@ void UCIEngine::bench(istream& args) {
             cerr << "\nPosition: " << cnt++ << '/' << num << " (" << pos.fen() << ")" << endl;
             if (token == "go")
             {
-                go(is);
-                engine->wait_for_search_finished();
-                nodes += Threads.nodes_searched();
+                // Perft runs without the search threads, so its nodes are not
+                // counted by them
+                if (cmd.find("go perft ") == 0)
+                {
+                    Depth depth;
+                    is >> token >> depth;
+                    nodes += engine->perft(depth);
+                }
+                else
+                {
+                    go(is);
+                    engine->wait_for_search_finished();
+                    nodes += Threads.nodes_searched();
+                }
             }
             else
                 engine->trace_eval();
