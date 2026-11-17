@@ -78,6 +78,10 @@ pass = true
 [royalduck:duck]
 extinctionPseudoRoyal = true
 
+[atlantis:chess]
+wallingRule = edge
+wallOrMove = true
+
 [alapo:chess]
 pieceToCharTable = ..BRQ.........FW.....K..brq.........fw.....k
 maxRank = 6
@@ -538,6 +542,13 @@ class TestPyffish(unittest.TestCase):
         # Chess960 disambiguation of the castling piece file for black
         fen = "r1q1q1r1/8/3k4/8/8/8/8/4K3 w ega - 0 1"
         self.assertEqual(sf.get_fen("castlingqueen", fen, [], True), fen)
+
+    def test_wall_only_evasions(self):
+        # A wall placed without moving a piece can block a check
+        moves = sf.legal_moves("atlantis", "7k/8/8/8/8/8/8/K6r w - - 0 1", [])
+        for square in ("b1", "c1", "d1", "e1", "f1", "g1"):
+            self.assertIn(f"a1a1,a1{square}", moves)
+        self.assertEqual(len(moves), 8)
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
