@@ -49,7 +49,7 @@ class StateMachine {
     void              go(Search::LimitsType searchLimits, bool ponder = false);
     void              ponder();
     void              start_pending_ponder();
-    void              stop(bool abort = true);
+    bool              stop(bool abort = true);
     void              setboard(std::string fen = "");
     void              do_move(Move m);
     void              undo_move();

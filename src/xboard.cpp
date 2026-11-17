@@ -84,17 +84,23 @@ void StateMachine::start_pending_ponder() {
 }
 
 // stop() stops an ongoing search (if any)
-// and does not print/apply a move if aborted
+// and does not print/apply a move if aborted.
+// Returns whether a search for the engine's move was aborted.
 
-void StateMachine::stop(bool abort) {
+bool StateMachine::stop(bool abort) {
 
     if (abort)
         Threads.abort = true;
     Threads.stop = true;
     Threads.main_thread()->wait_for_search_finished();
+    // The search did not play its move if it was aborted
+    bool aborted = abort && moveAfterSearch;
     // A pending ponder search is obsolete if the search was aborted
     if (abort)
-        ponderMove = MOVE_NONE;
+    {
+        ponderMove      = MOVE_NONE;
+        moveAfterSearch = false;
+    }
     // Ensure that current position does not get out of sync with GUI
     if (Threads.main_manager()->ponder)
     {
@@ -102,6 +108,7 @@ void StateMachine::stop(bool abort) {
         undo_move();
         Threads.main_manager()->ponder = false;
     }
+    return aborted;
 }
 
 // setboard() is called when engine receives the "setboard" XBoard command.
@@ -405,9 +412,19 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
         std::getline(is, value);
         if (Options.count(name))
         {
+            // The search reads the options, so stop it before changing one,
+            // and restart it afterwards to continue with the new value
+            bool thinking = stop();
             if (Options[name].get_type() == "check")
                 value = value == "1" ? "true" : "false";
             Options[name] = value;
+            if (Options["UCI_AnalyseMode"])
+                go(analysisLimits);
+            else if (thinking)
+            {
+                moveAfterSearch = true;
+                go(limits);
+            }
         }
     }
     else if (token == "analyze")
