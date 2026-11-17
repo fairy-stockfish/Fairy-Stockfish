@@ -3121,6 +3121,9 @@ Bitboard Position::chased() const {
   };
 
   // Direct attacks
+  // Drops have no origin square, so all their attacks are new and there are no
+  // discovered attacks from a vacated square.
+  bool drop = type_of(st->move) == DROP;
   Square from = from_sq(st->move);
   Square to = to_sq(st->move);
   PieceType movedPiece = type_of(piece_on(to));
@@ -3128,23 +3131,27 @@ Bitboard Position::chased() const {
   {
       Bitboard directAttacks = attacks_from(~sideToMove, movedPiece, to) & pieces(sideToMove);
       // Only new attacks count. This avoids expensive comparison of previous and new attacks.
-      if (movedPiece == ROOK || movedPiece == CANNON)
+      if (!drop && (movedPiece == ROOK || movedPiece == CANNON))
           directAttacks &= ~line_bb(from, to);
       addChased(to, movedPiece, directAttacks);
   }
 
   // Discovered attacks
-  Bitboard discoveryCandidates =  (PseudoAttacks[WHITE][WAZIR][from] & pieces(~sideToMove, HORSE))
-                                | (PseudoAttacks[WHITE][FERS][from] & pieces(~sideToMove, ELEPHANT))
-                                | (PseudoAttacks[WHITE][ROOK][from] & pieces(~sideToMove, CANNON, ROOK))
-                                | (PseudoAttacks[WHITE][ROOK][to] & pieces(~sideToMove, CANNON));
+  Bitboard discoveryCandidates = PseudoAttacks[WHITE][ROOK][to] & pieces(~sideToMove, CANNON);
+  if (!drop)
+      discoveryCandidates |=  (PseudoAttacks[WHITE][WAZIR][from] & pieces(~sideToMove, HORSE))
+                            | (PseudoAttacks[WHITE][FERS][from] & pieces(~sideToMove, ELEPHANT))
+                            | (PseudoAttacks[WHITE][ROOK][from] & pieces(~sideToMove, CANNON, ROOK));
+  Bitboard previousOccupied = captured_piece() ? pieces() : pieces() ^ to;
+  if (!drop)
+      previousOccupied ^= from;
   while (discoveryCandidates)
   {
       Square s = pop_lsb(discoveryCandidates);
       PieceType discoveryPiece = type_of(piece_on(s));
       Bitboard discoveries =   pieces(sideToMove)
                             &  attacks_bb(~sideToMove, discoveryPiece, s, pieces())
-                            & ~attacks_bb(~sideToMove, discoveryPiece, s, (captured_piece() ? pieces() : pieces() ^ to) ^ from);
+                            & ~attacks_bb(~sideToMove, discoveryPiece, s, previousOccupied);
       addChased(s, discoveryPiece, discoveries);
   }
 
