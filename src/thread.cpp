@@ -135,11 +135,12 @@ void Thread::idle_loop() {
         cv.notify_one();  // Wake up anyone waiting for search finished
         // Start ponder search from separate thread to prevent deadlock
         if (Threads.size() && this == Threads.main_thread() && XBoard::stateMachine
-            && XBoard::stateMachine->ponderMove)
+            && XBoard::stateMachine->ponderMove.load() != MOVE_NONE)
         {
-            NativeThread t = create_native_thread(
-              NativeThreadOptions{}.setLargeStack(true), &XBoard::StateMachine::ponder,
-              static_cast<XBoard::StateMachine*>(XBoard::stateMachine));
+            NativeThread t =
+              create_native_thread(NativeThreadOptions{}.setLargeStack(true),
+                                   &XBoard::StateMachine::start_pending_ponder,
+                                   static_cast<XBoard::StateMachine*>(XBoard::stateMachine));
             t.detach();
         }
         cv.wait(lk, [&] { return searching; });
