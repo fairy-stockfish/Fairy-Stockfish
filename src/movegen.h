@@ -65,25 +65,13 @@ void release_move_buffer(ExtMove* buffer);
 template<GenType T>
 struct MoveList {
 
-  
-#ifdef USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
-    explicit MoveList(const Position& pos)
-    {
-        this->moveList = acquire_move_buffer();
-        this->last = generate<T>(pos, this->moveList);
-    }
+  explicit MoveList(const Position& pos) : moveList(acquire_move_buffer()), last(generate<T>(pos, moveList)) {}
+  ~MoveList() { release_move_buffer(moveList); }
 
-    ~MoveList()
-    {
-        release_move_buffer(this->moveList);
-    }
-#else
-    explicit MoveList(const Position& pos) : last(generate<T>(pos, moveList))
-    {
-        ;
-    }
-#endif
-  
+  // The buffer has to be released exactly once, in reverse order of acquisition
+  MoveList(const MoveList&) = delete;
+  MoveList& operator=(const MoveList&) = delete;
+
   const ExtMove* begin() const { return moveList; }
   const ExtMove* end() const { return last; }
   size_t size() const { return last - moveList; }
@@ -92,12 +80,8 @@ struct MoveList {
   }
 
 private:
-    ExtMove* last;
-#ifdef USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
-    ExtMove* moveList = 0;
-#else
-    ExtMove moveList[MAX_MOVES];
-#endif
+  ExtMove* const moveList;
+  ExtMove* last;
 };
 
 } // namespace Stockfish
