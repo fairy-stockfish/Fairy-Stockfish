@@ -1210,7 +1210,11 @@ namespace {
         {
             int wins = popcount(ctfTargets & ctfPieces);
             if (wins)
-                score += make_score(4000, 4000) * wins / (wins + dist * dist);
+            {
+                // Avoid overflow of the score halves for many wins
+                int bonus = 4000 * wins / (wins + dist * dist);
+                score += make_score(bonus, bonus);
+            }
             Bitboard current = ctfPieces & ~ctfTargets;
             processed |= ctfPieces;
             ctfPieces = onHold & ~processed;
