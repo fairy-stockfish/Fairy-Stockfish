@@ -122,6 +122,21 @@ castlingKingPiece = k
 extinctionValue = loss
 extinctionPieceTypes = k
 
+# Non-royal castling piece in presence of a royal king
+[castlingcommoner:chess]
+king = d:mK
+commoner = k
+castlingKingPiece = k
+checking = false
+promotionPieceTypes = nbr
+extinctionPieceTypes = k
+extinctionPseudoRoyal = true
+startFen = rnbdkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBDKBNR w KQkq - 0 1
+
+[castlingqueen:chess]
+castlingKingPiece = q
+startFen = rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR w KQkq - 0 1
+
 [coregaldrop:coregal]
 pieceDrops = true
 startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Qq] w KQkq - 0 1
@@ -482,6 +497,30 @@ class TestPyffish(unittest.TestCase):
         self.assertIn("f2h2", result)
         result = sf.legal_moves("shako", "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/RR3K4/10 w Qkq - 0 1", [])
         self.assertIn("f2d2", result)
+
+        # Only the configured castling piece can castle, even if there is a royal king
+        result = sf.legal_moves("castlingcommoner", "r3k2r/8/8/8/8/8/8/R2DK2R w KQkq - 0 1", [])
+        self.assertIn("e1g1", result)
+        self.assertNotIn("d1g1", result)
+        self.assertNotIn("e1c1", result)
+
+        # Castling with a non-royal piece must not leave the royal king in check
+        result = sf.legal_moves("castlingqueen", "4k3/8/8/8/8/8/3K4/R3Q2R w KQ - 0 1", [])
+        self.assertIn("e1h1", result)
+        self.assertIn("e1a1", result)
+        result = sf.legal_moves("castlingqueen", "3rk3/8/8/8/8/8/3K4/R3Q2R w KQ - 0 1", [])
+        self.assertNotIn("e1h1", result)
+        self.assertNotIn("e1a1", result)
+
+        # Check given by the castling piece itself
+        fen = "6k1/8/8/8/8/8/n7/3KQ2R w K - 0 1"
+        self.assertTrue(sf.gives_check("castlingqueen", fen, ["e1h1"]))
+        result = sf.legal_moves("castlingqueen", fen, ["e1h1"])
+        self.assertCountEqual(["g8h7", "g8h8"], result)
+
+        # Chess960 disambiguation of the castling piece file for black
+        fen = "r1q1q1r1/8/3k4/8/8/8/8/4K3 w ega - 0 1"
+        self.assertEqual(sf.get_fen("castlingqueen", fen, [], True), fen)
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
