@@ -109,7 +109,9 @@ namespace XBoard {
 
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
     moveList.clear();
-    pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), Threads.main());
+    // The protocol position is not bound to a thread, since the threads are
+    // recreated whenever the number of threads changes
+    pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), nullptr);
   }
 
   // do_move() is called when engine needs to apply a move when using XBoard protocol.
@@ -482,7 +484,13 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
   else if (token == "d")
       sync_cout << pos << sync_endl;
   else if (token == "eval")
-      sync_cout << Eval::trace(pos) << sync_endl;
+  {
+      // Evaluate a copy that uses the tables of the current main thread
+      StateInfo st;
+      Position p;
+      p.set(pos.variant(), pos.fen(), pos.is_chess960(), &st, Threads.main());
+      sync_cout << Eval::trace(p) << sync_endl;
+  }
   // Move strings and unknown commands
   else
   {
