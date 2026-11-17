@@ -510,6 +510,9 @@ public:
     /// Returns the square of a given character
     CharSquare get_square_for_piece(char piece) const {
         CharSquare s;
+        // ' ' marks empty squares as well as piece types that do not exist in the variant
+        if (piece == ' ')
+            return s;
         for (int r = 0; r < nbRanks; ++r)
         {
             for (int c = 0; c < nbFiles; ++c)
@@ -575,7 +578,7 @@ inline Validation check_promoted_pieces(const std::string& firstFenPart, const V
     if (!v || !v->shogiStylePromotions)
         return OK;
     
-    for (size_t i = 0; i < firstFenPart.length() - 1; ++i) {
+    for (size_t i = 0; i + 1 < firstFenPart.length(); ++i) {
         // Look for promoted pieces ('+' followed by piece character)
         if (firstFenPart[i] == '+') {
             char pieceChar = firstFenPart[i + 1];
@@ -653,7 +656,7 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
         }
         else if (!contains(validSpecialCharactersFirstField, c))
         {  // normal piece
-            if (fileIdx == board.get_nb_files())
+            if (fileIdx >= board.get_nb_files())
             {
                 std::cerr << "File index: " << fileIdx << " for piece '" << c << "' exceeds maximum of allowed number of files: " << board.get_nb_files() << "." << std::endl;
                 return NOK;
@@ -786,6 +789,11 @@ inline Validation check_castling_rank(const std::array<std::string, 2>& castling
                     return NOK;
                 }
             }
+            else if (tolower(castlingFlag) - 'a' >= board.get_nb_files())
+            {
+                std::cerr << "Castling flag " << castlingFlag << " exceeds the number of files: " << board.get_nb_files() << "." << std::endl;
+                return NOK;
+            }
             else if (board.get_piece(castlingRank, tolower(castlingFlag) - 'a') == ' ')
             {
                 std::cerr << "No gating piece for flag " << castlingFlag << std::endl;
@@ -812,11 +820,17 @@ inline Validation check_standard_castling(std::array<std::string, 2>& castlingIn
 
         for (CastlingRights castling: {KING_SIDE, QUEEN_SIDE})
         {
-            CharSquare rookStartingSquare = castling == QUEEN_SIDE ? rookPositionsStart[c][0] : rookPositionsStart[c][1];
+            const size_t rookIdx = castling == QUEEN_SIDE ? 0 : 1;
             char targetChar = castling == QUEEN_SIDE ? 'q' : 'k';
             size_t pcIdx;
             if (castlingInfoSplitted[c].find(targetChar) != std::string::npos)
             {
+                if (rookIdx >= rookPositionsStart[c].size())
+                {
+                    std::cerr << "The starting position has no " << color_to_string(c) << " ROOK for " << castling_rights_to_string(castling) << " castling." << std::endl;
+                    return NOK;
+                }
+                const CharSquare& rookStartingSquare = rookPositionsStart[c][rookIdx];
                 if (   (pcIdx = v->pieceToChar.find(board.get_piece(rookStartingSquare.rowIdx, rookStartingSquare.fileIdx))) == std::string::npos
                     || !(v->castlingRookPieces[c] & type_of(Piece(pcIdx)))
                     || color_of(Piece(pcIdx)) != c)
@@ -1086,6 +1100,16 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
             std::array<CharSquare, 2> kingPositions;
             kingPositions[WHITE] = board.get_square_for_piece(toupper(v->pieceToChar[v->castlingKingPiece[WHITE]]));
             kingPositions[BLACK] = board.get_square_for_piece(tolower(v->pieceToChar[v->castlingKingPiece[BLACK]]));
+
+            // Without a castling king, castling flags can only specify gates
+            for (Color c : {WHITE, BLACK})
+                if (   castlingInfoSplitted[c].size() != 0
+                    && v->pieceToChar[make_piece(c, v->castlingKingPiece[c])] == ' '
+                    && !v->gating)
+                {
+                    std::cerr << "There is no castling king for " << color_to_string(c) << ". Castling is not valid for " << color_to_string(c) << "." << std::endl;
+                    return FEN_INVALID_CASTLING_INFO;
+                }
 
             CharBoard startBoard(board.get_nb_ranks(), board.get_nb_files());
             fill_char_board(startBoard, v->startFen, validSpecialCharactersFirstField, v);

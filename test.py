@@ -1299,6 +1299,22 @@ class TestPyffish(unittest.TestCase):
                 fen = sf.start_fen(variant)
                 self.assertEqual(sf.validate_fen(fen, variant), sf.FEN_OK)
 
+    def test_validate_fen_out_of_bounds(self):
+        # inputs that used to access memory outside of the board
+        cases = (
+            # empty squares overshooting the rank
+            ("shogi", "lnsgkgsnl/1r5b14ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w 0 1", -8),
+            # empty board field
+            ("shogi", " w 0 1", -8),
+            # castling flag beyond the board width
+            ("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkqz - 0 1", -5),
+            # castling flag in variant without kings
+            ("amazons", "6*3/3**3*1/2*2**1**/q2*2*3/*3*3*1/1**q*Qq*2/4*1**1*/3**1**qQ/1*Q*1*Q1*1/2*2*3* b r - 33 17", -5),
+        )
+        for variant, fen, expected in cases:
+            with self.subTest(variant=variant, fen=fen):
+                self.assertEqual(sf.validate_fen(fen, variant), expected)
+
     def test_validate_fen_promoted_pieces(self):
         # Test promoted piece validation specifically
         
