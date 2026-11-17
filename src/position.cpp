@@ -1250,11 +1250,16 @@ bool Position::legal(Move m) const {
       Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
       if (is_ok(from) && (pseudoRoyals & from))
           pseudoRoyals ^= square_bb(from) ^ kto;
-      if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
+      // Piece type after promotion/demotion (for shogi-style promotions as well)
+      PieceType newType =  type_of(m) == PROMOTION       ? promotion_type(m)
+                         : type_of(m) == PIECE_PROMOTION ? promoted_piece_type(type_of(moved_piece(m)))
+                         : type_of(m) == PIECE_DEMOTION  ? type_of(unpromoted_piece_on(from))
+                                                         : NO_PIECE_TYPE;
+      if (newType != NO_PIECE_TYPE && (extinction_piece_types() & newType))
       {
-          if (count(sideToMove, promotion_type(m)) > extinction_piece_count())
+          if (count(sideToMove, newType) > extinction_piece_count())
               // increase in count leads to loss of pseudo-royalty
-              pseudoRoyals &= ~pieces(sideToMove, promotion_type(m));
+              pseudoRoyals &= ~pieces(sideToMove, newType);
           else
               // promoted piece is pseudo-royal
               pseudoRoyals |= kto;
@@ -1282,7 +1287,7 @@ bool Position::legal(Move m) const {
           Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(sideToMove);
           if (is_ok(from) && (pseudoRoyalCandidates & from))
               pseudoRoyalCandidates ^= square_bb(from) ^ kto;
-          if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
+          if (newType != NO_PIECE_TYPE && (extinction_piece_types() & newType))
               pseudoRoyalCandidates |= kto;
           bool allCheck = bool(pseudoRoyalCandidates);
           while (allCheck && pseudoRoyalCandidates)
