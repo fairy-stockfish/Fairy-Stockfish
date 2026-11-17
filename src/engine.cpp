@@ -116,8 +116,11 @@ void Engine::set_position(const std::string&              fen,
                           bool                            sfen) {
     // Drop the old state and create a new one
     states = StateListPtr(new std::deque<StateInfo>(1));
+    // The position is not bound to a worker, since the workers are recreated
+    // whenever the number of threads changes. The searches use their own root
+    // positions, and evaluations a copy bound to the current worker.
     pos.set(variants.find(options["UCI_Variant"])->second, fen, options["UCI_Chess960"],
-            &states->back(), threads.main_thread()->worker.get(), sfen);
+            &states->back(), nullptr, sfen);
 
     for (const auto& move : moves)
     {
