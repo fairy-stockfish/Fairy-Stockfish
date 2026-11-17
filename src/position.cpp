@@ -1887,6 +1887,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           dp.to[0] = to;
       }
 
+      int oldCastlingRights = st->castlingRights;
       drop_piece(make_piece(us, in_hand_piece_type(m)), pc, to);
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
       if (type_of(pc) != PAWN)
@@ -1917,6 +1918,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               }
           }
       }
+      // Update the hash key for castling rights created by the drop
+      if (st->castlingRights != oldCastlingRights)
+          k ^= Zobrist::castling[oldCastlingRights] ^ Zobrist::castling[st->castlingRights];
   }
   else if (type_of(m) != CASTLING)
   {

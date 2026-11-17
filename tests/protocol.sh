@@ -75,7 +75,23 @@ cat << EOF > xboard.exp
    expect eof
 EOF
 
-for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp xboard.exp
+# The incrementally updated key has to match the key of the position set up from its FEN
+cat << EOF > placement_hash.exp
+   spawn ./stockfish
+   send "setoption name UCI_Variant value placement\\n"
+   send "position startpos moves R@a1 R@a8 K@e1\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} { set placement_key \$expect_out(1,string) }
+   send "position fen r7/pppppppp/8/8/8/8/PPPPPPPP/R3K3\\[QRBBNNkqrbbnn\\] b Q - 0 2\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$placement_key != \$expect_out(1,string)} { exit 1 }
+   }
+   send "quit\\n"
+   expect eof
+EOF
+
+for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp xboard.exp placement_hash.exp
 do
   echo "Testing $exp"
   timeout 5 expect $exp > /dev/null
