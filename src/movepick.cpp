@@ -139,28 +139,10 @@ void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
         }
 }
 
-// Per-thread LIFO pool of move buffers. MovePicker instances have strictly
-// nested lifetimes within a search thread, so buffers can be handed out and
-// returned stack-wise. This keeps the large MAX_MOVES array off the machine
-// stack, whose 8MB limit deep searches can otherwise exceed (see issue #957).
-thread_local std::vector<std::unique_ptr<ExtMove[]>> moveBuffers;
-thread_local size_t                                  usedMoveBuffers = 0;
-
-ExtMove* acquire_move_buffer() {
-    if (usedMoveBuffers == moveBuffers.size())
-        moveBuffers.emplace_back(new ExtMove[MAX_MOVES]);
-    return moveBuffers[usedMoveBuffers++].get();
-}
-
-void release_move_buffer() {
-    assert(usedMoveBuffers > 0);
-    --usedMoveBuffers;
-}
-
 }  // namespace
 
 
-MovePicker::~MovePicker() { release_move_buffer(); }
+MovePicker::~MovePicker() { release_move_buffer(moves); }
 
 // Constructors of the MovePicker class. As arguments, we pass information
 // to decide which class of moves to emit, to help sorting the (presumably)
