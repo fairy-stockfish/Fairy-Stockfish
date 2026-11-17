@@ -1331,9 +1331,15 @@ bool Position::legal(Move m) const {
       if (is_gating(m) && (gating_square(m) == to || gating_square(m) == rto))
           return false;
 
-      // Non-royal pieces can not be impeded from castling
+      // Non-royal pieces can not be impeded from castling,
+      // but the castling must not expose a royal king
       if (type_of(piece_on(from)) != KING)
-          return true;
+      {
+          if (!count<KING>(us))
+              return true;
+          Bitboard occupied = (pieces() ^ from ^ to_sq(m)) | to | rto;
+          return !(attackers_to(square<KING>(us), occupied, ~us) & occupied);
+      }
 
       for (Square s = to; s != from; s += step)
           if (attackers_to(s, ~us)

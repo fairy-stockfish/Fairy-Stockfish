@@ -411,7 +411,7 @@ namespace {
                 moveList = generate_drops<Us, Type>(pos, moveList, pop_lsb(ps), target & ~pos.pieces(~Us));
 
         // Castling with non-king piece
-        if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(Us & ANY_CASTLING))
+        if (pos.castling_king_piece(Us) != KING && Type != CAPTURES && pos.can_castle(Us & ANY_CASTLING))
         {
             Square from = pos.castling_king_square(Us);
             for(CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
@@ -464,7 +464,7 @@ namespace {
         if (pos.pass(Us))
             *moveList++ = make<SPECIAL>(ksq, ksq);
 
-        if ((Type == QUIETS || Type == NON_EVASIONS) && pos.can_castle(Us & ANY_CASTLING))
+        if ((Type == QUIETS || Type == NON_EVASIONS) && pos.castling_king_piece(Us) == KING && pos.can_castle(Us & ANY_CASTLING))
             for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
                 if (!pos.castling_impeded(cr) && pos.can_castle(cr))
                     moveList = make_move_and_gating<CASTLING>(pos, moveList, Us,ksq, pos.castling_rook_square(cr));
