@@ -695,8 +695,12 @@ void Position::set_state() const {
         Piece  pc = piece_on(s);
         st->key ^= Zobrist::psq[pc][s];
 
+        // Wall squares count for the minor piece key of the correction history
         if (!pc)
+        {
             st->key ^= Zobrist::wall[s];
+            st->minorPieceKey ^= Zobrist::wall[s];
+        }
 
         else if (type_of(pc) == PAWN)
             st->pawnKey ^= Zobrist::psq[pc][s];
@@ -2226,6 +2230,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
                 st->wallSquares |= bsq;
                 byTypeBB[ALL_PIECES] |= bsq;
                 k ^= Zobrist::wall[bsq];
+                st->minorPieceKey ^= Zobrist::wall[bsq];
             }
         }
     }
@@ -2240,12 +2245,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
             Bitboard b = st->previous->wallSquares;
             byTypeBB[ALL_PIECES] ^= b;
             while (b)
-                k ^= Zobrist::wall[pop_lsb(b)];
+            {
+                Square s = pop_lsb(b);
+                k ^= Zobrist::wall[s];
+                st->minorPieceKey ^= Zobrist::wall[s];
+            }
             st->wallSquares = 0;
         }
         st->wallSquares |= gating_square(m);
         byTypeBB[ALL_PIECES] |= gating_square(m);
         k ^= Zobrist::wall[gating_square(m)];
+        st->minorPieceKey ^= Zobrist::wall[gating_square(m)];
     }
 
     // Update the key with the final value
