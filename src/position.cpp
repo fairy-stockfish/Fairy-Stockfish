@@ -770,7 +770,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   // Disambiguation for chess960 "king" square
   if (chess960 && can_castle(WHITE_CASTLING) && popcount(pieces(WHITE, castling_king_piece(WHITE)) & rank_bb(castling_rank(WHITE))) > 1)
-      ss << char('A' + castling_king_square(WHITE));
+      ss << char('A' + file_of(castling_king_square(WHITE)));
 
   if (can_castle(WHITE_OO))
       ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OO ))) : 'K');
@@ -789,7 +789,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   // Disambiguation for chess960 "king" square
   if (chess960 && can_castle(BLACK_CASTLING) && popcount(pieces(BLACK, castling_king_piece(BLACK)) & rank_bb(castling_rank(BLACK))) > 1)
-      ss << char('a' + castling_king_square(BLACK));
+      ss << char('a' + file_of(castling_king_square(BLACK)));
 
   if (can_castle(BLACK_OO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OO ))) : 'k');
@@ -1331,9 +1331,15 @@ bool Position::legal(Move m) const {
       if (is_gating(m) && (gating_square(m) == to || gating_square(m) == rto))
           return false;
 
-      // Non-royal pieces can not be impeded from castling
+      // Non-royal pieces can not be impeded from castling,
+      // but the castling must not expose a royal king
       if (type_of(piece_on(from)) != KING)
-          return true;
+      {
+          if (!count<KING>(us))
+              return true;
+          Bitboard occupied = (pieces() ^ from ^ to_sq(m)) | to | rto;
+          return !(attackers_to(square<KING>(us), occupied, ~us) & occupied);
+      }
 
       for (Square s = to; s != from; s += step)
           if (attackers_to(s, ~us)
@@ -1624,6 +1630,11 @@ bool Position::gives_check(Move m) const {
       if (   castling_rank(WHITE) > RANK_1
           && ((blockers_for_king(~sideToMove) & rfrom) || (non_sliding_riders() & pieces(sideToMove)))
           && attackers_to(square<KING>(~sideToMove), (pieces() ^ kfrom ^ rfrom) | rto | kto, sideToMove))
+          return true;
+
+      // Direct check by a non-king castling piece
+      if (   type_of(piece_on(kfrom)) != KING
+          && (attacks_bb(sideToMove, type_of(piece_on(kfrom)), kto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove)))
           return true;
 
       return   (PseudoAttacks[sideToMove][type_of(piece_on(rfrom))][rto] & square<KING>(~sideToMove))
