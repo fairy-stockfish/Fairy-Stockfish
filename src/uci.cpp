@@ -68,9 +68,7 @@ namespace {
         return;
 
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
-    // The protocol position is not bound to a thread, since the threads are
-    // recreated whenever the number of threads changes
-    pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), nullptr, sfen);
+    pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), Threads.main(), sfen);
 
     // Parse move list (if any)
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
@@ -302,7 +300,7 @@ void UCI::loop(int argc, char* argv[]) {
   StateListPtr states(new std::deque<StateInfo>(1));
 
   assert(variants.find(Options["UCI_Variant"])->second != nullptr);
-  pos.set(variants.find(Options["UCI_Variant"])->second, variants.find(Options["UCI_Variant"])->second->startFen, false, &states->back(), nullptr);
+  pos.set(variants.find(Options["UCI_Variant"])->second, variants.find(Options["UCI_Variant"])->second->startFen, false, &states->back(), Threads.main());
 
   for (int i = 1; i < argc; ++i)
       cmd += std::string(argv[i]) + " ";
@@ -362,8 +360,14 @@ void UCI::loop(int argc, char* argv[]) {
 #endif
                                                            : "chess");
           Options["UCI_Variant"].set_default(defaultVariant);
-          std::istringstream ss("startpos");
-          position(pos, ss, states);
+          // The XBoard state machine sets up its position without a thread
+          if (CurrentProtocol == XBOARD)
+              XBoard::stateMachine->setboard();
+          else
+          {
+              std::istringstream ss("startpos");
+              position(pos, ss, states);
+          }
           if (is_uci_dialect(CurrentProtocol) && token != "ucicyclone")
               sync_cout << "id name " << engine_info(true)
                           << "\n" << Options
