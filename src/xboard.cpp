@@ -53,7 +53,8 @@ namespace XBoard {
     Threads.start_thinking(pos, states, searchLimits, ponder);
   }
 
-  // ponder() starts a ponder search
+  // ponder() starts a ponder search. The caller has to hold the mutex
+  // of the state machine.
 
   void StateMachine::ponder() {
 
@@ -62,6 +63,20 @@ namespace XBoard {
     do_move(ponderMove);
     ponderMove = MOVE_NONE;
     go(limits, true);
+  }
+
+  // start_pending_ponder() starts the ponder search after a search that
+  // played a move. It runs in its own thread, since it is triggered by the
+  // main search thread when it becomes idle, and is serialized with the
+  // command processing so that both do not change the position or start a
+  // search at the same time.
+
+  void StateMachine::start_pending_ponder() {
+
+    std::lock_guard<std::mutex> lock(mutex);
+    // The ponder search might have been started already by process_command()
+    if (ponderMove != MOVE_NONE)
+        ponder();
   }
 
   // stop() stops an ongoing search (if any)
@@ -73,6 +88,9 @@ namespace XBoard {
         Threads.abort = true;
     Threads.stop = true;
     Threads.main()->wait_for_search_finished();
+    // A pending ponder search is obsolete if the search was aborted
+    if (abort)
+        ponderMove = MOVE_NONE;
     // Ensure that current position does not get out of sync with GUI
     if (Threads.main()->ponder)
     {
@@ -169,6 +187,18 @@ namespace XBoard {
 /// StateMachine::process_command() processes commands of the XBoard protocol.
 
 void StateMachine::process_command(std::string token, std::istringstream& is) {
+  std::lock_guard<std::mutex> lock(mutex);
+
+  // If the search that played the last move has a pending ponder search,
+  // start it before processing the command, so that e.g. a ponder hit is
+  // recognized. The search sets the ponder move right before it finishes.
+  if (ponderMove != MOVE_NONE)
+  {
+      Threads.main()->wait_for_search_finished();
+      if (ponderMove != MOVE_NONE)
+          ponder();
+  }
+
   if (token == "protover")
   {
       std::string vars = "chess";
@@ -477,6 +507,9 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
           }
       }
       stop(false);
+      // The search might have finished and set a ponder move while we were
+      // waiting for it. It is obsolete, since the position changes now.
+      ponderMove = MOVE_NONE;
 
       // Apply move
       Move m;
