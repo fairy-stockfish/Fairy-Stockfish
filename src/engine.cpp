@@ -117,7 +117,7 @@ void Engine::set_position(const std::string&              fen,
     // Drop the old state and create a new one
     states = StateListPtr(new std::deque<StateInfo>(1));
     pos.set(variants.find(options["UCI_Variant"])->second, fen, options["UCI_Chess960"],
-            &states->back(), threads.main_thread()->worker.get(), sfen);
+            &states->back(), nullptr, sfen);
 
     for (const auto& move : moves)
     {
