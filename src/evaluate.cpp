@@ -423,8 +423,9 @@ namespace {
         kingRing[Us] = Bitboard(0);
     else
     {
-        Square s = make_square(std::clamp(file_of(ksq), FILE_B, File(pos.max_file() - 1)),
-                               std::clamp(rank_of(ksq), RANK_2, Rank(pos.max_rank() - 1)));
+        // The upper bounds must not be below the lower bounds, e.g., on a board with a single rank
+        Square s = make_square(std::clamp(file_of(ksq), FILE_B, std::max(File(pos.max_file() - 1), FILE_B)),
+                               std::clamp(rank_of(ksq), RANK_2, std::max(Rank(pos.max_rank() - 1), RANK_2)));
         kingRing[Us] = attacks_bb<KING>(s) | s;
     }
 
