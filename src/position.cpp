@@ -589,6 +589,9 @@ void Position::set_check_info(StateInfo* si) const {
       PieceType movePt = pt == KING ? king_type() : pt;
       // Pieces can not give check to a king outside of their mobility region
       si->checkSquares[pt] = ksq != SQ_NONE && (board_bb(sideToMove, pt) & ksq) ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
+      // Unpromoted soldiers only attack forwards, i.e., can not give check from the rank of the king
+      if (pt == SOLDIER && ksq != SQ_NONE && relative_rank(sideToMove, ksq, max_rank()) < var->soldierPromotionRank)
+          si->checkSquares[pt] &= PseudoAttacks[~sideToMove][SHOGI_PAWN][ksq];
       // Collect special piece types that require slower check and evasion detection
       if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
