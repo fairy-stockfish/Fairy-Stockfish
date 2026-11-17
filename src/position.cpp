@@ -587,7 +587,8 @@ void Position::set_check_info(StateInfo* si) const {
   {
       PieceType pt = pop_lsb(ps);
       PieceType movePt = pt == KING ? king_type() : pt;
-      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
+      // Pieces can not give check to a king outside of their mobility region
+      si->checkSquares[pt] = ksq != SQ_NONE && (board_bb(sideToMove, pt) & ksq) ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
       // Collect special piece types that require slower check and evasion detection
       if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
@@ -1539,9 +1540,10 @@ bool Position::gives_check(Move m) const {
   else if (janggiCannons & to)
       janggiCannons ^= to;
 
-  // Is there a direct check?
+  // Is there a direct check? Pieces can not attack outside of their mobility region.
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING
-      && !((var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && capture(m)))
+      && !((var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && capture(m))
+      && (board_bb(sideToMove, type_of(moved_piece(m))) & square<KING>(~sideToMove)))
   {
       PieceType pt = type_of(moved_piece(m));
       if (pt == JANGGI_CANNON)
