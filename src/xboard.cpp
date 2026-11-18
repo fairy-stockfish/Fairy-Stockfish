@@ -376,7 +376,7 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
             if ((m = UCI::to_move(pos, passMove)) != MOVE_NONE)
                 do_move(m);
             // apply setboard if passing does not lead to a match
-            if (pos.key() != p.key())
+            if (pos.state()->key != p.state()->key)
                 setboard(fen);
         }
         else

@@ -2645,6 +2645,9 @@ Key Position::key_after(Move m) const {
     Piece  captured = piece_on(to);
     Key    k        = st->key ^ Zobrist::side;
 
+    if (is_pass(m) && !var->wallOrMove)
+        return adjust_key50<true>(k ^ PassKey);
+
     if (captured)
     {
         k ^= Zobrist::psq[captured][to];

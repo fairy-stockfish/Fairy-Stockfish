@@ -1358,7 +1358,13 @@ inline int Position::pawns_on_same_color_squares(Color c, Square s) const {
     return popcount(pieces(c, PAWN) & ((DarkSquares & s) ? DarkSquares : ~DarkSquares));
 }
 
-inline Key Position::key() const { return adjust_key50<false>(st->key); }
+// After a passing move another pass ends the game (see is_game_end()), so the
+// key of the transposition table has to distinguish such positions.
+constexpr Key PassKey = make_key(0x70617373);
+
+inline Key Position::key() const {
+    return adjust_key50<false>(st->pass && !var->wallOrMove ? st->key ^ PassKey : st->key);
+}
 
 template<bool AfterMove>
 inline Key Position::adjust_key50(Key k) const {
