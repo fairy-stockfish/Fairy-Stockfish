@@ -1251,8 +1251,8 @@ moves_loop: // When in check, search starts from here
           }
       }
       else if (   givesCheck
-               && depth > 6
-               && abs(ss->staticEval) > Value(100))
+               && (   (depth > 6 && abs(ss->staticEval) > Value(100))
+                   || (pos.perpetual_check_illegal() && type_of(move) != DROP)))
           extension = 1;
 
       // Losing chess capture extension

@@ -214,6 +214,7 @@ public:
   bool flag_move() const;
   bool flag_reached(Color c) const;
   bool check_counting() const;
+  bool perpetual_check_illegal() const;
   int connect_n() const;
   PieceSet connect_piece_types() const;
   bool connect_horizontal() const;
@@ -1085,6 +1086,11 @@ inline bool Position::flag_reached(Color c) const {
 inline bool Position::check_counting() const {
   assert(var != nullptr);
   return var->checkCounting;
+}
+
+inline bool Position::perpetual_check_illegal() const {
+  assert(var != nullptr);
+  return var->perpetualCheckIllegal;
 }
 
 inline int Position::connect_n() const {
