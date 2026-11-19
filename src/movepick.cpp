@@ -17,19 +17,10 @@
 */
 
 #include <cassert>
-#include <memory>
-#include <vector>
 
 #include "movepick.h"
 
 namespace Stockfish {
-
-// Since continuation history grows quadratically with the number of piece types,
-// we need to reserve a limited number of slots and map piece types to these slots
-// in order to reduce memory consumption to a reasonable level.
-int history_slot(Piece pc) {
-    return pc == NO_PIECE ? 0 : (type_of(pc) == KING ? PIECE_SLOTS - 1 : type_of(pc) % (PIECE_SLOTS - 1)) + color_of(pc) * PIECE_SLOTS;
-}
 
 namespace {
 
@@ -55,29 +46,11 @@ namespace {
         }
   }
 
-  // Per-thread LIFO pool of move buffers. MovePicker instances have strictly
-  // nested lifetimes within a search thread, so buffers can be handed out and
-  // returned stack-wise. This keeps the large MAX_MOVES array off the machine
-  // stack, whose 8MB limit deep searches can otherwise exceed (see issue #957).
-  thread_local std::vector<std::unique_ptr<ExtMove[]>> moveBuffers;
-  thread_local size_t usedMoveBuffers = 0;
-
-  ExtMove* acquire_move_buffer() {
-    if (usedMoveBuffers == moveBuffers.size())
-        moveBuffers.emplace_back(new ExtMove[MAX_MOVES]);
-    return moveBuffers[usedMoveBuffers++].get();
-  }
-
-  void release_move_buffer() {
-    assert(usedMoveBuffers > 0);
-    --usedMoveBuffers;
-  }
-
 } // namespace
 
 
 MovePicker::~MovePicker() {
-  release_move_buffer();
+  release_move_buffer(moves);
 }
 
 /// Constructors of the MovePicker class. As arguments we pass information

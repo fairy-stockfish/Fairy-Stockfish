@@ -53,7 +53,8 @@ namespace XBoard {
     Threads.start_thinking(pos, states, searchLimits, ponder);
   }
 
-  // ponder() starts a ponder search
+  // ponder() starts a ponder search. The caller has to hold the mutex
+  // of the state machine.
 
   void StateMachine::ponder() {
 
@@ -64,15 +65,38 @@ namespace XBoard {
     go(limits, true);
   }
 
-  // stop() stops an ongoing search (if any)
-  // and does not print/apply a move if aborted
+  // start_pending_ponder() starts the ponder search after a search that
+  // played a move. It runs in its own thread, since it is triggered by the
+  // main search thread when it becomes idle, and is serialized with the
+  // command processing so that both do not change the position or start a
+  // search at the same time.
 
-  void StateMachine::stop(bool abort) {
+  void StateMachine::start_pending_ponder() {
+
+    std::lock_guard<std::mutex> lock(mutex);
+    // The ponder search might have been started already by process_command()
+    if (ponderMove != MOVE_NONE)
+        ponder();
+  }
+
+  // stop() stops an ongoing search (if any)
+  // and does not print/apply a move if aborted.
+  // Returns whether a search for the engine's move was aborted.
+
+  bool StateMachine::stop(bool abort) {
 
     if (abort)
         Threads.abort = true;
     Threads.stop = true;
     Threads.main()->wait_for_search_finished();
+    // The search did not play its move if it was aborted
+    bool aborted = abort && moveAfterSearch;
+    // A pending ponder search is obsolete if the search was aborted
+    if (abort)
+    {
+        ponderMove = MOVE_NONE;
+        moveAfterSearch = false;
+    }
     // Ensure that current position does not get out of sync with GUI
     if (Threads.main()->ponder)
     {
@@ -80,6 +104,7 @@ namespace XBoard {
         undo_move();
         Threads.main()->ponder = false;
     }
+    return aborted;
   }
 
   // setboard() is called when engine receives the "setboard" XBoard command.
@@ -91,7 +116,9 @@ namespace XBoard {
 
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
     moveList.clear();
-    pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), Threads.main());
+    // The protocol position is not bound to a thread, since the threads are
+    // recreated whenever the number of threads changes
+    pos.set(variants.find(Options["UCI_Variant"])->second, fen, Options["UCI_Chess960"], &states->back(), nullptr);
   }
 
   // do_move() is called when engine needs to apply a move when using XBoard protocol.
@@ -169,6 +196,18 @@ namespace XBoard {
 /// StateMachine::process_command() processes commands of the XBoard protocol.
 
 void StateMachine::process_command(std::string token, std::istringstream& is) {
+  std::lock_guard<std::mutex> lock(mutex);
+
+  // If the search that played the last move has a pending ponder search,
+  // start it before processing the command, so that e.g. a ponder hit is
+  // recognized. The search sets the ponder move right before it finishes.
+  if (ponderMove != MOVE_NONE)
+  {
+      Threads.main()->wait_for_search_finished();
+      if (ponderMove != MOVE_NONE)
+          ponder();
+  }
+
   if (token == "protover")
   {
       std::string vars = "chess";
@@ -359,9 +398,19 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
       std::getline(is, value);
       if (Options.count(name))
       {
+          // The search reads the options, so stop it before changing one,
+          // and restart it afterwards to continue with the new value
+          bool thinking = stop();
           if (Options[name].get_type() == "check")
               value = value == "1" ? "true" : "false";
           Options[name] = value;
+          if (Options["UCI_AnalyseMode"])
+              go(analysisLimits);
+          else if (thinking)
+          {
+              moveAfterSearch = true;
+              go(limits);
+          }
       }
   }
   else if (token == "analyze")
@@ -416,7 +465,7 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
   }
   else if (token == "holding")
   {
-      stop();
+      bool thinking = stop();
       // holding [<white>] [<black>] <color><piece>
       std::string white_holdings, black_holdings;
       if (   std::getline(is, token, '[') && std::getline(is, white_holdings, ']')
@@ -438,8 +487,11 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
           setboard(fen);
       }
       // restart search
-      if (moveAfterSearch)
+      if (thinking)
+      {
+          moveAfterSearch = true;
           go(limits);
+      }
   }
   // Additional custom non-XBoard commands
   else if (token == "perft")
@@ -452,7 +504,13 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
   else if (token == "d")
       sync_cout << pos << sync_endl;
   else if (token == "eval")
-      sync_cout << Eval::trace(pos) << sync_endl;
+  {
+      // Evaluate a copy that uses the tables of the current main thread
+      StateInfo st;
+      Position p;
+      p.set(pos.variant(), pos.fen(), pos.is_chess960(), &st, Threads.main());
+      sync_cout << Eval::trace(p) << sync_endl;
+  }
   // Move strings and unknown commands
   else
   {
@@ -477,6 +535,9 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
           }
       }
       stop(false);
+      // The search might have finished and set a ponder move while we were
+      // waiting for it. It is obsolete, since the position changes now.
+      ponderMove = MOVE_NONE;
 
       // Apply move
       Move m;

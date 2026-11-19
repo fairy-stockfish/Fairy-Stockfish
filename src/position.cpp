@@ -111,7 +111,6 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
       os << UCI::square(pos, pop_lsb(b)) << " ";
 
   if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
-      && Options["UCI_Variant"] == "chess"
       && !pos.can_castle(ANY_CASTLING))
   {
       StateInfo st;
@@ -588,7 +587,11 @@ void Position::set_check_info(StateInfo* si) const {
   {
       PieceType pt = pop_lsb(ps);
       PieceType movePt = pt == KING ? king_type() : pt;
-      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
+      // Pieces can not give check to a king outside of their mobility region
+      si->checkSquares[pt] = ksq != SQ_NONE && (board_bb(sideToMove, pt) & ksq) ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
+      // Unpromoted soldiers only attack forwards, i.e., can not give check from the rank of the king
+      if (pt == SOLDIER && ksq != SQ_NONE && relative_rank(sideToMove, ksq, max_rank()) < var->soldierPromotionRank)
+          si->checkSquares[pt] &= PseudoAttacks[~sideToMove][SHOGI_PAWN][ksq];
       // Collect special piece types that require slower check and evasion detection
       if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
@@ -774,7 +777,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   // Disambiguation for chess960 "king" square
   if (chess960 && can_castle(WHITE_CASTLING) && popcount(pieces(WHITE, castling_king_piece(WHITE)) & rank_bb(castling_rank(WHITE))) > 1)
-      ss << char('A' + castling_king_square(WHITE));
+      ss << char('A' + file_of(castling_king_square(WHITE)));
 
   if (can_castle(WHITE_OO))
       ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OO ))) : 'K');
@@ -793,7 +796,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   // Disambiguation for chess960 "king" square
   if (chess960 && can_castle(BLACK_CASTLING) && popcount(pieces(BLACK, castling_king_piece(BLACK)) & rank_bb(castling_rank(BLACK))) > 1)
-      ss << char('a' + castling_king_square(BLACK));
+      ss << char('a' + file_of(castling_king_square(BLACK)));
 
   if (can_castle(BLACK_OO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OO ))) : 'k');
@@ -867,9 +870,19 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
                  | (attacks_bb<BISHOP>(s) & pieces(c, QUEEN, BISHOP, ARCHBISHOP))) & sliders;
       slidingSnipers = snipers;
   }
+  else if (var->fastAttacks2)
+  {
+      snipers = (  (attacks_bb<  ROOK>(s) & (  pieces(c, ROOK, QUEEN, DRAGON)
+                                             | (pieces(c, LANCE) & PseudoAttacks[~c][LANCE][s])))
+                 | (attacks_bb<BISHOP>(s) & pieces(c, BISHOP, QUEEN, DRAGON_HORSE))) & sliders;
+      // Like the generic path, skip sliders that already attack 's' directly
+      snipers &= ~(attacks_bb<ROOK>(s, pieces()) | attacks_bb<BISHOP>(s, pieces()));
+      slidingSnipers = snipers;
+  }
   else
   {
-      for (PieceSet ps = piece_types(); ps;)
+      // Only piece types with blockable attacks can be snipers
+      for (PieceSet ps = piece_types() & SniperTypes; ps;)
       {
           PieceType pt = pop_lsb(ps);
           Bitboard b = sliders & (PseudoAttacks[~c][pt][s] ^ LeaperAttacks[~c][pt][s]) & pieces(c, pt);
@@ -957,6 +970,81 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied, Color c, Bitboard j
             | (attacks_bb<WAZIR>(s)               & pieces(c, WAZIR, DRAGON_HORSE, GOLD))
             | (LeaperAttacks[~c][SHOGI_KNIGHT][s] & pieces(c, SHOGI_KNIGHT))
             | (LeaperAttacks[~c][SHOGI_PAWN][s]   & pieces(c, SHOGI_PAWN, SILVER));
+  }
+
+  // Use a faster version for xiangqi pieces
+  if (var->fastAttacksXiangqi)
+  {
+      Bitboard b =  (attacks_bb<ROOK>(s, occupied) & pieces(c, ROOK))
+                  | ((rider_attacks_bb<RIDER_CANNON_H>(s, occupied) | rider_attacks_bb<RIDER_CANNON_V>(s, occupied)) & pieces(c, CANNON))
+                  | (LeaperAttacks[~c][SOLDIER][s] & pieces(c, SOLDIER));
+      if (board_bb(c, KING) & s)
+          b |= LeaperAttacks[~c][WAZIR][s] & pieces(c, KING);
+      if (board_bb(c, FERS) & s)
+          b |= LeaperAttacks[~c][FERS][s] & pieces(c, FERS);
+      if ((board_bb(c, ELEPHANT) & s) && (PseudoAttacks[~c][ELEPHANT][s] & pieces(c, ELEPHANT)))
+          b |= rider_attacks_bb<RIDER_ELEPHANT>(s, occupied) & pieces(c, ELEPHANT);
+      // The horse is asymmetric, so test each candidate horse from its own square
+      Bitboard horses = PseudoAttacks[~c][HORSE][s] & pieces(c, HORSE);
+      while (horses)
+      {
+          Square s2 = pop_lsb(horses);
+          if (rider_attacks_bb<RIDER_HORSE>(s2, occupied) & s)
+              b |= s2;
+      }
+      // Unpromoted soldiers
+      if (b & pieces(SOLDIER) && relative_rank(c, s, max_rank()) < var->soldierPromotionRank)
+          b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
+      return b;
+  }
+
+  // Use a faster version for janggi pieces
+  if (var->fastAttacksJanggi)
+  {
+      Bitboard b =  (attacks_bb<ROOK>(s, occupied) & pieces(c, ROOK))
+                  | (LeaperAttacks[~c][SOLDIER][s] & pieces(c, SOLDIER));
+      // Cannons can not jump over or capture cannons
+      if (PseudoAttacks[WHITE][ROOK][s] & pieces(c, JANGGI_CANNON))
+      {
+          Bitboard occupiedNoCannons = occupied & ~janggiCannons;
+          b |=  (  (rider_attacks_bb<RIDER_CANNON_H>(s, occupied) & rider_attacks_bb<RIDER_CANNON_H>(s, occupiedNoCannons))
+                 | (rider_attacks_bb<RIDER_CANNON_V>(s, occupied) & rider_attacks_bb<RIDER_CANNON_V>(s, occupiedNoCannons)))
+              & pieces(c, JANGGI_CANNON);
+      }
+      if (board_bb(c, KING) & s)
+          b |= LeaperAttacks[~c][WAZIR][s] & pieces(c, KING);
+      if (board_bb(c, WAZIR) & s)
+          b |= LeaperAttacks[~c][WAZIR][s] & pieces(c, WAZIR);
+      // Horses and elephants are asymmetric, so test each candidate from its own square
+      Bitboard horses = PseudoAttacks[~c][HORSE][s] & pieces(c, HORSE);
+      while (horses)
+      {
+          Square s2 = pop_lsb(horses);
+          if (rider_attacks_bb<RIDER_HORSE>(s2, occupied) & s)
+              b |= s2;
+      }
+      Bitboard elephants = PseudoAttacks[~c][JANGGI_ELEPHANT][s] & pieces(c, JANGGI_ELEPHANT);
+      while (elephants)
+      {
+          Square s2 = pop_lsb(elephants);
+          if (rider_attacks_bb<RIDER_JANGGI_ELEPHANT>(s2, occupied) & s)
+              b |= s2;
+      }
+      // Palace moves
+      if (diagonal_lines() & s)
+      {
+          Bitboard diags =  (attacks_bb(~c, FERS, s, occupied) & pieces(c, KING, WAZIR))
+                          | (attacks_bb(~c, PAWN, s, occupied) & pieces(c, SOLDIER))
+                          | (rider_attacks_bb<RIDER_BISHOP>(s, occupied) & pieces(c, ROOK))
+                          | (  rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied)
+                             & rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied & ~janggiCannons)
+                             & pieces(c, JANGGI_CANNON));
+          b |= diags & diagonal_lines();
+      }
+      // Unpromoted soldiers
+      if (b & pieces(SOLDIER) && relative_rank(c, s, max_rank()) < var->soldierPromotionRank)
+          b ^= b & pieces(SOLDIER) & ~PseudoAttacks[~c][SHOGI_PAWN][s];
+      return b;
   }
 
   Bitboard b = 0;
@@ -1207,11 +1295,16 @@ bool Position::legal(Move m) const {
       Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
       if (is_ok(from) && (pseudoRoyals & from))
           pseudoRoyals ^= square_bb(from) ^ kto;
-      if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
+      // Piece type after promotion/demotion (for shogi-style promotions as well)
+      PieceType newType =  type_of(m) == PROMOTION       ? promotion_type(m)
+                         : type_of(m) == PIECE_PROMOTION ? promoted_piece_type(type_of(moved_piece(m)))
+                         : type_of(m) == PIECE_DEMOTION  ? type_of(unpromoted_piece_on(from))
+                                                         : NO_PIECE_TYPE;
+      if (newType != NO_PIECE_TYPE && (extinction_piece_types() & newType))
       {
-          if (count(sideToMove, promotion_type(m)) > extinction_piece_count())
+          if (count(sideToMove, newType) > extinction_piece_count())
               // increase in count leads to loss of pseudo-royalty
-              pseudoRoyals &= ~pieces(sideToMove, promotion_type(m));
+              pseudoRoyals &= ~pieces(sideToMove, newType);
           else
               // promoted piece is pseudo-royal
               pseudoRoyals |= kto;
@@ -1239,7 +1332,7 @@ bool Position::legal(Move m) const {
           Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(sideToMove);
           if (is_ok(from) && (pseudoRoyalCandidates & from))
               pseudoRoyalCandidates ^= square_bb(from) ^ kto;
-          if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
+          if (newType != NO_PIECE_TYPE && (extinction_piece_types() & newType))
               pseudoRoyalCandidates |= kto;
           bool allCheck = bool(pseudoRoyalCandidates);
           while (allCheck && pseudoRoyalCandidates)
@@ -1292,9 +1385,15 @@ bool Position::legal(Move m) const {
       if (is_gating(m) && (gating_square(m) == to || gating_square(m) == rto))
           return false;
 
-      // Non-royal pieces can not be impeded from castling
+      // Non-royal pieces can not be impeded from castling,
+      // but the castling must not expose a royal king
       if (type_of(piece_on(from)) != KING)
-          return true;
+      {
+          if (!count<KING>(us))
+              return true;
+          Bitboard occupied = (pieces() ^ from ^ to_sq(m)) | to | rto;
+          return !(attackers_to(square<KING>(us), occupied, ~us) & occupied);
+      }
 
       for (Square s = to; s != from; s += step)
           if (attackers_to(s, ~us)
@@ -1330,6 +1429,14 @@ bool Position::legal(Move m) const {
 
   // Return early when without king
   if (!count<KING>(us))
+      return true;
+
+  // When not in check and all pins are known, only a pinned piece can expose the king.
+  // Pinned pieces still need the full test, since leapers can jump over the pinner.
+  if (   var->fastLegal
+      && !checkers()
+      && !(piece_types() & PinUnsafeTypes)
+      && (type_of(m) == DROP || !(blockers_for_king(us) & from)))
       return true;
 
   Bitboard janggiCannons = pieces(JANGGI_CANNON);
@@ -1492,9 +1599,10 @@ bool Position::gives_check(Move m) const {
   else if (janggiCannons & to)
       janggiCannons ^= to;
 
-  // Is there a direct check?
+  // Is there a direct check? Pieces can not attack outside of their mobility region.
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING
-      && !((var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && capture(m)))
+      && !((var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && capture(m))
+      && (board_bb(sideToMove, type_of(moved_piece(m))) & square<KING>(~sideToMove)))
   {
       PieceType pt = type_of(moved_piece(m));
       if (pt == JANGGI_CANNON)
@@ -1579,6 +1687,11 @@ bool Position::gives_check(Move m) const {
           && attackers_to(square<KING>(~sideToMove), (pieces() ^ kfrom ^ rfrom) | rto | kto, sideToMove))
           return true;
 
+      // Direct check by a non-king castling piece
+      if (   type_of(piece_on(kfrom)) != KING
+          && (attacks_bb(sideToMove, type_of(piece_on(kfrom)), kto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove)))
+          return true;
+
       return   (PseudoAttacks[sideToMove][type_of(piece_on(rfrom))][rto] & square<KING>(~sideToMove))
             && (attacks_bb(sideToMove, type_of(piece_on(rfrom)), rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
   }
@@ -1595,7 +1708,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   assert(&newSt != st);
 
 #ifndef NO_THREADS
-  thisThread->nodes.fetch_add(1, std::memory_order_relaxed);
+  // Positions outside of the search, e.g. of the protocols, have no thread
+  if (thisThread)
+      thisThread->nodes.fetch_add(1, std::memory_order_relaxed);
 #endif
   Key k = st->key ^ Zobrist::side;
 
@@ -1710,7 +1825,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^= Zobrist::psq[captured][capsq];
       st->materialKey ^= Zobrist::psq[captured][pieceCount[captured]];
 #ifndef NO_THREADS
-      prefetch(thisThread->materialTable[material_key(var->endgameEval)]);
+      if (thisThread)
+          prefetch(thisThread->materialTable[material_key(var->endgameEval)]);
 #endif
       // Reset rule 50 counter
       st->rule50 = 0;
@@ -2696,7 +2812,9 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
   }
 
   // n-fold repetition
-  if (n_fold_rule())
+  // Without a previous occurrence of the current position (see st->repetition)
+  // only the Janggi move repetition rule can end the game.
+  if (n_fold_rule() && (st->repetition || var->moveRepetitionIllegal))
   {
       int end = captures_to_hand() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 
@@ -3070,6 +3188,9 @@ Bitboard Position::chased() const {
   };
 
   // Direct attacks
+  // Drops have no origin square, so all their attacks are new and there are no
+  // discovered attacks from a vacated square.
+  bool drop = type_of(st->move) == DROP;
   Square from = from_sq(st->move);
   Square to = to_sq(st->move);
   PieceType movedPiece = type_of(piece_on(to));
@@ -3077,23 +3198,27 @@ Bitboard Position::chased() const {
   {
       Bitboard directAttacks = attacks_from(~sideToMove, movedPiece, to) & pieces(sideToMove);
       // Only new attacks count. This avoids expensive comparison of previous and new attacks.
-      if (movedPiece == ROOK || movedPiece == CANNON)
+      if (!drop && (movedPiece == ROOK || movedPiece == CANNON))
           directAttacks &= ~line_bb(from, to);
       addChased(to, movedPiece, directAttacks);
   }
 
   // Discovered attacks
-  Bitboard discoveryCandidates =  (PseudoAttacks[WHITE][WAZIR][from] & pieces(~sideToMove, HORSE))
-                                | (PseudoAttacks[WHITE][FERS][from] & pieces(~sideToMove, ELEPHANT))
-                                | (PseudoAttacks[WHITE][ROOK][from] & pieces(~sideToMove, CANNON, ROOK))
-                                | (PseudoAttacks[WHITE][ROOK][to] & pieces(~sideToMove, CANNON));
+  Bitboard discoveryCandidates = PseudoAttacks[WHITE][ROOK][to] & pieces(~sideToMove, CANNON);
+  if (!drop)
+      discoveryCandidates |=  (PseudoAttacks[WHITE][WAZIR][from] & pieces(~sideToMove, HORSE))
+                            | (PseudoAttacks[WHITE][FERS][from] & pieces(~sideToMove, ELEPHANT))
+                            | (PseudoAttacks[WHITE][ROOK][from] & pieces(~sideToMove, CANNON, ROOK));
+  Bitboard previousOccupied = captured_piece() ? pieces() : pieces() ^ to;
+  if (!drop)
+      previousOccupied ^= from;
   while (discoveryCandidates)
   {
       Square s = pop_lsb(discoveryCandidates);
       PieceType discoveryPiece = type_of(piece_on(s));
       Bitboard discoveries =   pieces(sideToMove)
                             &  attacks_bb(~sideToMove, discoveryPiece, s, pieces())
-                            & ~attacks_bb(~sideToMove, discoveryPiece, s, (captured_piece() ? pieces() : pieces() ^ to) ^ from);
+                            & ~attacks_bb(~sideToMove, discoveryPiece, s, previousOccupied);
       addChased(s, discoveryPiece, discoveries);
   }
 

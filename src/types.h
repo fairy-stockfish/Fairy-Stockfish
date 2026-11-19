@@ -227,22 +227,8 @@ typedef uint64_t Bitboard;
 constexpr int SQUARE_BITS = 6;
 #endif
 
-//When defined, move list will be stored in heap. Delete this if you want to use stack to store move list. Using stack can cause overflow (Segmentation Fault) when the search is too deep.
-#define USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
-
-#ifdef ALLVARS
 constexpr int MAX_MOVES = 8192;
-#ifdef USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
 constexpr int MAX_PLY = 246;
-#else
-constexpr int MAX_PLY = 60;
-#endif
-/// endif USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
-#else
-constexpr int MAX_MOVES = 1024;
-constexpr int MAX_PLY = 246;
-#endif
-/// endif ALLVARS
 
 /// A move needs 16 bits to be stored
 ///
@@ -446,8 +432,10 @@ enum PieceSet : uint64_t {
   CHESS_PIECES = (1ULL << PAWN) | (1ULL << KNIGHT) | (1ULL << BISHOP) | (1ULL << ROOK) | (1ULL << QUEEN) | (1ULL << KING),
   COMMON_FAIRY_PIECES = (1ULL << IMMOBILE_PIECE) | (1ULL << COMMONER) | (1ULL << ARCHBISHOP) | (1ULL << CHANCELLOR),
   SHOGI_PIECES = (1ULL << SHOGI_PAWN) | (1ULL << GOLD) | (1ULL << SILVER) | (1ULL << SHOGI_KNIGHT) | (1ULL << LANCE)
-                | (1ULL << DRAGON)| (1ULL << DRAGON_HORSE) | (1ULL << KING),
+                | (1ULL << BISHOP) | (1ULL << ROOK) | (1ULL << DRAGON)| (1ULL << DRAGON_HORSE) | (1ULL << KING),
   COMMON_STEP_PIECES = (1ULL << COMMONER) | (1ULL << FERS) | (1ULL << WAZIR) | (1ULL << BREAKTHROUGH_PIECE),
+  XIANGQI_PIECES = (1ULL << ROOK) | (1ULL << CANNON) | (1ULL << HORSE) | (1ULL << ELEPHANT) | (1ULL << FERS) | (1ULL << SOLDIER) | (1ULL << KING),
+  JANGGI_PIECES = (1ULL << ROOK) | (1ULL << JANGGI_CANNON) | (1ULL << HORSE) | (1ULL << JANGGI_ELEPHANT) | (1ULL << WAZIR) | (1ULL << SOLDIER) | (1ULL << KING),
 };
 
 enum RiderType : int {

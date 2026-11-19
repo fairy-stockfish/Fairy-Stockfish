@@ -20,6 +20,8 @@
 #define XBOARD_H_INCLUDED
 
 #include <algorithm>
+#include <atomic>
+#include <mutex>
 #include <sstream>
 #include <string>
 
@@ -44,16 +46,18 @@ public:
   }
   void go(Search::LimitsType searchLimits, bool ponder = false);
   void ponder();
-  void stop(bool abort = true);
+  void start_pending_ponder();
+  bool stop(bool abort = true);
   void setboard(std::string fen = "");
   void do_move(Move m);
   void undo_move();
   std::string highlight(std::string square);
   void process_command(std::string token, std::istringstream& is);
   bool moveAfterSearch;
-  Move ponderMove;
+  std::atomic<Move> ponderMove;
 
 private:
+  std::mutex mutex;
   Position& pos;
   StateListPtr& states;
   std::deque<Move> moveList;

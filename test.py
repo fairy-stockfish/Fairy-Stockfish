@@ -122,6 +122,20 @@ castlingKingPiece = k
 extinctionValue = loss
 extinctionPieceTypes = k
 
+# Non-royal castling piece in presence of a royal king
+[castlingcommoner:chess]
+king = d:mK
+commoner = k
+castlingKingPiece = k
+promotionPieceTypes = nbr
+extinctionPieceTypes = k
+extinctionPseudoRoyal = true
+startFen = rnbdkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBDKBNR w KQkq - 0 1
+
+[castlingqueen:chess]
+castlingKingPiece = q
+startFen = rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR w KQkq - 0 1
+
 [coregaldrop:coregal]
 pieceDrops = true
 startFen = rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Qq] w KQkq - 0 1
@@ -165,6 +179,19 @@ extinctionPseudoRoyal = true
 dupleCheck = true
 checkCounting = true
 startFen = 4n3/8/8/8/7n/8/8/3Q4 w - - 9+9 0 1
+
+[royalpiecepromotion:chess]
+king = -
+commoner = k
+castling = false
+extinctionValue = loss
+extinctionPieceTypes = k
+extinctionPseudoRoyal = true
+promotionPieceTypes = -
+promotedPieceType = n:k
+
+[royalpiecepromotionduple:royalpiecepromotion]
+dupleCheck = true
 
 [snort:ataxx]
 immobile = p
@@ -430,6 +457,23 @@ class TestPyffish(unittest.TestCase):
         self.assertIn("Q@a3", result)
         self.assertNotIn("Q@a6", result)
 
+        # Shogi-style promotion to a second pseudo-royal piece can resolve a check
+        fen = "8k/9/9/9/9/4e4/8R/9/4K4 b - - 0 1"
+        result = sf.legal_moves("shoshogi", fen, [])
+        self.assertIn("e4e3+", result)
+        self.assertNotIn("e4e3", result)
+        result = sf.legal_moves("royalpiecepromotion", "k7/8/8/8/8/R1n4K/8/8 b - - 0 1", [])
+        self.assertIn("c3b1+", result)
+        self.assertIn("c3d1+", result)
+        self.assertNotIn("c3e2", result)
+        # unless both pseudo-royal pieces are attacked with duple check
+        result = sf.legal_moves("royalpiecepromotion", "k7/8/8/8/8/2n4K/8/R7 b - - 0 1", [])
+        self.assertIn("c3b1+", result)
+        result = sf.legal_moves("royalpiecepromotionduple", "k7/8/8/8/8/2n4K/8/R7 b - - 0 1", [])
+        self.assertNotIn("c3b1+", result)
+        result = sf.legal_moves("royalpiecepromotionduple", "k7/8/8/8/8/R1n4K/8/8 b - - 0 1", [])
+        self.assertIn("c3b1+", result)
+
         # In Cannon Shogi the FGC and FSC can also move one square diagonally and, besides,
         # move or capture two squares diagonally, by leaping an adjacent piece. 
         fen = "lnsg1gsnl/1rc1kuab1/p1+A1p1p1p/3P5/6i2/6P2/P1P1P3P/1B1U1ICR1/LNSGKGSNL[] w - - 1 3"
@@ -521,6 +565,30 @@ class TestPyffish(unittest.TestCase):
         self.assertIn("f2h2", result)
         result = sf.legal_moves("shako", "c8c/ernbqkbnre/pppppppppp/10/10/10/10/PPPPPPPPPP/RR3K4/10 w Qkq - 0 1", [])
         self.assertIn("f2d2", result)
+
+        # Only the configured castling piece can castle, even if there is a royal king
+        result = sf.legal_moves("castlingcommoner", "r3k2r/8/8/8/8/8/8/R2DK2R w KQkq - 0 1", [])
+        self.assertIn("e1g1", result)
+        self.assertNotIn("d1g1", result)
+        self.assertNotIn("e1c1", result)
+
+        # Castling with a non-royal piece must not leave the royal king in check
+        result = sf.legal_moves("castlingqueen", "4k3/8/8/8/8/8/3K4/R3Q2R w KQ - 0 1", [])
+        self.assertIn("e1h1", result)
+        self.assertIn("e1a1", result)
+        result = sf.legal_moves("castlingqueen", "3rk3/8/8/8/8/8/3K4/R3Q2R w KQ - 0 1", [])
+        self.assertNotIn("e1h1", result)
+        self.assertNotIn("e1a1", result)
+
+        # Check given by the castling piece itself
+        fen = "6k1/8/8/8/8/8/n7/3KQ2R w K - 0 1"
+        self.assertTrue(sf.gives_check("castlingqueen", fen, ["e1h1"]))
+        result = sf.legal_moves("castlingqueen", fen, ["e1h1"])
+        self.assertCountEqual(["g8h7", "g8h8"], result)
+
+        # Chess960 disambiguation of the castling piece file for black
+        fen = "r1q1q1r1/8/3k4/8/8/8/8/4K3 w ega - 0 1"
+        self.assertEqual(sf.get_fen("castlingqueen", fen, [], True), fen)
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
@@ -1323,6 +1391,22 @@ class TestPyffish(unittest.TestCase):
             with self.subTest(variant=variant):
                 fen = sf.start_fen(variant)
                 self.assertEqual(sf.validate_fen(fen, variant), sf.FEN_OK)
+
+    def test_validate_fen_out_of_bounds(self):
+        # inputs that used to access memory outside of the board
+        cases = (
+            # empty squares overshooting the rank
+            ("shogi", "lnsgkgsnl/1r5b14ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL[-] w 0 1", -8),
+            # empty board field
+            ("shogi", " w 0 1", -8),
+            # castling flag beyond the board width
+            ("chess", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkqz - 0 1", -5),
+            # castling flag in variant without kings
+            ("amazons", "6*3/3**3*1/2*2**1**/q2*2*3/*3*3*1/1**q*Qq*2/4*1**1*/3**1**qQ/1*Q*1*Q1*1/2*2*3* b r - 33 17", -5),
+        )
+        for variant, fen, expected in cases:
+            with self.subTest(variant=variant, fen=fen):
+                self.assertEqual(sf.validate_fen(fen, variant), expected)
 
     def test_validate_fen_promoted_pieces(self):
         # Test promoted piece validation specifically
