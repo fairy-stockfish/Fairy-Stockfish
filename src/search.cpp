@@ -720,6 +720,30 @@ bool Search::Worker::iterative_deepening() {
             // Update partner in bughouse variants
             if (rootDepth >= 8 && rootPos.two_boards() && CurrentProtocol == XBOARD)
             {
+                // A virtual mate score needs a virtual drop in the PV, since values
+                // derived from the evaluation (e.g. by the correction history or the
+                // blending with beta) can end up in the range of virtual mates as well.
+                bool virtualPv = false;
+                if (std::abs(bestValue) >= VALUE_VIRTUAL_MATE_IN_MAX_PLY
+                    && std::abs(bestValue) <= VALUE_VIRTUAL_MATE)
+                {
+                    const auto&            rootPv = rootMoves[0].pv;
+                    std::vector<StateInfo> states(rootPv.size());
+                    size_t                 n = 0;
+                    for (; n < rootPv.size() && rootPos.pseudo_legal(rootPv[n])
+                           && rootPos.legal(rootPv[n]);
+                         ++n)
+                    {
+                        if (rootPos.virtual_drop(rootPv[n]))
+                        {
+                            virtualPv = true;
+                            break;
+                        }
+                        rootPos.do_move(rootPv[n], states[n]);
+                    }
+                    while (n--)
+                        rootPos.undo_move(rootPv[n]);
+                }
                 // Communicate clock times relevant for sitting decisions
                 if (limits.time[us])
                     Partner.ptell<FAIRY>("time "
@@ -753,7 +777,8 @@ bool Search::Worker::iterative_deepening() {
                     Partner.weWin = false;
                 }
                 // We can win if partner delivers required material quickly
-                else if (!Partner.weVirtualWin && bestValue >= VALUE_VIRTUAL_MATE_IN_MAX_PLY
+                else if (!Partner.weVirtualWin && virtualPv
+                         && bestValue >= VALUE_VIRTUAL_MATE_IN_MAX_PLY
                          && bestValue <= VALUE_VIRTUAL_MATE
                          && limits.time[us] - elapsed() > Partner.opptime)
                 {
@@ -762,7 +787,7 @@ bool Search::Worker::iterative_deepening() {
                 }
                 // Virtual mate is gone
                 else if (Partner.weVirtualWin
-                         && (bestValue < VALUE_VIRTUAL_MATE_IN_MAX_PLY
+                         && (!virtualPv || bestValue < VALUE_VIRTUAL_MATE_IN_MAX_PLY
                              || bestValue > VALUE_VIRTUAL_MATE
                              || limits.time[us] - elapsed() < Partner.opptime))
                 {
@@ -770,7 +795,7 @@ bool Search::Worker::iterative_deepening() {
                     Partner.weVirtualWin = false;
                 }
                 // We need to survive a virtual mate and play fast
-                else if (!Partner.weVirtualLoss
+                else if (!Partner.weVirtualLoss && virtualPv
                          && (bestValue <= -VALUE_VIRTUAL_MATE_IN_MAX_PLY
                              && bestValue >= -VALUE_VIRTUAL_MATE)
                          && limits.time[~us] > Partner.time)
@@ -781,7 +806,7 @@ bool Search::Worker::iterative_deepening() {
                 }
                 // Virtual mate threat is over
                 else if (Partner.weVirtualLoss
-                         && (bestValue > -VALUE_VIRTUAL_MATE_IN_MAX_PLY
+                         && (!virtualPv || bestValue > -VALUE_VIRTUAL_MATE_IN_MAX_PLY
                              || bestValue < -VALUE_VIRTUAL_MATE || limits.time[~us] < Partner.time))
                 {
                     Partner.ptell("x");
