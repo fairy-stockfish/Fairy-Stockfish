@@ -232,53 +232,78 @@ void MovePicker::score() {
         }
     }
 
+    if constexpr (Type == QUIETS)
+    {
+        // The tables of the side to move and the current ply are looked up once
+        // per move list instead of once per move, since the shared histories are
+        // atomic and their loads would otherwise not be hoisted out of the loop.
+        const Color           us          = pos.side_to_move();
+        const auto&           mainHist    = (*mainHistory)[us];
+        const auto&           gateHist    = (*gateHistory)[us];
+        const auto&           pawnHist    = sharedHistory->pawn_entry(pos);
+        const PieceToHistory& contHist0   = *continuationHistory[0];
+        const PieceToHistory& contHist1   = *continuationHistory[1];
+        const PieceToHistory& contHist2   = *continuationHistory[2];
+        const PieceToHistory& contHist3   = *continuationHistory[3];
+        const PieceToHistory& contHist5   = *continuationHistory[5];
+        const bool            usePawnHist = !PSQT::lowPiecesOnly;
+        const bool            mustCapture = pos.must_capture();
+
+        // The low ply history only exists for the first plies
+        const auto* lowPlyHist = ply < LOW_PLY_HISTORY_SIZE ? &(*lowPlyHistory)[ply] : nullptr;
+
+        for (auto& m : *this)
+        {
+            const Square    to   = m.to_sq();
+            const Piece     pc   = pos.moved_piece(m);
+            const PieceType pt   = type_of(pc);
+            const int       slot = history_slot(pc);
+
+            // histories
+            int v = 2 * mainHist[from_to(m)];
+            // The gate history is only filled by walling variants
+            v += 4 * gateHist[gating_square(m)];
+            // With a single class of pieces the key of the pawn history is close to the
+            // key of the position, so the pawn history hardly generalizes
+            if (usePawnHist)
+                v += 2 * pawnHist[slot][to];
+            v += contHist0[slot][to];
+            v += contHist1[slot][to];
+            v += contHist2[slot][to];
+            v += contHist3[slot][to];
+            v += contHist5[slot][to];
+
+            // bonus for checks
+            v += ((pos.check_squares(pt) & to) && pos.see_ge(m, -75)) * 16384;
+
+            // penalty for moving to a square threatened by a lesser piece
+            // or bonus for escaping an attack by a lesser piece.
+            // With mandatory captures, moving to an attacked square forces a capture
+            if (mustCapture)
+                v += 16384 * bool(attackedByThem & to);
+
+            else if (type_of(m) != DROP && pt != KING)
+            {
+                Square from = from_sq(m);
+                int    t    = 20 * (bool(threatenedPieces & from) - bool(threatByLesser[pt] & to));
+                v += int(PieceValue[MG][pt]) * t;
+            }
+
+            if (lowPlyHist)
+                v += 8 * (*lowPlyHist)[from_to(m)] / (1 + ply);
+
+            m.value = v;
+        }
+        return;
+    }
+
     for (auto& m : *this)
     {
-        const Square    to = m.to_sq();
-        const Piece     pc = pos.moved_piece(m);
-        const PieceType pt = type_of(pc);
-
         if constexpr (Type == CAPTURES)
             m.value =
               7 * int(PieceValue[MG][pos.piece_on(to_sq(m))]) * !pos.must_capture()
               + (*gateHistory)[pos.side_to_move()][gating_square(m)]
               + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
-
-        else if constexpr (Type == QUIETS)
-        {
-            // histories
-            m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
-            // The gate history is only filled by walling variants
-            m.value += 4 * (*gateHistory)[pos.side_to_move()][gating_square(m)];
-            // With a single class of pieces the key of the pawn history is close to the
-            // key of the position, so the pawn history hardly generalizes
-            if (!PSQT::lowPiecesOnly)
-                m.value += 2 * sharedHistory->pawn_entry(pos)[history_slot(pc)][to];
-            m.value += (*continuationHistory[0])[history_slot(pc)][to];
-            m.value += (*continuationHistory[1])[history_slot(pc)][to];
-            m.value += (*continuationHistory[2])[history_slot(pc)][to];
-            m.value += (*continuationHistory[3])[history_slot(pc)][to];
-            m.value += (*continuationHistory[5])[history_slot(pc)][to];
-
-            // bonus for checks
-            m.value += ((pos.check_squares(pt) & to) && pos.see_ge(m, -75)) * 16384;
-
-            // penalty for moving to a square threatened by a lesser piece
-            // or bonus for escaping an attack by a lesser piece.
-            // With mandatory captures, moving to an attacked square forces a capture
-            if (pos.must_capture())
-                m.value += 16384 * bool(attackedByThem & to);
-
-            else if (type_of(m) != DROP && pt != KING)
-            {
-                Square from = from_sq(m);
-                int    v    = 20 * (bool(threatenedPieces & from) - bool(threatByLesser[pt] & to));
-                m.value += int(PieceValue[MG][pt]) * v;
-            }
-
-            if (ply < LOW_PLY_HISTORY_SIZE)
-                m.value += 8 * (*lowPlyHistory)[ply][from_to(m)] / (1 + ply);
-        }
 
         else  // Type == EVASIONS
         {
