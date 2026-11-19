@@ -46,6 +46,20 @@ describe('Board(uciVariant) ', function () {
   });
 });
 
+describe('Board(uciVariant) with unknown variant', function () {
+  it("it throws an error instead of crashing for unknown variants", () => {
+    const variant = "nonexistentvariant";
+    chai.expect(() => new ffish.Board(variant)).to.throw("Unknown variant");
+    chai.expect(() => ffish.capturesToHand(variant)).to.throw("Unknown variant");
+    chai.expect(() => ffish.startingFen(variant)).to.throw("Unknown variant");
+    chai.expect(() => ffish.validateFen("8/8/8/8/8/8/8/8 w - - 0 1", variant)).to.throw("Unknown variant");
+    // the module remains usable afterwards
+    const board = new ffish.Board("chess");
+    chai.expect(board.fen()).to.equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    board.delete();
+  });
+});
+
 describe('Board(uciVariant) with large board', function () {
   it("it creates a large-board object from a given UCI-variant", () => {
     const board = new ffish.Board("xiangqi");

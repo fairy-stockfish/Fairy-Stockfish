@@ -413,6 +413,31 @@ class TestPyffish(unittest.TestCase):
         result = sf.start_fen("shogun")
         self.assertEqual(result, SHOGUN)
 
+    def test_unknown_variant(self):
+        # unknown variant names used to crash with a segmentation fault
+        variant = "nonexistentvariant"
+        calls = [
+            lambda: sf.start_fen(variant),
+            lambda: sf.two_boards(variant),
+            lambda: sf.captures_to_hand(variant),
+            lambda: sf.get_san(variant, "startpos", "e2e4"),
+            lambda: sf.get_san_moves(variant, "startpos", ["e2e4"]),
+            lambda: sf.legal_moves(variant, "startpos", []),
+            lambda: sf.get_fen(variant, "startpos", []),
+            lambda: sf.gives_check(variant, "startpos", []),
+            lambda: sf.is_capture(variant, "startpos", [], "e2e4"),
+            lambda: sf.piece_to_partner(variant, "startpos", []),
+            lambda: sf.game_result(variant, "startpos", []),
+            lambda: sf.is_immediate_game_end(variant, "startpos", []),
+            lambda: sf.is_optional_game_end(variant, "startpos", []),
+            lambda: sf.has_insufficient_material(variant, "startpos", []),
+            lambda: sf.validate_fen("8/8/8/8/8/8/8/8 w - - 0 1", variant),
+            lambda: sf.get_fog_fen("8/8/8/8/8/8/8/8 w - - 0 1", variant),
+        ]
+        for call in calls:
+            with self.assertRaises(ValueError):
+                call()
+
     def test_legal_moves(self):
         fen = "10/10/10/10/10/k9/10/K9 w - - 0 1"
         result = sf.legal_moves("capablanca", fen, [])

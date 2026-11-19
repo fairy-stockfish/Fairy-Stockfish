@@ -62,7 +62,11 @@ inline void save_pop_back(std::string& s) {
 const Variant* get_variant(const std::string& uciVariant) {
   if (uciVariant.size() == 0 || uciVariant == "Standard" || uciVariant == "standard")
     return variants.find("chess")->second;
-  return variants.find(uciVariant)->second;
+  auto it = variants.find(uciVariant);
+  if (it == variants.end())
+    // throw a JavaScript error, since C++ exceptions are disabled
+    emscripten::val::global("Error").new_(std::string("Unknown variant '") + uciVariant + "'").throw_();
+  return it->second;
 }
 
 template <bool isUCI>
