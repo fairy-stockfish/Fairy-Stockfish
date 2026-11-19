@@ -186,6 +186,10 @@ namespace {
   }
 }
 
+PieceInfo* piece_from_betza(const std::string& betza) {
+  return from_betza(betza, "");
+}
+
 void PieceMap::init(const Variant* v) {
   clear_all();
   add(PAWN, from_betza("fmWfceF", "pawn"));
