@@ -270,7 +270,8 @@ Score Entry::evaluate_shelter(const Position& pos, Square ksq) const {
   }
 
   // King On File
-  bonus -= KingOnFile[pos.is_on_semiopen_file(Us, ksq)][pos.is_on_semiopen_file(Them, ksq)];
+  bonus -= KingOnFile[!(pos.pieces(Us, PAWN, SHOGI_PAWN) & file_bb(ksq))]
+                     [!(pos.pieces(Them, PAWN, SHOGI_PAWN) & file_bb(ksq))];
 
   return bonus;
 }
