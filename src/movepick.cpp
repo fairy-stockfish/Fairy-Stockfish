@@ -170,6 +170,7 @@ top:
   case QCAPTURE_INIT:
       cur = endBadCaptures = moves;
       endMoves = generate<CAPTURES>(pos, cur);
+      check_move_buffer(moves, endMoves);
 
       score<CAPTURES>();
       ++stage;
@@ -207,6 +208,7 @@ top:
       {
           cur = endBadCaptures;
           endMoves = generate<QUIETS>(pos, cur);
+          check_move_buffer(moves, endMoves);
 
           score<QUIETS>();
           partial_insertion_sort(cur, endMoves, -3000 * depth);
@@ -235,6 +237,7 @@ top:
   case EVASION_INIT:
       cur = moves;
       endMoves = generate<EVASIONS>(pos, cur);
+      check_move_buffer(moves, endMoves);
 
       score<EVASIONS>();
       ++stage;
@@ -261,6 +264,7 @@ top:
   case QCHECK_INIT:
       cur = moves;
       endMoves = generate<QUIET_CHECKS>(pos, cur);
+      check_move_buffer(moves, endMoves);
 
       ++stage;
       [[fallthrough]];

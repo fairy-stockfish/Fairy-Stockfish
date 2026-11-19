@@ -26,6 +26,7 @@
 namespace Stockfish {
 
 class Position;
+struct Variant;
 
 enum GenType {
   CAPTURES,
@@ -55,17 +56,35 @@ inline bool operator<(const ExtMove& f, const ExtMove& s) {
 template<GenType>
 ExtMove* generate(const Position& pos, ExtMove* moveList);
 
-/// acquire_move_buffer() and release_move_buffer() hand out buffers of MAX_MOVES
-/// moves from a per-thread pool. Buffers have to be released in reverse order.
+/// acquire_move_buffer() and release_move_buffer() hand out move buffers from a
+/// per-thread pool. Buffers have to be released in reverse order. They have room
+/// for MoveBufferCapacity moves, which update_move_buffer_capacity() sets to an
+/// upper bound of the number of pseudo-legal moves in the initialized variants.
+/// It has to be called whenever the piece tables are initialized for a variant.
+extern size_t MoveBufferCapacity;
+
 ExtMove* acquire_move_buffer();
 void release_move_buffer(ExtMove* buffer);
+void update_move_buffer_capacity(const Variant* v);
+[[noreturn]] void move_buffer_overflow(size_t moves);
+
+/// check_move_buffer() aborts if generated moves exceeded the capacity of the
+/// buffer, i.e., the upper bound of the moves in the variant was too small.
+/// The buffer then already overflowed, but this stops the program before it
+/// continues with corrupted memory.
+inline void check_move_buffer(const ExtMove* begin, const ExtMove* end) {
+  if (size_t(end - begin) > MoveBufferCapacity)
+      move_buffer_overflow(end - begin);
+}
 
 /// The MoveList struct is a simple wrapper around generate(). It sometimes comes
 /// in handy to use this class instead of the low level generate() function.
 template<GenType T>
 struct MoveList {
 
-  explicit MoveList(const Position& pos) : moveList(acquire_move_buffer()), last(generate<T>(pos, moveList)) {}
+  explicit MoveList(const Position& pos) : moveList(acquire_move_buffer()), last(generate<T>(pos, moveList)) {
+      check_move_buffer(moveList, last);
+  }
   ~MoveList() { release_move_buffer(moveList); }
 
   // The buffer has to be released exactly once, in reverse order of acquisition

@@ -28,6 +28,7 @@
 #include "tt.h"
 #include "uci.h"
 
+#include "movegen.h"
 #include "piece.h"
 #include "variant.h"
 #include "xboard.h"
@@ -46,6 +47,7 @@ int main(int argc, char* argv[]) {
   Tune::init();
   PSQT::init(variants.find(Options["UCI_Variant"])->second);
   Bitboards::init();
+  update_move_buffer_capacity(variants.find(Options["UCI_Variant"])->second);
   Position::init();
   Bitbases::init();
   Endgames::init();

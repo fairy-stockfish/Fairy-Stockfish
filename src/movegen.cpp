@@ -16,7 +16,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <cassert>
+#include <cstdlib>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -531,23 +534,128 @@ namespace {
 
   // Per-thread LIFO pool of move buffers. MovePicker and MoveList instances have
   // strictly nested lifetimes within a thread, so buffers can be handed out and
-  // returned stack-wise. This keeps the large MAX_MOVES array off the machine
-  // stack, whose 8MB limit deep searches can otherwise exceed (see issue #957),
-  // and avoids a heap allocation for each MoveList.
-  thread_local std::vector<std::unique_ptr<ExtMove[]>> moveBuffers;
+  // returned stack-wise. This keeps the large move buffers off the machine stack,
+  // whose 8MB limit deep searches can otherwise exceed (see issue #957), and
+  // avoids a heap allocation for each MoveList.
+  struct MoveBuffer {
+    std::unique_ptr<ExtMove[]> moves;
+    size_t capacity;
+  };
+
+  thread_local std::vector<MoveBuffer> moveBuffers;
   thread_local size_t usedMoveBuffers = 0;
+
+  // max_moves() returns an upper bound of the number of pseudo-legal moves
+  // generated for color c in any position of variant v, using the piece tables
+  // of the variant. With n pieces of the color, each of them has at most
+  // min(D, N - n) destinations, where D is the largest number of destinations of
+  // a piece and N the number of squares, since pieces can not move to squares of
+  // own pieces. Each move can be combined with a wall, and each piece in hand can
+  // be dropped, on at most N - n squares. Promotions, Sittuyin promotions and
+  // gating add moves to the squares they can happen from.
+  size_t max_moves(const Variant* v, Color c) {
+
+    const Bitboard board = v->boardBB;
+    const size_t squares = popcount(board);
+    const Bitboard gateSquares = rank_bb(relative_rank(c, v->castlingRank, v->maxRank));
+    const size_t pieceTypeCount = popcount(v->pieceTypes);
+    const size_t promotionTypes = popcount(v->promotionPieceTypes[c]) + (v->promotedPieceType[PAWN] != NO_PIECE_TYPE);
+    bool piecePromotions = false;
+    for (PieceSet ps = v->pieceTypes; ps;)
+        piecePromotions |= v->promotedPieceType[pop_lsb(ps)] != NO_PIECE_TYPE;
+
+    size_t maxDestinations = 0, extraMoves = 0;
+    for (Bitboard b = board; b;)
+    {
+        Square s = pop_lsb(b);
+        Bitboard pawnDestinations = 0;
+        size_t squareDestinations = 0;
+        for (PieceSet ps = v->pieceTypes | piece_set(KING); ps;)
+        {
+            PieceType pt = pop_lsb(ps);
+            PieceType movePt = pt == KING ? v->kingType : pt;
+            Bitboard d = PseudoMoves[0][c][movePt][s] | PseudoMoves[1][c][movePt][s] | PseudoAttacks[c][movePt][s];
+            // Pawn pushes of up to three squares
+            if (pt == PAWN)
+                for (int i = 1; i <= 3; ++i)
+                    if (is_ok(s + i * pawn_push(c)))
+                        d |= s + i * pawn_push(c);
+            // Janggi palace moves along the diagonal lines
+            if (v->diagonalLines & s)
+                d |= (PseudoAttacks[c][BISHOP][s] | PseudoAttacks[c][FERS][s]) & v->diagonalLines;
+            d &= board;
+            squareDestinations = std::max<size_t>(squareDestinations, popcount(d));
+            if (v->promotionPawnTypes[c] & pt)
+                pawnDestinations |= d;
+        }
+        maxDestinations = std::max(maxDestinations, squareDestinations);
+        extraMoves += popcount(pawnDestinations & v->promotionRegion[c]) * promotionTypes;
+        if (v->sittuyinPromotion)
+            extraMoves += (squareDestinations + 1) * popcount(v->promotionPieceTypes[c]);
+        if (v->seirawanGating && (gateSquares & s))
+            extraMoves += squareDestinations * 2 * pieceTypeCount;
+    }
+
+    // Each move can also be a shogi-style promotion or demotion
+    const size_t moveFactor = 1 + piecePromotions + v->pieceDemotion;
+    // Castling, Cambodian moves, and moving the wall with a null move
+    const size_t specialMoves = 2 * (v->seirawanGating ? 1 + 2 * pieceTypeCount : 1)
+                              + (v->cambodianMoves ? v->maxFile + 2 : 0) + v->wallOrMove;
+    const size_t wallSquares = v->wallingRule == NO_WALLING ? 1
+                             : v->wallingRule == PAST ? 1
+                             : v->wallingRule == ARROW ? maxDestinations
+                             : popcount(v->wallingRegion[c] & board);
+
+    size_t bound = 0;
+    for (size_t n = 1; n <= squares; ++n)
+    {
+        const size_t freeSquares = squares - n;
+        const size_t pieceMoves = n * std::min(maxDestinations, freeSquares);
+        const size_t walls = std::max<size_t>(1, std::min(wallSquares, freeSquares));
+        const size_t drops = v->pieceDrops ? 2 * pieceTypeCount * freeSquares : 0;
+        bound = std::max(bound, (pieceMoves * moveFactor + extraMoves + specialMoves) * walls + drops);
+    }
+
+    // Passing moves
+    return bound + 2;
+  }
 
 } // namespace
 
+// Until the first variant is initialized, the capacity suffices for the standard
+// pieces. From then on it only grows, since the bindings can keep positions of
+// several variants, and the piece tables are those of the last initialized one.
+size_t MoveBufferCapacity = MAX_MOVES;
+
+namespace { bool moveBufferCapacitySet = false; }
+
 ExtMove* acquire_move_buffer() {
   if (usedMoveBuffers == moveBuffers.size())
-      moveBuffers.emplace_back(new ExtMove[MAX_MOVES]);
-  return moveBuffers[usedMoveBuffers++].get();
+      moveBuffers.push_back({nullptr, 0});
+  MoveBuffer& mb = moveBuffers[usedMoveBuffers++];
+  if (mb.capacity < MoveBufferCapacity)
+  {
+      mb.moves.reset(new ExtMove[MoveBufferCapacity]);
+      mb.capacity = MoveBufferCapacity;
+  }
+  return mb.moves.get();
 }
 
 void release_move_buffer([[maybe_unused]] ExtMove* buffer) {
-  assert(usedMoveBuffers > 0 && moveBuffers[usedMoveBuffers - 1].get() == buffer);
+  assert(usedMoveBuffers > 0 && moveBuffers[usedMoveBuffers - 1].moves.get() == buffer);
   --usedMoveBuffers;
+}
+
+void move_buffer_overflow(size_t moves) {
+  std::cerr << "Generated " << moves << " moves, more than the move buffer capacity of "
+            << MoveBufferCapacity << std::endl;
+  std::abort();
+}
+
+void update_move_buffer_capacity(const Variant* v) {
+  const size_t bound = std::max(max_moves(v, WHITE), max_moves(v, BLACK));
+  MoveBufferCapacity = moveBufferCapacitySet ? std::max(MoveBufferCapacity, bound) : bound;
+  moveBufferCapacitySet = true;
 }
 
 } // namespace Stockfish

@@ -55,6 +55,7 @@ std::set<string> standard_variants = {
 void init_variant(const Variant* v) {
     pieceMap.init(v);
     Bitboards::init_pieces();
+    update_move_buffer_capacity(v);
 }
 
 /// 'On change' actions, triggered by an option's value change
