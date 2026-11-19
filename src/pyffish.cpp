@@ -103,6 +103,7 @@ extern "C" PyObject* pyffish_loadVariantConfig(PyObject* self, PyObject *args) {
         return NULL;
     std::stringstream ss(config);
     variants.parse_istream<false>(ss);
+    UCI::reset_variant_cache();
     Options["UCI_Variant"].set_combo(variants.get_keys());
     Py_RETURN_NONE;
 }
