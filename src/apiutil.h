@@ -350,11 +350,13 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
         san += "," + square(pos, gating_square(m), n);
 
     // Check and checkmate
-    if (pos.gives_check(m) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
+    // gives_check() does not detect checks of pseudo-royal pieces
+    if ((pos.gives_check(m) || pos.extinction_pseudo_royal()) && !is_shogi(n) && n != NOTATION_XIANGQI_WXF)
     {
         StateInfo st;
         pos.do_move(m, st);
-        san += MoveList<LEGAL>(pos).size() ? "+" : "#";
+        if (pos.all_checkers())
+            san += MoveList<LEGAL>(pos).size() ? "+" : "#";
         pos.undo_move(m);
     }
 

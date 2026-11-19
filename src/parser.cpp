@@ -649,6 +649,10 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         if (v->mutuallyImmuneTypes)
             errors.push_back("Can not use kings or pseudo-royal with mutuallyImmuneTypes.");
     }
+    // Checks of pseudo-royal pieces are not detected by Position::gives_check(),
+    // so restrictions on giving check would be silently ignored (except for drops).
+    if (v->extinctionPseudoRoyal && (!v->checking || v->sittuyinPromotion))
+        errors.push_back("Can not use pseudo-royal pieces with checking = false or sittuyinPromotion.");
     if (v->flagPieceSafe && v->blastOnCapture)
         errors.push_back("Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast).");
     // Flipping does not update castling rights, so castling could be done
