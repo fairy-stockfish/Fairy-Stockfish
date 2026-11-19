@@ -47,6 +47,13 @@ Key inHand[PIECE_NB][SQUARE_NB];
 Key checks[COLOR_NB][CHECKS_NB];
 Key wall[SQUARE_NB];
 Key endgame[EG_EVAL_NB];
+
+// Key for the number of pieces of a kind in hand. Negative counts only
+// occur for virtual drops in two-board variants and use the top entries.
+static Key hand(Piece pc, int count) {
+    assert(count > -SQUARE_NB && count < SQUARE_NB);
+    return inHand[pc][count >= 0 ? count : SQUARE_NB + count];
+}
 }
 
 
@@ -737,7 +744,7 @@ void Position::set_state() const {
                 st->materialKey ^= Zobrist::psq[pc][cnt];
 
             if (piece_drops() || seirawan_gating())
-                st->key ^= Zobrist::inHand[pc][pieceCountInHand[c][pt]];
+                st->key ^= Zobrist::hand(pc, pieceCountInHand[c][pt]);
         }
 
     if (check_counting())
@@ -1354,11 +1361,17 @@ bool Position::legal(Move m) const {
         Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~sideToMove);
         if (is_ok(from) && (pseudoRoyals & from))
             pseudoRoyals ^= square_bb(from) ^ kto;
-        if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
+        // Piece type after promotion/demotion (for shogi-style promotions as well)
+        PieceType newType = type_of(m) == PROMOTION ? promotion_type(m)
+                          : type_of(m) == PIECE_PROMOTION
+                            ? promoted_piece_type(type_of(moved_piece(m)))
+                          : type_of(m) == PIECE_DEMOTION ? type_of(unpromoted_piece_on(from))
+                                                         : NO_PIECE_TYPE;
+        if (newType != NO_PIECE_TYPE && (extinction_piece_types() & newType))
         {
-            if (count(sideToMove, promotion_type(m)) > extinction_piece_count())
+            if (count(sideToMove, newType) > extinction_piece_count())
                 // increase in count leads to loss of pseudo-royalty
-                pseudoRoyals &= ~pieces(sideToMove, promotion_type(m));
+                pseudoRoyals &= ~pieces(sideToMove, newType);
             else
                 // promoted piece is pseudo-royal
                 pseudoRoyals |= kto;
@@ -1386,7 +1399,7 @@ bool Position::legal(Move m) const {
             Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(sideToMove);
             if (is_ok(from) && (pseudoRoyalCandidates & from))
                 pseudoRoyalCandidates ^= square_bb(from) ^ kto;
-            if (type_of(m) == PROMOTION && (extinction_piece_types() & promotion_type(m)))
+            if (newType != NO_PIECE_TYPE && (extinction_piece_types() & newType))
                 pseudoRoyalCandidates |= kto;
             bool allCheck = bool(pseudoRoyalCandidates);
             while (allCheck && pseudoRoyalCandidates)
@@ -1460,6 +1473,9 @@ bool Position::legal(Move m) const {
     }
 
     Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+    // The wall placed with the move can block attacks on the king
+    if (walling() && (!var->wallOrMove || from == to))
+        occupied |= gating_square(m);
 
     // Flying general rule and bikjang
     // In case of bikjang passing is always allowed, even when in check
@@ -1889,10 +1905,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
                 ? ~unpromotedCaptured
                 : make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)));
             add_to_hand(pieceToHand);
-            k ^= Zobrist::inHand[pieceToHand]
-                                [pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
-               ^ Zobrist::inHand[pieceToHand]
-                                [pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
+            if (!free_drops())
+            {
+                int n = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
+                k ^= Zobrist::hand(pieceToHand, n - 1) ^ Zobrist::hand(pieceToHand, n);
+            }
 
             if (Eval::useNNUE)
             {
@@ -1918,10 +1935,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     // Update hash key
     if (type_of(m) == DROP)
     {
-        Piece pc_hand = make_piece(us, in_hand_piece_type(m));
-        k ^= Zobrist::psq[pc][to]
-           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
-           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
+        k ^= Zobrist::psq[pc][to];
+        // Free drops do not change the count in hand
+        if (!free_drops())
+        {
+            Piece pc_hand = make_piece(us, in_hand_piece_type(m));
+            int   n       = pieceCountInHand[us][in_hand_piece_type(m)];
+            k ^= Zobrist::hand(pc_hand, n) ^ Zobrist::hand(pc_hand, n - 1);
+        }
 
         // Reset rule 50 counter for irreversible drops
         st->rule50 = 0;
@@ -2017,6 +2038,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
             dp.to[0]        = to;
         }
 
+        int oldCastlingRights = st->castlingRights;
         drop_piece(make_piece(us, in_hand_piece_type(m)), pc, to);
         st->materialKey ^= Zobrist::psq[pc][pieceCount[pc] - 1];
         if (type_of(pc) != PAWN)
@@ -2048,6 +2070,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
                 }
             }
         }
+        // Update the hash key for castling rights created by the drop
+        if (st->castlingRights != oldCastlingRights)
+            k ^= Zobrist::castling[oldCastlingRights] ^ Zobrist::castling[st->castlingRights];
     }
     else if (type_of(m) != CASTLING)
     {
@@ -2214,11 +2239,16 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
         }
 
         put_piece(gating_piece, gate);
+        if (!free_drops())
+        {
+            int n = pieceCountInHand[us][gating_type(m)];
+            k ^= Zobrist::hand(gating_piece, n) ^ Zobrist::hand(gating_piece, n - 1);
+        }
         remove_from_hand(gating_piece);
 
         st->gatesBB[us] ^= gate;
         k ^= Zobrist::psq[gating_piece][gate];
-        st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece]];
+        st->materialKey ^= Zobrist::psq[gating_piece][pieceCount[gating_piece] - 1];
         st->nonPawnMaterial[us] += PieceValue[MG][gating_piece];
     }
 
@@ -2294,11 +2324,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
                                   : unpromotedCaptured               ? ~unpromotedCaptured
                                                        : make_piece(~color_of(bpc), PAWN);
                 add_to_hand(pieceToHand);
-                k ^=
-                  Zobrist::inHand[pieceToHand]
-                                 [pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
-                  ^ Zobrist::inHand[pieceToHand]
-                                   [pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
+                if (!free_drops())
+                {
+                    int n = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
+                    k ^= Zobrist::hand(pieceToHand, n - 1) ^ Zobrist::hand(pieceToHand, n);
+                }
 
                 if (Eval::useNNUE)
                 {
@@ -2654,19 +2684,24 @@ Key Position::key_after(Move m) const {
               !drop_loop() && is_promoted(to)
                 ? make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)))
                 : ~captured;
-            k ^= Zobrist::inHand[removeFromHand]
-                                [pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)]
-                                 + 1]
-               ^ Zobrist::inHand[removeFromHand][pieceCountInHand[color_of(removeFromHand)]
-                                                                 [type_of(removeFromHand)]];
+            if (!free_drops())
+            {
+                int n = pieceCountInHand[color_of(removeFromHand)][type_of(removeFromHand)];
+                k ^= Zobrist::hand(removeFromHand, n + 1) ^ Zobrist::hand(removeFromHand, n);
+            }
         }
     }
     if (type_of(m) == DROP)
     {
-        Piece pc_hand = make_piece(sideToMove, in_hand_piece_type(m));
-        return k ^ Zobrist::psq[pc][to]
-             ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]]
-             ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1];
+        k ^= Zobrist::psq[pc][to];
+        // Free drops do not change the count in hand
+        if (!free_drops())
+        {
+            Piece pc_hand = make_piece(sideToMove, in_hand_piece_type(m));
+            int   n       = pieceCountInHand[sideToMove][in_hand_piece_type(m)];
+            k ^= Zobrist::hand(pc_hand, n) ^ Zobrist::hand(pc_hand, n - 1);
+        }
+        return k;
     }
 
     k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
