@@ -1431,8 +1431,10 @@ inline bool Position::capture(Move m) const {
 // generation is needed to avoid the generation of duplicate moves.
 inline bool Position::capture_stage(Move m) const {
     assert(is_ok(m));
-    return capture(m) || type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION
-        || type_of(m) == PIECE_DEMOTION;
+    // Non-capturing shogi-style piece promotions/demotions are generated with the
+    // quiets, only the ones of pawns are generated with the captures.
+    return capture(m) || type_of(m) == PROMOTION
+        || (type_of(m) == PIECE_PROMOTION && type_of(moved_piece(m)) == PAWN);
 }
 
 inline Square Position::capture_square(Square to) const {
