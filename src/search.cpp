@@ -2071,6 +2071,11 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     {
         assert(move.is_ok());
 
+        // Only search recaptures in deep quiescence search. This bounds its size
+        // in variants where (almost) all moves are captures, e.g. clobber.
+        if (depth <= DEPTH_QS_RECAPTURES && !ss->inCheck && move.to_sq() != prevSq)
+            continue;
+
         if (!pos.legal(move))
             continue;
 
