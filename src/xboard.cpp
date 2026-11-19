@@ -479,7 +479,7 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
     }
     else if (token == "holding")
     {
-        stop();
+        bool thinking = stop();
         // holding [<white>] [<black>] <color><piece>
         std::string white_holdings, black_holdings;
         if (std::getline(is, token, '[') && std::getline(is, white_holdings, ']')
@@ -503,8 +503,11 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
             setboard(fen);
         }
         // restart search
-        if (moveAfterSearch)
+        if (thinking)
+        {
+            moveAfterSearch = true;
             go(limits);
+        }
     }
     // Additional custom non-XBoard commands
     else if (token == "perft")
