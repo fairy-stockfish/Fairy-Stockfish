@@ -154,6 +154,15 @@ void TimeManagement::init(const Position&     pos,
       TimePoint(std::max(double(optimumTime), std::min(0.8097 * limits.time[us] - moveOverhead,
                                                        maxScale * optimumTime)));
 
+    // Games of variants with mandatory captures are short and often decided early,
+    // so the time management of chess, which saves time for later moves, spends too little
+    if (pos.must_capture())
+    {
+        TimePoint limit = std::max(TimePoint(1), TimePoint(0.8097 * limits.time[us] - moveOverhead));
+        optimumTime     = std::min(optimumTime * 8 / 5, std::max(optimumTime, limit));
+        maximumTime     = std::max(optimumTime, std::min(maximumTime * 8 / 5, limit));
+    }
+
     if (options["Ponder"])
         optimumTime += optimumTime / 4;
 }
