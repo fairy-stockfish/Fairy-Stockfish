@@ -28,10 +28,6 @@ jobs:
       - name: make largeboards
         run: cd src && make clean && make -j build COMP=mingw ARCH=${{ matrix.arch }} EXE=fairy-stockfish-largeboards_${{ matrix.arch }}.exe largeboards=yes && strip fairy-stockfish-largeboards_${{ matrix.arch }}.exe
 
-      - name: make all
-        if: ${{ matrix.arch == 'x86-64' }}
-        run: cd src && make clean && make -j build COMP=mingw ARCH=${{ matrix.arch }} EXE=fairy-stockfish-all_${{ matrix.arch }}.exe largeboards=yes all=yes && strip fairy-stockfish-all_${{ matrix.arch }}.exe
-
       - uses: actions/upload-artifact@v7
         with:
           name: fairy-stockfish-windows-${{ matrix.arch }}
@@ -53,10 +49,6 @@ jobs:
 
       - name: make largeboards
         run: cd src && make clean && make -j build COMP=gcc ARCH=${{ matrix.arch }} EXE=fairy-stockfish-largeboards_${{ matrix.arch }} largeboards=yes && strip fairy-stockfish-largeboards_${{ matrix.arch }}
-
-      - name: make all
-        if: ${{ matrix.arch == 'x86-64' }}
-        run: cd src && make clean && make -j build COMP=gcc ARCH=${{ matrix.arch }} EXE=fairy-stockfish-all_${{ matrix.arch }} largeboards=yes all=yes && strip fairy-stockfish-all_${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v7
         with:
@@ -80,9 +72,6 @@ jobs:
       - name: make largeboards
         run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish-largeboards_${{ matrix.arch }} largeboards=yes && strip fairy-stockfish-largeboards_${{ matrix.arch }}
 
-      - name: make all
-        run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish-all_${{ matrix.arch }} largeboards=yes all=yes && strip fairy-stockfish-all_${{ matrix.arch }}
-
       - uses: actions/upload-artifact@v7
         with:
           name: fairy-stockfish-macos-${{ matrix.arch }}
@@ -104,9 +93,6 @@ jobs:
 
       - name: make largeboards
         run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish-largeboards_${{ matrix.arch }} largeboards=yes && strip fairy-stockfish-largeboards_${{ matrix.arch }}
-
-      - name: make all
-        run: cd src && make clean && make -j build COMP=clang ARCH=${{ matrix.arch }} EXE=fairy-stockfish-all_${{ matrix.arch }} largeboards=yes all=yes && strip fairy-stockfish-all_${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v7
         with:
