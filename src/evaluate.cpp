@@ -1644,6 +1644,14 @@ Value Eval::evaluate(const NNUE::Network&     network,
         Value nnue = static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional)
                                         / (1024 * NNUE::OutputScale));
 
+        // In antichess like variants, material has the opposite meaning, so the material
+        // imbalance of simple_eval() is meaningless and inflates the optimism. Use neither.
+        if (pos.extinction_value() == VALUE_MATE)
+        {
+            simpleEval = nnue;
+            optimism   = 0;
+        }
+
         // Blend optimism and eval with nnue complexity and material imbalance
         optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
         nnue -= nnue * (nnueComplexity + std::abs(simpleEval - nnue)) / 32768;
