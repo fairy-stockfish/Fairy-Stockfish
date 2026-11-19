@@ -628,8 +628,10 @@ enum : int {
     DEPTH_UNSEARCHED   = -2,
     DEPTH_NONE         = -3,
     DEPTH_ENTRY_OFFSET = DEPTH_NONE,
-    // Fairy-Stockfish: safeguard against too deep recursions in quiescence search
-    DEPTH_QS_MAX = -32
+    // Fairy-Stockfish: only recaptures in deep quiescence search, and a
+    // safeguard against too deep recursions in quiescence search
+    DEPTH_QS_RECAPTURES = -5,
+    DEPTH_QS_MAX        = -32
 };
 
 // clang-format off
