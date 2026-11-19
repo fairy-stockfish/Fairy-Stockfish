@@ -140,7 +140,6 @@ VPATH = syzygy:nnue:nnue/features
 
 ### 2.1. General and architecture defaults
 largeboards = no
-all = no
 precomputedmagics = yes
 nnue = no
 load_net = $(if $(filter $(nnue),yes),net)
@@ -476,11 +475,6 @@ endif
 # Embed and enable NNUE
 ifeq ($(nnue),no)
 	CXXFLAGS += -DNNUE_EMBEDDING_OFF
-endif
-
-# Enable all variants, even heavyweight ones like duck and amazons
-ifneq ($(all),no)
-	CXXFLAGS += -DALLVARS
 endif
 
 ifeq ($(COMP),)
@@ -1041,7 +1035,6 @@ help:
 	@echo "Fairy-Stockfish specific options:"
 	@echo ""
 	@echo "make -j build largeboards=yes             # Version for large boards"
-	@echo "make -j build largeboards=yes all=yes     # Include all variants (adds Game of the Amazons)"
 	@echo "make -j build nnue=yes                    # Embed and enable NNUE by default"
 	@echo ""
 ifneq ($(SUPPORTED_ARCH), true)
@@ -1149,7 +1142,6 @@ config-sanity: $(load_net)
 	echo "" && \
 	echo "Fairy-Stockfish specific:" && \
 	echo "largeboards: '$(largeboards)'" && \
-	echo "all: '$(all)'" && \
 	echo "precomputedmagics: '$(precomputedmagics)'" && \
 	echo "nnue: '$(nnue)'" && \
 	echo "" && \

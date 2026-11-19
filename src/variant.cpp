@@ -540,7 +540,6 @@ Variant* atomar_variant() {
     return v;
 }
 
-#ifdef ALLVARS
 // Duck chess
 // https://duckchess.com/
 Variant* duck_variant() {
@@ -555,7 +554,6 @@ Variant* duck_variant() {
     v->endgameEval                                            = EG_EVAL_DUCK;
     return v;
 }
-#endif
 
 Variant* isolation_variant() {  //https://boardgamegeek.com/boardgame/1875/isolation
     Variant* v = chess_variant_base()->init();
@@ -1736,7 +1734,6 @@ Variant* flipello10_variant() {
     v->enclosingDropStart = make_bitboard(SQ_E5, SQ_F5, SQ_E6, SQ_F6);
     return v;
 }
-    #ifdef ALLVARS
 // Game of the Amazons
 // https://en.wikipedia.org/wiki/Game_of_the_Amazons
 Variant* amazons_variant() {
@@ -1751,7 +1748,6 @@ Variant* amazons_variant() {
     v->wallingRule    = ARROW;
     return v;
 }
-    #endif
 // Xiangqi (Chinese chess)
 // https://en.wikipedia.org/wiki/Xiangqi
 // Xiangqi base variant for inheriting rules without chasing rules
@@ -1923,9 +1919,7 @@ void VariantMap::init() {
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
     add("fox-and-hounds", fox_and_hounds_variant());
-#ifdef ALLVARS
     add("duck", duck_variant());
-#endif
     add("joust", joust_variant());
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
@@ -1993,9 +1987,7 @@ void VariantMap::init() {
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
     add("flipello10", flipello10_variant());
-    #ifdef ALLVARS
     add("amazons", amazons_variant());
-    #endif
     add("xiangqi", xiangqi_variant());
     add("manchu", manchu_variant());
     add("supply", supply_variant());
