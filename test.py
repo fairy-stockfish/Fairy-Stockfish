@@ -151,6 +151,19 @@ pawnTypes = ps
 [repetitionloss:chess]
 nFoldValue = loss
 
+[royalpiecepromotion:chess]
+king = -
+commoner = k
+castling = false
+extinctionValue = loss
+extinctionPieceTypes = k
+extinctionPseudoRoyal = true
+promotionPieceTypes = -
+promotedPieceType = n:k
+
+[royalpiecepromotionduple:royalpiecepromotion]
+dupleCheck = true
+
 [snort:ataxx]
 immobile = p
 startFen = 8/8/8/8/8/8/8/8
@@ -405,6 +418,23 @@ class TestPyffish(unittest.TestCase):
         result = sf.legal_moves("coregaldrop", sf.start_fen("coregaldrop"), [])
         self.assertIn("Q@a3", result)
         self.assertNotIn("Q@a6", result)
+
+        # Shogi-style promotion to a second pseudo-royal piece can resolve a check
+        fen = "8k/9/9/9/9/4e4/8R/9/4K4 b - - 0 1"
+        result = sf.legal_moves("shoshogi", fen, [])
+        self.assertIn("e4e3+", result)
+        self.assertNotIn("e4e3", result)
+        result = sf.legal_moves("royalpiecepromotion", "k7/8/8/8/8/R1n4K/8/8 b - - 0 1", [])
+        self.assertIn("c3b1+", result)
+        self.assertIn("c3d1+", result)
+        self.assertNotIn("c3e2", result)
+        # unless both pseudo-royal pieces are attacked with duple check
+        result = sf.legal_moves("royalpiecepromotion", "k7/8/8/8/8/2n4K/8/R7 b - - 0 1", [])
+        self.assertIn("c3b1+", result)
+        result = sf.legal_moves("royalpiecepromotionduple", "k7/8/8/8/8/2n4K/8/R7 b - - 0 1", [])
+        self.assertNotIn("c3b1+", result)
+        result = sf.legal_moves("royalpiecepromotionduple", "k7/8/8/8/8/R1n4K/8/8 b - - 0 1", [])
+        self.assertIn("c3b1+", result)
 
         # In Cannon Shogi the FGC and FSC can also move one square diagonally and, besides,
         # move or capture two squares diagonally, by leaping an adjacent piece. 
