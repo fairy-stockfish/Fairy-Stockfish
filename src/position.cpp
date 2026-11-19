@@ -373,7 +373,7 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
 
           token = char(toupper(token));
 
-          if (castling_enabled() && token == 'K')
+          if (castling_enabled() && token == 'K' && (max_file() < File('K' - 'A') || !gating()))
               for (rsq = make_square(var->castlingRookKingsideFile, castling_rank(c)); (!(castling_rook_pieces(c) & type_of(piece_on(rsq))) || color_of(piece_on(rsq)) != c) && file_of(rsq) > FILE_A; --rsq) {}
 
           else if (castling_enabled() && token == 'Q')
@@ -405,7 +405,8 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
               // Only add gates for occupied squares
               if (pieces(c) & rsq)
                   st->gatesBB[c] |= rsq;
-              if ((token == 'K' || token == 'Q') && st->castlingKingSquare[c] != SQ_NONE)
+              if (   (token == 'Q' || (token == 'K' && (max_file() < File('K' - 'A') || !gating())))
+                  && st->castlingKingSquare[c] != SQ_NONE)
                   st->gatesBB[c] |= st->castlingKingSquare[c];
               // Do not set castling rights for gates unless there are no pieces in hand,
               // which means that the file is referring to a chess960 castling right.
