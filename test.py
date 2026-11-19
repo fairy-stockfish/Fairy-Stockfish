@@ -78,6 +78,27 @@ pass = true
 [royalduck:duck]
 extinctionPseudoRoyal = true
 
+[atlantis:chess]
+wallingRule = edge
+wallOrMove = true
+
+[alapo:chess]
+pieceToCharTable = ..BRQ.........FW.....K..brq.........fw.....k
+maxRank = 6
+maxFile = f
+wazir = w
+fers = f
+king = -
+commoner = k
+startFen = rbqqbr/wfkkfw/6/6/WFKKFW/RBQQBR
+flagRegionWhite = *6
+flagRegionBlack = *1
+flagPieceSafe = true
+flagMove = true
+stalemateValue = loss
+nMoveRule = 0
+nFoldRule = 0
+
 [makhouse:makruk]
 startFen = rnsmksnr/8/pppppppp/8/8/PPPPPPPP/8/RNSKMSNR[] w - - 0 1
 pieceDrops = true
@@ -551,6 +572,13 @@ class TestPyffish(unittest.TestCase):
         # Chess960 disambiguation of the castling piece file for black
         fen = "r1q1q1r1/8/3k4/8/8/8/8/4K3 w ega - 0 1"
         self.assertEqual(sf.get_fen("castlingqueen", fen, [], True), fen)
+
+    def test_wall_only_evasions(self):
+        # A wall placed without moving a piece can block a check
+        moves = sf.legal_moves("atlantis", "7k/8/8/8/8/8/8/K6r w - - 0 1", [])
+        for square in ("b1", "c1", "d1", "e1", "f1", "g1"):
+            self.assertIn(f"a1a1,a1{square}", moves)
+        self.assertEqual(len(moves), 8)
 
     def test_get_fen(self):
         result = sf.get_fen("chess", CHESS, [])
@@ -1210,6 +1238,10 @@ class TestPyffish(unittest.TestCase):
 
     def test_is_immediate_game_end(self):
         self._check_immediate_game_end("capablanca", CAPA, [], False)
+
+        # Alapo requires enough safe flag pieces, even when extra pieces reached the goal
+        self._check_immediate_game_end("alapo", "RR4/6/6/rr4/6/6 b - - 0 1", [], False)
+        self._check_immediate_game_end("alapo", "RR4/6/6/r5/6/6 b - - 0 1", [], True, -sf.VALUE_MATE)
 
         # bikjang (facing kings)
         moves = "e2e3 e9f9 h3d3 e7f7 i1i3 h10i8 i3h3 c10e7 h3h8 i10i9 h8b8 i9g9 d3f3 f9e9 f3f10 e7c10 f10c10 b10c8 c10g10 g9f9 b8c8 a10b10 b3f3 f9h9 a1a2 h9f9 a2d2 b10b9 d2d10 e9d10 c8c10 d10d9 f3f9 i8g9 f9b9 a7a6 g10g7 f7f6 e4e5 c7d7 g1e4 i7i6 e4b6 d9d8 c10c8 d8d9 b9g9 d7d6 b6e8 i6h6 e5e6 f6e6 c1e4 a6b6 e4b6 d6d5 c4c5 d9d10 e3d3 h6i6 c5c6 d5c5"
