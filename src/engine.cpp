@@ -192,7 +192,8 @@ void Engine::verify_networks() const {
     auto print = [this](std::string_view msg) {
         if (onVerifyNetworks)
             onVerifyNetworks(msg);
-        else if (CurrentProtocol != XBOARD)
+        // XBoard only gets the error messages, as on master
+        else if (CurrentProtocol != XBOARD || msg.substr(0, 6) == "ERROR:")
         {
             // Every line of a message is sent as an info string
             std::stringstream ss{std::string(msg)};
