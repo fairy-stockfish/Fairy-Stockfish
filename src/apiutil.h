@@ -371,6 +371,7 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
         || pos.count_in_hand(c, ALL_PIECES)
         || (pos.extinction_value() != VALUE_NONE && !pos.extinction_pseudo_royal())
         || (pos.variant()->nFoldRule && pos.variant()->nFoldValue != VALUE_DRAW)
+        || pos.material_counting() == (c == WHITE ? WHITE_DRAW_ODDS : BLACK_DRAW_ODDS)
         || (pos.flag_region(c) && pos.count(c, pos.flag_piece(c))))
         return false;
 
@@ -421,15 +422,15 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     Bitboard unbound = pos.pieces() ^ restricted ^ colorbound;
 
     // Color-bound pieces
-    if ((colorbound & pos.pieces(c)) && (((DarkSquares & colorbound) && (~DarkSquares & colorbound)) || unbound || pos.stalemate_value() != VALUE_DRAW || pos.check_counting() || pos.makpong()))
+    if ((colorbound & pos.pieces(c)) && (((DarkSquares & colorbound) && (~DarkSquares & colorbound)) || unbound || pos.variant()->stalemateValue != VALUE_DRAW || pos.check_counting() || pos.makpong()))
         return false;
 
     // Unbound pieces require one helper piece of either color
-    if ((pos.pieces(c) & unbound) && (popcount(pos.pieces() ^ restricted) >= 2 || pos.stalemate_value() != VALUE_DRAW || pos.check_counting() || pos.makpong()))
+    if ((pos.pieces(c) & unbound) && (popcount(pos.pieces() ^ restricted) >= 2 || pos.variant()->stalemateValue != VALUE_DRAW || pos.check_counting() || pos.makpong()))
         return false;
 
     // Non-draw stalemate with lone custom king
-    if (   pos.stalemate_value() != VALUE_DRAW && pos.king_type() != KING
+    if (   pos.variant()->stalemateValue != VALUE_DRAW && pos.king_type() != KING
         && pos.pieces(c, KING) && (pos.board_bb(c, KING) & pos.board_bb(~c, KING)))
         return false;
 
