@@ -172,6 +172,9 @@ pawnTypes = ps
 [repetitionloss:chess]
 nFoldValue = loss
 
+[whitedrawodds:chess]
+materialCounting = whitedrawodds
+
 [royalpiecepromotion:chess]
 king = -
 commoner = k
@@ -316,6 +319,18 @@ variant_positions = {
     },
     "repetitionloss": {
         "k7/8/8/8/8/8/8/K7 w - - 0 1": (False, False),  # K vs K
+    },
+    "armageddon": {
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs K
+        "k7/8/8/8/8/8/8/K7 b - - 0 1": (True, False),  # K vs K
+        "k7/8/8/8/8/8/8/KN6 w - - 0 1": (True, False),  # KN vs K
+        "k7/8/8/8/8/8/8/KB6 b - - 0 1": (True, False),  # KB vs K
+        "kn6/8/8/8/8/8/8/K7 w - - 0 1": (True, False),  # K vs KN
+        "k7/8/8/8/8/8/8/KR6 w - - 0 1": (False, False),  # KR vs K
+    },
+    "whitedrawodds": {
+        "k7/8/8/8/8/8/8/K7 w - - 0 1": (False, True),  # K vs K
+        "kn6/8/8/8/8/8/8/K7 b - - 0 1": (False, True),  # K vs KN
     },
     "snort": {
         "8/8/8/8/8/8/8/8 w - - 0 1": (False, False),  # startpos, free drops

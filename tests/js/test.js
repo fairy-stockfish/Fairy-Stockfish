@@ -354,6 +354,16 @@ describe('board.hasInsufficientMaterial(side)', function () {
     chai.expect(board.hasInsufficientMaterial(false)).to.equal(true);
     board.delete();
   });
+  it("it considers draw odds by material counting", () => {
+    let board = new ffish.Board("armageddon", "8/5k2/8/8/8/2K5/8/8 w - - 0 1");
+    chai.expect(board.hasInsufficientMaterial(true)).to.equal(true);
+    chai.expect(board.hasInsufficientMaterial(false)).to.equal(false);
+    chai.expect(board.isInsufficientMaterial()).to.equal(false);
+    board.setFen("8/5k2/8/8/8/2K5/6N1/8 w - - 0 1");
+    chai.expect(board.hasInsufficientMaterial(true)).to.equal(true);
+    chai.expect(board.hasInsufficientMaterial(false)).to.equal(false);
+    board.delete();
+  });
 });
 
 describe('board.isInsufficientMaterial()', function () {
