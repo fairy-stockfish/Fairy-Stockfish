@@ -1534,7 +1534,7 @@ moves_loop:  // When in check, search starts here
                   1 + (value < singularBeta - doubleMargin) + (value < singularBeta - tripleMargin);
 
                 // Multiple extensions blow up the many forcing lines of drop variants
-                if (pos.captures_to_hand())
+                if (pos.captures_to_hand() || pos.two_boards())
                     extension = 1;
 
                 depth++;
