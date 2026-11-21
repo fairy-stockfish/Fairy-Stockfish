@@ -16,7 +16,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <string>
 
 #include "engine.h"
