@@ -31,14 +31,14 @@ namespace Stockfish {
 /// in games played on two boards, such as bughouse.
 
 enum PartnerType {
-  HUMAN,
-  FAIRY,
-  ALL_PARTNERS
+    HUMAN,
+    FAIRY,
+    ALL_PARTNERS
 };
 
 struct PartnerHandler {
     void reset();
-    template <PartnerType p = ALL_PARTNERS>
+    template<PartnerType p = ALL_PARTNERS>
     void ptell(const std::string& message);
     void parse_partner(std::istringstream& is);
     void parse_ptell(std::istringstream& is, const Position& pos);
@@ -46,11 +46,11 @@ struct PartnerHandler {
     std::atomic<bool> isFairy;
     std::atomic<bool> fast, sitRequested, partnerDead, weDead, weWin, weVirtualWin, weVirtualLoss;
     std::atomic<TimePoint> time, opptime;
-    Move moveRequested;
+    Move                   moveRequested;
 };
 
 extern PartnerHandler Partner;
 
-} // namespace Stockfish
+}  // namespace Stockfish
 
-#endif // #ifndef PARTNER_H_INCLUDED
+#endif  // #ifndef PARTNER_H_INCLUDED

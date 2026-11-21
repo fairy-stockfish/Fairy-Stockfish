@@ -28,207 +28,249 @@ namespace Stockfish {
 
 namespace {
 
-    template <typename T> bool set(const std::string& value, T& target)
-    {
-        std::stringstream ss(value);
-        ss >> target;
-        return !ss.fail();
-    }
+template<typename T>
+bool set(const std::string& value, T& target) {
+    std::stringstream ss(value);
+    ss >> target;
+    return !ss.fail();
+}
 
-    template <> bool set(const std::string& value, Rank& target) {
-        std::stringstream ss(value);
+template<>
+bool set(const std::string& value, Rank& target) {
+    std::stringstream ss(value);
+    int               i;
+    ss >> i;
+    target = Rank(i - 1);
+    return !ss.fail() && target >= RANK_1 && target <= RANK_MAX;
+}
+
+template<>
+bool set(const std::string& value, File& target) {
+    std::stringstream ss(value);
+    if (isdigit(ss.peek()))
+    {
         int i;
         ss >> i;
-        target = Rank(i - 1);
-        return !ss.fail() && target >= RANK_1 && target <= RANK_MAX;
+        target = File(i - 1);
     }
+    else
+    {
+        char c;
+        ss >> c;
+        target = File(c - 'a');
+    }
+    return !ss.fail() && target >= FILE_A && target <= FILE_MAX;
+}
 
-    template <> bool set(const std::string& value, File& target) {
-        std::stringstream ss(value);
-        if (isdigit(ss.peek()))
+template<>
+bool set(const std::string& value, std::string& target) {
+    target = value;
+    return true;
+}
+
+template<>
+bool set(const std::string& value, bool& target) {
+    target = value == "true";
+    return value == "true" || value == "false";
+}
+
+// Value is an alias of int, so game result values need a distinct type for parsing
+struct GameValue {
+    Value& value;
+};
+
+template<>
+bool set(const std::string& value, GameValue& target) {
+    target.value = value == "win"  ? VALUE_MATE
+                 : value == "loss" ? -VALUE_MATE
+                 : value == "draw" ? VALUE_DRAW
+                                   : VALUE_NONE;
+    return value == "win" || value == "loss" || value == "draw" || value == "none";
+}
+
+template<>
+bool set(const std::string& value, MaterialCounting& target) {
+    target = value == "janggi"        ? JANGGI_MATERIAL
+           : value == "unweighted"    ? UNWEIGHTED_MATERIAL
+           : value == "whitedrawodds" ? WHITE_DRAW_ODDS
+           : value == "blackdrawodds" ? BLACK_DRAW_ODDS
+                                      : NO_MATERIAL_COUNTING;
+    return value == "janggi" || value == "unweighted" || value == "whitedrawodds"
+        || value == "blackdrawodds" || value == "none";
+}
+
+template<>
+bool set(const std::string& value, CountingRule& target) {
+    target = value == "makruk"    ? MAKRUK_COUNTING
+           : value == "cambodian" ? CAMBODIAN_COUNTING
+           : value == "asean"     ? ASEAN_COUNTING
+                                  : NO_COUNTING;
+    return value == "makruk" || value == "asean" || value == "none";
+}
+
+template<>
+bool set(const std::string& value, ChasingRule& target) {
+    target = value == "axf" ? AXF_CHASING : NO_CHASING;
+    return value == "axf" || value == "none";
+}
+
+template<>
+bool set(const std::string& value, EnclosingRule& target) {
+    target = value == "reversi"     ? REVERSI
+           : value == "ataxx"       ? ATAXX
+           : value == "quadwrangle" ? QUADWRANGLE
+           : value == "snort"       ? SNORT
+           : value == "anyside"     ? ANYSIDE
+           : value == "top"         ? TOP
+                                    : NO_ENCLOSING;
+    return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value == "snort"
+        || value == "anyside" || value == "top" || value == "none";
+}
+
+template<>
+bool set(const std::string& value, WallingRule& target) {
+    target = value == "arrow"  ? ARROW
+           : value == "duck"   ? DUCK
+           : value == "edge"   ? EDGE
+           : value == "past"   ? PAST
+           : value == "static" ? STATIC
+                               : NO_WALLING;
+    return value == "arrow" || value == "duck" || value == "edge" || value == "past"
+        || value == "static" || value == "none";
+}
+
+template<>
+bool set(const std::string& value, Bitboard& target) {
+    std::string       symbol;
+    std::stringstream ss(value);
+    target = 0;
+    while (!ss.eof() && ss >> symbol && symbol != "-")
+    {
+        if (symbol.back() == '*')
         {
-            int i;
-            ss >> i;
-            target = File(i - 1);
-        }
-        else
-        {
-            char c;
-            ss >> c;
-            target = File(c - 'a');
-        }
-        return !ss.fail() && target >= FILE_A && target <= FILE_MAX;
-    }
-
-    template <> bool set(const std::string& value, std::string& target) {
-        target = value;
-        return true;
-    }
-
-    template <> bool set(const std::string& value, bool& target) {
-        target = value == "true";
-        return value == "true" || value == "false";
-    }
-
-    template <> bool set(const std::string& value, Value& target) {
-        target =  value == "win"  ? VALUE_MATE
-                : value == "loss" ? -VALUE_MATE
-                : value == "draw" ? VALUE_DRAW
-                : VALUE_NONE;
-        return value == "win" || value == "loss" || value == "draw" || value == "none";
-    }
-
-    template <> bool set(const std::string& value, MaterialCounting& target) {
-        target =  value == "janggi"  ? JANGGI_MATERIAL
-                : value == "unweighted" ? UNWEIGHTED_MATERIAL
-                : value == "whitedrawodds" ? WHITE_DRAW_ODDS
-                : value == "blackdrawodds" ? BLACK_DRAW_ODDS
-                : NO_MATERIAL_COUNTING;
-        return   value == "janggi" || value == "unweighted"
-              || value == "whitedrawodds" || value == "blackdrawodds" || value == "none";
-    }
-
-    template <> bool set(const std::string& value, CountingRule& target) {
-        target =  value == "makruk"  ? MAKRUK_COUNTING
-                : value == "cambodian" ? CAMBODIAN_COUNTING
-                : value == "asean" ? ASEAN_COUNTING
-                : NO_COUNTING;
-        return value == "makruk" || value == "asean" || value == "none";
-    }
-
-    template <> bool set(const std::string& value, ChasingRule& target) {
-        target =  value == "axf"  ? AXF_CHASING
-                : NO_CHASING;
-        return value == "axf" || value == "none";
-    }
-
-    template <> bool set(const std::string& value, EnclosingRule& target) {
-        target =  value == "reversi"  ? REVERSI
-                : value == "ataxx" ? ATAXX
-                : value == "quadwrangle" ? QUADWRANGLE
-                : value == "snort" ? SNORT
-                : value == "anyside" ? ANYSIDE
-                : value == "top" ? TOP
-                : NO_ENCLOSING;
-        return value == "reversi" || value == "ataxx" || value == "quadwrangle" || value =="snort" || value =="anyside" || value =="top" || value == "none";
-    }
-
-    template <> bool set(const std::string& value, WallingRule& target) {
-        target =  value == "arrow"  ? ARROW
-                : value == "duck" ? DUCK
-                : value == "edge" ? EDGE
-                : value == "past" ? PAST
-                : value == "static" ? STATIC
-                : NO_WALLING;
-        return value == "arrow" || value == "duck" || value == "edge" || value =="past" || value == "static" || value == "none";
-    }
-
-    template <> bool set(const std::string& value, Bitboard& target) {
-        std::string symbol;
-        std::stringstream ss(value);
-        target = 0;
-        while (!ss.eof() && ss >> symbol && symbol != "-")
-        {
-            if (symbol.back() == '*') {
-                if (isalpha(symbol[0]) && symbol.length() == 2) {
-                    char file = tolower(symbol[0]);
-                    if (File(file - 'a') > FILE_MAX) return false;
-                    target |= file_bb(File(file - 'a'));
-                } else {
-                    return false;
-                }
-            } else if (symbol[0] == '*') {
-                int rank = std::stoi(symbol.substr(1));
-                if (Rank(rank - 1) > RANK_MAX) return false;
-                target |= rank_bb(Rank(rank - 1));
-            } else if (isalpha(symbol[0]) && symbol.length() > 1) {
+            if (isalpha(symbol[0]) && symbol.length() == 2)
+            {
                 char file = tolower(symbol[0]);
-                int rank = std::stoi(symbol.substr(1));
-                if (Rank(rank - 1) > RANK_MAX || File(file - 'a') > FILE_MAX) return false;
-                target |= square_bb(make_square(File(file - 'a'), Rank(rank - 1)));
-            } else {
+                if (File(file - 'a') > FILE_MAX)
+                    return false;
+                target |= file_bb(File(file - 'a'));
+            }
+            else
+            {
                 return false;
             }
         }
-        return !ss.fail();
-    }
-
-
-    template <> bool set(const std::string& value, CastlingRights& target) {
-        char c;
-        CastlingRights castlingRight;
-        std::stringstream ss(value);
-        target = NO_CASTLING;
-        bool valid = true;
-        while (ss >> c && c != '-')
+        else if (symbol[0] == '*')
         {
-            castlingRight =  c == 'K' ? WHITE_OO
-                           : c == 'Q' ? WHITE_OOO
-                           : c == 'k' ? BLACK_OO
-                           : c == 'q' ? BLACK_OOO
-                           : NO_CASTLING;
-            if (castlingRight)
-                target = CastlingRights(target | castlingRight);
-            else
-                valid = false;
+            int rank = std::stoi(symbol.substr(1));
+            if (Rank(rank - 1) > RANK_MAX)
+                return false;
+            target |= rank_bb(Rank(rank - 1));
         }
-        return valid;
+        else if (isalpha(symbol[0]) && symbol.length() > 1)
+        {
+            char file = tolower(symbol[0]);
+            int  rank = std::stoi(symbol.substr(1));
+            if (Rank(rank - 1) > RANK_MAX || File(file - 'a') > FILE_MAX)
+                return false;
+            target |= square_bb(make_square(File(file - 'a'), Rank(rank - 1)));
+        }
+        else
+        {
+            return false;
+        }
     }
+    return !ss.fail();
+}
 
-    template <typename T> void set(PieceType pt, T& target) {
-        target.insert(pt);
+
+template<>
+bool set(const std::string& value, CastlingRights& target) {
+    char              c;
+    CastlingRights    castlingRight;
+    std::stringstream ss(value);
+    target     = NO_CASTLING;
+    bool valid = true;
+    while (ss >> c && c != '-')
+    {
+        castlingRight = c == 'K' ? WHITE_OO
+                      : c == 'Q' ? WHITE_OOO
+                      : c == 'k' ? BLACK_OO
+                      : c == 'q' ? BLACK_OOO
+                                 : NO_CASTLING;
+        if (castlingRight)
+            target = CastlingRights(target | castlingRight);
+        else
+            valid = false;
     }
+    return valid;
+}
 
-    template <> void set(PieceType pt, PieceType& target) {
-        target = pt;
-    }
+template<typename T>
+void set(PieceType pt, T& target) {
+    target.insert(pt);
+}
 
-    template <> void set(PieceType pt, PieceSet& target) {
-        target |= pt;
-    }
+template<>
+void set(PieceType pt, PieceType& target) {
+    target = pt;
+}
 
-} // namespace
+template<>
+void set(PieceType pt, PieceSet& target) {
+    target |= pt;
+}
 
-template <bool DoCheck>
-template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(const std::string& key, T& target) {
+}  // namespace
+
+template<bool DoCheck>
+template<bool Current, class T>
+bool VariantParser<DoCheck>::parse_attribute(const std::string& key, T& target) {
     const auto& it = config.find(key);
     if (it != config.end())
     {
         bool valid = set(it->second, target);
         if (DoCheck && !Current)
-            std::cerr << key << " - Deprecated option might be removed in future version." << std::endl;
+            std::cerr << key << " - Deprecated option might be removed in future version."
+                      << std::endl;
         if (DoCheck && !valid)
         {
-            std::string typeName =  std::is_same<T, int>() ? "int"
-                                  : std::is_same<T, Rank>() ? "Rank"
-                                  : std::is_same<T, File>() ? "File"
-                                  : std::is_same<T, bool>() ? "bool"
-                                  : std::is_same<T, Value>() ? "Value"
-                                  : std::is_same<T, MaterialCounting>() ? "MaterialCounting"
-                                  : std::is_same<T, CountingRule>() ? "CountingRule"
-                                  : std::is_same<T, ChasingRule>() ? "ChasingRule"
-                                  : std::is_same<T, EnclosingRule>() ? "EnclosingRule"
-                                  : std::is_same<T, Bitboard>() ? "Bitboard"
-                                  : std::is_same<T, CastlingRights>() ? "CastlingRights"
-                                  : std::is_same<T, WallingRule>() ? "WallingRule"
-                                  : typeid(T).name();
-            std::cerr << key << " - Invalid value " << it->second << " for type " << typeName << std::endl;
+            std::string typeName = std::is_same<T, int>()              ? "int"
+                                 : std::is_same<T, Rank>()             ? "Rank"
+                                 : std::is_same<T, File>()             ? "File"
+                                 : std::is_same<T, bool>()             ? "bool"
+                                 : std::is_same<T, GameValue>()        ? "Value"
+                                 : std::is_same<T, MaterialCounting>() ? "MaterialCounting"
+                                 : std::is_same<T, CountingRule>()     ? "CountingRule"
+                                 : std::is_same<T, ChasingRule>()      ? "ChasingRule"
+                                 : std::is_same<T, EnclosingRule>()    ? "EnclosingRule"
+                                 : std::is_same<T, Bitboard>()         ? "Bitboard"
+                                 : std::is_same<T, CastlingRights>()   ? "CastlingRights"
+                                 : std::is_same<T, WallingRule>()      ? "WallingRule"
+                                                                       : typeid(T).name();
+            std::cerr << key << " - Invalid value " << it->second << " for type " << typeName
+                      << std::endl;
         }
         return valid;
     }
     return false;
 }
 
-template <bool DoCheck>
-template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(const std::string& key, T& target, std::string pieceToChar) {
+template<bool DoCheck>
+template<bool Current, class T>
+bool VariantParser<DoCheck>::parse_attribute(const std::string& key,
+                                             T&                 target,
+                                             std::string        pieceToChar) {
     const auto& it = config.find(key);
     if (it != config.end())
     {
-        target = T();
-        char token;
-        size_t idx = std::string::npos;
+        target                  = T();
+        char              token = 0;
+        size_t            idx   = std::string::npos;
         std::stringstream ss(it->second);
-        while (ss >> token && (idx = token == '*' ? size_t(ALL_PIECES) : pieceToChar.find(toupper(token))) != std::string::npos)
+        while (ss >> token
+               && (idx = token == '*' ? size_t(ALL_PIECES) : pieceToChar.find(toupper(token)))
+                    != std::string::npos)
             set(PieceType(idx), target);
         if (DoCheck && idx == std::string::npos && token != '-')
             std::cerr << key << " - Invalid piece type: " << token << std::endl;
@@ -237,14 +279,14 @@ template <bool Current, class T> bool VariantParser<DoCheck>::parse_attribute(co
     return false;
 }
 
-template <bool DoCheck>
+template<bool DoCheck>
 Variant* VariantParser<DoCheck>::parse() {
     Variant* v = new Variant();
     v->reset_pieces();
     return parse(v);
 }
 
-template <bool DoCheck>
+template<bool DoCheck>
 Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("maxRank", v->maxRank);
     parse_attribute("maxFile", v->maxFile);
@@ -266,7 +308,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             else
             {
                 if (DoCheck && keyValue->second.at(0) != '-')
-                    std::cerr << name << " - Invalid letter: " << keyValue->second.at(0) << std::endl;
+                    std::cerr << name << " - Invalid letter: " << keyValue->second.at(0)
+                              << std::endl;
                 v->remove_piece(pt);
             }
             // betza
@@ -290,7 +333,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                 if (keyValue->second.size() > 1)
                 {
                     // custom royal piece
-                    v->customPiece[CUSTOM_PIECES_ROYAL - CUSTOM_PIECES] = keyValue->second.substr(2);
+                    v->customPiece[CUSTOM_PIECES_ROYAL - CUSTOM_PIECES] =
+                      keyValue->second.substr(2);
                     v->kingType = CUSTOM_PIECES_ROYAL;
                 }
                 else
@@ -299,7 +343,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         }
         // mobility region
         std::string capitalizedPiece = name;
-        capitalizedPiece[0] = toupper(capitalizedPiece[0]);
+        capitalizedPiece[0]          = toupper(capitalizedPiece[0]);
         for (Color c : {WHITE, BLACK})
         {
             std::string color = c == WHITE ? "White" : "Black";
@@ -310,18 +354,22 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     for (Phase phase : {MG, EG})
     {
         const std::string optionName = phase == MG ? "pieceValueMg" : "pieceValueEg";
-        const auto& pv = config.find(optionName);
+        const auto&       pv         = config.find(optionName);
         if (pv != config.end())
         {
-            char token;
-            size_t idx = 0;
+            char              token = 0;
+            size_t            idx   = 0;
             std::stringstream ss(pv->second);
-            while (!ss.eof() && ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
-                             && ss >> token && ss >> v->pieceValue[phase][idx]) {}
+            while (!ss.eof() && ss >> token
+                   && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
+                   && ss >> token && ss >> v->pieceValue[phase][idx])
+            {}
             if (DoCheck && idx == std::string::npos)
                 std::cerr << optionName << " - Invalid piece type: " << token << std::endl;
             else if (DoCheck && !ss.eof())
-                std::cerr << optionName << " - Invalid piece value for type: " << v->pieceToChar[idx] << std::endl;
+                std::cerr << optionName
+                          << " - Invalid piece value for type: " << v->pieceToChar[idx]
+                          << std::endl;
         }
     }
 
@@ -332,14 +380,15 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         for (Color c : {WHITE, BLACK})
             v->promotionRegion[c] = zone_bb(c, promotionRank, v->maxRank);
     }
-    Rank doubleStepRank = RANK_2;
+    Rank doubleStepRank    = RANK_2;
     Rank doubleStepRankMin = RANK_2;
-    if (   parse_attribute<false>("doubleStepRank", doubleStepRank)
+    if (parse_attribute<false>("doubleStepRank", doubleStepRank)
         || parse_attribute<false>("doubleStepRankMin", doubleStepRankMin))
     {
         for (Color c : {WHITE, BLACK})
-            v->doubleStepRegion[c] =   zone_bb(c, doubleStepRankMin, v->maxRank)
-                                    & ~forward_ranks_bb(c, relative_rank(c, doubleStepRank, v->maxRank));
+            v->doubleStepRegion[c] =
+              zone_bb(c, doubleStepRankMin, v->maxRank)
+              & ~forward_ranks_bb(c, relative_rank(c, doubleStepRank, v->maxRank));
     }
     parse_attribute<false>("whiteFlag", v->flagRegion[WHITE]);
     parse_attribute<false>("blackFlag", v->flagRegion[BLACK]);
@@ -350,7 +399,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
 
     bool dropOnTop = false;
     parse_attribute<false>("dropOnTop", dropOnTop);
-    if (dropOnTop) v->enclosingDrop=TOP;
+    if (dropOnTop)
+        v->enclosingDrop = TOP;
 
     // Parse aliases
     parse_attribute("pawnTypes", v->mainPromotionPawnType[WHITE], v->pieceToChar);
@@ -389,25 +439,30 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     const auto& it_prom_limit = config.find("promotionLimit");
     if (it_prom_limit != config.end())
     {
-        char token;
-        size_t idx = 0;
+        char              token = 0;
+        size_t            idx   = 0;
         std::stringstream ss(it_prom_limit->second);
-        while (!ss.eof() && ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
-                         && ss >> token && ss >> v->promotionLimit[idx]) {}
+        while (!ss.eof() && ss >> token
+               && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos && ss >> token
+               && ss >> v->promotionLimit[idx])
+        {}
         if (DoCheck && idx == std::string::npos)
             std::cerr << "promotionLimit - Invalid piece type: " << token << std::endl;
         else if (DoCheck && !ss.eof())
-            std::cerr << "promotionLimit - Invalid piece count for type: " << v->pieceToChar[idx] << std::endl;
+            std::cerr << "promotionLimit - Invalid piece count for type: " << v->pieceToChar[idx]
+                      << std::endl;
     }
     // promoted piece types
     const auto& it_prom_pt = config.find("promotedPieceType");
     if (it_prom_pt != config.end())
     {
-        char token;
-        size_t idx = 0, idx2 = 0;
+        char              token = 0;
+        size_t            idx = 0, idx2 = 0;
         std::stringstream ss(it_prom_pt->second);
-        while (   ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos && ss >> token
-               && ss >> token && (idx2 = (token == '-' ? 0 : v->pieceToChar.find(toupper(token)))) != std::string::npos)
+        while (ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
+               && ss >> token && ss >> token
+               && (idx2 = (token == '-' ? 0 : v->pieceToChar.find(toupper(token))))
+                    != std::string::npos)
             v->promotedPieceType[idx] = PieceType(idx2);
         if (DoCheck && (idx == std::string::npos || idx2 == std::string::npos))
             std::cerr << "promotedPieceType - Invalid piece type: " << token << std::endl;
@@ -494,24 +549,28 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("soldierPromotionRank", v->soldierPromotionRank);
     parse_attribute("flipEnclosedPieces", v->flipEnclosedPieces);
     // game end
+    auto parse_value = [this](const std::string& key, Value& target) {
+        GameValue gameValue{target};
+        parse_attribute(key, gameValue);
+    };
     parse_attribute("nMoveRuleTypes", v->nMoveRuleTypes[WHITE], v->pieceToChar);
     parse_attribute("nMoveRuleTypes", v->nMoveRuleTypes[BLACK], v->pieceToChar);
     parse_attribute("nMoveRuleTypesWhite", v->nMoveRuleTypes[WHITE], v->pieceToChar);
     parse_attribute("nMoveRuleTypesBlack", v->nMoveRuleTypes[BLACK], v->pieceToChar);
     parse_attribute("nMoveRule", v->nMoveRule);
     parse_attribute("nFoldRule", v->nFoldRule);
-    parse_attribute("nFoldValue", v->nFoldValue);
+    parse_value("nFoldValue", v->nFoldValue);
     parse_attribute("nFoldValueAbsolute", v->nFoldValueAbsolute);
     parse_attribute("perpetualCheckIllegal", v->perpetualCheckIllegal);
     parse_attribute("moveRepetitionIllegal", v->moveRepetitionIllegal);
     parse_attribute("chasingRule", v->chasingRule);
-    parse_attribute("stalemateValue", v->stalemateValue);
+    parse_value("stalemateValue", v->stalemateValue);
     parse_attribute("stalematePieceCount", v->stalematePieceCount);
-    parse_attribute("checkmateValue", v->checkmateValue);
+    parse_value("checkmateValue", v->checkmateValue);
     parse_attribute("shogiPawnDropMateIllegal", v->shogiPawnDropMateIllegal);
     parse_attribute("shatarMateRule", v->shatarMateRule);
     parse_attribute("bikjangRule", v->bikjangRule);
-    parse_attribute("extinctionValue", v->extinctionValue);
+    parse_value("extinctionValue", v->extinctionValue);
     parse_attribute("extinctionClaim", v->extinctionClaim);
     parse_attribute("extinctionPseudoRoyal", v->extinctionPseudoRoyal);
     parse_attribute("dupleCheck", v->dupleCheck);
@@ -543,12 +602,12 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("connectRegion2Black", v->connectRegion2[BLACK]);
     parse_attribute("connectNxN", v->connectNxN);
     parse_attribute("collinearN", v->collinearN);
-    parse_attribute("connectValue", v->connectValue);
+    parse_value("connectValue", v->connectValue);
     parse_attribute("materialCounting", v->materialCounting);
     parse_attribute("adjudicateFullBoard", v->adjudicateFullBoard);
     parse_attribute("countingRule", v->countingRule);
     parse_attribute("castlingWins", v->castlingWins);
-    
+
     // Report invalid options
     if (DoCheck)
     {
@@ -565,11 +624,14 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         {
             PieceType pt = pop_lsb(ps);
             for (Color c : {WHITE, BLACK})
-                if (std::count(v->pieceToChar.begin(), v->pieceToChar.end(), v->pieceToChar[make_piece(c, pt)]) != 1)
-                    std::cerr << piece_name(pt) << " - Ambiguous piece character: " << v->pieceToChar[make_piece(c, pt)] << std::endl;
+                if (std::count(v->pieceToChar.begin(), v->pieceToChar.end(),
+                               v->pieceToChar[make_piece(c, pt)])
+                    != 1)
+                    std::cerr << piece_name(pt) << " - Ambiguous piece character: "
+                              << v->pieceToChar[make_piece(c, pt)] << std::endl;
         }
 
-        v->conclude(); // In preparation for the consistency checks below
+        v->conclude();  // In preparation for the consistency checks below
 
         // startFen
         if (FEN::validate_fen(v->startFen, v, v->chess960) != FEN::FEN_OK)
@@ -580,18 +642,20 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         {
             const std::string fenBoard = v->startFen.substr(0, v->startFen.find(' '));
             std::stringstream ss(v->pieceToCharTable);
-            char token;
+            char              token = 0;
             while (ss >> token)
                 if (isalpha(token) && v->pieceToChar.find(toupper(token)) == std::string::npos)
                     std::cerr << "pieceToCharTable - Invalid piece type: " << token << std::endl;
             for (PieceSet ps = v->pieceTypes; ps;)
             {
-                PieceType pt = pop_lsb(ps);
-                char ptl = tolower(v->pieceToChar[pt]);
-                if (v->pieceToCharTable.find(ptl) == std::string::npos && fenBoard.find(ptl) != std::string::npos)
+                PieceType pt  = pop_lsb(ps);
+                char      ptl = tolower(v->pieceToChar[pt]);
+                if (v->pieceToCharTable.find(ptl) == std::string::npos
+                    && fenBoard.find(ptl) != std::string::npos)
                     std::cerr << "pieceToCharTable - Missing piece type: " << ptl << std::endl;
                 char ptu = toupper(v->pieceToChar[pt]);
-                if (v->pieceToCharTable.find(ptu) == std::string::npos && fenBoard.find(ptu) != std::string::npos)
+                if (v->pieceToCharTable.find(ptu) == std::string::npos
+                    && fenBoard.find(ptu) != std::string::npos)
                     std::cerr << "pieceToCharTable - Missing piece type: " << ptu << std::endl;
             }
         }
@@ -602,7 +666,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         if (v->castling && v->castlingRank > v->maxRank)
             std::cerr << "Inconsistent settings: castlingRank > maxRank." << std::endl;
         if (v->castling && v->castlingQueensideFile > v->castlingKingsideFile)
-            std::cerr << "Inconsistent settings: castlingQueensideFile > castlingKingsideFile." << std::endl;
+            std::cerr << "Inconsistent settings: castlingQueensideFile > castlingKingsideFile."
+                      << std::endl;
 
         // We can not fully check support for custom king movements at this point,
         // since custom pieces are only initialized on loading of the variant.
@@ -610,12 +675,12 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         if ((v->pieceTypes & KING) && !is_custom(v->kingType))
         {
             const PieceInfo* pi = pieceMap.find(v->kingType)->second;
-            if (   pi->hopper[0][MODALITY_QUIET].size()
-                || pi->hopper[0][MODALITY_CAPTURE].size()
+            if (pi->hopper[0][MODALITY_QUIET].size() || pi->hopper[0][MODALITY_CAPTURE].size()
                 || std::any_of(pi->steps[0][MODALITY_CAPTURE].begin(),
                                pi->steps[0][MODALITY_CAPTURE].end(),
                                [](const std::pair<const Direction, int>& d) { return d.second; }))
-                std::cerr << piece_name(v->kingType) << " is not supported as kingType." << std::endl;
+                std::cerr << piece_name(v->kingType) << " is not supported as kingType."
+                          << std::endl;
         }
     }
 
@@ -650,15 +715,17 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
             errors.push_back("Can not use kings or pseudo-royal with mutuallyImmuneTypes.");
     }
     if (v->flagPieceSafe && v->blastOnCapture)
-        errors.push_back("Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast).");
+        errors.push_back(
+          "Can not use flagPieceSafe with blastOnCapture (flagPieceSafe uses simple assessment that does not see blast).");
     // Flipping does not update castling rights, so castling could be done
     // with flipped (i.e., the opponent's) castling king or rook pieces.
-    if (   v->flipEnclosedPieces && v->castling
+    if (v->flipEnclosedPieces && v->castling
         && (v->pieceTypes & (piece_set(v->castlingKingPiece[WHITE]) | v->castlingKingPiece[BLACK])))
         errors.push_back("flipEnclosedPieces and castling are incompatible.");
     // Duck walling resets the wall squares of the previous move,
     // so squares petrified by the current move would get out of sync.
-    if (v->wallingRule == DUCK && (v->petrifyOnCaptureTypes || (v->blastOnCapture && v->petrifyBlastPieces)))
+    if (v->wallingRule == DUCK
+        && (v->petrifyOnCaptureTypes || (v->blastOnCapture && v->petrifyBlastPieces)))
         errors.push_back("Can not use petrification with wallingRule = duck.");
 
     return v;
@@ -669,4 +736,4 @@ template Variant* VariantParser<false>::parse();
 template Variant* VariantParser<true>::parse(Variant* v);
 template Variant* VariantParser<false>::parse(Variant* v);
 
-} // namespace Stockfish
+}  // namespace Stockfish
