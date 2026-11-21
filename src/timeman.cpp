@@ -60,12 +60,6 @@ void TimeManagement::init(const Position&     pos,
     if (useNodesTime)
         limits.movetime *= npmsec;
 
-    if (limits.time[us] == 0)
-    {
-        optimumTime = maximumTime = NoBound;
-        return;
-    }
-
     TimePoint moveOverhead = TimePoint(options["Move Overhead"]);
 
     // optScale is a percentage of available time to use for the current move.
