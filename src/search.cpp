@@ -1230,8 +1230,14 @@ Value Search::Worker::search(
 
     // Step 9. Futility pruning: child node
     // The depth condition is important for mate finding. It should NOT be tuned.
-    // Blast variants keep the shallow pre-merge depth limit (9 - 3)
-    if (!ss->ttPv && depth < (seekMate || pos.blast_on_capture() ? 6 : 19) && eval >= beta
+    // Blast variants keep the shallow pre-merge depth limit (9 - 3). Variants
+    // flipping enclosed pieces like reversi keep the pre-merge limit of 9: their
+    // material swings with every move, so the static evaluation is unreliable.
+    if (!ss->ttPv
+        && depth < (seekMate || pos.blast_on_capture()        ? 6
+                    : pos.flip_enclosed_pieces() == REVERSI ? 9
+                                                            : 19)
+        && eval >= beta
         && (!ttData.move || ttCapture) && !is_loss(beta) && !is_win(eval))
     {
         Value futilityMargin = futility_margin(depth, !ss->ttHit, improving, opponentWorsening)
@@ -1533,8 +1539,10 @@ moves_loop:  // When in check, search starts here
                 extension =
                   1 + (value < singularBeta - doubleMargin) + (value < singularBeta - tripleMargin);
 
-                // Multiple extensions blow up the many forcing lines of drop variants
-                if (pos.captures_to_hand() || pos.two_boards())
+                // Multiple extensions blow up the many forcing lines of drop variants.
+                // Drops are quiet moves, so the margins of quiet ttMoves would
+                // triple-extend almost every singular drop.
+                if (pos.captures_to_hand() || pos.two_boards() || pos.piece_drops())
                     extension = 1;
 
                 depth++;
@@ -1601,7 +1609,10 @@ moves_loop:  // When in check, search starts here
         // Base reduction offset to compensate for other tweaks
         r += 697;
 
-        r -= moveCount * 65;
+        // Not for walling variants: with a move for each wall square, move counts
+        // reach hundreds and this term would extend late moves instead of reducing them
+        if (!pos.walling())
+            r -= moveCount * 65;
         r -= std::abs(correctionValue) / 26310;
 
         // Increase reduction for cut nodes
