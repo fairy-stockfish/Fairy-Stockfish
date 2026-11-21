@@ -1601,7 +1601,10 @@ moves_loop:  // When in check, search starts here
         // Base reduction offset to compensate for other tweaks
         r += 697;
 
-        r -= moveCount * 65;
+        // Not for walling variants: with a move for each wall square, move counts
+        // reach hundreds and this term would extend late moves instead of reducing them
+        if (!pos.walling())
+            r -= moveCount * 65;
         r -= std::abs(correctionValue) / 26310;
 
         // Increase reduction for cut nodes
