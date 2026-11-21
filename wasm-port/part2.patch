@@ -1,0 +1,24 @@
+diff --git a/src/emscripten/Makefile b/src/emscripten/Makefile
+index 548be1a5..b127f611 100644
+--- a/src/emscripten/Makefile
++++ b/src/emscripten/Makefile
+@@ -64,10 +64,18 @@ EM_ARTIFACTS += \
+ 	emscripten/public/stockfish.js emscripten/public/stockfish.wasm emscripten/public/stockfish.worker.js \
+ 	emscripten/public/AUTHORS emscripten/public/Copying.txt
+ 
++# The net target of the main Makefile (scripts/net.sh) no longer defines nnuenet
++nnuenet := $(shell grep EvalFileDefaultName evaluate.h | grep define | sed 's/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/')
++
+ ifeq ($(embedded_nnue),yes)
+-emscripten/embedded_nnue.cpp: net
++# Depend on the network file, not on the phony target net: .depend depends on
++# $(SRCS), so a source regenerated on every run makes make restart endlessly
++emscripten/embedded_nnue.cpp: $(nnuenet)
+ 	@echo "-- Generate embedded_nnue.cpp --"
+ 	node emscripten/misc/embedded_nnue.js < $(nnuenet) > emscripten/embedded_nnue.cpp
++
++$(nnuenet):
++	@$(SHELL) ../scripts/net.sh
+ endif
+ 
+ emscripten_copy_files:

@@ -1,0 +1,322 @@
+diff --git a/src/Makefile b/src/Makefile
+index 57855e2a..2e0a74e1 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -139,9 +139,9 @@ VPATH = syzygy:nnue:nnue/features
+ 
+ 
+ ### 2.1. General and architecture defaults
+-largeboards = no
++largeboards = yes
+ precomputedmagics = yes
+-nnue = no
++nnue = yes
+ load_net = $(if $(filter $(nnue),yes),net)
+ 
+ ifeq ($(ARCH),)
+@@ -159,7 +159,7 @@ ifeq ($(ARCH), $(filter $(ARCH), \
+                  x86-64-bmi2 x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-ssse3 x86-64-sse3-popcnt \
+                  x86-64 x86-32-sse41-popcnt x86-32-sse2 x86-32 ppc-64 ppc-64-altivec ppc-64-vsx ppc-32 e2k \
+                  armv7 armv7-neon armv8 armv8-dotprod apple-silicon general-64 general-32 riscv64 \
+-                 loongarch64 loongarch64-lsx loongarch64-lasx))
++                 loongarch64 loongarch64-lsx loongarch64-lasx wasm))
+    SUPPORTED_ARCH=true
+ else
+    SUPPORTED_ARCH=false
+@@ -423,6 +423,10 @@ ifeq ($(ARCH),riscv64)
+ 	arch = riscv64
+ endif
+ 
++ifeq ($(ARCH),wasm)
++include emscripten/Makefile
++endif
++
+ ifeq ($(findstring loongarch64,$(ARCH)),loongarch64)
+ 	arch = loongarch64
+ 	prefetch = yes
+@@ -1158,7 +1162,7 @@ config-sanity: $(load_net)
+ 	(test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
+ 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "e2k" || \
+ 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
+-	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64") && \
++	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64" || test "$(arch)" = "wasm") && \
+ 	(test "$(bits)" = "32" || test "$(bits)" = "64") && \
+ 	(test "$(prefetch)" = "yes" || test "$(prefetch)" = "no") && \
+ 	(test "$(popcnt)" = "yes" || test "$(popcnt)" = "no") && \
+diff --git a/src/misc.cpp b/src/misc.cpp
+index 5f56a69e..27023af5 100644
+--- a/src/misc.cpp
++++ b/src/misc.cpp
+@@ -40,9 +40,28 @@ namespace Stockfish {
+ 
+ namespace {
+ 
++#if defined(__EMSCRIPTEN__)
++
++#define MACRO_STRINGIFY_INTERNAL(X) #X
++#define MACRO_STRINGIFY(X) MACRO_STRINGIFY_INTERNAL(X)
++
++const string version =
++  "["
++  "commit: "      MACRO_STRINGIFY(EM_COMMIT) ", "
++  "upstream: "    MACRO_STRINGIFY(EM_UPSTREAM) ", "
++  "emscripten: "  MACRO_STRINGIFY(EM_EMSCRIPTEN)
++  "]";
++
++#undef MACRO_STRINGIFY
++#undef MACRO_STRINGIFY_INTERNAL
++
++#else
++
+ /// Version number or dev.
+ const string version = "dev";
+ 
++#endif
++
+ /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
+ /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
+ /// can toggle the logging of std::cout and std:cin at runtime whilst preserving
+@@ -509,6 +528,10 @@ string binaryDirectory;   // path of the executable directory
+ string workingDirectory;  // path of the working directory
+ 
+ void init([[maybe_unused]] int argc, char* argv[]) {
++#ifdef __EMSCRIPTEN__
++    return;
++#endif
++
+     string pathSeparator;
+ 
+     // Extract the path+name of the executable binary
+diff --git a/src/nnue/layers/affine_transform.h b/src/nnue/layers/affine_transform.h
+index a3d072f6..ba9c1c66 100644
+--- a/src/nnue/layers/affine_transform.h
++++ b/src/nnue/layers/affine_transform.h
+@@ -106,6 +106,45 @@ static void affine_transform_non_ssse3(std::int32_t*       output,
+ 
+         #endif
+     }
++    #elif defined(USE_WASM_SIMD)
++    constexpr IndexType NumChunks = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
++
++    // Dot product of 16 signed weights and 16 unsigned inputs as 4 partial sums
++    auto dot = [](v128_t w, v128_t x) {
++        return wasm_i32x4_add(wasm_i32x4_dot_i16x8(wasm_i16x8_extend_low_i8x16(w),
++                                                   wasm_u16x8_extend_low_u8x16(x)),
++                              wasm_i32x4_dot_i16x8(wasm_i16x8_extend_high_i8x16(w),
++                                                   wasm_u16x8_extend_high_u8x16(x)));
++    };
++    auto hadd = [](v128_t a, v128_t b) {
++        return wasm_i32x4_add(wasm_i32x4_shuffle(a, b, 0, 2, 4, 6),
++                              wasm_i32x4_shuffle(a, b, 1, 3, 5, 7));
++    };
++
++    IndexType i = 0;
++    for (; i + 4 <= OutputDimensions; i += 4)
++    {
++        v128_t s0 = wasm_i32x4_splat(0), s1 = s0, s2 = s0, s3 = s0;
++        for (IndexType j = 0; j < NumChunks; ++j)
++        {
++            const v128_t x = wasm_v128_load(&input[j * 16]);
++            s0 = wasm_i32x4_add(s0, dot(wasm_v128_load(&weights[(i + 0) * PaddedInputDimensions + j * 16]), x));
++            s1 = wasm_i32x4_add(s1, dot(wasm_v128_load(&weights[(i + 1) * PaddedInputDimensions + j * 16]), x));
++            s2 = wasm_i32x4_add(s2, dot(wasm_v128_load(&weights[(i + 2) * PaddedInputDimensions + j * 16]), x));
++            s3 = wasm_i32x4_add(s3, dot(wasm_v128_load(&weights[(i + 3) * PaddedInputDimensions + j * 16]), x));
++        }
++        wasm_v128_store(&output[i], wasm_i32x4_add(wasm_v128_load(&biases[i]),
++                                                   hadd(hadd(s0, s1), hadd(s2, s3))));
++    }
++    for (; i < OutputDimensions; ++i)
++    {
++        v128_t s = wasm_i32x4_splat(0);
++        for (IndexType j = 0; j < NumChunks; ++j)
++            s = wasm_i32x4_add(s, dot(wasm_v128_load(&weights[i * PaddedInputDimensions + j * 16]),
++                                      wasm_v128_load(&input[j * 16])));
++        output[i] = biases[i] + wasm_i32x4_extract_lane(s, 0) + wasm_i32x4_extract_lane(s, 1)
++                  + wasm_i32x4_extract_lane(s, 2) + wasm_i32x4_extract_lane(s, 3);
++    }
+     #else
+     std::memcpy(output, biases, sizeof(std::int32_t) * OutputDimensions);
+ 
+diff --git a/src/nnue/network.cpp b/src/nnue/network.cpp
+index d8e3e780..f7bfdbd7 100644
+--- a/src/nnue/network.cpp
++++ b/src/nnue/network.cpp
+@@ -46,7 +46,11 @@
+ //     const unsigned int         gEmbeddedNNUESize;    // the size of the embedded file
+ // Note that this does not work in Microsoft Visual Studio.
+ #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
++    #if defined(__EMSCRIPTEN__)
++        #include "../emscripten/embedded_nnue.h"
++    #else
+ INCBIN(EmbeddedNNUE, EvalFileDefaultName);
++    #endif
+ #else
+ const unsigned char                         gEmbeddedNNUEData[1] = {0x0};
+ [[maybe_unused]] const unsigned char* const gEmbeddedNNUEEnd     = &gEmbeddedNNUEData[1];
+@@ -274,7 +278,10 @@ Network& Network::operator=(const Network& other) {
+ }
+ 
+ void Network::load(const std::string& rootDirectory, std::string evalfilePath, const Variant* v) {
+-#if defined(DEFAULT_NNUE_DIRECTORY)
++#if defined(__EMSCRIPTEN__)
++    (void) rootDirectory;
++    std::vector<std::string> dirs = {"<internal>", ""};
++#elif defined(DEFAULT_NNUE_DIRECTORY)
+     std::vector<std::string> dirs = {"<internal>", "", rootDirectory,
+                                      stringify(DEFAULT_NNUE_DIRECTORY)};
+ #else
+diff --git a/src/nnue/nnue_common.h b/src/nnue/nnue_common.h
+index 017f6d9e..1c490081 100644
+--- a/src/nnue/nnue_common.h
++++ b/src/nnue/nnue_common.h
+@@ -44,6 +44,9 @@
+ 
+ #elif defined(USE_NEON)
+     #include <arm_neon.h>
++
++#elif defined(USE_WASM_SIMD)
++    #include <wasm_simd128.h>
+ #endif
+ 
+ namespace Stockfish::Eval::NNUE {
+@@ -78,6 +81,9 @@ constexpr std::size_t SimdWidth = 8;
+ 
+ #elif defined(USE_NEON)
+ constexpr std::size_t SimdWidth = 16;
++
++#elif defined(USE_WASM_SIMD)
++constexpr std::size_t SimdWidth = 16;
+ #endif
+ 
+ constexpr std::size_t MaxSimdWidth = 32;
+diff --git a/src/nnue/nnue_feature_transformer.h b/src/nnue/nnue_feature_transformer.h
+index b6693232..7d9b855e 100644
+--- a/src/nnue/nnue_feature_transformer.h
++++ b/src/nnue/nnue_feature_transformer.h
+@@ -266,6 +266,26 @@ class FeatureTransformer {
+         }
+         return psqt;
+ 
++#elif defined(USE_WASM_SIMD)
++
++        static_assert(HalfDimensions % 16 == 0);
++        const v128_t ClampMin = wasm_i16x8_splat(0);
++        const v128_t ClampMax = wasm_i16x8_splat(127);
++
++        for (IndexType p = 0; p < 2; ++p)
++        {
++            const IndexType offset = HalfDimensions * p;
++            for (IndexType j = 0; j < HalfDimensions; j += 16)
++            {
++                v128_t x = wasm_v128_load(&accumulation[perspectives[p]][j + 0]);
++                v128_t y = wasm_v128_load(&accumulation[perspectives[p]][j + 8]);
++                x        = wasm_i16x8_min(wasm_i16x8_max(x, ClampMin), ClampMax);
++                y        = wasm_i16x8_min(wasm_i16x8_max(y, ClampMin), ClampMax);
++                wasm_v128_store(&output[offset + j], wasm_u8x16_narrow_i16x8(x, y));
++            }
++        }
++        return psqt;
++
+ #else
+ 
+         for (IndexType p = 0; p < 2; ++p)
+diff --git a/src/nnue/simd.h b/src/nnue/simd.h
+index 25891163..898c316b 100644
+--- a/src/nnue/simd.h
++++ b/src/nnue/simd.h
+@@ -33,6 +33,9 @@
+ 
+ #elif defined(USE_NEON)
+     #include <arm_neon.h>
++
++#elif defined(USE_WASM_SIMD)
++    #include <wasm_simd128.h>
+ #endif
+ 
+ #include "../types.h"
+@@ -219,6 +222,27 @@ static constexpr std::uint32_t Mask[4] = {1, 2, 4, 8};
+ inline int8x16_t vmovl_high_s8(int8x16_t val) { return vmovl_s8(vget_high_s8(val)); }
+     #endif
+ 
++#elif defined(USE_WASM_SIMD)
++using vec_t      = v128_t;
++using psqt_vec_t = v128_t;
++
++    #define vec_load(a) wasm_v128_load(a)
++    #define vec_store(a, b) wasm_v128_store(a, b)
++    #define vec_add_16(a, b) wasm_i16x8_add(a, b)
++    #define vec_sub_16(a, b) wasm_i16x8_sub(a, b)
++    #define vec_zero() wasm_i32x4_splat(0)
++    #define vec_set_16(a) wasm_i16x8_splat(a)
++    #define vec_max_16(a, b) wasm_i16x8_max(a, b)
++    #define vec_min_16(a, b) wasm_i16x8_min(a, b)
++    #define vec_load_psqt(a) wasm_v128_load(a)
++    #define vec_store_psqt(a, b) wasm_v128_store(a, b)
++    #define vec_add_psqt_32(a, b) wasm_i32x4_add(a, b)
++    #define vec_sub_psqt_32(a, b) wasm_i32x4_sub(a, b)
++    #define vec_zero_psqt() wasm_i32x4_splat(0)
++
++    #define NumRegistersSIMD 8  // TODO: investigate how this affects performance
++    #define MaxChunkSize 16
++
+ #else
+     #undef VECTOR
+ 
+diff --git a/src/tt.cpp b/src/tt.cpp
+index 59e8e0aa..e3b0e87c 100644
+--- a/src/tt.cpp
++++ b/src/tt.cpp
+@@ -205,6 +205,11 @@ void TranspositionTable::resize(usize mbSize, ThreadPool& threads) {
+ // Initializes the entire transposition table to zero, in a multi-threaded way
+ void TranspositionTable::clear(ThreadPool& threads) {
+     generation8             = 0;
++#ifdef __EMSCRIPTEN__
++    // NOTE: Sometimes threaded TT initialization seems to fail (engine crash on startup), so here we simply initialize on main thread.
++    std::memset(static_cast<void*>(table), 0, clusterCount * sizeof(Cluster));
++    return;
++#endif
+     const usize threadCount = threads.num_threads();
+ 
+     std::vector<usize> threadToNuma = threads.get_bound_thread_to_numa_node();
+diff --git a/src/uci.cpp b/src/uci.cpp
+index b3065bc2..d274bfb9 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -41,6 +41,10 @@
+ #include "xboard.h"
+ #include "syzygy/tbprobe.h"
+ 
++#ifdef __EMSCRIPTEN__
++#include "emscripten/utils.h"
++#endif
++
+ using namespace std;
+ 
+ namespace Stockfish {
+@@ -542,9 +546,14 @@ void UCIEngine::loop() {
+ 
+     do
+     {
++#ifdef __EMSCRIPTEN__
++        argc = 1;
++        emscripten_utils_getline(cmd);
++#else
+         if (argc == 1
+             && !getline(cin, cmd))  // Wait for an input or an end-of-file (EOF) indication
+             cmd = "quit";
++#endif
+ 
+         istringstream is(cmd);
+ 
+@@ -678,6 +687,11 @@ void UCIEngine::loop() {
+                       << sync_endl;
+ 
+     } while (token != "quit" && argc == 1);  // The command-line arguments are one-shot
++
++#ifdef __EMSCRIPTEN__
++    // TODO: Ideally, we should send message to foreground and terminate gracefully from there
++    emscripten_force_exit(0);
++#endif
+ }
+ 
+ 
