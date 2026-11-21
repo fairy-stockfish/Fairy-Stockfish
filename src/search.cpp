@@ -118,9 +118,13 @@ int correction_value(const Worker& w, const Position& pos, const Stack* const ss
 }
 
 // Add correctionHistory value to raw staticEval and guarantee evaluation
-// does not hit the tablebase range.
-Value to_corrected_static_eval(const Value v, const int cv) {
-    return std::clamp(v + cv / 131072, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
+// does not hit the tablebase range. In ataxx the correction mostly stands for the
+// tempo that the evaluation misses (see search()), which is larger than the
+// correction can represent, so it counts three times there.
+Value to_corrected_static_eval(const Value v, const int cv, const Position& pos) {
+    const i64 scale = pos.flip_enclosed_pieces() == ATAXX ? 3 : 1;
+    return Value(std::clamp(v + scale * cv / 131072, i64(VALUE_TB_LOSS_IN_MAX_PLY + 1),
+                            i64(VALUE_TB_WIN_IN_MAX_PLY - 1)));
 }
 
 void update_correction_history(const Position& pos,
@@ -915,6 +919,7 @@ void Search::Worker::undo_null_move(Position& pos) { pos.undo_null_move(); }
 void Search::Worker::clear() {
     mainHistory.fill(-5);
     gateHistory.fill(0);
+    correctionAverage = 0;
     captureHistory.fill(-742);
 
     // Each thread clears its part of the dynamically-sized shared histories.
@@ -1040,6 +1045,15 @@ Value Search::Worker::search(
 
     const auto correctionValue = correction_value(*this, pos, ss);
 
+    // In ataxx a move adds a piece and converts the adjacent enemy pieces. The evaluation
+    // misses this tempo of several pieces, so the correction history learns a bias for
+    // the side to move that is larger than it can represent and stays close to its limit.
+    // The margins and reductions below use the deviation of the correction from its
+    // running average, as a constant bias does not make the static evaluation less reliable.
+    if (pos.flip_enclosed_pieces() == ATAXX)
+        correctionAverage += (correctionValue - correctionAverage) / 256;
+    const int correctionDeviation = std::abs(correctionValue - correctionAverage);
+
     // Step 4. Transposition table lookup
     excludedMove                   = ss->excludedMove;
     posKey                         = pos.key();
@@ -1068,7 +1082,8 @@ Value Search::Worker::search(
         if (!is_valid(unadjustedStaticEval))
             unadjustedStaticEval = evaluate(pos);
 
-        ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, correctionValue);
+        ss->staticEval = eval =
+          to_corrected_static_eval(unadjustedStaticEval, correctionValue, pos);
 
         // ttValue can be used as a better position evaluation
         if (is_valid(ttData.value)
@@ -1078,7 +1093,8 @@ Value Search::Worker::search(
     else
     {
         unadjustedStaticEval = evaluate(pos);
-        ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, correctionValue);
+        ss->staticEval = eval =
+          to_corrected_static_eval(unadjustedStaticEval, correctionValue, pos);
 
         // Static evaluation is saved as it was before adjustment by correction history
         ttWriter.write(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_UNSEARCHED, Move::none(),
@@ -1243,7 +1259,7 @@ Value Search::Worker::search(
         Value futilityMargin = futility_margin(depth, !ss->ttHit, improving, opponentWorsening)
                                * (1 + pos.check_counting() + 2 * pos.must_capture()
                                   + pos.extinction_single_piece() + !pos.checking_permitted())
-                             + std::abs(correctionValue) / 198435;
+                             + correctionDeviation / 198435;
 
         if (eval - futilityMargin >= beta)
             return (661 * beta + 363 * eval) / 1024;
@@ -1530,7 +1546,7 @@ moves_loop:  // When in check, search starts here
 
             if (value < singularBeta)
             {
-                int corrValAdj   = std::abs(correctionValue) / 198368;
+                int corrValAdj   = correctionDeviation / 198368;
                 int doubleMargin = -2 + 204 * PvNode - 152 * !ttCapture - corrValAdj
                                  - 1175 * ttMoveHistory / 114178 - (ss->ply > rootDepth) * 38;
                 int tripleMargin = 70 + 279 * PvNode - 188 * !ttCapture + 81 * ss->ttPv - corrValAdj
@@ -1613,7 +1629,7 @@ moves_loop:  // When in check, search starts here
         // reach hundreds and this term would extend late moves instead of reducing them
         if (!pos.walling())
             r -= moveCount * 65;
-        r -= std::abs(correctionValue) / 26310;
+        r -= correctionDeviation / 26310;
 
         // Increase reduction for cut nodes
         if (cutNode)
@@ -2034,7 +2050,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
                 unadjustedStaticEval = evaluate(pos);
 
             ss->staticEval = bestValue =
-              to_corrected_static_eval(unadjustedStaticEval, correctionValue);
+              to_corrected_static_eval(unadjustedStaticEval, correctionValue, pos);
 
             // ttValue can be used as a better position evaluation
             if (is_valid(ttData.value) && !is_decisive(ttData.value)
@@ -2045,7 +2061,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
         {
             unadjustedStaticEval = evaluate(pos);
             ss->staticEval       = bestValue =
-              to_corrected_static_eval(unadjustedStaticEval, correctionValue);
+              to_corrected_static_eval(unadjustedStaticEval, correctionValue, pos);
         }
 
         // Stand pat. Return immediately if static value is at least beta
