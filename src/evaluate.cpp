@@ -1646,11 +1646,15 @@ Value Eval::evaluate(const NNUE::Network&     network,
 
         // In antichess like variants, material has the opposite meaning, so the material
         // imbalance of simple_eval() is meaningless and inflates the optimism. Use neither.
+        // With pieces in hand (drops, gating), simple_eval() misses the material in hand,
+        // so the imbalance is meaningless as well. Do not use it.
         if (pos.extinction_value() == VALUE_MATE)
         {
             simpleEval = nnue;
             optimism   = 0;
         }
+        else if ((pos.piece_drops() && !pos.free_drops()) || pos.seirawan_gating())
+            simpleEval = nnue;
 
         // Blend optimism and eval with nnue complexity and material imbalance
         optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
