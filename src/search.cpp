@@ -1557,8 +1557,11 @@ moves_loop:  // When in check, search starts here
 
                 // Multiple extensions blow up the many forcing lines of drop variants.
                 // Drops are quiet moves, so the margins of quiet ttMoves would
-                // triple-extend almost every singular drop.
-                if (pos.captures_to_hand() || pos.two_boards() || pos.piece_drops())
+                // triple-extend almost every singular drop. In walling variants move count
+                // pruning leaves few of the many moves in the excluded search, so singular
+                // ttMoves would be triple-extended as well.
+                if (pos.captures_to_hand() || pos.two_boards() || pos.piece_drops()
+                    || pos.walling())
                     extension = 1;
 
                 depth++;
