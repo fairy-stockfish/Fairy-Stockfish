@@ -1171,29 +1171,132 @@ Value Endgame<KXKX, EG_EVAL_MISERE>::operator()(const Position& pos) const {
 
   assert(!pos.checkers()); // Eval is never called when in check
 
-  // Stalemate detection with lone king
-  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
+  // The weak side is stalemated, or it has a bare king that can never give mate
+  if ((pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size()) || pos.count<ALL_PIECES>(weakSide) == 1)
       return VALUE_DRAW;
 
   Square strongKing = pos.square<KING>(strongSide);
   Square weakKing   = pos.square<KING>(weakSide);
 
-  Value result =  pos.non_pawn_material(strongSide) * int(VALUE_KNOWN_WIN) / int(VALUE_KNOWN_WIN + pos.non_pawn_material(strongSide))
+  // Count strong pawns as queens already, so that promoting only gains the value of a pawn
+  Value maxValue = pos.non_pawn_material(strongSide) + pos.count<PAWN>(strongSide) * QueenValueMg;
+  Value result = (maxValue - pos.count<PAWN>(strongSide) * PawnValueMg) * int(VALUE_KNOWN_WIN) / int(VALUE_KNOWN_WIN + maxValue)
                 - pos.non_pawn_material(weakSide)
-                + pos.count<PAWN>(weakSide) * PawnValueEg
-                + push_to_opposing_edge(relative_square(weakSide, strongKing, pos.max_rank()), pos) * 2
-                + push_close(strongKing, weakKing) * 2;
+                + push_to_edge(strongKing, pos)
+                + push_close(strongKing, weakKing);
 
-  for (Bitboard b = pos.pieces(PAWN); b;)
+  // The strong king should be boxed in, so penalize its free flight squares
+  int strongMobility = popcount(PseudoAttacks[strongSide][KING][strongKing] & ~pos.pieces(strongSide) & ~PseudoAttacks[weakSide][KING][weakKing]);
+  result -= 20 * strongMobility;
+
+  // Restrict the weak king: penalize its flight squares not covered by the strong side
+  int weakMobility = 0;
+  for (Bitboard b = PseudoAttacks[weakSide][KING][weakKing] & ~pos.pieces(weakSide) & ~PseudoAttacks[strongSide][KING][strongKing]; b;)
+      weakMobility += !pos.attackers_to(pop_lsb(b), pos.pieces() ^ weakKing, strongSide);
+  result -= 20 * weakMobility;
+
+  // Weak pawns on their seventh rank promote with their next move and the weak
+  // side picks the promotion piece, so only less advanced pawns can be forced to mate.
+  Bitboard matingPawns = pos.pieces(weakSide, PAWN) & ~rank_bb(relative_rank(weakSide, RANK_7, pos.max_rank()));
+  if (matingPawns)
   {
-      Square s = pop_lsb(b);
-      result += (push_close(strongKing, s) + push_close(weakKing, s)) / 2;
+      // Squares on the seventh rank that a mating pawn can reach with its next move
+      Bitboard blocked = matingPawns & (weakSide == WHITE ? shift<SOUTH>(pos.pieces(PAWN)) : shift<NORTH>(pos.pieces(PAWN)));
+      Bitboard pushes = weakSide == WHITE ? shift<NORTH>(matingPawns ^ blocked) : shift<SOUTH>(matingPawns ^ blocked);
+      Bitboard captures = weakSide == WHITE ? pawn_attacks_bb<WHITE>(matingPawns) : pawn_attacks_bb<BLACK>(matingPawns);
+      Bitboard pawnTo7 = (pushes | captures) & rank_bb(relative_rank(weakSide, RANK_7, pos.max_rank()));
+
+      // Reward mate patterns where a pawn arriving on the seventh rank checks the strong king
+      // diagonally in front of it, and the strong side's own units take away its flight squares.
+      for (Bitboard pawnSquares = pawnTo7; pawnSquares;)
+      {
+          Square pawnSquare = pop_lsb(pawnSquares);
+          for (Direction d : {EAST, WEST})
+          {
+              if ((file_of(pawnSquare) == FILE_A && d == WEST) || (file_of(pawnSquare) == FILE_H && d == EAST))
+                  continue;
+              Square kingSquare = pawnSquare + pawn_push(weakSide) + d;  // strong king checked by the pawn
+              Square blockerSquare = pawnSquare + pawn_push(weakSide);   // in front of the pawn, next to the king
+              Square advanceSquare = pawnSquare + d;                     // next to the pawn, in front of the king
+              int bonus = 0;
+              // Both kings in place count most
+              bonus += kingSquare == strongKing;
+              bonus += bool(PseudoAttacks[weakSide][KING][weakKing] & pawnSquare);
+              bonus += bonus / 2;
+              // Which strong units stand next to the strong king matters: some complete the mating net, others spoil it
+              bonus += bool(pos.pieces(strongSide, BISHOP) & blockerSquare);
+              bonus -= bool(pos.pieces(strongSide, ROOK, QUEEN) & blockerSquare);
+              bonus += bool(pos.pieces(strongSide, KNIGHT, PAWN) & advanceSquare);
+              bonus -= bool(pos.pieces(strongSide, ROOK, QUEEN) & advanceSquare);
+              // Away from the edge the strong king also has flight squares on the far side
+              if ((file_of(pawnSquare) > FILE_B && d == WEST) || (file_of(pawnSquare) < FILE_G && d == EAST))
+              {
+                  Square sideSquare = kingSquare + d;
+                  Square sideAdvanceSquare = advanceSquare + d;
+                  bonus += bool(pos.pieces(strongSide, ROOK) & sideSquare);
+                  bonus -= bool(pos.pieces(strongSide, KNIGHT) & sideSquare);
+                  bonus += bool(pos.pieces(strongSide, BISHOP, PAWN) & sideAdvanceSquare);
+                  bonus -= bool((pos.pieces(strongSide, ROOK, QUEEN) & sideAdvanceSquare) && !(pos.pieces(strongSide) & advanceSquare));
+                  bonus -= 2 * bool(captures & sideAdvanceSquare); // the pawn could capture a blocker there
+              }
+              // The weak king must not cover the mating square itself
+              bonus -= bool(PseudoAttacks[weakSide][KING][weakKing] & kingSquare);
+              if (bonus > 0)
+                  result += bonus * bonus * 100 / (1 + distance(kingSquare, strongKing) + strongMobility);
+          }
+      }
+
+      // Bring both kings close to the mating pawns
+      for (Bitboard b = matingPawns; b;)
+      {
+          Square s = pop_lsb(b);
+          // The strong king belongs two squares in front of the pawn, the weak king close to its stop square
+          Square pawnTargetSquare = s + pawn_push(weakSide);
+          Square kingTargetSquare = pawnTargetSquare + pawn_push(weakSide);
+          result -= 50 * distance(strongKing, kingTargetSquare) + 50 * distance(weakKing, pawnTargetSquare);
+          // Advanced weak pawns have fewer spare tempi and are closer to mate
+          result += 20 * relative_rank(weakSide, s, pos.max_rank());
+      }
+  }
+  else
+  {
+      // Without mating pawns the weak pieces have to give mate. Reward squares from
+      // which a weak piece would check the strong king without the king being able
+      // to simply capture it.
+      for (Bitboard pieceSquares = pos.pieces(weakSide) ^ pos.pieces(weakSide, PAWN, KING); pieceSquares;)
+      {
+          Square s = pop_lsb(pieceSquares);
+          PieceType pt = type_of(pos.piece_on(s));
+          Bitboard checkSquares = pos.attacks_from(strongSide, pt, strongKing);
+          Bitboard safeChecks = checkSquares & (~PseudoAttacks[strongSide][KING][strongKing] | PseudoAttacks[weakSide][KING][weakKing]);
+          Bitboard reachableSafeChecks = pos.attacks_from(weakSide, pt, s) & safeChecks;
+          for (Bitboard b = safeChecks; b;)
+          {
+              Square checkSquare = pop_lsb(b);
+              int bonus = 0;
+              // No other strong piece can capture the checking piece
+              bonus += !(pos.attackers_to(checkSquare, strongSide) & ~square_bb(strongKing));
+              // Contact checks and knight checks cannot be blocked
+              bonus += bool(pt == KNIGHT || (PseudoAttacks[strongSide][KING][strongKing] & checkSquare));
+              // The weak piece can give this check with its next move
+              bonus += bool(reachableSafeChecks & checkSquare);
+              // Checking by capturing a strong slider that pins a weak piece
+              bonus += bool(pos.pinners(strongSide) & checkSquare);
+              if (bonus > 0)
+                  result += bonus * bonus * 100 / (1 + strongMobility + weakMobility);
+          }
+      }
   }
 
-  if (!pos.count<PAWN>(weakSide))
-      result = VALUE_DRAW;
-  else if (pos.count<PAWN>(weakSide) == 1)
-      result = result / 2;
+  // Without mating pawns a selfmate can hardly be forced, as the weak side chooses
+  // the promotion pieces. A single mating pawn also needs a strong minor piece or
+  // pawn to cover a flight square of the king. Other weak pieces can still give
+  // mate, so scale down less then. Otherwise, a minor piece and two major pieces
+  // are usually enough to build the mating net.
+  if (!matingPawns || (!more_than_one(matingPawns) && !pos.pieces(strongSide, BISHOP, KNIGHT, PAWN)))
+      result /= pos.count<ALL_PIECES>(weakSide) == pos.count<PAWN>(weakSide) + 1 ? 16 : 4;
+  else if (pos.pieces(strongSide, BISHOP, KNIGHT) && (pos.count<QUEEN>(strongSide) + pos.count<ROOK>(strongSide)) >= 2)
+      result += VALUE_KNOWN_WIN;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }

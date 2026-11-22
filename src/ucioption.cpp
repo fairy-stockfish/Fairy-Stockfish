@@ -77,12 +77,17 @@ void on_variant_path(const Option& o) {
     Options["UCI_Variant"].set_combo(variants.get_keys());
 }
 void on_variant_set(const Option &o) {
+    Eval::isChessVariant = o == "chess";
+
     // Re-initialize NNUE
     Eval::NNUE::init();
 
     const Variant* v = variants.find(o)->second;
     init_variant(v);
     PSQT::init(v);
+
+    // Load the tablebases of the variant
+    Tablebases::init(Options["SyzygyPath"]);
 }
 void on_variant_change(const Option &o) {
     // Variant initialization

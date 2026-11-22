@@ -360,8 +360,14 @@ void UCI::loop(int argc, char* argv[]) {
 #endif
                                                            : "chess");
           Options["UCI_Variant"].set_default(defaultVariant);
-          std::istringstream ss("startpos");
-          position(pos, ss, states);
+          // The XBoard state machine sets up its position without a thread
+          if (CurrentProtocol == XBOARD)
+              XBoard::stateMachine->setboard();
+          else
+          {
+              std::istringstream ss("startpos");
+              position(pos, ss, states);
+          }
           if (is_uci_dialect(CurrentProtocol) && token != "ucicyclone")
               sync_cout << "id name " << engine_info(true)
                           << "\n" << Options

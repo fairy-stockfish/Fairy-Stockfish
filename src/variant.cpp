@@ -537,7 +537,6 @@ namespace {
         return v;
     }
 
-#ifdef ALLVARS
     // Duck chess
     // https://duckchess.com/
     Variant* duck_variant() {
@@ -552,7 +551,6 @@ namespace {
         v->endgameEval = EG_EVAL_DUCK;
         return v;
     }
-#endif
 
     Variant* isolation_variant() { //https://boardgamegeek.com/boardgame/1875/isolation
         Variant* v = chess_variant_base()->init();
@@ -1709,7 +1707,6 @@ namespace {
         v->enclosingDropStart = make_bitboard(SQ_E5, SQ_F5, SQ_E6, SQ_F6);
         return v;
     }
-#ifdef ALLVARS
     // Game of the Amazons
     // https://en.wikipedia.org/wiki/Game_of_the_Amazons
     Variant* amazons_variant() {
@@ -1724,7 +1721,6 @@ namespace {
         v->wallingRule = ARROW;
         return v;
     }
-#endif
     // Xiangqi (Chinese chess)
     // https://en.wikipedia.org/wiki/Xiangqi
     // Xiangqi base variant for inheriting rules without chasing rules
@@ -1892,9 +1888,7 @@ void VariantMap::init() {
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
     add("fox-and-hounds", fox_and_hounds_variant());
-#ifdef ALLVARS
     add("duck", duck_variant());
-#endif
     add("joust", joust_variant());
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());
@@ -1962,9 +1956,7 @@ void VariantMap::init() {
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
     add("flipello10", flipello10_variant());
-#ifdef ALLVARS
     add("amazons", amazons_variant());
-#endif
     add("xiangqi", xiangqi_variant());
     add("manchu", manchu_variant());
     add("supply", supply_variant());
@@ -1984,6 +1976,15 @@ Variant* Variant::conclude() {
     if (!doubleStepRegion[WHITE] && !doubleStepRegion[BLACK])
         doubleStep = false;
 
+    // Board mask. Variants might be initialized before bitboards, so do not use BoardSizeBB.
+    boardBB = 0;
+    for (File f = FILE_A; f <= maxFile && f < FILE_NB; ++f)
+        boardBB |= file_bb(f);
+    Bitboard ranks = 0;
+    for (Rank r = RANK_1; r <= maxRank && r < RANK_NB; ++r)
+        ranks |= rank_bb(r);
+    boardBB &= ranks;
+
     // Determine optimizations
     bool restrictedMobility = false;
     for (PieceSet ps = pieceTypes; !restrictedMobility && ps;)
@@ -1997,11 +1998,26 @@ Variant* Variant::conclude() {
                   && !restrictedMobility
                   && !cambodianMoves
                   && !diagonalLines;
-    fastAttacks2 =  !(pieceTypes & ~(SHOGI_PIECES | COMMON_STEP_PIECES))
+    fastAttacks2 =  !(pieceTypes & ~(CHESS_PIECES | SHOGI_PIECES | COMMON_STEP_PIECES))
                   && kingType == KING
                   && !restrictedMobility
                   && !cambodianMoves
                   && !diagonalLines;
+    fastAttacksXiangqi =  !(pieceTypes & ~XIANGQI_PIECES)
+                        && kingType == WAZIR
+                        && !cambodianMoves
+                        && !diagonalLines;
+    fastAttacksJanggi =  !(pieceTypes & ~JANGGI_PIECES)
+                       && kingType == WAZIR
+                       && !cambodianMoves;
+    // Only moving a pinned piece can expose the king to an attack
+    fastLegal =  kingType == KING
+               && !restrictedMobility
+               && !cambodianMoves
+               && !diagonalLines
+               && !flyingGeneral
+               && !blastOnCapture
+               && wallingRule == NO_WALLING;
 
     // Initialize calculated NNUE properties
     nnueKing =  pieceTypes & KING ? KING

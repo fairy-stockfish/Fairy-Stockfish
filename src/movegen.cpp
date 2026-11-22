@@ -17,6 +17,8 @@
 */
 
 #include <cassert>
+#include <memory>
+#include <vector>
 
 #include "movegen.h"
 #include "position.h"
@@ -411,7 +413,7 @@ namespace {
                 moveList = generate_drops<Us, Type>(pos, moveList, pop_lsb(ps), target & ~pos.pieces(~Us));
 
         // Castling with non-king piece
-        if (!pos.count<KING>(Us) && Type != CAPTURES && pos.can_castle(Us & ANY_CASTLING))
+        if (pos.castling_king_piece(Us) != KING && Type != CAPTURES && pos.can_castle(Us & ANY_CASTLING))
         {
             Square from = pos.castling_king_square(Us);
             for(CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
@@ -464,7 +466,7 @@ namespace {
         if (pos.pass(Us))
             *moveList++ = make<SPECIAL>(ksq, ksq);
 
-        if ((Type == QUIETS || Type == NON_EVASIONS) && pos.can_castle(Us & ANY_CASTLING))
+        if ((Type == QUIETS || Type == NON_EVASIONS) && pos.castling_king_piece(Us) == KING && pos.can_castle(Us & ANY_CASTLING))
             for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
                 if (!pos.castling_impeded(cr) && pos.can_castle(cr))
                     moveList = make_move_and_gating<CASTLING>(pos, moveList, Us,ksq, pos.castling_rook_square(cr));
@@ -523,6 +525,29 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
           ++cur;
 
   return moveList;
+}
+
+namespace {
+
+  // Per-thread LIFO pool of move buffers. MovePicker and MoveList instances have
+  // strictly nested lifetimes within a thread, so buffers can be handed out and
+  // returned stack-wise. This keeps the large MAX_MOVES array off the machine
+  // stack, whose 8MB limit deep searches can otherwise exceed (see issue #957),
+  // and avoids a heap allocation for each MoveList.
+  thread_local std::vector<std::unique_ptr<ExtMove[]>> moveBuffers;
+  thread_local size_t usedMoveBuffers = 0;
+
+} // namespace
+
+ExtMove* acquire_move_buffer() {
+  if (usedMoveBuffers == moveBuffers.size())
+      moveBuffers.emplace_back(new ExtMove[MAX_MOVES]);
+  return moveBuffers[usedMoveBuffers++].get();
+}
+
+void release_move_buffer([[maybe_unused]] ExtMove* buffer) {
+  assert(usedMoveBuffers > 0 && moveBuffers[usedMoveBuffers - 1].get() == buffer);
+  --usedMoveBuffers;
 }
 
 } // namespace Stockfish

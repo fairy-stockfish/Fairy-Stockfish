@@ -64,7 +64,7 @@ jobs:
       - name: Build all variants
         run: |
           make clean
-          make -j2 ARCH=x86-64 largeboards=yes all=yes debug=yes build
+          make -j2 ARCH=x86-64 largeboards=yes debug=yes build
 
       - name: Test protocols
         run: |

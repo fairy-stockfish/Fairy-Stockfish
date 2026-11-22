@@ -38,6 +38,8 @@ Bitboard LeaperAttacks[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard LeaperMoves[2][COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Bitboard BoardSizeBB[FILE_NB][RANK_NB];
 RiderType AttackRiderTypes[PIECE_TYPE_NB];
+PieceSet PinUnsafeTypes;
+PieceSet SniperTypes;
 RiderType MoveRiderTypes[2][PIECE_TYPE_NB];
 
 Magic RookMagicsH[SQUARE_NB];
@@ -115,13 +117,13 @@ namespace {
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
-  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions, const Bitboard magicsInit[]);
+  void init_magics(Bitboard table[], Magic magics[], const std::map<Direction, int>& directions, const Bitboard magicsInit[]);
 #else
-  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions);
+  void init_magics(Bitboard table[], Magic magics[], const std::map<Direction, int>& directions);
 #endif
 
   template <MovementType MT>
-  Bitboard sliding_attack(std::map<Direction, int> directions, Square sq, Bitboard occupied, Color c = WHITE) {
+  Bitboard sliding_attack(const std::map<Direction, int>& directions, Square sq, Bitboard occupied, Color c = WHITE) {
     assert(MT != LAME_LEAPER);
 
     Bitboard attack = 0;
@@ -179,14 +181,14 @@ namespace {
     return b;
   }
 
-  Bitboard lame_leaper_path(std::map<Direction, int> directions, Square s) {
+  Bitboard lame_leaper_path(const std::map<Direction, int>& directions, Square s) {
     Bitboard b = 0;
     for (const auto& i : directions)
         b |= lame_leaper_path(i.first, s);
     return b;
   }
 
-  Bitboard lame_leaper_attack(std::map<Direction, int> directions, Square s, Bitboard occupied) {
+  Bitboard lame_leaper_attack(const std::map<Direction, int>& directions, Square s, Bitboard occupied) {
     Bitboard b = 0;
     for (const auto& i : directions)
     {
@@ -230,6 +232,9 @@ std::string Bitboards::pretty(Bitboard b) {
 /// Bitboards::init_pieces() initializes piece move/attack bitboards and rider types
 
 void Bitboards::init_pieces() {
+
+  PinUnsafeTypes = NO_PIECE_SET;
+  SniperTypes = NO_PIECE_SET;
 
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
@@ -279,6 +284,10 @@ void Bitboards::init_pieces() {
           }
       }
 
+      // Pieces whose attacks are not fully covered by slider_blockers()
+      if (AttackRiderTypes[pt] & NON_SLIDING_RIDERS)
+          PinUnsafeTypes |= pt;
+
       // Initialize move/attack bitboards
       for (Color c : { WHITE, BLACK })
       {
@@ -301,10 +310,19 @@ void Bitboards::init_pieces() {
                           if (!limit)
                               leaper |= safe_destination(s, c == WHITE ? d : -d);
                       }
-                      pseudo |= sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
+                      Bitboard sliding = sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
+                      // Leaps overlapping slides beyond adjacent squares hide pins from slider_blockers()
+                      if (modality == MODALITY_CAPTURE)
+                          for (Bitboard overlap = sliding & leaper; overlap; )
+                              if (distance(s, pop_lsb(overlap)) > 1)
+                                  PinUnsafeTypes |= pt;
+                      pseudo |= sliding;
                       pseudo |= sliding_attack<HOPPER_RANGE>(pi->hopper[initial][modality], s, 0, c);
                   }
               }
+              // Pieces with attacks that can be blocked
+              if (PseudoAttacks[c][pt][s] != LeaperAttacks[c][pt][s])
+                  SniperTypes |= pt;
           }
       }
   }
@@ -388,9 +406,9 @@ namespace {
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
-  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions, const Bitboard magicsInit[]) {
+  void init_magics(Bitboard table[], Magic magics[], const std::map<Direction, int>& directions, const Bitboard magicsInit[]) {
 #else
-  void init_magics(Bitboard table[], Magic magics[], std::map<Direction, int> directions) {
+  void init_magics(Bitboard table[], Magic magics[], const std::map<Direction, int>& directions) {
 #endif
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time

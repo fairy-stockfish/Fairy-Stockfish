@@ -95,7 +95,6 @@ endif
 
 ### 2.1. General and architecture defaults
 largeboards = no
-all = no
 precomputedmagics = yes
 nnue = no
 load_net = $(if $(filter $(nnue),yes),net)
@@ -346,11 +345,6 @@ endif
 # Embed and enable NNUE
 ifeq ($(nnue),no)
 	CXXFLAGS += -DNNUE_EMBEDDING_OFF
-endif
-
-# Enable all variants, even heavyweight ones like duck and amazons
-ifneq ($(all),no)
-	CXXFLAGS += -DALLVARS
 endif
 
 ifeq ($(COMP),)
@@ -779,10 +773,6 @@ else
 	@echo ""
 	@echo "make build ARCH=x86-64 COMP=gcc largeboards=yes"
 	@echo ""
-	@echo "Include all variants (adds Game of the Amazons): "
-	@echo ""
-	@echo "make build ARCH=x86-64 largeboards=yes all=yes"
-	@echo ""
 endif
 
 
@@ -902,7 +892,6 @@ config-sanity: $(load_net)
 	@echo ""
 	@echo "Fairy-Stockfish specific:"
 	@echo "largeboards: '$(largeboards)'"
-	@echo "all: '$(all)'"
 	@echo "precomputedmagics: '$(precomputedmagics)'"
 	@echo "nnue: '$(nnue)'"
 	@echo ""
