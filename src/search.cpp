@@ -1533,8 +1533,10 @@ moves_loop:  // When in check, search starts here
                 extension =
                   1 + (value < singularBeta - doubleMargin) + (value < singularBeta - tripleMargin);
 
-                // Multiple extensions blow up the many forcing lines of drop variants
-                if (pos.captures_to_hand() || pos.two_boards())
+                // Multiple extensions blow up the many forcing lines of drop variants.
+                // In walling variants move count pruning leaves few of the many moves
+                // in the excluded search, so singular ttMoves would be triple-extended.
+                if (pos.captures_to_hand() || pos.two_boards() || pos.walling())
                     extension = 1;
 
                 depth++;
