@@ -1644,17 +1644,16 @@ Value Eval::evaluate(const NNUE::Network&     network,
         Value nnue = static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional)
                                         / (1024 * NNUE::OutputScale));
 
-        // In antichess like variants, material has the opposite meaning, so the material
-        // imbalance of simple_eval() is meaningless and inflates the optimism. Use neither.
-        // With pieces in hand (drops, gating), simple_eval() misses the material in hand,
-        // so the imbalance is meaningless as well. Do not use it.
-        if (pos.extinction_value() == VALUE_MATE)
+        // The material imbalance of simple_eval() and the optimism are tuned for chess and
+        // its network. In variants, the piece values do not match the scale of the variant
+        // networks and pieces in hand are not counted, so the imbalance mostly inflates the
+        // optimism, and the optimism can outweigh the evaluation of the network. Use them
+        // only in chess.
+        if (!Eval::isChessVariant)
         {
             simpleEval = nnue;
             optimism   = 0;
         }
-        else if ((pos.piece_drops() && !pos.free_drops()) || pos.seirawan_gating())
-            simpleEval = nnue;
 
         // Blend optimism and eval with nnue complexity and material imbalance
         optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
