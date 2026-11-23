@@ -151,11 +151,11 @@ void update_correction_history(const Position& pos,
 Value value_draw(size_t nodes) { return VALUE_DRAW - 1 + Value(nodes & 0x2); }
 
 // Skill structure is used to implement strength limit. If we have a UCI_Elo,
-// we convert it to an appropriate skill level, anchored to the Stash engine.
-// This method is based on a fit of the Elo results for games played between
-// Stockfish at various skill levels and various versions of the Stash engine.
-// Skill 0 .. 19 now covers CCRL Blitz Elo from 1320 to 3190, approximately
-// Reference: https://github.com/vondele/Stockfish/commit/a08b8d4e9711c2
+// we convert it to a suitable fractional skill level, using anchoring to CCRL
+// Elo (goldfish 1.13 = 2000) and a fit through Ordo derived Elo for match
+// (TC 60+0.6) results spanning a wide range of k values. The fractional level
+// is rounded up or down non-deterministically, such that the average integer
+// skill level corresponds to the floating point one.
 struct Skill {
     Skill(int skill_level, int uci_elo) {
         if (uci_elo)
@@ -164,6 +164,8 @@ struct Skill {
             level             = std::clamp(shiftedElo > 0 ? std::pow(shiftedElo / 143.4, 1 / 0.806)
                                                           : shiftedElo / 143.4 + std::pow(shiftedElo / 500, 5),
                                -20.0, 20.0);
+            PRNG rng(now());  // local: Skill is constructed concurrently by all threads
+            level = int(level) + ((level - int(level)) * 1024 > rng.rand<unsigned>() % 1024);
         }
         else
             level = double(skill_level);
@@ -2387,7 +2389,7 @@ Move Skill::pick_best(const RootMoves& rootMoves, usize multiPV) {
         topScore = std::max(topScore, rootMoves[i].score);
         minScore = std::min(minScore, rootMoves[i].score);
     }
-    int    delta    = std::min(topScore - minScore, int(PawnValueEg));
+    int    delta    = std::min(topScore - minScore, int(PawnValueMg));
     int    maxScore = -VALUE_INFINITE;
     double weakness = 120 - 2 * level;
 
