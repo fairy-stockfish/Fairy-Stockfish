@@ -325,6 +325,7 @@ class Position {
     Key key() const;
     Key key_after(Move m) const;
     Key material_key(EndgameEval e = EG_EVAL_CHESS) const;
+    Key hand_key() const;
     Key pawn_key() const;
     Key history_pawn_key() const;
     Key minor_piece_key() const;

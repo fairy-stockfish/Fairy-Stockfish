@@ -1492,7 +1492,7 @@ Value Evaluation<T>::value() {
 
     // Probe the pawn hash table
     pe = Pawns::probe(pos);
-    score += pe->pawn_score(WHITE) - pe->pawn_score(BLACK);
+    score += pe->pawn_score(pos, WHITE) - pe->pawn_score(pos, BLACK);
 
     // Early exit if score is high
     auto lazy_skip = [&](Value lazyThreshold) {
@@ -1546,7 +1546,7 @@ make_v:
     if constexpr (T)
     {
         Trace::add(IMBALANCE, me->imbalance());
-        Trace::add(PAWN, pe->pawn_score(WHITE), pe->pawn_score(BLACK));
+        Trace::add(PAWN, pe->pawn_score(pos, WHITE), pe->pawn_score(pos, BLACK));
         Trace::add(MOBILITY, mobility[WHITE], mobility[BLACK]);
     }
 

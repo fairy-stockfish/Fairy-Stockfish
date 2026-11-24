@@ -164,14 +164,17 @@ namespace Material {
 
 Entry* probe(const Position& pos) {
 
-    Key    key = pos.material_key(pos.endgame_eval());
-    Entry* e   = pos.this_thread()->materialTable[key];
+    Key key = pos.material_key(pos.endgame_eval());
+    // The material key only covers pieces on the board, but in drop variants the
+    // entry also depends on the pieces in hand, so include them in the table key.
+    Key    tableKey = pos.captures_to_hand() || pos.two_boards() ? key ^ pos.hand_key() : key;
+    Entry* e        = pos.this_thread()->materialTable[tableKey];
 
-    if (e->key == key)
+    if (e->key == tableKey)
         return e;
 
     std::memset(e, 0, sizeof(Entry));
-    e->key           = key;
+    e->key           = tableKey;
     e->factor[WHITE] = e->factor[BLACK] = (uint8_t) SCALE_FACTOR_NORMAL;
 
     Value npm_w = pos.non_pawn_material(WHITE);

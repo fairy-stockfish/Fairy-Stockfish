@@ -230,6 +230,18 @@ void Position::init() {
 
 Key Position::material_key(EndgameEval e) const { return st->materialKey ^ Zobrist::endgame[e]; }
 
+// Position::hand_key() computes a hash key of the pieces in hand of both sides.
+Key Position::hand_key() const {
+    Key k = 0;
+    for (Color c : {WHITE, BLACK})
+        for (PieceSet ps = piece_types(); ps;)
+        {
+            PieceType pt = pop_lsb(ps);
+            k ^= Zobrist::hand(make_piece(c, pt), pieceCountInHand[c][pt]);
+        }
+    return k;
+}
+
 
 /// Position::set() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,

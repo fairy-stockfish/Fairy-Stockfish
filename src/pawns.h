@@ -31,7 +31,11 @@ namespace Stockfish::Pawns {
 
 struct Entry {
 
-    Score    pawn_score(Color c) const { return scores[c]; }
+    // Double pawn evaluation if there are no non-pawn pieces. This is not part
+    // of the cached score since the pawn key does not cover non-pawn pieces.
+    Score pawn_score(const Position& pos, Color c) const {
+        return pos.count<ALL_PIECES>(c) == pos.count<PAWN>(c) ? scores[c] * 2 : scores[c];
+    }
     Bitboard pawn_attacks(Color c) const { return pawnAttacks[c]; }
     Bitboard passed_pawns(Color c) const { return passedPawns[c]; }
     Bitboard pawn_attacks_span(Color c) const { return pawnAttacksSpan[c]; }

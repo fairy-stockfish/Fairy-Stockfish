@@ -195,10 +195,6 @@ Score evaluate(const Position& pos, Pawns::Entry* e) {
             score += BlockedPawn[r - RANK_5];
     }
 
-    // Double pawn evaluation if there are no non-pawn pieces
-    if (pos.count<ALL_PIECES>(Us) == pos.count<PAWN>(Us))
-        score = score * 2;
-
     return score;
 }
 
