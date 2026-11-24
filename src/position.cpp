@@ -2895,9 +2895,33 @@ bool Position::see_ge(Move m, Bitboard& occupied, Value threshold) const {
 
         res ^= 1;
 
+        // With fairy attackers, locate and remove the least valuable attacker
+        // of any type, and add the X-ray attackers of chess sliders behind it.
+        if (stmAttackers & ~(pieces(PAWN, KNIGHT) | pieces(BISHOP, ROOK) | pieces(QUEEN, KING)))
+        {
+            PieceType nextPt  = NO_PIECE_TYPE;
+            Value     nextVal = VALUE_INFINITE;
+            for (PieceSet ps = piece_types() & ~piece_set(KING); ps;)
+            {
+                PieceType pt = pop_lsb(ps);
+                if ((stmAttackers & pieces(pt)) && PieceValue[MG][pt] < nextVal)
+                {
+                    nextPt  = pt;
+                    nextVal = PieceValue[MG][pt];
+                }
+            }
+
+            if ((swap = nextVal - swap) < res)
+                break;
+
+            occupied ^= least_significant_square_bb(stmAttackers & pieces(nextPt));
+            attackers |= (attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN))
+                       | (attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN));
+        }
+
         // Locate and remove the next least valuable attacker, and add to
         // the bitboard 'attackers' any X-ray attackers behind it.
-        if ((bb = stmAttackers & pieces(PAWN)))
+        else if ((bb = stmAttackers & pieces(PAWN)))
         {
             occupied ^= least_significant_square_bb(bb);
             if ((swap = PawnValueMg - swap) < res)
