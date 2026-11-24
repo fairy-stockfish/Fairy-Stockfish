@@ -946,6 +946,12 @@ void Search::Worker::clear() {
         reductions[i] = int(2872 / 128.0 * std::log(i));
 
     refreshTable.clear(networks[numaAccessToken]);
+
+    // Entries of the classical evaluation caches are not always a pure function
+    // of their key (e.g. the material key ignores pieces in hand), so reset them
+    // as well to keep searches after ucinewgame reproducible.
+    pawnsTable.clear();
+    materialTable.clear();
 }
 
 

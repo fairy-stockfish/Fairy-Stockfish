@@ -236,6 +236,7 @@ std::ostream& operator<<(std::ostream&, SyncCout);
 template<class Entry, int Size>
 struct HashTable {
     Entry* operator[](Key key) { return &table[(uint32_t) key & (Size - 1)]; }
+    void   clear() { std::fill(table.begin(), table.end(), Entry()); }
 
    private:
     std::vector<Entry> table = std::vector<Entry>(Size);  // Allocate on the heap
