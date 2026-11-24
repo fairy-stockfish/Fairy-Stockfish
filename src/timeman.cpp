@@ -60,6 +60,15 @@ void TimeManagement::init(const Position&     pos,
     if (useNodesTime)
         limits.movetime *= npmsec;
 
+    // Without a clock for either side (e.g. go depth, movetime or infinite)
+    // there is nothing to manage. A clock of zero for the side to move while
+    // the opponent has time still uses the time management below.
+    if (!limits.use_time_management())
+    {
+        optimumTime = maximumTime = NoBound;
+        return;
+    }
+
     TimePoint moveOverhead = TimePoint(options["Move Overhead"]);
 
     // optScale is a percentage of available time to use for the current move.
