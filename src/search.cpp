@@ -1282,8 +1282,7 @@ Value Search::Worker::search(
              >= beta - 13 * depth - 47 * improving + 365
                   + 200
                       * (!pos.double_step_region(pos.side_to_move()) && (pos.piece_types() & PAWN))
-        && !excludedMove && pos.non_pawn_material(us)
-        && pos.count<ALL_PIECES>(~us) != pos.count<PAWN>(~us) && !pos.flip_enclosed_pieces()
+        && !excludedMove && pos.non_pawn_material(us) && !pos.flip_enclosed_pieces()
         && ss->ply >= nmpMinPly && beta >= -2000)
     {
         assert((ss - 1)->currentMove != Move::null());
