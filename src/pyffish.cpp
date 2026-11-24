@@ -24,11 +24,19 @@ using namespace Stockfish;
 
 static PyObject* PyFFishError;
 
+// The variant the pieces are currently set up for, see buildPosition()
+static const Variant* initializedVariant = nullptr;
+
 void buildPosition(Position& pos, StateListPtr& states, const char *variant, const char *fen, PyObject *moveList, const bool chess960) {
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
 
     const Variant* v = variants.find(std::string(variant))->second;
-    UCI::init_variant(v);
+    // Setting up the pieces of a variant is expensive, so only do it when the variant changes
+    if (v != initializedVariant)
+    {
+        UCI::init_variant(v);
+        initializedVariant = v;
+    }
     if (strcmp(fen, "startpos") == 0)
         fen = v->startFen.c_str();
     pos.set(v, std::string(fen), chess960, &states->back(), Threads.main());
@@ -87,6 +95,8 @@ extern "C" PyObject* pyffish_setOption(PyObject* self, PyObject *args) {
         PyObject *Value = PyUnicode_AsEncodedString( PyObject_Str(valueObj), "UTF-8", "strict");
         Options[name] = std::string(PyBytes_AS_STRING(Value));
         Py_XDECREF(Value);
+        // Setting UCI_Variant sets up the pieces of that variant
+        initializedVariant = nullptr;
     }
     else
     {

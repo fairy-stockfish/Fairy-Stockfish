@@ -389,6 +389,20 @@ class TestPyffish(unittest.TestCase):
         result = sf.set_option("UCI_Variant", "capablanca")
         self.assertIsNone(result)
 
+    def test_variant_initialization(self):
+        # The pieces are only set up when the variant changes.
+        # betzatest and cannonshogi define the same custom pieces differently.
+        fen = "7/7/7/3A3/7/7/7 w - - 0 1"
+        legals = ['d4c2', 'd4b3', 'd4b5', 'd4c6']
+        self.assertEqual(legals, sf.legal_moves("betzatest", fen, []))
+        self.assertEqual(legals, sf.legal_moves("betzatest", fen, []))
+        # switch to another variant and back
+        sf.legal_moves("cannonshogi", sf.start_fen("cannonshogi"), [])
+        self.assertEqual(legals, sf.legal_moves("betzatest", fen, []))
+        # a variant that is set up by the option
+        sf.set_option("UCI_Variant", "cannonshogi")
+        self.assertEqual(legals, sf.legal_moves("betzatest", fen, []))
+
     def test_two_boards(self):
         self.assertFalse(sf.two_boards("chess"))
         self.assertTrue(sf.two_boards("bughouse"))
