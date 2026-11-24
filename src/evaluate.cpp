@@ -1634,30 +1634,30 @@ Value Eval::evaluate(const NNUE::Network&     network,
     }
     else
     {
-        int simpleEval = simple_eval(pos, pos.side_to_move());
-
         auto [psqt, positional] = network.evaluate(pos, accumulators, caches);
 
         // Give more value to the positional evaluation
-        int   delta          = 24 - pos.non_pawn_material() / 9560;
-        int   nnueComplexity = std::abs(psqt - positional) / NNUE::OutputScale;
-        Value nnue = static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional)
+        int   delta = 24 - pos.non_pawn_material() / 9560;
+        Value nnue  = static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional)
                                         / (1024 * NNUE::OutputScale));
 
-        // The material imbalance of simple_eval() and the optimism are tuned for chess and
-        // its network. In variants, the piece values do not match the scale of the variant
-        // networks and pieces in hand are not counted, so the imbalance mostly inflates the
-        // optimism, and the optimism can outweigh the evaluation of the network. Use them
-        // only in chess.
-        if (!Eval::isChessVariant)
+        // The material imbalance of simple_eval(), the optimism and the complexity damping
+        // are tuned for chess and its network. In variants, the piece values do not match
+        // the scale of the variant networks and pieces in hand are not counted, so the
+        // imbalance mostly inflates the optimism, and the optimism can outweigh the
+        // evaluation of the network. Use the output of the network directly instead and
+        // only keep the material dependent scaling below.
+        if (Eval::isChessVariant)
         {
-            simpleEval = nnue;
-            optimism   = 0;
-        }
+            int simpleEval     = simple_eval(pos, pos.side_to_move());
+            int nnueComplexity = std::abs(psqt - positional) / NNUE::OutputScale;
 
-        // Blend optimism and eval with nnue complexity and material imbalance
-        optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
-        nnue -= nnue * (nnueComplexity + std::abs(simpleEval - nnue)) / 32768;
+            // Blend optimism and eval with nnue complexity and material imbalance
+            optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
+            nnue -= nnue * (nnueComplexity + std::abs(simpleEval - nnue)) / 32768;
+        }
+        else
+            optimism = 0;
 
         int npm = pos.non_pawn_material() / 64;
         v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
