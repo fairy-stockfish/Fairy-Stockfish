@@ -183,6 +183,17 @@ void TimeManagement::init(const Position&     pos,
         maximumTime     = std::max(optimumTime, std::min(maximumTime * 8 / 5, limit));
     }
 
+    // The time of a byoyomi period is lost if it is not used, so plan to use all of it,
+    // within the usual limit of the maximum time
+    if (limits.byoyomi && limits.movestogo == 0)
+    {
+        TimePoint limit =
+          std::max(TimePoint(1), TimePoint(0.8097 * limits.time[us] - moveOverhead));
+        TimePoint byo = std::min(limit, TimePoint(limits.byoyomi * scaleFactor));
+        optimumTime   = std::max(optimumTime, 2 * byo);
+        maximumTime   = std::max(maximumTime, byo);
+    }
+
     // Limit for interrupting the first iteration in walling variants
     hardLimit = std::max(maximumTime, TimePoint(0.8097 * limits.time[us] - moveOverhead));
 

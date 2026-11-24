@@ -174,6 +174,7 @@ void UCIEngine::go(istringstream& is, const std::vector<Move>& banmoves) {
         {
             int byoyomi = 0;
             is >> byoyomi;
+            limits.byoyomi    = byoyomi;
             limits.inc[WHITE] = limits.inc[BLACK] = byoyomi;
             limits.time[WHITE] += byoyomi;
             limits.time[BLACK] += byoyomi;
