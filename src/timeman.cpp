@@ -30,9 +30,17 @@ namespace Stockfish {
 
 TimePoint TimeManagement::optimum() const { return optimumTime; }
 TimePoint TimeManagement::maximum() const { return maximumTime; }
+TimePoint TimeManagement::hard_limit() const { return hardLimit; }
 
 void TimeManagement::clear() {
     availableNodes = -1;  // When in 'nodes as time' mode
+    minMoveTime    = 0;
+}
+
+// Keeps track of the time of the first iteration, which cannot be interrupted.
+// It follows increases at once and decreases slowly.
+void TimeManagement::update_min_move_time(TimePoint t) {
+    minMoveTime = std::max(t, (7 * minMoveTime + t) / 8);
 }
 
 void TimeManagement::advance_nodes_time(i64 nodes) {
@@ -91,6 +99,13 @@ void TimeManagement::init(const Position&     pos,
         moveOverhead *= npmsec;
     }
 
+    // In variants with expensive move generation (e.g. duck chess), even the first
+    // iteration of the search needs a significant amount of time. Reserve it for the
+    // remaining moves like the move overhead, so that the clock is not run down below
+    // what a move needs. In chess the first iteration takes far less than the move overhead.
+    const bool expensiveMoves = minMoveTime > moveOverhead;
+    moveOverhead              = std::max(moveOverhead, minMoveTime);
+
     // These numbers are used where multiplications, divisions,
     // or comparisons with constants are involved.
     const i64       scaleFactor = useNodesTime ? npmsec : 1;
@@ -101,7 +116,8 @@ void TimeManagement::init(const Position&     pos,
 
     // If less than one second, gradually reduce mtg.
     // In cyclic time controls we keep the actual movestogo as horizon.
-    if (scaledTime < 1000 && limits.movestogo == 0)
+    // Without increment, expensive moves keep the full horizon, and with it the reserve.
+    if (scaledTime < 1000 && limits.movestogo == 0 && (!expensiveMoves || limits.inc[us]))
         mtg = int(scaledTime * 0.05);
 
     // Make sure timeLeft is > 0 since we may use it as a divisor
@@ -166,6 +182,9 @@ void TimeManagement::init(const Position&     pos,
         optimumTime     = std::min(optimumTime * 8 / 5, std::max(optimumTime, limit));
         maximumTime     = std::max(optimumTime, std::min(maximumTime * 8 / 5, limit));
     }
+
+    // Limit for interrupting the first iteration in walling variants
+    hardLimit = std::max(maximumTime, TimePoint(0.8097 * limits.time[us] - moveOverhead));
 
     if (options["Ponder"])
         optimumTime += optimumTime / 4;

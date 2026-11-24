@@ -927,8 +927,24 @@ Move UCI::to_move(const Position& pos, string& str) {
             str[4] = char(tolower(str[4]));
     }
 
+    // Walling variants (e.g. duck chess) have thousands of legal moves, so only format
+    // the moves whose wall square can match the end of the string
+    bool     filter      = false;
+    Bitboard wallSquares = 0;
+    if (pos.walling() && CurrentProtocol != XBOARD && str.find(',') != string::npos)
+    {
+        filter = true;
+        for (Bitboard b = pos.board_bb(); b;)
+        {
+            Square      s  = pop_lsb(b);
+            std::string sq = UCI::square(pos, s);
+            if (str.size() >= sq.size() && str.compare(str.size() - sq.size(), sq.size(), sq) == 0)
+                wallSquares |= s;
+        }
+    }
+
     for (const auto& m : MoveList<LEGAL>(pos))
-        if (str == UCI::move(pos, m)
+        if (((!filter || (wallSquares & gating_square(m))) && str == UCI::move(pos, m))
             || (is_pass(m) && str == UCI::square(pos, from_sq(m)) + UCI::square(pos, to_sq(m))))
             return m;
 

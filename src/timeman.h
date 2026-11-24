@@ -50,6 +50,7 @@ class TimeManagement {
 
     TimePoint optimum() const;
     TimePoint maximum() const;
+    TimePoint hard_limit() const;
     template<typename FUNC>
     TimePoint elapsed(FUNC nodes) const {
         return useNodesTime ? TimePoint(nodes()) : elapsed_time();
@@ -58,6 +59,7 @@ class TimeManagement {
 
     void clear();
     void advance_nodes_time(std::int64_t nodes);
+    void update_min_move_time(TimePoint t);
 
    private:
     static constexpr TimePoint NoBound = std::numeric_limits<TimePoint>::max() / 2;
@@ -65,8 +67,10 @@ class TimeManagement {
     TimePoint startTime;
     TimePoint optimumTime = NoBound;
     TimePoint maximumTime = NoBound;
+    TimePoint hardLimit   = NoBound;
 
     std::int64_t availableNodes = -1;     // When in 'nodes as time' mode
+    TimePoint    minMoveTime    = 0;      // Time needed for the first iteration
     bool         useNodesTime   = false;  // True if we are in 'nodes as time' mode
 };
 

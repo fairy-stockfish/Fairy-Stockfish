@@ -637,6 +637,9 @@ bool Search::Worker::iterative_deepening() {
 
         if (!threads.stop)
         {
+            if (mainThread && rootDepth == 1)
+                mainThread->tm.update_min_move_time(elapsed());
+
             if (lastBestMovePV.empty() || lastBestMovePV[0] != rootMoves[0].pv[0])
                 lastBestMoveDepth = rootDepth;
 
@@ -2010,6 +2013,12 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     ss->inCheck = pos.checkers();
     moveCount   = 0;
 
+    // In walling variants (e.g. duck chess) the first iteration, where all root
+    // children are quiescence searches, can take longer than the remaining time,
+    // so check the time also here
+    if (pos.walling() && is_mainthread())
+        main_manager()->check_time(*this);
+
     // Used to send selDepth info to GUI (selDepth counts from 1, ply from 0)
     if (PvNode && selDepth < ss->ply + 1)
         selDepth = ss->ply + 1;
@@ -2475,11 +2484,17 @@ void SearchManager::check_time(Search::Worker& worker) {
             || Partner.weVirtualWin))
         return;
 
+    // In walling variants the first iteration is only interrupted to not lose on time,
+    // since the move of an incomplete first iteration is close to a random one
+    const bool firstWallingIteration = worker.rootDepth == 1 && worker.rootPos.walling();
+
     if (
       // Later we rely on the fact that we can at least use the mainthread previous
       // root-search score and PV in a multithreaded environment to prove mated-in scores.
       worker.rootDepth >= 1
-      && ((worker.limits.use_time_management() && (elapsed > tm.maximum() || stopOnPonderhit))
+      && ((worker.limits.use_time_management()
+           && (elapsed > (firstWallingIteration ? tm.hard_limit() : tm.maximum())
+               || stopOnPonderhit))
           || (worker.limits.movetime && elapsed >= worker.limits.movetime)
           || (worker.limits.nodes && worker.threads.nodes_searched() >= worker.limits.nodes)))
         worker.threads.stop = true;
