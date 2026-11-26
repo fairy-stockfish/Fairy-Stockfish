@@ -820,12 +820,8 @@ string UCI::wdl(Value v, int ply) {
 std::string UCI::square(const Position& pos, Square s) {
 #ifdef LARGEBOARDS
     if (CurrentProtocol == USI)
-        return rank_of(s) < RANK_10
-               ? std::string{char('1' + pos.max_file() - file_of(s)),
-                             char('a' + pos.max_rank() - rank_of(s))}
-               : std::string{char('0' + (pos.max_file() - file_of(s) + 1) / 10),
-                             char('0' + (pos.max_file() - file_of(s) + 1) % 10),
-                             char('a' + pos.max_rank() - rank_of(s))};
+        return std::to_string(pos.max_file() - file_of(s) + 1)
+             + char('a' + pos.max_rank() - rank_of(s));
     else if (pos.max_rank() == RANK_10 && CurrentProtocol != UCI_GENERAL)
         return std::string{char('a' + file_of(s)), char('0' + rank_of(s))};
     else
