@@ -2086,9 +2086,10 @@ Variant* Variant::conclude() {
         for (PieceSet ps = pieceTypes; ps;)
         {
             // Make sure that the king type gets the last index, since the NNUE architecture relies on that
-            PieceType pt = lsb(ps != piece_set(layout.king) ? ps & ~piece_set(layout.king) : ps);
+            // The royal piece is the last one in both layouts, as the data of the trainer expects
+            PieceType pt = lsb(ps != piece_set(nnueKing) ? ps & ~piece_set(nnueKing) : ps);
             ps ^= pt;
-            assert(pt != layout.king || !ps);
+            assert(pt != nnueKing || !ps);
 
             for (Color c : {WHITE, BLACK})
             {
