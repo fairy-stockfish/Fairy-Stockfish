@@ -55,6 +55,10 @@ inline bool operator<(const ExtMove& f, const ExtMove& s) {
 template<GenType>
 ExtMove* generate(const Position& pos, ExtMove* moveList);
 
+/// Walling variants: ranks the wall-square twins of a scored list of moves and in duck chess
+/// removes dominated wall squares (depth <= 0: qsearch/ProbCut, ply == 0: root).
+void walling_post_process(const Position& pos, ExtMove* first, ExtMove*& last, Depth depth, int ply);
+
 /// acquire_move_buffer() and release_move_buffer() hand out buffers of MAX_MOVES
 /// moves from a per-thread pool. Buffers have to be released in reverse order.
 ExtMove* acquire_move_buffer();

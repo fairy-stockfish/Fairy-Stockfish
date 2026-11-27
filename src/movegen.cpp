@@ -529,6 +529,124 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 
 namespace {
 
+  // Duck squares after which our king cannot be captured following piece move m. The duck
+  // can only block one slider ray: with a non-slider attacker or two sliders attacking the
+  // king no duck square is safe, with a single slider only the squares between king and slider.
+  Bitboard duck_safe_squares(const Position& pos, Move m) {
+
+    const Color us = pos.side_to_move(), them = ~us;
+    const Square from = from_sq(m), to = to_sq(m);
+
+    if (   (type_of(m) != NORMAL && type_of(m) != PROMOTION)
+        || !pos.pieces(us, COMMONER)
+        || type_of(pos.piece_on(to)) == COMMONER)
+        return AllSquares;
+
+    const Square k = from == lsb(pos.pieces(us, COMMONER)) ? to : lsb(pos.pieces(us, COMMONER));
+    const Bitboard occ = (pos.pieces() ^ pos.state()->wallSquares ^ from) | to;
+    const Bitboard enemies = pos.pieces(them) & ~square_bb(to);
+
+    const Bitboard hard = (  (pawn_attacks_bb(us, k) & pos.pieces(them, PAWN))
+                           | (attacks_bb<KNIGHT>(k) & pos.pieces(them, KNIGHT))
+                           | (attacks_bb<KING>(k) & pos.pieces(them, COMMONER))) & enemies;
+    const Bitboard sliders = (  (attacks_bb<BISHOP>(k, occ) & pos.pieces(them, BISHOP, QUEEN))
+                              | (attacks_bb<ROOK>(k, occ) & pos.pieces(them, ROOK, QUEEN))) & enemies;
+
+    if (hard || more_than_one(sliders))
+        return Bitboard(0);
+    return sliders ? between_bb(k, lsb(sliders)) : AllSquares;
+  }
+
+} // namespace
+
+/// walling_post_process() is applied to a scored list of moves in walling variants. The
+/// twins of a piece move (moves differing only in the wall square, generated consecutively)
+/// are ranked: the best twin keeps its score, the others get a penalty (depth <= 0, i.e.
+/// qsearch and ProbCut: they are removed), so that the best twins of other piece moves come
+/// first. In duck chess, wall squares after which our king can be captured are tried last,
+/// and in the main search below the root (depth > 0, ply > 0) these are removed (all but one
+/// if none is safe), as well as wall squares that are dominated: an opponent that reaches a
+/// square only along one slider ray, with another wall square between slider and square,
+/// loses all of its moves by that wall square as well.
+/// At least one twin of each piece move is always kept.
+
+void walling_post_process(const Position& pos, ExtMove* first, ExtMove*& last, Depth depth, int ply) {
+
+  constexpr int PieceMoveMask = (1 << (2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS)) - 1;
+  const bool duck = pos.walling_rule() == DUCK;
+  const bool filter = duck && depth > 0 && ply > 0;
+  const bool dominance = filter && depth <= 8;
+  const Color them = ~pos.side_to_move();
+  ExtMove* out = first;
+
+  for (ExtMove* g = first, *e; g != last; g = e)
+  {
+      Bitboard keep = 0;
+      for (e = g; e != last && !((e->move ^ g->move) & PieceMoveMask); ++e)
+          keep |= square_bb(gating_square(e->move));
+
+      const Bitboard safe = duck ? duck_safe_squares(pos, *g) : AllSquares;
+      const Bitboard unsafe = keep & ~safe;
+      keep &= safe;
+
+      // Skip wall squares that lose the king, but keep one twin if all of them do
+      Bitboard dominated = !filter ? Bitboard(0) : keep ? unsafe : unsafe & (unsafe - 1);
+
+      if (dominance && more_than_one(keep) && type_of(pos.piece_on(to_sq(*g))) != COMMONER)
+      {
+          const Bitboard before = keep;
+          const Bitboard occ = (pos.pieces() ^ pos.state()->wallSquares ^ from_sq(*g)) | to_sq(*g);
+          const Bitboard enemies = pos.pieces(them) & ~square_bb(to_sq(*g));
+
+          // Squares reached by several pieces, pawns, knights, the king or castling are not dominated
+          auto push = [&](Bitboard b) { return them == WHITE ? shift<NORTH>(b) : shift<SOUTH>(b); };
+          const Bitboard pawns = push(pos.pieces(them, PAWN) & enemies);
+          Bitboard fixed = pawns | push(pawns);
+          if (pos.castling_rights(them))
+              fixed |= rank_bb(relative_rank(them, RANK_1));
+          Bitboard seen = 0, multi = 0, near = 0;
+          for (Bitboard b = enemies; b; )
+          {
+              const Square s = pop_lsb(b);
+              const PieceType pt = type_of(pos.piece_on(s));
+              const Bitboard att = attacks_bb(them, pt, s, occ);
+              if (pt == BISHOP || pt == ROOK || pt == QUEEN)
+                  multi |= seen & att, seen |= att, near |= attacks_bb(them, pt, s, occ | keep);
+              else
+                  fixed |= att;
+          }
+          // Taking away moves could stalemate the opponent, which is a win for him
+          if (popcount((fixed | seen) & ~enemies) >= 12)
+          {
+              const Bitboard neutral = keep & ~(fixed | seen);
+              const Bitboard rest = keep & ~neutral & ~(seen & ~near & ~multi & ~fixed);
+              keep = rest ? rest : neutral & -neutral;
+          }
+          dominated |= before & ~keep;
+      }
+
+      ExtMove* start = out, *best = nullptr;
+      for (ExtMove* x = g; x != e; ++x)
+          if (!(dominated & square_bb(gating_square(*x))))
+          {
+              *out = *x;
+              out->value -= !(safe & gating_square(*x)) << 18;
+              if (!best || out->value > best->value)
+                  best = out;
+              ++out;
+          }
+
+      if (depth <= 0)
+          *start = *best, out = start + 1;
+      else
+          for (ExtMove* x = start; x != out; ++x)
+              x->value -= (x != best) * 16000;
+  }
+  last = out;
+}
+
+namespace {
+
   // Per-thread LIFO pool of move buffers. MovePicker and MoveList instances have
   // strictly nested lifetimes within a thread, so buffers can be handed out and
   // returned stack-wise. This keeps the large MAX_MOVES array off the machine

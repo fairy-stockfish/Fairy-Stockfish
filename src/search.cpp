@@ -1818,6 +1818,18 @@ moves_loop: // When in check, search starts from here
     Piece moved_piece = pos.moved_piece(bestMove);
     PieceType captured = type_of(pos.piece_on(to_sq(bestMove)));
 
+    // In walling variants the twins of a piece move (differing only in the wall square) get
+    // one malus for the piece move, and none for the best move's piece move
+    int seen[100] = { from_to(bestMove) }, nSeen = 1;
+    auto first_malus = [&](Move m) {
+        if (!pos.walling())
+            return true;
+        if (std::find(seen, seen + nSeen, from_to(m)) != seen + nSeen)
+            return false;
+        seen[nSeen++] = from_to(m);
+        return true;
+    };
+
     bonus1 = stat_bonus(depth + 1);
     bonus2 = bestValue > beta + PawnValueMg ? bonus1                                 // larger bonus
                                             : std::min(bonus1, stat_bonus(depth));   // smaller bonus
@@ -1830,11 +1842,13 @@ moves_loop: // When in check, search starts from here
         // Decrease stats for all non-best quiet moves
         for (int i = 0; i < quietCount; ++i)
         {
-            if (!(pos.walling() && from_to(quietsSearched[i]) == from_to(bestMove)))
-                thisThread->mainHistory[us][from_to(quietsSearched[i])] << -bonus2;
             if (pos.walling())
                 thisThread->gateHistory[us][gating_square(quietsSearched[i])] << -bonus2;
-            update_continuation_histories(ss, pos.moved_piece(quietsSearched[i]), to_sq(quietsSearched[i]), -bonus2);
+            if (first_malus(quietsSearched[i]))
+            {
+                thisThread->mainHistory[us][from_to(quietsSearched[i])] << -bonus2;
+                update_continuation_histories(ss, pos.moved_piece(quietsSearched[i]), to_sq(quietsSearched[i]), -bonus2);
+            }
         }
     }
     else
@@ -1856,7 +1870,7 @@ moves_loop: // When in check, search starts from here
     {
         moved_piece = pos.moved_piece(capturesSearched[i]);
         captured = type_of(pos.piece_on(to_sq(capturesSearched[i])));
-        if (!(pos.walling() && from_to(capturesSearched[i]) == from_to(bestMove)))
+        if (first_malus(capturesSearched[i]))
             captureHistory[moved_piece][to_sq(capturesSearched[i])][captured] << -bonus1;
         if (pos.walling())
             thisThread->gateHistory[us][gating_square(capturesSearched[i])] << -bonus1;

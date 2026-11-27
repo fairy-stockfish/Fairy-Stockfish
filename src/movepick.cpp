@@ -129,6 +129,10 @@ void MovePicker::score() {
                        + 2 * (*continuationHistory[0])[history_slot(pos.moved_piece(m))][to_sq(m)]
                        - (1 << 28);
       }
+
+  if constexpr (Type != EVASIONS)
+      if (pos.walling())
+          walling_post_process(pos, begin(), endMoves, stage == CAPTURE_INIT || Type == QUIETS ? depth : 0, ply);
 }
 
 /// MovePicker::select() returns the next move satisfying a predicate function.
